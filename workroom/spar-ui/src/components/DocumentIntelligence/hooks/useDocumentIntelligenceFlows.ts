@@ -107,6 +107,7 @@ export const useDocumentLayoutFlow = () => {
             threadId,
             agentId,
             formData: fileRef,
+            instructions: '', // TODO: User needs to be able to provide a system prompt.
           });
 
           const { schema } = schemaResult;
@@ -170,6 +171,7 @@ export const useDocumentLayoutFlow = () => {
             threadId,
             agentId,
             formData: fileRef,
+            instructions: '', // TODO: User needs to be able to provide a system prompt.
           });
 
           // Extract the schema from the response

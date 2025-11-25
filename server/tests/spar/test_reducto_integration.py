@@ -18,7 +18,6 @@ from .helpers import upload_file_to_thread
 
 
 class ExtractionSchemaResult(TypedDict):
-    file: None
     schema: dict
     resource_name: str
 
@@ -190,8 +189,7 @@ class TestReductoIntegration:
             file_ref, thread_id, agent_id
         )
         return {
-            "file": extraction_schema["file"],
-            "schema": extraction_schema["schema"],
+            "schema": extraction_schema.schema,
             "resource_name": resource_name,
         }
 

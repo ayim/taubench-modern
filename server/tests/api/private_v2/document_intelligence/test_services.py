@@ -49,7 +49,7 @@ def _make_uploaded_file(file_id: str = "file-123"):
 
 @pytest.mark.asyncio
 async def test_resolve_reducto_doc_id_for_extract_prefers_job_id():
-    request = _make_request(job_id="job-123")
+    request = _make_request(file_name="foo.pdf", job_id="job-123")
     file_manager = SimpleNamespace(read_file_contents=AsyncMock())
     extraction_client = SimpleNamespace(upload=AsyncMock())
 
@@ -68,7 +68,7 @@ async def test_resolve_reducto_doc_id_for_extract_prefers_job_id():
 @pytest.mark.asyncio
 async def test_resolve_reducto_doc_id_for_extract_uploads_file_when_present():
     uploaded_file = _make_uploaded_file()
-    request = _make_request(uploaded_file=uploaded_file)
+    request = _make_request(file_name=uploaded_file.file_ref, uploaded_file=uploaded_file)
 
     file_contents = b"file-bytes"
     file_manager = SimpleNamespace(read_file_contents=AsyncMock(return_value=file_contents))
@@ -95,7 +95,7 @@ async def test_resolve_reducto_doc_id_for_extract_requires_reference():
     from agent_platform.core.errors.base import PlatformHTTPError
     from agent_platform.core.errors.responses import ErrorCode
 
-    request = _make_request()  # does not have uploaded_file or job_id
+    request = _make_request(file_name="foo.pdf")  # does not have uploaded_file or job_id
     file_manager = SimpleNamespace(read_file_contents=AsyncMock())
     extraction_client = SimpleNamespace(upload=AsyncMock())
 

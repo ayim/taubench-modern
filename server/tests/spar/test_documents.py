@@ -169,6 +169,7 @@ class TestDocuments:
         # Step 2: Extract using the job_id from parse
         extract_payload = ExtractDocumentPayload(
             thread_id=thread_id,
+            file_name=file_name,
             job_id=job_id,
             document_layout=DocumentLayoutPayload(
                 extraction_schema=_ExtractionSchema.model_validate(json_schema),

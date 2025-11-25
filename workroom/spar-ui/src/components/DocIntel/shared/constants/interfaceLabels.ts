@@ -3,11 +3,10 @@
  * Maps API enum values to user-friendly display strings
  */
 export const DOC_INTEL_INTERFACE_LABELS: Record<string, string> = {
-  'di-parse-only': 'Parse Only',
+  'di-parse-only': 'Parse',
   // 'parse-only-v1': 'Parse Only V1', // Use this for legacy flow. (DocumentIntelligenceDialog.tsx)
-  'di-extract-only': 'Extract Only',
+  'di-extract-only': 'Extract',
   'di-create-data-model': 'Create Data Model',
-  'di-extract': 'Extract Data', // Future use - full extract with database
 } as const;
 
 /**

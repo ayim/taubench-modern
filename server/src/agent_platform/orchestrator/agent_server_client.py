@@ -13,6 +13,7 @@ from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
     ExtractJobResult,
+    GenerateSchemaResponsePayload,
     JobStartResponsePayload,
     ParseJobResult,
     SplitJobResult,
@@ -1013,7 +1014,9 @@ class AgentServerClient:
             ) from e
         return response
 
-    def generate_extraction_schema(self, file_ref: str, thread_id: str, agent_id: str) -> dict:
+    def generate_extraction_schema(
+        self, file_ref: str, thread_id: str, agent_id: str
+    ) -> GenerateSchemaResponsePayload:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/documents/generate-schema?thread_id={thread_id}&agent_id={agent_id}",
@@ -1031,9 +1034,8 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error generating extraction schema: {response.status_code} {response.text}",
             ) from e
-        result = response.json()
-        print_success("Extraction schema generated successfully")
-        return result
+
+        return GenerateSchemaResponsePayload(**response.json())
 
     def parse_document(self, file_ref: str, agent_id: str, thread_id: str) -> ParseJobResult:
         """Parse a document using Document Intelligence.

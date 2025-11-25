@@ -1,6 +1,8 @@
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 from fastapi import APIRouter, Form, UploadFile
+from fastapi.params import Query
+from pydantic import BaseModel, Field
 from sema4ai_docint.extraction.reducto.async_ import JobType
 from starlette.concurrency import run_in_threadpool
 from structlog import get_logger
@@ -34,11 +36,13 @@ from agent_platform.server.api.private_v2.document_intelligence.services import 
     _upload_and_start_parse,
 )
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.cache import CacheKeyStrategy, ThreadFileCache
 
 logger = get_logger(__name__)
 
 
 router = APIRouter()
+
 
 CITATION_CORRELATION_DOCS = """The citations included with results from this endpoint can be
 correlated to the schema fields based on their types.
@@ -128,6 +132,63 @@ Corresponding citation object:
 """
 
 
+class SchemaCacheKeyStrategy(CacheKeyStrategy):
+    """Cache key strategy for document schema generation.
+
+    Generates cache file names based on the source document's file reference.
+    The instructions parameter is not included in the cache key itself, but is
+    used by the validate_fn to check if the cached schema is still valid.
+    """
+
+    def generate_key(self, file_ref: str, prompt: str = "") -> str:
+        """Generate cache key from the document file reference.
+
+        Args:
+            file_ref: The file reference of the source document
+
+        Returns:
+            Cache file name in the format: {file_ref}.schema.json
+        """
+        return f"{file_ref}.schema.json"
+
+
+class SchemaWithPrompt(BaseModel):
+    extract_schema: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExtractedDocumentKeyStrategy(CacheKeyStrategy):
+    """Cache key strategy for extracted document.
+
+    Generates cache file names based on the source document's file reference.
+    """
+
+    def generate_key(
+        self,
+        file_ref: str,
+        extract_schema: dict[str, Any],
+        system_prompt: str = "",
+        extraction_config: dict[str, Any] | None = None,
+    ) -> str:
+        """Generate cache key from the document file reference.
+
+        Args:
+            file_ref: The file reference of the source document
+
+        Returns:
+            Cache file name in the format: {file_ref}.extracted.json
+        """
+        return f"{file_ref}.extracted.json"
+
+
+class ExtractedDocument(BaseModel):
+    result: dict[str, Any] = Field(default_factory=dict)
+    job_id: str = Field()
+    extract_schema: dict[str, Any] = Field()
+    citations: dict[str, Any] | None = Field(default=None)
+    system_prompt: str | None = Field(default=None)
+    extraction_config: dict[str, Any] | None = Field(default=None)
+
+
 # Decorator to add citation documentation to extraction endpoints
 def add_citation_docs(func):
     """Decorator that adds citation correlation documentation to endpoint docstrings."""
@@ -144,11 +205,13 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     agent_server_client: AgentServerClientDependency,
-    instructions: Annotated[str | None, Form(...)] = None,
+    force: Annotated[bool, Query(description="Force re-generation of the schema.")] = False,
+    instructions: Annotated[str, Form(...)] = "",
 ) -> GenerateSchemaResponsePayload:
     """Generate an extraction schema from a document."""
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
+    # Get the file we want to generate a schema for
     uploaded_file, new_file = await _get_or_upload_file(
         file,
         thread=thread,
@@ -157,15 +220,43 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
+    # Set up cache for schema storage
+    schema_cache = ThreadFileCache[SchemaWithPrompt, ...](
+        storage=storage,
+        file_manager=file_manager,
+        key_strategy=SchemaCacheKeyStrategy(),
+    )
+
+    # Try to get cached schema if not forcing regeneration
+    if not force:
+        cached_schema = await schema_cache.get(
+            thread=thread,
+            user_id=user.user_id,
+            model_class=SchemaWithPrompt,
+            file_ref=uploaded_file.file_ref,
+            prompt=instructions,
+        )
+        if cached_schema:
+            return GenerateSchemaResponsePayload(schema=cached_schema.extract_schema)
+
+    # Generate a new schema
     schema = await run_in_threadpool(
         agent_server_client.generate_schema,
         uploaded_file.file_ref,
         user_prompt=instructions,
     )
 
+    # Save the schema to cache
+    await schema_cache.set(
+        thread=thread,
+        user_id=user.user_id,
+        data=SchemaWithPrompt(extract_schema=schema),
+        file_ref=uploaded_file.file_ref,
+    )
+
+    # Return the schema to the caller
     return GenerateSchemaResponsePayload(
         schema=schema,
-        file=uploaded_file if new_file else None,
     )
 
 
@@ -272,6 +363,7 @@ async def extract_document(  # noqa: PLR0913
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClientDependency,
     docint_ds: DocIntDatasourceDependency,
+    force: Annotated[bool, Query(description="Force re-extraction of the document.")] = False,
 ) -> ExtractJobResult:
     """Extract structured data from an existing document.
 
@@ -280,6 +372,8 @@ async def extract_document(  # noqa: PLR0913
     # This endpoint deviates from other endpoints because it uses a JSON payload so it
     # cannot accept a multipart/form-data request that includes a file.
 
+    thread = await _get_thread_or_404(storage, user.user_id, payload.thread_id)
+
     request = await _resolve_extract_request(
         payload=payload,
         docint_ds=docint_ds,
@@ -287,6 +381,33 @@ async def extract_document(  # noqa: PLR0913
         file_manager=file_manager,
         user=user,
     )
+    # Set up cache for schema storage
+    cache = ThreadFileCache[ExtractedDocument, ...](
+        storage=storage,
+        file_manager=file_manager,
+        key_strategy=ExtractedDocumentKeyStrategy(),
+        validate_fn=lambda cached, ctx: cached.system_prompt == ctx.get("system_prompt")
+        and cached.extraction_config == ctx.get("extraction_config")
+        and cached.extract_schema == ctx.get("extract_schema"),
+    )
+
+    # Try to get cached extracted document if not forcing regeneration
+    if not force:
+        cached_result = await cache.get(
+            thread=thread,
+            user_id=user.user_id,
+            model_class=ExtractedDocument,
+            file_ref=request.file_name,
+            extract_schema=request.extraction_schema,
+            system_prompt=request.extraction_system_prompt,
+            extraction_config=request.extraction_config,
+        )
+        if cached_result:
+            return ExtractJobResult(
+                result=cached_result.result,
+                job_id=cached_result.job_id,
+                citations=cached_result.citations,
+            )
 
     extract_response = await _upload_and_start_extract(
         request=request,
@@ -303,6 +424,38 @@ async def extract_document(  # noqa: PLR0913
                 error_code=ErrorCode.UNEXPECTED,
                 message=f"Extract response is not a ExtractJobResult (was {type(job_result)})",
             )
+
+        # Save the extracted document to cache
+        extracted_document = ExtractedDocument(
+            result=job_result.result,
+            job_id=extract_response.job_id,
+            extract_schema=request.extraction_schema,
+            citations=job_result.citations,
+            system_prompt=request.extraction_system_prompt,
+            extraction_config=request.extraction_config,
+        )
+        await cache.set(
+            thread=thread,
+            user_id=user.user_id,
+            data=extracted_document,
+            file_ref=request.file_name,
+            extract_schema=request.extraction_schema,
+            system_prompt=request.extraction_system_prompt,
+            extraction_config=request.extraction_config,
+        )
+
+        # Store the latest schema we used to extract the document
+        schema_cache = ThreadFileCache[SchemaWithPrompt, ...](
+            storage=storage,
+            file_manager=file_manager,
+            key_strategy=SchemaCacheKeyStrategy(),
+        )
+        await schema_cache.set(
+            thread=thread,
+            user_id=user.user_id,
+            data=SchemaWithPrompt(extract_schema=request.extraction_schema),
+            file_ref=request.file_name,
+        )
 
         return job_result
     except PlatformHTTPError:

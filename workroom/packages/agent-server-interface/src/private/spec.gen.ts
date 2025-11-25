@@ -4911,6 +4911,18 @@ export const spec = {
             },
           },
           {
+            name: 'force',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'boolean',
+              description: 'Force re-generation of the schema.',
+              default: false,
+              title: 'Force',
+            },
+            description: 'Force re-generation of the schema.',
+          },
+          {
             name: 'agent_id',
             in: 'query',
             required: true,
@@ -5077,7 +5089,22 @@ export const spec = {
           'Extract structured data from an existing document.\n\n    Returns extracted data formatted according to the document\'s data model schema.\n    The citations included with results from this endpoint can be\ncorrelated to the schema fields based on their types.\n\nExample citation for a simple field in an object:\n\n```json\n{\n    // this key will be the same key as the schema field\n    "sample_extracted_field": [\n        {\n            "bbox": {\n                "left": 0.1,\n                "top": 0.2,\n                "width": 0.3,\n                "height": 0.05,\n                "page": 1,\n                "original_page": 1\n            },\n            "confidence": "high",\n            "content": "granular citation",\n            "image_url": null,\n            // Parent block will likely match a similar parse block in the document\n            "parentBlock": {\n                "bbox": {\n                    "left": 0.1,\n                    "top": 0.9,\n                    "width": 0.8,\n                    "height": 0.05,\n                    "page": 1\n                },\n                "block_type": "Text",\n                "confidence": "high",\n                "content": "This is the full sentence with the granular citation."\n            },\n            "type": "Text"\n        }\n    ]\n}\n```\n\nExample extracted results for a schema field defined as `array` of objects:\n\n```json\n{\n    "sample_extracted_field": [\n        {\n            "key1": "value1",\n            "key2": "value2"\n        }\n    ]\n}\n```\n\nCorresponding citation object:\n\n```json\n{\n    "sample_extracted_field": [\n        {\n            "key1": [\n                {\n                    "bbox": {\n                        "left": 0.1,\n                        "top": 0.2,\n                        "width": 0.3,\n                        "height": 0.05,\n                    },\n                    ... // other citation object fields, see above\n                }\n            ],\n            "key2": [\n                {\n                    "bbox": {\n                        "left": 0.1,\n                        "top": 0.2,\n                        "width": 0.3,\n                        "height": 0.05,\n                    },\n                    ... // other citation object fields, see above\n                }\n            ]\n        }\n    ]\n}\n```',
         operationId:
           'extract_document_document_intelligence_documents_extract_post',
+        parameters: [
+          {
+            name: 'force',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'boolean',
+              description: 'Force re-extraction of the document.',
+              default: false,
+              title: 'Force',
+            },
+            description: 'Force re-extraction of the document.',
+          },
+        ],
         requestBody: {
+          required: true,
           content: {
             'application/json': {
               schema: {
@@ -5085,7 +5112,6 @@ export const spec = {
               },
             },
           },
-          required: true,
         },
         responses: {
           '200': {
@@ -9555,7 +9581,7 @@ export const spec = {
       },
       AgentUserInterface: {
         type: 'string',
-        enum: ['di-parse-only', 'di-create-data-model'],
+        enum: ['di-parse-only', 'di-create-data-model', 'di-extract-only'],
         title: 'AgentUserInterface',
         description: 'Custom, user interfaces for agents.',
       },
@@ -10261,15 +10287,9 @@ export const spec = {
               title: 'File',
             },
             instructions: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
+              type: 'string',
               title: 'Instructions',
+              default: '',
             },
           },
           type: 'object',
@@ -12465,14 +12485,7 @@ export const spec = {
             title: 'Thread Id',
           },
           file_name: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'File Name',
           },
           job_id: {
@@ -12543,7 +12556,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['thread_id'],
+        required: ['thread_id', 'file_name'],
         title: 'ExtractDocumentPayload',
       },
       ExtractJobResult: {
@@ -12958,16 +12971,6 @@ export const spec = {
             additionalProperties: true,
             type: 'object',
             title: 'Schema',
-          },
-          file: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/UploadedFile',
-              },
-              {
-                type: 'null',
-              },
-            ],
           },
         },
         type: 'object',

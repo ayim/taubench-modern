@@ -22,16 +22,9 @@ export const useAgentDocIntelCapabilities = (agentId: string) => {
 
   const docIntelInterfaces = getDocIntelInterfaces(userInterfaces);
 
-  // TEMPORARY: Add 'di-extract-only' manually until backend is ready
-  // TODO: Remove this once backend supports di-extract-only interface
-  const temporaryDocIntelInterfaces = [...docIntelInterfaces];
-  if (!temporaryDocIntelInterfaces.includes('di-extract-only')) {
-    temporaryDocIntelInterfaces.push('di-extract-only');
-  }
-
   return {
     // Filtered DocIntel interfaces
-    docIntelInterfaces: temporaryDocIntelInterfaces,
+    docIntelInterfaces,
     isLoading,
     error,
 

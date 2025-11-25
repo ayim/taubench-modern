@@ -286,6 +286,7 @@ async def _resolve_extract_request(
 
     return ResolvedExtractRequest(
         thread_id=thread_id,
+        file_name=valid_payload.file_name,
         uploaded_file=file,
         job_id=valid_payload.job_id,
         extraction_schema=extraction_schema,
@@ -335,6 +336,8 @@ async def _upload_and_start_extract(
         # Merge in the generate_citations option with extraction_config
         extraction_config = request.extraction_config or {}
         if request.generate_citations is not None:
+            # Don't mutate the original extraction_config
+            extraction_config = extraction_config.copy()
             extraction_config["generate_citations"] = request.generate_citations
 
         return await extraction_client.start_extract(

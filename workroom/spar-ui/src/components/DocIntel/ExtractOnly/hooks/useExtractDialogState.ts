@@ -75,6 +75,7 @@ export const useExtractDialogState = ({
         agentId,
         threadId,
         formData: file,
+        instructions: '', // TODO: User needs to be able to provide a system prompt.
       });
 
       setCurrentSchema(result.schema as ExtractionSchemaPayload);

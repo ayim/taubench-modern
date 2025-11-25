@@ -123,7 +123,7 @@ export const useExtractDocumentMutation = createSparMutation<
   object,
   {
     threadId: ExtractDocumentPayload['thread_id'];
-    fileName?: ExtractDocumentPayload['file_name'];
+    fileName: ExtractDocumentPayload['file_name'];
     jobId?: ExtractDocumentPayload['job_id'];
     dataModelName?: ExtractDocumentPayload['data_model_name'];
     dataModelPrompt?: ExtractDocumentPayload['data_model_prompt'];
@@ -153,7 +153,7 @@ export const useExtractDocumentMutation = createSparMutation<
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/document-intelligence/documents/extract', {
       body: {
         thread_id: threadId,
-        file_name: fileName ?? null,
+        file_name: fileName,
         job_id: jobId ?? null,
         data_model_name: dataModelName,
         data_model_prompt: dataModelPrompt,
@@ -519,7 +519,7 @@ export const useGenerateExtractionSchemaMutation = createSparMutation<
     threadId: string;
     agentId: string;
     formData: DocumentIntelligenceFileUpload;
-    instructions?: string;
+    instructions: string;
   }
 >()(({ sparAPIClient }) => ({
   mutationFn: async ({

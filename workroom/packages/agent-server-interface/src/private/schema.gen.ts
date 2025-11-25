@@ -3477,7 +3477,10 @@ export interface components {
      * @description Custom, user interfaces for agents.
      * @enum {string}
      */
-    AgentUserInterface: 'di-parse-only' | 'di-create-data-model';
+    AgentUserInterface:
+      | 'di-parse-only'
+      | 'di-create-data-model'
+      | 'di-extract-only';
     /** AgentWorkItemsSummaryResponse */
     AgentWorkItemsSummaryResponse: {
       /** Agent Id */
@@ -3800,8 +3803,11 @@ export interface components {
     Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
       /** File */
       file: string;
-      /** Instructions */
-      instructions?: string | null;
+      /**
+       * Instructions
+       * @default
+       */
+      instructions: string;
     };
     /** Body_generate_layout_from_file_document_intelligence_layouts_generate_post */
     Body_generate_layout_from_file_document_intelligence_layouts_generate_post: {
@@ -4688,7 +4694,7 @@ export interface components {
       /** Thread Id */
       thread_id: string;
       /** File Name */
-      file_name?: string | null;
+      file_name: string;
       /** Job Id */
       job_id?: string | null;
       /** Data Model Name */
@@ -4869,7 +4875,6 @@ export interface components {
       schema: {
         [key: string]: unknown;
       };
-      file?: components['schemas']['UploadedFile'] | null;
     };
     /** GenerateSemanticDataModelPayload */
     GenerateSemanticDataModelPayload: {
@@ -16183,6 +16188,8 @@ export interface operations {
     parameters: {
       query: {
         thread_id: string;
+        /** @description Force re-generation of the schema. */
+        force?: boolean;
         agent_id: string;
       };
       header?: never;
@@ -16288,7 +16295,10 @@ export interface operations {
   };
   extract_document_document_intelligence_documents_extract_post: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Force re-extraction of the document. */
+        force?: boolean;
+      };
       header?: never;
       path?: never;
       cookie?: never;

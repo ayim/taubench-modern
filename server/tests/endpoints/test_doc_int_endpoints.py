@@ -1,5 +1,6 @@
 import dataclasses
 from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 
@@ -43,6 +44,7 @@ from agent_platform.core.payloads.data_connection import (
 )
 from agent_platform.core.payloads.document_intelligence import (
     ExtractJobResult,
+    GenerateSchemaResponsePayload,
     ParseDocumentResponsePayload,
     ParseJobResult,
 )
@@ -53,7 +55,9 @@ from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPa
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import (
     get_agent_server_client,
+    get_async_extraction_client,
     get_di_service,
+    get_docint_datasource,
     get_file_manager,
 )
 from agent_platform.server.api.private_v2.document_intelligence import document_intelligence
@@ -66,6 +70,7 @@ from agent_platform.server.storage.errors import (
     IntegrationNotFoundError,
 )
 from agent_platform.server.storage.option import StorageService
+from server.tests.storage.sample_model_creator import SampleModelCreator
 
 
 def create_mock_async_extraction_client_class(mock_client):
@@ -279,6 +284,12 @@ async def test_upsert_document_intelligence_reuses_singleton_integrations(storag
     assert updated_reducto.settings.api_key == "secret-2"
 
     StorageService.reset()
+
+
+@pytest.fixture
+def sample_user_id(test_user) -> str:
+    """Provide a sample user ID for testing."""
+    return test_user.user_id
 
 
 @pytest.fixture
@@ -3479,11 +3490,18 @@ class TestGenerateExtractionSchemaFromDocument:
             lambda agent_id, request=None, thread_id=None: fake_client
         )
 
-    def test_generate_schema_direct_upload(self, client: TestClient, fastapi_app: FastAPI):
+    async def test_generate_schema_direct_upload(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+        tmp_path: Path,
+    ):
         """Uploading a file directly should upload via file manager and return uploaded_file."""
         storage_instance = StorageService.get_instance()
 
-        fake_thread = Mock()
+        sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
+        await sample_model_creator.setup()
+        sample_thread = await sample_model_creator.obtain_sample_thread()
 
         fake_uploaded = UploadedFile(
             file_id="file-123",
@@ -3495,20 +3513,35 @@ class TestGenerateExtractionSchemaFromDocument:
             created_at=datetime.now(),
         )
 
+        fake_cache_file = UploadedFile(
+            file_id="cache-file-123",
+            file_path="/path/to/cache.json",
+            file_ref="cache-ref-123",
+            file_hash="cachehash",
+            file_size_raw=512,
+            mime_type="application/json",
+            created_at=datetime.now(),
+        )
+
         fake_file_manager = Mock()
-        fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded])
+        fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded, fake_cache_file])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"{}")
+        fake_file_manager.delete = AsyncMock()
 
         fake_client = Mock()
         fake_client.generate_schema = Mock(return_value={"type": "object", "properties": {}})
 
-        with patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)):
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=sample_thread)),
+            patch.object(storage_instance, "_validate_agent_exists", new=AsyncMock()),
+        ):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
 
             response = client.post(
                 "/api/v2/document-intelligence/documents/generate-schema",
                 params={
-                    "thread_id": "thread-1",
-                    "agent_id": "agent-123",
+                    "thread_id": sample_thread.thread_id,
+                    "agent_id": sample_thread.agent_id,
                 },
                 files={
                     "file": (
@@ -3522,18 +3555,22 @@ class TestGenerateExtractionSchemaFromDocument:
         assert response.status_code == 200
         body = response.json()
         assert "schema" in body
-        assert "file" in body
         assert body["schema"] == {"type": "object", "properties": {}}
-        assert body["file"]["file_ref"] == "uploaded-ref-123"
 
         fake_file_manager.upload.assert_awaited()
         fake_client.generate_schema.assert_called_once()
 
-    def test_generate_schema_with_file_ref(self, client: TestClient, fastapi_app: FastAPI):
+    async def test_generate_schema_with_file_ref(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+        tmp_path: Path,
+    ):
         """Providing a file ref should resolve from storage and not return uploaded_file."""
         storage_instance = StorageService.get_instance()
-
-        fake_thread = Mock()
+        sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
+        await sample_model_creator.setup()
+        sample_thread = await sample_model_creator.obtain_sample_thread()
 
         class StoredFile:
             def __init__(self, file_ref: str):
@@ -3542,8 +3579,21 @@ class TestGenerateExtractionSchemaFromDocument:
         original_stored = StoredFile("file-ref-xyz")
         refreshed_stored = StoredFile("file-ref-xyz-refreshed")
 
+        fake_cache_file = UploadedFile(
+            file_id="cache-file-456",
+            file_path="/path/to/cache2.json",
+            file_ref="cache-ref-456",
+            file_hash="cachehash2",
+            file_size_raw=512,
+            mime_type="application/json",
+            created_at=datetime.now(),
+        )
+
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[refreshed_stored])
+        fake_file_manager.upload = AsyncMock(return_value=[fake_cache_file])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"{}")
+        fake_file_manager.delete = AsyncMock()
 
         fake_client = Mock()
         fake_client.generate_schema = Mock(
@@ -3551,20 +3601,21 @@ class TestGenerateExtractionSchemaFromDocument:
         )
 
         with (
-            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=fake_thread)),
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=sample_thread)),
             patch.object(
                 storage_instance,
                 "get_file_by_ref",
                 new=AsyncMock(return_value=original_stored),
             ) as mock_get_file_by_ref,
+            patch.object(storage_instance, "_validate_agent_exists", new=AsyncMock()),
         ):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
 
             response = client.post(
                 "/api/v2/document-intelligence/documents/generate-schema",
                 params={
-                    "thread_id": "thread-2",
-                    "agent_id": "agent-456",
+                    "thread_id": sample_thread.thread_id,
+                    "agent_id": sample_thread.agent_id,
                 },
                 data={"file": "file-ref-xyz"},
             )
@@ -3572,12 +3623,93 @@ class TestGenerateExtractionSchemaFromDocument:
         assert response.status_code == 200
         body = response.json()
         assert "schema" in body
-        assert body["file"] is None  # When using file ref, no new file is created
         assert body["schema"] == {"type": "object", "properties": {"field": {"type": "string"}}}
 
         mock_get_file_by_ref.assert_awaited()
         fake_file_manager.refresh_file_paths.assert_awaited()
         fake_client.generate_schema.assert_called_once()
+
+    async def test_schema_generation_with_caching(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+        tmp_path: Path,
+    ):
+        """Test that caching works: first call generates, second call uses cache."""
+        from io import BytesIO
+
+        storage_instance = StorageService.get_instance()
+        sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
+        await sample_model_creator.setup()
+        sample_thread = await sample_model_creator.obtain_sample_thread()
+
+        # Create the expected schema that will be returned by the mock
+        expected_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+                "total_amount": {"type": "number"},
+                "date": {"type": "string"},
+            },
+        }
+
+        instructions = "Extract invoice details"
+
+        # Mock only the agent_server_client.generate_schema call
+        mock_client = Mock()
+        mock_client.generate_schema = Mock(return_value=expected_schema)
+
+        fastapi_app.dependency_overrides[get_agent_server_client] = (
+            lambda agent_id=None, request=None, thread_id=None: mock_client
+        )
+
+        # First call: should generate schema and cache it
+        response1 = client.post(
+            "/api/v2/document-intelligence/documents/generate-schema",
+            params={
+                "thread_id": sample_thread.thread_id,
+                "agent_id": sample_thread.agent_id,
+                "instructions": instructions,
+            },
+            files={
+                "file": (
+                    "test_invoice.pdf",
+                    BytesIO(b"%PDF-1.4\n%Test PDF\n%%EOF"),
+                    "application/pdf",
+                )
+            },
+        )
+
+        # Validate first response
+        assert response1.status_code == 200, f"First call failed: {response1.text}"
+        body1 = response1.json()
+        resp = GenerateSchemaResponsePayload(**body1)
+        assert resp.schema == expected_schema
+
+        # Verify the mock was called once
+        assert mock_client.generate_schema.call_count == 1
+
+        # Second call with same file_ref: should return cached schema
+        response2 = client.post(
+            "/api/v2/document-intelligence/documents/generate-schema",
+            params={
+                "thread_id": sample_thread.thread_id,
+                "agent_id": sample_thread.agent_id,
+                "instructions": instructions,
+            },
+            data={"file": "test_invoice.pdf"},
+        )
+
+        # Validate second response
+        assert response2.status_code == 200, f"Second call failed: {response2.text}"
+        body2 = response2.json()
+        resp2 = GenerateSchemaResponsePayload(**body2)
+        assert resp2.schema == expected_schema
+
+        # Verify the mock was still only called once (proving cache was used)
+        assert mock_client.generate_schema.call_count == 1, (
+            "Mock should only be called once, second call should use cache"
+        )
 
 
 @pytest.fixture
@@ -4738,10 +4870,12 @@ class TestExtractDocumentEndpoints:
         # Fakes - Use Mock objects instead of SimpleNamespace for proper attribute access
         thread = Mock(id="thread-1")
         stored = Mock(file_id="fid-1", file_ref="ref-1")
+        cache_uploaded = Mock(file_id="cache-fid", file_ref="cache-ref", file_path=None)
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"bytes")
+        fake_file_manager.upload = AsyncMock(return_value=[cache_uploaded])
 
         # Create a mock Job instance for start_extract return
         mock_job = Mock()
@@ -4852,106 +4986,127 @@ class TestExtractDocumentEndpoints:
         assert "DM P" in kwargs["system_prompt"]
         assert "LAYOUT P" in kwargs["system_prompt"]
 
-    def test_extract_with_document_layout_payload_success(self, client: TestClient):
+    async def test_extract_with_document_layout_payload_success(
+        self, client: TestClient, fastapi_app: FastAPI, tmp_path: Path
+    ):
+        """Test extraction with document_layout payload using real storage and filesystem."""
+        # Get real storage and file manager instances
         storage_instance = StorageService.get_instance()
 
-        # Use Mock objects instead of SimpleNamespace for proper attribute access
-        thread = Mock(id="t1")
-        stored = Mock(file_id="f1", file_ref="r1")
+        # Use SampleModelCreator to create agent, thread, and file
+        model_creator = SampleModelCreator(storage_instance, tmp_path)
+        await model_creator.setup()
 
-        fake_file_manager = Mock()
-        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
-        fake_file_manager.read_file_contents = AsyncMock(return_value=b"payload")
+        sample_thread = await model_creator.obtain_sample_thread()
 
-        # Create a mock Job instance for start_extract return
+        # Create and upload a real test file
+        test_file_content = b"test document content for extraction"
+        uploaded_file = await model_creator.obtain_sample_file(
+            file_content=test_file_content,
+            file_name="test_document.pdf",
+            mime_type="application/pdf",
+        )
+
+        # Mock only the extraction client
         mock_job = Mock()
         mock_job.job_id = "jobid://extract-job-456"
         mock_job.job_type = JobType.EXTRACT
 
-        # Create a mock ExtractResponse object that job.result() will return
         mock_extract_response = Mock(spec=ExtractResponse)
-        mock_extract_response.result = [{"data": 1}]
-        mock_extract_response.citations = []
-        # Mock job.result() to return the extract response (this is what extract endpoint calls now)
+        mock_extract_response.result = [{"invoice_number": "INV-001", "total": 1500.00}]
+        mock_extract_response.citations = [{"invoice_number": {"fake": "citation"}}]
         mock_job.result = AsyncMock(return_value=mock_extract_response)
 
         fake_extraction_client = Mock()
-        fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE"
+        fake_extraction_client.DEFAULT_EXTRACT_SYSTEM_PROMPT = "BASE SYSTEM PROMPT"
         fake_extraction_client.upload = AsyncMock(return_value="doc-7")
-        fake_extraction_client.extract = AsyncMock(return_value=Mock(result=[{"data": 1}]))
         fake_extraction_client.start_extract = AsyncMock(return_value=mock_job)
-        fake_extraction_client.wait_for_job = AsyncMock(return_value=mock_extract_response)
 
-        fake_service = Mock()
-        fake_service.get_docint_datasource.return_value = Mock()
+        # Override extraction client dependency
+        async def fake_extraction_client_dependency():
+            yield fake_extraction_client
 
-        with (
-            patch.object(
-                storage_instance,
-                "get_integration_by_kind",
-                new=create_mock_get_integration_by_kind(
-                    DataServerDetails(
-                        username="user",
-                        password=SecretString("pass"),
-                        data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1",
-                                port=47334,
-                                kind=DataServerEndpointKind.HTTP,
-                            ),
-                            DataServerEndpoint(
-                                host="127.0.0.1",
-                                port=5432,
-                                kind=DataServerEndpointKind.MYSQL,
-                            ),
-                        ],
-                    ),
-                    "test-api-key",
-                ),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=fake_service,
-            ),
-            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
-            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored)),
-            patch(
-                "agent_platform.server.api.dependencies.FileManagerService.get_instance",
-                return_value=fake_file_manager,
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.AsyncExtractionClient",
-                new=create_mock_async_extraction_client_class(fake_extraction_client),
-            ),
-        ):
-            resp = client.post(
-                "/api/v2/document-intelligence/documents/extract",
-                json={
-                    "thread_id": "t1",
-                    "file_name": "file-a",
-                    "document_layout": {
-                        "name": "Invoice L1",
-                        "data_model_name": "Invoices",
-                        "extraction_schema": {"type": "object", "properties": {}},
-                        "prompt": "LP",
-                        "extraction_config": {"k": "v"},
+        fastapi_app.dependency_overrides[get_async_extraction_client] = (
+            fake_extraction_client_dependency
+        )
+        fastapi_app.dependency_overrides[get_docint_datasource] = lambda: Mock()
+
+        # First extraction - should call the extraction client
+        resp = client.post(
+            "/api/v2/document-intelligence/documents/extract",
+            json={
+                "thread_id": sample_thread.thread_id,
+                "file_name": uploaded_file.file_ref,
+                "document_layout": {
+                    "name": "Invoice L1",
+                    "data_model_name": "Invoices",
+                    "extraction_schema": {
+                        "type": "object",
+                        "properties": {
+                            "invoice_number": {"type": "string"},
+                            "total": {"type": "number"},
+                        },
                     },
+                    "prompt": "Extract invoice details",
+                    "extraction_config": {"mode": "strict"},
                 },
-            )
+            },
+        )
 
+        # Validate response using proper response class
         assert resp.status_code == 200
-        assert resp.json() == {
-            "job_id": "jobid://extract-job-456",
-            "job_type": "extract",
-            "result": {"data": 1},
-            "citations": None,
-        }
+        result = ExtractJobResult.model_validate(resp.json())
+        assert result.job_id == "jobid://extract-job-456"
+        assert result.job_type == "extract"
+        assert result.result == {"invoice_number": "INV-001", "total": 1500.00}
+        assert result.citations == {"invoice_number": {"fake": "citation"}}
+
+        # Verify extraction client was called correctly
         fake_extraction_client.start_extract.assert_called_once()
         _, kwargs = fake_extraction_client.start_extract.call_args
-        assert kwargs["schema"] == {"type": "object", "properties": {}}
-        assert kwargs["extraction_config"] == {"k": "v", "generate_citations": True}
-        assert kwargs["system_prompt"].startswith("BASE")
-        assert "LP" in kwargs["system_prompt"]
+        assert kwargs["schema"]["properties"]["invoice_number"]["type"] == "string"
+        assert kwargs["extraction_config"]["mode"] == "strict"
+        assert kwargs["extraction_config"]["generate_citations"] is True
+        assert kwargs["system_prompt"].startswith("BASE SYSTEM PROMPT")
+        assert "Extract invoice details" in kwargs["system_prompt"]
+
+        # Reset mock to verify caching
+        fake_extraction_client.start_extract.reset_mock()
+
+        # Second extraction with same params - should use cache
+        resp2 = client.post(
+            "/api/v2/document-intelligence/documents/extract",
+            json={
+                "thread_id": sample_thread.thread_id,
+                "file_name": uploaded_file.file_ref,
+                "document_layout": {
+                    "name": "Invoice L1",
+                    "data_model_name": "Invoices",
+                    "extraction_schema": {
+                        "type": "object",
+                        "properties": {
+                            "invoice_number": {"type": "string"},
+                            "total": {"type": "number"},
+                        },
+                    },
+                    "prompt": "Extract invoice details",
+                    "extraction_config": {"mode": "strict"},
+                },
+            },
+        )
+
+        # Verify cached response
+        assert resp2.status_code == 200
+        result2 = ExtractJobResult.model_validate(resp2.json())
+        assert result2.result == result.result
+        assert result2.job_id == result.job_id
+        assert result2.citations == result.citations
+
+        # Verify extraction client was NOT called (cache hit)
+        fake_extraction_client.start_extract.assert_not_called()
+
+        # Clean up dependency overrides
+        fastapi_app.dependency_overrides.clear()
 
     @pytest.mark.parametrize(
         ("payload", "expected_status"),
@@ -4960,10 +5115,6 @@ class TestExtractDocumentEndpoints:
                 {"file_name": "f", "layout_name": "l"},
                 422,
             ),  # missing thread_id - FastAPI validation
-            (
-                {"thread_id": "t"},
-                400,
-            ),  # missing file_ref and layout/document - FastAPI validation
             (
                 {"thread_id": "t", "file_name": "f"},
                 400,
@@ -5186,12 +5337,14 @@ class TestExtractDocumentEndpoints:
         fake_service = Mock()
         fake_service.get_docint_datasource.return_value = Mock()
         thread = SimpleNamespace(id="t1")
+        cache_uploaded = Mock(file_id="cache-fid", file_ref="cache-ref", file_path=None)
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(
             return_value=[SimpleNamespace(file_id="f")]
         )
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"x")
+        fake_file_manager.upload = AsyncMock(return_value=[cache_uploaded])
 
         fake_extraction_client = Mock()
         fake_extraction_client.upload = AsyncMock(return_value="doc")
@@ -5285,10 +5438,12 @@ class TestExtractDocumentEndpoints:
 
         thread = SimpleNamespace(id="t1")
         stored = SimpleNamespace(file_id="f1")
+        cache_uploaded = Mock(file_id="cache-fid", file_ref="cache-ref", file_path=None)
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"b")
+        fake_file_manager.upload = AsyncMock(return_value=[cache_uploaded])
 
         fake_extraction_client = Mock()
         fake_extraction_client.upload.side_effect = raised
@@ -5387,10 +5542,12 @@ class TestExtractDocumentEndpoints:
 
         thread = Mock(id="t1")
         stored = Mock(file_id="f1")
+        cache_uploaded = Mock(file_id="cache-fid", file_ref="cache-ref", file_path=None)
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"b")
+        fake_file_manager.upload = AsyncMock(return_value=[cache_uploaded])
 
         # Create a proper Job instance for start_extract return
         mock_job = Mock()
@@ -5478,10 +5635,12 @@ class TestExtractDocumentEndpoints:
         storage_instance = StorageService.get_instance()
         thread = Mock(id="thread-1")
         stored = Mock(file_id="fid-1", file_ref="ref-1")
+        cache_uploaded = Mock(file_id="cache-fid", file_ref="cache-ref", file_path=None)
 
         fake_file_manager = Mock()
         fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"bytes")
+        fake_file_manager.upload = AsyncMock(return_value=[cache_uploaded])
 
         # Create a mock Job instance for start_extract return
         mock_job = Mock()

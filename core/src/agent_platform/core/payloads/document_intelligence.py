@@ -22,7 +22,6 @@ class GenerateLayoutResponsePayload:
 @dataclass(frozen=True)
 class GenerateSchemaResponsePayload:
     schema: dict[str, Any]
-    file: UploadedFile | None = None
 
 
 @dataclass(frozen=True)
@@ -43,7 +42,7 @@ class ExtractDocumentPayload:
 
     # File related fields
     thread_id: str
-    file_name: str | None = None
+    file_name: str
     job_id: str | None = None
 
     # Data model related fields (required when layout_name is provided)
@@ -75,10 +74,10 @@ class ExtractDocumentPayload:
                 error_code=ErrorCode.BAD_REQUEST,
                 message="thread_id is required",
             )
-        if file_name is None and job_id is None:
+        if file_name is None:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
-                message="At least one of file_name or job_id must be provided",
+                message="file_name is required",
             )
 
         # Make sure the job_id is prefixed.

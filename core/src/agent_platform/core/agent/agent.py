@@ -27,6 +27,7 @@ class AgentUserInterface(StrEnum):
 
     DOCUMENT_INTELLIGENCE_PARSE_ONLY = "di-parse-only"
     DOCUMENT_INTELLIGENCE_CREATE_DATA_MODEL = "di-create-data-model"
+    DOCUMENT_INTELLIGENCE_EXTRACT_ONLY = "di-extract-only"
 
 
 @dataclass(frozen=True)
