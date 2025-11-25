@@ -1,5 +1,23 @@
 # @sema4ai/spar-ui
 
+## 0.8.0
+
+### Minor Changes
+
+- 63ad632: Refactor DocIntel ExtractOnly components for better state management and DRY principles
+  - Consolidate duplicate loading states into shared constants
+  - Remove redundant state tracking (schemaResult, canReExtract, disabled prop)
+  - Replace raw state setters with semantic actions (initializeFromExisting)
+  - Improve "Add Field" UX with empty placeholder instead of auto-generated names
+  - Remove unused mock data files
+  - Add clear comments documenting state purpose
+
+### Patch Changes
+
+- 4cd62b7: Display Data Frames query in Tool Call result envelope
+- 82aeba9: Update observability components to account for new REST API shape
+- de14d40: Semantic Data model related view and functionality fixes
+
 ## 0.7.1
 
 ### Patch Changes
