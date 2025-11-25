@@ -8,6 +8,7 @@ import { Code } from '../../../common/code';
 import { SparUIFeatureFlag } from '../../../api';
 import { useFeatureFlag, useParams, useStateTransitionCallback } from '../../../hooks';
 import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
+import { DataFramesQueryOutput } from '../../DataFrame/DataFramesQueryOutput';
 import { useShowActionLogsMutation } from '../../../queries';
 import { formatThoughtTitle } from './renderer/Thinking';
 
@@ -245,7 +246,8 @@ export const ToolCall: FC<Props> = ({ content }) => {
         running={state === 'in_progress'}
         error={state === 'failed'}
       >
-        {result ? <Code value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
+        <DataFramesQueryOutput content={content} />
+        {result ? <Code title="Tool call" value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (
             <Button
