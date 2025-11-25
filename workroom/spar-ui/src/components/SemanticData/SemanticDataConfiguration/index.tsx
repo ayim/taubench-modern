@@ -93,16 +93,16 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     if (modelId) {
       const shouldRegenerateModel = hasDataSelectionChanged(values);
 
+      if (shouldRegenerateModel) {
+        setActiveStep(ConfigurationStep.Processing);
+      }
+
       updateSemanticData(
         { ...values, modelId, agentId, shouldRegenerateModel },
         {
           onSuccess: () => {
-            if (shouldRegenerateModel) {
-              setActiveStep(ConfigurationStep.Success);
-            } else {
-              addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
-              onClose();
-            }
+            addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
+            onClose();
           },
           onError: (error) => {
             addSnackbar({ message: error.message, variant: 'danger' });
@@ -110,6 +110,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         },
       );
     } else if (dataSourceType === DataSourceType.Import) {
+      setActiveStep(ConfigurationStep.Processing);
       await importSemanticDataModel(
         { ...values, agentId },
         {
@@ -123,6 +124,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         },
       );
     } else {
+      setActiveStep(ConfigurationStep.Processing);
       createSemanticData(
         { ...values, agentId, inspectionResult: databaseInspectionState.inspectionResult },
         {
@@ -225,7 +227,9 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   })();
 
   const onCloseWithConfirmation = () => {
-    if (activeStep === ConfigurationStep.DataConnection && !dataSourceType) {
+    if (activeStep === ConfigurationStep.Success) {
+      onClose();
+    } else if (activeStep === ConfigurationStep.DataConnection && !dataSourceType) {
       onClose();
     } else if (activeStep === ConfigurationStep.ModelEdition && semanticModel) {
       const hasModelChangedValue = hasModelChanged(formMethods.watch(), semanticModel);
@@ -287,7 +291,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                 </Steps>
               </Dialog.Bar>
             )}
-            {isPending && activeStep === ConfigurationStep.DataSelection ? (
+            {activeStep === ConfigurationStep.Processing ? (
               <Processing />
             ) : (
               <>

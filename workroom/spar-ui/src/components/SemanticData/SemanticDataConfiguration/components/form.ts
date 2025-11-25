@@ -118,6 +118,7 @@ export enum ConfigurationStep {
   ModelEdition = 2,
   ImportDataConnection = 3,
   Success = 4,
+  Processing = 5,
 }
 
 type ConfigurationStepProps = {
