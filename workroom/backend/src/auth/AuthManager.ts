@@ -2,11 +2,13 @@ import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
 import type { Configuration } from '../configuration.js';
 import { OIDCClient } from './OIDCClient.js';
 import { createGetACEUser, type GetACEUser, type UserFrom } from './sema4OIDC.js';
+import type { UserIdentity } from '../database/types/userIdentity.js';
 import { OIDCTokenClaims, type OIDCTokens } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { asResult, type Result } from '../utils/result.js';
 import { Semaphore } from './utils/Semaphore.js';
 import { OIDCAuthState } from '../utils/schemas.js';
+import { SNOWFLAKE_AUTHORITY } from '../utils/snowflake.js';
 import { safeParseUrl } from '../utils/url.js';
 
 export type EndSessionResult = Result<{ logoutUri: string }>;
@@ -376,6 +378,54 @@ export class AuthManager {
           },
         };
       }
+
+      default:
+        exhaustiveCheck(this.configuration.auth);
+    }
+  }
+
+  getAuthorityMetadata(): Result<{
+    authority: UserIdentity['authority'];
+    type: UserIdentity['type'];
+  }> {
+    switch (this.configuration.auth.type) {
+      case 'oidc':
+        if (!this.oidcClient) {
+          return {
+            success: false,
+            error: {
+              code: 'invalid_configuration',
+              message: 'Invalid configuration: No OIDC client present',
+            },
+          };
+        }
+
+        return {
+          success: true,
+          data: {
+            authority: this.oidcClient.getIssuer(),
+            type: 'oidc_sub',
+          },
+        };
+
+      case 'snowflake':
+        return {
+          success: true,
+          data: {
+            authority: SNOWFLAKE_AUTHORITY,
+            type: 'snowflake_user_header',
+          },
+        };
+
+      case 'none':
+      case 'sema4-oidc-sso':
+        return {
+          success: false,
+          error: {
+            code: 'unsupported_authority_configuration',
+            message: `Invalid authentication configuration for fetching authority: ${this.configuration.auth.type}`,
+          },
+        };
 
       default:
         exhaustiveCheck(this.configuration.auth);

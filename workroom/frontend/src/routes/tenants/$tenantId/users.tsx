@@ -52,6 +52,7 @@ function RouteComponent() {
         <UsersTable
           canUpdateUsers={canUpdateUsers}
           items={userList.users}
+          providerIdentifierType={userList.providerIdentifierType}
           roleLabels={roleLabels}
           tenantId={tenantId}
         />

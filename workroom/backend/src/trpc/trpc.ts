@@ -1,11 +1,15 @@
 import { initTRPC, TRPCError } from '@trpc/server';
+import type { AuthManager } from '../auth/AuthManager.js';
 import { Roles, type Permission } from '../auth/permissions.js';
+import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { UserRole } from '../database/types/user.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/sessionManager.js';
 
 export type RouterContext = {
+  authManager: AuthManager;
+  authType: Configuration['auth']['type'];
   database: DatabaseClient;
   monitoring: MonitoringContext;
   sessionManager: SessionManager;

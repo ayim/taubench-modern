@@ -82,6 +82,8 @@ export const createRouterContext =
         // No user identification required for this auth setup, so simply mark
         // the current user as an administrator
         return {
+          authManager,
+          authType: configuration.auth.type,
           database,
           monitoring,
           sessionManager,
@@ -94,6 +96,8 @@ export const createRouterContext =
     }
 
     return {
+      authManager,
+      authType: configuration.auth.type,
       database,
       monitoring,
       sessionManager,

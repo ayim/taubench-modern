@@ -1,8 +1,9 @@
+import { exhaustiveCheck, sequentialMap } from '@sema4ai/robocloud-shared-utils';
 import { TRPCError } from '@trpc/server';
 import z from 'zod';
 import { AllPermissions, RoleIDs, Roles, type Permission } from '../../auth/permissions.js';
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
-import type { UserRole } from '../../database/types/user.js';
+import type { User, UserRole } from '../../database/types/user.js';
 import { destroySessionsForUser } from '../../session/utils.js';
 import { authedProcedure } from '../trpc.js';
 
@@ -45,12 +46,12 @@ export const listAvailableRoles = authedProcedure(['users.read'])
 export const getUserDetails = authedProcedure(['users.read'])
   .input(
     z.object({
-      userId: z.string().uuid(),
+      userId: z.uuid(),
     }),
   )
   .output(
     z.object({
-      id: z.string().uuid(),
+      id: z.uuid(),
       firstName: z.string(),
       lastName: z.string(),
       role: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
@@ -80,9 +81,22 @@ export const getUserDetails = authedProcedure(['users.read'])
     };
   });
 
+type AuthProviderIdentifier = z.infer<typeof AuthProviderIdentifier>;
+const AuthProviderIdentifier = z.discriminatedUnion('type', [
+  z.object({
+    email: z.email().or(z.literal('')),
+    type: z.literal('email'),
+  }),
+  z.object({
+    id: z.string(),
+    type: z.literal('id'),
+  }),
+]);
+
 export const listUsers = authedProcedure(['users.read'])
   .output(
     z.object({
+      providerIdentifierType: z.enum(['id', 'email']),
       users: z.array(
         z
           .object({
@@ -90,13 +104,14 @@ export const listUsers = authedProcedure(['users.read'])
             firstName: z.string(),
             lastName: z.string(),
             role: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
+            providerIdentifier: AuthProviderIdentifier,
           })
           .strict(),
       ),
     }),
   )
   .query(async ({ ctx }) => {
-    const { database, monitoring } = ctx;
+    const { authManager, authType, database, monitoring } = ctx;
 
     const usersResult = await database.getUsers();
     if (!usersResult.success) {
@@ -111,15 +126,94 @@ export const listUsers = authedProcedure(['users.read'])
       });
     }
 
+    const authMetadataResult = authManager.getAuthorityMetadata();
+    if (!authMetadataResult.success) {
+      monitoring.logger.error('Failed retrieving authority metadata for service', {
+        errorMessage: authMetadataResult.error.message,
+        errorName: authMetadataResult.error.code,
+      });
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Invalid authentication configuration',
+      });
+    }
+
+    const userIdentitiesResult = await database.getUsersIdentityValues({
+      authority: authMetadataResult.data.authority,
+      type: authMetadataResult.data.type,
+    });
+    if (!userIdentitiesResult.success) {
+      monitoring.logger.error('Failed retrieving user identity values', {
+        errorMessage: userIdentitiesResult.error.message,
+        errorName: userIdentitiesResult.error.code,
+      });
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed listing users',
+      });
+    }
+
+    const providerIdentifierType: 'id' | 'email' = (() => {
+      switch (authType) {
+        case 'snowflake':
+          return 'id';
+
+        case 'oidc':
+          return 'email';
+
+        case 'none':
+        case 'sema4-oidc-sso':
+          throw new TRPCError({
+            code: 'NOT_IMPLEMENTED',
+            message: 'Not available for this configuration',
+          });
+
+        default:
+          exhaustiveCheck(authType);
+      }
+    })();
+
+    const resolveIdentifier = async (user: User): Promise<AuthProviderIdentifier> => {
+      const targetIdentities = userIdentitiesResult.data[user.id] ?? [];
+
+      if (targetIdentities.length === 0) {
+        monitoring.logger.error('No identities found for user', {
+          userId: user.id,
+        });
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed listing users',
+        });
+      }
+
+      return providerIdentifierType === 'email'
+        ? {
+            email: targetIdentities[0].email ?? '',
+            type: 'email',
+          }
+        : {
+            id: targetIdentities[0].value,
+            type: 'id',
+          };
+    };
+
+    const users = await sequentialMap(
+      usersResult.data.sort((a, b) => (a.first_name > b.first_name ? 1 : -1)),
+      async (user) => ({
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        providerIdentifier: await resolveIdentifier(user),
+      }),
+    );
+
     return {
-      users: usersResult.data
-        .sort((a, b) => (a.first_name > b.first_name ? 1 : -1))
-        .map((user) => ({
-          id: user.id,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-        })),
+      providerIdentifierType,
+      users,
     };
   });
 

@@ -169,6 +169,54 @@ export class DatabaseClient {
     );
   }
 
+  async getUsersIdentityValues({
+    authority,
+    type,
+  }: {
+    authority: UserIdentity['authority'];
+    type: UserIdentity['type'];
+  }): Promise<
+    Result<
+      Record<
+        User['id'],
+        Array<{
+          email: UserIdentity['email'];
+          value: UserIdentity['value'];
+        }>
+      >
+    >
+  > {
+    return asResult(() =>
+      this.database
+        .selectFrom('user_identity')
+        .select(['user_id', 'value', 'email'])
+        .where('authority', '=', authority)
+        .where('type', '=', type)
+        .execute()
+        .then((userIdentities) =>
+          userIdentities.reduce(
+            (output, userIdentity) => ({
+              ...output,
+              [userIdentity.user_id]: [
+                ...(output[userIdentity.user_id] || []),
+                {
+                  email: userIdentity.email,
+                  value: userIdentity.value,
+                },
+              ],
+            }),
+            {} as Record<
+              User['id'],
+              Array<{
+                email: UserIdentity['email'];
+                value: UserIdentity['value'];
+              }>
+            >,
+          ),
+        ),
+    );
+  }
+
   async getUserIds(): Promise<Result<Array<string>>> {
     return asResult(() =>
       this.database

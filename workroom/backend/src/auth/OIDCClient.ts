@@ -172,6 +172,10 @@ export class OIDCClient {
     return endSessionUrl.href;
   }
 
+  getIssuer(): string {
+    return this.oidcClientConfiguration.serverMetadata().issuer;
+  }
+
   async refreshTokens({
     refreshToken,
   }: {
