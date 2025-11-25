@@ -69,9 +69,6 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
           return {
             name: dimension.expr,
             data_type: dimension.data_type,
-            sample_values: dimension.sample_values,
-            description: dimension.description,
-            synonyms: dimension.synonyms,
           };
         }),
       };
@@ -160,6 +157,11 @@ export const hasDataSelectionChanged = (payload: DataConnectionFormSchema) => {
   });
 
   return dataSelectionAdded || dataSelectionRemoved;
+};
+
+export const hasModelChanged = (currentPaylaod: DataConnectionFormSchema, semanticModel: SemanticModel) => {
+  const previousPayload = semanticModelToFormSchema(semanticModel);
+  return JSON.stringify(previousPayload) !== JSON.stringify(currentPaylaod);
 };
 
 export const tablesToDataSelection = (

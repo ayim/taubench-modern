@@ -10,15 +10,10 @@ import {
   ConfigurationStepView,
   DataConnectionFormContext,
   DataConnectionFormSchema,
-  DataSourceType,
   tablesToDataSelection,
 } from '../../form';
 
-type Props = {
-  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
-};
-
-export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveStep, setDataSourceType }) => {
+export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const { addSnackbar } = useSnackbar();
   const { setDatabaseInspectionState, databaseInspectionState } = useContext(DataConnectionFormContext);
   const { mutateAsync: inspectFile } = useDataConnectionFileInspectMutation({
@@ -54,11 +49,6 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
       error: undefined,
       inspectionResult: undefined,
     });
-    setValue('fileRefId', undefined);
-  };
-
-  const onResetSourceSelection = () => {
-    setDataSourceType(undefined);
     setValue('fileRefId', undefined);
   };
 
@@ -103,9 +93,6 @@ export const FileSource: ConfigurationStepView<Props> = ({ onClose, setActiveSte
         </Button>
         <Button variant="secondary" round onClick={onClose}>
           Cancel
-        </Button>
-        <Button variant="secondary" align="secondary" onClick={onResetSourceSelection} round>
-          Back
         </Button>
       </Dialog.Actions>
     </>

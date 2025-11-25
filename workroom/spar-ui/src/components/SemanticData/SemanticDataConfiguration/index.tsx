@@ -2,6 +2,7 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import { Dialog, Form, Progress, StepProps, Steps, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useConfirmAction } from '@sema4ai/layouts';
 
 import { useParams } from '../../../hooks';
 import {
@@ -19,6 +20,7 @@ import {
   DataSourceType,
   defaultFormDataValues,
   hasDataSelectionChanged,
+  hasModelChanged,
   semanticModelToFormSchema,
   tablesToDataSelection,
 } from './components/form';
@@ -36,6 +38,15 @@ type Props = {
 export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initialModelId }) => {
   const [modelId, setModelId] = useState<string | undefined>(initialModelId);
   const { agentId } = useParams('/thread/$agentId');
+  const confirmCloseAction = useConfirmAction(
+    {
+      title: 'Are you sure?',
+      text: 'Any unsaved changes will be lost.',
+      confirmActionText: 'Discard changes',
+      confirmButtonVariant: 'destructive',
+    },
+    [],
+  );
 
   const [activeStep, setActiveStep] = useState<ConfigurationStep>(
     initialModelId ? ConfigurationStep.ModelEdition : ConfigurationStep.DataConnection,
@@ -213,6 +224,43 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     };
   })();
 
+  const onCloseWithConfirmation = () => {
+    if (activeStep === ConfigurationStep.DataConnection && !dataSourceType) {
+      onClose();
+    } else if (activeStep === ConfigurationStep.ModelEdition && semanticModel) {
+      const hasModelChangedValue = hasModelChanged(formMethods.watch(), semanticModel);
+
+      if (hasModelChangedValue) {
+        confirmCloseAction(onClose)();
+      } else {
+        onClose();
+      }
+    } else {
+      confirmCloseAction(onClose)();
+    }
+  };
+
+  const onBackCallback = () => {
+    switch (activeStep) {
+      case ConfigurationStep.DataConnection:
+        if (dataSourceType) {
+          setDataSourceType(undefined);
+          formMethods.reset(defaultFormDataValues);
+        } else {
+          onClose();
+        }
+        break;
+      case ConfigurationStep.DataSelection:
+        setActiveStep(ConfigurationStep.DataConnection);
+        formMethods.reset(defaultFormDataValues);
+        break;
+      case ConfigurationStep.ModelEdition:
+      default:
+        onClose();
+        break;
+    }
+  };
+
   const modelEditionStepProps: StepProps & { label: string } = (() => {
     return {
       status: modelId ? 'completed' : 'incomplete',
@@ -231,7 +279,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         <FormProvider {...formMethods}>
           <DataConnectionFormContext.Provider value={formContextValue}>
             {activeStep !== ConfigurationStep.Success && (
-              <Dialog.Bar>
+              <Dialog.Bar onBackClick={onBackCallback}>
                 <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
                   <Steps.Step {...connectionStepProps}>{connectionStepProps.label}</Steps.Step>
                   <Steps.Step {...dataSelectionStepProps}>{dataSelectionStepProps.label}</Steps.Step>
@@ -245,20 +293,24 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
               <>
                 {activeStep === ConfigurationStep.DataConnection && (
                   <DataConnection
-                    onClose={onClose}
+                    onClose={onCloseWithConfirmation}
                     setActiveStep={setActiveStep}
                     setDataSourceType={setDataSourceType}
                     dataSourceType={dataSourceType}
                   />
                 )}
                 {activeStep === ConfigurationStep.DataSelection && (
-                  <DataSelection onClose={onClose} setActiveStep={setActiveStep} />
+                  <DataSelection onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} />
                 )}
                 {activeStep === ConfigurationStep.ModelEdition && modelId && (
-                  <ModelEdition onClose={onClose} setActiveStep={setActiveStep} modelId={modelId} />
+                  <ModelEdition onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} modelId={modelId} />
                 )}
                 {activeStep === ConfigurationStep.Success && (
-                  <SuccessView onClose={onClose} setActiveStep={setActiveStep} modelName={semanticModel?.name} />
+                  <SuccessView
+                    onClose={onCloseWithConfirmation}
+                    setActiveStep={setActiveStep}
+                    modelName={semanticModel?.name}
+                  />
                 )}
               </>
             )}

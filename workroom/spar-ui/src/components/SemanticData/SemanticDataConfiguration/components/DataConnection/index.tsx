@@ -19,15 +19,15 @@ export const DataConnection: ConfigurationStepView<Props> = ({
   dataSourceType,
 }) => {
   if (dataSourceType === DataSourceType.Database) {
-    return <DatabaseSource onClose={onClose} setActiveStep={setActiveStep} setDataSourceType={setDataSourceType} />;
+    return <DatabaseSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
 
   if (dataSourceType === DataSourceType.File) {
-    return <FileSource onClose={onClose} setActiveStep={setActiveStep} setDataSourceType={setDataSourceType} />;
+    return <FileSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
 
   if (dataSourceType === DataSourceType.Import) {
-    return <ImportSource onClose={onClose} setActiveStep={setActiveStep} setDataSourceType={setDataSourceType} />;
+    return <ImportSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
 
   return (

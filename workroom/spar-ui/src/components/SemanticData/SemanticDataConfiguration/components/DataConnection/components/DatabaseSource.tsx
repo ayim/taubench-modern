@@ -10,25 +10,16 @@ import {
   ConfigurationStepView,
   DataConnectionFormContext,
   DataConnectionFormSchema,
-  DataSourceType,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
 
-type Props = {
-  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
-};
-
-export const DatabaseSource: ConfigurationStepView<Props> = ({ onClose, setActiveStep, setDataSourceType }) => {
+export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const {
     databaseInspectionState: { isLoading, error, inspectionResult },
   } = useContext(DataConnectionFormContext);
 
   const { watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
-
-  const onResetSourceSelection = () => {
-    setDataSourceType(undefined);
-  };
 
   return (
     <>
@@ -69,9 +60,6 @@ export const DatabaseSource: ConfigurationStepView<Props> = ({ onClose, setActiv
         </Button>
         <Button variant="secondary" onClick={onClose} round>
           Cancel
-        </Button>
-        <Button variant="secondary" align="secondary" onClick={onResetSourceSelection} round>
-          Back
         </Button>
       </Dialog.Actions>
     </>

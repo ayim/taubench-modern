@@ -9,19 +9,13 @@ import {
   DataConnectionFormContext,
   DataConnectionFormSchema,
   semanticModelToFormSchema,
-  DataSourceType,
-  defaultFormDataValues,
   hasDataFrameReferences,
   requiresDataConnection,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
 import { SemanticModel } from '../../../../../../queries/semanticData';
 
-type Props = {
-  setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
-};
-
-export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSourceType }) => {
+export const ImportSource: ConfigurationStepView = ({ onClose }) => {
   const { addSnackbar } = useSnackbar();
   const { reset, watch } = useFormContext<DataConnectionFormSchema>();
   const { onSubmit } = useContext(DataConnectionFormContext);
@@ -50,11 +44,6 @@ export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSou
     } catch (error) {
       addSnackbar({ message: error instanceof Error ? error.message : 'Failed to validate model', variant: 'danger' });
     }
-  };
-
-  const onResetSourceSelection = () => {
-    reset(defaultFormDataValues);
-    setDataSourceType(undefined);
   };
 
   const isModelImported = !!state.tables;
@@ -137,9 +126,6 @@ export const ImportSource: ConfigurationStepView<Props> = ({ onClose, setDataSou
         </Button>
         <Button variant="secondary" round onClick={onClose}>
           Cancel
-        </Button>
-        <Button variant="secondary" align="secondary" onClick={onResetSourceSelection} round>
-          Back
         </Button>
       </Dialog.Actions>
     </>
