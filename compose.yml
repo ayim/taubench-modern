@@ -236,12 +236,15 @@ services:
         environment:
             <<: *template-env-spar
             DISABLED_SERVICE: agent-server
+            SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://host.docker.internal:8000
         ports:
             - "8001:8001"
             - "8002:8002"
         expose:
             - "8001"
             - "8002"
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         profiles:
             - spar-ui
 #endregion
