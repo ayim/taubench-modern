@@ -29,6 +29,16 @@ def _make_agent(user_id: str, name: str, metadata: dict[str, str]):
     )
 
 
+async def _get_preinstalled_agent(storage, user_id: str):
+    agents = await storage.list_agents(user_id)
+    return next(
+        agent
+        for agent in agents
+        # `.items()` gives a set-like view; `<=` checks the required metadata is a subset.
+        if PREINSTALLED_AGENT_METADATA.items() <= (agent.extra.get("metadata") or {}).items()
+    )
+
+
 @pytest.mark.asyncio
 async def test_ensure_preinstalled_agent_uses_system_user(sqlite_storage):
     system_user_id = await sqlite_storage.get_system_user_id()
@@ -48,6 +58,25 @@ async def test_ensure_preinstalled_agent_uses_system_user(sqlite_storage):
     metadata = agent.extra.get("metadata", {})
     assert PREINSTALLED_AGENT_METADATA.items() <= metadata.items()
     assert agent.mode == "conversational"
+
+
+@pytest.mark.asyncio
+async def test_preinstalled_agent_avoids_production_architectures(sqlite_storage):
+    system_user_id = await sqlite_storage.get_system_user_id()
+
+    await ensure_preinstalled_agents()
+
+    preinstalled_agent = await _get_preinstalled_agent(sqlite_storage, system_user_id)
+
+    # NOTE: these are what I'd call our "production" architectures as of this moment.
+    # You'd find these in Studio as `V2.0` or `V2.1` in the architecture selector.
+    production_architectures = {
+        "agent_platform.architectures.default",
+        "agent_platform.architectures.experimental_1",
+    }
+
+    assert PREINSTALLED_AGENT_ARCHITECTURE not in production_architectures
+    assert preinstalled_agent.agent_architecture.name not in production_architectures
 
 
 @pytest.mark.asyncio
@@ -148,11 +177,7 @@ async def test_preinstalled_agent_allows_additional_metadata(sqlite_storage):
 
     await ensure_preinstalled_agents()
 
-    [preinstalled_agent] = [
-        agent
-        for agent in await sqlite_storage.list_agents(system_user_id)
-        if PREINSTALLED_AGENT_METADATA.items() <= (agent.extra.get("metadata") or {}).items()
-    ]
+    preinstalled_agent = await _get_preinstalled_agent(sqlite_storage, system_user_id)
 
     enriched_metadata = (preinstalled_agent.extra.get("metadata") or {}) | {"extra": "keep"}
     enriched_agent = preinstalled_agent.copy(extra={"metadata": enriched_metadata})
@@ -160,11 +185,7 @@ async def test_preinstalled_agent_allows_additional_metadata(sqlite_storage):
 
     await ensure_preinstalled_agents()
 
-    [updated_agent] = [
-        agent
-        for agent in await sqlite_storage.list_agents(system_user_id)
-        if PREINSTALLED_AGENT_METADATA.items() <= (agent.extra.get("metadata") or {}).items()
-    ]
+    updated_agent = await _get_preinstalled_agent(sqlite_storage, system_user_id)
 
     assert updated_agent.agent_id == preinstalled_agent.agent_id
     assert (
@@ -179,22 +200,14 @@ async def test_preinstalled_agent_updates_when_version_is_newer(sqlite_storage):
 
     await ensure_preinstalled_agents()
 
-    [preinstalled_agent] = [
-        agent
-        for agent in await sqlite_storage.list_agents(system_user_id)
-        if PREINSTALLED_AGENT_METADATA.items() <= (agent.extra.get("metadata") or {}).items()
-    ]
+    preinstalled_agent = await _get_preinstalled_agent(sqlite_storage, system_user_id)
 
     downgraded_agent = preinstalled_agent.copy(version="0.9.0")
     await sqlite_storage.upsert_agent(system_user_id, downgraded_agent)
 
     await ensure_preinstalled_agents()
 
-    [updated_agent] = [
-        agent
-        for agent in await sqlite_storage.list_agents(system_user_id)
-        if PREINSTALLED_AGENT_METADATA.items() <= (agent.extra.get("metadata") or {}).items()
-    ]
+    updated_agent = await _get_preinstalled_agent(sqlite_storage, system_user_id)
 
     assert updated_agent.agent_id == preinstalled_agent.agent_id
     assert updated_agent.version == PREINSTALLED_AGENT_VERSION

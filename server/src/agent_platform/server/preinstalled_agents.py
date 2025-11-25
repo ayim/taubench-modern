@@ -12,8 +12,8 @@ logger = structlog.get_logger(__name__)
 
 PREINSTALLED_AGENT_DESCRIPTION = "Internal zero-config agent."
 PREINSTALLED_AGENT_METADATA = {"project": "violet", "visibility": "hidden"}
-PREINSTALLED_AGENT_VERSION = "1.0.0"
-PREINSTALLED_AGENT_ARCHITECTURE = "agent_platform.architectures.experimental_1"
+PREINSTALLED_AGENT_VERSION = "1.0.1"
+PREINSTALLED_AGENT_ARCHITECTURE = "agent_platform.architectures.experimental_3"
 _PREINSTALLED_AGENT_NAME_PREFIX = "My Associate ["
 
 
