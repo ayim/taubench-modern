@@ -11,7 +11,7 @@ import type { DatabaseClient } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { ErrorResponse } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import type { SessionManager } from '../../session/SessionManager.js';
+import type { SessionManager } from '../../session/sessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
 
@@ -36,7 +36,15 @@ export const createAuthMiddleware =
       case 'none':
         return next();
       case 'snowflake':
-        return handleSnowflakeAuthCheck({ monitoring, next, req, res });
+        return handleSnowflakeAuthCheck({
+          authentication,
+          configuration,
+          monitoring,
+          next,
+          req,
+          res,
+          sessionManager,
+        });
       case 'sema4-oidc-sso':
         return handleSema4OIDCAuthCheck({ authentication, authManager, configuration, monitoring, next, req, res });
       case 'oidc':
@@ -242,20 +250,10 @@ export const extractAuthenticatedUserIdentity = async ({
           userRole: null,
         },
       };
-    case 'snowflake': {
-      const snowflakeIdentityResult = extractSnowflakeUserIdentity({ headers, monitoring });
-      if (!snowflakeIdentityResult.success) {
-        return snowflakeIdentityResult;
-      }
 
-      return {
-        success: true,
-        data: {
-          userId: snowflakeIdentityResult.data.userId,
-          userRole: null,
-        },
-      };
-    }
+    case 'snowflake':
+      return await extractSnowflakeUserIdentity({ headers, monitoring, sessionManager });
+
     case 'sema4-oidc-sso': {
       const sema4SSOResult = await extractSema4OIDCUserIdentity({
         authManager,
@@ -276,6 +274,7 @@ export const extractAuthenticatedUserIdentity = async ({
         },
       };
     }
+
     case 'oidc':
       return await extractOIDCUserIdentity({
         authManager,

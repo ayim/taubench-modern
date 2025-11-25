@@ -20,6 +20,14 @@ export const Session = z.union([
     ]),
     authType: z.literal('oidc'),
   }),
+  z.object({
+    auth: z.object({
+      stage: z.literal('authenticated'),
+      userId: z.string().nonempty(),
+      userRole: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
+    }),
+    authType: z.literal('snowflake'),
+  }),
   z.null(),
 ]);
 

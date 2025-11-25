@@ -8,7 +8,7 @@ import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { SessionManager } from '../session/SessionManager.js';
+import type { SessionManager } from '../session/sessionManager.js';
 import { extractHeadersFromRequest, NO_PROXY_HEADERS, NO_PROXY_WEBSOCKET_HEADERS } from '../utils/request.js';
 import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
 

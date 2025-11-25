@@ -1,8 +1,8 @@
 import session, { type MemoryStore, type SessionData, Store } from 'express-session';
 import createMemoryStore from 'memorystore';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { HTTPSessionManager } from './HTTPSessionManager.js';
 import type { Session } from './payload.js';
-import { SessionManager } from './SessionManager.js';
 
 const SESSION_ID = '4a6786f6-76b7-44b6-9c72-a5f79ad344ec';
 
@@ -15,13 +15,13 @@ const createSessionMemoryStore = (): MemoryStore => {
 
 describe('SessionManager', () => {
   describe('instance', () => {
-    let sessionManager: SessionManager;
+    let sessionManager: HTTPSessionManager;
     let store: Store;
 
     beforeEach(() => {
       store = createSessionMemoryStore();
 
-      sessionManager = new SessionManager({
+      sessionManager = new HTTPSessionManager({
         monitoring: {
           logger: {
             debug: () => {},

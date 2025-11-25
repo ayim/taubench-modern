@@ -5,8 +5,11 @@ import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
+import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
+import { migrateAgentServerUserSubs } from './agentServerDatabaseMigration/index.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
+import { upsertSnowflakeUser } from './auth/utils/snowflakeUserRegistration.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
 import { createFilesManager } from './files/filesManagement.js';
@@ -27,24 +30,28 @@ import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
 import type { ErrorResponse } from './interfaces.js';
 import { createAuthMiddleware, createAuthRedirectMiddleware } from './middleware/auth/index.js';
+import { createSnowflakeImplicitSessionMiddleware } from './middleware/auth/snowflake.js';
 import { badPlatform } from './middleware/badRoute.js';
 import { noCache } from './middleware/cache.js';
 import { createRequestLogger } from './middleware/logging.js';
 import { serverHeaders } from './middleware/server.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
-import { DatabaseSessionStore } from './session/DatabaseSessionStore.js';
 import { createSessionMiddleware } from './session/middleware.js';
-import { SessionManager } from './session/SessionManager.js';
+import { createSessionManager } from './session/sessionManager.js';
+import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
+import { SNOWFLAKE_AUTHORITY } from './utils/snowflake.js';
 
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
 export const createApplication = async ({
+  agentServerDatabase,
   configuration,
   database,
   monitoring,
 }: {
+  agentServerDatabase: AgentServerDatabaseClient;
   configuration: Configuration;
   database: DatabaseClient;
   monitoring: MonitoringContext;
@@ -72,12 +79,32 @@ export const createApplication = async ({
   const filesManager =
     configuration.files.mode !== 'disabled' ? await createFilesManager({ configuration, monitoring }) : null;
 
-  const sessionManager = new SessionManager({
+  const sessionManager = createSessionManager({
+    configuration,
+    database,
     monitoring,
-    secret: configuration.session?.secret ?? '__SESSION_MANAGER_NOT_ACTIVE__',
-    store: new DatabaseSessionStore({ database, sessionExpirySeconds: configuration.sessionCookieMaxAgeMs / 1000 }),
-    tenantId: configuration.tenant.tenantId,
+    secret: configuration.session?.secret ?? SESSION_COOKIES_NOT_ACTIVE,
   });
+
+  if (configuration.auth.type === 'snowflake') {
+    // Try to migrate existing users to new system
+    await migrateAgentServerUserSubs({
+      agentServerDatabase,
+      configuration,
+      createUserHandler: async ({ agentServerUserIdentityValue, database, monitoring }) =>
+        upsertSnowflakeUser({
+          database,
+          monitoring,
+          snowflake: {
+            currentUserContextHeader: agentServerUserIdentityValue,
+          },
+        }),
+      database,
+      identityAuthority: SNOWFLAKE_AUTHORITY,
+      identityType: 'snowflake_user_header',
+      monitoring,
+    });
+  }
 
   await autoPromoteUsersWithEmailsToAdmin({
     database,
@@ -136,6 +163,15 @@ export const createApplication = async ({
     createTenantExtractionMiddleware({
       configuration,
       monitoring,
+    }),
+  );
+
+  tenantRouter.use(
+    createSnowflakeImplicitSessionMiddleware({
+      configuration,
+      database,
+      monitoring,
+      sessionManager,
     }),
   );
 

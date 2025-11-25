@@ -2,16 +2,15 @@ import cookieSigning from 'cookie-signature';
 import type { Store } from 'express-session';
 import { type ExpressRequest } from '../interfaces.js';
 import { Session, sessionsEqual } from './payload.js';
+import type { ExtractSessionResult, SessionManager } from './sessionManager.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
 import { caseless, parseCookies } from '../utils/parse.js';
 import { asResult, type Result } from '../utils/result.js';
 
-export type ExtractSessionResult = Result<Session, { code: 'invalid_session' | 'no_session'; message: string }>;
-
 const COOKIE_PREFIX = 's4spar.';
 
-export class SessionManager {
+export class HTTPSessionManager implements SessionManager {
   protected monitoring: MonitoringContext;
   private secret: string;
 
@@ -53,6 +52,10 @@ export class SessionManager {
   }
 
   async destroySessionForId(sessionId: string): Promise<Result<void>> {
+    this.monitoring.logger.info('Destroy session', {
+      sessionId,
+    });
+
     return asResult(
       () =>
         new Promise((resolve, reject) => {
@@ -181,10 +184,7 @@ export class SessionManager {
           }
         });
       } else {
-        Object.assign(req.session, {
-          auth: session.auth,
-          authType: session.authType,
-        } satisfies Session);
+        Object.assign(req.session, session);
       }
 
       await new Promise<void>((resolve, reject) => {

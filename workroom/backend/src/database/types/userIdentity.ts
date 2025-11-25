@@ -2,7 +2,7 @@ import type { Insertable, Selectable, Updateable } from 'kysely';
 import type { ResourceTimestampTrait } from './traits.js';
 import type { UserTable } from './user.js';
 
-export type UserIdentityType = 'oidc_sub';
+export type UserIdentityType = 'oidc_sub' | 'snowflake_user_header';
 
 export type UserIdentityTable = {
   user_id: UserTable['id'];

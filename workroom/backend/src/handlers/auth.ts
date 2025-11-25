@@ -5,17 +5,17 @@ import type { Configuration } from '../configuration.js';
 import type { UserRole } from '../database/types/user.js';
 import type { ExpressRequest, ExpressResponse, OIDCTokenClaims } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { SessionManager } from '../session/SessionManager.js';
+import type { SessionManager } from '../session/sessionManager.js';
 import { getRequestBaseUrl } from '../utils/request.js';
 
 type AuthMeta =
   | { status: 'unauthenticated'; permissions: Array<string> }
   | {
       status: 'authenticated';
+      claims?: OIDCTokenClaims;
+      permissions: Array<string>;
       userId: string;
       userRole: UserRole;
-      permissions: Array<string>;
-      claims: OIDCTokenClaims;
     };
 
 export const createAuthMetaHandler =
@@ -55,20 +55,29 @@ export const createAuthMetaHandler =
         .json({ error: { code: 'internal_error', message: 'Invalid authentication state' } } satisfies ErrorResponse);
     }
 
-    res.json(
-      (sessionResult.data?.auth.stage === 'authenticated'
-        ? {
-            claims: sessionResult.data.auth.tokens.claims,
-            permissions: [...Roles[sessionResult.data.auth.userRole].permissions],
-            status: 'authenticated',
-            userId: sessionResult.data.auth.userId,
-            userRole: sessionResult.data.auth.userRole,
-          }
-        : {
-            permissions: [],
-            status: 'unauthenticated',
-          }) satisfies AuthMeta,
-    );
+    if (sessionResult.data?.authType === 'oidc' && sessionResult.data.auth.stage === 'authenticated') {
+      return res.json({
+        claims: sessionResult.data.auth.tokens.claims,
+        permissions: [...Roles[sessionResult.data.auth.userRole].permissions],
+        status: 'authenticated',
+        userId: sessionResult.data.auth.userId,
+        userRole: sessionResult.data.auth.userRole,
+      } satisfies AuthMeta);
+    }
+
+    if (sessionResult.data?.authType === 'snowflake' && sessionResult.data.auth.stage === 'authenticated') {
+      return res.json({
+        permissions: [...Roles[sessionResult.data.auth.userRole].permissions],
+        status: 'authenticated',
+        userId: sessionResult.data.auth.userId,
+        userRole: sessionResult.data.auth.userRole,
+      } satisfies AuthMeta);
+    }
+
+    res.json({
+      permissions: [],
+      status: 'unauthenticated',
+    } satisfies AuthMeta);
   };
 
 export const createLogoutHandler =

@@ -3,7 +3,7 @@ import { Roles, type Permission } from '../auth/permissions.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { UserRole } from '../database/types/user.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { SessionManager } from '../session/SessionManager.js';
+import type { SessionManager } from '../session/sessionManager.js';
 
 export type RouterContext = {
   database: DatabaseClient;

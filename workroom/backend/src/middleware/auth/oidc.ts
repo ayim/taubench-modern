@@ -8,7 +8,7 @@ import { extractRoutePermissions } from './helpers/permissions.js';
 import { Roles } from '../../auth/permissions.js';
 import type { Configuration } from '../../configuration.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import type { SessionManager } from '../../session/SessionManager.js';
+import type { SessionManager } from '../../session/sessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
 
@@ -231,7 +231,7 @@ export const extractOIDCUserIdentity = async ({
 
   const { tokens } = sessionResult.data.auth;
 
-  // Validate token validity
+  // Validate token authenticity
   const validityResult = await authManager.validateTokens({ tokens });
   if (!validityResult.success) {
     return {

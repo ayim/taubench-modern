@@ -1,7 +1,9 @@
-import type { SessionManager } from './SessionManager.js';
+import type { SessionManager } from './sessionManager.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { Result } from '../utils/result.js';
+
+export const SESSION_COOKIES_NOT_ACTIVE = '__SESSION_COOKIES_NOT_ACTIVE__';
 
 export const destroySessionsForUser = async ({
   database,

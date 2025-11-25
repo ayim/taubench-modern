@@ -1,3 +1,4 @@
+import type { IncomingHttpHeaders } from 'node:http';
 import type { ExpressRequest } from '../interfaces.js';
 
 export const NO_PROXY_HEADERS = [
@@ -32,4 +33,28 @@ export const extractHeadersFromRequest = (
 
 export const getRequestBaseUrl = (req: ExpressRequest): string => {
   return `${req.protocol}://${req.get('host')}`;
+};
+
+export const headersToObject = (
+  headers: IncomingHttpHeaders | Headers | Record<string, string>,
+): Record<string, string> => {
+  const webHeaders = (() => {
+    if (headers instanceof Headers) {
+      return headers;
+    }
+
+    const output = new Headers();
+
+    for (const [key, value] of Object.entries(headers)) {
+      if (typeof value === 'string') {
+        output.set(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach((v) => output.append(key, v));
+      }
+    }
+
+    return output;
+  })();
+
+  return Object.fromEntries(webHeaders.entries());
 };

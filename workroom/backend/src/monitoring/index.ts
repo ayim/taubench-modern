@@ -4,6 +4,8 @@ import type { Configuration } from '../configuration.js';
 type LogMethod<Attributes extends LogAttributes> = (text: string, data?: Partial<Attributes>) => void;
 
 export interface LogAttributes {
+  agentServerUserId: string;
+  agentServerUserSub: string;
   authMode: Configuration['auth']['type'];
   authSkip: boolean;
   contentDispositionType: string;
@@ -36,6 +38,7 @@ export interface LogAttributes {
   requestMethod: string;
   requestUrl: string;
   sessionId: string;
+  snowflakeUserId: string;
   status: number;
   statusText: string;
   tenantId: string;

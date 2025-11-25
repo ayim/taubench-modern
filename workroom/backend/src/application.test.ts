@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import type { Cookie } from 'express-session';
 import getPort from 'get-port';
 import { http, HttpResponse } from 'msw';
 import { setupServer, SetupServerApi } from 'msw/node';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { createApplication } from './application.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
@@ -21,6 +23,7 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     type: 'none',
   },
   database: {
+    agentServerSchema: 'v2',
     host: 'localhost',
     migrations: {
       lockTable: 'test-lock',
@@ -117,8 +120,34 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   },
 });
 
+const getMockAgentServerDatabase = (): AgentServerDatabaseClient => {
+  return {
+    getAllUsers: () =>
+      Promise.resolve({
+        success: true,
+        data: [],
+      } satisfies Awaited<ReturnType<AgentServerDatabaseClient['getAllUsers']>>),
+    setUserSub: () =>
+      Promise.resolve({
+        success: true,
+        data: undefined,
+      } satisfies Awaited<ReturnType<AgentServerDatabaseClient['setUserSub']>>),
+  } as unknown as AgentServerDatabaseClient;
+};
+
 const getMockDatabase = (): DatabaseClient => {
-  return {} as unknown as DatabaseClient;
+  return {
+    findUserIdentities: () =>
+      Promise.resolve({
+        success: true,
+        data: [],
+      } satisfies Awaited<ReturnType<DatabaseClient['findUserIdentities']>>),
+    getUserIds: () =>
+      Promise.resolve({
+        success: true,
+        data: [],
+      } satisfies Awaited<ReturnType<DatabaseClient['getUserIds']>>),
+  } as unknown as DatabaseClient;
 };
 
 describe('application', () => {
@@ -166,6 +195,7 @@ describe('application', () => {
       });
 
       service = await createApplication({
+        agentServerDatabase: getMockAgentServerDatabase(),
         configuration: generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
         database: getMockDatabase(),
         monitoring: {
@@ -197,6 +227,7 @@ describe('application', () => {
   describe('(snowflake auth)', () => {
     beforeEach(async () => {
       service = await createApplication({
+        agentServerDatabase: getMockAgentServerDatabase(),
         configuration: {
           ...generateConfiguration({ agentServerInternalUrl: '' }),
           auth: {
@@ -207,7 +238,28 @@ describe('application', () => {
             type: 'snowflake',
           },
         },
-        database: getMockDatabase(),
+        database: {
+          ...getMockDatabase(),
+          findActiveSession: () =>
+            Promise.resolve({
+              success: true,
+              data: {
+                id: randomUUID(),
+                data: {
+                  cookie: {} as unknown as Cookie,
+                  auth: {
+                    stage: 'authenticated',
+                    userId: randomUUID(),
+                    userRole: 'admin',
+                  },
+                  authType: 'snowflake',
+                },
+                expires: new Date(),
+                created_at: new Date(),
+                updated_at: new Date(),
+              },
+            } satisfies Awaited<ReturnType<DatabaseClient['findActiveSession']>>),
+        } as unknown as DatabaseClient,
         monitoring: {
           logger: {
             debug: () => {},
@@ -256,6 +308,7 @@ describe('application', () => {
       });
 
       service = await createApplication({
+        agentServerDatabase: getMockAgentServerDatabase(),
         configuration: {
           ...generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
           auth: {

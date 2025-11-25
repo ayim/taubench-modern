@@ -1,5 +1,6 @@
+import type { IncomingHttpHeaders } from 'node:http';
 import { describe, expect, it } from 'vitest';
-import { extractHeadersFromRequest, getRequestBaseUrl } from './request.js';
+import { extractHeadersFromRequest, getRequestBaseUrl, headersToObject } from './request.js';
 import type { ExpressRequest } from '../interfaces.js';
 
 describe('extractHeadersFromRequest', () => {
@@ -35,5 +36,42 @@ describe('getRequestBaseUrl', () => {
     const url = getRequestBaseUrl(req);
 
     expect(url).toEqual('https://test.sema4.ai');
+  });
+});
+
+describe('headersToObject', () => {
+  it('converts IncomingHttpHeaders to an object', () => {
+    const headers: IncomingHttpHeaders = {
+      accept: 'text/html',
+      'content-type': 'application/json',
+    };
+
+    const output = headersToObject(headers);
+
+    expect(output).toHaveProperty('accept', 'text/html');
+    expect(output).toHaveProperty('content-type', 'application/json');
+  });
+
+  it('converts web headers to an object', () => {
+    const headers = new Headers();
+    headers.set('Accept', 'text/html');
+    headers.set('Content-Type', 'application/json');
+
+    const output = headersToObject(headers);
+
+    expect(output).toHaveProperty('accept', 'text/html');
+    expect(output).toHaveProperty('content-type', 'application/json');
+  });
+
+  it('converts basic records to an object', () => {
+    const headers: Record<string, string> = {
+      accept: 'text/html',
+      'content-type': 'application/json',
+    };
+
+    const output = headersToObject(headers);
+
+    expect(output).toHaveProperty('accept', 'text/html');
+    expect(output).toHaveProperty('content-type', 'application/json');
   });
 });

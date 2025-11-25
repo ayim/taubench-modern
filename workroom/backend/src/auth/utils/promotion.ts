@@ -4,7 +4,7 @@ import type { DatabaseClient } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { OIDCTokenClaims } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import type { SessionManager } from '../../session/SessionManager.js';
+import type { SessionManager } from '../../session/sessionManager.js';
 import { destroySessionsForUser } from '../../session/utils.js';
 
 /**

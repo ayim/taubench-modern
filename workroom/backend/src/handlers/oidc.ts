@@ -7,7 +7,7 @@ import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { UserRole } from '../database/types/user.js';
 import type { ErrorResponse, ExpressRequest, ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { SessionManager } from '../session/SessionManager.js';
+import type { SessionManager } from '../session/sessionManager.js';
 
 export const createOIDCCallbackHandler =
   ({

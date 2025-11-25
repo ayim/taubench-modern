@@ -128,6 +128,26 @@ export class DatabaseClient {
     };
   }
 
+  async findUserIdentities({
+    authority,
+    identityValues,
+    type,
+  }: {
+    authority: string;
+    identityValues: Array<string>;
+    type: UserIdentityType;
+  }): Promise<Result<Array<UserIdentity>>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('user_identity')
+        .selectAll()
+        .where('type', '=', type)
+        .where('authority', '=', authority)
+        .where('value', 'in', identityValues)
+        .execute(),
+    );
+  }
+
   async getAdminUserIds(): Promise<Result<Array<string>>> {
     return asResult(() =>
       this.database
@@ -149,8 +169,23 @@ export class DatabaseClient {
     );
   }
 
+  async getUserIds(): Promise<Result<Array<string>>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('user')
+        .select('id')
+        .execute()
+        .then((results) => results.map((result) => result.id)),
+    );
+  }
+
   async getUsers(): Promise<Result<Array<User>>> {
-    return asResult(() => this.database.selectFrom('user').selectAll().execute());
+    return asResult(() =>
+      this.database //
+        .selectFrom('user')
+        .selectAll()
+        .execute(),
+    );
   }
 
   async getUsersCount(): Promise<Result<number>> {

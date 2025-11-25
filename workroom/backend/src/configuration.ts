@@ -6,6 +6,7 @@ import {
 } from '@sema4ai/robocloud-shared-utils';
 import type { operations } from '@sema4ai/workroom-interface';
 import { LogSeverity } from './monitoring/index.js';
+import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 
 export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['content']['application/json'];
 
@@ -47,6 +48,7 @@ export interface Configuration {
       }
   );
   database: {
+    agentServerSchema: string;
     host: string;
     migrations: {
       lockTable: string;
@@ -155,7 +157,7 @@ export const getConfiguration = (): Configuration => {
         return {
           autoPromoteEmails,
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
-          roleManagement: false,
+          roleManagement: true,
           tokenIssuer,
           type: 'snowflake',
         };
@@ -206,6 +208,7 @@ export const getConfiguration = (): Configuration => {
   })();
 
   const database: Configuration['database'] = {
+    agentServerSchema: 'v2',
     host: parseEnvVariable('POSTGRES_HOST'),
     migrations: {
       lockTable: 'spar_migration_lock',
@@ -270,8 +273,12 @@ export const getConfiguration = (): Configuration => {
           secret: parseEnvVariable('SEMA4AI_WORKROOM_SESSION_SECRET'),
         };
 
-      case 'none':
       case 'snowflake':
+        return {
+          secret: SESSION_COOKIES_NOT_ACTIVE,
+        };
+
+      case 'none':
       case 'sema4-oidc-sso':
         return null;
 

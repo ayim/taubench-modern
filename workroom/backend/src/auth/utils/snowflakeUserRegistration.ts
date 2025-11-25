@@ -2,74 +2,47 @@ import { randomUUID } from 'node:crypto';
 import { getNextUserRole } from './userRegistration.js';
 import type { DatabaseClient, UpdateUserIdentityPayload, UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
-import type { OIDCTokenClaims } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { isEmail } from '../../utils/parse.js';
-import { type Result } from '../../utils/result.js';
+import type { Result } from '../../utils/result.js';
+import { SNOWFLAKE_AUTHORITY } from '../../utils/snowflake.js';
 
-export const extractEmailFromClaims = (claims: OIDCTokenClaims): string | null => {
-  return [claims.email, claims.sub, claims.preferred_username].find((value) => value && isEmail(value)) ?? null;
-};
-
-const extractNamesFromClaims = (claims: OIDCTokenClaims): { first: string; last: string } => {
-  if (claims.given_name && claims.family_name) {
-    return { first: claims.given_name, last: claims.family_name };
-  }
-
-  if (claims.name) {
-    const match = /^(?<first>[^\s]+)\s*(?<last>.*)$/.exec(claims.name);
-    if (match?.groups?.first && match.groups.last) {
-      return {
-        first: match.groups.first,
-        last: match.groups.last,
-      };
-    }
-  }
-
-  return claims.given_name || claims.name
-    ? {
-        first: (claims.given_name || claims.name) as string,
-        last: claims.family_name ?? '',
-      }
-    : {
-        first: 'User',
-        last: '',
-      };
-};
-
-export const upsertOIDCUser = async ({
-  claims,
+export const upsertSnowflakeUser = async ({
   database,
   monitoring,
+  snowflake,
 }: {
-  claims: OIDCTokenClaims;
   database: DatabaseClient;
   monitoring: MonitoringContext;
+  snowflake: {
+    currentUserContextHeader: string;
+  };
 }): Promise<
   Result<{
     userId: string;
     userRole: UserRole;
   }>
 > => {
-  const oidcUserId = claims.sub;
-  const names = extractNamesFromClaims(claims);
-  const profilePicture = claims.picture ?? null;
-  const email = extractEmailFromClaims(claims);
+  const snowflakeUserId = snowflake.currentUserContextHeader;
+  const email = isEmail(snowflake.currentUserContextHeader) ? snowflake.currentUserContextHeader : null;
+  const names: { first: string; last: string } = {
+    first: 'User',
+    last: '',
+  };
 
-  monitoring.logger.info('Ingest OIDC user', {
-    oidcUserId,
+  monitoring.logger.info('Ingest Snowflake user', {
+    snowflakeUserId,
   });
 
-  monitoring.logger.debug('Ingesting OIDC user with claims', {
+  monitoring.logger.debug('Ingesting Snowflake user with claims', {
     emailAddress: email ?? undefined,
-    oidcClaims: JSON.stringify(claims),
-    oidcUserId,
+    snowflakeUserId,
   });
 
   const existingUserIdentityResult = await database.findUserIdentity({
-    authority: claims.iss,
-    identityValue: oidcUserId,
-    type: 'oidc_sub',
+    authority: SNOWFLAKE_AUTHORITY,
+    identityValue: snowflakeUserId,
+    type: 'snowflake_user_header',
   });
   if (!existingUserIdentityResult.success) {
     return existingUserIdentityResult;
@@ -85,10 +58,6 @@ export const upsertOIDCUser = async ({
       last_name: names.last,
     };
 
-    if (profilePicture) {
-      updateUserPayload.profile_picture_url = profilePicture;
-    }
-
     const updateResult = await database.updateUser({
       user: updateUserPayload,
     });
@@ -96,8 +65,8 @@ export const upsertOIDCUser = async ({
       return updateResult;
     }
 
-    monitoring.logger.info('Updating existing OIDC user', {
-      oidcUserId,
+    monitoring.logger.info('Updating existing Snowflake user', {
+      snowflakeUserId,
       userId: existingUserId,
     });
 
@@ -152,7 +121,7 @@ export const upsertOIDCUser = async ({
   }
 
   monitoring.logger.info('Create new user', {
-    oidcUserId,
+    snowflakeUserId,
     userId: newUserId,
     userRole: nextUserRoleResult.data,
   });
@@ -163,7 +132,6 @@ export const upsertOIDCUser = async ({
       first_name: names.first,
       last_name: names.last,
       role: nextUserRoleResult.data,
-      profile_picture_url: profilePicture,
     },
   });
   if (!newUserResult.success) {
@@ -174,9 +142,9 @@ export const upsertOIDCUser = async ({
     userIdentity: {
       email,
       user_id: newUserId,
-      authority: claims.iss,
-      type: 'oidc_sub',
-      value: oidcUserId,
+      authority: SNOWFLAKE_AUTHORITY,
+      type: 'snowflake_user_header',
+      value: snowflakeUserId,
     },
   });
   if (!newUserIdentityResult.success) {
@@ -184,7 +152,7 @@ export const upsertOIDCUser = async ({
   }
 
   monitoring.logger.info('Created new user', {
-    oidcUserId,
+    snowflakeUserId,
     userId: newUserId,
     userRole: nextUserRoleResult.data,
   });

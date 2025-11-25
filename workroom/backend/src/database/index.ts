@@ -1,7 +1,7 @@
 import { Kysely, PostgresDialect } from 'kysely';
-import { Pool, type PoolConfig } from 'pg';
 import type { Configuration } from '../configuration.js';
 import { DatabaseClient } from './DatabaseClient.js';
+import { createPool } from './helpers.js';
 import { migrateDatabase } from './migrate.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { Database } from './types/index.js';
@@ -51,48 +51,4 @@ export const createDatabaseClient = async ({
     database,
     monitoring,
   });
-};
-
-const createPool = async ({
-  monitoring,
-  poolConfig,
-}: {
-  monitoring: MonitoringContext;
-  poolConfig: Pick<PoolConfig, 'database' | 'host' | 'user' | 'password' | 'port' | 'max'>;
-}): Promise<Pool> => {
-  // Try SSL connection first
-  const sslPool = new Pool({
-    ...poolConfig,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  });
-
-  try {
-    // Test the connection
-    const client = await sslPool.connect();
-    client.release();
-
-    monitoring.logger.info('Database connection established with SSL');
-
-    return sslPool;
-  } catch (error) {
-    // Clean up the failed pool
-    await sslPool.end();
-
-    if (error instanceof Error && error.message.includes('does not support SSL')) {
-      monitoring.logger.info('Database does not support SSL: connecting without');
-      const noSslPool = new Pool({
-        ...poolConfig,
-        ssl: false,
-      });
-
-      // Verify the non-SSL connection works
-      const client = await noSslPool.connect();
-      client.release();
-      return noSslPool;
-    }
-
-    throw error;
-  }
 };
