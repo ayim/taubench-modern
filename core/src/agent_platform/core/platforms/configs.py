@@ -22,6 +22,12 @@ ModelPrioritization = Literal["intelligence", "speed", "cost"]
 
 EXPERIMENTAL_ARCH_2_0_0 = "agent_platform.architectures.experimental_1==2.0.0"
 CONSISTENCY_ARCH_2_0_0 = "agent_platform.architectures.experimental_2==2.0.0"
+PREINSTALLED_ARCH_2_0_0 = "agent_platform.architectures.experimental_3==2.0.0"
+DEFAULT_ARCHITECTURE_OVERRIDES = (
+    EXPERIMENTAL_ARCH_2_0_0,
+    CONSISTENCY_ARCH_2_0_0,
+    PREINSTALLED_ARCH_2_0_0,
+)
 
 
 def _normalize_model_slug_for_lookup(slug: str) -> str:
@@ -808,139 +814,95 @@ class PlatformModelConfigs(Configuration):
     models_to_architecture_overrides: dict[str, list[str]] = field(
         default_factory=lambda: {
             # Azure OpenAI
-            "azure/openai/gpt-5-1-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-1-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-1-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-1-none": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-1-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-1-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-1-none": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # TODO: verify codex works with architecture changes
-            "azure/openai/gpt-5-1-codex-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-1-codex-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-1-codex-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "azure/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "azure/openai/gpt-5-1-codex-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-1-codex-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-1-codex-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-minimal": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-mini": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure/openai/gpt-5-nano": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # OpenAI
-            "openai/openai/gpt-5-1-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-1-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-1-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-1-none": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-1-codex-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-1-codex-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-1-codex-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "openai/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "openai/openai/gpt-5-1-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-1-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-1-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-1-none": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-1-codex-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-1-codex-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-1-codex-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-minimal": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-mini": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "openai/openai/gpt-5-nano": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # Bedrock
-            "bedrock/anthropic/claude-4-5-haiku-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-5-haiku-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-5-haiku": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-5-sonnet": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-sonnet-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-sonnet-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-sonnet-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-1-opus-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-1-opus-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "bedrock/anthropic/claude-4-1-opus-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-haiku": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-5-sonnet": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # Cortex
-            "cortex/anthropic/claude-4-1-opus": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-1-opus-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-1-opus-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-1-opus-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-sonnet-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-sonnet-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-sonnet-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-5-sonnet": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/anthropic/claude-4-5-sonnet-thinking-high": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/anthropic/claude-4-5-sonnet-thinking-low": [
-                EXPERIMENTAL_ARCH_2_0_0,
-                CONSISTENCY_ARCH_2_0_0,
-            ],
-            "cortex/openai/gpt-5-high": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/openai/gpt-5-medium": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/openai/gpt-5-low": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/openai/gpt-5-minimal": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/openai/gpt-5-mini": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "cortex/openai/gpt-5-nano": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "cortex/anthropic/claude-4-1-opus": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-1-opus-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "cortex/anthropic/claude-4-1-opus-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "cortex/anthropic/claude-4-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-5-sonnet": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": list(
+                DEFAULT_ARCHITECTURE_OVERRIDES
+            ),
+            "cortex/anthropic/claude-4-5-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/openai/gpt-5-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/openai/gpt-5-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/openai/gpt-5-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/openai/gpt-5-minimal": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/openai/gpt-5-mini": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/openai/gpt-5-nano": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # groq
-            "groq/openai/gpt-oss-120b": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "groq/openai/gpt-oss-20b": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "groq/moonshotai/kimi-k2": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "groq/meta/llama-4-scout": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
-            "groq/meta/llama-4-maverick": [EXPERIMENTAL_ARCH_2_0_0, CONSISTENCY_ARCH_2_0_0],
+            "groq/openai/gpt-oss-120b": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "groq/openai/gpt-oss-20b": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "groq/moonshotai/kimi-k2": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "groq/meta/llama-4-scout": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "groq/meta/llama-4-maverick": list(DEFAULT_ARCHITECTURE_OVERRIDES),
         },
         metadata=FieldMetadata(
             description="A mapping of model IDs to the architectures they require to be used with.",
