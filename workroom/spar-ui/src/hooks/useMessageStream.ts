@@ -356,7 +356,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
   const { sparAPIClient } = useSparUIContext();
   const queryClient = useQueryClient();
   const { mutateAsync: uploadFiles, isPending: uploadingFiles } = useUploadThreadFilesMutation({ threadId });
-  const refetchFiles = useThreadFilesRefetch({ threadId });
+  const refetchFiles = useThreadFilesRefetch({ threadId, agentId });
 
   const [streamingMessages, setStreamingMessages] = useState<ThreadMessage[] | undefined>(undefined);
   const [streamError, setStreamError] = useState<AgentErrorStreamPayload | undefined>(undefined);

@@ -11,6 +11,7 @@ import { getFileSize } from '../common/helpers';
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 import { streamManager } from '../hooks/useMessageStream';
 import { downloadFile } from '../lib/utils';
+import { getAgentSemanticDataValidationQueryKey } from './semanticData';
 
 /**
  * List Threads
@@ -274,11 +275,12 @@ export const threadFilesQueryOptions = createSparQueryOptions<{ threadId: string
  */
 export const useThreadFilesQuery = createSparQuery(threadFilesQueryOptions);
 
-export const useThreadFilesRefetch = ({ threadId }: { threadId: string }) => {
+export const useThreadFilesRefetch = ({ agentId, threadId }: { agentId: string; threadId: string }) => {
   const queryClient = useQueryClient();
 
   return useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: threadFilesQueryKey(threadId) });
+    await queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId, threadId) });
   }, [queryClient, threadId]);
 };
 

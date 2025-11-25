@@ -20,7 +20,7 @@ const AccentText = styled.span<{ disabled: boolean }>`
 `;
 
 export const AddFiles: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
-  const refetchFiles = useThreadFilesRefetch({ threadId });
+  const refetchFiles = useThreadFilesRefetch({ threadId, agentId });
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
 
   const { streamingMessages, uploadingFiles, sendMessage } = useMessageStream({ agentId, threadId });
