@@ -1,3 +1,12 @@
+# Sema4.ai Agent Server 2.2.1 (2025-11-25)
+
+- DIN-802 Add a generalized cache backed by thread files (#1753)
+- [SDM-105] Steer the LLM on how to handle an uploaded file (#1383)
+- [GPT-1456] Serialize dataclass to handle unicode filenames in get files endpoints (#1765)
+- [GPT-1572] Project Violet Hidden SPAR Page (#1742)
+- [GPT-1584] Copy Arch to New Slot (exp_1 -> exp_3) (#1758)
+- [SDM-178] Fix SDM SQL generation guidance to ensure only columns are qualified (#1771)
+
 # Sema4.ai Agent Server 2.2.0 (2025-11-24)
 
 - GH-1733 Show message when evals fail because of timeout error (#1733)
