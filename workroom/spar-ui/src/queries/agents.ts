@@ -123,6 +123,38 @@ export const agentOauthStateQueryOptions = createSparQueryOptions<{ agentId: str
 export const useAgentOAuthStateQuery = createSparQuery(agentOauthStateQueryOptions);
 
 /**
+ * Search Agents by metadata
+ */
+export const searchAgentsByMetadataQueryKey = (metadata: Record<string, string>) => [
+  'agents',
+  'search-by-metadata',
+  JSON.stringify(metadata),
+];
+
+export const searchAgentsByMetadataQueryOptions = createSparQueryOptions<{ metadata: Record<string, string> }>()(
+  ({ sparAPIClient, metadata }) => ({
+    queryKey: searchAgentsByMetadataQueryKey(metadata),
+    queryFn: async () => {
+      // Route not yet in the generated agent-server interface types; cast params for now
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/agents/search/by-metadata', {
+        params: { query: metadata } as never,
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to find agent', {
+          code: response.code,
+          resource: ResourceType.Agent,
+        });
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+export const useSearchAgentsByMetadataQuery = createSparQuery(searchAgentsByMetadataQueryOptions);
+
+/**
  * Delete Agent OAuth provider connection
  */
 export const useAuthorizeAgentOAuthMutation = createSparMutation<

@@ -106,6 +106,29 @@ class DefaultModelSelector(ModelSelector):
         """
         self._override_model_id = model_id
 
+    def _handle_litellm_special_case(
+        self, platform: "PlatformClient", request: ModelSelectionRequest
+    ) -> str | None:
+        """Handle the special case of LiteLLM."""
+        if platform.name != "litellm":
+            return None
+
+        providers = list((platform.parameters.models or {}).keys())
+        if not providers:
+            return self._fallback_to_default(platform, request)
+        elif len(providers) > 1:
+            return self._fallback_to_default(platform, request)
+
+        only_provider = providers[0]
+        models = platform.parameters.models[only_provider]
+        if not models:
+            return self._fallback_to_default(platform, request)
+        elif len(models) > 1:
+            return self._fallback_to_default(platform, request)
+
+        only_model = models[0]
+        return f"litellm/{only_provider}/{only_model}"
+
     def select_model(
         self,
         platform: "PlatformClient",
@@ -123,6 +146,12 @@ class DefaultModelSelector(ModelSelector):
             request = ModelSelectionRequest()
 
         logger.info(f"Starting model selection - platform: {platform.name}, request: {request}")
+
+        # Step 0.9: LiteLLM is "special" we don't know candidate models ahead of time (it's
+        # an "any model goes" gateway).
+        if litellm_candidate := self._handle_litellm_special_case(platform, request):
+            logger.info(f"LiteLLM special case detected, returning candidate: {litellm_candidate}")
+            return litellm_candidate
 
         # Step 1: Collect all candidate models
         candidates = self._collect_all_candidates(platform)

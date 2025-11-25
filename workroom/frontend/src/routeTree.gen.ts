@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantsTenantIdRouteImport } from './routes/tenants/$tenantId'
 import { Route as TenantsTenantIdIndexRouteImport } from './routes/tenants/$tenantId/index'
+import { Route as TenantsTenantIdVioletRouteImport } from './routes/tenants/$tenantId/violet'
 import { Route as TenantsTenantIdUsersRouteImport } from './routes/tenants/$tenantId/users'
 import { Route as TenantsTenantIdSignoutCallbackRouteImport } from './routes/tenants/$tenantId/signout-callback'
 import { Route as TenantsTenantIdSigninCallbackRouteImport } from './routes/tenants/$tenantId/signin-callback'
@@ -74,6 +75,11 @@ const TenantsTenantIdRoute = TenantsTenantIdRouteImport.update({
 const TenantsTenantIdIndexRoute = TenantsTenantIdIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => TenantsTenantIdRoute,
+} as any)
+const TenantsTenantIdVioletRoute = TenantsTenantIdVioletRouteImport.update({
+  id: '/violet',
+  path: '/violet',
   getParentRoute: () => TenantsTenantIdRoute,
 } as any)
 const TenantsTenantIdUsersRoute = TenantsTenantIdUsersRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
+  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
@@ -437,6 +444,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
+  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
@@ -488,6 +496,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
+  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
@@ -543,6 +552,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
+    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/deploy'
     | '/tenants/$tenantId/conversational/$agentId'
@@ -594,6 +604,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
+    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/agents/deploy'
     | '/tenants/$tenantId/data-access/data-connections'
@@ -644,6 +655,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
+    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/deploy'
     | '/tenants/$tenantId/conversational/$agentId'
@@ -715,6 +727,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/tenants/$tenantId/'
       preLoaderRoute: typeof TenantsTenantIdIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/violet': {
+      id: '/tenants/$tenantId/violet'
+      path: '/violet'
+      fullPath: '/tenants/$tenantId/violet'
+      preLoaderRoute: typeof TenantsTenantIdVioletRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/users': {
@@ -1265,6 +1284,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdSigninCallbackRoute: typeof TenantsTenantIdSigninCallbackRoute
   TenantsTenantIdSignoutCallbackRoute: typeof TenantsTenantIdSignoutCallbackRoute
   TenantsTenantIdUsersRoute: typeof TenantsTenantIdUsersRouteWithChildren
+  TenantsTenantIdVioletRoute: typeof TenantsTenantIdVioletRoute
   TenantsTenantIdIndexRoute: typeof TenantsTenantIdIndexRoute
   TenantsTenantIdAgentsDeployRoute: typeof TenantsTenantIdAgentsDeployRouteWithChildren
   TenantsTenantIdConversationalAgentIdRoute: typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
@@ -1289,6 +1309,7 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdSigninCallbackRoute: TenantsTenantIdSigninCallbackRoute,
   TenantsTenantIdSignoutCallbackRoute: TenantsTenantIdSignoutCallbackRoute,
   TenantsTenantIdUsersRoute: TenantsTenantIdUsersRouteWithChildren,
+  TenantsTenantIdVioletRoute: TenantsTenantIdVioletRoute,
   TenantsTenantIdIndexRoute: TenantsTenantIdIndexRoute,
   TenantsTenantIdAgentsDeployRoute:
     TenantsTenantIdAgentsDeployRouteWithChildren,

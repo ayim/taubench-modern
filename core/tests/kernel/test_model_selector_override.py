@@ -165,6 +165,17 @@ def test_default_selector_accepts_full_generic_id():
 
 
 @pytest.mark.unit
+def test_litellm_single_provider_prefers_direct_model():
+    """LiteLLM special-cases a single provider/model into a fully-qualified id."""
+    selector = DefaultModelSelector()
+    platform = _DummyClient(name="litellm", params=_DummyParams({"custom": ["who-knows"]}))
+
+    selected = selector.select_model(platform=cast(PlatformClient, platform))
+
+    assert selected == "litellm/custom/who-knows"
+
+
+@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_platform_and_model_uses_override_when_set():
     """When `override_model_id` is set, the selector returns that ID."""

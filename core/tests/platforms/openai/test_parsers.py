@@ -287,3 +287,225 @@ class TestOpenAIParsers:
         assert any(
             isinstance(item, dict) and item.get("kind") == "tool_use" for item in message["content"]
         )
+
+    @pytest.mark.asyncio
+    async def test_parse_stream_event_with_completed_event_tool_call(
+        self,
+        parsers: OpenAIParsers,
+    ) -> None:
+        """Ensure completed event output is captured when no prior deltas exist."""
+        from openai.types.responses import (
+            Response,
+            ResponseCompletedEvent,
+            ResponseFunctionToolCall,
+        )
+
+        response = Response(
+            id="resp_1",
+            created_at=0.0,
+            model="gpt-test",
+            object="response",
+            output=[
+                ResponseFunctionToolCall(
+                    id="api-id",
+                    call_id="call-1",
+                    type="function_call",
+                    name="test-tool",
+                    arguments='{"foo": "bar"}',
+                )
+            ],
+            parallel_tool_calls=False,
+            tool_choice="auto",
+            tools=[],
+        )
+        event = ResponseCompletedEvent(
+            response=response,
+            sequence_number=1,
+            type="response.completed",
+        )
+
+        message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+        last_message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+
+        deltas = []
+        async for delta in parsers.parse_stream_event(
+            event=event,
+            message=message,
+            last_message=last_message,
+        ):
+            deltas.append(delta)
+
+        assert len(deltas) > 0
+        assert any(
+            item.get("kind") == "tool_use"
+            and item.get("tool_call_id") == "call-1"
+            and item.get("tool_input_raw") == '{"foo": "bar"}'
+            for item in message["content"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_parse_stream_event_with_completed_event_text(
+        self,
+        parsers: OpenAIParsers,
+    ) -> None:
+        """Ensure completed event text content is captured."""
+        from openai.types.responses import (
+            Response,
+            ResponseCompletedEvent,
+            ResponseOutputMessage,
+            ResponseOutputText,
+        )
+
+        response = Response(
+            id="resp_2",
+            created_at=0.0,
+            model="gpt-test",
+            object="response",
+            output=[
+                ResponseOutputMessage(
+                    id="msg-1",
+                    content=[
+                        ResponseOutputText(
+                            annotations=[],
+                            text="hello world",
+                            type="output_text",
+                        )
+                    ],
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                )
+            ],
+            parallel_tool_calls=False,
+            tool_choice="auto",
+            tools=[],
+        )
+        event = ResponseCompletedEvent(
+            response=response,
+            sequence_number=1,
+            type="response.completed",
+        )
+
+        message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+        last_message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+
+        deltas = []
+        async for delta in parsers.parse_stream_event(
+            event=event,
+            message=message,
+            last_message=last_message,
+        ):
+            deltas.append(delta)
+
+        assert len(deltas) > 0
+        assert any(
+            item.get("kind") == "text" and item.get("text") == "hello world"
+            for item in message["content"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_parse_stream_event_completed_text_no_duplication(
+        self,
+        parsers: OpenAIParsers,
+    ) -> None:
+        """Ensure completed text does not duplicate existing streamed text."""
+        from openai.types.responses import (
+            Response,
+            ResponseCompletedEvent,
+            ResponseOutputMessage,
+            ResponseOutputText,
+            ResponseTextDeltaEvent,
+        )
+
+        # First process a delta
+        delta_event = ResponseTextDeltaEvent(
+            type="response.output_text.delta",
+            delta="hello world",
+            content_index=0,
+            item_id="msg_1",
+            logprobs=[],
+            output_index=0,
+            sequence_number=1,
+        )
+
+        message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+        last_message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+
+        async for _ in parsers.parse_stream_event(
+            event=delta_event,
+            message=message,
+            last_message=last_message,
+        ):
+            pass
+        last_message = message.copy()
+
+        # Now process completed event with same text
+        response = Response(
+            id="resp_3",
+            created_at=0.0,
+            model="gpt-test",
+            object="response",
+            output=[
+                ResponseOutputMessage(
+                    id="msg_1",
+                    content=[
+                        ResponseOutputText(
+                            annotations=[],
+                            text="hello world",
+                            type="output_text",
+                        )
+                    ],
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                )
+            ],
+            parallel_tool_calls=False,
+            tool_choice="auto",
+            tools=[],
+        )
+        completed_event = ResponseCompletedEvent(
+            response=response,
+            sequence_number=2,
+            type="response.completed",
+        )
+
+        deltas = []
+        async for delta in parsers.parse_stream_event(
+            event=completed_event,
+            message=message,
+            last_message=last_message,
+        ):
+            deltas.append(delta)
+
+        assert any(
+            item.get("kind") == "text" and item.get("text") == "hello world"
+            for item in message["content"]
+        )
+        # No duplication in text content
+        text_items = [item for item in message["content"] if item.get("kind") == "text"]
+        assert len(text_items) == 1

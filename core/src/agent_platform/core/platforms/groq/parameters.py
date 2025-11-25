@@ -24,6 +24,15 @@ class GroqPlatformParameters(PlatformParameters):
             "attempted to be inferred from the environment.",
         },
     )
+    groq_base_url: str | None = field(
+        default=None,
+        metadata={
+            "description": (
+                "Optional override for the Groq base URL "
+                "(defaults to https://api.groq.com/openai/v1)."
+            ),
+        },
+    )
 
     def __post_init__(self):
         from os import getenv
@@ -39,6 +48,10 @@ class GroqPlatformParameters(PlatformParameters):
             else:
                 raise ValueError("GROQ_API_KEY environment variable is required")
 
+        if not self.groq_base_url:
+            base_url = getenv("GROQ_BASE_URL", BASE_GROQ_RESPONSES_URL)
+            object.__setattr__(self, "groq_base_url", base_url)
+
     def api_key(self) -> str | None:
         if self.groq_api_key:
             if isinstance(self.groq_api_key, SecretString):
@@ -48,7 +61,7 @@ class GroqPlatformParameters(PlatformParameters):
 
     @property
     def base_url(self) -> str:
-        return BASE_GROQ_RESPONSES_URL
+        return self.groq_base_url or BASE_GROQ_RESPONSES_URL
 
     def model_dump(
         self,
@@ -57,6 +70,7 @@ class GroqPlatformParameters(PlatformParameters):
     ) -> dict:
         extra = {
             "groq_api_key": self.api_key(),
+            "groq_base_url": self.base_url,
         }
         return super().model_dump(exclude_none=exclude_none, extra=extra)
 

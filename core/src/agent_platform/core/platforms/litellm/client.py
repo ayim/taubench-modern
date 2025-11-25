@@ -237,5 +237,10 @@ class LiteLLMClient(OpenAIClient):
     ) -> dict[str, Any]:
         raise NotImplementedError("Embeddings are not supported for the LiteLLM platform.")
 
+    async def get_available_models(self) -> dict[str, list[str]]:
+        # This is an "anything goes" platform, so we'll just say whatever
+        # we are configured with is available
+        return self.parameters.models or {}
+
 
 PlatformClient.register_platform_client("litellm", LiteLLMClient)

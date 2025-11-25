@@ -5032,6 +5032,11 @@ export interface components {
       platform_id: string;
       /** @description The Groq API key. If not provided, it will be attempted to be inferred from the environment. */
       groq_api_key?: components['schemas']['SecretString'] | null;
+      /**
+       * Groq Base Url
+       * @description Optional override for the Groq base URL (defaults to https://api.groq.com/openai/v1).
+       */
+      groq_base_url?: string | null;
     };
     /** HealthResponse */
     HealthResponse: {

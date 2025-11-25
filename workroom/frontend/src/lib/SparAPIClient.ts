@@ -49,6 +49,9 @@ export const createSparAPIClient = (
         return agentMeta?.workroomUi?.feedback ?? featureFlagFallback;
       case SparUIFeatureFlag.agentChatInput:
         return agentMeta?.workroomUi?.chatInput ?? featureFlagFallback;
+      case SparUIFeatureFlag.violetAgentChat:
+        // Keep behind developer mode for now; adjust when a dedicated flag exists in tenant meta
+        return { enabled: tenantMeta.features.developerMode.enabled };
       default:
         feature satisfies never;
         return featureFlagFallback;

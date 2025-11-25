@@ -17,6 +17,7 @@ export enum SparUIFeatureFlag {
   semanticDataModels = 'semanticDataModels',
   agentFeedback = 'agentFeedback',
   agentChatInput = 'agentChatInput',
+  violetAgentChat = 'violetAgentChat',
 }
 
 export type NavigationArgs = {

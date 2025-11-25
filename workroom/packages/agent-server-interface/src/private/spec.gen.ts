@@ -13272,6 +13272,19 @@ export const spec = {
             description:
               'The Groq API key. If not provided, it will be attempted to be inferred from the environment.',
           },
+          groq_base_url: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Groq Base Url',
+            description:
+              'Optional override for the Groq base URL (defaults to https://api.groq.com/openai/v1).',
+          },
         },
         type: 'object',
         title: 'GroqPlatformParameters',

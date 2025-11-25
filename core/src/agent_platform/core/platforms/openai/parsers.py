@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         ResponseIncompleteEvent,
         ResponseInProgressEvent,
         ResponseOutputItemAddedEvent,
+        ResponseOutputMessage,
         ResponseOutputText,
         ResponseReasoningItem,
         ResponseReasoningSummaryPartAddedEvent,
@@ -203,9 +204,31 @@ class OpenAIParsers(PlatformParsers):
             additional_response_fields=additional_fields,
         )
 
-    def _extract_token_usage(self, response: "Response") -> TokenUsage:
+    def _extract_token_usage(self, response: "Response | dict") -> TokenUsage:
         """Extracts token usage from a response."""
-        if not response.usage:
+        from openai.types.responses import Response, ResponseUsage
+        from openai.types.responses.response_usage import InputTokensDetails, OutputTokensDetails
+
+        usage = None
+        if isinstance(response, dict):
+            usage_raw = response.get("usage", {})
+            input_details_raw = usage_raw.get("input_tokens_details", {})
+            output_details_raw = usage_raw.get("output_tokens_details", {})
+            usage = ResponseUsage(
+                input_tokens=usage_raw.get("input_tokens", 0),
+                input_tokens_details=InputTokensDetails(**input_details_raw),
+                output_tokens=usage_raw.get("output_tokens", 0),
+                output_tokens_details=OutputTokensDetails(**output_details_raw),
+                total_tokens=usage_raw.get("total_tokens", 0),
+            )
+        elif isinstance(response, Response) and response.usage is not None:
+            usage = response.usage
+            if usage.input_tokens_details is None:
+                usage.input_tokens_details = InputTokensDetails(cached_tokens=0)
+            if usage.output_tokens_details is None:
+                usage.output_tokens_details = OutputTokensDetails(reasoning_tokens=0)
+
+        if usage is None:
             return TokenUsage(
                 input_tokens=0,
                 output_tokens=0,
@@ -214,20 +237,12 @@ class OpenAIParsers(PlatformParsers):
                 reasoning_tokens=0,
             )
 
-        usage = response.usage
-
-        # Extract cached tokens from input_tokens_details
-        cached_tokens = usage.input_tokens_details.cached_tokens
-
-        # Extract reasoning tokens from output_tokens_details
-        reasoning_tokens = usage.output_tokens_details.reasoning_tokens
-
         return TokenUsage(
             input_tokens=usage.input_tokens,
             output_tokens=usage.output_tokens,
             total_tokens=usage.total_tokens,
-            cached_tokens=cached_tokens,
-            reasoning_tokens=reasoning_tokens,
+            cached_tokens=usage.input_tokens_details.cached_tokens,
+            reasoning_tokens=usage.output_tokens_details.reasoning_tokens,
         )
 
     async def parse_stream_event(  # noqa: PLR0912, C901
@@ -273,6 +288,7 @@ class OpenAIParsers(PlatformParsers):
                 self._process_event_metadata(e, message)
             case ResponseCompletedEvent() as e:
                 self._process_event_metadata(e, message)
+                self._process_completed_output(e.response, message)
             case ResponseIncompleteEvent() as e:
                 # Incomplete terminal event (e.g., max_output_tokens)
                 self._process_event_metadata(e, message)
@@ -433,7 +449,7 @@ class OpenAIParsers(PlatformParsers):
             target = self._find_content(
                 message,
                 kind="tool_use",
-                predicate=lambda c: (c.get("metadata") or {}).get("api_id") == item_id,
+                predicate=lambda c: (c.get("metadata", {}).get("api_id") == item_id),
             )
 
         # Fallback: update the most recent tool_use
@@ -541,19 +557,86 @@ class OpenAIParsers(PlatformParsers):
             message["stop_reason"] = "max_tokens"
 
         # Token usage (typically present on completed)
-        if response_obj.usage is not None:
-            usage = response_obj.usage
+        usage = self._extract_token_usage(response_obj)
+        message["usage"] = usage.model_dump()
 
-            # Extract cached tokens from input_tokens_details
-            cached_tokens = usage.input_tokens_details.cached_tokens
+    def _process_completed_output(self, response: "Response", message: dict[str, Any]) -> None:
+        """Process final response output (only add if not already present from streaming)."""
+        from openai.types.responses import (
+            ResponseFunctionToolCall,
+            ResponseOutputMessage,
+            ResponseReasoningItem,
+        )
 
-            # Extract reasoning tokens from output_tokens_details
-            reasoning_tokens = usage.output_tokens_details.reasoning_tokens
+        for item in response.output or []:
+            match item:
+                case ResponseOutputMessage() as msg:
+                    self._add_text_from_completed(msg, message)
+                case ResponseFunctionToolCall() as tool_call:
+                    self._add_tool_from_completed(tool_call, message)
+                case ResponseReasoningItem() as reasoning_item:
+                    self._add_reasoning_from_completed(reasoning_item, message)
+                case _:
+                    continue
 
-            message["usage"] = {
-                "input_tokens": usage.input_tokens,
-                "output_tokens": usage.output_tokens,
-                "total_tokens": usage.total_tokens,
-                "cached_tokens": cached_tokens,
-                "reasoning_tokens": reasoning_tokens,
+    def _add_text_from_completed(
+        self, msg: "ResponseOutputMessage", message: dict[str, Any]
+    ) -> None:
+        """Add text content if none was built during streaming."""
+        from openai.types.responses import ResponseOutputText
+
+        if self._find_content(message, kind="text") is not None:
+            return
+
+        for content in msg.content:
+            if isinstance(content, ResponseOutputText) and content.text is not None:
+                message["content"].append({"kind": "text", "text": content.text})
+                break
+
+    def _add_tool_from_completed(
+        self,
+        tool_call: "ResponseFunctionToolCall",
+        message: dict[str, Any],
+    ) -> None:
+        """Add tool_use content if none exists for this tool call."""
+        existing = self._find_content(
+            message,
+            kind="tool_use",
+            predicate=lambda c: (c.get("metadata", {}).get("api_id") == tool_call.id),
+        )
+        if existing is not None:
+            return
+
+        tool_entry: dict[str, Any] = {
+            "kind": "tool_use",
+            "tool_call_id": tool_call.call_id,
+            "tool_name": tool_call.name,
+            "tool_input_raw": tool_call.arguments,
+        }
+        if tool_call.id is not None:
+            tool_entry["metadata"] = {"api_id": tool_call.id}
+        message["content"].append(tool_entry)
+
+    def _add_reasoning_from_completed(
+        self,
+        reasoning_item: "ResponseReasoningItem",
+        message: dict[str, Any],
+    ) -> None:
+        """Add reasoning content if none exists for this provider id."""
+        target = self._find_reasoning_content_by_item_id(message, reasoning_item.id)
+        if target is not None:
+            return
+
+        message["content"].append(
+            {
+                "kind": "reasoning",
+                "redacted_content": None,
+                "reasoning": None,
+                "signature": None,
+                "metadata": {"provider_id": reasoning_item.id},
+                "encrypted_content": reasoning_item.encrypted_content,
+                "response_id": reasoning_item.id,
+                "summary": [s.text for s in reasoning_item.summary or []],
+                "content": [c.text for c in reasoning_item.content or []],
             }
+        )
