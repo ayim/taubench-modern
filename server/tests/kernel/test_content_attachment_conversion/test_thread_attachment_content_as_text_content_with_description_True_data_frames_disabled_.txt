@@ -1,0 +1,11 @@
+
+Scenario: data_frames_disabled
+
+Generated prompt contents:
+[
+  {
+    "kind": "text",
+    "text": "Uploaded file. File name/reference: 'test.csv', MIME type: 'text/csv'
+Note: follow the runbook for instructions related to the uploaded file."
+  }
+]

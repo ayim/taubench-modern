@@ -1,4 +1,6 @@
-# ruff: noqa: E501, PLR0912, PLR0913, PLR0915, C901
+# ruff: noqa: E501, PLR0912, PLR0913, PLR0915, C901, PLR0911
+from __future__ import annotations
+
 import typing
 from typing import Annotated, Any, Literal
 
@@ -14,6 +16,7 @@ if typing.TYPE_CHECKING:
         SemanticDataModel,
         VerifiedQuery,
     )
+    from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
     from agent_platform.server.auth.handlers import AuthedUser
@@ -22,6 +25,7 @@ if typing.TYPE_CHECKING:
         SemanticDataModelAndReferences,
     )
     from agent_platform.server.storage.base import BaseStorage
+
 logger = get_logger(__name__)
 
 DF_CREATE_FROM_SQL_TOOL_NAME = "data_frames_create_from_sql"
@@ -71,14 +75,14 @@ async def create_data_frame_from_columns_and_rows(
     user_id: str,
     agent_id: str,
     thread_id: str,
-    storage: "BaseStorage",
+    storage: BaseStorage,
     description: str | None = None,
     input_id_type: Literal["file", "sql_computation", "in_memory"] = "in_memory",
     num_sample_rows: int = 10,
     file_id: str | None = None,
     file_ref: str | None = None,
     sheet_name: str | None = None,
-) -> "PlatformDataFrame":
+) -> PlatformDataFrame:
     """Create a data frame from columns and rows data.
 
     This shared implementation is used by both the kernel's auto-create functionality
@@ -158,7 +162,7 @@ def _handle_some_table_field(k: str, v: Any) -> str:
     return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
 
 
-def _get_postgres_json_guidance(model: "SemanticDataModel") -> str:
+def _get_postgres_json_guidance(model: SemanticDataModel) -> str:
     """
     Generate PostgreSQL-specific JSON/JSONB column guidance for a semantic data model.
 
@@ -218,7 +222,7 @@ def _get_postgres_json_guidance(model: "SemanticDataModel") -> str:
     return "\n".join(guidance_parts)
 
 
-def _get_snowflake_variant_guidance(model: "SemanticDataModel") -> str:
+def _get_snowflake_variant_guidance(model: SemanticDataModel) -> str:
     """
     Generate Snowflake-specific VARIANT/ARRAY/OBJECT column guidance for a semantic data model.
     Scans the model for these special Snowflake types and returns targeted guidance
@@ -306,7 +310,7 @@ def _get_snowflake_variant_guidance(model: "SemanticDataModel") -> str:
 
 
 def _convert_semantic_data_model_to_context_string(
-    data: "list[tuple[SemanticDataModel, str]]",
+    data: list[tuple[SemanticDataModel, str]],
 ) -> str:
     """
     Convert data to a string that can be used in an LLM context.
@@ -440,8 +444,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         return True
 
     async def step_initialize(
-        self, *, storage: "BaseStorage|None" = None, state: "DataFrameArchState"
-    ):
+        self, *, storage: BaseStorage | None = None, state: DataFrameArchState
+    ) -> None:
         from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
         from agent_platform.server.data_frames.semantic_data_model_collector import (
             SemanticDataModelCollector,
@@ -450,7 +454,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         # If data frames are not enabled, don't create any tools
         if not self.is_enabled():
-            return ()
+            self._data_frame_tools = ()
+            return
 
         # Initialize tools
         previous_state: Literal["enabled", ""] = state.data_frames_tools_state
@@ -668,7 +673,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         in CTEs and JOINs. Unqualified columns may cause ambiguity errors.
         """)
 
-    def _semantic_data_models_with_engines(self) -> list[tuple["SemanticDataModel", str]]:
+    def _semantic_data_models_with_engines(self) -> list[tuple[SemanticDataModel, str]]:
         from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
         models_and_engines: list[tuple[SemanticDataModel, str]] = []
@@ -709,7 +714,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
     def _infer_engine_for_semantic_model(
         self,
-        semantic_data_model_and_refs: "SemanticDataModelAndReferences",
+        semantic_data_model_and_refs: SemanticDataModelAndReferences,
     ) -> str:
         data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
         if data_connection_ids:
@@ -748,7 +753,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         return ret
 
-    def _data_frame_summary(self, data_frame: "PlatformDataFrame") -> str:
+    def _data_frame_summary(self, data_frame: PlatformDataFrame) -> str:
         result = [f"### Data Frame: {data_frame.name}"]
         if data_frame.sql_dialect:
             result.append(f"SQL dialect: {data_frame.sql_dialect}")
@@ -781,8 +786,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         contents: dict[str, list],
         *,
         description: str | None = None,
-        storage: "BaseStorage | None" = None,
-    ) -> "PlatformDataFrame":
+        storage: BaseStorage | None = None,
+    ) -> PlatformDataFrame:
         """Create an in-memory data frame from columns and rows.
 
         This is a wrapper around create_data_frame_from_columns_and_rows that provides
@@ -882,18 +887,132 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             return result_output
 
+    async def on_upload_file_build_prompt(
+        self, file_details: UploadedFile, is_work_item_attachment: bool = False
+    ) -> str | None:
+        """Build a prompt related to data frames for the user after uploading a file.
+
+        Args:
+            file_details: The details of the uploaded file.
+            is_work_item_attachment: Whether the uploaded file is a work item attachment.
+
+        Returns:
+            The prompt for the user after uploading a file, or None if no custom
+            prompt should be added (based on data frames).
+        """
+        if not self.is_enabled():
+            return None
+
+        from textwrap import dedent
+
+        from agent_platform.core.data_frames.data_frames import DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
+        from agent_platform.core.files.mime_types import TABULAR_DATA_MIME_TYPES
+        from agent_platform.server.api.private_v2.threads_data_frames import (
+            InspectFileAsDataFrame,
+            create_data_frame_from_inspected_data_frame,
+        )
+        from agent_platform.server.storage.option import StorageService
+
+        if file_details.mime_type not in TABULAR_DATA_MIME_TYPES:
+            return None
+
+        kernel = self.kernel
+
+        try:
+            inspector = InspectFileAsDataFrame(
+                user=kernel.user,
+                tid=kernel.thread.thread_id,
+                storage=StorageService.get_instance(),
+                num_samples=DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT,
+                sheet_name=None,
+                file_metadata=file_details,
+            )
+            found = await inspector.inspect_from_cache()
+            if not isinstance(found, list):
+                found = await inspector.inspect_and_cache_from_file()
+
+            if isinstance(found, list) and len(found) > 0:
+                if len(found) == 1:
+                    storage = StorageService.get_instance()
+                    # A file with a single sheet was found, create a data frame from it right away.
+                    created_data_frame = await create_data_frame_from_inspected_data_frame(
+                        kernel.user, kernel.thread.thread_id, storage, found[0]
+                    )
+                    if is_work_item_attachment:
+                        return dedent(f"""
+                            Note: a data frame named `{created_data_frame.name}` was created from
+                            this file. Follow the runbook for instructions related to the data frame or uploaded files.
+                            """).strip()
+                    else:
+                        return dedent(f"""
+                            Note: a data frame named `{created_data_frame.name}` was created from
+                            this file. Follow the runbook if it has instructions
+                            related to the data frame or uploaded files, otherwise, do not call any tools at this point
+                            and provide options of what information can be answered based on it.
+                            """).strip()
+                else:
+                    # Multiple sheets found - ask LLM to show options
+                    sheet_names = [
+                        inspected_data_frame.sheet_name for inspected_data_frame in found
+                    ]
+
+                    if is_work_item_attachment:
+                        return dedent(f"""
+                            Note: This file has the following sheets: {sheet_names!r}.
+                            Please follow the runbook for instructions related to data frames or uploaded files.
+                            """).strip()
+                    else:
+                        return dedent(f"""
+                            Note: This file has the following sheets: {sheet_names!r}.
+                            Please follow the runbook if it has instructions related to data frames
+                            or uploaded files, otherwise, provide options for the user to create data
+                            frames from all or individual sheets, but don't call any tools at this point,
+                            just provide options to the user based on the sheets found in the file.
+                            """).strip()
+
+            # No data frames found, provide details saying so to the user.
+            if is_work_item_attachment:
+                return dedent("""
+                    Note: although this is a tabular data file, no data frames can be extracted from it.
+                    Please follow the runbook if it has instructions related to uploaded files.
+                    """).strip()
+            else:
+                return dedent("""
+                    Note: although this is a tabular data file, no data frames can be extracted from it.
+                    Please follow the runbook if it has instructions related to uploaded files,
+                    otherwise, do not call any tools at this point and ask the user how to proceed to process it.
+                    """).strip()
+
+        except Exception as e:
+            logger.exception("Error inspecting file as data frame")
+            if is_work_item_attachment:
+                return dedent(f"""
+                    Note: although this is a tabular data file, it was not possible to automatically
+                    extract data frame information from it (the following error happened: {e}).
+                    Please follow the runbook for instructions related to uploaded files.
+                    """).strip()
+            else:
+                return dedent(f"""
+                    Note: although this is a tabular data file, it was not possible to automatically
+                    extract data frame information from it (the following error happened: {e}).
+                    Please follow the runbook if it has instructions related to uploaded files,
+                    otherwise, do not call any tools at this point and ask the user how to proceed.
+                    """).strip()
+
+        raise RuntimeError("Should not get here, something went wrong with the file inspection")
+
 
 class _DataFrameTools:
     """Tools for data frames."""
 
     def __init__(
         self,
-        user: "AuthedUser",
+        user: AuthedUser,
         tid: str,
-        name_to_data_frame: "dict[str, PlatformDataFrame]",
-        storage: "BaseStorage",
-        thread_state: "ThreadStateInterface | None" = None,
-        verified_queries: "dict[str, VerifiedQuery] | None" = None,
+        name_to_data_frame: dict[str, PlatformDataFrame],
+        storage: BaseStorage,
+        thread_state: ThreadStateInterface | None = None,
+        verified_queries: dict[str, VerifiedQuery] | None = None,
     ):
         assert isinstance(name_to_data_frame, dict), (
             f"Expected a dict, got {type(name_to_data_frame)}"
@@ -905,7 +1024,7 @@ class _DataFrameTools:
         self._thread_state = thread_state
         self._verified_queries = verified_queries or {}
 
-    def _create_data_frames_kernel(self) -> "DataFramesKernel":
+    def _create_data_frames_kernel(self) -> DataFramesKernel:
         from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
 
         return DataFramesKernel(self._storage, self._user, self._tid)

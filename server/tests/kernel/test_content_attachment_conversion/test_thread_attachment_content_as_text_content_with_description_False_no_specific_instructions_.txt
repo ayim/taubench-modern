@@ -1,0 +1,12 @@
+
+Scenario: no_specific_instructions
+
+Generated prompt contents:
+[
+  {
+    "kind": "text",
+    "text": "Uploaded file. File name/reference: 'test.txt', MIME type: 'text/plain'
+Note: follow the runbook if it has instructions
+related to the uploaded file, otherwise, ask what to do with this file."
+  }
+]

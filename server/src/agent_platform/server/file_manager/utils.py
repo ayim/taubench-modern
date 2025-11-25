@@ -6,6 +6,7 @@ from urllib.parse import unquote, urlparse
 from fastapi import UploadFile
 
 from agent_platform.core.files import FileData
+from agent_platform.core.files.mime_types import MIME_TYPE_PDF, MIME_TYPE_XLSX
 
 IS_WIN = sys.platform == "win32"
 RE_DRIVE_LETTER_PATH = re.compile(r"^\/[a-zA-Z]:")
@@ -76,11 +77,11 @@ def guess_mimetype(file_name: str, file_bytes: bytes) -> str:  # noqa: PLR0911
 
     # Signature-based detection for common types
     if file_bytes.startswith(b"%PDF"):
-        return "application/pdf"
+        return MIME_TYPE_PDF
     elif file_bytes.startswith(
         (b"\x50\x4b\x03\x04", b"\x50\x4b\x05\x06", b"\x50\x4b\x07\x08"),
     ):
-        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        return MIME_TYPE_XLSX
     elif file_bytes.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
         return "application/msword"
     elif file_bytes.startswith(b"\x09\x00\xff\x00\x06\x00"):

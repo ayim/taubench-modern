@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 import typing
 from pathlib import Path
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.agent import Agent
+    from agent_platform.core.context import AgentServerContext
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.data_frames import (
         DataFrameSource,
         PlatformDataFrame,
     )
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.files import UploadedFile
     from agent_platform.core.thread import Thread
+    from agent_platform.core.work_items.work_item import WorkItem
+    from agent_platform.server.auth.handlers import AuthedUser
+    from agent_platform.server.kernel.kernel import AgentServerKernel
     from agent_platform.server.storage.base import BaseStorage
     from agent_platform.server.storage.postgres import PostgresStorage
     from agent_platform.server.storage.sqlite import SQLiteStorage
@@ -23,9 +30,7 @@ class SampleModelCreator:
     storage.
     """
 
-    def __init__(self, storage: "PostgresStorage | SQLiteStorage | BaseStorage", tmpdir: Path):
-        from agent_platform.core.files.files import UploadedFile
-
+    def __init__(self, storage: PostgresStorage | SQLiteStorage | BaseStorage, tmpdir: Path):
         self.storage = storage
         self.tmpdir = tmpdir
 
@@ -37,7 +42,7 @@ class SampleModelCreator:
     async def setup(self) -> None:
         await self.storage.get_or_create_user(sub="tenant:testing:system:system_user")
 
-    async def obtain_sample_data_frame_source(self) -> "DataFrameSource":
+    async def obtain_sample_data_frame_source(self) -> DataFrameSource:
         """Create a sample DataFrameSource for testing."""
         from agent_platform.core.data_frames.data_frames import DataFrameSource
 
@@ -51,7 +56,8 @@ class SampleModelCreator:
         file_content: bytes = b"test content",
         file_name: str = "test.txt",
         mime_type: str = "text/plain",
-    ) -> "UploadedFile":
+        owner: Agent | Thread | WorkItem | None = None,
+    ) -> UploadedFile:
         """Create a sample file for testing."""
         from hashlib import md5
         from uuid import uuid4
@@ -72,13 +78,12 @@ class SampleModelCreator:
         orig_path = uris.from_fs_path(str(file_path))
         assert sample_file.filename is not None
         file_hash = md5(sample_file.filename.encode()).hexdigest()
-        sample_thread = await self.obtain_sample_thread()
 
         # Upload the file with one ID
         self.sample_file = await self.storage.put_file_owner(
             file_id=file_id,
-            owner=sample_thread,
-            user_id=sample_thread.user_id,
+            owner=owner or await self.obtain_sample_thread(),
+            user_id=await self.get_user_id(),
             file_path=orig_path,
             file_ref=sample_file.filename,
             file_hash=file_hash,
@@ -93,7 +98,12 @@ class SampleModelCreator:
     async def get_user_id(self) -> str:
         return await self.storage.get_system_user_id()
 
-    async def obtain_sample_agent(self, agent_name: str = "Test Agent") -> "Agent":
+    async def get_authed_user(self) -> AuthedUser:
+        from agent_platform.core.user import User
+
+        return User(user_id=await self.get_user_id(), sub="tenant:testing:user:test_user")
+
+    async def obtain_sample_agent(self, agent_name: str = "Test Agent") -> Agent:
         from datetime import UTC, datetime
         from uuid import uuid4
 
@@ -152,7 +162,7 @@ class SampleModelCreator:
 
     async def obtain_sample_thread(
         self,
-    ) -> "Thread":
+    ) -> Thread:
         from datetime import UTC, datetime
         from uuid import uuid4
 
@@ -178,7 +188,7 @@ class SampleModelCreator:
         await self.storage.upsert_thread(sample_user_id, self.sample_thread)
         return self.sample_thread
 
-    async def obtain_sample_data_frame(self, name: str = "test_data_frame") -> "PlatformDataFrame":
+    async def obtain_sample_data_frame(self, name: str = "test_data_frame") -> PlatformDataFrame:
         """Create a sample PlatformDataFrame for testing."""
         from datetime import UTC, datetime
         from uuid import uuid4
@@ -230,7 +240,7 @@ class SampleModelCreator:
 
     async def obtain_sample_data_connection(
         self, name: str = "test_connection", db_file_path: Path | None = None
-    ) -> "DataConnection":
+    ) -> DataConnection:
         """Create a sample DataConnection for testing."""
         from uuid import uuid4
 
@@ -258,25 +268,28 @@ class SampleModelCreator:
         await self.storage.set_data_connection(data_connection)
         return data_connection
 
-    async def obtain_sample_semantic_data_model(self, name: str = "test_model") -> str:
+    async def obtain_sample_semantic_data_model(
+        self, name: str = "test_model", semantic_model: SemanticDataModel | None = None
+    ) -> str:
         """Create a sample semantic data model for testing."""
 
-        # Create a simple semantic data model
-        semantic_model = {
-            "name": name,
-            "description": f"Test semantic data model: {name}",
-            "entities": [
-                {
-                    "name": "test_entity",
-                    "description": "A test entity",
-                    "base_table": {
-                        "database": "test_db",
-                        "schema": "test_schema",
-                        "table": "test_table",
-                    },
-                }
-            ],
-        }
+        if semantic_model is None:
+            # Create a simple semantic data model
+            semantic_model = {
+                "name": name,
+                "description": f"Test semantic data model: {name}",
+                "tables": [
+                    {
+                        "name": "test_entity",
+                        "description": "A test entity",
+                        "base_table": {
+                            "database": "test_db",
+                            "schema": "test_schema",
+                            "table": "test_table",
+                        },
+                    }
+                ],
+            }
 
         # Create the semantic data model in storage
         semantic_data_model_id = await self.storage.set_semantic_data_model(
@@ -287,3 +300,81 @@ class SampleModelCreator:
         )
 
         return semantic_data_model_id
+
+    async def create_agent_server_context(self) -> AgentServerContext:
+        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry.sdk.trace import TracerProvider
+
+        from agent_platform.core.context import (
+            AgentServerContext,
+            HttpContext,
+            Request,
+            Response,
+            User,
+            UserContext,
+        )
+
+        user_id = await self.get_user_id()
+
+        ctx = AgentServerContext(
+            http=HttpContext(request=Request(scope={"type": "http"}), response=Response()),
+            user_context=UserContext(
+                user=User(user_id=user_id, sub="tenant:test_tenant:user:test_user"),
+                profile={},
+            ),
+            tracer_provider=TracerProvider(),
+            meter_provider=MeterProvider(),
+        )
+        return ctx
+
+    async def create_agent_server_kernel(self) -> AgentServerKernel:
+        from uuid import uuid4
+
+        from agent_platform.core.runs.run import Run
+        from agent_platform.server.kernel.kernel import AgentServerKernel
+
+        ctx = await self.create_agent_server_context()
+        sample_agent = await self.obtain_sample_agent()
+        sample_thread = await self.obtain_sample_thread()
+
+        empty_run = Run(
+            run_id=str(uuid4()),
+            agent_id=sample_agent.agent_id,
+            thread_id=sample_thread.thread_id,
+        )
+        kernel = AgentServerKernel(
+            ctx=ctx,
+            thread=sample_thread,
+            agent=sample_agent,
+            run=empty_run,
+        )
+        return kernel
+
+    async def create_work_item(self) -> WorkItem:
+        from uuid import uuid4
+
+        from agent_platform.core.work_items.work_item import WorkItem
+
+        work_item = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=await self.get_user_id(),
+            created_by=await self.get_user_id(),
+        )
+        await self.storage.create_work_item(work_item)
+        return work_item
+
+    async def create_in_memory_data_frame(
+        self, name: str, columns: list[str], rows: list[list]
+    ) -> PlatformDataFrame:
+        from agent_platform.server.kernel.data_frames import create_data_frame_from_columns_and_rows
+
+        data_frame = await create_data_frame_from_columns_and_rows(
+            columns=columns,
+            rows=rows,
+            name=name,
+            user_id=await self.get_user_id(),
+            agent_id=(await self.obtain_sample_agent()).agent_id,
+            thread_id=(await self.obtain_sample_thread()).thread_id,
+            storage=self.storage,
+        )
+        return data_frame

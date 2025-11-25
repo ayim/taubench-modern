@@ -682,6 +682,7 @@ export interface components {
       /**
        * Uri
        * @description The URI of the attachment, if the attachment is a handle
+       *                     For uploaded files, the URI is of the form "agent-server-file://<file_id>".
        */
       uri?: string | null;
       /**

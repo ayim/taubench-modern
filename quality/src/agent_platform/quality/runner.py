@@ -310,7 +310,8 @@ class QualityTestRunner:
         """Return the list of platforms to run for a test case given the filter."""
         if platform_filter is None:
             return list(test_case.target_platforms)
-        return [p for p in test_case.target_platforms if p.name == platform_filter]
+        platforms_accepted = set(platform_filter.split(","))
+        return [p for p in test_case.target_platforms if p.name in platforms_accepted]
 
     def _collect_target_platforms(
         self,

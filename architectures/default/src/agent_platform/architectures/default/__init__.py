@@ -206,9 +206,11 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
     kernel: Kernel, state: ArchState, message: ThreadMessageWithThreadState
 ) -> ArchState:
+    from functools import partial
+
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
-        thread_messages_to_prompt_messages,
+        partial(thread_messages_to_prompt_messages, state=state),
     )
 
     # Special commands hook (e.g., /debug, /help, /toggle, /set, /unset)
@@ -239,20 +241,12 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
         all_mcp_servers,
     )
 
-    # Note: leave this under a feature flag for now, as it's not ready for prime time yet.
-    # Check if data frames are enabled via environment variable or agent settings
-    enable_data_frames = kernel.data_frames.is_enabled()
+    # Note: always call (it should check if enabled internally -- same as exp1 does)
+    await kernel.data_frames.step_initialize(state=state)
+    data_frames_tools = kernel.data_frames.get_data_frame_tools()
 
-    data_frames_tools: tuple[ToolDefinition, ...] = ()
-    if enable_data_frames:
-        await kernel.data_frames.step_initialize(state=state)
-        data_frames_tools = kernel.data_frames.get_data_frame_tools()
-
-    enable_work_item = kernel.work_item.is_enabled()
-    work_item_tools: tuple[ToolDefinition, ...] = ()
-    if enable_work_item:
-        await kernel.work_item.step_initialize(state=state)
-        work_item_tools = kernel.work_item.get_work_item_tools()
+    await kernel.work_item.step_initialize(state=state)
+    work_item_tools = kernel.work_item.get_work_item_tools()
 
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]

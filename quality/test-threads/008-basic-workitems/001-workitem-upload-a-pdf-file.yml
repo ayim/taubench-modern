@@ -6,9 +6,9 @@ workitem:
       - role: user
         content:
           kind: attachment
-          description: Company Employees
-          mime_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-          file_name: employees.xlsx
+          description: Financial report
+          mime_type: application/pdf
+          file_name: data_financial_report.pdf
       - role: user
         content:
           kind: text
@@ -16,7 +16,6 @@ workitem:
             Review the structure of the uploaded file.
             Identify the overall schema by listing all sheets, and for each sheet the column names.
             Do your analysis without expecting further input from user.
-            (No need to download the file, you should be able to analyze it directly.)
     payload: {}
 
 target-platforms:
@@ -30,7 +29,7 @@ target-platforms:
 evaluations:
   - kind: llm-eval-of-last-agent-turn
     expected: |
-      The agent should have reviewed the schema of the uploaded file.
-      The agent should have examined the column headers in file sheets.
+      The agent should NOT have called any data frame related tool and should have mentioned
+      that he could not work with a pdf file
   - kind: workitem-result-evaluation
     expected: COMPLETED

@@ -59,20 +59,51 @@ npm run dev
 
 # What happens when a user uploads a file you may ask:
 
-1. The agent server API to upload a file is called in Studio (workroom) and then an attachment message is automatically created right
-   afterwards (from the UI). Something as:
+Old (workroom):
 
-   ```typescript
-   const uploadedFiles = await apiClient.uploadFiles(...)
-   ...
-   // Stream a new message with "attachment" kind
-   // https://github.com/Sema4AI/agents-workroom/blob/main/src/components/Files.tsx#L110
-   streamManager.initiateStream(createAttachmentMessage(...), currentChatId, agentId);
-   ```
+    1. The agent server API to upload a file is called in Studio (workroom) and then an attachment message is automatically created right
+      afterwards (from the UI). Something as:
 
-Internally the agent server deserializes that as a `ThreadAttachmentContent` message and that becomes something as `Uploaded [{attachment_content.name}]({attachment_content.uri})` when sent to the agent.
+      ```typescript
+      const uploadedFiles = await apiClient.uploadFiles(...)
+      ...
+      // Stream a new message with "attachment" kind
+      // https://github.com/Sema4AI/agents-workroom/blob/main/src/components/Files.tsx#L110
+      streamManager.initiateStream(createAttachmentMessage(...), currentChatId, agentId);
+      ```
 
-Note: it uses the `uri` when referenced here which is something as `agent-server-file://${file.file_id}`.
+    Internally the agent server deserializes that as a `ThreadAttachmentContent` message and that becomes something as `Uploaded [{attachment_content.name}]({attachment_content.uri})` when sent to the agent.
+
+    Note: it uses the `uri` when referenced here which is something as `agent-server-file://${file.file_id}`.
+
+New:
+
+    Used in:
+
+        https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/components/FilesView/components/AddFiles.tsx
+        https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/hooks/useMessageStream.ts
+
+    Actual communication:
+
+        https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/queries/threads.ts#L210
+
+        Creates a list of `ThreadAttachmentContent` objects with the following shape (which is then
+        streamed back by useMessageStream.ts, along with a user message if a message was entered).
+
+        ```typescript
+            const attachements = response.data.map(
+              (file) =>
+                ({
+                  kind: 'attachment' as const,
+                  name: file.file_ref,
+                  uri: `agent-server-file://${file.file_id}`,
+                  mime_type: file.mime_type,
+                  description: getFileSize(file.file_size_raw),
+                  base64_data: null,
+                  complete: true,
+                }) satisfies ThreadAttachmentContent,
+            );
+        ```
 
 Note2: this is different from when the file is uploaded by an action/tool where none of the above happens (the file just
 "appears" in the chat sidebar without any further processing -- also, the file in this case is nearly invisible in the thread,

@@ -1,5 +1,6 @@
 """ToolDefinition: represents the definition of a tool."""
 
+import typing
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -98,6 +99,10 @@ class ToolDefinition:
         properties: dict[str, Any] = {}
         required_fields: list[str] = []
 
+        # param.annotation may be a string if `from __future__ import annotations` is used
+        # So, get the type hints from the function
+        type_hints = typing.get_type_hints(func, include_extras=True)
+
         for param_name, param in signature.parameters.items():
             if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
                 # Raise on *args/**kwargs for schema generation
@@ -110,7 +115,7 @@ class ToolDefinition:
             # We'll rely on `build_param_schema` to introspect type hints & metadata
             param_schema = build_param_schema(
                 param_name,
-                param.annotation if param.annotation is not param.empty else Any,
+                type_hints[param_name] if param.annotation is not param.empty else Any,
                 allow_omitted_description=False,
             )
             properties[param_name] = param_schema

@@ -456,10 +456,10 @@ class BaseTable(TypedDict, total=False):
         "Name of the schema (when a data_connection_id is specified)",
     ]
 
-    # The real table name is required for all use cases, for files, the table is the data frame name
-    # (this is the name that the SQL must reference the table by, it must be a valid SQL identifier)
+    # The real table name. For file_references it may be unspecified if a data frame
+    # is not yet created from the file reference.
     table: Annotated[
-        str,
+        str | None,
         """Name of the table (or data frame name for a file). It must be a valid SQL identifier
         and is used to reference this table in the SQL queries.""",
     ]

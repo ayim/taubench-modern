@@ -1,0 +1,35 @@
+name: test-excel-processing
+description: Review the structure of an uploaded file
+
+workitem:
+  - messages:
+      - role: user
+        content:
+          kind: attachment
+          description: Company Employees
+          mime_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+          file_name: employees.xlsx
+      - role: user
+        content:
+          kind: text
+          text: |
+            Review the structure of the uploaded file.
+            Identify the overall schema by listing all sheets, and for each sheet the column names.
+            Do your analysis without expecting further input from user.
+    payload: {}
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  - name: groq
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have reviewed the schema of the uploaded file.
+      The agent should have examined the column headers in file sheets.
+  - kind: workitem-result-evaluation
+    expected: COMPLETED

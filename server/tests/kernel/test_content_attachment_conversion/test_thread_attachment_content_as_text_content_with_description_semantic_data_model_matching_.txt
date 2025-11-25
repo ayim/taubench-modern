@@ -1,0 +1,14 @@
+
+Scenario: semantic_data_model_matching
+
+Generated prompt contents:
+[
+  {
+    "kind": "text",
+    "text": "Uploaded file. File name/reference: 'test.csv', MIME type: 'text/csv'
+-- a data frame named `test` was created from
+    this file. Follow the runbook instructions if it has specific instructions
+    related to the data frame or uploaded files, otherwise, do not call any tools at this point
+    and provide options of what inforamtion can be answered based on it."
+  }
+]

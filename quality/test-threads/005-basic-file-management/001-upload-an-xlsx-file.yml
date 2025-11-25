@@ -27,6 +27,6 @@ target-platforms:
 evaluations:
   - kind: llm-eval-of-last-agent-turn
     expected: |
-      The agent should have used some tools to review the file structure.
-      The agent should have retrieved sheet and header information.
+      The agent should have access to the file structure.
+      The agent should have access to the sheet and header information.
       The agent should have found sheet names and column names.

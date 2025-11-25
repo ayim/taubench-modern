@@ -182,8 +182,12 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
       3) If still not 'done', produce final reply (with its own checkpoint+retry)
       4) Commit the message
     """
+    from functools import partial
+
     # Convert thread messages to prompt messages for this architecture
-    kernel.converters.set_thread_message_conversion_function(thread_messages_to_prompt_messages)
+    kernel.converters.set_thread_message_conversion_function(
+        partial(thread_messages_to_prompt_messages, state=state)
+    )
 
     # Platform/model & family
     platform, model, model_family = await _resolve_platform_and_model(kernel, state)

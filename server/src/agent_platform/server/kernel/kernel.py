@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import json
+import typing
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.context import AgentServerContext
@@ -23,28 +26,13 @@ from agent_platform.core.model_selector import (
     DefaultModelSelector,
     ModelSelector,
 )
-from agent_platform.core.platforms.base import PlatformClient
-from agent_platform.core.runs import Run
-from agent_platform.core.streaming import IncomingDelta, StreamingDelta
-from agent_platform.core.thread import Thread
-from agent_platform.core.tools.tool_definition import ToolDefinition
-from agent_platform.core.user import User
-from agent_platform.server.kernel.converters import AgentServerConvertersInterface
-from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
-from agent_platform.server.kernel.events import AgentServerEventsInterface
-from agent_platform.server.kernel.files import AgentServerFilesInterface
-from agent_platform.server.kernel.memory import AgentServerMemoryInterface
-from agent_platform.server.kernel.model_platform import AgentServerPlatformInterface
-from agent_platform.server.kernel.otel import AgentServerOTelInterface
-from agent_platform.server.kernel.prompts import AgentServerPromptsInterface
-from agent_platform.server.kernel.runbook import AgentServerRunbookInterface
-from agent_platform.server.kernel.storage import AgentServerStorageInterface
-from agent_platform.server.kernel.thread_state import AgentServerThreadStateInterface
-from agent_platform.server.kernel.tools import AgentServerToolsInterface
-from agent_platform.server.kernel.user_interactions import (
-    AgentServerUserInteractionsInterface,
-)
-from agent_platform.server.kernel.work_item import AgentServerWorkItemInterface
+
+if typing.TYPE_CHECKING:
+    from agent_platform.core.runs import Run
+    from agent_platform.core.streaming import IncomingDelta, StreamingDelta
+    from agent_platform.core.thread import Thread
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+    from agent_platform.core.user import User
 
 
 class AgentServerKernel(Kernel):
@@ -56,6 +44,24 @@ class AgentServerKernel(Kernel):
         run: Run,
         client_tools: list[ToolDefinition] | None = None,
     ):
+        from agent_platform.core.platforms.base import PlatformClient
+        from agent_platform.server.kernel.converters import AgentServerConvertersInterface
+        from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
+        from agent_platform.server.kernel.events import AgentServerEventsInterface
+        from agent_platform.server.kernel.files import AgentServerFilesInterface
+        from agent_platform.server.kernel.memory import AgentServerMemoryInterface
+        from agent_platform.server.kernel.model_platform import AgentServerPlatformInterface
+        from agent_platform.server.kernel.otel import AgentServerOTelInterface
+        from agent_platform.server.kernel.prompts import AgentServerPromptsInterface
+        from agent_platform.server.kernel.runbook import AgentServerRunbookInterface
+        from agent_platform.server.kernel.storage import AgentServerStorageInterface
+        from agent_platform.server.kernel.thread_state import AgentServerThreadStateInterface
+        from agent_platform.server.kernel.tools import AgentServerToolsInterface
+        from agent_platform.server.kernel.user_interactions import (
+            AgentServerUserInteractionsInterface,
+        )
+        from agent_platform.server.kernel.work_item import AgentServerWorkItemInterface
+
         # Maintain a stateful model selector so overrides persist
         self._model_selector: ModelSelector = DefaultModelSelector()
         # Store context

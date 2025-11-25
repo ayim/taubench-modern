@@ -1,0 +1,14 @@
+
+Scenario: multi_data_frames
+
+Generated prompt contents:
+[
+  {
+    "kind": "text",
+    "text": "Uploaded file. File name/reference: 'sample.xlsx', MIME type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+-- This file has the following sheets: ['Sheet1', 'Sheet2'].
+   Please follow the runbook instructions if it has specific instructions
+   related to data frames or uploaded files, otherwise, do not call any tools at this point
+   and provide options for the user to create data frames from all or individual sheets."
+  }
+]

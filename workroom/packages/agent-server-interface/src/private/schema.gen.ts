@@ -3634,7 +3634,7 @@ export interface components {
       /** Schema */
       schema?: string | null;
       /** Table */
-      table?: string;
+      table?: string | null;
       /** Data Connection Id */
       data_connection_id?: string | null;
       /** Data Connection Name */
@@ -7946,6 +7946,7 @@ export interface components {
       /**
        * Uri
        * @description The URI of the attachment, if the attachment is a handle
+       *                     For uploaded files, the URI is of the form "agent-server-file://<file_id>".
        */
       uri?: string | null;
       /**

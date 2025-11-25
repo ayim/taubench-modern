@@ -159,7 +159,12 @@ async def _process_conversation_step(
     kernel: Kernel, state: ConsistencyArchState
 ) -> ConsistencyArchState:
     """Orchestrates the main agent workflow for a single conversation step."""
-    kernel.converters.set_thread_message_conversion_function(thread_messages_to_prompt_messages)
+    from functools import partial
+
+    kernel.converters.set_thread_message_conversion_function(
+        partial(thread_messages_to_prompt_messages, state=state)
+    )
+
     platform, model = await _resolve_platform_and_model(kernel, state)
     message = await kernel.thread_state.new_agent_message()
     await push_plan_execution_phase(

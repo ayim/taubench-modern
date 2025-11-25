@@ -1,0 +1,28 @@
+name: upload-and-verify
+description: 'Upload and verify'
+
+thread:
+  - name: upload-and-verify-pdf
+    description: 'Upload and verify PDF'
+    messages:
+      - role: user
+        content:
+          kind: attachment
+          description: Financial report
+          mime_type: application/pdf
+          file_name: data_financial_report.pdf
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  - name: groq
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should NOT have done any data frame related tool calls
+      as the information is a pdf and data frames can only be used for
+      tabular data files (xlsx, csv)

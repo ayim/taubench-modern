@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import typing
 from abc import ABC, abstractmethod
 from typing import Any, Literal, Protocol
 
 if typing.TYPE_CHECKING:
+    from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.tools.tool_definition import ToolDefinition
+    from agent_platform.server.storage.base import BaseStorage
 
 
 class DataFrameArchState(Protocol):
@@ -20,7 +24,9 @@ class DataFramesInterface(ABC):
     """Interface for data frames."""
 
     @abstractmethod
-    async def step_initialize(self, state: DataFrameArchState) -> None:
+    async def step_initialize(
+        self, *, storage: BaseStorage | None = None, state: DataFrameArchState
+    ) -> None:
         """Caches all data frames internally and builds internal data.
         MUST be called before each processing step for data frames and tools
         to be correctly cached."""
@@ -48,11 +54,11 @@ class DataFramesInterface(ABC):
         when no tools should be used."""
 
     @abstractmethod
-    def get_data_frame_tools(self) -> "tuple[ToolDefinition, ...]":
+    def get_data_frame_tools(self) -> tuple[ToolDefinition, ...]:
         """Get tools related to data frames."""
 
     @abstractmethod
-    async def auto_create_data_frame(self, tool_def: "ToolDefinition", result_output: Any) -> Any:
+    async def auto_create_data_frame(self, tool_def: ToolDefinition, result_output: Any) -> Any:
         """Auto create a data frame from the result output.
 
         Args:
@@ -61,4 +67,19 @@ class DataFramesInterface(ABC):
 
         Returns:
             The new result that the LLM will see.
+        """
+
+    @abstractmethod
+    async def on_upload_file_build_prompt(
+        self, file_details: UploadedFile, is_work_item_attachment: bool = False
+    ) -> str | None:
+        """Build a prompt for the user after uploading a file.
+
+        Args:
+            file_details: The details of the uploaded file.
+            is_work_item_attachment: Whether the uploaded file is a work item attachment.
+
+        Returns:
+            The prompt for the user after uploading a file, or None if no custom
+            prompt should be added.
         """

@@ -11,18 +11,21 @@ The implementation aims to be:
 - Consistent in formatting and streaming partial output
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Final, Literal, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, cast
 
-from agent_platform.architectures.default.state import ArchState
-from agent_platform.core import Kernel
-from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
-from agent_platform.core.tools.tool_definition import ToolDefinition
+if TYPE_CHECKING:
+    from agent_platform.architectures.default.state import ArchState
+    from agent_platform.core import Kernel
+    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+    from agent_platform.core.tools.tool_definition import ToolDefinition
 
 # ---- Constants ----------------------------------------------------------------
 

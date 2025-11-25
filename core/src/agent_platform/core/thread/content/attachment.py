@@ -27,10 +27,12 @@ class ThreadAttachmentContent(ThreadMessageContent):
     uri: str | None = field(
         default=None,
         metadata={
-            "description": "The URI of the attachment, if the attachment is a handle",
+            "description": """
+                The URI of the attachment, if the attachment is a handle
+                For uploaded files, the URI is of the form "agent-server-file://<file_id>".
+                """,
         },
     )
-    """The URI of the attachment, if the attachment is a handle"""
 
     base64_data: str | None = field(
         default=None,
@@ -86,14 +88,17 @@ class ThreadAttachmentContent(ThreadMessageContent):
 
     def as_text_content(self) -> str:
         """Converts the attachment content to a text content component."""
+        import html
 
-        description_attr = f'description="{self.description}"' if self.description else ""
-        uri_attr = f'uri="{self.uri}"' if self.uri else ""
+        description_attr = (
+            f'description="{html.escape(self.description)}"' if self.description else ""
+        )
+        uri_attr = f'uri="{html.escape(self.uri)}"' if self.uri else ""
 
         return (
-            f'<attachment name="{self.name}" mime_type="{self.mime_type}" '
-            f"{description_attr} "
-            f"{uri_attr} "
+            f'<attachment name="{html.escape(self.name)}" mime_type="{html.escape(self.mime_type)}"'
+            f" {description_attr}"
+            f" {uri_attr}"
             f"/>"
         )
 

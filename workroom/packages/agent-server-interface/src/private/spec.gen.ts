@@ -9841,7 +9841,14 @@ export const spec = {
             title: 'Schema',
           },
           table: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Table',
           },
           data_connection_id: {
@@ -19319,7 +19326,7 @@ export const spec = {
             ],
             title: 'Uri',
             description:
-              'The URI of the attachment, if the attachment is a handle',
+              '\n                The URI of the attachment, if the attachment is a handle\n                For uploaded files, the URI is of the form "agent-server-file://<file_id>".\n                ',
           },
           base64_data: {
             anyOf: [

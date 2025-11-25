@@ -1,3 +1,4 @@
+import shutil
 import typing
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -15,8 +16,34 @@ if typing.TYPE_CHECKING:
     from server.tests.storage.sample_model_creator import SampleModelCreator
 
 
+@pytest.fixture(scope="session")
+async def sqlite_template_db(tmp_path_factory) -> "AsyncGenerator[Path, None]":
+    """
+    Create a template SQLite database file once per session.
+    This template includes all migrations and the system user.
+    Individual tests will copy this template to avoid re-running migrations.
+    """
+    from agent_platform.server.storage.sqlite import SQLiteStorage
+
+    # Use a session-scoped temporary directory
+    template_dir = tmp_path_factory.mktemp("sqlite_template")
+    template_file_path = template_dir / "template_sqlite_storage.db"
+
+    # Create and setup the template database
+    storage_instance = SQLiteStorage(db_path=str(template_file_path))
+    await storage_instance.setup()
+    await storage_instance.get_or_create_user(
+        sub="tenant:testing:system:system_user",
+    )
+    await storage_instance.teardown()
+
+    return template_file_path
+
+
 @pytest.fixture
-async def sqlite_storage(tmp_path: Path) -> "AsyncGenerator[SQLiteStorage, None]":
+async def sqlite_storage(
+    tmp_path: Path, sqlite_template_db: Path
+) -> "AsyncGenerator[SQLiteStorage, None]":
     """
     Initialize SQLiteStorage with an ephemeral database.
     We'll also seed a system user, just like in Postgres tests.
@@ -24,7 +51,7 @@ async def sqlite_storage(tmp_path: Path) -> "AsyncGenerator[SQLiteStorage, None]
     from agent_platform.server.file_manager.option import FileManagerService
     from agent_platform.server.storage.option import StorageService
 
-    storage_instance = await _create_sqlite_storage(tmp_path)
+    storage_instance = await _create_sqlite_storage(tmp_path, sqlite_template_db)
 
     StorageService.set_for_testing(storage_instance)
     FileManagerService.reset()
@@ -36,18 +63,34 @@ async def sqlite_storage(tmp_path: Path) -> "AsyncGenerator[SQLiteStorage, None]
     FileManagerService.reset()
 
 
-async def _create_sqlite_storage(tmp_path: Path) -> "SQLiteStorage":
-    """Helper function to create and setup SQLite storage."""
+async def _create_sqlite_storage(
+    tmp_path: Path, template_db_path: Path | None = None
+) -> "SQLiteStorage":
+    """Helper function to create and setup SQLite storage.
+
+    If template_db_path is provided, copies the template database file
+    instead of creating a new one from scratch.
+    """
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
     test_file_path = tmp_path / "test_sqlite_storage.db"
     if test_file_path.exists():
         test_file_path.unlink()
+
+    # If template is provided, copy it instead of creating from scratch
+    if template_db_path and template_db_path.exists():
+        shutil.copy2(template_db_path, test_file_path)
+        # Note: We don't copy WAL/SHM files as SQLite will create new ones as needed
+
     storage_instance = SQLiteStorage(db_path=str(test_file_path))
     await storage_instance.setup()
-    await storage_instance.get_or_create_user(
-        sub="tenant:testing:system:system_user",
-    )
+
+    # Only create user if we didn't use a template (template already has it)
+    if template_db_path is None or not template_db_path.exists():
+        await storage_instance.get_or_create_user(
+            sub="tenant:testing:system:system_user",
+        )
+
     return storage_instance
 
 
@@ -185,6 +228,7 @@ async def storage(
     tmp_path: Path,
     postgres_test_db: "AsyncConnectionPool[AsyncConnection[TupleRow]]",
     postgres_testing,
+    sqlite_template_db: Path,
 ) -> AsyncGenerator["SQLiteStorage | PostgresStorage", None]:
     """
     Parametrized fixture that provides both SQLite and Postgres storage implementations.
@@ -208,7 +252,7 @@ async def storage(
 
         yield storage_instance
     else:  # sqlite
-        storage_instance = await _create_sqlite_storage(tmp_path)
+        storage_instance = await _create_sqlite_storage(tmp_path, sqlite_template_db)
 
         StorageService.set_for_testing(storage_instance)
         FileManagerService.reset()

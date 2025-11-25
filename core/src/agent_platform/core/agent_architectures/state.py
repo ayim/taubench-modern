@@ -140,6 +140,13 @@ class StateBase:
         },
     )
 
+    attachment_id_to_attachment_text_cache: dict[str, str] = field(
+        default_factory=dict,
+        metadata={
+            "description": "A cache of attachment IDs to attachment text.",
+        },
+    )
+
     def serialize(self) -> str:
         """
         Serialize the state to a dictionary.

@@ -1,3 +1,4 @@
+from agent_platform.core.agent_architectures.thread_conversion_utils import ThreadConversionState
 from agent_platform.core.kernel import Kernel
 from agent_platform.core.prompts import (
     AgentPromptMessageContent,
@@ -11,55 +12,10 @@ from agent_platform.core.prompts.content.tool_result import PromptToolResultCont
 from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
 from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.thread.base import AnyThreadMessageContent, ThreadMessage
-from agent_platform.core.thread.content.attachment import ThreadAttachmentContent
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.thread.content.thought import ThreadThoughtContent
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.thread.messages import ThreadAgentMessage
-
-
-async def _get_file_name_and_path(
-    kernel: Kernel,
-    attachment_content: ThreadAttachmentContent,
-) -> tuple[str | None, str | None]:
-    """Gets the name and ref of a file from an attachment content."""
-    if not attachment_content.uri:
-        return None, None
-    file_id = attachment_content.uri.replace("agent-server-file://", "")
-    file_details = await kernel.files.get_file_by_id(file_id)
-    if not file_details:
-        return None, None
-    return file_details.file_ref, file_details.file_path
-
-
-async def _user_thread_contents_to_prompt_contents(
-    kernel: Kernel,
-    contents: list[AnyThreadMessageContent],
-) -> list[UserPromptMessageContent]:
-    """Converts a thread content to a prompt content."""
-    prompt_contents: list[UserPromptMessageContent] = []
-
-    for content in contents:
-        match content:
-            case ThreadTextContent() as text_content:
-                prompt_contents.append(
-                    PromptTextContent(
-                        text=text_content.text.strip(),
-                    ),
-                )
-            case ThreadAttachmentContent() as attachment_content:
-                file_name, file_path = await _get_file_name_and_path(kernel, attachment_content)
-                if file_name and file_path:
-                    prompt_contents.append(
-                        PromptTextContent(
-                            text=(f"Uploaded [{file_name}]({file_path})."),
-                        ),
-                    )
-            # TODO: multi-modal content/docs
-            case _:
-                raise ValueError(f"Unsupported thread content kind: {content.kind}")
-
-    return prompt_contents
 
 
 async def _agent_thread_contents_to_prompt_contents(
@@ -148,8 +104,13 @@ def _group_contents_by_prompt_index(
 async def thread_messages_to_prompt_messages(
     kernel: Kernel,
     thread_messages: list[ThreadMessage],
+    state: ThreadConversionState | None = None,
 ) -> list[AnyPromptMessage]:
     """Convert a list of thread messages to a list of prompt messages."""
+    from agent_platform.core.agent_architectures.thread_conversion_utils import (
+        user_thread_contents_to_prompt_contents,
+    )
+
     prompt_messages: list[AnyPromptMessage] = []
     active_message = ThreadAgentMessage(
         role="agent",
@@ -158,9 +119,10 @@ async def thread_messages_to_prompt_messages(
     for message in [*thread_messages, active_message]:
         match message.role:
             case "user":
-                user_contents = await _user_thread_contents_to_prompt_contents(
+                user_contents = await user_thread_contents_to_prompt_contents(
                     kernel,
                     message.content,
+                    state=state,
                 )
                 # Avoid emitting empty Bedrock messages (which cause ValidationException)
                 if len(user_contents) > 0:

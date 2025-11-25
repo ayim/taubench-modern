@@ -20,7 +20,9 @@ if typing.TYPE_CHECKING:
     import pyarrow
     from sema4ai.actions import Row
 
+    from agent_platform.core.files import UploadedFile
     from agent_platform.core.thread import Thread
+    from agent_platform.server.data_frames.data_reader import FileDataReader
     from agent_platform.server.storage.base import BaseStorage
 
 router = APIRouter()
@@ -389,8 +391,166 @@ class CacheHitEvent:
         return ret
 
 
+class InspectFileAsDataFrame:
+    _data_reader: "FileDataReader | None" = None
+    _cache_handler: "_CacheHandler | None" = None
+
+    def __init__(  # noqa: PLR0913
+        self,
+        user: AuthedUser,
+        tid: str,
+        storage: StorageDependency,
+        num_samples: int,
+        sheet_name: str | None,
+        file_metadata: "UploadedFile",
+    ):
+        self._user = user
+        self._tid = tid
+        self._storage = storage
+        self._num_samples = num_samples
+        self._sheet_name = sheet_name
+        self._file_metadata = file_metadata
+
+    @property
+    def num_samples(self) -> int:
+        return self._num_samples
+
+    @num_samples.setter
+    def num_samples(self, value: int):
+        self._num_samples = value
+
+    def get_cache_handler(self) -> _CacheHandler:
+        if self._cache_handler is None:
+            self._cache_handler = _CacheHandler(
+                self._tid, self._storage, self._sheet_name, self._file_metadata.file_id
+            )
+        return self._cache_handler
+
+    async def inspect_from_cache(
+        self,
+    ) -> _CacheHandler._LoadedFromCache | list[_DataFrameInspectionAPI] | None:
+        loaded: _CacheHandler._LoadedFromCache | None = None
+
+        try:
+            cache_handler = self.get_cache_handler()
+            found_in_cache: list[_DataFrameInspectionAPI] = []
+            found_in_cache = await cache_handler.create_data_frames_inspection_api_from_cache()
+            num_samples = self._num_samples
+
+            if num_samples == 0:
+                # We're good to go, no samples to load, full cache hit.
+                return found_in_cache
+
+            loaded = await cache_handler.load_samples_from_cache(found_in_cache, num_samples)
+            if not loaded.cache_miss:
+                # Ok, all matched from the cache.
+                return loaded.cache_hit
+            return loaded
+        except CacheMissError:
+            pass
+        except Exception as e:
+            logger.critical(f"Failed to get cached data: {e}", exc_info=True)
+
+        return None
+
+    async def get_data_reader(self) -> "FileDataReader":
+        from agent_platform.server.data_frames.data_reader import (
+            create_file_data_reader,
+        )
+
+        if self._data_reader is None:
+            self._data_reader = await create_file_data_reader(
+                user=self._user,
+                tid=self._tid,
+                storage=self._storage,
+                sheet_name=self._sheet_name,
+                file_metadata=self._file_metadata,
+            )
+        return self._data_reader
+
+    async def inspect_and_cache_from_file(self) -> list[_DataFrameInspectionAPI]:
+        import time
+
+        from agent_platform.server.data_frames.data_node import (
+            convert_pyarrow_slice_to_list_of_rows,
+        )
+
+        cache_handler = self.get_cache_handler()
+        start_time = time.monotonic()
+
+        data_reader: FileDataReader = await self.get_data_reader()
+
+        ret: list[_DataFrameInspectionAPI] = []
+
+        all_sheets = list(data_reader.iter_sheets())
+
+        if len(all_sheets) > 1:
+            await cache_handler.cache_multiple_sheet_names(
+                [(sheet.name or "<unnamed-sheet>") for sheet in all_sheets],
+                start_time - time.monotonic(),
+            )
+
+        num_samples = self._num_samples
+
+        for sheet in all_sheets:
+            value = _DataFrameInspectionAPI(
+                thread_id=self._tid,
+                name=self._file_metadata.file_ref,
+                file_id=self._file_metadata.file_id,
+                file_ref=self._file_metadata.file_ref,
+                sheet_name=sheet.name,
+                num_rows=sheet.num_rows,
+                num_columns=sheet.num_columns,
+                created_at=datetime.datetime.now(),
+                column_headers=sheet.column_headers,
+                sample_rows=[],
+            )
+
+            await cache_handler.cache_metadata(value, start_time - time.monotonic())
+
+            if num_samples == 0:
+                sample_rows = []
+
+            # i.e.: if we want all samples or if if the number of samples required is greater
+            # than the amount of samples stored in the "short samples" cache we load
+            # the full data and cache both the full data as well as the short samples data.
+            elif num_samples == -1 or (
+                num_samples > cache_handler.max_samples_in_short_samples_cache
+            ):
+                full_data: pyarrow.Table = sheet.to_ibis()
+                sample_rows: list[Row] = convert_pyarrow_slice_to_list_of_rows(
+                    full_data, None, None, None, None
+                )
+                # Cache the full data and the sample data
+                await cache_handler.cache_full_data(value, full_data, start_time - time.monotonic())
+                sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
+                await cache_handler.cache_sample_data(
+                    value, sampled_to_cache, start_time - time.monotonic()
+                )
+
+                if num_samples != -1:
+                    sample_rows = sample_rows[:num_samples]
+
+            else:
+                assert num_samples > 0, "num_samples must be 0, -1 or a positive number"
+
+                sample_rows = sheet.list_sample_rows(num_samples)
+
+                # Cache 10 rows
+                sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
+                await cache_handler.cache_sample_data(
+                    value, sampled_to_cache, start_time - time.monotonic()
+                )
+
+            value.sample_rows = sample_rows
+
+            ret.append(value)
+
+        return ret
+
+
 @router.get("/{tid}/inspect-file-as-data-frame")
-async def inspect_file_as_data_frame(  # noqa: C901, PLR0913, PLR0912,PLR0915
+async def inspect_file_as_data_frame(  # noqa: PLR0913
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
@@ -422,11 +582,8 @@ async def inspect_file_as_data_frame(  # noqa: C901, PLR0913, PLR0912,PLR0915
 
     Note: may return multiple data frames if the file is a multi-sheet excel file."""
 
-    import time
-
-    from agent_platform.server.data_frames.data_node import convert_pyarrow_slice_to_list_of_rows
+    from agent_platform.core.files.mime_types import TABULAR_DATA_MIME_TYPES
     from agent_platform.server.data_frames.data_reader import (
-        create_file_data_reader,
         get_file_metadata,
     )
 
@@ -436,113 +593,32 @@ async def inspect_file_as_data_frame(  # noqa: C901, PLR0913, PLR0912,PLR0915
             message="num_samples must be 0, -1 or a positive number",
         )
 
-    # Don't cache if we have dummy UploadedFile instances
-    # (file_id is empty, thread_id is None, agent_id is None)
-    should_cache = bool(file_id and tid)
-
     # Get the file metadata to make sure the file exists and the user has access to it.
     file_metadata = await get_file_metadata(
         user.user_id, tid, storage, file_id=file_id, file_ref=file_ref
     )
 
-    # Try to get from cache first if we should cache
-    loaded: _CacheHandler._LoadedFromCache | None = None
-    if should_cache:
-        try:
-            found_in_cache: list[_DataFrameInspectionAPI] = []
-            assert file_id
-            cache_handler = _CacheHandler(tid, storage, sheet_name, file_id)
-            found_in_cache = await cache_handler.create_data_frames_inspection_api_from_cache()
+    inspector = InspectFileAsDataFrame(user, tid, storage, num_samples, sheet_name, file_metadata)
 
-            if num_samples == 0:
-                # We're good to go, no samples to load, full cache hit.
-                return found_in_cache
+    try:
+        # Try to get from cache first if we should/can use the cache
+        loaded: _CacheHandler._LoadedFromCache | list[_DataFrameInspectionAPI] | None
+        loaded = await inspector.inspect_from_cache()
 
-            loaded = await cache_handler.load_samples_from_cache(found_in_cache, num_samples)
-            if not loaded.cache_miss:
-                # Ok, all matched from the cache.
-                return loaded.cache_hit
-        except CacheMissError:
-            pass
-        except Exception as e:
-            logger.critical(f"Failed to get cached data: {e}", exc_info=True)
+        if isinstance(loaded, list):
+            return loaded
 
-    # If we get here, either we shouldn't cache or cache miss occurred
-    start_time = time.monotonic()
-
-    data_reader = await create_file_data_reader(
-        user, tid, storage, sheet_name, file_metadata=file_metadata
-    )
-
-    ret: list[_DataFrameInspectionAPI] = []
-
-    all_sheets = list(data_reader.iter_sheets())
-
-    if should_cache:
-        if len(all_sheets) > 1:
-            await cache_handler.cache_multiple_sheet_names(
-                [(sheet.name or "<unnamed-sheet>") for sheet in all_sheets],
-                start_time - time.monotonic(),
-            )
-
-    for sheet in all_sheets:
-        value = _DataFrameInspectionAPI(
-            thread_id=tid,
-            name=file_metadata.file_ref,
-            file_id=file_metadata.file_id,
-            file_ref=file_metadata.file_ref,
-            sheet_name=sheet.name,
-            num_rows=sheet.num_rows,
-            num_columns=sheet.num_columns,
-            created_at=datetime.datetime.now(),
-            column_headers=sheet.column_headers,
-            sample_rows=[],
-        )
-
-        if should_cache:
-            await cache_handler.cache_metadata(value, start_time - time.monotonic())
-
-        if num_samples == 0:
-            sample_rows = []
-
-        # i.e.: if we want all samples or if if the number of samples required is greater
-        # than the amount of samples stored in the "short samples" cache we load
-        # the full data and cache both the full data as well as the short samples data.
-        elif num_samples == -1 or (
-            should_cache and num_samples > cache_handler.max_samples_in_short_samples_cache
+        # If we get here, the cache wasn't hit... for simplicity we're
+        # reading all the data from the file again for now.
+        return await inspector.inspect_and_cache_from_file()
+    except Exception as e:
+        if (
+            isinstance(file_metadata.mime_type, str)
+            and file_metadata.mime_type not in TABULAR_DATA_MIME_TYPES
         ):
-            full_data: pyarrow.Table = sheet.to_ibis()
-            sample_rows: list[Row] = convert_pyarrow_slice_to_list_of_rows(
-                full_data, None, None, None, None
-            )
-            # Cache the full data and the sample data
-            if should_cache:
-                await cache_handler.cache_full_data(value, full_data, start_time - time.monotonic())
-                sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
-                await cache_handler.cache_sample_data(
-                    value, sampled_to_cache, start_time - time.monotonic()
-                )
+            raise PlatformDataFrameWrongMimeTypeError(file_metadata.mime_type) from e
 
-            if num_samples != -1:
-                sample_rows = sample_rows[:num_samples]
-
-        else:
-            assert num_samples > 0, "num_samples must be 0, -1 or a positive number"
-
-            sample_rows = sheet.list_sample_rows(num_samples)
-
-            if should_cache:
-                # Cache 10 rows
-                sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
-                await cache_handler.cache_sample_data(
-                    value, sampled_to_cache, start_time - time.monotonic()
-                )
-
-        value.sample_rows = sample_rows
-
-        ret.append(value)
-
-    return ret
+        raise
 
 
 @dataclasses.dataclass
@@ -591,6 +667,18 @@ class _DataFrameCreationAPI:
     ]
 
 
+class PlatformDataFrameWrongMimeTypeError(PlatformHTTPError):
+    def __init__(self, mime_type: str):
+        super().__init__(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=f"""
+            It is not possilbe to create data frames from files with the mime type {mime_type!r}.
+            Only files with tabular data (e.g. .csv, .xlsx, .xls) can be used to create data frames.
+            Please use a different tool to extract information from this file.
+            """,
+        )
+
+
 @router.post("/{tid}/data-frames/from-file")
 async def create_data_frame_from_file(  # noqa: PLR0913
     user: AuthedUser,
@@ -627,12 +715,9 @@ async def create_data_frame_from_file(  # noqa: PLR0913
     Note: if the file is a multi-sheet excel file, this needs to be called for each sheet
     by specifying the sheet_name.
     """
-    import keyword
-    import os.path
-    import uuid
 
     from agent_platform.core.data_frames.data_frames import DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT
-    from sema4ai.common.text import slugify
+    from agent_platform.server.storage.base import BaseStorage
 
     if num_samples < 0:
         use_num_samples = num_samples
@@ -643,27 +728,51 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         user, tid, storage, use_num_samples, sheet_name, file_id=file_id, file_ref=file_ref
     )
     if len(inspected_data_frames) == 0:
-        raise HTTPException(status_code=400, detail="No data frames found in file")
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="No data frames found in file",
+        )
 
     if len(inspected_data_frames) > 1:
         found_sheet_names = [
             inspected_data_frame.sheet_name for inspected_data_frame in inspected_data_frames
         ]
-        raise HTTPException(
-            status_code=400,
-            detail="Multiple data frames found in file. Please specify sheet_name. "
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="Multiple data frames found in file. Please specify sheet_name. "
             f"Available sheet names: {found_sheet_names!r}.",
         )
 
     inspected_data_frame = inspected_data_frames[0]
+    return await create_data_frame_from_inspected_data_frame(
+        user, tid, typing.cast(BaseStorage, storage), inspected_data_frame, name, description
+    )
 
-    from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-    from agent_platform.server.storage.base import BaseStorage
 
-    base_storage = typing.cast(BaseStorage, storage)
+async def create_data_frame_from_inspected_data_frame(  # noqa: PLR0913
+    user: AuthedUser,
+    tid: str,
+    storage: "BaseStorage",
+    inspected_data_frame: _DataFrameInspectionAPI,
+    name: str | None = None,
+    description: str | None = None,
+) -> _DataFrameCreationAPI:
+    """
+    Note: the inspected_data_frame must have been sampled with num_samples of
+    `DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT` or more.
+    """
+    import keyword
+    import os.path
+    import uuid
+
+    from agent_platform.core.data_frames.data_frames import (
+        DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT,
+        PlatformDataFrame,
+    )
+    from sema4ai.common.text import slugify
 
     # Get the thread to find the agent_id
-    thread = await base_storage.get_thread(user.user_id, tid)
+    thread = await storage.get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
@@ -674,8 +783,8 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         ref = os.path.splitext(ref)[0]
 
         use_name = slugify(ref).replace("-", "_")
-        if sheet_name:
-            sheet_name_as_slug = slugify(sheet_name).replace("-", "_")
+        if inspected_data_frame.sheet_name:
+            sheet_name_as_slug = slugify(inspected_data_frame.sheet_name).replace("-", "_")
             use_name = f"{use_name}_{sheet_name_as_slug}"
 
         if not use_name.isidentifier() or keyword.iskeyword(use_name):
@@ -720,13 +829,13 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         ),
     )
 
-    await base_storage.save_data_frame(data_frame)
+    await storage.save_data_frame(data_frame)
 
     return _DataFrameCreationAPI(
         data_frame_id=data_frame.data_frame_id,
         thread_id=data_frame.thread_id,
         name=data_frame.name,
-        sheet_name=sheet_name,
+        sheet_name=data_frame.sheet_name,
         description=data_frame.description,
         num_rows=data_frame.num_rows,
         num_columns=data_frame.num_columns,

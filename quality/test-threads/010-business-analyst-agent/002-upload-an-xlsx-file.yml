@@ -1,0 +1,27 @@
+name: upload-and-verify-xlsx
+description: 'Upload and verify XLSX'
+
+thread:
+  - name: upload-and-verify-xlsx
+    description: 'Upload and verify XLSX'
+    messages:
+      - role: user
+        content:
+          kind: attachment
+          description: Company Employees
+          mime_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+          file_name: employees.xlsx
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: cortex
+  - name: groq
+  # - name: google
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should have presented options on how to proceed 
+      based on the information found in the data frame.

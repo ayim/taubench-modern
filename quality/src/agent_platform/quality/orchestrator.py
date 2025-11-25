@@ -9,7 +9,6 @@ import structlog
 from agent_platform.orchestrator.default_locations import get_agent_server_executable_path
 
 from agent_platform.quality.models import AgentPackage, Platform
-from agent_platform.quality.utils import safe_join_url
 
 logger = structlog.get_logger(__name__)
 
@@ -166,18 +165,17 @@ class QualityOrchestrator:
             package_base64 = base64.b64encode(f.read()).decode()
 
         # Prepare MCP servers configuration if we have one
-        mcp_servers = []
+        action_servers = []
         if action_server_url:
             # use actions always as MCP servers
-            mcp_servers.append(
+            action_servers.append(
                 {
-                    "name": "Test",
-                    "transport": "streamable-http",
-                    "url": safe_join_url(action_server_url, "/mcp"),
-                    "headers": {"Authorization": f"Bearer {TEST_API_KEY}"},
+                    "url": action_server_url,
+                    "api_key": TEST_API_KEY,
                 }
             )
 
+        mcp_servers = []
         if agent_package_metadata is not None and "docker_mcp_gateway" in agent_package_metadata:
             # don't allow custom catalog for now: just fail hard!
             if "catalog" in agent_package_metadata.get("docker-mcp-gateway", {}):
@@ -218,6 +216,7 @@ class QualityOrchestrator:
                     "agent_package_base64": package_base64,
                     "mcp_servers": mcp_servers,
                     "model": {"provider": "openai", "name": "gpt-4o"},
+                    "action_servers": action_servers,
                 },
                 timeout=30.0,
             )

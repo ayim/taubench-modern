@@ -1,0 +1,13 @@
+
+Scenario: pdf_file
+
+Generated prompt contents:
+[
+  {
+    "kind": "text",
+    "text": "Uploaded file. File name/reference: 'test.pdf', MIME type: 'application/pdf'
+Note: This is a PDF file. Follow the runbook for instructions related to
+the PDF file or uploaded files.
+Note: remember that it's not possible to directly create a data frame from a PDF file."
+  }
+]

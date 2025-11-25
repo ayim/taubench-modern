@@ -4,6 +4,8 @@ from collections.abc import Iterator
 
 from structlog.stdlib import get_logger
 
+from agent_platform.core.files.mime_types import TABULAR_DATA_MIME_TYPES
+
 if typing.TYPE_CHECKING:
     import fastexcel
     import pyarrow
@@ -14,16 +16,6 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
-_excel_mime_types = [
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-excel",
-    "application/vnd.oasis.opendocument.spreadsheet",
-]
-
-_all_mime_types = [  # noqa: RUF005
-    "text/csv",
-    "text/tab-separated-values",
-] + _excel_mime_types
 
 
 class DataReaderSheet:
@@ -360,19 +352,15 @@ async def _get_file_contents(
     user_id: str, thread_id: str, storage: "BaseStorage", file_metadata: "UploadedFile"
 ) -> bytes:
     """Get a file from the storage."""
-    from agent_platform.core.errors.base import PlatformHTTPError
-    from agent_platform.core.errors.responses import ErrorCode
     from agent_platform.server.file_manager.base import BaseFileManager
     from agent_platform.server.file_manager.option import FileManagerService
 
     file_manager: BaseFileManager = FileManagerService.get_instance(storage)
 
-    # Check if the file is in the thread
-    if file_metadata.thread_id != thread_id:
-        raise PlatformHTTPError(
-            error_code=ErrorCode.NOT_FOUND,
-            message=f"File with id {file_metadata.file_id} is not in thread {thread_id}",
-        )
+    # Note: we previously checked if `file_metadata.thread_id != thread_id`
+    # and raised an error, but stopped doing that because for work items
+    # the owner is not the thread but the work item (thus this check would
+    # have been wrong in this case).
 
     # Get the file from the storage
     file_contents = await file_manager.read_file_contents(file_metadata.file_id, user_id)
@@ -398,7 +386,8 @@ def create_file_data_reader_from_contents(
     Returns:
         A FileDataReader instance
     """
-    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
 
     # Make sure it's an appropriate file type (excel or csv)
     data_reader: FileDataReader
@@ -408,7 +397,7 @@ def create_file_data_reader_from_contents(
         else:
             data_reader = ExcelDataReader(file_contents, sheet_name=sheet_name)
     except Exception as e:
-        if mime_type not in _all_mime_types:
+        if mime_type not in TABULAR_DATA_MIME_TYPES:
             message = (
                 f"File {file_name} is not a valid table file (unexpected mime type: {mime_type!r})"
             )
@@ -417,8 +406,11 @@ def create_file_data_reader_from_contents(
                 f"Unable to read file {file_name} as a data frame (found mime type {mime_type!r})"
             )
 
-        logger.error(message, error=e)
-        raise PlatformError(message=message) from e
+            logger.exception(message)
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=message,
+        ) from e
 
     return data_reader
 

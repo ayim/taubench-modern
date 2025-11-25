@@ -2,6 +2,7 @@ from base64 import b64decode
 from dataclasses import dataclass, field
 from typing import Literal
 
+from agent_platform.core.files.mime_types import PromptDocumentMimeTypeLiteral
 from agent_platform.core.prompts.content.base import PromptMessageContent
 from agent_platform.core.utils.asserts import assert_literal_value_valid
 
@@ -14,18 +15,7 @@ class PromptDocumentContent(PromptMessageContent):
     for different resolutions and image formats.
     """
 
-    mime_type: Literal[
-        "application/pdf",
-        "text/plain",
-        "text/csv",
-        "text/tab-separated-values",
-        "text/markdown",
-        "text/html",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ] = field(
+    mime_type: PromptDocumentMimeTypeLiteral = field(
         metadata={"description": "MIME type of the document"},
     )
     """MIME type of the document"""

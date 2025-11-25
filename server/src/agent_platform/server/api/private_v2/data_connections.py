@@ -323,7 +323,7 @@ async def inspect_file_as_data_connection(
 ) -> DataConnectionsInspectResponse:
     """Inspect a file to get tables, columns and sample data as if it were a data connection."""
 
-    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
     from agent_platform.core.errors.responses import ErrorCode
 
     try:
@@ -374,7 +374,7 @@ async def inspect_file_as_data_connection(
             inspected_at=datetime.now(UTC).isoformat(),
         )
 
-    except PlatformError:
+    except PlatformHTTPError:
         raise
     except Exception as e:
         logger.error(
@@ -382,7 +382,7 @@ async def inspect_file_as_data_connection(
             file_name=request.headers.get("X-File-Name", "Not received"),
             error=e,
         )
-        raise PlatformError(
+        raise PlatformHTTPError(
             error_code=ErrorCode.UNEXPECTED,
             message=f"Failed to inspect file as data connection: {e!s}",
         ) from e
