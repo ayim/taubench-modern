@@ -669,8 +669,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             return ""
 
         return dedent("""
-        **IMPORTANT:** Always use table qualifiers (e.g., 'tbl.column_name') in SQL, especially
-        in CTEs and JOINs. Unqualified columns may cause ambiguity errors.
+        **SQL SYNTAX RULES:**
+        - Reference tables by their logical name only (e.g., `FROM my_table`). Do NOT prefix with the model name.
+        - Always qualify column names with their table (e.g., `my_table.column_name`), especially in CTEs and JOINs.
         """)
 
     def _semantic_data_models_with_engines(self) -> list[tuple[SemanticDataModel, str]]:
@@ -1418,7 +1419,7 @@ class _DataFrameTools:
         - The message contains specific guidance on what went wrong and how to fix it
         - Modify your SQL based on the feedback provided in the message
         - Call this tool again with the corrected SQL
-        - After 3 failed attempts with different SQL variations, explain the issue to the user
+        - After 5 failed attempts with different SQL variations, explain the issue to the user
         - Do NOT keep retrying the same SQL - each retry should incorporate the feedback from previous attempts
 
         If the query is not valid, a structured response will be returned with guidance so it can be corrected and retried.

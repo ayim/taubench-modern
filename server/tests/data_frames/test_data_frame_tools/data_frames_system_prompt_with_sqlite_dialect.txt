@@ -23,8 +23,9 @@ Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to ge
 
 ## Semantic Data Models (tables available to be used in the `data_frames_create_from_sql` tool):
 
-**IMPORTANT:** Always use table qualifiers (e.g., 'tbl.column_name') in SQL, especially
-in CTEs and JOINs. Unqualified columns may cause ambiguity errors.
+**SQL SYNTAX RULES:**
+- Reference tables by their logical name only (e.g., `FROM my_table`). Do NOT prefix with the model name.
+- Always qualify column names with their table (e.g., `my_table.column_name`), especially in CTEs and JOINs.
 
 ### Model: combined_ai_semantic_model
 SQL dialect: sqlite
