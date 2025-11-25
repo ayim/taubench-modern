@@ -1163,6 +1163,65 @@ class TestFileManager:
             assert ref
             assert ref.file_id == file2_id
 
+    async def test_upload_and_list_files_with_unicode_names(
+        self,
+        file_manager: BaseFileManager,
+        sample_thread: Thread,
+        setup_storage: SQLiteStorage | PostgresStorage,
+        tmpdir,
+    ):
+        """Test uploading and listing files with Unicode characters (e.g., kanji) in filenames."""
+        # Test files with kanji and other Unicode characters in the name
+        unicode_filenames = [
+            "EOW5362_PNP_DETAIL_REPORT_20251103---DSV Chengdu 253045 "
+            "(上海得斯威国际货运有限公司).xlsx",
+            "A-ONE 询证函_251106.pdf",
+            "テスト_ファイル.txt",  # Japanese
+            "测试文件.csv",  # Chinese
+            "тестовый_файл.json",  # Russian
+            "αρχείο_δοκιμής.xml",  # Greek
+        ]
+
+        uploaded_files = []
+        for filename in unicode_filenames:
+            # Create a temporary file with Unicode filename
+            file_content = f"Test content for {filename}".encode()
+            file = UploadFile(filename=filename, file=BytesIO(file_content))
+
+            # Upload the file
+            results = await file_manager.upload(
+                files=[UploadFilePayload(file=file)],
+                owner=sample_thread,
+                user_id=sample_thread.user_id,
+            )
+
+            assert len(results) == 1
+            assert results[0].file_ref == filename
+            assert results[0].thread_id == sample_thread.thread_id
+            uploaded_files.append(results[0])
+
+        # List all files from the thread
+        thread_files = await setup_storage.get_thread_files(
+            sample_thread.thread_id,
+            sample_thread.user_id,
+        )
+
+        # Verify all files are listed correctly
+        assert len(thread_files) == len(unicode_filenames)
+        listed_filenames = {f.file_ref for f in thread_files}
+        expected_filenames = set(unicode_filenames)
+        assert listed_filenames == expected_filenames
+
+        # Verify each file can be retrieved by ref
+        for filename in unicode_filenames:
+            file = await setup_storage.get_file_by_ref(
+                sample_thread,
+                filename,
+                sample_thread.user_id,
+            )
+            assert file is not None
+            assert file.file_ref == filename
+
     async def test_delete_thread_file(
         self,
         sample_file: UploadFile,

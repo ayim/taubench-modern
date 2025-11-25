@@ -11,7 +11,7 @@ from agent_platform.orchestrator.agent_server_client import (
 from fastapi import status
 
 
-def _file_uploads_with_existing_thread(
+def _file_uploads_with_existing_thread(  # noqa: PLR0915
     agent_client: AgentServerClient,
     thread_id: str,
     agent_id: str,
@@ -92,6 +92,58 @@ def _file_uploads_with_existing_thread(
     assert len(empty_thread_files) == 0, f"Expected 0 files, got {len(empty_thread_files)}"
     print_success("Successfully deleted all files from thread")
 
+    # Test Unicode filenames through FastAPI serialization
+    print_header("TESTING UNICODE FILENAME SERIALIZATION")
+    unicode_filenames = [
+        "テスト_ファイル.txt",  # Japanese
+        "测试文件.csv",  # Chinese
+        "тестовый_файл.json",  # Russian
+        "αρχείο_δοκιμής.xml",  # Greek
+    ]
+
+    unicode_file_ids = {}
+    for filename in unicode_filenames:
+        file_content = f"Test content for {filename}".encode()
+        response = agent_client.upload_file_to_thread(
+            thread_id,
+            filename,
+            content=file_content,
+            embedded=True,
+        )
+        assert response.status_code == status.HTTP_200_OK, (
+            f"Failed to upload Unicode filename {filename}"
+        )
+        response_data = response.json()
+        assert response_data[0]["file_ref"] == filename
+        unicode_file_ids[filename] = response_data[0]["file_id"]
+
+    # Verify listing preserves Unicode filenames
+    unicode_files = agent_client.list_files(thread_id)
+    assert unicode_files is not None
+    assert len(unicode_files) == len(unicode_filenames)
+    for filename, file_id in unicode_file_ids.items():
+        assert unicode_files[file_id] == filename
+
+    # Verify get file info preserves Unicode filenames
+    for filename, file_id in unicode_file_ids.items():
+        file_info = agent_client.get_file_info_by_ref(thread_id, filename)
+        assert file_info is not None, f"File info not found for {filename}"
+        assert file_info["file_ref"] == filename
+        assert file_info["file_id"] == file_id
+
+    # Verify download by Unicode filename works
+    for filename in unicode_filenames:
+        content = agent_client.download_file_by_ref(thread_id, filename)
+        expected = f"Test content for {filename}".encode()
+        assert content == expected, f"Content mismatch for {filename}"
+
+    # Clean up Unicode files
+    agent_client.delete_all_files_from_thread(thread_id)
+    empty_files = agent_client.list_files(thread_id)
+    assert empty_files is not None, "Failed to get thread files after deletion"
+    assert len(empty_files) == 0, "Failed to delete all files"
+
+    print_success("Successfully tested Unicode filename serialization")
     print_success("Successfully tested file uploads with existing thread")
 
 

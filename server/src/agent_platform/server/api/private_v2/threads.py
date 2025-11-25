@@ -440,7 +440,7 @@ async def get_thread_files(
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
-):
+) -> list[dict]:
     """Get a list of files associated with a thread."""
     thread = await storage.get_thread(user.user_id, tid)
     if not thread:
@@ -449,7 +449,9 @@ async def get_thread_files(
         thread_files = await storage.get_thread_files(tid, user.user_id)
     except ThreadFileNotFoundError:
         return []
-    return thread_files
+    # Convert dataclass objects to dicts to ensure proper JSON serialization,
+    # especially for filenames with Unicode characters (e.g., kanji)
+    return [dataclasses.asdict(f) for f in thread_files]
 
 
 @router.get(
@@ -501,7 +503,9 @@ async def upload_thread_files(
     upload_requests = [UploadFilePayload(file=f) for f in files]
     stored_files = await file_manager.upload(upload_requests, thread, user.user_id)
 
-    return stored_files
+    # Convert dataclass objects to dicts to ensure proper JSON serialization,
+    # especially for filenames with Unicode characters (e.g., kanji)
+    return [dataclasses.asdict(f) for f in stored_files]
 
 
 @router.delete("/{tid}/files/{file_id}", status_code=204)
