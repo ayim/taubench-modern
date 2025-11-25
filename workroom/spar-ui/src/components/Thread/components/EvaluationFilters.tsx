@@ -6,7 +6,7 @@ import { IconTrash } from '@sema4ai/icons';
 import type { Scenario, ScenarioRun } from '../../Eval/components/EvalSidebarView/types';
 
 const FilterSection = styled(Box)`
-  border-bottom: 1px solid ${({ theme }) => theme.color('border.primary')};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
   padding: ${({ theme }) => theme.space.$12} 0;
 
   &:last-child {

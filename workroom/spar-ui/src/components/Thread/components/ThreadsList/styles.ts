@@ -2,16 +2,18 @@ import { Box } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
 
 export const ResizeHandle = styled.button`
-  height: 4px;
+  height: 1px;
   cursor: ns-resize;
-  background: transparent;
+  background: ${({ theme }) => theme.colors.border.subtle.color};
   border: none;
   padding: 0;
   position: relative;
   width: 100%;
+  transition: ${({ theme }) => theme.transition.normal};
 
   &:hover {
-    background: ${({ theme }) => theme.color('border.primary')};
+    height: 2px;
+    background: ${({ theme }) => theme.colors.border.subtle.hovered.color};
   }
 
   &:hover::before {

@@ -28,7 +28,7 @@ export const Container = styled.header<{ $sidebarExpanded: boolean }>`
   height: ${({ theme }) => theme.sizes.$64};
   padding: ${({ theme }) => theme.space.$14} ${({ theme }) => theme.space.$20};
   padding-left: ${({ theme, $sidebarExpanded }) => (!$sidebarExpanded ? theme.space.$64 : theme.space.$20)};
-  outline: 1px solid ${({ theme }) => theme.colors.border.primary.color};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
 
   ${({ theme }) => theme.screen.m} {
     height: 52px;
