@@ -1,6 +1,13 @@
 import { FC } from 'react';
 import { Box, Typography, Banner, Button, Menu, Tooltip } from '@sema4ai/components';
-import { IconLightBulb, IconSendSmall, IconDotsHorizontal, IconClose, IconQuestionMarkCircle } from '@sema4ai/icons';
+import {
+  IconLightBulb,
+  IconSendSmall,
+  IconDotsHorizontal,
+  IconClose,
+  IconQuestionMarkCircle,
+  IconCloseCircle,
+} from '@sema4ai/icons';
 import type { BatchSummary } from '../types';
 
 export interface UserFacingMetricsProps {
@@ -11,6 +18,9 @@ export interface UserFacingMetricsProps {
   selectedTrialsForAll: number;
   onSetSelectedTrialsForAll: (numTrials: number) => void;
   isAnyTestRunning: boolean;
+  isBatchRunning: boolean;
+  isCancelingAll: boolean;
+  onCancelAllTests: () => void;
   hasEvaluations: boolean;
 }
 
@@ -22,6 +32,9 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
   selectedTrialsForAll,
   onSetSelectedTrialsForAll,
   isAnyTestRunning,
+  isBatchRunning,
+  isCancelingAll,
+  onCancelAllTests,
   hasEvaluations,
 }) => {
   const totalScenarios = batchSummary?.statistics.total_scenarios ?? 0;
@@ -179,6 +192,11 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
           >
             {selectedTrialsForAll === 1 ? 'Run All Tests' : `Run All Tests (${selectedTrialsForAll}x)`}
           </Button>
+          {isBatchRunning && (
+            <Button icon={IconCloseCircle} variant="outline" round onClick={onCancelAllTests} loading={isCancelingAll}>
+              Cancel All
+            </Button>
+          )}
           {runTestsMenu}
         </Box>
       )}

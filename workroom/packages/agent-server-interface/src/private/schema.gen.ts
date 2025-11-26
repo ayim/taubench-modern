@@ -7430,6 +7430,8 @@ export interface components {
       /** @default PENDING */
       status: components['schemas']['ScenarioBatchRunStatus'];
       statistics?: components['schemas']['ScenarioBatchRunStatistics'];
+      /** Trial Statuses */
+      trial_statuses?: components['schemas']['ScenarioBatchRunTrialStatus'][];
       /**
        * Created At
        * Format: date-time
@@ -7490,6 +7492,29 @@ export interface components {
       | 'COMPLETED'
       | 'FAILED'
       | 'CANCELED';
+    /** ScenarioBatchRunTrialStatus */
+    ScenarioBatchRunTrialStatus: {
+      /** Scenario Id */
+      scenario_id: string;
+      /** Scenario Run Id */
+      scenario_run_id: string;
+      /** Trials */
+      trials?: components['schemas']['ScenarioBatchRunTrialStatusEntry'][];
+    };
+    /** ScenarioBatchRunTrialStatusEntry */
+    ScenarioBatchRunTrialStatusEntry: {
+      /** Trial Id */
+      trial_id: string;
+      /** Index In Run */
+      index_in_run: number;
+      status: components['schemas']['TrialStatus'];
+      /** Status Updated At */
+      status_updated_at?: string | null;
+      /** Execution Started At */
+      execution_started_at?: string | null;
+      /** Execution Finished At */
+      execution_finished_at?: string | null;
+    };
     /** ScenarioRun */
     ScenarioRun: {
       /** Scenario Run Id */

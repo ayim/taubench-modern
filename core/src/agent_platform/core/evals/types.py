@@ -454,6 +454,74 @@ class ScenarioRun:
 
 
 @dataclass(frozen=True)
+class ScenarioBatchRunTrialStatusEntry:
+    trial_id: str
+    index_in_run: int
+    status: TrialStatus
+    status_updated_at: datetime | None = None
+    execution_started_at: datetime | None = None
+    execution_finished_at: datetime | None = None
+
+    def model_dump(self) -> dict:
+        return {
+            "trial_id": self.trial_id,
+            "index_in_run": self.index_in_run,
+            "status": self.status.value,
+            "status_updated_at": self.status_updated_at,
+            "execution_started_at": self.execution_started_at,
+            "execution_finished_at": self.execution_finished_at,
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ScenarioBatchRunTrialStatusEntry":
+        parsed = data.copy()
+        if "status_updated_at" in parsed and isinstance(parsed["status_updated_at"], str):
+            parsed["status_updated_at"] = datetime.fromisoformat(parsed["status_updated_at"])
+        if "execution_started_at" in parsed and isinstance(parsed["execution_started_at"], str):
+            parsed["execution_started_at"] = datetime.fromisoformat(parsed["execution_started_at"])
+        if "execution_finished_at" in parsed and isinstance(parsed["execution_finished_at"], str):
+            parsed["execution_finished_at"] = datetime.fromisoformat(
+                parsed["execution_finished_at"]
+            )
+        status = parsed.get("status")
+        if isinstance(status, str):
+            parsed["status"] = TrialStatus(status)
+        return cls(
+            trial_id=str(parsed.get("trial_id", "")),
+            index_in_run=int(parsed.get("index_in_run", 0)),
+            status=parsed.get("status", TrialStatus.PENDING),
+            status_updated_at=parsed.get("status_updated_at"),
+            execution_started_at=parsed.get("execution_started_at"),
+            execution_finished_at=parsed.get("execution_finished_at"),
+        )
+
+
+@dataclass(frozen=True)
+class ScenarioBatchRunTrialStatus:
+    scenario_id: str
+    scenario_run_id: str
+    trials: list[ScenarioBatchRunTrialStatusEntry] = field(default_factory=list)
+
+    def model_dump(self) -> dict:
+        return {
+            "scenario_id": self.scenario_id,
+            "scenario_run_id": self.scenario_run_id,
+            "trials": [trial.model_dump() for trial in self.trials],
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "ScenarioBatchRunTrialStatus":
+        parsed = data.copy()
+        parsed["scenario_id"] = str(parsed.get("scenario_id", ""))
+        parsed["scenario_run_id"] = str(parsed.get("scenario_run_id", ""))
+        trials = parsed.get("trials") or []
+        parsed["trials"] = [
+            ScenarioBatchRunTrialStatusEntry.model_validate(trial) for trial in trials
+        ]
+        return cls(**parsed)
+
+
+@dataclass(frozen=True)
 class ScenarioBatchRun:
     batch_run_id: str
     agent_id: str
@@ -462,6 +530,7 @@ class ScenarioBatchRun:
     scenario_ids: list[str] = field(default_factory=list)
     status: ScenarioBatchRunStatus = ScenarioBatchRunStatus.PENDING
     statistics: ScenarioBatchRunStatistics = field(default_factory=ScenarioBatchRunStatistics)
+    trial_statuses: list[ScenarioBatchRunTrialStatus] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     completed_at: datetime | None = None
@@ -500,6 +569,17 @@ class ScenarioBatchRun:
                 statistics = {}
         data["statistics"] = ScenarioBatchRunStatistics.model_validate(statistics)
 
+        trial_statuses = data.get("trial_statuses")
+        if isinstance(trial_statuses, str):
+            try:
+                trial_statuses = json.loads(trial_statuses)
+            except json.JSONDecodeError:
+                trial_statuses = []
+        if trial_statuses is None:
+            trial_statuses = []
+        data["trial_statuses"] = [
+            ScenarioBatchRunTrialStatus.model_validate(status) for status in trial_statuses
+        ]
         metadata = data.get("metadata")
         if isinstance(metadata, str):
             try:
@@ -525,6 +605,7 @@ class ScenarioBatchRun:
             "scenario_ids": self.scenario_ids,
             "status": self.status.value,
             "statistics": self.statistics.model_dump(),
+            "trial_statuses": [status.model_dump() for status in self.trial_statuses],
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "completed_at": self.completed_at,

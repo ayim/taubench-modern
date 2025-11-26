@@ -21,12 +21,17 @@ import {
   useImportScenariosMutation,
   useUpdateScenarioMutation,
 } from '../../../../../queries/evals';
-import type { ScenarioBatchRun, ScenarioBatchRunMetadata, ScenarioBatchRunStatus } from '../../../../../queries/evals';
+import type {
+  ScenarioBatchRun,
+  ScenarioBatchRunMetadata,
+  ScenarioBatchRunStatus,
+  ScenarioBatchRunTrialStatus,
+} from '../../../../../queries/evals';
 import { useAgentQuery } from '../../../../../queries/agents';
 import { useSparUIContext } from '../../../../../api/context';
 import { sortByCreatedAtDesc } from '../../../../../lib/utils';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
-import type { BatchSummary, EvaluationItem, ScenarioRun, Scenario } from '../types';
+import type { BatchSummary, EvaluationItem, ScenarioRun, Scenario, Trial } from '../types';
 import { useAnalytics } from '../../../../../queries';
 
 export interface UseEvalSidebarDataProps {
@@ -46,6 +51,12 @@ type EvaluationCriterionConfig =
   | components['schemas']['ResponseAccuracy'];
 
 const TERMINAL_BATCH_STATUSES: ScenarioBatchRunStatus[] = ['COMPLETED', 'FAILED', 'CANCELED'];
+const TERMINAL_TRIAL_STATUSES: Trial['status'][] = ['COMPLETED', 'ERROR', 'CANCELED'];
+
+type BatchScenarioState = {
+  runStartedAt: number | null;
+  scenarioRunId?: string;
+};
 
 export const useEvalSidebarData = ({
   agentId,
@@ -62,6 +73,11 @@ export const useEvalSidebarData = ({
   const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
   const [isCancelingAll, setIsCancelingAll] = useState(false);
+  const batchScenarioTrackingRef = useRef<Map<string, BatchScenarioState>>(new Map());
+  const processedBatchScenarioRunsRef = useRef<Set<string>>(new Set());
+  const batchTrialStatusRef = useRef<Map<string, Map<string, Trial['status']>>>(new Map());
+  const batchPollingRunIdRef = useRef<string | null>(null);
+  const batchPollingPromiseRef = useRef<Promise<ScenarioBatchRun | null> | null>(null);
 
   const deleteScenarioMutation = useDeleteScenarioMutation({});
   const createScenarioRunMutation = useCreateScenarioRunMutation({});
@@ -127,6 +143,151 @@ export const useEvalSidebarData = ({
     });
     setBatchSummaryOutdated(false);
   }, [latestBatchRun, setLastBatchSummary, buildBatchSummary, setBatchSummaryOutdated]);
+
+  const computeTrackedDuration = useCallback(
+    (trials: ScenarioBatchRunTrialStatus['trials'], runStartedAt: number | null): number | null => {
+      if (trials.length > 0) {
+        const largestInterval = trials.reduce<number | null>((currentMax, trial) => {
+          const startedAt = trial.execution_started_at;
+          const finishedAt = trial.execution_finished_at;
+
+          if (!startedAt || !finishedAt) {
+            return currentMax;
+          }
+
+          const startTimestamp = new Date(startedAt).getTime();
+          const endTimestamp = new Date(finishedAt).getTime();
+
+          if (Number.isNaN(startTimestamp) || Number.isNaN(endTimestamp) || endTimestamp < startTimestamp) {
+            return currentMax;
+          }
+
+          const interval = endTimestamp - startTimestamp;
+          if (currentMax === null || interval > currentMax) {
+            return interval;
+          }
+          return currentMax;
+        }, null);
+
+        if (largestInterval !== null) {
+          return largestInterval;
+        }
+      }
+
+      if (runStartedAt !== null && typeof performance !== 'undefined') {
+        return Math.max(Math.round(performance.now() - runStartedAt), 0);
+      }
+
+      return null;
+    },
+    [],
+  );
+
+  const handleScenarioCompletionFromBatch = useCallback(
+    (trialStatus: ScenarioBatchRunTrialStatus, runStartedAt: number | null) => {
+      const trials = trialStatus.trials ?? [];
+      const trackedDurationMs = computeTrackedDuration(trials, runStartedAt);
+
+      if (trackedDurationMs !== null) {
+        track(`evals_execution.duration`, trackedDurationMs.toString());
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', trialStatus.scenario_id] });
+      queryClient.invalidateQueries({ queryKey: ['scenario-runs', trialStatus.scenario_id] });
+      queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
+    },
+    [agentId, computeTrackedDuration, queryClient, track],
+  );
+
+  const handleBatchProgress = useCallback(
+    (batchRun: ScenarioBatchRun) => {
+      const statuses = batchRun.trial_statuses ?? [];
+      statuses.forEach((status) => {
+        if (processedBatchScenarioRunsRef.current.has(status.scenario_run_id)) {
+          return;
+        }
+
+        const existingState = batchScenarioTrackingRef.current.get(status.scenario_id);
+
+        const mergedState: BatchScenarioState = {
+          runStartedAt: existingState?.runStartedAt ?? null,
+          scenarioRunId: status.scenario_run_id,
+        };
+
+        batchScenarioTrackingRef.current.set(status.scenario_id, mergedState);
+
+        const trials = status.trials ?? [];
+        const allTerminal =
+          trials.length > 0 && trials.every((trial) => TERMINAL_TRIAL_STATUSES.includes(trial.status));
+
+        let trialStatusChanged = false;
+        const existingTrialStatuses = batchTrialStatusRef.current.get(status.scenario_run_id) ?? new Map();
+        const nextTrialStatuses = new Map(existingTrialStatuses);
+        trials.forEach((trial) => {
+          const previousStatus = existingTrialStatuses.get(trial.trial_id);
+          if (previousStatus !== trial.status) {
+            trialStatusChanged = true;
+          }
+          nextTrialStatuses.set(trial.trial_id, trial.status);
+        });
+
+        if (!allTerminal && trialStatusChanged) {
+          queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', status.scenario_id] });
+        }
+        batchTrialStatusRef.current.set(status.scenario_run_id, nextTrialStatuses);
+
+        if (allTerminal) {
+          processedBatchScenarioRunsRef.current.add(status.scenario_run_id);
+          batchScenarioTrackingRef.current.delete(status.scenario_id);
+          batchTrialStatusRef.current.delete(status.scenario_run_id);
+          handleScenarioCompletionFromBatch(status, mergedState.runStartedAt);
+        }
+      });
+    },
+    [handleScenarioCompletionFromBatch, queryClient],
+  );
+
+  const initializeBatchScenarioTracking = useCallback(
+    (scenarioIds: string[], runStartedAtMap?: Map<string, number | null>) => {
+      scenarioIds.forEach((scenarioId) => {
+        const existing = batchScenarioTrackingRef.current.get(scenarioId);
+        const runStartedAt = runStartedAtMap?.get(scenarioId) ?? existing?.runStartedAt ?? null;
+        batchScenarioTrackingRef.current.set(scenarioId, {
+          runStartedAt,
+          scenarioRunId: existing?.scenarioRunId,
+        });
+      });
+    },
+    [],
+  );
+
+  const startBatchPolling = useCallback(
+    (batchRun: ScenarioBatchRun): Promise<ScenarioBatchRun | null> | null => {
+      if (!batchRun || TERMINAL_BATCH_STATUSES.includes(batchRun.status)) {
+        return null;
+      }
+
+      if (batchPollingRunIdRef.current === batchRun.batch_run_id && batchPollingPromiseRef.current) {
+        return batchPollingPromiseRef.current;
+      }
+
+      const promise = pollBatchRun({
+        agentId,
+        batchRunId: batchRun.batch_run_id,
+        onUpdate: handleBatchProgress,
+      }).finally(() => {
+        if (batchPollingRunIdRef.current === batchRun.batch_run_id) {
+          batchPollingRunIdRef.current = null;
+          batchPollingPromiseRef.current = null;
+        }
+      });
+
+      batchPollingRunIdRef.current = batchRun.batch_run_id;
+      batchPollingPromiseRef.current = promise;
+      return promise;
+    },
+    [agentId, handleBatchProgress, pollBatchRun],
+  );
 
   const latestRunQueries = useQueries({
     queries: scenarios.map((scenario) =>
@@ -263,6 +424,27 @@ export const useEvalSidebarData = ({
   // Track which scenarios we've auto-expanded to avoid expanding on every render
   const autoExpandedRef = useRef<Set<string>>(new Set());
   const pollingScenarioIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (latestBatchRun === undefined) {
+      return;
+    }
+
+    if (!latestBatchRun) {
+      batchScenarioTrackingRef.current.clear();
+      processedBatchScenarioRunsRef.current.clear();
+      return;
+    }
+
+    if (TERMINAL_BATCH_STATUSES.includes(latestBatchRun.status)) {
+      batchScenarioTrackingRef.current.clear();
+      processedBatchScenarioRunsRef.current.clear();
+      return;
+    }
+
+    initializeBatchScenarioTracking(latestBatchRun.scenario_ids ?? []);
+    handleBatchProgress(latestBatchRun);
+    startBatchPolling(latestBatchRun);
+  }, [latestBatchRun, initializeBatchScenarioTracking, handleBatchProgress, startBatchPolling]);
 
   const startScenarioPolling = useCallback(
     (
@@ -275,6 +457,9 @@ export const useEvalSidebarData = ({
         scenarioName?: string;
       } = {},
     ) => {
+      if (batchScenarioTrackingRef.current.has(scenarioId)) {
+        return;
+      }
       if (pollingScenarioIdsRef.current.has(scenarioId)) {
         return;
       }
@@ -321,10 +506,16 @@ export const useEvalSidebarData = ({
 
   // Ensure runs that are already executing keep polling even if user refreshes/navigates.
   useEffect(() => {
+    if (latestBatchRun === undefined) {
+      return;
+    }
     runningScenarioIds.forEach((scenarioId) => {
-      startScenarioPolling(scenarioId);
+      const managedByBatch = batchScenarioTrackingRef.current.has(scenarioId);
+      if (!managedByBatch) {
+        startScenarioPolling(scenarioId);
+      }
     });
-  }, [runningScenarioIds, startScenarioPolling]);
+  }, [runningScenarioIds, startScenarioPolling, latestBatchRun]);
 
   const buildEvaluationCriteria = (data: CreateEvalFormData) => {
     const evaluationCriteria: EvaluationCriterionConfig[] = [];
@@ -368,57 +559,6 @@ export const useEvalSidebarData = ({
     const toolExecutionModeValue = driftPolicy?.tool_execution_mode;
     return toolExecutionModeValue === 'live' ? 'live' : 'replay';
   };
-
-  const monitorScenarioRun = useCallback(
-    (scenario: Scenario, runStartedAt: number | null) => {
-      pollForCompletion(scenario.scenario_id)
-        .then((completedRun) => {
-          if (!completedRun) {
-            return;
-          }
-
-          let trackedDurationMs: number | null = null;
-          const trials = completedRun.trials ?? [];
-
-          if (trials.length > 0) {
-            const largestInterval = trials.reduce<number | null>((currentMax, trial) => {
-              const startedAt = trial.execution_state?.started_at;
-              const finishedAt = trial.execution_state?.finished_at;
-
-              if (!startedAt || !finishedAt) {
-                return currentMax;
-              }
-
-              const startTimestamp = new Date(startedAt).getTime();
-              const endTimestamp = new Date(finishedAt).getTime();
-
-              if (Number.isNaN(startTimestamp) || Number.isNaN(endTimestamp) || endTimestamp < startTimestamp) {
-                return currentMax;
-              }
-
-              const interval = endTimestamp - startTimestamp;
-              if (currentMax === null || interval > currentMax) {
-                return interval;
-              }
-              return currentMax;
-            }, null);
-
-            trackedDurationMs = largestInterval;
-          }
-
-          if (trackedDurationMs === null && runStartedAt !== null && typeof performance !== 'undefined') {
-            trackedDurationMs = Math.max(Math.round(performance.now() - runStartedAt), 0);
-          }
-
-          if (trackedDurationMs !== null) {
-            track(`evals_execution.duration`, trackedDurationMs.toString());
-          }
-          queryClient.invalidateQueries({ queryKey: ['threads', agentId] });
-        })
-        .catch(() => {});
-    },
-    [agentId, pollForCompletion, queryClient, track],
-  );
 
   const handleCreateEvaluation = async (data: CreateEvalFormData) => {
     const evaluationCriteria = buildEvaluationCriteria(data);
@@ -549,11 +689,13 @@ export const useEvalSidebarData = ({
         agentId,
         body: { num_trials: numTrials },
       });
+      track(`evals_batch_execution.started`);
 
       setLastBatchSummary(buildBatchSummary(batchRun, numTrials));
       setBatchSummaryOutdated(false);
       queryClient.setQueryData(['scenario-batch-run-latest', agentId], batchRun);
 
+      const runStartedAtMap = new Map<string, number | null>();
       (batchRun.scenario_ids ?? []).forEach((scenarioId) => {
         const scenario = scenarioMap.get(scenarioId);
         if (!scenario) {
@@ -566,20 +708,21 @@ export const useEvalSidebarData = ({
         expandResults(scenarioId);
 
         const runStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
-        monitorScenarioRun(scenario, runStartedAt);
+        runStartedAtMap.set(scenarioId, runStartedAt);
+        queryClient.invalidateQueries({ queryKey: ['scenario-run-latest', scenarioId] });
+        queryClient.invalidateQueries({ queryKey: ['scenario-runs', scenarioId] });
       });
 
-      pollBatchRun({ agentId, batchRunId: batchRun.batch_run_id })
-        .then((result) => {
+      processedBatchScenarioRunsRef.current.clear();
+      initializeBatchScenarioTracking(batchRun.scenario_ids ?? [], runStartedAtMap);
+      handleBatchProgress(batchRun);
+
+      const pollingPromise = startBatchPolling(batchRun);
+      pollingPromise
+        ?.then((result) => {
           if (!result) {
             return;
           }
-
-          setLastBatchSummary((prev) =>
-            buildBatchSummary(result, prev?.batchRunId === result.batch_run_id ? prev?.numTrials : numTrials),
-          );
-          setBatchSummaryOutdated(false);
-          queryClient.setQueryData(['scenario-batch-run-latest', agentId], result);
 
           if (result.status === 'COMPLETED') {
             addSnackbar({
@@ -612,6 +755,7 @@ export const useEvalSidebarData = ({
           scenarioId,
           scenarioRunId,
         });
+        track(`evals_execution.canceled`);
 
         if (!options?.suppressToast) {
           addSnackbar({
@@ -641,8 +785,6 @@ export const useEvalSidebarData = ({
     const activeBatchRun =
       latestBatchRun && !TERMINAL_BATCH_STATUSES.includes(latestBatchRun.status) ? latestBatchRun : null;
 
-    setIsCancelingAll(true);
-
     if (!activeBatchRun) {
       addSnackbar({
         message: 'No running tests to cancel',
@@ -651,11 +793,14 @@ export const useEvalSidebarData = ({
       return;
     }
 
+    setIsCancelingAll(true);
+
     try {
       const canceledBatch = await cancelBatchRunMutation.mutateAsync({
         agentId,
         batchRunId: activeBatchRun.batch_run_id,
       });
+      track(`evals_batch_execution.canceled`);
 
       setLastBatchSummary((prev) =>
         buildBatchSummary(canceledBatch, prev?.batchRunId === canceledBatch.batch_run_id ? prev?.numTrials : undefined),

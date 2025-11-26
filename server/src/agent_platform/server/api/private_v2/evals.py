@@ -18,6 +18,8 @@ from agent_platform.core.evals.types import (
     ScenarioBatchRun,
     ScenarioBatchRunStatistics,
     ScenarioBatchRunStatus,
+    ScenarioBatchRunTrialStatus,
+    ScenarioBatchRunTrialStatusEntry,
     ScenarioRun,
     Trial,
     TrialStatus,
@@ -685,8 +687,9 @@ async def _refresh_batch_run_statistics(
 ) -> ScenarioBatchRun:
     scenario_runs = await storage.list_scenario_runs_for_batch(batch_run.batch_run_id)
     if not scenario_runs:
-        return batch_run
+        return replace(batch_run, trial_statuses=[])
 
+    scenario_runs_by_id = {run.scenario_run_id: run for run in scenario_runs}
     trials_per_run: dict[str, list[Trial]] = {}
     for run in scenario_runs:
         trials = await storage.list_scenario_run_trials(scenario_run_id=run.scenario_run_id)
@@ -711,9 +714,10 @@ async def _refresh_batch_run_statistics(
         if batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES
         else None
     )
+    trial_statuses = _build_batch_trial_statuses(trials_per_run, scenario_runs_by_id)
 
     if not should_update:
-        return batch_run
+        return replace(batch_run, trial_statuses=trial_statuses)
 
     updated = await storage.update_scenario_batch_run(
         batch_run.batch_run_id,
@@ -722,7 +726,8 @@ async def _refresh_batch_run_statistics(
         completed_at=completed_at,
     )
 
-    return updated if updated is not None else batch_run
+    target = updated if updated is not None else batch_run
+    return replace(target, trial_statuses=trial_statuses)
 
 
 def _calculate_batch_statistics(  # noqa: PLR0912, PLR0915, C901
@@ -812,3 +817,34 @@ def _calculate_batch_statistics(  # noqa: PLR0912, PLR0915, C901
     )
 
     return statistics, derived_status
+
+
+def _build_batch_trial_statuses(
+    trials_per_run: dict[str, list[Trial]],
+    scenario_runs_by_id: dict[str, ScenarioRun],
+) -> list[ScenarioBatchRunTrialStatus]:
+    statuses: list[ScenarioBatchRunTrialStatus] = []
+    for scenario_run_id, trials in trials_per_run.items():
+        run = scenario_runs_by_id.get(scenario_run_id)
+        scenario_id = (
+            run.scenario_id if run is not None else (trials[0].scenario_id if trials else "")
+        )
+        entries = [
+            ScenarioBatchRunTrialStatusEntry(
+                trial_id=trial.trial_id,
+                index_in_run=trial.index_in_run,
+                status=trial.status,
+                status_updated_at=trial.status_updated_at,
+                execution_started_at=getattr(trial.execution_state, "started_at", None),
+                execution_finished_at=getattr(trial.execution_state, "finished_at", None),
+            )
+            for trial in trials
+        ]
+        statuses.append(
+            ScenarioBatchRunTrialStatus(
+                scenario_id=scenario_id,
+                scenario_run_id=scenario_run_id,
+                trials=entries,
+            )
+        )
+    return statuses

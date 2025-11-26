@@ -18405,6 +18405,13 @@ export const spec = {
           statistics: {
             $ref: '#/components/schemas/ScenarioBatchRunStatistics',
           },
+          trial_statuses: {
+            items: {
+              $ref: '#/components/schemas/ScenarioBatchRunTrialStatus',
+            },
+            type: 'array',
+            title: 'Trial Statuses',
+          },
           created_at: {
             type: 'string',
             format: 'date-time',
@@ -18479,6 +18486,82 @@ export const spec = {
         type: 'string',
         enum: ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELED'],
         title: 'ScenarioBatchRunStatus',
+      },
+      ScenarioBatchRunTrialStatus: {
+        properties: {
+          scenario_id: {
+            type: 'string',
+            title: 'Scenario Id',
+          },
+          scenario_run_id: {
+            type: 'string',
+            title: 'Scenario Run Id',
+          },
+          trials: {
+            items: {
+              $ref: '#/components/schemas/ScenarioBatchRunTrialStatusEntry',
+            },
+            type: 'array',
+            title: 'Trials',
+          },
+        },
+        type: 'object',
+        required: ['scenario_id', 'scenario_run_id'],
+        title: 'ScenarioBatchRunTrialStatus',
+      },
+      ScenarioBatchRunTrialStatusEntry: {
+        properties: {
+          trial_id: {
+            type: 'string',
+            title: 'Trial Id',
+          },
+          index_in_run: {
+            type: 'integer',
+            title: 'Index In Run',
+          },
+          status: {
+            $ref: '#/components/schemas/TrialStatus',
+          },
+          status_updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Status Updated At',
+          },
+          execution_started_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Execution Started At',
+          },
+          execution_finished_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Execution Finished At',
+          },
+        },
+        type: 'object',
+        required: ['trial_id', 'index_in_run', 'status'],
+        title: 'ScenarioBatchRunTrialStatusEntry',
       },
       ScenarioRun: {
         properties: {

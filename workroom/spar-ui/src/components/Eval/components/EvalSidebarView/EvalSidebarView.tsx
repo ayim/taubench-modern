@@ -122,7 +122,10 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           onRunAllTests={sidebar.handleRunAll}
           selectedTrialsForAll={sidebar.selectedTrialsForAll}
           onSetSelectedTrialsForAll={sidebar.setSelectedTrialsForAll}
-          isAnyTestRunning={sidebar.isBatchRunning}
+          isAnyTestRunning={sidebar.isAnyTestRunning}
+          isBatchRunning={sidebar.isBatchRunning}
+          isCancelingAll={sidebar.isCancelingAll}
+          onCancelAllTests={sidebar.handleCancelAllRunning}
           hasEvaluations={sidebar.evaluations.length > 0}
         />
 

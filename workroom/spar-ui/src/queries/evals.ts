@@ -24,6 +24,20 @@ export type ScenarioSuggestion = components['schemas']['ScenarioSuggestion'];
 export type Trial = components['schemas']['Trial'];
 type ScenarioRun = components['schemas']['ScenarioRun'];
 export type ScenarioBatchRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELED';
+export interface ScenarioBatchRunTrialStatusEntry {
+  trial_id: string;
+  index_in_run: number;
+  status: Trial['status'];
+  status_updated_at?: string | null;
+  execution_started_at?: string | null;
+  execution_finished_at?: string | null;
+}
+
+export interface ScenarioBatchRunTrialStatus {
+  scenario_id: string;
+  scenario_run_id: string;
+  trials: ScenarioBatchRunTrialStatusEntry[];
+}
 export interface ScenarioBatchRunMetadata {
   models?: string[];
   platforms?: string[];
@@ -56,6 +70,7 @@ export interface ScenarioBatchRun {
   user_id: string;
   metadata?: ScenarioBatchRunMetadata | null;
   scenario_ids: string[];
+  trial_statuses?: ScenarioBatchRunTrialStatus[];
   status: ScenarioBatchRunStatus;
   statistics: ScenarioBatchRunStatistics;
   created_at: string;
@@ -533,7 +548,15 @@ export const usePollBatchRun = () => {
   const queryClient = useQueryClient();
 
   const pollBatchRun = useCallback(
-    async ({ agentId, batchRunId }: { agentId: string; batchRunId: string }): Promise<ScenarioBatchRun | null> => {
+    async ({
+      agentId,
+      batchRunId,
+      onUpdate,
+    }: {
+      agentId: string;
+      batchRunId: string;
+      onUpdate?: (batchRun: ScenarioBatchRun) => void;
+    }): Promise<ScenarioBatchRun | null> => {
       const poll = async (attempt: number): Promise<ScenarioBatchRun | null> => {
         if (attempt > 0) {
           await new Promise<void>((resolve) => {
@@ -553,6 +576,8 @@ export const usePollBatchRun = () => {
           if (response.success) {
             const batchRun = response.data as ScenarioBatchRun;
             queryClient.setQueryData(getBatchRunQueryKey({ agentId, batchRunId }), batchRun);
+            queryClient.setQueryData(getLatestBatchRunQueryKey({ agentId }), batchRun);
+            onUpdate?.(batchRun);
             if (TERMINAL_BATCH_STATUSES.includes(batchRun.status)) {
               await queryClient.invalidateQueries({ queryKey: getBatchRunQueryKey({ agentId, batchRunId }) });
               return batchRun;

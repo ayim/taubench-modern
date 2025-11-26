@@ -957,9 +957,12 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def create_scenario_batch_run(self, batch_run: ScenarioBatchRun) -> ScenarioBatchRun:
         """Persist a new scenario batch run."""
         batches = self._get_table("scenario_run_batches")
+        values = batch_run.model_dump()
+        # trial_statuses are derived dynamically and not persisted in the DB schema
+        values.pop("trial_statuses", None)
         stmt = (
             sa.insert(batches)
-            .values(batch_run.model_dump())
+            .values(values)
             .returning(
                 batches.c.batch_run_id,
                 batches.c.agent_id,

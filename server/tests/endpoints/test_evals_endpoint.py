@@ -53,6 +53,22 @@ async def _create_scenario(storage, user_id: str, agent_id: str, name: str) -> S
     return scenario
 
 
+def _assert_trial_statuses(payload: dict, expected_runs: int, expected_trials: int) -> None:
+    statuses = payload.get("trial_statuses")
+    assert isinstance(statuses, list)
+    assert len(statuses) == expected_runs
+    for status_entry in statuses:
+        assert status_entry["scenario_run_id"]
+        assert status_entry["scenario_id"]
+        trials = status_entry.get("trials")
+        assert isinstance(trials, list)
+        assert len(trials) == expected_trials
+        for trial in trials:
+            assert trial["trial_id"]
+            assert isinstance(trial["index_in_run"], int)
+            assert trial["status"] in {status.value for status in TrialStatus}
+
+
 async def test_export_agent_scenarios_returns_zip_with_payload(
     client, storage, seed_agents, stub_user
 ):
@@ -856,6 +872,24 @@ async def test_create_agent_batch_run_creates_runs_for_all_scenarios(
         assert all(trial.status == TrialStatus.PENDING for trial in trials)
 
 
+async def test_create_agent_batch_run_returns_trial_statuses(
+    client, storage, seed_agents, stub_user
+):
+    agent = seed_agents[0]
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 1")
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 2")
+
+    response = client.post(
+        f"/api/v2/evals/agents/{agent.agent_id}/batches",
+        json={"num_trials": 2},
+    )
+
+    assert response.status_code == 200
+    batch = response.json()
+
+    _assert_trial_statuses(batch, expected_runs=2, expected_trials=2)
+
+
 async def test_get_agent_batch_run_reports_statistics(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Happy path")
@@ -910,6 +944,36 @@ async def test_get_agent_batch_run_reports_statistics(client, storage, seed_agen
     assert eval_totals["flow_adherence"]["passed"] == 1
     assert eval_totals["response_accuracy"]["total"] == 1
     assert eval_totals["response_accuracy"]["passed"] == 0
+
+
+async def test_get_agent_batch_run_returns_trial_statuses(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 1")
+
+    response = client.post(
+        f"/api/v2/evals/agents/{agent.agent_id}/batches",
+        json={"num_trials": 1},
+    )
+    assert response.status_code == 200
+    batch = response.json()
+    runs = await storage.list_scenario_runs_for_batch(batch["batch_run_id"])
+    assert runs
+
+    trial = (await storage.list_scenario_run_trials(runs[0].scenario_run_id))[0]
+    await storage.update_trial_status(
+        trial.trial_id,
+        stub_user.user_id,
+        TrialStatus.COMPLETED,
+    )
+
+    result = client.get(f"/api/v2/evals/agents/{agent.agent_id}/batches/{batch['batch_run_id']}")
+    assert result.status_code == 200
+    payload = result.json()
+
+    _assert_trial_statuses(payload, expected_runs=1, expected_trials=1)
+    status_entry = payload["trial_statuses"][0]
+    assert status_entry["scenario_run_id"] == runs[0].scenario_run_id
+    assert status_entry["trials"][0]["status"] == TrialStatus.COMPLETED.value
 
 
 async def test_retry_after_at_persists_through_api(client, storage, seed_agents, stub_user):

@@ -38,7 +38,10 @@ export type AnalyticsEvent =
   | 'evals_creation.description_modified'
   | 'evals_creation.expectation_modified'
   | 'evals_creation.saved'
-  | 'evals_creation.canceled';
+  | 'evals_creation.canceled'
+  | `evals_batch_execution.started`
+  | `evals_execution.canceled`
+  | `evals_batch_execution.canceled`;
 
 export interface SparAPIClient {
   /**
