@@ -5,6 +5,7 @@ import type { ExtractionSchemaPayload } from '../shared/types';
 import { SchemaDataTable } from '../shared/components/SchemaDataTable';
 import { SchemaFieldRow, SchemaFieldData, SchemaFieldRowProps } from '../shared/components/SchemaFieldRow';
 import type { SchemaFieldDefinition } from './utils/schemaUtils';
+import { deleteProperty } from '../shared/utils/schema-lib';
 
 /**
  * SchemaEditor - Visual schema builder/editor
@@ -150,6 +151,21 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
     [schema, onChange],
   );
 
+  // Handle deleting field using schema-lib
+  const handleDeleteField = useCallback(
+    (fieldId: string) => {
+      if (!schema || !onChange) return;
+
+      const pathParts = fieldId.split('.');
+      const objectPointer = pathParts.length > 1 ? `/${pathParts.slice(0, -1).join('/')}` : '';
+      const propertyName = pathParts[pathParts.length - 1];
+
+      const updatedSchema = deleteProperty(schema, objectPointer, propertyName) as ExtractionSchemaPayload;
+      onChange(updatedSchema);
+    },
+    [schema, onChange],
+  );
+
   // Handle adding new field
   const handleAddField = useCallback(() => {
     if (!schema || !onChange) return;
@@ -179,6 +195,7 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
       { id: 'name', title: 'Name', sortable: false, width: 250 },
       { id: 'type', title: 'Type', sortable: false, width: 150 },
       { id: 'description', title: 'Description', sortable: false, width: 400 },
+      { id: 'delete', title: 'Delete', sortable: false, className: '!text-left', width: 80 },
     ],
     [],
   );
@@ -187,11 +204,13 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
   const rowProps: SchemaFieldRowProps = useMemo(
     () => ({
       onChange: handleFieldChange,
+      onDelete: handleDeleteField,
       onToggleExpand: handleToggleExpand,
       expandedFields,
+      showDeleteButton: !disabled,
       disabled,
     }),
-    [handleFieldChange, handleToggleExpand, expandedFields, disabled],
+    [handleFieldChange, handleDeleteField, handleToggleExpand, expandedFields, disabled],
   );
 
   if (!schema) {

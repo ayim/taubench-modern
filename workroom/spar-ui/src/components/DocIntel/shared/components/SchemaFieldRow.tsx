@@ -1,5 +1,7 @@
 import { Table, Input, Box, TableRowProps, Select, Button } from '@sema4ai/components';
+import { IconTrash } from '@sema4ai/icons';
 import { FC, useState, useEffect, useRef } from 'react';
+import { StyledDeleteButton } from './styles';
 
 export interface SchemaFieldData {
   id: string;
@@ -14,8 +16,10 @@ export interface SchemaFieldData {
 
 export interface SchemaFieldRowProps {
   onChange: (id: string, key: 'name' | 'type' | 'description', value: string) => void;
+  onDelete?: (id: string) => void;
   onToggleExpand?: (fieldId: string) => void;
   expandedFields?: Set<string>;
+  showDeleteButton?: boolean;
   disabled?: boolean;
   onBlur?: (id: string, key: 'name' | 'type' | 'description') => (e: React.FocusEvent<HTMLInputElement>) => void;
 }
@@ -30,7 +34,7 @@ const TYPE_OPTIONS = [
 ];
 
 export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowProps>> = ({ rowData, props }) => {
-  const { onChange, onToggleExpand, expandedFields, disabled, onBlur } = props;
+  const { onChange, onDelete, onToggleExpand, expandedFields, showDeleteButton, disabled, onBlur } = props;
 
   const [localName, setLocalName] = useState(rowData.name);
   const [localDescription, setLocalDescription] = useState(rowData.description || '');
@@ -171,6 +175,23 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
           disabled={disabled}
         />
       </Table.Cell>
+
+      {showDeleteButton && onDelete && (
+        <Table.Cell style={{ textAlign: 'left' }}>
+          <StyledDeleteButton
+            aria-label="Delete Field"
+            size="medium"
+            variant="outline"
+            icon={IconTrash}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(rowData.id);
+            }}
+            disabled={disabled}
+            round
+          />
+        </Table.Cell>
+      )}
     </Table.Row>
   );
 };
