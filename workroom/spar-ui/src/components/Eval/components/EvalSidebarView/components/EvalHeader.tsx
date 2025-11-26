@@ -29,10 +29,10 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
         <Button variant="outline" round size="small" icon={IconDotsHorizontal} aria-label="Evaluation actions" />
       }
     >
-      <Menu.Item icon={IconUpload} onClick={onImportScenarios} disabled={isImporting}>
+      <Menu.Item icon={IconDownload} onClick={onImportScenarios} disabled={isImporting}>
         {isImporting ? 'Importing...' : 'Import Evaluations'}
       </Menu.Item>
-      <Menu.Item icon={IconDownload} onClick={onExportScenarios} disabled={!hasEvaluations || isExporting}>
+      <Menu.Item icon={IconUpload} onClick={onExportScenarios} disabled={!hasEvaluations || isExporting}>
         {isExporting ? 'Exporting...' : 'Export Evaluations'}
       </Menu.Item>
     </Menu>

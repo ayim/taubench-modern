@@ -307,7 +307,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
               )}
             />
             <Box display="flex" flexDirection="column" gap="$8">
-              <Typography variant="display-small">What is Evaluated</Typography>
+              <Typography variant="body-medium">What is Evaluated</Typography>
               <Box
                 display="flex"
                 flexDirection="column"
