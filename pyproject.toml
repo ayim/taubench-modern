@@ -16,7 +16,7 @@ dev = [
     "IPython>=8.31.0,<9.0.0",
     "requests>=2.31.0,<3.0.0",
     "testing-postgresql>=1.3.0,<2.0.0",
-    "pyright>=1.1.406,<1.2.0",
+    "pyright>=1.1.407,<1.2.0",
     "vcrpy>=4.1.1,<5.0.0",
     "coverage>=7.6.7,<8.0.0",
     "click>=8.1.8,<9.0.0",
@@ -31,6 +31,7 @@ dev = [
     "pyleak>=0.1.14",
     "pytest-xdist>=3.8.0,<4.0.0",
     "jsonschema>=4.25.1",
+    "websocket-client>=1.8.0,<2.0.0",
 ]
 lint = ["ruff>=0.7.2,<0.12.0"]
 notebooks = [
@@ -108,6 +109,10 @@ filterwarnings = [
 line-length = 100
 show-fixes = true
 respect-gitignore = true
+exclude = [
+    "external-benchmarks/tau2/tau2-bench/**",
+    "external-benchmarks/tau2/tau2-bench.git/**",
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -188,6 +193,7 @@ exclude = [
     "**/venv",
     "agent-spec/validation/**",
     "packages/**",
+    "external-benchmarks/tau2",
 ]
 reportMissingImports = true
 reportMissingTypeStubs = false

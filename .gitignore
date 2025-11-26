@@ -15,6 +15,8 @@ agent-server.log.*
 agentserver.db
 agentserver.db-shm
 agentserver.db-wal
+external-benchmarks/tau2/tau2-bench/
+external-benchmarks/tau2/tau2-bench.git/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
