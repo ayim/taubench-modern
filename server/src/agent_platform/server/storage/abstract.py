@@ -731,3 +731,56 @@ class AbstractStorage(ABC):
         Returns:
             List of ObservabilityIntegration instances that are enabled.
         """
+
+    # Methods for integration scopes
+    # -------------------------
+    @abstractmethod
+    async def set_integration_scope(self, integration_id: str, scope: str, agent_id: str | None):
+        """Set an integration scope (global or agent-specific). Idempotent - no error if exists.
+
+        Args:
+            integration_id: ID of the integration
+            scope: Scope type ('global' or 'agent')
+            agent_id: Agent ID if scope='agent', None if scope='global'
+
+        Returns:
+            IntegrationScope (created or existing)
+        """
+
+    @abstractmethod
+    async def delete_integration_scope(
+        self, integration_id: str, scope: str, agent_id: str | None
+    ) -> None:
+        """Delete a scope assignment.
+
+        Args:
+            integration_id: ID of the integration
+            scope: Scope type ('global' or 'agent')
+            agent_id: Agent ID (or None for global scope)
+        """
+
+    @abstractmethod
+    async def list_integration_scopes(self, integration_id: str):
+        """List all scope assignments for an integration.
+
+        Args:
+            integration_id: ID of the integration
+
+        Returns:
+            List of IntegrationScope objects
+        """
+
+    @abstractmethod
+    async def get_observability_integrations_for_agent(self, agent_id: str) -> list[Integration]:
+        """Get all integrations for an agent (global + agent-specific), additive.
+
+        This returns ALL integrations that apply to the agent:
+        - All integrations with scope='global'
+        - All integrations with scope='agent' where agent_id matches
+
+        Args:
+            agent_id: ID of the agent
+
+        Returns:
+            List of all applicable Integration objects
+        """

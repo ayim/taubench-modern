@@ -268,3 +268,23 @@ class IntegrationNotFoundError(PlatformHTTPError):
             message = f"An integration with the given {by} was not found"
 
         super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={by: identifier})
+
+
+class IntegrationScopeNotFoundError(PlatformHTTPError):
+    """An integration scope with the given ID was not found."""
+
+    def __init__(
+        self,
+        scope_id: str,
+        message: str = "An integration scope with the given ID was not found",
+    ):
+        super().__init__(
+            error_code=ErrorCode.NOT_FOUND, message=message, data={"scope_id": scope_id}
+        )
+
+
+class InvalidScopeError(PlatformHTTPError):
+    """Invalid scope configuration."""
+
+    def __init__(self, message: str = "Invalid scope configuration"):
+        super().__init__(error_code=ErrorCode.BAD_REQUEST, message=message)

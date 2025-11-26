@@ -238,6 +238,15 @@ class SQLiteStorage(
             connect_args={"check_same_thread": False},
         )
 
+        # Enable foreign keys for all SQLAlchemy connections
+        from sqlalchemy import event
+
+        @event.listens_for(self._sa_engine.sync_engine, "connect")
+        def set_sqlite_pragma(dbapi_conn, connection_record):
+            cursor = dbapi_conn.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
         # Run migrations in setup
         await self._run_migrations()
 

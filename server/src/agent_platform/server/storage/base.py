@@ -33,7 +33,7 @@ from agent_platform.core.evals.types import (
     Trial,
     TrialStatus,
 )
-from agent_platform.core.integrations import Integration
+from agent_platform.core.integrations import Integration, IntegrationScope
 from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
@@ -42,6 +42,8 @@ from agent_platform.server.storage.errors import (
     DataConnectionNotFoundError,
     DIDSConnectionDetailsNotFoundError,
     IntegrationNotFoundError,
+    IntegrationScopeNotFoundError,
+    InvalidScopeError,
     TrialAlreadyCanceledError,
     TrialNotFoundError,
 )
@@ -2150,6 +2152,196 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 obs_integration = ObservabilityIntegration.model_validate(i.model_dump())
                 enabled_obs_integrations.append(obs_integration)
         return enabled_obs_integrations
+
+    # -------------------------------------------------------------------------
+    # Methods for Integration Scopes
+    # -------------------------------------------------------------------------
+    def _row_to_integration_scope(self, row: RowMapping) -> IntegrationScope:
+        """Convert a database row to an IntegrationScope."""
+        return IntegrationScope.model_validate(
+            {
+                "integration_id": str(row["integration_id"]),
+                "agent_id": str(row["agent_id"]) if row.get("agent_id") else None,
+                "scope": row["scope"],
+                "created_at": row["created_at"],
+            }
+        )
+
+    async def set_integration_scope(
+        self, integration_id: str, scope: str, agent_id: str | None
+    ) -> IntegrationScope:
+        """Assign an integration to a scope (global or agent-specific).
+
+        Args:
+            integration_id: ID of the integration to assign
+            scope: Scope type ('global' or 'agent')
+            agent_id: Agent ID if scope='agent', None if scope='global'
+
+        Returns:
+            Created IntegrationScope
+        """
+
+        # Validate scope value
+        if scope not in ("global", "agent"):
+            raise InvalidScopeError(f"Invalid scope: {scope}. Must be 'global' or 'agent'")
+
+        # Validate scope-agent_id relationship
+        if scope == "global" and agent_id is not None:
+            raise InvalidScopeError("global scope must have agent_id=None")
+        if scope == "agent" and agent_id is None:
+            raise InvalidScopeError("agent scope must have agent_id set")
+
+        integration_scopes = self._get_table("integration_scopes")
+
+        scope_data = {
+            "integration_id": integration_id,
+            "scope": scope,
+            "agent_id": agent_id,
+        }
+
+        async with self._write_connection() as conn:
+            # Import appropriate insert based on dialect
+            if self._sa_engine.dialect.name == "sqlite":
+                from sqlalchemy.dialects.sqlite import insert
+            else:
+                from sqlalchemy.dialects.postgresql import insert
+
+            # Use ON CONFLICT DO NOTHING (database automatically uses the unique indexes)
+            stmt = insert(integration_scopes).values(scope_data)
+            stmt = stmt.on_conflict_do_nothing()
+            stmt = stmt.returning(integration_scopes)
+
+            result = await conn.execute(stmt)
+            row = result.mappings().fetchone()
+
+        # If ON CONFLICT occurred, row is None - fetch existing
+        if row is None:
+            async with self._read_connection() as conn:
+                where_clause = sa.and_(
+                    integration_scopes.c.integration_id == integration_id,
+                    (
+                        integration_scopes.c.agent_id == agent_id
+                        if agent_id is not None
+                        else integration_scopes.c.agent_id.is_(None)
+                    ),
+                )
+                result = await conn.execute(sa.select(integration_scopes).where(where_clause))
+                existing_row = result.mappings().fetchone()
+                # we are positive that the row exists, as we're in the ON CONFLICT DO NOTHING clause
+                assert existing_row is not None
+                return self._row_to_integration_scope(existing_row)
+        else:
+            return self._row_to_integration_scope(row)
+
+    async def delete_integration_scope(
+        self, integration_id: str, scope: str, agent_id: str | None
+    ) -> None:
+        """Delete a scope assignment.
+
+        Args:
+            integration_id: ID of the integration
+            scope: Scope type ('global' or 'agent')
+            agent_id: Agent ID (or None for global scope)
+        """
+        integration_scopes = self._get_table("integration_scopes")
+
+        async with self._write_connection() as conn:
+            where_clause = sa.and_(
+                integration_scopes.c.integration_id == integration_id,
+                integration_scopes.c.scope == scope,
+                (
+                    integration_scopes.c.agent_id == agent_id
+                    if agent_id is not None
+                    else integration_scopes.c.agent_id.is_(None)
+                ),
+            )
+
+            result = await conn.execute(sa.delete(integration_scopes).where(where_clause))
+            if result.rowcount == 0:
+                scope_desc = (
+                    f"integration={integration_id}, scope={scope}, agent={agent_id or 'global'}"
+                )
+                raise IntegrationScopeNotFoundError(scope_desc)
+
+    async def list_integration_scopes(self, integration_id: str) -> list[IntegrationScope]:
+        """List all scope assignments for an integration.
+
+        Args:
+            integration_id: ID of the integration
+
+        Returns:
+            List of IntegrationScope objects
+        """
+        integration_scopes = self._get_table("integration_scopes")
+
+        async with self._read_connection() as conn:
+            stmt = sa.select(integration_scopes).where(
+                integration_scopes.c.integration_id == integration_id
+            )
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [self._row_to_integration_scope(row) for row in rows]
+
+    async def get_observability_integrations_for_agent(self, agent_id: str) -> list[Integration]:
+        """Get all integrations for an agent (global + agent-specific), additive.
+
+        This returns ALL integrations that apply to the agent:
+        - All integrations with scope='global'
+        - All integrations with scope='agent' where agent_id matches
+
+        Args:
+            agent_id: ID of the agent
+
+        Returns:
+            List of all applicable Integration objects
+        """
+        integrations = self._get_table("integration")
+        integration_scopes = self._get_table("integration_scopes")
+
+        # Note: We had to use a UNION ALL of two queries,
+        # rather than a single query with an OR clause,
+        # to avoid SQLite query planner issues with partial indexes.
+        # See discussion: https://github.com/Sema4AI/agent-platform/pull/1722#discussion_r2557086094
+
+        # Query 1: Get integrations with global scope
+        global_query = (
+            sa.select(integrations)
+            .select_from(
+                integrations.join(
+                    integration_scopes, integrations.c.id == integration_scopes.c.integration_id
+                )
+            )
+            .where(
+                integrations.c.kind == "observability",
+                integration_scopes.c.scope == "global",
+                integration_scopes.c.agent_id.is_(None),
+            )
+        )
+
+        # Query 2: Get integrations with agent-specific scope
+        agent_query = (
+            sa.select(integrations)
+            .select_from(
+                integrations.join(
+                    integration_scopes, integrations.c.id == integration_scopes.c.integration_id
+                )
+            )
+            .where(
+                integrations.c.kind == "observability",
+                integration_scopes.c.scope == "agent",
+                integration_scopes.c.agent_id == agent_id,
+            )
+        )
+
+        # Combine with UNION ALL
+        query = sa.union_all(global_query, agent_query)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(query)
+            rows = result.mappings().fetchall()
+
+        return [self._row_to_integration(row) for row in rows]
 
     # Methods for listing semantic data models with associations
     # -------------------------------------------------------------------------
