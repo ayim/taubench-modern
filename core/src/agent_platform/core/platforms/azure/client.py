@@ -282,8 +282,8 @@ class AzureOpenAIClient(
                 # Handle Rate Limit errors here.
                 # Azure might return a RateLimitError, handled above;
                 # or it might return an APIError with code "429" / "rate_limit_exceeded".
-
-                if error.code in {"rate_limit_exceeded", "429"}:
+                logger.debug(f"Found APIError with code={error.code}")
+                if error.code in {"too_many_requests", "rate_limit_exceeded", "429"}:
                     response = getattr(error, "response", None)
 
                     if not response:
