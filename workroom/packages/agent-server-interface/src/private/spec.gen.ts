@@ -3717,7 +3717,7 @@ export const spec = {
         tags: ['observability-integrations', 'observability-integrations'],
         summary: 'List Observability Integrations',
         description:
-          'List observability integrations, optionally filtered by provider.',
+          'List observability integrations.\n\n- If agent_id is provided: Returns all integrations applicable to that agent\n  (global + agent-specific, additive model)\n- Otherwise: Returns all observability integrations, optionally filtered by provider',
         operationId:
           'list_observability_integrations_observability_integrations_get',
         parameters: [
@@ -3735,6 +3735,22 @@ export const spec = {
                 },
               ],
               title: 'Provider',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Agent Id',
             },
           },
         ],
@@ -3977,6 +3993,164 @@ export const spec = {
                 },
               },
             },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/observability/integrations/{integration_id}/scopes': {
+      get: {
+        tags: ['observability-integrations', 'observability-integrations'],
+        summary: 'List Integration Scopes',
+        description: 'List all scope assignments for an integration.',
+        operationId:
+          'list_integration_scopes_observability_integrations__integration_id__scopes_get',
+        parameters: [
+          {
+            name: 'integration_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Integration Id',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/IntegrationScopeResponse',
+                  },
+                  title:
+                    'Response List Integration Scopes Observability Integrations  Integration Id  Scopes Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['observability-integrations', 'observability-integrations'],
+        summary: 'Set Integration Scope',
+        description:
+          'Set an integration scope (global or agent-specific). Idempotent.',
+        operationId:
+          'set_integration_scope_observability_integrations__integration_id__scopes_post',
+        parameters: [
+          {
+            name: 'integration_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Integration Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/IntegrationScopeAssignRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/IntegrationScopeResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['observability-integrations', 'observability-integrations'],
+        summary: 'Delete Integration Scope',
+        description:
+          "Delete a scope assignment.\n\n- For global scope: scope='global', agent_id=None (or omitted)\n- For agent scope: scope='agent', agent_id=<uuid>",
+        operationId:
+          'delete_integration_scope_observability_integrations__integration_id__scopes_delete',
+        parameters: [
+          {
+            name: 'integration_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Integration Id',
+            },
+          },
+          {
+            name: 'scope',
+            in: 'query',
+            required: true,
+            schema: {
+              enum: ['global', 'agent'],
+              type: 'string',
+              title: 'Scope',
+            },
+          },
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              title: 'Agent Id',
+            },
+          },
+        ],
+        responses: {
+          '204': {
+            description: 'Successful Response',
           },
           '422': {
             description: 'Validation Error',
@@ -13563,6 +13737,71 @@ export const spec = {
         title: 'IntegrationKind',
         description:
           'Supported integration kinds for Document Intelligence Data Server',
+      },
+      IntegrationScopeAssignRequest: {
+        properties: {
+          scope: {
+            type: 'string',
+            enum: ['global', 'agent'],
+            title: 'Scope',
+            description: "Scope type: 'global' or 'agent'",
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+            description:
+              "Agent ID (required if scope='agent', must be None if scope='global')",
+          },
+        },
+        type: 'object',
+        required: ['scope'],
+        title: 'IntegrationScopeAssignRequest',
+        description:
+          'REST request model for assigning an integration to a scope.',
+      },
+      IntegrationScopeResponse: {
+        properties: {
+          integration_id: {
+            type: 'string',
+            title: 'Integration Id',
+            description: 'ID of the integration',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+            description: "Agent ID if scope='agent', None if scope='global'",
+          },
+          scope: {
+            type: 'string',
+            enum: ['global', 'agent'],
+            title: 'Scope',
+            description: 'Scope type',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At',
+            description: 'Timestamp when scope was created',
+          },
+        },
+        type: 'object',
+        required: ['integration_id', 'scope', 'created_at'],
+        title: 'IntegrationScopeResponse',
+        description: 'REST response model for integration scope assignment.',
       },
       JobStartResponsePayload: {
         properties: {

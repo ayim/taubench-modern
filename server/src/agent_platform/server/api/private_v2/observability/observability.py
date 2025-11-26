@@ -1,14 +1,14 @@
 """REST API endpoints for observability integrations."""
 
-from typing import cast
+from typing import Annotated, cast
 from uuid import uuid4
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import TypeAdapter
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
-from agent_platform.core.integrations import Integration
+from agent_platform.core.integrations import Integration, IntegrationScope
 from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.integrations.observability.models import (
     GrafanaObservabilitySettings,
@@ -24,6 +24,9 @@ from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
 
 from .models import (
+    IntegrationScopeAssignRequest,
+    IntegrationScopeDeleteRequest,
+    IntegrationScopeResponse,
     ObservabilityIntegrationResponse,
     ObservabilityIntegrationUpsertRequest,
     ObservabilitySettingsREST,
@@ -99,9 +102,21 @@ async def list_observability_integrations(
     user: AuthedUser,
     storage: StorageDependency,
     provider: str | None = Query(default=None),
+    agent_id: str | None = Query(default=None),
 ) -> list[ObservabilityIntegrationResponse]:
-    """List observability integrations, optionally filtered by provider."""
-    integrations = await storage.list_integrations(kind="observability")
+    """List observability integrations.
+
+    - If agent_id is provided: Returns all integrations applicable to that agent
+      (global + agent-specific, additive model)
+    - Otherwise: Returns all observability integrations, optionally filtered by provider
+    """
+    # If agent_id is provided, use the additive query for that agent
+    if agent_id:
+        # The get_agent call will raise an error if the agent does not exist.
+        await storage.get_agent(user.user_id, agent_id)
+        integrations = await storage.get_observability_integrations_for_agent(agent_id)
+    else:
+        integrations = await storage.list_integrations(kind="observability")
 
     response_items: list[ObservabilityIntegrationResponse] = []
     filter_flag = provider is not None
@@ -263,3 +278,113 @@ async def validate_observability_integration(
         },
     )
     return response
+
+
+# =============================================================================
+# Integration Scope Endpoints
+# =============================================================================
+
+
+def _scope_to_response(scope: IntegrationScope) -> IntegrationScopeResponse:
+    """Convert internal IntegrationScope to REST response model."""
+    return IntegrationScopeResponse(
+        integration_id=scope.integration_id,
+        agent_id=scope.agent_id,
+        scope=scope.scope,
+        created_at=scope.created_at,
+    )
+
+
+@router.get("/integrations/{integration_id}/scopes")
+async def list_integration_scopes(
+    integration_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> list[IntegrationScopeResponse]:
+    """List all scope assignments for an integration."""
+    # Verify integration exists and is observability type
+    integration = await storage.get_integration(integration_id)
+    if integration.kind != "observability":
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message="Observability integration not found.",
+        )
+
+    scopes = await storage.list_integration_scopes(integration_id)
+    return [_scope_to_response(scope) for scope in scopes]
+
+
+@router.post(
+    "/integrations/{integration_id}/scopes",
+    status_code=status.HTTP_201_CREATED,
+)
+async def set_integration_scope(
+    integration_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    payload: IntegrationScopeAssignRequest,
+) -> IntegrationScopeResponse:
+    """Set an integration scope (global or agent-specific). Idempotent."""
+    # Verify integration exists and is observability type
+    integration = await storage.get_integration(integration_id)
+    if integration.kind != "observability":
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message="Observability integration not found.",
+        )
+
+    # Verify agent exists if agent scope is requested
+    # Pydantic validation ensures agent_id is not None when scope='agent'
+    if payload.scope == "agent":
+        # The get_agent call will raise an error if the agent does not exist.
+        await storage.get_agent(user.user_id, payload.agent_id)  # type: ignore
+
+    scope = await storage.set_integration_scope(
+        integration_id=integration_id,
+        scope=payload.scope,
+        agent_id=payload.agent_id,
+    )
+
+    logger.info(
+        "Set integration scope",
+        extra={
+            "integration_id": integration_id,
+            "scope": scope.scope,
+            "agent_id": scope.agent_id,
+        },
+    )
+
+    return _scope_to_response(scope)
+
+
+@router.delete(
+    "/integrations/{integration_id}/scopes",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_integration_scope(
+    integration_id: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    # Depends() tells FastAPI to construct the Pydantic model
+    # from query parameters instead of expecting it as a request body.
+    params: Annotated[IntegrationScopeDeleteRequest, Depends()],
+) -> Response:
+    """Delete a scope assignment.
+
+    - For global scope: scope='global', agent_id=None (or omitted)
+    - For agent scope: scope='agent', agent_id=<uuid>
+    """
+    # Pydantic validation ensures scope and agent_id are consistent
+    await storage.delete_integration_scope(integration_id, params.scope, params.agent_id)
+
+    logger.info(
+        "Deleted integration scope",
+        extra={
+            "integration_id": integration_id,
+            "agent_id": params.agent_id,
+            "scope": params.scope,
+        },
+    )
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

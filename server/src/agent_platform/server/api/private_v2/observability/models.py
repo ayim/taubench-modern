@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # =============================================================================
 # REST API Models
@@ -132,8 +132,83 @@ class ObservabilityValidateResponse:
         return data
 
 
+# =============================================================================
+# Integration Scope Models (REST)
+# =============================================================================
+
+
+class IntegrationScopeResponse(BaseModel):
+    """REST response model for integration scope assignment."""
+
+    model_config = {"frozen": True}
+
+    integration_id: str = Field(description="ID of the integration")
+    agent_id: str | None = Field(
+        default=None, description="Agent ID if scope='agent', None if scope='global'"
+    )
+    scope: Literal["global", "agent"] = Field(description="Scope type")
+    created_at: datetime = Field(description="Timestamp when scope was created")
+
+
+class IntegrationScopeAssignRequest(BaseModel):
+    """REST request model for assigning an integration to a scope."""
+
+    model_config = {"frozen": True}
+
+    scope: Literal["global", "agent"] = Field(description="Scope type: 'global' or 'agent'")
+    agent_id: str | None = Field(
+        default=None,
+        description="Agent ID (required if scope='agent', must be None if scope='global')",
+    )
+
+    @field_validator("agent_id", mode="before")
+    @classmethod
+    def normalize_empty_string(cls, v: str | None) -> str | None:
+        """Normalize empty string to None."""
+        return None if v == "" else v
+
+    @model_validator(mode="after")
+    def validate_scope_agent_relationship(self) -> "IntegrationScopeAssignRequest":
+        """Validate that scope and agent_id are consistent."""
+        if self.scope == "global" and self.agent_id is not None:
+            raise ValueError("global scope must have agent_id=None")
+        if self.scope == "agent" and self.agent_id is None:
+            raise ValueError("agent scope requires agent_id")
+        return self
+
+
+class IntegrationScopeDeleteRequest(BaseModel):
+    """Query parameters for deleting an integration scope."""
+
+    model_config = {"frozen": True}
+
+    scope: Literal["global", "agent"] = Field(description="Scope type: 'global' or 'agent'")
+    agent_id: str | None = Field(
+        default=None,
+        description="Agent ID (required if scope='agent', must be None if scope='global')",
+    )
+
+    @field_validator("agent_id", mode="before")
+    @classmethod
+    def normalize_empty_string(cls, v: str | None) -> str | None:
+        """Normalize empty string to None."""
+        return None if v == "" else v
+
+    @model_validator(mode="after")
+    def validate_scope_agent_relationship(self) -> "IntegrationScopeDeleteRequest":
+        """Validate that scope and agent_id are consistent."""
+        if self.scope == "global" and self.agent_id is not None:
+            raise ValueError("global scope must have agent_id=None")
+        if self.scope == "agent" and self.agent_id is None:
+            raise ValueError("agent scope requires agent_id")
+        return self
+
+
 __all__ = (
     "GrafanaSettingsREST",
+    "IntegrationScopeAssignRequest",
+    "IntegrationScopeDeleteRequest",
+    "IntegrationScopeResponse",
     "LangSmithSettingsREST",
     "ObservabilityIntegrationResponse",
     "ObservabilityIntegrationUpsertRequest",

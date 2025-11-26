@@ -1264,7 +1264,11 @@ export interface paths {
     };
     /**
      * List Observability Integrations
-     * @description List observability integrations, optionally filtered by provider.
+     * @description List observability integrations.
+     *
+     *     - If agent_id is provided: Returns all integrations applicable to that agent
+     *       (global + agent-specific, additive model)
+     *     - Otherwise: Returns all observability integrations, optionally filtered by provider
      */
     get: operations['list_observability_integrations_observability_integrations_get'];
     put?: never;
@@ -1322,6 +1326,37 @@ export interface paths {
      */
     post: operations['validate_observability_integration_observability_integrations__integration_id__validate_post'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/observability/integrations/{integration_id}/scopes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Integration Scopes
+     * @description List all scope assignments for an integration.
+     */
+    get: operations['list_integration_scopes_observability_integrations__integration_id__scopes_get'];
+    put?: never;
+    /**
+     * Set Integration Scope
+     * @description Set an integration scope (global or agent-specific). Idempotent.
+     */
+    post: operations['set_integration_scope_observability_integrations__integration_id__scopes_post'];
+    /**
+     * Delete Integration Scope
+     * @description Delete a scope assignment.
+     *
+     *     - For global scope: scope='global', agent_id=None (or omitted)
+     *     - For agent scope: scope='agent', agent_id=<uuid>
+     */
+    delete: operations['delete_integration_scope_observability_integrations__integration_id__scopes_delete'];
     options?: never;
     head?: never;
     patch?: never;
@@ -5177,6 +5212,51 @@ export interface components {
      * @enum {string}
      */
     IntegrationKind: 'reducto' | 'data_server';
+    /**
+     * IntegrationScopeAssignRequest
+     * @description REST request model for assigning an integration to a scope.
+     */
+    IntegrationScopeAssignRequest: {
+      /**
+       * Scope
+       * @description Scope type: 'global' or 'agent'
+       * @enum {string}
+       */
+      scope: 'global' | 'agent';
+      /**
+       * Agent Id
+       * @description Agent ID (required if scope='agent', must be None if scope='global')
+       */
+      agent_id?: string | null;
+    };
+    /**
+     * IntegrationScopeResponse
+     * @description REST response model for integration scope assignment.
+     */
+    IntegrationScopeResponse: {
+      /**
+       * Integration Id
+       * @description ID of the integration
+       */
+      integration_id: string;
+      /**
+       * Agent Id
+       * @description Agent ID if scope='agent', None if scope='global'
+       */
+      agent_id?: string | null;
+      /**
+       * Scope
+       * @description Scope type
+       * @enum {string}
+       */
+      scope: 'global' | 'agent';
+      /**
+       * Created At
+       * Format: date-time
+       * @description Timestamp when scope was created
+       */
+      created_at: string;
+    };
     /** JobStartResponsePayload */
     JobStartResponsePayload: {
       /** Job Id */
@@ -15375,6 +15455,7 @@ export interface operations {
     parameters: {
       query?: {
         provider?: string | null;
+        agent_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -15555,6 +15636,104 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ObservabilityValidateResponse'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  list_integration_scopes_observability_integrations__integration_id__scopes_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IntegrationScopeResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  set_integration_scope_observability_integrations__integration_id__scopes_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IntegrationScopeAssignRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IntegrationScopeResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  delete_integration_scope_observability_integrations__integration_id__scopes_delete: {
+    parameters: {
+      query: {
+        scope: 'global' | 'agent';
+        agent_id?: string | null;
+      };
+      header?: never;
+      path: {
+        integration_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
