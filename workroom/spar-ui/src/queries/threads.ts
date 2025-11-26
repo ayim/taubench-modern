@@ -238,6 +238,7 @@ export const useUploadThreadFilesMutation = createSparMutation<{ threadId: strin
             description: getFileSize(file.file_size_raw),
             base64_data: null,
             complete: true,
+            content_id: file.file_id,
           }) satisfies ThreadAttachmentContent,
       );
 

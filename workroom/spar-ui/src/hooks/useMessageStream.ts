@@ -422,7 +422,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     const content: ThreadContent[] = [...uploadedAttachments.data];
 
     if (hasText) {
-      content.push({ kind: 'text', text, complete: true });
+      content.push({ kind: 'text', text, complete: true, content_id: uuidv4() });
     }
 
     try {
