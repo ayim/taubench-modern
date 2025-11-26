@@ -4264,7 +4264,8 @@ export interface components {
         | components['schemas']['PgvectorDataConnectionConfiguration']
         | components['schemas']['BigqueryDataConnectionConfiguration']
         | components['schemas']['SemaknowledgebaseDataConnectionConfiguration']
-        | components['schemas']['SQLiteDataConnectionConfiguration'];
+        | components['schemas']['SQLiteDataConnectionConfiguration']
+        | components['schemas']['DatabricksDataConnectionConfiguration'];
       /**
        * External Id
        * @description The external identifier of the data connection
@@ -4484,6 +4485,49 @@ export interface components {
       data_sources: {
         [key: string]: components['schemas']['DataConnection'];
       };
+    };
+    /** DatabricksDataConnection */
+    DatabricksDataConnection: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      configuration: components['schemas']['DatabricksDataConnectionConfiguration'];
+      /** Created At */
+      created_at?: string | null;
+      /** Updated At */
+      updated_at?: string | null;
+      /** Id */
+      id?: string | null;
+      /** External Id */
+      external_id?: string | null;
+      /** Tags */
+      tags?: string[];
+      /**
+       * Engine
+       * @default databricks
+       * @constant
+       */
+      engine: 'databricks';
+    };
+    /** DatabricksDataConnectionConfiguration */
+    DatabricksDataConnectionConfiguration: {
+      /** Server Hostname */
+      server_hostname: string;
+      /** Http Path */
+      http_path: string;
+      /** Access Token */
+      access_token: string;
+      /**
+       * Schema
+       * @default default
+       */
+      schema: string | null;
+      /**
+       * Catalog
+       * @default hive_metastore
+       */
+      catalog: string | null;
     };
     /**
      * Dimension
@@ -17619,6 +17663,7 @@ export interface operations {
             | components['schemas']['BigqueryDataConnection']
             | components['schemas']['SemaknowledgebaseDataConnection']
             | components['schemas']['SQLiteDataConnection']
+            | components['schemas']['DatabricksDataConnection']
           )[];
         };
       };
@@ -17647,7 +17692,8 @@ export interface operations {
           | components['schemas']['PgvectorDataConnection']
           | components['schemas']['BigqueryDataConnection']
           | components['schemas']['SemaknowledgebaseDataConnection']
-          | components['schemas']['SQLiteDataConnection'];
+          | components['schemas']['SQLiteDataConnection']
+          | components['schemas']['DatabricksDataConnection'];
       };
     };
     responses: {
@@ -17671,7 +17717,8 @@ export interface operations {
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
             | components['schemas']['SemaknowledgebaseDataConnection']
-            | components['schemas']['SQLiteDataConnection'];
+            | components['schemas']['SQLiteDataConnection']
+            | components['schemas']['DatabricksDataConnection'];
         };
       };
       /** @description Validation Error */
@@ -17716,7 +17763,8 @@ export interface operations {
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
             | components['schemas']['SemaknowledgebaseDataConnection']
-            | components['schemas']['SQLiteDataConnection'];
+            | components['schemas']['SQLiteDataConnection']
+            | components['schemas']['DatabricksDataConnection'];
         };
       };
       /** @description Validation Error */
@@ -17755,7 +17803,8 @@ export interface operations {
           | components['schemas']['PgvectorDataConnection']
           | components['schemas']['BigqueryDataConnection']
           | components['schemas']['SemaknowledgebaseDataConnection']
-          | components['schemas']['SQLiteDataConnection'];
+          | components['schemas']['SQLiteDataConnection']
+          | components['schemas']['DatabricksDataConnection'];
       };
     };
     responses: {
@@ -17779,7 +17828,8 @@ export interface operations {
             | components['schemas']['PgvectorDataConnection']
             | components['schemas']['BigqueryDataConnection']
             | components['schemas']['SemaknowledgebaseDataConnection']
-            | components['schemas']['SQLiteDataConnection'];
+            | components['schemas']['SQLiteDataConnection']
+            | components['schemas']['DatabricksDataConnection'];
         };
       };
       /** @description Validation Error */

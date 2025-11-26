@@ -9,6 +9,7 @@ from structlog import get_logger
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
+        DatabricksDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         RedshiftDataConnectionConfiguration,
         SnowflakeCustomKeyPairConfiguration,
@@ -233,6 +234,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
     """Create an ibis connection based on the data connection configuration."""
 
     from agent_platform.core.payloads.data_connection import (
+        DatabricksDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         RedshiftDataConnectionConfiguration,
         SnowflakeCustomKeyPairConfiguration,
@@ -264,6 +266,10 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
                 | SnowflakeLinkedConfiguration,
                 config,
             )
+        )
+    elif engine == "databricks":
+        conn = await _create_databricks_connection(
+            typing.cast(DatabricksDataConnectionConfiguration, config)
         )
     else:
         raise ValueError(f"Unsupported engine for inspection: {engine}")
@@ -410,6 +416,40 @@ async def _create_redshift_connection(config: RedshiftDataConnectionConfiguratio
             host=config.host,
             port=config.port,
             database=config.database,
+            exc_info=True,
+        )
+        raise ConnectionFailedError(error_message) from e
+
+
+async def _create_databricks_connection(config: DatabricksDataConnectionConfiguration) -> Any:
+    """Create Databricks ibis connection"""
+    import time
+
+    import ibis
+
+    initial_time = time.monotonic()
+    try:
+        ret = await asyncio.to_thread(
+            ibis.databricks.connect,
+            server_hostname=config.server_hostname,
+            http_path=config.http_path,
+            access_token=config.access_token,
+            schema=config.schema,
+            catalog=config.catalog,
+        )
+        logger.info(
+            f"Created ibis.databricks connection in {time.monotonic() - initial_time:.2f} seconds"
+        )
+        return ret
+    except ConnectionFailedError:
+        raise
+    except Exception as e:
+        error_message = _parse_connection_error(e, "databricks", config)
+        logger.error(
+            "Failed to create databricks connection",
+            error=error_message,
+            server_hostname=config.server_hostname,
+            http_path=config.http_path,
             exc_info=True,
         )
         raise ConnectionFailedError(error_message) from e

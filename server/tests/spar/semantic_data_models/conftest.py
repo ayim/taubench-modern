@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
     from agent_platform.core.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
+        DatabricksDataConnectionConfiguration,
         DataConnectionConfiguration,
         DataConnectionEngine,
         PostgresDataConnectionConfiguration,
@@ -25,7 +26,7 @@ def semantic_data_model_resources_path(spar_resources_path: Path) -> Path:
     return spar_resources_path / "semantic_data_models"
 
 
-@pytest.fixture(scope="module", params=["postgres", "snowflake"])
+@pytest.fixture(scope="module", params=["postgres", "snowflake", "databricks"])
 def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
     """
     Parametrized fixture that provides the database engine to test against.
@@ -61,6 +62,25 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
                 "PostgreSQL tests will still run using local Docker."
             )
 
+    # Skip Databricks tests if credentials are not configured
+    if engine_name == "databricks":
+        required_env_vars = [
+            "DATABRICKS_SERVER_HOSTNAME",
+            "DATABRICKS_HTTP_PATH",
+            "DATABRICKS_ACCESS_TOKEN",
+        ]
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+
+        if missing_vars:
+            missing = ", ".join(missing_vars)
+            pytest.skip(
+                f"Databricks tests skipped: missing environment variables: {missing}. "
+                "Databricks requires cloud credentials. "
+                "Set these environment variables to run Databricks tests. "
+                "Optional: DATABRICKS_CATALOG (default: hive_metastore), "
+                "DATABRICKS_SCHEMA (default: default)"
+            )
+
     return engine_name
 
 
@@ -82,6 +102,7 @@ def sdm_seed_data_connection_configuration(
     from dataclasses import fields
 
     from agent_platform.core.payloads.data_connection import (
+        DatabricksDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -94,6 +115,8 @@ def sdm_seed_data_connection_configuration(
             fields_to_collect = fields(PostgresDataConnectionConfiguration)
         case "snowflake":
             fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
+        case "databricks":
+            fields_to_collect = fields(DatabricksDataConnectionConfiguration)
         case _:
             raise ValueError(f"Unsupported engine: {engine}")
 
@@ -130,6 +153,17 @@ def sdm_seed_data_connection_configuration(
             }
             config = {**defaults, **attributes_to_apply}
             return SnowflakeDataConnectionConfiguration(**config)
+        case "databricks":
+            defaults = {
+                "server_hostname": os.getenv("DATABRICKS_SERVER_HOSTNAME", None),
+                "http_path": os.getenv("DATABRICKS_HTTP_PATH", None),
+                "access_token": os.getenv("DATABRICKS_ACCESS_TOKEN", None),
+                "catalog": os.getenv("DATABRICKS_CATALOG", "hive_metastore"),
+                # Base schema, will create test schema within
+                "schema": os.getenv("DATABRICKS_SCHEMA", "default"),
+            }
+            config = {**defaults, **attributes_to_apply}
+            return DatabricksDataConnectionConfiguration(**config)
 
 
 def _load_sql_files(
@@ -377,6 +411,103 @@ def _initialize_snowflake_database(  # noqa: C901, PLR0912, PLR0915
             conn.close()
 
 
+@contextmanager
+def _initialize_databricks_database(  # noqa: C901
+    config: "DatabricksDataConnectionConfiguration",
+    resources_path: Path,
+) -> "Generator[str, Any, Any]":
+    """
+    Context manager that initializes a Databricks database for testing.
+
+    Creates a unique schema, loads the DDL and DML, then cleans up on exit.
+
+    Args:
+        config: Databricks connection configuration
+        resources_path: Path to semantic data model resources
+
+    Yields:
+        str: The test schema name that was created
+    """
+    from databricks import sql as databricks_sql
+
+    # Generate unique schema name
+    test_schema = f"test_sdm_{uuid.uuid4().hex[:8]}"
+
+    # Connect to Databricks
+    conn = databricks_sql.connect(
+        server_hostname=config.server_hostname,
+        http_path=config.http_path,
+        access_token=config.access_token,
+    )
+
+    try:
+        cursor = conn.cursor()
+
+        # Create test schema in the configured catalog
+        catalog = config.catalog or "hive_metastore"
+        # For Unity Catalog, use separate USE CATALOG and USE SCHEMA commands
+        cursor.execute(f"USE CATALOG {catalog}")
+        cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {test_schema}")
+        cursor.execute(f"USE SCHEMA {test_schema}")
+
+        # Load schema and data
+        schema_sql, data_sql = _load_sql_files(resources_path, "databricks")
+
+        # Split SQL into statements, filtering out empty ones and comments-only
+        def clean_statements(sql: str) -> list[str]:
+            statements = []
+            for raw_stmt in sql.split(";"):
+                # Remove leading/trailing whitespace
+                stmt = raw_stmt.strip()
+                # Remove lines that are only comments
+                lines = [
+                    line
+                    for line in stmt.split("\n")
+                    if line.strip() and not line.strip().startswith("--")
+                ]
+                cleaned = "\n".join(lines).strip()
+                if cleaned:
+                    statements.append(cleaned)
+            return statements
+
+        # Execute DDL (tables)
+        ddl_statements = clean_statements(schema_sql)
+
+        for statement in ddl_statements:
+            cursor.execute(statement)
+
+        # Execute DML (load data)
+        dml_statements = clean_statements(data_sql)
+        for statement in dml_statements:
+            cursor.execute(statement)
+
+        # Load edge cases if they exist
+        edge_case_schema_file = resources_path / "databricks" / "edge_cases_schema.sql"
+        if edge_case_schema_file.exists():
+            edge_case_schema_sql = edge_case_schema_file.read_text()
+            for statement in clean_statements(edge_case_schema_sql):
+                cursor.execute(statement)
+
+        edge_case_data_file = resources_path / "databricks" / "edge_cases_data.sql"
+        if edge_case_data_file.exists():
+            edge_case_data_sql = edge_case_data_file.read_text()
+            for statement in clean_statements(edge_case_data_sql):
+                cursor.execute(statement)
+
+        yield test_schema
+
+    finally:
+        # Cleanup
+        try:
+            cursor.execute(f"USE CATALOG {catalog}")
+            cursor.execute(f"DROP SCHEMA IF EXISTS {test_schema} CASCADE")
+        except Exception as e:
+            print(f"Warning: Failed to drop test schema {catalog}.{test_schema}: {e}")
+        finally:
+            cursor.close()
+            conn.close()
+
+
 @pytest.fixture(scope="module")
 def initialize_data_base(
     engine: "DataConnectionEngine",
@@ -399,6 +530,7 @@ def initialize_data_base(
         str: The schema name (for Postgres) or database name (for other engines) that was created
     """
     from agent_platform.core.payloads.data_connection import (
+        DatabricksDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -418,6 +550,14 @@ def initialize_data_base(
                 sdm_seed_data_connection_configuration, SnowflakeDataConnectionConfiguration
             )
             ctx = _initialize_snowflake_database(
+                sdm_seed_data_connection_configuration,
+                semantic_data_model_resources_path,
+            )
+        case "databricks":
+            assert isinstance(
+                sdm_seed_data_connection_configuration, DatabricksDataConnectionConfiguration
+            )
+            ctx = _initialize_databricks_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
@@ -457,6 +597,7 @@ def sdm_data_connection_configuration(
     from dataclasses import fields
 
     from agent_platform.core.payloads.data_connection import (
+        DatabricksDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -469,6 +610,8 @@ def sdm_data_connection_configuration(
             fields_to_collect = fields(PostgresDataConnectionConfiguration)
         case "snowflake":
             fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
+        case "databricks":
+            fields_to_collect = fields(DatabricksDataConnectionConfiguration)
         case _:
             raise ValueError(f"Unsupported engine: {engine}")
 
@@ -509,6 +652,17 @@ def sdm_data_connection_configuration(
             attributes_to_apply.pop("database", None)  # Don't allow override
             config = {**defaults, **attributes_to_apply}
             return SnowflakeDataConnectionConfiguration(**config)
+        case "databricks":
+            defaults = {
+                "server_hostname": os.getenv("DATABRICKS_SERVER_HOSTNAME", None),
+                "http_path": os.getenv("DATABRICKS_HTTP_PATH", None),
+                "access_token": os.getenv("DATABRICKS_ACCESS_TOKEN", None),
+                "catalog": os.getenv("DATABRICKS_CATALOG", "hive_metastore"),
+                "schema": initialize_data_base,  # Uses test schema from fixture
+            }
+            attributes_to_apply.pop("schema", None)  # Don't allow override of test schema
+            config = {**defaults, **attributes_to_apply}
+            return DatabricksDataConnectionConfiguration(**config)
 
 
 @pytest.fixture(scope="module")

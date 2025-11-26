@@ -5,7 +5,9 @@ from typing import Any
 from structlog import get_logger
 
 from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
-from agent_platform.server.kernel.ibis_utils import DataConnectionInspectorError
+from agent_platform.server.kernel.ibis_utils import (
+    DataConnectionInspectorError,
+)
 
 if typing.TYPE_CHECKING:
     import pyarrow
@@ -95,12 +97,6 @@ class DataConnectionInspector:
                 table_infos.append(table_info)
 
         return DataConnectionsInspectResponse(tables=table_infos)
-
-    @classmethod
-    async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
-        from agent_platform.server.kernel import ibis_utils
-
-        return await ibis_utils.create_ibis_connection(data_connection)
 
     async def _get_table(self, table_spec: "TableToInspect") -> "Table":
         """
@@ -258,6 +254,12 @@ class DataConnectionInspector:
         return errors
 
     @classmethod
+    async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
+        from agent_platform.server.kernel import ibis_utils
+
+        return await ibis_utils.create_ibis_connection(data_connection)
+
+    @classmethod
     async def _get_all_tables(cls, connection: Any) -> "list[TableToInspect]":
         """Get all tables from the connection."""
         from agent_platform.core.payloads.data_connection import TableToInspect
@@ -271,10 +273,20 @@ class DataConnectionInspector:
             schema = None
             database = None
 
-            if hasattr(connection, "current_schema"):
-                schema = connection.current_schema
-            if hasattr(connection, "current_database"):
-                database = connection.current_database
+            # Access connection properties in worker thread to avoid blocking.
+            # Note: Some backends (e.g., Databricks) implement these as lazy-loaded
+            # properties that trigger database calls, while others (e.g., Postgres)
+            # cache them. We use try/except instead of hasattr() because hasattr()
+            # internally accesses the property, which would trigger DB calls in main thread.
+            try:
+                schema = await asyncio.to_thread(lambda: connection.current_schema)
+            except AttributeError:
+                pass
+
+            try:
+                database = await asyncio.to_thread(lambda: connection.current_database)
+            except AttributeError:
+                pass
 
             table_specs.append(
                 TableToInspect(

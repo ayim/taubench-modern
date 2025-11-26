@@ -9,6 +9,8 @@ from agent_platform.core.payloads.data_connection import (
     BigqueryDataConnectionConfiguration,
     ConfluenceDataConnection,
     ConfluenceDataConnectionConfiguration,
+    DatabricksDataConnection,
+    DatabricksDataConnectionConfiguration,
     DataConnectionConfiguration,
     MSSQLDataConnection,
     MSSQLDataConnectionConfiguration,
@@ -177,6 +179,7 @@ class DataConnection:
             "bigquery": cls._parse_bigquery_config,
             "sema4_knowledge_base": cls._parse_sema4_knowledge_base_config,
             "sqlite": cls._parse_sqlite_config,
+            "databricks": cls._parse_databricks_config,
         }
         if engine not in parsers:
             raise ValueError(f"Unsupported engine type: {engine}")
@@ -200,6 +203,13 @@ class DataConnection:
     ) -> RedshiftDataConnectionConfiguration:
         """Parse Redshift configuration."""
         return cls._parse_ssl_config(config_data, RedshiftDataConnectionConfiguration)
+
+    @classmethod
+    def _parse_databricks_config(
+        cls, config_data: dict[str, Any]
+    ) -> DatabricksDataConnectionConfiguration:
+        """Parse Databricks configuration."""
+        return cls._parse_ssl_config(config_data, DatabricksDataConnectionConfiguration)
 
     @classmethod
     def _parse_pgvector_config(
@@ -358,6 +368,7 @@ class DataConnection:
             "bigquery": BigqueryDataConnection,
             "sema4_knowledge_base": SemaknowledgebaseDataConnection,
             "sqlite": SQLiteDataConnection,
+            "databricks": DatabricksDataConnection,
         }
 
         if self.engine == "snowflake":

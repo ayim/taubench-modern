@@ -7190,6 +7190,9 @@ export const spec = {
                       {
                         $ref: '#/components/schemas/SQLiteDataConnection',
                       },
+                      {
+                        $ref: '#/components/schemas/DatabricksDataConnection',
+                      },
                     ],
                   },
                   type: 'array',
@@ -7252,6 +7255,9 @@ export const spec = {
                   {
                     $ref: '#/components/schemas/SQLiteDataConnection',
                   },
+                  {
+                    $ref: '#/components/schemas/DatabricksDataConnection',
+                  },
                 ],
                 title: 'Data',
               },
@@ -7307,6 +7313,9 @@ export const spec = {
                     },
                     {
                       $ref: '#/components/schemas/SQLiteDataConnection',
+                    },
+                    {
+                      $ref: '#/components/schemas/DatabricksDataConnection',
                     },
                   ],
                   title:
@@ -7394,6 +7403,9 @@ export const spec = {
                     {
                       $ref: '#/components/schemas/SQLiteDataConnection',
                     },
+                    {
+                      $ref: '#/components/schemas/DatabricksDataConnection',
+                    },
                   ],
                   title:
                     'Response Get Data Connection Data Connections  Connection Id  Get',
@@ -7478,6 +7490,9 @@ export const spec = {
                   {
                     $ref: '#/components/schemas/SQLiteDataConnection',
                   },
+                  {
+                    $ref: '#/components/schemas/DatabricksDataConnection',
+                  },
                 ],
                 title: 'Data Connection',
               },
@@ -7532,6 +7547,9 @@ export const spec = {
                     },
                     {
                       $ref: '#/components/schemas/SQLiteDataConnection',
+                    },
+                    {
+                      $ref: '#/components/schemas/DatabricksDataConnection',
                     },
                   ],
                   title:
@@ -11406,6 +11424,9 @@ export const spec = {
               {
                 $ref: '#/components/schemas/SQLiteDataConnectionConfiguration',
               },
+              {
+                $ref: '#/components/schemas/DatabricksDataConnectionConfiguration',
+              },
             ],
             title: 'Configuration',
             description: 'The configuration parameters for the data connection',
@@ -11995,6 +12016,126 @@ export const spec = {
         type: 'object',
         required: ['data_server', 'data_sources'],
         title: 'DataSources',
+      },
+      DatabricksDataConnection: {
+        properties: {
+          name: {
+            type: 'string',
+            title: 'Name',
+          },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
+          configuration: {
+            $ref: '#/components/schemas/DatabricksDataConnectionConfiguration',
+          },
+          created_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Created At',
+          },
+          updated_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Updated At',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+          },
+          external_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'External Id',
+          },
+          tags: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Tags',
+          },
+          engine: {
+            type: 'string',
+            const: 'databricks',
+            title: 'Engine',
+            default: 'databricks',
+          },
+        },
+        type: 'object',
+        required: ['name', 'description', 'configuration'],
+        title: 'DatabricksDataConnection',
+      },
+      DatabricksDataConnectionConfiguration: {
+        properties: {
+          server_hostname: {
+            type: 'string',
+            title: 'Server Hostname',
+          },
+          http_path: {
+            type: 'string',
+            title: 'Http Path',
+          },
+          access_token: {
+            type: 'string',
+            title: 'Access Token',
+          },
+          schema: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Schema',
+            default: 'default',
+          },
+          catalog: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Catalog',
+            default: 'hive_metastore',
+          },
+        },
+        type: 'object',
+        required: ['server_hostname', 'http_path', 'access_token'],
+        title: 'DatabricksDataConnectionConfiguration',
       },
       Dimension: {
         properties: {

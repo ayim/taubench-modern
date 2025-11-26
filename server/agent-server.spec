@@ -64,12 +64,14 @@ ibis_hiddenimports.extend(collect_submodules("ibis.backends.duckdb"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.postgres"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.snowflake"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.sqlite"))
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.databricks"))
 
 # Used by ibis to parse the sql internally.
 sqlglot_hiddenimports = collect_submodules("sqlglot")
 
 numpy_datas, numpy_binaries, numpy_hiddenimports = collect_all("numpy")
 pandas_datas, pandas_binaries, pandas_hiddenimports = collect_all("pandas")
+databricks_datas, databricks_binaries, databricks_hiddenimports = collect_all("databricks.sql")
 
 
 logger.info("=== Analyzing Imports ===")
@@ -164,6 +166,7 @@ ALL_BINARIES = [
     *numpy_binaries,
     *pandas_binaries,
     *numpy_libs_binaries,
+    *databricks_binaries,
     *wasmtime_binaries,
     *pyjaq_binaries,
 ]
@@ -209,6 +212,7 @@ ALL_DATAS = [
     *ibis_metadata,
     *numpy_datas,
     *pandas_datas,
+    *databricks_datas,
     *wasmtime_datas,
     *pyjaq_datas,
 ]
@@ -247,6 +251,7 @@ a = Analysis(
         *sqlglot_hiddenimports,
         *numpy_hiddenimports,
         *pandas_hiddenimports,
+        *databricks_hiddenimports,
         *wasmtime_hiddenimports,
         *pyjaq_hiddenimports,
     ],

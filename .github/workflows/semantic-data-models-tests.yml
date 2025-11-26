@@ -86,6 +86,13 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_ROLE }}
 
+          # Databricks credentials (optional - tests will skip if not provided)
+          DATABRICKS_SERVER_HOSTNAME: ${{ vars.INTEGRATION_TEST_DATABRICKS_SERVER_HOSTNAME }}
+          DATABRICKS_HTTP_PATH: ${{ vars.INTEGRATION_TEST_DATABRICKS_HTTP_PATH }}
+          DATABRICKS_ACCESS_TOKEN: ${{ secrets.INTEGRATION_TEST_DATABRICKS_ACCESS_TOKEN }}
+          DATABRICKS_CATALOG: ${{ vars.INTEGRATION_TEST_DATABRICKS_CATALOG }}
+          DATABRICKS_SCHEMA: ${{ vars.INTEGRATION_TEST_DATABRICKS_SCHEMA }}
+
       - name: Stop SPAR stack
         if: always()
         run: |

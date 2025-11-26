@@ -42,6 +42,15 @@ class RedshiftDataConnectionConfiguration:
 
 
 @dataclass
+class DatabricksDataConnectionConfiguration:
+    server_hostname: str
+    http_path: str
+    access_token: str
+    schema: str | None = "default"
+    catalog: str | None = "hive_metastore"
+
+
+@dataclass
 class SnowflakeLinkedConfiguration:
     warehouse: str
     database: str
@@ -227,6 +236,7 @@ DataConnectionEngine = Literal[
     "bigquery",
     "sema4_knowledge_base",
     "sqlite",
+    "databricks",
 ]
 
 DataConnectionConfiguration = (
@@ -246,6 +256,7 @@ DataConnectionConfiguration = (
     | BigqueryDataConnectionConfiguration
     | SemaknowledgebaseDataConnectionConfiguration
     | SQLiteDataConnectionConfiguration
+    | DatabricksDataConnectionConfiguration
 )
 
 
@@ -273,6 +284,12 @@ class PostgresDataConnection(BaseDataConnection):
 class RedshiftDataConnection(BaseDataConnection):
     engine: Literal["redshift"] = "redshift"
     configuration: RedshiftDataConnectionConfiguration
+
+
+@dataclass
+class DatabricksDataConnection(BaseDataConnection):
+    engine: Literal["databricks"] = "databricks"
+    configuration: DatabricksDataConnectionConfiguration
 
 
 @dataclass
@@ -367,6 +384,7 @@ DataConnection = (
     | BigqueryDataConnection
     | SemaknowledgebaseDataConnection
     | SQLiteDataConnection
+    | DatabricksDataConnection
 )
 
 
