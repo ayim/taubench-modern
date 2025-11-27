@@ -474,62 +474,33 @@ async def _create_snowflake_connection(
 
     try:
         if isinstance(config, SnowflakeLinkedConfiguration):
-            # Linked configuration - not supported for direct connection
-            # This requires OAuth or other external authentication mechanisms
-            raise ValueError(
-                "Linked Snowflake configurations are not supported for direct inspection. "
-                "Please use password-based or custom key pair authentication."
+            # Linked configuration - read auth from ~/.sema4ai/sf-auth.json
+            from agent_platform.server.kernel.snowflake_auth_utils import (
+                SnowflakeAuthError,
+                get_snowflake_connection_params,
             )
+
+            try:
+                # Get connection parameters from auth file
+                connection_params = await get_snowflake_connection_params(config)
+                # Create ibis connection with the parameters
+                ret = await asyncio.to_thread(ibis.snowflake.connect, **connection_params)
+            except SnowflakeAuthError as e:
+                # Convert SnowflakeAuthError to ConnectionFailedError
+                raise ConnectionFailedError(str(e)) from e
         elif isinstance(config, SnowflakeCustomKeyPairConfiguration):
             # For custom key pair authentication
-            # We cant pass the private key file as it is
-            # Instead of that we need to load the private key from file
+            # Load the private key from file and serialize to DER format
             # See: https://ibis-project.org/backends/snowflake#authenticating-with-key-pair-authentication
-            from cryptography.hazmat.backends import default_backend
-            from cryptography.hazmat.primitives import serialization
+            from agent_platform.server.kernel.snowflake_auth_utils import (
+                _load_private_key_from_file,
+            )
 
-            def _load_private_key():
-                try:
-                    with open(config.private_key_path, "rb") as key_file:
-                        private_key_data = key_file.read()
-                except FileNotFoundError as e:
-                    raise ValueError(
-                        f"Private key file not found: {config.private_key_path}"
-                    ) from e
-                except PermissionError as e:
-                    raise ValueError(
-                        f"Permission denied reading private key file: {config.private_key_path}"
-                    ) from e
-                except OSError as e:
-                    raise ValueError(
-                        f"Error reading private key file {config.private_key_path}: {e}"
-                    ) from e
-
-                # Load the private key, optionally with a passphrase
-                passphrase = (
-                    config.private_key_passphrase.encode()
-                    if config.private_key_passphrase
-                    else None
-                )
-                try:
-                    private_key = serialization.load_pem_private_key(
-                        private_key_data,
-                        password=passphrase,
-                        backend=default_backend(),
-                    )
-                except ValueError as e:
-                    raise ValueError(
-                        f"Invalid private key format or incorrect passphrase: {e}"
-                    ) from e
-
-                # Serialize to DER format (bytes) as expected by Snowflake connector
-                return private_key.private_bytes(
-                    encoding=serialization.Encoding.DER,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption(),
-                )
-
-            private_key_bytes = await asyncio.to_thread(_load_private_key)
+            private_key_bytes = await asyncio.to_thread(
+                _load_private_key_from_file,
+                config.private_key_path,
+                config.private_key_passphrase,
+            )
 
             # Disable Arrow format to avoid compatibility issues with VARIANT/OBJECT types
             # Pass as kwargs to underlying snowflake connector

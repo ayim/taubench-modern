@@ -1,20 +1,31 @@
+import json
 import sqlite3
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 
-from agent_platform.server.kernel.ibis_utils import create_ibis_connection
+from agent_platform.server.kernel.ibis_utils import (
+    ConnectionFailedError,
+    create_ibis_connection,
+)
 
 
 @pytest.mark.asyncio
 async def test_create_ibis_connection_sqlite(tmp_path: Path):
-    """Test creating an ibis connection to SQLite and performing SQL operations."""
+    """Test creating an ibis connection to SQLite."""
     import asyncio
 
-    from agent_platform.core.data_connections.data_connections import DataConnection
-    from agent_platform.core.payloads.data_connection import SQLiteDataConnectionConfiguration
-    from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        SQLiteDataConnectionConfiguration,
+    )
+    from agent_platform.server.kernel.ibis_utils import (
+        IbisDbCallNotInWorkerThreadError,
+    )
 
     # Create a SQLite database with some tables and data
     db_file = tmp_path / "test.db"
@@ -73,13 +84,17 @@ async def test_create_ibis_connection_sqlite(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_snowflake_keypair_file_not_found():
-    """Test that ValueError is raised when private key file doesn't exist."""
-    from agent_platform.core.data_connections.data_connections import DataConnection
+async def test_snowflake_keypair_file_not_found(tmp_path: Path):
+    """Test that ValueError is raised when key file doesn't exist."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
     from agent_platform.core.payloads.data_connection import (
         SnowflakeCustomKeyPairConfiguration,
     )
-    from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
+    from agent_platform.server.kernel.ibis_utils import (
+        ConnectionFailedError,
+    )
 
     data_connection = DataConnection(
         id=str(uuid4()),
@@ -99,23 +114,28 @@ async def test_snowflake_keypair_file_not_found():
         updated_at=None,
     )
 
-    with pytest.raises(ConnectionFailedError) as exc_info:
-        await create_ibis_connection(data_connection)
+    # Mock Path.home to prevent finding real sf-auth.json
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
 
-    # Check that the error message mentions the file not being found
-    assert (
-        "not found" in str(exc_info.value).lower() or "private key" in str(exc_info.value).lower()
-    )
+        # Check that the error message mentions the file not being found
+        error_msg = str(exc_info.value).lower()
+        assert "not found" in error_msg or "private key" in error_msg
 
 
 @pytest.mark.asyncio
 async def test_snowflake_keypair_invalid_key_format(tmp_path: Path):
-    """Test that ValueError is raised when private key file has invalid format."""
-    from agent_platform.core.data_connections.data_connections import DataConnection
+    """Test that ValueError is raised when key has invalid format."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
     from agent_platform.core.payloads.data_connection import (
         SnowflakeCustomKeyPairConfiguration,
     )
-    from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
+    from agent_platform.server.kernel.ibis_utils import (
+        ConnectionFailedError,
+    )
 
     # Create a file with invalid key data
     invalid_key_file = tmp_path / "invalid_key.pem"
@@ -139,26 +159,32 @@ async def test_snowflake_keypair_invalid_key_format(tmp_path: Path):
         updated_at=None,
     )
 
-    with pytest.raises(ConnectionFailedError) as exc_info:
-        await create_ibis_connection(data_connection)
+    # Mock Path.home to prevent finding real sf-auth.json
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
 
-    # Check that the error is related to invalid key format
-    error_msg = str(exc_info.value).lower()
-    assert "invalid" in error_msg or "format" in error_msg or "key" in error_msg
+        # Check that the error is related to invalid key format
+        error_msg = str(exc_info.value).lower()
+        assert "invalid" in error_msg or "format" in error_msg or "key" in error_msg
 
 
 @pytest.mark.asyncio
 async def test_snowflake_keypair_wrong_passphrase(tmp_path: Path):
-    """Test that ValueError is raised when wrong passphrase is provided."""
+    """Test that ValueError is raised when wrong passphrase used."""
     from cryptography.hazmat.backends import default_backend
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
 
-    from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
     from agent_platform.core.payloads.data_connection import (
         SnowflakeCustomKeyPairConfiguration,
     )
-    from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
+    from agent_platform.server.kernel.ibis_utils import (
+        ConnectionFailedError,
+    )
 
     # Generate a valid encrypted private key
     private_key = rsa.generate_private_key(
@@ -193,25 +219,31 @@ async def test_snowflake_keypair_wrong_passphrase(tmp_path: Path):
         updated_at=None,
     )
 
-    with pytest.raises(ConnectionFailedError) as exc_info:
-        await create_ibis_connection(data_connection)
+    # Mock Path.home to prevent finding real sf-auth.json
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
 
-    # Check that the error is related to passphrase
-    error_msg = str(exc_info.value).lower()
-    assert "passphrase" in error_msg or "password" in error_msg or "invalid" in error_msg
+        # Check that the error is related to passphrase
+        error_msg = str(exc_info.value).lower()
+        assert "passphrase" in error_msg or "password" in error_msg or "invalid" in error_msg
 
 
 @pytest.mark.asyncio
 async def test_snowflake_keypair_permission_denied(tmp_path: Path):
-    """Test that ValueError is raised when file permissions prevent reading."""
+    """Test that ValueError is raised when permissions prevent reading."""
     import os
     import sys
 
-    from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
     from agent_platform.core.payloads.data_connection import (
         SnowflakeCustomKeyPairConfiguration,
     )
-    from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
+    from agent_platform.server.kernel.ibis_utils import (
+        ConnectionFailedError,
+    )
 
     # Skip on Windows as permission handling is different
     if sys.platform == "win32":
@@ -250,3 +282,223 @@ async def test_snowflake_keypair_permission_denied(tmp_path: Path):
     finally:
         # Restore permissions for cleanup
         os.chmod(key_file, 0o644)
+
+
+@pytest.mark.asyncio
+async def test_snowflake_linked_missing_auth_file(tmp_path: Path):
+    """Test error when auth file is missing."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        SnowflakeLinkedConfiguration,
+    )
+
+    # Create a DataConnection object
+    data_connection = DataConnection(
+        id=str(uuid4()),
+        name="test_snowflake_linked_missing",
+        description="Test Snowflake linked connection with missing auth",
+        engine="snowflake",
+        configuration=SnowflakeLinkedConfiguration(
+            warehouse="E2E_TESTS",
+            database="TEST_DB",
+            schema="PUBLIC",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
+
+        assert "authentication file not found" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_snowflake_linked_missing_token_file(tmp_path: Path):
+    """Test error when OAuth token file is missing."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        SnowflakeLinkedConfiguration,
+    )
+
+    # Create mock auth file content for OAuth but without token file
+    auth_data = {
+        "type": "SNOWFLAKE_OAUTH_PARTNER",
+        "linkingDetails": {
+            "authenticator": "OAUTH",
+            "account": "ZVZWMYO-PLATFORMTEAM",
+            "role": "E2E_ENDUSER",
+            "warehouse": "E2E_TESTS",
+            "tokenPath": str(tmp_path / "nonexistent-token"),
+        },
+    }
+
+    # Create a DataConnection object
+    data_connection = DataConnection(
+        id=str(uuid4()),
+        name="test_snowflake_linked_missing_token",
+        description="Test Snowflake linked with missing token",
+        engine="snowflake",
+        configuration=SnowflakeLinkedConfiguration(
+            warehouse="E2E_TESTS",
+            database="TEST_DB",
+            schema="PUBLIC",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+
+    # Mock the auth file path
+    auth_file_path = tmp_path / ".sema4ai" / "sf-auth.json"
+    auth_file_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_file_path.write_text(json.dumps(auth_data))
+
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
+
+        assert "token file not found" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_snowflake_linked_unsupported_authenticator(tmp_path: Path):
+    """Test error when authenticator type is unsupported."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        SnowflakeLinkedConfiguration,
+    )
+
+    # Create mock auth file with unsupported authenticator
+    auth_data = {
+        "type": "SNOWFLAKE_UNKNOWN",
+        "linkingDetails": {
+            "authenticator": "UNSUPPORTED_AUTH",
+            "account": "ZVZWMYO-PLATFORMTEAM",
+        },
+    }
+
+    # Create a DataConnection object
+    data_connection = DataConnection(
+        id=str(uuid4()),
+        name="test_snowflake_linked_unsupported",
+        description="Test Snowflake linked with unsupported auth",
+        engine="snowflake",
+        configuration=SnowflakeLinkedConfiguration(
+            warehouse="E2E_TESTS",
+            database="TEST_DB",
+            schema="PUBLIC",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+
+    # Mock the auth file path
+    auth_file_path = tmp_path / ".sema4ai" / "sf-auth.json"
+    auth_file_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_file_path.write_text(json.dumps(auth_data))
+
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
+
+        assert "unsupported authenticator" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_snowflake_linked_missing_account_oauth(tmp_path: Path):
+    """Test error when account is missing in OAuth config."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        SnowflakeLinkedConfiguration,
+    )
+
+    # Create mock auth file without account
+    auth_data = {
+        "type": "SNOWFLAKE_OAUTH_PARTNER",
+        "linkingDetails": {
+            "authenticator": "OAUTH",
+            "tokenPath": str(tmp_path / "oauth-token"),
+        },
+    }
+
+    # Create token file
+    token_file = tmp_path / "oauth-token"
+    token_file.write_text("mock_token")
+
+    # Create a DataConnection object
+    data_connection = DataConnection(
+        id=str(uuid4()),
+        name="test_snowflake_linked",
+        description="Test Snowflake linked",
+        engine="snowflake",
+        configuration=SnowflakeLinkedConfiguration(
+            warehouse="E2E_TESTS",
+            database="TEST_DB",
+            schema="PUBLIC",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+
+    # Mock the auth file path
+    auth_file_path = tmp_path / ".sema4ai" / "sf-auth.json"
+    auth_file_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_file_path.write_text(json.dumps(auth_data))
+
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
+
+        assert "account not found" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_snowflake_linked_invalid_json(tmp_path: Path):
+    """Test error when auth file contains invalid JSON."""
+    from agent_platform.core.data_connections.data_connections import (
+        DataConnection,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        SnowflakeLinkedConfiguration,
+    )
+
+    # Create a DataConnection object
+    data_connection = DataConnection(
+        id=str(uuid4()),
+        name="test_snowflake_linked",
+        description="Test Snowflake linked",
+        engine="snowflake",
+        configuration=SnowflakeLinkedConfiguration(
+            warehouse="E2E_TESTS",
+            database="TEST_DB",
+            schema="PUBLIC",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+
+    # Create auth file with invalid JSON
+    auth_file_path = tmp_path / ".sema4ai" / "sf-auth.json"
+    auth_file_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_file_path.write_text("{ invalid json }")
+
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(ConnectionFailedError) as exc_info:
+            await create_ibis_connection(data_connection)
+
+        error_msg = str(exc_info.value).lower()
+        assert "parse" in error_msg or "json" in error_msg
