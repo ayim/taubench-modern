@@ -1,3 +1,15 @@
+# Sema4.ai Agent Server 2.2.2 (2025-11-27)
+
+- [PRD-1168] SDM: Support Linked Snowflake data connection (#1787)
+- [PRD-1168] SDM: Snowflake connection with key pair auth fails (#1782)
+- [GPT-1496] reduce polling requests during eval batch run (#1679)
+- [SDM-158] Make the connection to databricks work with SDM (#1745)
+- [GPT-1554] Integration scopes REST API (#1755)
+- [GPT-1553] Integration scopes -- Storage CRUD + tests (#1722)
+- [DIN-798] Add caching REST API for extract (#1759)
+- [GPT-1590] Map Preinstalled Agent to `exp_3` Arch (#1773)
+- Evals: rate limit errors do not bubble up in Azure (#1781)
+
 # Sema4.ai Agent Server 2.2.1 (2025-11-25)
 
 - DIN-802 Add a generalized cache backed by thread files (#1753)
