@@ -5,7 +5,6 @@ import { SortRules } from '@sema4ai/layouts/dist/helpers/search';
 import { FC, useCallback, useMemo } from 'react';
 
 import { IconChevronRight } from '@sema4ai/icons';
-import { ButtonLink } from '../../common/link/ButtonLink';
 import { AgentWorkItemsSummary, useWorkItemsSummaryQuery, WorkItemStatus } from '../../queries/workItems';
 import { useSparUIContext } from '../../api/context';
 import { WORK_ITEM_STATUS_CONFIG, STATUS_ORDER } from '../../constants/workItemStatus';
@@ -166,11 +165,7 @@ export const WorkItemsOverview: FC = () => {
         <EmptyState
           title="No agents with work items found"
           description="No agents with work items found."
-          action={
-            <ButtonLink to="/home" params={{}} round>
-              Reset Filters
-            </ButtonLink>
-          }
+          action={undefined}
         >
           <Typography>No agents with work items found</Typography>
         </EmptyState>
