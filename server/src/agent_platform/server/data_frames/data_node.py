@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import typing
 from abc import abstractmethod
@@ -226,20 +225,12 @@ async def _convert_ibis_slice_to_format(  # noqa: PLR0913
         else:
             result = result[offset : offset + limit]
 
-    # Convert to pyarrow table
-    # For Snowflake, use raw SQL execution to avoid Arrow errors with VARIANT types
-    from agent_platform.server.utils.snowflake_utils import (
-        execute_snowflake_query_raw,
-        is_snowflake_backend,
+    # Convert to pyarrow table using backend-specific handler
+    from agent_platform.server.semantic_data_models.handlers import (
+        execute_query_with_backend_handler,
     )
 
-    if is_snowflake_backend(result):
-        table = await execute_snowflake_query_raw(result)
-    else:
-        # For all other databases including SQLite, use thread pool
-        # SQLite will work because to_pyarrow() is a read operation that
-        # doesn't create new connections
-        table = await asyncio.to_thread(result.to_pyarrow)
+    table = await execute_query_with_backend_handler(result)
     return _convert_arrow_to_format(table, output_format)
 
 
@@ -552,24 +543,14 @@ class DataNodeFromIbisResult(DataNodeResult):
         """
         return self._full_sql_query_logical_str
 
-    def _is_snowflake(self) -> bool:
-        """Check if the ibis result is from a Snowflake backend."""
-        from agent_platform.server.utils.snowflake_utils import is_snowflake_backend
+    async def _to_arrow_safe(self, ibis_expr: Any) -> Any:
+        """Convert ibis expression to Arrow using backend-specific handler."""
+        from agent_platform.server.semantic_data_models.handlers import (
+            execute_query_with_backend_handler,
+        )
 
-        return is_snowflake_backend(self._ibis_result)
-
-    async def _to_arrow_safe(self, ibis_expr: Any) -> "pyarrow.Table":
-        """Convert ibis expression to Arrow, using raw SQL for Snowflake to avoid Arrow errors."""
-        import pyarrow
-
-        from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
-
-        if self._is_snowflake():
-            return await execute_snowflake_query_raw(ibis_expr)
-        else:
-            # For all other databases including SQLite, use thread pool
-            result: pyarrow.Table = await asyncio.to_thread(ibis_expr.to_pyarrow)
-            return result
+        result: pyarrow.Table = await execute_query_with_backend_handler(ibis_expr)
+        return result
 
     async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if num_samples == 0:
@@ -584,17 +565,12 @@ class DataNodeFromIbisResult(DataNodeResult):
         return [list(row) for row in pylist]
 
     async def num_rows(self) -> int:
-        from agent_platform.server.utils.snowflake_utils import execute_snowflake_query_raw
+        from agent_platform.server.semantic_data_models.handlers import (
+            execute_count_with_backend_handler,
+        )
 
         count_result = self._ibis_result.count()
-        if self._is_snowflake():
-            # For Snowflake, use raw SQL execution to avoid Arrow
-            table = await execute_snowflake_query_raw(count_result)
-            # Count result is a single-row, single-column table
-            return table.to_pylist()[0][table.column_names[0]]
-        else:
-            arrow_result = await asyncio.to_thread(count_result.to_pyarrow)
-            return arrow_result.as_py()
+        return await execute_count_with_backend_handler(count_result)
 
     @property
     def num_columns(self) -> int:

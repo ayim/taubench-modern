@@ -309,9 +309,73 @@ class DataConnectionInspector:
         """
         return table.select(columns_to_inspect).limit(n_sample_rows)
 
-    async def _inspect_table(  # noqa: C901,PLR0912
-        self, connection: Any, table_spec: "TableToInspect"
-    ) -> "TableInfo":
+    async def _fetch_sample_data_for_all_columns(
+        self, table: Any, columns_to_inspect: list[str]
+    ) -> "pyarrow.Table":
+        """Fetch sample data for all columns at once.
+
+        Args:
+            table: The ibis table
+            columns_to_inspect: List of column names to inspect
+
+        Returns:
+            PyArrow table with sample data
+
+        Raises:
+            Exception: If query execution fails
+        """
+        from agent_platform.server.semantic_data_models.handlers import (
+            execute_query_with_backend_handler,
+        )
+
+        sample_query = self._select_with_limit(
+            table, columns_to_inspect, self.request.n_sample_rows
+        )
+        return await execute_query_with_backend_handler(sample_query)
+
+    async def _fetch_sample_data_per_column(
+        self, table: Any, columns_to_inspect: list[str], table_name: str
+    ) -> dict[str, "pyarrow.Table | None"]:
+        """Fetch sample data for each column individually (fallback when bulk fetch fails).
+
+        Args:
+            table: The ibis table
+            columns_to_inspect: List of column names to inspect
+            table_name: Name of the table (for logging)
+
+        Returns:
+            Dictionary mapping column names to their sample data (or None if failed)
+        """
+        from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
+        from agent_platform.server.semantic_data_models.handlers import (
+            execute_query_with_backend_handler,
+        )
+
+        sample_table_dict: dict[str, pyarrow.Table | None] = {}
+        for column_name in columns_to_inspect:
+            try:
+                sample_query = table.select(column_name).limit(self.request.n_sample_rows)
+                result = await execute_query_with_backend_handler(sample_query)
+                sample_table_dict[column_name] = result
+            except IbisDbCallNotInWorkerThreadError as e:
+                raise e
+            except Exception as e:
+                # Get column type in a non-blocking way
+                def _get_col_type(col_name=column_name):
+                    return table[col_name].type()
+
+                try:
+                    col_type = await asyncio.to_thread(_get_col_type)
+                except Exception:
+                    col_type = "unknown"
+                logger.error(
+                    f"Error inspecting table {table_name} column {column_name} "
+                    f"column type: {col_type}: {e!r}"
+                )
+                sample_table_dict[column_name] = None
+        return sample_table_dict
+
+    async def _inspect_table(self, connection: Any, table_spec: "TableToInspect") -> "TableInfo":
         """Inspect a specific table and return its metadata."""
         import pyarrow
 
@@ -321,93 +385,35 @@ class DataConnectionInspector:
         # Get the table reference (blocking I/O)
         table = await asyncio.to_thread(connection.table, table_spec.name)
 
-        # Get column information
-        columns = []
-        columns_to_inspect = []
-
         # Get column names from table schema (blocking I/O)
         schema = await asyncio.to_thread(table.schema)
         column_names = schema.names
 
-        for column_name in column_names:
-            # Skip columns if specific columns are requested and this one isn't in the list
-            if (
-                table_spec.columns_to_inspect is not None
-                and column_name not in table_spec.columns_to_inspect
-            ):
-                continue
-            columns_to_inspect.append(column_name)
+        # Filter columns to inspect based on request
+        columns_to_inspect = [
+            col
+            for col in column_names
+            if table_spec.columns_to_inspect is None or col in table_spec.columns_to_inspect
+        ]
 
+        # Fetch sample data if there are columns to inspect
         sample_table: pyarrow.Table | dict[str, pyarrow.Table | None] | None = None
         if columns_to_inspect:
-            # Execute query to get sample values
             try:
-                sample_query = self._select_with_limit(
-                    table, columns_to_inspect, self.request.n_sample_rows
+                sample_table = await self._fetch_sample_data_for_all_columns(
+                    table, columns_to_inspect
                 )
-
-                # For Snowflake, use raw cursor to avoid Arrow format issues
-                # with VARIANT/OBJECT types
-                from agent_platform.server.utils.snowflake_utils import (
-                    execute_snowflake_query_raw,
-                    is_snowflake_backend,
-                )
-
-                if is_snowflake_backend(sample_query):
-                    sample_table = await execute_snowflake_query_raw(sample_query)
-                else:
-                    sample_table_arrow: pyarrow.Table = await asyncio.to_thread(
-                        sample_query.to_pyarrow
-                    )
-                    sample_table = sample_table_arrow
-            except IbisDbCallNotInWorkerThreadError as e:
-                raise e
+            except IbisDbCallNotInWorkerThreadError:
+                raise
             except Exception as e:
                 logger.error(f"Error inspecting table {table_spec.name}: {e!r}")
-
-                # Ok, we haven't able to do a select with many columns (something went wrong),
-                # let's try columns one by one -- note: this error can be expected if there's an
-                # issue with the column type (for instance, if the column is an int but ibis
-                # got it as a string).
-                #
-                # Example:
-                # Error inspecting table film column release_year column type: unknown(
-                #   DataType(this=Type.USERDEFINED, kind=year)): ArrowTypeError("Expected bytes,
-                #   got a 'int' object")
-                from agent_platform.server.utils.snowflake_utils import (
-                    execute_snowflake_query_raw,
-                    is_snowflake_backend,
+                # Fallback: try fetching columns one by one
+                sample_table = await self._fetch_sample_data_per_column(
+                    table, columns_to_inspect, table_spec.name
                 )
 
-                sample_table_dict: dict[str, pyarrow.Table | None] = {}
-                for column_name in columns_to_inspect:
-                    try:
-                        sample_query = table.select(column_name).limit(self.request.n_sample_rows)
-                        if is_snowflake_backend(sample_query):
-                            result = await execute_snowflake_query_raw(sample_query)
-                            sample_table_dict[column_name] = result
-                        else:
-                            sample_table_dict[column_name] = await asyncio.to_thread(
-                                sample_query.to_pyarrow
-                            )
-                    except IbisDbCallNotInWorkerThreadError as e:
-                        raise e
-                    except Exception as e:
-                        # Get column type in a non-blocking way
-                        def _get_col_type(col_name=column_name):
-                            return table[col_name].type()
-
-                        try:
-                            col_type = await asyncio.to_thread(_get_col_type)
-                        except Exception:
-                            col_type = "unknown"
-                        logger.error(
-                            f"Error inspecting table {table_spec.name} column {column_name} "
-                            f"column type: {col_type}: {e!r}"
-                        )
-                        sample_table_dict[column_name] = None
-                sample_table = sample_table_dict
-
+        # Inspect each column and collect metadata
+        columns = []
         for column_name in columns_to_inspect:
             column_info = await self._inspect_column(table, column_name, sample_table)
             columns.append(column_info)

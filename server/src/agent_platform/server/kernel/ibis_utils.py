@@ -274,6 +274,8 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
     else:
         raise ValueError(f"Unsupported engine for inspection: {engine}")
 
+    # Mark with engine name for backend handler selection while executing queries
+    conn.__s4engine__ = engine  # type: ignore[attr-defined]
     for attr, must_exist in [("_safe_raw_sql", False), ("execute", True)]:
         if not hasattr(conn, attr):
             if must_exist:
@@ -391,6 +393,10 @@ async def _create_redshift_connection(config: RedshiftDataConnectionConfiguratio
 
     import ibis
 
+    from agent_platform.server.utils.redshift_utils import (
+        patch_redshift_connection,
+    )
+
     initial_time = time.monotonic()
     try:
         ret = await asyncio.to_thread(
@@ -401,7 +407,11 @@ async def _create_redshift_connection(config: RedshiftDataConnectionConfiguratio
             user=config.user,
             password=config.password,
             schema=config.schema,
+            # Redshift reports 'UNICODE' encoding, but psycopg needs 'utf-8'
+            client_encoding="utf-8",
         )
+        # Patch connection to work around Redshift incompatibilities
+        ret = await asyncio.to_thread(patch_redshift_connection, ret)
         logger.info(
             f"Created ibis.redshift connection in {time.monotonic() - initial_time:.2f} seconds"
         )
