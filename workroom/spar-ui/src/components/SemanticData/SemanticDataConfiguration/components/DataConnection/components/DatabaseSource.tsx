@@ -1,9 +1,10 @@
+/* eslint-disable jsx-a11y/anchor-is-valid */
 import { Box, Button, Dialog, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { IconLoading } from '@sema4ai/icons';
 
-import { Link as RouterLink } from '../../../../../../common/link';
+import { DataConnection, useSupportedSemanticDataEnginesQuery } from '../../../../../../queries';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import {
   ConfigurationStep,
@@ -12,14 +13,25 @@ import {
   DataConnectionFormSchema,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
+import { CreateDataConnection } from '../../../../../DataConnection/DataConnectionConfiguration/components/Create';
 
 export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const {
     databaseInspectionState: { isLoading, error, inspectionResult },
   } = useContext(DataConnectionFormContext);
+  const [isCreatingNewDataConnection, setIsCreatingNewDataConnection] = useState(false);
+  const { data: supportedSemanticDataEngines = [], isLoading: isLoadingSupportedSemanticDataEngines } =
+    useSupportedSemanticDataEnginesQuery({});
 
-  const { watch } = useFormContext<DataConnectionFormSchema>();
+  const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
+
+  const onNewDataConnectionClose = (dataConnection?: DataConnection) => {
+    setIsCreatingNewDataConnection(false);
+    if (dataConnection) {
+      setValue('dataConnectionId', dataConnection.id);
+    }
+  };
 
   return (
     <>
@@ -38,9 +50,14 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
         <DataConnectionSelect errorMessage={error} />
         <Typography color="content.subtle.light" mt="$12">
           Use one of existing data connections or{' '}
-          <RouterLink to="/data-connections/create" params={{}}>
+          <Link
+            as="button"
+            type="button"
+            onClick={() => setIsCreatingNewDataConnection(true)}
+            disabled={isLoadingSupportedSemanticDataEngines}
+          >
             Create New
-          </RouterLink>
+          </Link>
         </Typography>
 
         {isLoading ? (
@@ -62,6 +79,9 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
           Cancel
         </Button>
       </Dialog.Actions>
+      {isCreatingNewDataConnection && (
+        <CreateDataConnection supportedEngines={supportedSemanticDataEngines} onClose={onNewDataConnectionClose} />
+      )}
     </>
   );
 };

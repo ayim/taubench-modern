@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DataConnection } from '@sema4ai/data-interface';
 
 import {
   createSparMutation,
@@ -578,3 +579,13 @@ export const useVerifyVerifiedQueryMutation = createSparMutation<
     return response.data as { verified_query: VerifiedQuery };
   },
 }));
+
+const supportedSemanticDataEngineQueryOptions = createSparQueryOptions<object>()(() => ({
+  queryKey: ['supported--semantic-data-engines'],
+  queryFn: async () => {
+    // TODO: Update once Agent Server returns this listing
+    return ['snowflake', 'redshift', 'postgres', 'databricks'] as DataConnection['engine'][];
+  },
+}));
+
+export const useSupportedSemanticDataEnginesQuery = createSparQuery(supportedSemanticDataEngineQueryOptions);

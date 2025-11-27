@@ -1,8 +1,8 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useMemo } from 'react';
 import { Box } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
-import { useDataConnectionsQuery } from '../../../../../../queries';
+import { useDataConnectionsQuery, useSupportedSemanticDataEnginesQuery } from '../../../../../../queries';
 import { SelectControlled } from '../../../../../../common/form/SelectControlled';
 import { DataConnectionIcon } from '../../../../../DataConnection/components/DataConnectionIcon';
 import { DataConnectionFormSchema } from '../../form';
@@ -14,6 +14,8 @@ type Props = {
 export const DataConnectionSelect: FC<Props> = ({ errorMessage }) => {
   const { data: dataConnections = [] } = useDataConnectionsQuery({});
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
+  const { data: supportedSemanticDataEngines = [], isLoading: isLoadingSupportedSemanticDataEngines } =
+    useSupportedSemanticDataEnginesQuery({});
   const { dataConnectionId, dataConnectionName } = watch();
 
   // Make default data connection selection based on data connection name from imported Data Model
@@ -27,11 +29,18 @@ export const DataConnectionSelect: FC<Props> = ({ errorMessage }) => {
     }
   }, [dataConnections, dataConnectionId, dataConnectionName]);
 
+  const supportedDataConnections = useMemo(() => {
+    if (!supportedSemanticDataEngines) {
+      return [];
+    }
+    return dataConnections.filter((dataConnection) => supportedSemanticDataEngines.includes(dataConnection.engine));
+  }, [dataConnections, supportedSemanticDataEngines]);
+
   return (
     <SelectControlled
       name="dataConnectionId"
-      disabled={dataConnections.length === 0}
-      items={dataConnections.map((dataConnection) => ({
+      disabled={dataConnections.length === 0 || isLoadingSupportedSemanticDataEngines}
+      items={supportedDataConnections.map((dataConnection) => ({
         label: dataConnection.name,
         value: dataConnection.id,
       }))}

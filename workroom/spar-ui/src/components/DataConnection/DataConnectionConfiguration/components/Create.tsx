@@ -4,16 +4,17 @@ import { DataConnection } from '@sema4ai/data-interface';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm, Resolver } from 'react-hook-form';
 
-import { useCreateDataConnectionMutation } from '../../../../queries';
+import { DataConnection as DataConnectionType, useCreateDataConnectionMutation } from '../../../../queries';
 import { DataConnectionForm } from './DataConnectionForm';
 
 type Props = {
-  onClose: (dataConnection?: DataConnection) => void;
+  onClose: (dataConnection?: DataConnectionType) => void;
   initialEngine?: DataConnection['engine'];
   snowflakeLinkedUser?: string;
+  supportedEngines?: DataConnection['engine'][];
 };
 
-export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine, snowflakeLinkedUser }) => {
+export const CreateDataConnection: FC<Props> = ({ supportedEngines, onClose, initialEngine, snowflakeLinkedUser }) => {
   const { addSnackbar } = useSnackbar();
   const { mutateAsync: createDataConnectionAsync, isPending } = useCreateDataConnectionMutation({});
 
@@ -24,20 +25,23 @@ export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine, snowfl
     },
   });
 
-  const onSubmit = formMethods.handleSubmit(async (values) => {
-    createDataConnectionAsync(values, {
-      onSuccess: (result) => {
-        addSnackbar({ message: 'Data connection created successfully', variant: 'success' });
-        onClose(result);
-      },
-      onError: (error: unknown) => {
-        addSnackbar({
-          message: error instanceof Error ? error.message : 'Failed to create data connection',
-          variant: 'danger',
-        });
-      },
-    });
-  });
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.stopPropagation();
+    formMethods.handleSubmit(async (values) => {
+      createDataConnectionAsync(values, {
+        onSuccess: (result) => {
+          addSnackbar({ message: 'Data connection created successfully', variant: 'success' });
+          onClose(result);
+        },
+        onError: (error: unknown) => {
+          addSnackbar({
+            message: error instanceof Error ? error.message : 'Failed to create data connection',
+            variant: 'danger',
+          });
+        },
+      });
+    })(event);
+  };
 
   return (
     <Dialog open size="x-large" onClose={onClose}>
@@ -48,7 +52,11 @@ export const CreateDataConnection: FC<Props> = ({ onClose, initialEngine, snowfl
         </Dialog.Header>
         <Dialog.Content>
           <FormProvider {...formMethods}>
-            <DataConnectionForm allowEngineChange snowflakeLinkedUser={snowflakeLinkedUser} />
+            <DataConnectionForm
+              allowEngineChange
+              snowflakeLinkedUser={snowflakeLinkedUser}
+              supportedEngines={supportedEngines}
+            />
           </FormProvider>
         </Dialog.Content>
         <Dialog.Actions>

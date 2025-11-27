@@ -16,6 +16,7 @@ import { SnowflakeCredentialField } from './SnowflakeCredentialField';
 
 type Props = {
   allowEngineChange?: boolean;
+  supportedEngines?: DataConnection['engine'][];
   snowflakeLinkedUser?: string;
 };
 
@@ -23,7 +24,7 @@ export const CONFIGURABLE_DATA_SOURCES = Object.keys(
   dataSourceConnectionConfigurationSchemaByEngine,
 ) as DataSourceEngineWithConnection[];
 
-export const DataConnectionForm: FC<Props> = ({ allowEngineChange, snowflakeLinkedUser }) => {
+export const DataConnectionForm: FC<Props> = ({ allowEngineChange, supportedEngines, snowflakeLinkedUser }) => {
   const { register, watch, setValue } = useFormContext<DataConnection>();
   const { engine, configuration } = watch();
 
@@ -45,6 +46,14 @@ export const DataConnectionForm: FC<Props> = ({ allowEngineChange, snowflakeLink
 
     return dataSourceConnectionConfigurationSchemaByEngine[engine];
   }, [engine, snowflakeCredentialType]);
+
+  const engineOptions = useMemo(() => {
+    const engines = supportedEngines || CONFIGURABLE_DATA_SOURCES;
+    return engines.map((value) => ({
+      label: customerFacingDataSourceEngineName(value),
+      value,
+    }));
+  }, [supportedEngines]);
 
   const customFields = useMemo(() => {
     return [
@@ -80,10 +89,7 @@ export const DataConnectionForm: FC<Props> = ({ allowEngineChange, snowflakeLink
         name="engine"
         label="Engine"
         iconLeft={getDataConnectionIcon(engine)}
-        items={CONFIGURABLE_DATA_SOURCES.map((value) => ({
-          label: customerFacingDataSourceEngineName(value),
-          value,
-        }))}
+        items={engineOptions}
         disabled={!allowEngineChange}
       />
       <SchemaFormFields<DataConnection, keyof DataConnection['configuration']>
