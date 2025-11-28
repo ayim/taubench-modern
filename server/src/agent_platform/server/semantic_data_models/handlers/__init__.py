@@ -20,6 +20,9 @@ from agent_platform.server.semantic_data_models.handlers.base import (
     execute_count_with_backend_handler,
     execute_query_with_backend_handler,
 )
+from agent_platform.server.semantic_data_models.handlers.mysql import (
+    MySQLBackendHandler,
+)
 from agent_platform.server.semantic_data_models.handlers.redshift import (
     RedshiftBackendHandler,
 )
@@ -30,6 +33,7 @@ from agent_platform.server.semantic_data_models.handlers.snowflake import (
 __all__ = [
     "BackendHandler",
     "DefaultBackendHandler",
+    "MySQLBackendHandler",
     "RedshiftBackendHandler",
     "SnowflakeBackendHandler",
     "execute_count_with_backend_handler",

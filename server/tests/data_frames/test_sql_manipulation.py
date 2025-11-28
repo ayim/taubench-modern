@@ -98,6 +98,81 @@ def test_update_table_names_with_schema():
     assert updated_sql.sql(dialect="postgres") == "SELECT * FROM schema.users_new"
 
 
+def test_update_column_table_qualifiers(file_regression):
+    """Test that column table qualifiers are updated from logical to physical names.
+
+    This is critical for MySQL and other databases where column table qualifiers
+    must match the actual table names in FROM/JOIN clauses.
+
+    Regression test for the issue where:
+    - Logical SQL: SELECT Invoices.document_layout FROM Invoices
+    - Table name update: SELECT Invoices.document_layout FROM invoice_documents (WRONG)
+    - Should be: SELECT invoice_documents.document_layout FROM invoice_documents (CORRECT)
+    """
+    from sqlglot import parse_one
+
+    from agent_platform.server.data_frames.sql_manipulation import (
+        update_column_table_qualifiers,
+        update_table_names,
+    )
+
+    # Test simple qualified column
+    input_sql = "SELECT Invoices.document_layout, Invoices.model_type FROM Invoices"
+    sql = parse_one(input_sql, read="mysql")
+    logical_to_physical = {"Invoices": "invoice_documents"}
+
+    # First update table names in FROM clause
+    sql = update_table_names(sql, logical_to_physical)
+    # Then update column table qualifiers
+    sql = update_column_table_qualifiers(sql, logical_to_physical)
+
+    result = sql.sql(dialect="mysql")
+
+    file_regression.check(f"""
+input-sql:
+{input_sql}
+
+logical_to_physical:
+{logical_to_physical}
+
+final-sql:
+{result}
+""")
+
+
+def test_update_column_table_qualifiers_with_joins(file_regression):
+    """Test column qualifier updates with JOIN operations."""
+    from sqlglot import parse_one
+
+    from agent_platform.server.data_frames.sql_manipulation import (
+        update_column_table_qualifiers,
+        update_table_names,
+    )
+
+    input_sql = (
+        "SELECT Orders.order_id, Items.product_id "
+        "FROM Orders JOIN Items ON Orders.id = Items.order_id"
+    )
+    sql = parse_one(input_sql, read="mysql")
+    logical_to_physical = {"Orders": "sales_orders", "Items": "order_items"}
+
+    sql = update_table_names(sql, logical_to_physical)
+    sql = update_column_table_qualifiers(sql, logical_to_physical)
+
+    result = sql.sql(dialect="mysql")
+
+    file_regression.check(f"""
+input-sql:
+{input_sql}
+
+logical_to_physical:
+{logical_to_physical}
+
+final-sql:
+{result}
+""")
+
+
 def test_get_destructive_reasons_readonly_statements():
     """Test that read-only statements return empty reasons list."""
     from sqlglot import parse_one

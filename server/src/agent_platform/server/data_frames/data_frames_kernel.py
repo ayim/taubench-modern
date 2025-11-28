@@ -255,6 +255,7 @@ class Dependencies:
         from agent_platform.server.data_frames.sql_manipulation import (
             build_ctes,
             update_column_references,
+            update_column_table_qualifiers,
             update_table_names,
             update_with_clause,
         )
@@ -330,6 +331,9 @@ class Dependencies:
 
             # Now apply transformations with consistent target dialect
             cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
+            cte_sql_ast = update_column_table_qualifiers(
+                cte_sql_ast, logical_table_name_to_actual_table_name
+            )
             cte_sql_ast = update_column_references(
                 cte_sql_ast,
                 table_name_to_column_names_to_expr,
@@ -341,6 +345,9 @@ class Dependencies:
         ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
         main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
         main_sql_ast = update_table_names(main_sql_ast, logical_table_name_to_actual_table_name)
+        main_sql_ast = update_column_table_qualifiers(
+            main_sql_ast, logical_table_name_to_actual_table_name
+        )
         main_sql_ast = update_column_references(
             main_sql_ast,
             table_name_to_column_names_to_expr,

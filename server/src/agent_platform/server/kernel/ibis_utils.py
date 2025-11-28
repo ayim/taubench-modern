@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
         DatabricksDataConnectionConfiguration,
+        MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         RedshiftDataConnectionConfiguration,
         SnowflakeCustomKeyPairConfiguration,
@@ -235,6 +236,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
 
     from agent_platform.core.payloads.data_connection import (
         DatabricksDataConnectionConfiguration,
+        MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         RedshiftDataConnectionConfiguration,
         SnowflakeCustomKeyPairConfiguration,
@@ -254,6 +256,8 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
         conn = await _create_postgres_connection(
             typing.cast(PostgresDataConnectionConfiguration, config)
         )
+    elif engine == "mysql":
+        conn = await _create_mysql_connection(typing.cast(MySQLDataConnectionConfiguration, config))
     elif engine == "redshift":
         conn = await _create_redshift_connection(
             typing.cast(RedshiftDataConnectionConfiguration, config)
@@ -378,6 +382,58 @@ async def _create_postgres_connection(config: PostgresDataConnectionConfiguratio
         error_message = _parse_connection_error(e, "postgres", config)
         logger.error(
             "Failed to create postgres connection",
+            error=error_message,
+            host=config.host,
+            port=config.port,
+            database=config.database,
+            exc_info=True,
+        )
+        raise ConnectionFailedError(error_message) from e
+
+
+async def _create_mysql_connection(config: MySQLDataConnectionConfiguration) -> Any:
+    """Create MySQL ibis connection using mysqlclient driver.
+
+    Note: Requires MySQL client libraries to be installed on the system.
+    See docs/mysql-client-setup.md for installation instructions.
+    """
+    import time
+
+    import ibis
+
+    initial_time = time.monotonic()
+    try:
+        # Build connection parameters
+        connect_params = {
+            "host": config.host,
+            "port": int(config.port),
+            "database": config.database,
+            "user": config.user,
+            "password": config.password,
+        }
+
+        # Add SSL parameters if specified
+        if config.ssl is not None:
+            connect_params["ssl"] = config.ssl
+        if config.ssl_ca is not None:
+            connect_params["ssl_ca"] = config.ssl_ca
+        if config.ssl_cert is not None:
+            connect_params["ssl_cert"] = config.ssl_cert
+        if config.ssl_key is not None:
+            connect_params["ssl_key"] = config.ssl_key
+
+        ret = await asyncio.to_thread(ibis.mysql.connect, **connect_params)
+        logger.info(
+            f"Created ibis.mysql connection in {time.monotonic() - initial_time:.2f} seconds"
+        )
+        return ret
+    except ConnectionFailedError:
+        # Re-raise our own exceptions without modification
+        raise
+    except Exception as e:
+        error_message = _parse_connection_error(e, "mysql", config)
+        logger.error(
+            "Failed to create mysql connection",
             error=error_message,
             host=config.host,
             port=config.port,

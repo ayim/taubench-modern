@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         DatabricksDataConnectionConfiguration,
         DataConnectionConfiguration,
         DataConnectionEngine,
+        MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -26,24 +27,36 @@ def semantic_data_model_resources_path(spar_resources_path: Path) -> Path:
     return spar_resources_path / "semantic_data_models"
 
 
-@pytest.fixture(scope="module", params=["postgres", "snowflake", "databricks"])
+@pytest.fixture(scope="module", params=["postgres", "snowflake", "mysql", "databricks"])
 def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
     """
     Parametrized fixture that provides the database engine to test against.
 
     When you add more engines, just add them to the params list:
-    @pytest.fixture(params=["postgres", "snowflake", "bigquery"])
+    @pytest.fixture(params=["postgres", "snowflake", "mysql", "bigquery"])
 
     All tests that use this fixture (or fixtures that depend on it) will run
     once for each engine in the params list.
 
-    Note: Snowflake tests are automatically skipped if credentials are not available.
-    PostgreSQL tests always run (using Docker Compose with hardcoded test credentials).
+    Note: Snowflake and MySQL tests are automatically skipped if not available.
+    PostgreSQL tests always run (using local Docker with hardcoded test credentials).
+
+    Environment variables to control test execution:
+    - SKIP_MYSQL_TESTS=0: Enable MySQL tests locally (default: skip in CI)
+    - Snowflake requires: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, SNOWFLAKE_WAREHOUSE
     """
     engine_name = request.param
 
+    # Skip MySQL tests by default (not available in CI)
+    # Set SKIP_MYSQL_TESTS=0 to run MySQL tests locally
+    skip_mysql = os.getenv("SKIP_MYSQL_TESTS", "1").lower() not in ("0", "false", "no")
+    if engine_name == "mysql" and skip_mysql:
+        pytest.skip(
+            "MySQL tests skipped: MySQL is not available in CI environment. "
+            "To run MySQL tests locally, set SKIP_MYSQL_TESTS=0 environment variable."
+        )
+
     # Skip Snowflake tests if credentials are not configured
-    # PostgreSQL uses local Docker with hardcoded credentials, so it always works
     if engine_name == "snowflake":
         required_env_vars = [
             "SNOWFLAKE_ACCOUNT",
@@ -85,7 +98,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
 
 @pytest.fixture(scope="module")
-def sdm_seed_data_connection_configuration(
+def sdm_seed_data_connection_configuration(  # noqa: C901
     engine: "DataConnectionEngine",
 ) -> "DataConnectionConfiguration":
     """
@@ -103,6 +116,7 @@ def sdm_seed_data_connection_configuration(
 
     from agent_platform.core.payloads.data_connection import (
         DatabricksDataConnectionConfiguration,
+        MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -117,6 +131,8 @@ def sdm_seed_data_connection_configuration(
             fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
         case "databricks":
             fields_to_collect = fields(DatabricksDataConnectionConfiguration)
+        case "mysql":
+            fields_to_collect = fields(MySQLDataConnectionConfiguration)
         case _:
             raise ValueError(f"Unsupported engine: {engine}")
 
@@ -164,6 +180,16 @@ def sdm_seed_data_connection_configuration(
             }
             config = {**defaults, **attributes_to_apply}
             return DatabricksDataConnectionConfiguration(**config)
+        case "mysql":
+            defaults = {
+                "host": "127.0.0.1",  # Use 127.0.0.1 to force TCP/IP instead of Unix socket
+                "port": 3306,
+                "database": "mydb",
+                "user": "root",
+                "password": "mymysql",
+            }
+            config = {**defaults, **attributes_to_apply}
+            return MySQLDataConnectionConfiguration(**config)
 
 
 def _load_sql_files(
@@ -293,6 +319,95 @@ def _initialize_postgres_database(
             print(f"Warning: Failed to drop test schema {test_schema}: {e}")
         finally:
             sa_engine.dispose()
+
+
+@contextmanager
+def _initialize_mysql_database(  # noqa: C901, PLR0912
+    config: "MySQLDataConnectionConfiguration",
+    resources_path: Path,
+) -> "Generator[str, Any, Any]":
+    """
+    Context manager that initializes a MySQL database for testing.
+
+    Creates a unique database, loads the DDL and DML, then cleans up on exit.
+
+    Args:
+        config: MySQL connection configuration
+        resources_path: Path to semantic data model resources
+
+    Yields:
+        str: The test database name that was created
+    """
+    import MySQLdb
+
+    # Generate a unique database name for test isolation
+    test_database = f"test_sdm_{uuid.uuid4().hex[:8]}"
+
+    # Connect to MySQL (without specifying a database initially)
+    # Force TCP/IP connection by using 127.0.0.1 instead of localhost
+    host = "127.0.0.1" if config.host == "localhost" else config.host
+    conn = MySQLdb.connect(
+        host=host,
+        port=int(config.port),
+        user=config.user,
+        password=config.password,
+    )
+
+    try:
+        cursor = conn.cursor()
+
+        # Create the test database
+        cursor.execute(f"CREATE DATABASE {test_database}")
+        cursor.execute(f"USE {test_database}")
+
+        # Load SQL files
+        schema_sql, data_sql = _load_sql_files(resources_path, "mysql")
+
+        # Execute DDL (schema)
+        # Split by semicolon and execute each statement
+        for statement in schema_sql.split(";"):
+            statement = statement.strip()  # noqa: PLW2901
+            if statement:
+                cursor.execute(statement)
+
+        # Execute DML (data)
+        for statement in data_sql.split(";"):
+            statement = statement.strip()  # noqa: PLW2901
+            if statement:
+                cursor.execute(statement)
+
+        # Load edge case schema and data if they exist
+        edge_case_schema_file = resources_path / "mysql" / "edge_cases_schema.sql"
+        edge_case_data_file = resources_path / "mysql" / "edge_cases_data.sql"
+
+        if edge_case_schema_file.exists():
+            edge_case_schema_sql = edge_case_schema_file.read_text()
+            for statement in edge_case_schema_sql.split(";"):
+                statement = statement.strip()  # noqa: PLW2901
+                if statement:
+                    cursor.execute(statement)
+
+        if edge_case_data_file.exists():
+            edge_case_data_sql = edge_case_data_file.read_text()
+            for statement in edge_case_data_sql.split(";"):
+                statement = statement.strip()  # noqa: PLW2901
+                if statement:
+                    cursor.execute(statement)
+
+        conn.commit()
+
+        yield test_database
+
+    finally:
+        # Cleanup: drop the database
+        try:
+            cursor.execute(f"DROP DATABASE IF EXISTS {test_database}")
+            conn.commit()
+        except Exception as e:
+            print(f"Warning: Failed to drop test database {test_database}: {e}")
+        finally:
+            cursor.close()
+            conn.close()
 
 
 @contextmanager
@@ -531,6 +646,7 @@ def initialize_data_base(
     """
     from agent_platform.core.payloads.data_connection import (
         DatabricksDataConnectionConfiguration,
+        MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -561,6 +677,14 @@ def initialize_data_base(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
+        case "mysql":
+            assert isinstance(
+                sdm_seed_data_connection_configuration, MySQLDataConnectionConfiguration
+            )
+            ctx = _initialize_mysql_database(
+                sdm_seed_data_connection_configuration,
+                semantic_data_model_resources_path,
+            )
         case _:
             pytest.skip(f"Engine {engine} not yet supported for database initialization")
 
@@ -570,7 +694,7 @@ def initialize_data_base(
 
 
 @pytest.fixture(scope="module")
-def sdm_data_connection_configuration(
+def sdm_data_connection_configuration(  # noqa: C901
     engine: "DataConnectionEngine", initialize_data_base: str
 ) -> "DataConnectionConfiguration":
     """
@@ -598,6 +722,7 @@ def sdm_data_connection_configuration(
 
     from agent_platform.core.payloads.data_connection import (
         DatabricksDataConnectionConfiguration,
+        MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
@@ -612,6 +737,8 @@ def sdm_data_connection_configuration(
             fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
         case "databricks":
             fields_to_collect = fields(DatabricksDataConnectionConfiguration)
+        case "mysql":
+            fields_to_collect = fields(MySQLDataConnectionConfiguration)
         case _:
             raise ValueError(f"Unsupported engine: {engine}")
 
@@ -663,6 +790,19 @@ def sdm_data_connection_configuration(
             attributes_to_apply.pop("schema", None)  # Don't allow override of test schema
             config = {**defaults, **attributes_to_apply}
             return DatabricksDataConnectionConfiguration(**config)
+        case "mysql":
+            # For Docker: use host.docker.internal to reach host's MySQL
+            # For local: can be overridden with SDM_DATA_CONNECTION_MYSQL_HOST=127.0.0.1
+            defaults = {
+                "host": "host.docker.internal",  # Docker needs this to reach host
+                "port": 3306,
+                "database": initialize_data_base,  # Uses test database from fixture
+                "user": "root",
+                "password": "mymysql",
+            }
+            attributes_to_apply.pop("database", None)  # Don't allow override
+            config = {**defaults, **attributes_to_apply}
+            return MySQLDataConnectionConfiguration(**config)
 
 
 @pytest.fixture(scope="module")

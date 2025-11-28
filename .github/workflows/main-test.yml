@@ -151,6 +151,14 @@ jobs:
       - name: Report uv cache status
         run: echo "uv cache hit? ${{ steps.uv.outputs.cache-hit }}"
 
+      - name: Install MySQL client libraries (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install mysql-client pkg-config
+          echo "$(brew --prefix mysql-client)/bin" >> $GITHUB_PATH
+          export PKG_CONFIG_PATH="$(brew --prefix mysql-client)/lib/pkgconfig"
+          echo "PKG_CONFIG_PATH=$(brew --prefix mysql-client)/lib/pkgconfig" >> $GITHUB_ENV
+
       - name: Run unit tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
         run: make test-unit PYTEST_PARALLEL=0
@@ -201,6 +209,14 @@ jobs:
           cache: true
           cache-dependency-path: |
             **/go.sum
+
+      - name: Install MySQL client libraries (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install mysql-client pkg-config
+          echo "$(brew --prefix mysql-client)/bin" >> $GITHUB_PATH
+          export PKG_CONFIG_PATH="$(brew --prefix mysql-client)/lib/pkgconfig"
+          echo "PKG_CONFIG_PATH=$(brew --prefix mysql-client)/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Build and Sign Server Executable
         run: make build

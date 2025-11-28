@@ -1,0 +1,9 @@
+
+input-sql:
+SELECT Orders.order_id, Items.product_id FROM Orders JOIN Items ON Orders.id = Items.order_id
+
+logical_to_physical:
+{'Orders': 'sales_orders', 'Items': 'order_items'}
+
+final-sql:
+SELECT sales_orders.order_id, order_items.product_id FROM sales_orders JOIN order_items ON sales_orders.id = order_items.order_id

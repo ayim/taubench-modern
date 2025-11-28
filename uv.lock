@@ -138,7 +138,7 @@ dependencies = [
     { name = "h2" },
     { name = "httpx" },
     { name = "httpx-retries" },
-    { name = "ibis-framework", extra = ["databricks", "datafusion", "duckdb", "postgres", "snowflake", "sqlite"] },
+    { name = "ibis-framework", extra = ["databricks", "datafusion", "duckdb", "mysql", "postgres", "snowflake", "sqlite"] },
     { name = "jsonpatch" },
     { name = "mcp" },
     { name = "opentelemetry-api" },
@@ -211,7 +211,7 @@ requires-dist = [
     { name = "h2", specifier = ">=4.3.0,<5.0.0" },
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "httpx-retries", specifier = ">=0.4.2,<1.0.0" },
-    { name = "ibis-framework", extras = ["datafusion", "duckdb", "postgres", "snowflake", "sqlite", "databricks"], specifier = ">=10.8.0,<11.0.0" },
+    { name = "ibis-framework", extras = ["datafusion", "duckdb", "mysql", "postgres", "snowflake", "sqlite", "databricks"], specifier = ">=10.8.0,<11.0.0" },
     { name = "ipython", marker = "extra == 'image-support'", specifier = ">=8.31.0,<9.0.0" },
     { name = "jsonpatch", specifier = ">=1.33,<2.0.0" },
     { name = "mcp", specifier = ">=1.13.1,<2.0.0" },
@@ -1293,6 +1293,14 @@ duckdb = [
     { name = "pyarrow-hotfix" },
     { name = "rich" },
 ]
+mysql = [
+    { name = "mysqlclient" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "pyarrow-hotfix" },
+    { name = "rich" },
+]
 postgres = [
     { name = "numpy" },
     { name = "pandas" },
@@ -1793,6 +1801,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/eb/d88b1780d43a56db2cba24289fa744a9d216c1a8546a0dc3956563fd53ea/multidict-6.6.4-cp312-cp312-win_amd64.whl", hash = "sha256:047d9425860a8c9544fed1b9584f0c8bcd31bcde9568b047c5e567a1025ecd6e", size = 46072, upload-time = "2025-08-11T12:07:17.045Z" },
     { url = "https://files.pythonhosted.org/packages/9f/16/b929320bf5750e2d9d4931835a4c638a19d2494a5b519caaaa7492ebe105/multidict-6.6.4-cp312-cp312-win_arm64.whl", hash = "sha256:14754eb72feaa1e8ae528468f24250dd997b8e2188c3d2f593f9eba259e4b364", size = 43222, upload-time = "2025-08-11T12:07:18.328Z" },
     { url = "https://files.pythonhosted.org/packages/fd/69/b547032297c7e63ba2af494edba695d781af8a0c6e89e4d06cf848b21d80/multidict-6.6.4-py3-none-any.whl", hash = "sha256:27d8f8e125c07cb954e54d75d04905a9bba8a439c1d84aca94949d4d03d8601c", size = 12313, upload-time = "2025-08-11T12:08:46.891Z" },
+]
+
+[[package]]
+name = "mysqlclient"
+version = "2.2.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/68/810093cb579daae426794bbd9d88aa830fae296e85172d18cb0f0e5dd4bc/mysqlclient-2.2.7.tar.gz", hash = "sha256:24ae22b59416d5fcce7e99c9d37548350b4565baac82f95e149cac6ce4163845", size = 91383, upload-time = "2025-01-10T12:06:00.763Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/b5/2a8a4bcba3440550f358b839638fe8ec9146fa3c9194890b4998a530c926/mysqlclient-2.2.7-cp312-cp312-win_amd64.whl", hash = "sha256:4b4c0200890837fc64014cc938ef2273252ab544c1b12a6c1d674c23943f3f2e", size = 208032, upload-time = "2025-01-10T11:56:29.879Z" },
 ]
 
 [[package]]

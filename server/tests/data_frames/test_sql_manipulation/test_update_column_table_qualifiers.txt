@@ -1,0 +1,9 @@
+
+input-sql:
+SELECT Invoices.document_layout, Invoices.model_type FROM Invoices
+
+logical_to_physical:
+{'Invoices': 'invoice_documents'}
+
+final-sql:
+SELECT invoice_documents.document_layout, invoice_documents.model_type FROM invoice_documents

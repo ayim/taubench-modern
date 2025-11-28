@@ -5,9 +5,7 @@ from typing import Any
 from structlog import get_logger
 
 from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
-from agent_platform.server.kernel.ibis_utils import (
-    DataConnectionInspectorError,
-)
+from agent_platform.server.kernel.ibis_utils import DataConnectionInspectorError
 
 if typing.TYPE_CHECKING:
     import pyarrow
@@ -27,6 +25,9 @@ logger = get_logger(__name__)
 # Sentinel key used to indicate a table-level error (as opposed to column-level errors)
 # in the validation results dictionary
 TABLE_VALIDATION_ERROR_KEY = "__TABLE_VALIDATION_ERROR__"
+
+# Maximum length for sample values to avoid storing huge strings in database
+MAX_SAMPLE_VALUE_LENGTH = 1024
 
 
 class TableNotFoundError(DataConnectionInspectorError):
@@ -97,6 +98,12 @@ class DataConnectionInspector:
                 table_infos.append(table_info)
 
         return DataConnectionsInspectResponse(tables=table_infos)
+
+    @classmethod
+    async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
+        from agent_platform.server.kernel import ibis_utils
+
+        return await ibis_utils.create_ibis_connection(data_connection)
 
     async def _get_table(self, table_spec: "TableToInspect") -> "Table":
         """
@@ -254,12 +261,6 @@ class DataConnectionInspector:
         return errors
 
     @classmethod
-    async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
-        from agent_platform.server.kernel import ibis_utils
-
-        return await ibis_utils.create_ibis_connection(data_connection)
-
-    @classmethod
     async def _get_all_tables(cls, connection: Any) -> "list[TableToInspect]":
         """Get all tables from the connection."""
         from agent_platform.core.payloads.data_connection import TableToInspect
@@ -270,23 +271,30 @@ class DataConnectionInspector:
         table_specs = []
         for table_name in tables:
             # For most databases, we can get schema info from the connection
+            # Note: Some backends (like MySQL) execute queries when accessing these properties,
+            # so we must use worker threads and handle gracefully if not available.
             schema = None
             database = None
 
-            # Access connection properties in worker thread to avoid blocking.
-            # Note: Some backends (e.g., Databricks) implement these as lazy-loaded
-            # properties that trigger database calls, while others (e.g., Postgres)
-            # cache them. We use try/except instead of hasattr() because hasattr()
-            # internally accesses the property, which would trigger DB calls in main thread.
+            # Try to get current_schema (may not exist or may fail)
             try:
-                schema = await asyncio.to_thread(lambda: connection.current_schema)
-            except AttributeError:
-                pass
+                schema = await asyncio.to_thread(getattr, connection, "current_schema", None)
+            except (AttributeError, Exception) as e:
+                logger.info(
+                    "Could not retrieve current_schema from connection",
+                    backend=type(connection).__name__,
+                    error=str(e),
+                )
 
+            # Try to get current_database (may not exist or may fail)
             try:
-                database = await asyncio.to_thread(lambda: connection.current_database)
-            except AttributeError:
-                pass
+                database = await asyncio.to_thread(getattr, connection, "current_database", None)
+            except (AttributeError, Exception) as e:
+                logger.info(
+                    "Could not retrieve current_database from connection",
+                    backend=type(connection).__name__,
+                    error=str(e),
+                )
 
             table_specs.append(
                 TableToInspect(
@@ -426,6 +434,31 @@ class DataConnectionInspector:
             columns=columns,
         )
 
+    def _sanitize_sample_value(self, value: Any) -> Any | None:
+        """
+        Sanitize a sample value to ensure it can be stored in PostgreSQL JSONB.
+
+        - Filters out values with null bytes (\x00) which cannot be stored in PostgreSQL text/JSONB.
+          These commonly appear in MySQL spatial/binary data types (POINT, GEOMETRY, BLOB, etc.)
+        - Truncates long strings to max 1024 characters to avoid storing huge values
+
+        Args:
+            value: Sample value to sanitize
+
+        Returns:
+            Sanitized value, or None if the value contains binary data (null bytes)
+        """
+        if isinstance(value, str):
+            # Check for null bytes - indicates binary data, return None
+            if "\x00" in value:
+                return None
+
+            # Truncate long strings to avoid storing huge values in database
+            if len(value) > MAX_SAMPLE_VALUE_LENGTH:
+                return value[:MAX_SAMPLE_VALUE_LENGTH]
+
+        return value
+
     async def _inspect_column(
         self,
         table: Any,
@@ -462,10 +495,14 @@ class DataConnectionInspector:
                 sample_values = None
             else:
                 arrow_sample_values = sample_table[column_name].to_pylist()
-                # Remove None values
-                sample_values = [
-                    convert_to_valid_json_types(v) for v in arrow_sample_values if v is not None
-                ]
+                # Convert to valid JSON types and sanitize (remove None and null bytes)
+                sample_values = []
+                for v in arrow_sample_values:
+                    if v is not None:
+                        converted = convert_to_valid_json_types(v)
+                        sanitized = self._sanitize_sample_value(converted)
+                        if sanitized is not None:
+                            sample_values.append(sanitized)
         else:
             sample_values = None
 

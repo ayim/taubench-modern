@@ -147,6 +147,9 @@ def _get_backend_registry() -> dict[str, BackendHandler]:
         A dict mapping engine names to BackendHandler instances
     """
     # Import handlers here to avoid circular imports
+    from agent_platform.server.semantic_data_models.handlers.mysql import (
+        MySQLBackendHandler,
+    )
     from agent_platform.server.semantic_data_models.handlers.redshift import (
         RedshiftBackendHandler,
     )
@@ -157,6 +160,7 @@ def _get_backend_registry() -> dict[str, BackendHandler]:
     registry = {
         "snowflake": SnowflakeBackendHandler(),
         "redshift": RedshiftBackendHandler(),
+        "mysql": MySQLBackendHandler(),
         "default": DefaultBackendHandler(),
     }
 

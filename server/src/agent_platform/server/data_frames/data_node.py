@@ -312,11 +312,21 @@ def _convert_arrow_to_format(
 _VALID_PY_TYPES = int | float | bool | str | None
 
 
-def convert_to_valid_json_types(as_py: Any) -> str | int | float | bool | list | dict | None:
+def convert_to_valid_json_types(  # noqa: PLR0911
+    as_py: Any,
+) -> str | int | float | bool | list | dict | None:
     if isinstance(as_py, _VALID_PY_TYPES):
         return as_py
     if isinstance(as_py, datetime.datetime):
         return as_py.isoformat()
+    elif isinstance(as_py, bytes):
+        # Decode bytes to string (e.g., from MySQL JSON extractions)
+        # Use utf-8 with error handling for malformed data
+        try:
+            return as_py.decode("utf-8")
+        except UnicodeDecodeError:
+            # Fallback to latin-1 which accepts all byte values
+            return as_py.decode("latin-1")
     elif isinstance(as_py, list | tuple):
         return [convert_to_valid_json_types(v) for v in as_py]
     elif isinstance(as_py, dict):

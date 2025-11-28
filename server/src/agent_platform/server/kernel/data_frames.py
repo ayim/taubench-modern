@@ -309,6 +309,76 @@ def _get_snowflake_variant_guidance(model: SemanticDataModel) -> str:
     return "\n".join(guidance_parts)
 
 
+def _get_mysql_json_guidance(model: SemanticDataModel) -> str:
+    """
+    Generate MySQL-specific JSON column guidance for a semantic data model.
+
+    Scans the model for JSON columns and returns targeted guidance on MySQL JSON
+    syntax, operators, and functions.
+
+    Args:
+        model: The semantic data model to scan for JSON columns
+
+    Returns:
+        A formatted guidance string if JSON columns are found, empty string otherwise
+    """
+    json_columns = []
+    tables = model.get("tables", [])
+
+    # Scan for JSON columns in the semantic data model
+    if tables:
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+            table_name = table.get("name", "")
+
+            # Check all column categories
+            for category in ["dimensions", "facts", "metrics", "time_dimensions"]:
+                columns = table.get(category, [])
+                if isinstance(columns, list):
+                    for col in columns:
+                        if isinstance(col, dict):
+                            data_type = col.get("data_type", "").lower()
+                            col_name = col.get("name", "")
+                            if data_type == "json" and col_name:
+                                json_columns.append(f"{table_name}.{col_name}")
+
+    # Generate guidance if JSON columns are detected
+    if not json_columns:
+        return ""
+
+    cols = ", ".join(json_columns)
+    guidance_parts = [
+        "\n  MySQL JSON Column Rules:",
+        f"• JSON columns ({cols}):",
+        "  - Path syntax: ALWAYS use '$.path' (dollar sign required) for JSON_EXTRACT and paths",
+        "  - Extract as JSON: col->'$.field' or JSON_EXTRACT(col, '$.field')",
+        "  - Extract as string: col->>'$.field' or JSON_UNQUOTE(JSON_EXTRACT(col, '$.field'))",
+        "  - Nested paths: col->'$.field.subfield' or col->'$.field.subfield[0]'",
+        "  - Array elements: col->'$.array[0]' for first element (0-indexed)",
+        "  - Filter: WHERE col->>'$.brand' = 'value' or WHERE JSON_EXTRACT(col, '$.brand') = '\"value\"'",
+        "  - Check contains: JSON_CONTAINS(col, '\"value\"', '$.path')",
+        "  - Search in JSON: JSON_SEARCH(col, 'one', 'searchtext', NULL, '$.path')",
+        "",
+        "  ⚠️ CRITICAL: Aggregating JSON arrays (SUM/COUNT/AVG):",
+        "  - JSON_TABLE requires JSON type input - use JSON_EXTRACT (NOT JSON_UNQUOTE) or reference column directly",
+        "  - WRONG: JSON_UNQUOTE(JSON_EXTRACT(col, '$.array')) then JSON_TABLE(result, ...) - converts to string!",
+        "  - CORRECT: JSON_TABLE(col, '$.array[*]' ...) or JSON_TABLE(JSON_EXTRACT(col, '$.array'), '$[*]' ...)",
+        "  - JSON_TABLE MUST be in FROM clause with CROSS JOIN - NEVER in SELECT",
+        "  - Pattern: FROM base_table CROSS JOIN JSON_TABLE(base_table.json_col, '$.array[*]' COLUMNS (...)) AS alias",
+        "  - Example:",
+        "      SELECT base.id, SUM(items.amount) AS total",
+        "        FROM my_table AS base",
+        "        CROSS JOIN JSON_TABLE(base.json_col, '$.line_items[*]' COLUMNS (amount DECIMAL(10,2) PATH '$.amount')) AS items",
+        "      GROUP BY base.id;",
+        "",
+        f"  - WRONG: WHERE {cols}:brand = 'value' (colon syntax doesn't work in MySQL)",
+        f"  - CORRECT: WHERE {cols}->>'$.brand' = 'value' or JSON_EXTRACT({cols}, '$.brand') = '\"value\"'",
+    ]
+
+    return "\n".join(guidance_parts)
+
+
 def _convert_semantic_data_model_to_context_string(
     data: list[tuple[SemanticDataModel, str]],
 ) -> str:
@@ -358,6 +428,10 @@ def _convert_semantic_data_model_to_context_string(
             postgres_guidance = _get_postgres_json_guidance(model)
             if postgres_guidance:
                 result.append(postgres_guidance)
+        elif engine == "mysql":
+            mysql_guidance = _get_mysql_json_guidance(model)
+            if mysql_guidance:
+                result.append(mysql_guidance)
 
         # Tables
         tables = model.pop("tables", [])

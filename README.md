@@ -54,6 +54,18 @@ Available targets:
 
 Good to know these for more advanced config or fixing issues.
 
+### Prerequisites
+
+1. **MySQL Client Libraries** (required for MySQL data connections):
+   - See the [MySQL Client Setup Guide](docs/mysql-client-setup.md) for detailed instructions
+   - Quick start for macOS:
+     ```bash
+     brew install mysql-client pkg-config
+     export PATH="$(brew --prefix)/opt/mysql-client/bin:$PATH"
+     export PKG_CONFIG_PATH="$(brew --prefix)/opt/mysql-client/lib/pkgconfig"
+     # Add to ~/.zshrc to make permanent
+     ```
+
 Working with `uv`:
 
 1. You need `uv` installed - see: <https://docs.astral.sh/uv/getting-started/installation/>

@@ -61,6 +61,7 @@ ibis_metadata = copy_metadata("ibis-framework")
 ibis_hiddenimports = []
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.datafusion"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.duckdb"))
+ibis_hiddenimports.extend(collect_submodules("ibis.backends.mysql"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.postgres"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.snowflake"))
 ibis_hiddenimports.extend(collect_submodules("ibis.backends.sqlite"))
@@ -104,6 +105,8 @@ psycopg_datas, psycopg_binaries, psycopg_hiddenimports = collect_all("psycopg")
 psyco_binary_datas, psyco_binary_binaries, psyco_binary_hiddenimports = collect_all(
     "psycopg_binary"
 )
+logger.info("Collecting all for mysqlclient...")
+mysqlclient_datas, mysqlclient_binaries, mysqlclient_hiddenimports = collect_all("MySQLdb")
 di_datas, di_binaries, di_hiddenimports = collect_all("sema4ai_docint")
 
 # Handle wasmtime: ensure native lib is placed in the correct platform subdir
@@ -163,6 +166,7 @@ ALL_BINARIES = [
     *tiktoken_binaries,
     *psycopg_binaries,
     *psyco_binary_binaries,
+    *mysqlclient_binaries,
     *numpy_binaries,
     *pandas_binaries,
     *numpy_libs_binaries,
@@ -198,6 +202,7 @@ ALL_DATAS = [
     # *tiktoken_datas,
     *psycopg_datas,
     *psyco_binary_datas,
+    *mysqlclient_datas,
     ("LICENSE", "."),
     (
         "src/agent_platform/server/work_items",
@@ -246,6 +251,7 @@ a = Analysis(
         *tiktoken_ext_submodules,
         *psycopg_hiddenimports,
         *psyco_binary_hiddenimports,
+        *mysqlclient_hiddenimports,
         *di_hiddenimports,
         *ibis_hiddenimports,
         *sqlglot_hiddenimports,

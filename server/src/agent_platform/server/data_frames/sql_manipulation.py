@@ -134,6 +134,48 @@ def update_table_names(
     return main_sql_ast
 
 
+def update_column_table_qualifiers(
+    main_sql_ast: Expression,
+    logical_table_name_to_actual_table_name: dict[str, str],
+) -> Expression:
+    """
+    Update table qualifiers in column references from logical to physical table names.
+
+    This is critical for MySQL and other databases that require table qualifiers in
+    column references to match the actual table names in FROM/JOIN clauses.
+
+    This function should be called AFTER update_table_names() to fix column qualifiers.
+
+    Complete transformation flow:
+        1. Original: SELECT Invoices.document_id FROM Invoices
+        2. After update_table_names():
+           SELECT Invoices.document_id FROM invoice_documents (BROKEN)
+        3. After update_column_table_qualifiers():
+           SELECT invoice_documents.document_id FROM invoice_documents (FIXED)
+
+    Args:
+        main_sql_ast: The sqlglot AST to modify
+        logical_table_name_to_actual_table_name: Mapping of logical to physical table names
+
+    Returns:
+        The modified AST with column table qualifiers updated
+    """
+    from sqlglot import exp
+
+    if not logical_table_name_to_actual_table_name:
+        return main_sql_ast  # Nothing to change
+
+    # Update all column table qualifiers
+    for column in main_sql_ast.find_all(exp.Column):
+        if column.table and column.table in logical_table_name_to_actual_table_name:
+            column.set(
+                "table",
+                exp.to_identifier(logical_table_name_to_actual_table_name[column.table]),
+            )
+
+    return main_sql_ast
+
+
 def _find_column_mapping_for_column(
     column_name: str,
     table_name: str | None,
