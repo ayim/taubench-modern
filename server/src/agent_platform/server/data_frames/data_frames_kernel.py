@@ -184,6 +184,7 @@ class Dependencies:
 
                 initial_time = time.monotonic()
                 con = ibis.duckdb.connect()
+                con.__s4engine__ = "duckdb"
                 logger.info(
                     f"Created ibis.duckdb connection in "
                     f"{time.monotonic() - initial_time:.2f} seconds"

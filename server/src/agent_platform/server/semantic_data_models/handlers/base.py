@@ -124,6 +124,8 @@ def _get_engine_name(ibis_expr: Any) -> str:
     Returns:
         The engine name from database backend or "default" if not found
 
+    Raises:
+        ValueError: If no engine name is found in the ibis expression
     """
     backend = _get_backend_from_expr(ibis_expr)
 
@@ -131,7 +133,7 @@ def _get_engine_name(ibis_expr: Any) -> str:
     if hasattr(backend, "__s4engine__"):
         return backend.__s4engine__
 
-    return "default"
+    raise ValueError("No engine name found in ibis expression")
 
 
 @functools.cache
