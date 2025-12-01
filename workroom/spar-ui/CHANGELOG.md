@@ -1,5 +1,28 @@
 # @sema4ai/spar-ui
 
+## 0.9.0
+
+### Minor Changes
+
+- 7f5862d: Added hidden "chat" page to talk to the new pre-installed agent in agent-server.
+- 2b7ec12: Fix array field deletion bug and add schema-lib tests
+  - Fix deletion of nested array fields to preserve array structure
+  - Add 88 tests for schema-lib covering all API functions and edge cases
+- 57684b6: Fix schema editor: enable nested field deletion in arrays and add cascading deletion UI
+
+### Patch Changes
+
+- 5c0d0bd: Provide only supported Data Connection types to Semantic Data Model creation dialog
+- b9d0a59: Add possibility to enable and disable existing observability integration, fixing zod resolver for react-hook-form usages
+- 8d7a7e3: Expose new extract-only UI for docint.
+- b96ee53: Swap import/export evaluation icons
+- 9676e5f: fix: remove reset filters from work items overview table
+- 28c0202: Move Create Verified Query creation from Data Frames sidebar to Action envelope
+- 701674e: Fix Semantic Data Model YAML file empty file reference does not trigger import
+- 8581866: Optimize scenario run fetching during batch run
+- f578a3b: chore: update border colors
+- 7d7dd3b: Fix attachment rendering duplicates between threads
+
 ## 0.8.0
 
 ### Minor Changes
