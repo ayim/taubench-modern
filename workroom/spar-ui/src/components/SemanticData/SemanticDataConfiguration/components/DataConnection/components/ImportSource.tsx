@@ -28,7 +28,7 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
       const model = yamlParse(text);
       const values = semanticModelToFormSchema(model);
 
-      if (values.fileRefId) {
+      if (typeof values.fileRefId === 'string') {
         values.fileRefId = file.name;
       }
 

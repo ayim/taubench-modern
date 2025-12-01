@@ -135,7 +135,7 @@ export const DataSelector = ({
           return (
             <TreeList.Checkbox
               key={table.name}
-              open={selecteditems > 0}
+              open={selecteditems > 0 && data.length === 1}
               checked={isTableSelected(table.name) !== false}
               indeterminate={isTableSelected(table.name) === 'partial'}
               onChange={() => toggleTableSelection(table.name)}
