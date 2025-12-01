@@ -1,5 +1,5 @@
 import { useFormContext } from 'react-hook-form';
-import { Divider, Form, Select } from '@sema4ai/components';
+import { Divider, Form, Select, Switch } from '@sema4ai/components';
 import { ObservabilitySettings } from '../../../queries/integrations';
 import { ObservabilitySettingsFormSchema } from './observabilitySettingsSchema';
 import { InputControlled } from '../../../common/form/InputControlled';
@@ -51,32 +51,55 @@ type Props = {
 };
 
 export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
-  const { watch, reset } = useFormContext<ObservabilitySettingsFormSchema>();
-  const { provider } = watch();
+  const { watch, reset, setValue } = useFormContext<ObservabilitySettingsFormSchema>();
+  const { provider, is_enabled: isEnabled } = watch();
 
   return (
     <Form.Fieldset>
+      <Switch
+        label="Enabled"
+        description="Enable or disable observability"
+        checked={isEnabled}
+        onChange={(e) => {
+          const enabled = e.target.checked;
+          /**
+           * If we are editing an existing integration, we want to reset the form to the default values
+           * when it's being disabled.
+           */
+          if (!enabled && defaultValues) {
+            reset(defaultValues);
+          }
+
+          setValue('is_enabled', enabled);
+        }}
+      />
+
       <Select
         aria-label="Vendor"
         label="Vendor"
         description="Name of the OTEL vendor"
         items={observabilityProviderOptions}
         value={provider}
+        disabled={!isEnabled}
         onChange={(value) => {
           if (defaultValues && value === defaultValues.provider) {
             reset(defaultValues);
           } else {
-            reset({ provider: value as ObservabilitySettings['provider'], url: '' });
+            reset({ provider: value as ObservabilitySettings['provider'], url: '', is_enabled: true });
           }
         }}
       />
 
       <Divider />
 
-      {provider === 'langsmith' && <LangsmithSettingsFields />}
-      {provider === 'grafana' && <GrafanaSettingsFields />}
+      {isEnabled && (
+        <>
+          {provider === 'langsmith' && <LangsmithSettingsFields />}
+          {provider === 'grafana' && <GrafanaSettingsFields />}
 
-      {!!provider && <Divider />}
+          {!!provider && <Divider />}
+        </>
+      )}
     </Form.Fieldset>
   );
 };

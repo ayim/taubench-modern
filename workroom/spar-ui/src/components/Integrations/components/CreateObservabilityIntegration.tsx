@@ -16,7 +16,9 @@ export const CreateObservabilityIntegration = () => {
 
   const formMethods = useForm<ObservabilitySettingsFormSchema>({
     resolver: zodResolver(observabilitySettingsSchema),
-    defaultValues: {},
+    defaultValues: {
+      is_enabled: false,
+    },
     mode: 'onChange',
   });
 

@@ -6,8 +6,9 @@ export const otelProviders = ['langsmith', 'grafana'] as const;
 
 export const observabilitySettingsSchema = z
   .object({
+    is_enabled: z.boolean(),
     provider: z.enum(otelProviders),
-    url: z.string().url(),
+    url: z.url(),
     // LangSmith fields
     project_name: z.string().optional(),
     api_key: z.string().optional(),
@@ -55,11 +56,16 @@ export const observabilitySettingsSchema = z
 export type ObservabilitySettingsFormSchema = z.infer<typeof observabilitySettingsSchema>;
 
 export const apiResponseToFormValues = (data: ObservabilitySettings): ObservabilitySettingsFormSchema => {
+  const baseFormValues: ObservabilitySettingsFormSchema = {
+    is_enabled: data.is_enabled,
+    provider: data.provider,
+    url: data.url,
+  };
+
   // Handle discriminated union properly
   if (data.provider === 'langsmith') {
     return {
-      provider: data.provider,
-      url: data.url,
+      ...baseFormValues,
       project_name: data.project_name,
       api_key: apiSecretValueToString(data.api_key),
     };
@@ -67,8 +73,7 @@ export const apiResponseToFormValues = (data: ObservabilitySettings): Observabil
 
   if (data.provider === 'grafana') {
     return {
-      provider: data.provider,
-      url: data.url,
+      ...baseFormValues,
       api_token: apiSecretValueToString(data.api_token),
       grafana_instance_id: data.grafana_instance_id,
       additional_headers: data.additional_headers || undefined,
@@ -81,7 +86,7 @@ export const apiResponseToFormValues = (data: ObservabilitySettings): Observabil
 export const toObservabilitySettings = (data: ObservabilitySettingsFormSchema): ObservabilitySettings => {
   if (data.provider === 'langsmith') {
     return {
-      is_enabled: true,
+      is_enabled: data.is_enabled,
       provider: data.provider,
       url: data.url || '',
       api_key: data.api_key || '',
@@ -91,7 +96,7 @@ export const toObservabilitySettings = (data: ObservabilitySettingsFormSchema): 
 
   if (data.provider === 'grafana') {
     return {
-      is_enabled: true,
+      is_enabled: data.is_enabled,
       provider: data.provider,
       url: data.url || '',
       api_token: data.api_token || '',
