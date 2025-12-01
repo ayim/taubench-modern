@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         DataConnectionEngine,
         MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
+        RedshiftDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
 
@@ -27,7 +28,7 @@ def semantic_data_model_resources_path(spar_resources_path: Path) -> Path:
     return spar_resources_path / "semantic_data_models"
 
 
-@pytest.fixture(scope="module", params=["postgres", "snowflake", "mysql", "databricks"])
+@pytest.fixture(scope="module", params=["postgres", "snowflake", "mysql", "databricks", "redshift"])
 def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
     """
     Parametrized fixture that provides the database engine to test against.
@@ -94,11 +95,31 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
                 "DATABRICKS_SCHEMA (default: default)"
             )
 
+    # Skip Redshift tests if credentials are not configured
+    if engine_name == "redshift":
+        required_env_vars = [
+            "REDSHIFT_HOST",
+            "REDSHIFT_PORT",
+            "REDSHIFT_DATABASE",
+            "REDSHIFT_USER",
+            "REDSHIFT_PASSWORD",
+        ]
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+
+        if missing_vars:
+            missing = ", ".join(missing_vars)
+            pytest.skip(
+                f"Redshift tests skipped: missing environment variables: {missing}. "
+                "Redshift requires cloud credentials. "
+                "Set these environment variables to run Redshift tests. "
+                "Optional: REDSHIFT_SCHEMA (default: public)"
+            )
+
     return engine_name
 
 
 @pytest.fixture(scope="module")
-def sdm_seed_data_connection_configuration(  # noqa: C901
+def sdm_seed_data_connection_configuration(  # noqa: C901, PLR0912
     engine: "DataConnectionEngine",
 ) -> "DataConnectionConfiguration":
     """
@@ -118,6 +139,7 @@ def sdm_seed_data_connection_configuration(  # noqa: C901
         DatabricksDataConnectionConfiguration,
         MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
+        RedshiftDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
 
@@ -131,6 +153,8 @@ def sdm_seed_data_connection_configuration(  # noqa: C901
             fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
         case "databricks":
             fields_to_collect = fields(DatabricksDataConnectionConfiguration)
+        case "redshift":
+            fields_to_collect = fields(RedshiftDataConnectionConfiguration)
         case "mysql":
             fields_to_collect = fields(MySQLDataConnectionConfiguration)
         case _:
@@ -180,6 +204,17 @@ def sdm_seed_data_connection_configuration(  # noqa: C901
             }
             config = {**defaults, **attributes_to_apply}
             return DatabricksDataConnectionConfiguration(**config)
+        case "redshift":
+            defaults = {
+                "host": os.getenv("REDSHIFT_HOST"),
+                "port": int(os.getenv("REDSHIFT_PORT", "5439")),
+                "database": os.getenv("REDSHIFT_DATABASE"),
+                "user": os.getenv("REDSHIFT_USER"),
+                "password": os.getenv("REDSHIFT_PASSWORD"),
+                "schema": os.getenv("REDSHIFT_SCHEMA", "public"),  # Base schema
+            }
+            config = {**defaults, **attributes_to_apply}
+            return RedshiftDataConnectionConfiguration(**config)
         case "mysql":
             defaults = {
                 "host": "127.0.0.1",  # Use 127.0.0.1 to force TCP/IP instead of Unix socket
@@ -623,6 +658,125 @@ def _initialize_databricks_database(  # noqa: C901
             conn.close()
 
 
+@contextmanager
+def _initialize_redshift_database(  # noqa: C901, PLR0912, PLR0915
+    config: "RedshiftDataConnectionConfiguration",
+    resources_path: Path,
+) -> "Generator[str, Any, Any]":
+    """
+    Context manager that initializes a Redshift database for testing.
+
+    Creates a unique schema, loads the DDL and DML, then cleans up on exit.
+
+    Args:
+        config: Redshift connection configuration
+        resources_path: Path to semantic data model resources
+
+    Yields:
+        str: The test schema name that was created
+    """
+    import redshift_connector
+
+    # Generate a unique schema name for test isolation
+    test_schema = f"test_sdm_{uuid.uuid4().hex[:8]}"
+
+    # Connect to Redshift using redshift_connector
+    # Note: We use redshift_connector instead of psycopg2/3 for better Redshift compatibility
+    conn_params = {
+        "host": config.host,
+        "port": int(config.port),
+        "database": config.database,
+        "user": config.user,
+        "password": config.password,
+    }
+
+    # Add SSL mode if specified
+    if config.sslmode:
+        conn_params["ssl"] = config.sslmode.value != "disable"
+
+    conn = redshift_connector.connect(**conn_params)
+
+    # Load SQL files
+    schema_sql, data_sql = _load_sql_files(resources_path, "redshift")
+
+    try:
+        cursor = conn.cursor()
+
+        # Create the test schema
+        cursor.execute(f"CREATE SCHEMA {test_schema}")
+
+        # Set the search path to our test schema so all tables get created there
+        cursor.execute(f"SET search_path TO {test_schema}")
+
+        # Split SQL into statements, filtering out empty ones and comments-only
+        def clean_statements(sql: str) -> list[str]:
+            statements = []
+            for raw_stmt in sql.split(";"):
+                # Remove leading/trailing whitespace
+                stmt = raw_stmt.strip()
+                # Remove lines that are only comments
+                lines = [
+                    line
+                    for line in stmt.split("\n")
+                    if line.strip() and not line.strip().startswith("--")
+                ]
+                cleaned = "\n".join(lines).strip()
+                if cleaned:
+                    statements.append(cleaned)
+            return statements
+
+        # Execute DDL (schema)
+        ddl_statements = clean_statements(schema_sql)
+        for statement in ddl_statements:
+            cursor.execute(statement)
+
+        # Execute DML (data)
+        dml_statements = clean_statements(data_sql)
+        for statement in dml_statements:
+            cursor.execute(statement)
+
+        # Load edge case schema and data if they exist
+        edge_case_schema_file = resources_path / "redshift" / "edge_cases_schema.sql"
+        if edge_case_schema_file.exists():
+            edge_case_schema_sql = edge_case_schema_file.read_text()
+            for statement in clean_statements(edge_case_schema_sql):
+                cursor.execute(statement)
+
+        edge_case_data_file = resources_path / "redshift" / "edge_cases_data.sql"
+        if edge_case_data_file.exists():
+            edge_case_data_sql = edge_case_data_file.read_text()
+            for statement in clean_statements(edge_case_data_sql):
+                cursor.execute(statement)
+
+        conn.commit()
+        yield test_schema
+
+    finally:
+        # Cleanup: drop the schema and everything in it
+        # Create a fresh connection for cleanup to avoid connection closure issues
+        try:
+            cleanup_conn = redshift_connector.connect(**conn_params)
+            cleanup_cursor = cleanup_conn.cursor()
+            cleanup_cursor.execute(f"DROP SCHEMA IF EXISTS {test_schema} CASCADE")
+            cleanup_conn.commit()
+            cleanup_cursor.close()
+            cleanup_conn.close()
+        except Exception as e:
+            print(f"Warning: Failed to drop test schema {test_schema}: {e}")
+        finally:
+            # Close the original connection if still open
+            try:
+                if cursor:
+                    cursor.close()
+            except Exception:
+                pass
+            try:
+                if conn:
+                    conn.close()
+            except Exception:
+                pass
+
+
 @pytest.fixture(scope="module")
 def initialize_data_base(
     engine: "DataConnectionEngine",
@@ -648,6 +802,7 @@ def initialize_data_base(
         DatabricksDataConnectionConfiguration,
         MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
+        RedshiftDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
 
@@ -677,6 +832,14 @@ def initialize_data_base(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
+        case "redshift":
+            assert isinstance(
+                sdm_seed_data_connection_configuration, RedshiftDataConnectionConfiguration
+            )
+            ctx = _initialize_redshift_database(
+                sdm_seed_data_connection_configuration,
+                semantic_data_model_resources_path,
+            )
         case "mysql":
             assert isinstance(
                 sdm_seed_data_connection_configuration, MySQLDataConnectionConfiguration
@@ -694,7 +857,7 @@ def initialize_data_base(
 
 
 @pytest.fixture(scope="module")
-def sdm_data_connection_configuration(  # noqa: C901
+def sdm_data_connection_configuration(  # noqa: C901, PLR0912
     engine: "DataConnectionEngine", initialize_data_base: str
 ) -> "DataConnectionConfiguration":
     """
@@ -724,6 +887,7 @@ def sdm_data_connection_configuration(  # noqa: C901
         DatabricksDataConnectionConfiguration,
         MySQLDataConnectionConfiguration,
         PostgresDataConnectionConfiguration,
+        RedshiftDataConnectionConfiguration,
         SnowflakeDataConnectionConfiguration,
     )
 
@@ -737,6 +901,8 @@ def sdm_data_connection_configuration(  # noqa: C901
             fields_to_collect = fields(SnowflakeDataConnectionConfiguration)
         case "databricks":
             fields_to_collect = fields(DatabricksDataConnectionConfiguration)
+        case "redshift":
+            fields_to_collect = fields(RedshiftDataConnectionConfiguration)
         case "mysql":
             fields_to_collect = fields(MySQLDataConnectionConfiguration)
         case _:
@@ -790,6 +956,18 @@ def sdm_data_connection_configuration(  # noqa: C901
             attributes_to_apply.pop("schema", None)  # Don't allow override of test schema
             config = {**defaults, **attributes_to_apply}
             return DatabricksDataConnectionConfiguration(**config)
+        case "redshift":
+            defaults = {
+                "host": os.getenv("REDSHIFT_HOST"),
+                "port": int(os.getenv("REDSHIFT_PORT", "5439")),
+                "database": os.getenv("REDSHIFT_DATABASE"),
+                "user": os.getenv("REDSHIFT_USER"),
+                "password": os.getenv("REDSHIFT_PASSWORD"),
+                "schema": initialize_data_base,  # Uses test schema from fixture
+            }
+            attributes_to_apply.pop("schema", None)  # Don't allow override of test schema
+            config = {**defaults, **attributes_to_apply}
+            return RedshiftDataConnectionConfiguration(**config)
         case "mysql":
             # For Docker: use host.docker.internal to reach host's MySQL
             # For local: can be overridden with SDM_DATA_CONNECTION_MYSQL_HOST=127.0.0.1

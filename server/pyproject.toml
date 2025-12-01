@@ -50,4 +50,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["jsonschema>=4.24.0"]
+dev = [
+    "jsonschema>=4.24.0",
+    "redshift-connector>=2.0.0,<3.0.0",
+]
