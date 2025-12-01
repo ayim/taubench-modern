@@ -4,12 +4,13 @@ import { IconCheck2, IconCopy } from '@sema4ai/icons';
 
 import { CodeProps, Code as CodeBase } from './Code';
 
-export const Code: FC<CodeProps> = ({ value, ...restProps }) => {
+export const Code: FC<CodeProps> = ({ value, toolbar: customToolbar, ...restProps }) => {
   const { onCopyToClipboard, copiedToClipboard } = useClipboard();
 
   const toolbar = useMemo(() => {
     return (
-      <Box display="flex" justifyContent="center" minWidth={40}>
+      <Box display="flex" gap="$6" justifyContent="center" minWidth={40}>
+        {customToolbar}
         <Tooltip text="Copy to clipboard">
           <Button
             aria-label="Copy to clipboard"
@@ -22,7 +23,7 @@ export const Code: FC<CodeProps> = ({ value, ...restProps }) => {
         </Tooltip>
       </Box>
     );
-  }, [value, copiedToClipboard]);
+  }, [value, customToolbar, copiedToClipboard]);
 
   return (
     <Suspense fallback="">

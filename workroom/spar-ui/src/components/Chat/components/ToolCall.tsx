@@ -246,7 +246,7 @@ export const ToolCall: FC<Props> = ({ content }) => {
         running={state === 'in_progress'}
         error={state === 'failed'}
       >
-        <DataFramesQueryOutput content={content} />
+        <DataFramesQueryOutput content={content} isDone={state === 'done'} />
         {result ? <Code title="Tool call" value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (

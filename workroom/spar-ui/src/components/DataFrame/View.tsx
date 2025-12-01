@@ -13,7 +13,6 @@ import {
 } from '../../queries/dataFrames';
 import { useDownloadCSV } from '../../hooks/useDownloadCSV';
 import { AssemblyInfoDialog } from './AssemblyInfoDialog';
-import { CreateVerifiedQueryFromDataFrameDialog } from './CreateVerifiedQueryFromDataFrameDialog';
 
 const MAX_DOWNLOAD_SIZE_MB = 10;
 const MAX_DOWNLOAD_SIZE = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
@@ -133,7 +132,6 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
 }) => {
   const [isMenuListOpen, setIsMenuListOpen] = useState(false);
   const [isAssemblyInfoDialogOpen, setIsAssemblyInfoDialogOpen] = useState(false);
-  const [isCreateVerifiedQueryDialogOpen, setIsCreateVerifiedQueryDialogOpen] = useState(false);
   const dataFrameCount = dataFrames.length;
 
   const { fetchNextPage } = useDataFrameSliceInfiniteQuery({
@@ -230,12 +228,6 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                 >
                   Show Lineage
                 </Menu.Item>
-                <Menu.Item
-                  onClick={() => setIsCreateVerifiedQueryDialogOpen(true)}
-                  description="Save in Data Model as Verified Query"
-                >
-                  Create Verified Query
-                </Menu.Item>
               </Menu>
               {dataFrameCount > 1 && (
                 <Menu
@@ -272,13 +264,6 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
         onClose={() => setIsAssemblyInfoDialogOpen(false)}
         dataFrameName={activeDataFrame.name}
         assemblyInfo={assemblyInfo}
-      />
-      <CreateVerifiedQueryFromDataFrameDialog
-        open={isCreateVerifiedQueryDialogOpen}
-        onClose={() => setIsCreateVerifiedQueryDialogOpen(false)}
-        threadId={activeDataFrame.thread_id}
-        agentId={agentId}
-        dataFrameName={activeDataFrame.name}
       />
     </Box>
   );
