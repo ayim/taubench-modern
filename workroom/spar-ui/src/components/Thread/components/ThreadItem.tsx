@@ -9,9 +9,10 @@ import { formatDateTime } from '../../../common/helpers';
 import { SidebarLink } from '../../../common/link';
 import { useFeatureFlag, useNavigate, useParams } from '../../../hooks';
 import { ServerResponse } from '../../../queries/shared';
-import { useDeleteThreadMutation, useUpdateThreadMutation } from '../../../queries/threads';
+import { useDeleteThreadMutation, useThreadMessagesQuery, useUpdateThreadMutation } from '../../../queries/threads';
 import { SparUIFeatureFlag } from '../../../api';
 import { ThreadNameDisplay } from './ThreadNameDisplay';
+import { getThreadMakrdown } from '../../Chat/utils/threadContentMarkdown';
 
 type ThreadItemProps = {
   item: ServerResponse<'get', '/api/v2/threads/'>[number] & {
@@ -52,6 +53,18 @@ const Container = styled(Box)`
   }
 `;
 
+const downloadMarkdown = (filename: string, content: string) => {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, createdAt }) => {
   return (
     <>
@@ -87,6 +100,8 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
   const { agentId, threadId: activeThreadId } = useParams('/thread/$agentId/$threadId');
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
   const { mutate: updateThread, isSuccess: isManualThreadRenameSuccess } = useUpdateThreadMutation({ agentId });
+  const { refetch: fetchThreadMessages } = useThreadMessagesQuery({ threadId: activeThreadId }, { enabled: false });
+
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [isRenaming, setIsRenaming] = useState(false);
@@ -137,6 +152,23 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
       },
     );
   };
+  const onThreadTranscriptDownload = async () => {
+    try {
+      const messagesResult = await fetchThreadMessages();
+
+      if (messagesResult.error || !Array.isArray(messagesResult.data)) {
+        throw new Error('Failed to download');
+      }
+
+      const markdownContent = getThreadMakrdown(activeThreadId, messagesResult.data);
+      downloadMarkdown(`${activeThreadId}.md`, markdownContent);
+    } catch (error) {
+      addSnackbar({
+        message: 'Failed to download conversation transcript',
+        variant: 'danger',
+      });
+    }
+  };
 
   return (
     <Tooltip text={<ToolTipContent name={thread.name} createdAt={thread?.created_at} />} placement="bottom-end" $nowrap>
@@ -170,6 +202,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
           }
         >
           <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+          <Menu.Item onClick={onThreadTranscriptDownload}>Download</Menu.Item>
           <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
         </Menu>
         {isRenaming && (

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { Badge, Box, EmptyState, Progress, Table, TableRowProps, Typography } from '@sema4ai/components';
 import { TableWithFilter } from '@sema4ai/layouts';
-import { SortRules } from '@sema4ai/layouts/dist/helpers/search';
+import { SortRules } from '@sema4ai/components/utils';
 import { FC, useCallback, useMemo } from 'react';
 
 import { IconChevronRight } from '@sema4ai/icons';

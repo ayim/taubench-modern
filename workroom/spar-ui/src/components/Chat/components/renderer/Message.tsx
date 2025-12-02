@@ -17,7 +17,7 @@ type Props = {
 };
 
 type ThreadMessageContent = ThreadMessage['content'];
-const getGroupedMessageContent = (messageContent: ThreadMessageContent, messageComplete: boolean) => {
+export const getGroupedMessageContent = (messageContent: ThreadMessageContent, messageComplete: boolean) => {
   /**
    * If message stream started with empty content show thinking state as placeholder
    */

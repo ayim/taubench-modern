@@ -83,7 +83,7 @@ const getGroupedActions = (messageContent: ThreadContent[]) =>
     { inProgress: [], done: [], failed: [], thinking: [], complete: true },
   );
 
-const getActionGroupStateDetails = ({
+export const getActionGroupStateDetails = ({
   messageContent,
   messageComplete,
   platform,

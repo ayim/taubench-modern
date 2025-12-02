@@ -1,5 +1,5 @@
 import { Column } from '@sema4ai/components';
-import { SortRules } from '@sema4ai/layouts/dist/helpers/search';
+import { SortRules } from '@sema4ai/components/utils';
 import { WorkItemRowData } from './types';
 
 export const workItemsTableColumns: Column[] = [
