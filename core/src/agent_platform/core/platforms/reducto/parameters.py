@@ -58,12 +58,12 @@ class ReductoPlatformParameters(PlatformParameters):
     def __post_init__(self):
         from os import getenv
 
-        # Handle case where reducto_api_key is passed as a string
+        # Handle case where reducto_api_key is passed as a string or dict
         if self.reducto_api_key and not isinstance(self.reducto_api_key, SecretString):
             object.__setattr__(
                 self,
                 "reducto_api_key",
-                SecretString(str(self.reducto_api_key)),
+                SecretString.from_value(self.reducto_api_key),
             )
         # Handle case where reducto_api_key is not provided
         elif not self.reducto_api_key:
@@ -81,7 +81,7 @@ class ReductoPlatformParameters(PlatformParameters):
             object.__setattr__(
                 self,
                 "delegate_api_key",
-                SecretString(str(self.delegate_api_key)),
+                SecretString.from_value(self.delegate_api_key),
             )
 
     def model_dump(

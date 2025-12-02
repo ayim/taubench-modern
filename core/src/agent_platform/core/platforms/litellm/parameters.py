@@ -40,7 +40,7 @@ class LiteLLMPlatformParameters(PlatformParameters):
             object.__setattr__(
                 self,
                 "litellm_api_key",
-                SecretString(str(self.litellm_api_key)),
+                SecretString.from_value(self.litellm_api_key),
             )
         elif not self.litellm_api_key:
             api_key = getenv("LITELLM_API_KEY")

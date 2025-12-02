@@ -70,3 +70,13 @@ class TestLiteLLMPlatformParameters:
         assert updated.litellm_base_url == "https://alt.router/v1"
         # Original params remain unchanged
         assert params.litellm_base_url == "https://router.internal/v1"
+
+    def test_model_validate_with_dict_api_key(self) -> None:
+        """Test validation with dict API key (as received from API JSON deserialization)."""
+        data = {
+            "litellm_api_key": {"value": "test-api-key"},
+            "litellm_base_url": "https://router.internal/v1",
+        }
+        params = LiteLLMPlatformParameters.model_validate(data)
+        assert isinstance(params.litellm_api_key, SecretString)
+        assert params.litellm_api_key.get_secret_value() == "test-api-key"

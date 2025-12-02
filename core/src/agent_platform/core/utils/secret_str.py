@@ -52,6 +52,22 @@ class SecretString:
         return bool(self.value)
 
     @classmethod
+    def from_value(cls, value: str | dict) -> "SecretString":
+        """Create a SecretString from a string or dict. This is necessary because dataclasses that
+        contain SecretString, such as PlatformParameters, don't automatically convert dicts to
+        SecretString when deserializing from API JSON request bodies.
+
+        Arguments:
+            value: A string or dict with a "value" key.
+
+        Returns:
+            A SecretString instance.
+        """
+        if isinstance(value, dict) and "value" in value:
+            return cls(value["value"])
+        return cls(str(value))
+
+    @classmethod
     def serialize(cls, value: Any, raw: bool = False) -> str:
         """Serialize a value to a string, handling SecretString objects.
 

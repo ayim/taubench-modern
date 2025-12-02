@@ -45,12 +45,12 @@ class OpenAIPlatformParameters(PlatformParameters):
                 {"openai": ["gpt-4-1"]},
             )
 
-        # Handle case where openai_api_key is passed as a string
+        # Handle case where openai_api_key is passed as a string or dict
         if self.openai_api_key and not isinstance(self.openai_api_key, SecretString):
             object.__setattr__(
                 self,
                 "openai_api_key",
-                SecretString(str(self.openai_api_key)),
+                SecretString.from_value(self.openai_api_key),
             )
         # Handle case where openai_api_key is not provided
         elif not self.openai_api_key:

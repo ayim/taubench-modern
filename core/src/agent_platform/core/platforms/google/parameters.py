@@ -44,12 +44,12 @@ class GooglePlatformParameters(PlatformParameters):
                 {"google": ["gemini-2.0-flash"]},
             )
 
-        # Handle case where google_api_key is passed as a string
+        # Handle case where google_api_key is passed as a string or dict
         if self.google_api_key and not isinstance(self.google_api_key, SecretString):
             object.__setattr__(
                 self,
                 "google_api_key",
-                SecretString(str(self.google_api_key)),
+                SecretString.from_value(self.google_api_key),
             )
         # Handle case where google_api_key is not provided
         elif not self.google_api_key:

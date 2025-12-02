@@ -75,3 +75,13 @@ class TestOpenAIPlatformParameters:
         params = OpenAIPlatformParameters.model_validate(data)
         assert isinstance(params.openai_api_key, SecretString)
         assert params.openai_api_key.get_secret_value() == "test-api-key"
+
+    def test_model_validate_with_dict_api_key(self) -> None:
+        """Test validation with dict API key (as received from API JSON deserialization)."""
+        # When deserializing from API JSON, SecretString fields come in as {"value": "..."}
+        data = {
+            "openai_api_key": {"value": "test-api-key"},
+        }
+        params = OpenAIPlatformParameters.model_validate(data)
+        assert isinstance(params.openai_api_key, SecretString)
+        assert params.openai_api_key.get_secret_value() == "test-api-key"

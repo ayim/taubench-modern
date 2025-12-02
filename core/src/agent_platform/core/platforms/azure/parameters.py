@@ -109,12 +109,12 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
                 None,
             )
 
-        # Handle case where azure_api_key is passed as a string
+        # Handle case where azure_api_key is passed as a string or dict
         if self.azure_api_key and not isinstance(self.azure_api_key, SecretString):
             object.__setattr__(
                 self,
                 "azure_api_key",
-                SecretString(str(self.azure_api_key)),
+                SecretString.from_value(self.azure_api_key),
             )
         # Handle case where azure_api_key is not provided
         elif not self.azure_api_key:

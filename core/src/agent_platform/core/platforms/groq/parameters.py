@@ -40,7 +40,7 @@ class GroqPlatformParameters(PlatformParameters):
         super().__post_init__()
 
         if self.groq_api_key and not isinstance(self.groq_api_key, SecretString):
-            object.__setattr__(self, "groq_api_key", SecretString(str(self.groq_api_key)))
+            object.__setattr__(self, "groq_api_key", SecretString.from_value(self.groq_api_key))
         elif not self.groq_api_key:
             key_from_env = getenv("GROQ_API_KEY")
             if key_from_env:
