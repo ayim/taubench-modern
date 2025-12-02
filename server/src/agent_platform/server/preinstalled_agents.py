@@ -12,7 +12,7 @@ logger = structlog.get_logger(__name__)
 
 PREINSTALLED_AGENT_DESCRIPTION = "Internal zero-config agent."
 PREINSTALLED_AGENT_METADATA = {"project": "violet", "visibility": "hidden"}
-PREINSTALLED_AGENT_VERSION = "1.0.1"
+PREINSTALLED_AGENT_VERSION = "1.0.7"
 PREINSTALLED_AGENT_ARCHITECTURE = "agent_platform.architectures.experimental_3"
 _PREINSTALLED_AGENT_NAME_PREFIX = "My Associate ["
 
@@ -53,7 +53,10 @@ def _build_preinstalled_agent(user_id: str, *, name: str | None = None) -> "Agen
         version=PREINSTALLED_AGENT_VERSION,
         platform_configs=[],
         agent_architecture=AgentArchitecture(name=PREINSTALLED_AGENT_ARCHITECTURE, version="2.0.0"),
-        extra={"metadata": PREINSTALLED_AGENT_METADATA.copy()},
+        extra={
+            "metadata": PREINSTALLED_AGENT_METADATA.copy(),
+            "agent_settings": {"document_intelligence": "internal"},
+        },
         mode="conversational",
     )
 
@@ -123,7 +126,7 @@ async def ensure_preinstalled_agents(storage: "AbstractStorage | None" = None) -
         )
         return
 
-    updated_extra = dict(agent.extra or {})
+    updated_extra = dict(desired_agent.extra or {})
     needs_update = False
     update_reasons: list[str] = []
     updated_name = agent.name

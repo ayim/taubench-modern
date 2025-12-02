@@ -431,6 +431,34 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         # No explicit effort in the model ID, default to medium effort
         return "medium"
 
+    def _drop_reasoning_items_before_last_user_message(
+        self, messages: list["ResponseInputItemParam"]
+    ) -> list["ResponseInputItemParam"]:
+        """Drop any ResponseReasoningItemParam entries that occur before the last user message."""
+        from openai.types.responses import ResponseInputItemParam
+
+        last_user_message_index: int | None = None
+        for index in range(len(messages) - 1, -1, -1):
+            message = messages[index]
+            if "role" in message and message["role"] == "user":
+                last_user_message_index = index
+                break
+
+        if last_user_message_index is None:
+            return messages
+
+        filtered_messages: list[ResponseInputItemParam] = []
+        for index, message in enumerate(messages):
+            if (
+                index < last_user_message_index
+                and "type" in message
+                and message["type"] == "reasoning"
+            ):
+                continue
+            filtered_messages.append(message)
+
+        return filtered_messages
+
     async def convert_prompt(
         self,
         prompt: Prompt,

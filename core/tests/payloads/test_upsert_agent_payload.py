@@ -233,6 +233,37 @@ class TestWorkerConfigRoundTrip:
         }
 
 
+class TestAgentSettingsRoundTrip:
+    def test_preserves_agent_settings_from_extra_only(self) -> None:
+        payload = UpsertAgentPayload(
+            name="Test Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+            extra={"agent_settings": {"temperature": 0.25, "nested": {"foo": "bar"}}},
+        )
+
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+
+        assert agent.extra["agent_settings"] == {"temperature": 0.25, "nested": {"foo": "bar"}}
+
+    def test_agent_settings_field_overrides_extra(self) -> None:
+        payload = UpsertAgentPayload(
+            name="Test Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+            extra={"agent_settings": {"temperature": 0.25}},
+            agent_settings={"temperature": 0.75, "mode": "strict"},
+        )
+
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+
+        assert agent.extra["agent_settings"] == {"temperature": 0.75, "mode": "strict"}
+
+
 def test_to_agent_preserves_runbook_timestamp_when_unchanged() -> None:
     existing_timestamp = datetime(2024, 1, 1, 9, 0, tzinfo=UTC)
     existing_agent = Agent(

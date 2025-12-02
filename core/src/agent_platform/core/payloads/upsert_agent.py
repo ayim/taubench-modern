@@ -864,6 +864,10 @@ class UpsertAgentPayload:
             else:
                 runbook_structured.updated_at = existing_runbook.updated_at
 
+        agent_settings = payload.agent_settings or extra.get("agent_settings", {})
+        if agent_settings is None:
+            agent_settings = {}
+
         return Agent(
             name=payload.name,
             mode=maybe_mode if maybe_mode is not None else "conversational",
@@ -882,7 +886,7 @@ class UpsertAgentPayload:
             extra={
                 **metadata_without_mode,
                 **extra,
-                "agent_settings": payload.agent_settings or {},
+                "agent_settings": agent_settings,
                 "document_intelligence": payload.document_intelligence,
             },
             user_id=user_id,
