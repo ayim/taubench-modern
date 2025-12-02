@@ -89,9 +89,16 @@ export const removeCitationFromExtractedData = (
 
     // If it's an array, process each item and filter out nulls
     if (Array.isArray(obj)) {
-      return obj
+      const filtered = obj
         .map((item, index) => removeCitationRecursively(item, `${currentPath}[${index}]`))
         .filter((item) => item !== null);
+
+      // If all items were removed, return null to remove the array key
+      // (but preserve originally empty arrays)
+      if (filtered.length === 0 && obj.length > 0) {
+        return null;
+      }
+      return filtered;
     }
 
     // If it's an object, process each property
