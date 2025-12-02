@@ -135,6 +135,10 @@ class _MinimalKernel(Kernel):
     def work_item(self):  # type: ignore[override]
         raise NotImplementedError
 
+    @property
+    def documents(self):  # type: ignore[override]
+        raise NotImplementedError
+
 
 @pytest.mark.unit
 def test_default_selector_accepts_simple_model_slug():

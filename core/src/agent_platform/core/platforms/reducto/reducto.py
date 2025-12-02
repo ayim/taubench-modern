@@ -57,7 +57,7 @@ class PollingReductoClient:
         result = await self._complete(parse_job_response.job_id)
         if not isinstance(result, ParseResponse):
             raise ValueError(f"Expected ParseResponse but got {type(result)}")
-        return result
+        return await self._fetch_remote_result(result)
 
     async def extract(self, prompt: ReductoPrompt, uploaded_document: Upload) -> ExtractResponse:
         extract_options = prompt.extract_options
@@ -115,3 +115,31 @@ class PollingReductoClient:
                     await asyncio.sleep(3)
                 case _:
                     raise Exception(f"Unknown job status: {job_resp.status}")
+
+    async def _fetch_remote_result(self, resp: ParseResponse) -> ParseResponse:
+        """
+        Conditionally fetch the remote results from a ResultURLResult in this ParseResponse.
+
+        Args:
+            resp: The ParseResponse to localize
+
+        Returns:
+            The parsed result as a ResultFullResult object
+        """
+        # Nothing to do, we have the full result
+        if resp.result.type != "url":
+            return resp
+
+        try:
+            from reducto.types.shared.parse_response import ResultFullResult
+
+            from agent_platform.core.utils.httpx_client import init_httpx_client
+
+            async with init_httpx_client(timeout=30.0) as client:
+                fetch_response = await client.get(url=resp.result.url)
+                fetch_response.raise_for_status()
+                result_dict = fetch_response.json()
+                resp.result = ResultFullResult(**result_dict)
+                return resp
+        except Exception as e:
+            raise Exception(f"Error fetching result from URL: {e!s}") from e

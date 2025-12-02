@@ -4,10 +4,16 @@ from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from reducto.types import ExtractRunParams, ParseRunParams
+    from reducto.types.shared_params.array_extract_config import ArrayExtractConfig
 
 from agent_platform.core.platforms.base import PlatformPrompt
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_EXTRACT_SYSTEM_PROMPT = (
+    "Be precise and thorough. Mark required, missing fields as null. Omit optional fields."
+)
 
 
 @dataclass(frozen=True)
@@ -94,63 +100,6 @@ class ReductoPrompt(PlatformPrompt):
             parse_options = ParseRunParams(
                 document_url="unset",
                 options=BaseProcessingOptions(
-                    chunking=Chunking(
-                        chunk_mode="section",
-                    ),
-                    table_summary=TableSummary(
-                        enabled=True,
-                    ),
-                    figure_summary=FigureSummary(
-                        enabled=True,
-                    ),
-                    filter_blocks=[
-                        "Header",
-                        "Footer",
-                        "Page Number",
-                        "Comment",
-                    ],
-                    force_url_result=False,
-                ),
-                advanced_options=AdvancedProcessingOptions(
-                    ocr_system="highres",
-                    table_output_format="html",
-                    merge_tables=False,
-                    continue_hierarchy=True,
-                    keep_line_breaks=False,
-                    page_range=PageRange(
-                        start=None,
-                        end=None,
-                    ),
-                    large_table_chunking=LargeTableChunking(
-                        enabled=True,
-                        size=50,
-                    ),
-                    spreadsheet_table_clustering="default",
-                    remove_text_formatting=True,
-                    filter_line_numbers=True,
-                ),
-                experimental_options={
-                    # This might not be typeable always, as they
-                    # could add things to the backend before updating
-                    # the client library.
-                    "enrich": {"enabled": False, "mode": "standard"},
-                    "native_office_conversion": False,
-                    "enable_checkboxes": False,
-                    "rotate_pages": True,
-                    "enable_underlines": False,
-                    "enable_equations": False,
-                    "return_figure_images": True,
-                    "layout_enrichment": False,
-                    "layout_model": "default",
-                },
-            )
-
-        extract_options = self.extract_options
-        if self.operation == "extract" and extract_options is None:
-            extract_options = ExtractRunParams(
-                document_url="unset",
-                schema={},  # TODO: where from prompt do we get this?
-                options=BaseProcessingOptions(
                     extraction_mode="ocr",
                     ocr_mode="standard",
                     chunking=Chunking(
@@ -163,10 +112,10 @@ class ReductoPrompt(PlatformPrompt):
                         enabled=False,
                     ),
                     filter_blocks=[
-                        "Header",
-                        "Footer",
-                        "Page Number",
                         "Comment",
+                        "Footer",
+                        "Header",
+                        "Page Number",
                     ],
                     force_url_result=False,
                 ),
@@ -195,13 +144,78 @@ class ReductoPrompt(PlatformPrompt):
                     "enrich": {"enabled": False, "mode": "standard"},
                     "native_office_conversion": False,
                     "enable_checkboxes": False,
-                    "rotate_pages": True,
+                    "rotate_pages": False,
                     "enable_underlines": False,
                     "enable_equations": False,
                     "return_figure_images": False,
                     "layout_enrichment": False,
                     "layout_model": "default",
                 },
+            )
+
+        extract_options = self.extract_options
+        if self.operation == "extract" and extract_options is None:
+            extract_options = ExtractRunParams(
+                document_url="unset",
+                schema={},  # TODO: where from prompt do we get this?
+                options=BaseProcessingOptions(
+                    extraction_mode="ocr",
+                    ocr_mode="standard",
+                    chunking=Chunking(
+                        chunk_mode="disabled",
+                    ),
+                    table_summary=TableSummary(
+                        enabled=False,
+                    ),
+                    figure_summary=FigureSummary(
+                        enabled=False,
+                    ),
+                    filter_blocks=[
+                        "Comment",
+                        "Footer",
+                        "Header",
+                        "Page Number",
+                    ],
+                    force_url_result=False,
+                ),
+                advanced_options=AdvancedProcessingOptions(
+                    ocr_system="highres",
+                    table_output_format="html",
+                    merge_tables=False,
+                    continue_hierarchy=True,
+                    keep_line_breaks=False,
+                    page_range=PageRange(
+                        start=None,
+                        end=None,
+                    ),
+                    large_table_chunking=LargeTableChunking(
+                        enabled=True,
+                        size=50,
+                    ),
+                    spreadsheet_table_clustering="default",
+                    remove_text_formatting=False,
+                    filter_line_numbers=False,
+                ),
+                array_extract=ArrayExtractConfig(
+                    enabled=False,
+                    # Let the mode default to legacy, don't set it to streaming
+                ),
+                experimental_options={
+                    # This might not be typeable always, as they
+                    # could add things to the backend before updating
+                    # the client library.
+                    "enrich": {"enabled": False, "mode": "standard"},
+                    "native_office_conversion": False,
+                    "enable_checkboxes": False,
+                    "rotate_pages": False,
+                    "enable_underlines": False,
+                    "enable_equations": False,
+                    "return_figure_images": False,
+                    "layout_enrichment": False,
+                    "layout_model": "default",
+                },
+                generate_citations=True,
+                system_prompt=self.system_prompt or DEFAULT_EXTRACT_SYSTEM_PROMPT,
             )
 
         return ReductoPrompt(

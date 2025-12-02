@@ -117,3 +117,9 @@ class ArchState(aa.StateBase):
     )
     """The state of the work item tools. Note that after enabled we cannot go back to
     disabling it (tools cannot be removed from the context)"""
+
+    documents_tools_state: Literal["enabled", ""] = field(
+        default="",
+    )
+    """The state of the documents tools. Note that after enabled we cannot go back to
+    disabling it (tools cannot be removed from the context)"""

@@ -23,6 +23,7 @@ class ToolsBundle:
     client: Sequence[ToolDefinition]
     dataframes: Sequence[ToolDefinition]
     work_items: Sequence[ToolDefinition]
+    documents: Sequence[ToolDefinition]
 
     def __post_init__(self) -> None:
         # Normalize to tuples for immutability and consistent downstream usage.
@@ -31,6 +32,7 @@ class ToolsBundle:
         self.client = tuple(self.client)
         self.dataframes = tuple(self.dataframes)
         self.work_items = tuple(self.work_items)
+        self.documents = tuple(self.documents)
 
     def as_tuple(self) -> tuple[ToolDefinition, ...]:
         """Return all tools in a single flattened tuple."""
@@ -40,6 +42,7 @@ class ToolsBundle:
             *self.client,
             *self.dataframes,
             *self.work_items,
+            *self.documents,
         )
 
     def __iter__(self):
@@ -62,6 +65,10 @@ class ToolsRegistry:
     async def _init_and_get_wi_tools(self) -> Sequence[ToolDefinition]:
         await self.kernel.work_item.step_initialize(state=self.state)
         return self.kernel.work_item.get_work_item_tools()
+
+    async def _init_and_get_doc_tools(self) -> Sequence[ToolDefinition]:
+        await self.kernel.documents.step_initialize(state=self.state)
+        return self.kernel.documents.get_document_tools()
 
     async def _get_action_tools(
         self, *, refresh: bool
@@ -93,6 +100,7 @@ class ToolsRegistry:
         Runs the following concurrently:
           - dataframe init + tool retrieval
           - work-item init + tool retrieval
+          - document init + tool retrieval
           - action tools (cached unless refresh=True)
           - MCP tools (cached unless refresh=True)
 
@@ -102,6 +110,7 @@ class ToolsRegistry:
         # Kick off all work concurrently.
         df_task = asyncio.create_task(self._init_and_get_df_tools())
         wi_task = asyncio.create_task(self._init_and_get_wi_tools())
+        doc_task = asyncio.create_task(self._init_and_get_doc_tools())
         action_task = asyncio.create_task(self._get_action_tools(refresh=refresh))
         mcp_task = asyncio.create_task(self._get_mcp_tools(refresh=refresh))
 
@@ -109,9 +118,10 @@ class ToolsRegistry:
         (
             df_tools,
             wi_tools,
+            doc_tools,
             (action_tools, action_issues),
             (mcp_tools, mcp_issues),
-        ) = await asyncio.gather(df_task, wi_task, action_task, mcp_task)
+        ) = await asyncio.gather(df_task, wi_task, doc_task, action_task, mcp_task)
 
         bundle = ToolsBundle(
             action=action_tools,
@@ -119,6 +129,7 @@ class ToolsRegistry:
             client=self.kernel.client_tools,
             dataframes=df_tools,
             work_items=wi_tools,
+            documents=doc_tools,
         )
 
         combined_tools = (*bundle.as_tuple(), *self.state.consistency_tools)

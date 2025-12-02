@@ -17,6 +17,7 @@ from agent_platform.core.errors.streaming import NoPlatformOrModelFoundError
 from agent_platform.core.kernel_interfaces import (
     ConvertersInterface,
     DataFramesInterface,
+    DocumentsInterface,
     EventsInterface,
     FilesInterface,
     MemoryInterface,
@@ -309,7 +310,11 @@ class Kernel(ABC):
     @abstractmethod
     def work_item(self) -> WorkItemInterface:
         """Interface for interacting with the thread's work item."""
-        pass
+
+    @property
+    @abstractmethod
+    def documents(self) -> DocumentsInterface:
+        """Interface for interacting with the agent-server's documents."""
 
     async def get_platform_and_model(
         self,

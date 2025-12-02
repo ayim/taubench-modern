@@ -298,6 +298,20 @@ async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but
             _append_tool_group(message, "work_item", [], 0)
             await _append(message, f"  - <error: {e}>\n")
 
+        # Documents (optional)
+        try:
+            await kernel.documents.step_initialize(state=state)
+            doc_tools = list(kernel.documents.get_document_tools())
+            doc_names = [f"`{t.name}`" for t in doc_tools]
+            _append_tool_group(message, "documents", doc_names, len(doc_tools))
+            await message.stream_delta()
+
+            all_tools_dump.extend([t.model_dump() for t in doc_tools])
+        except Exception as e:
+            logger.exception("/debug: document tools failed")
+            _append_tool_group(message, "documents", [], 0)
+            await _append(message, f"  - <error: {e}>\n")
+
     # Action tool defs
     try:
         action_tools, action_issues = await kernel.tools.from_action_packages(

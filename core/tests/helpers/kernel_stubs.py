@@ -198,3 +198,17 @@ class MinimalKernelStub(Kernel):
                 return False
 
         return _WI()
+
+    @property
+    def documents(self) -> Any:
+        class _Docs:
+            async def is_enabled(self) -> bool:
+                return False
+
+            async def step_initialize(self, state: Any) -> None:
+                pass
+
+            def get_document_tools(self) -> tuple:
+                return ()
+
+        return _Docs()

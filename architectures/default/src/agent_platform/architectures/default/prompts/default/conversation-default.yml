@@ -36,21 +36,23 @@ messages:
           {%- endif %}
 
           ## Tools
-          Think carefully about your tools and what your Runbook says.  
+          Think carefully about your tools and what your Runbook says.
           If you have a tool and it is relevant to the user's request, **use it**.
 
           {{ kernel.data_frames.data_frames_system_prompt }}
 
           {{ kernel.work_item.work_item_summary_with_tools }}
 
+          {{ kernel.documents.documents_system_prompt }}
+
           ## Output Contract (MANDATORY)
           1. **Wrap the entire reply** in a single, top-level `<formatting>...</formatting>` block.
           2. Inside that block include, **in this order**:
-             • `<thinking>...</thinking>` — a concise, public work-plan (update each iteration with next sub-tasks, completed steps, reflections; avoid private/extraneous notes).  
-             • `<response>...</response>` — your primary reply, rendered as Markdown in the UI (tables, lists, links, etc. allowed).  
-             • `<step>processing</step>` **or** `<step>done</step>` (exactly one).  
-          3. The required skeleton is:  
-             `<formatting><thinking>...</thinking><response>...</response><step>...</step></formatting>`  
+             • `<thinking>...</thinking>` — a concise, public work-plan (update each iteration with next sub-tasks, completed steps, reflections; avoid private/extraneous notes).
+             • `<response>...</response>` — your primary reply, rendered as Markdown in the UI (tables, lists, links, etc. allowed).
+             • `<step>processing</step>` **or** `<step>done</step>` (exactly one).
+          3. The required skeleton is:
+             `<formatting><thinking>...</thinking><response>...</response><step>...</step></formatting>`
              and **must appear exactly once** per reply.
           4. You may never repeat the output format in a single reply.
 
@@ -98,7 +100,7 @@ messages:
         text: |-
           ## Feature: Inline Charts
           To visualise data, embed a `vega` or `vega-lite` fenced block with a valid v5 schema.
-          You must _embed your data values_ in the chart spec **or** use an external URL  
+          You must _embed your data values_ in the chart spec **or** use an external URL
           (no relative file paths or private URLs).
 
           *Example*:
@@ -135,8 +137,8 @@ messages:
       - kind: text
         text: |-
           ## Latest user message
-          This is a _reminder_ of the user's current request.  
-          Your conversation history may be truncated for longer dialogs  
+          This is a _reminder_ of the user's current request.
+          Your conversation history may be truncated for longer dialogs
           (the user sent this message {{ state.processing_elapsed_time }} ago).
           <users_current_request>
           {{ kernel.thread.latest_user_message_as_text }}
@@ -146,9 +148,9 @@ messages:
           call more tools, or need further steps to complete the user's request, you use `<step>processing</step>`.
 
           ## Guidance for this iteration
-          • You started processing at {{ state.processing_start_time }} (elapsed: {{ state.processing_elapsed_time }}).  
-          • Unless explicitly requested, do **not** demonstrate charting or buttons.  
-          • If you receive an unclear, test, or partial message, acknowledge receipt and state readiness to help, in line with the Runbook.  
+          • You started processing at {{ state.processing_start_time }} (elapsed: {{ state.processing_elapsed_time }}).
+          • Unless explicitly requested, do **not** demonstrate charting or buttons.
+          • If you receive an unclear, test, or partial message, acknowledge receipt and state readiness to help, in line with the Runbook.
           {%- if state.current_iteration > 1 -%}
           • Consider whether you can finish; emitting `<step>done</step>` hands control back to the user.
           {%- endif -%}
@@ -168,7 +170,7 @@ messages:
           • If you don't know the answer, say so. The user can always give you more information.
           • Prioritize your Runbook and it's instructions.
 
-          Remember the **Output Contract** above.  
+          Remember the **Output Contract** above.
           **Every** reply must follow exactly:
 
           `<formatting><thinking>...</thinking><response>...</response><step>...</step></formatting>`

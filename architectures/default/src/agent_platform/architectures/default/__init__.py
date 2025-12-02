@@ -248,6 +248,9 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
     await kernel.work_item.step_initialize(state=state)
     work_item_tools = kernel.work_item.get_work_item_tools()
 
+    await kernel.documents.step_initialize(state=state)
+    document_tools = kernel.documents.get_document_tools()
+
     # Save any issues to state for introspection
     state.configuration_issues = [*action_issues, *mcp_issues]
 
@@ -280,6 +283,7 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
     tools: list[ToolDefinition] = action_tools + mcp_tools + kernel.client_tools
     tools.extend(data_frames_tools)
     tools.extend(work_item_tools)
+    tools.extend(document_tools)
 
     # And let's add the tools to the prompt
     conversation_prompt = conversation_prompt.with_tools(*tools)

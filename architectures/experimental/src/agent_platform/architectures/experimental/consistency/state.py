@@ -157,6 +157,7 @@ class ConsistencyArchState(aa.StateBase):
     mcp_issues: list[str] = field(default_factory=list)
     data_frames_tools_state: Literal["enabled", ""] = ""
     work_item_tools_state: Literal["enabled", ""] = ""
+    documents_tools_state: Literal["enabled", ""] = ""
     empty_file_cache_key_to_matching_info: dict[str, dict] = field(default_factory=dict)
 
     # -- Sinks -------------------------------------------------------------------

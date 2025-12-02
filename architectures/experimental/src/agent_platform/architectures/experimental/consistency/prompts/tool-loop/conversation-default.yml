@@ -94,6 +94,8 @@ messages:
 
           {{ kernel.work_item.work_item_summary_with_tools }}
 
+          {{ kernel.documents.documents_system_prompt }}
+
           ## System Feedback
           {%- if state.controller_feedback %}
           • Controller feedback:

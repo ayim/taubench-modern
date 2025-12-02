@@ -162,6 +162,8 @@ messages:
 
           {{ kernel.work_item.work_item_summary_no_tools }}
 
+          {{ kernel.documents.documents_system_prompt }}
+
           ## Guidance for this iteration
           • The current UTC date/time is {{ kernel.current_datetime_str }}.
           • You started processing at {{ state.processing_start_time }} (elapsed:

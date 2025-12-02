@@ -86,6 +86,7 @@ class Exp1State(aa.StateBase):
     mcp_issues: list[str] = field(default_factory=list)
     data_frames_tools_state: Literal["enabled", ""] = ""
     work_item_tools_state: Literal["enabled", ""] = ""
+    documents_tools_state: Literal["enabled", ""] = ""
     empty_file_cache_key_to_matching_info: dict[str, dict] = field(default_factory=dict)
     selected_platform: str = ""
     selected_model: str = ""
@@ -111,6 +112,7 @@ class ToolsBundle:
     internal_tools: Sequence[ToolDefinition]
     data_frames_tools: Sequence[ToolDefinition]
     work_item_tools: Sequence[ToolDefinition]
+    document_tools: Sequence[ToolDefinition]
 
     @property
     def all(self) -> tuple[ToolDefinition, ...]:
@@ -122,6 +124,7 @@ class ToolsBundle:
             *self.internal_tools,
             *self.data_frames_tools,
             *self.work_item_tools,
+            *self.document_tools,
         )
 
     def __iter__(self) -> Iterator["ToolDefinition"]:
@@ -319,7 +322,7 @@ async def _gather_tools(
 ) -> tuple[ToolsBundle, list[str]]:
     """
     Gather tools from action packages, MCP servers, client, internal, data-frame tools,
-    and work-item tools.
+    work-item tools, and document tools.
     Returns:
         (ToolsBundle, configuration_issues)
     """
@@ -328,6 +331,9 @@ async def _gather_tools(
 
     await kernel.work_item.step_initialize(state=state)
     work_item_tools = kernel.work_item.get_work_item_tools()
+
+    await kernel.documents.step_initialize(state=state)
+    document_tools = kernel.documents.get_document_tools()
 
     if not state.action_tools or force_refresh:
         logger.info("Gathering action tools from remote servers")
@@ -354,7 +360,8 @@ async def _gather_tools(
         f"client={len(client)}, "
         f"internal={len(internal)}, "
         f"data_frames={len(data_frames_tools)}, "
-        f"work_item={len(work_item_tools)}",
+        f"work_item={len(work_item_tools)}, "
+        f"documents={len(document_tools)}",
     )
     if issues:
         logger.info(f"Tool issues: {', '.join(issues)}")
@@ -366,6 +373,7 @@ async def _gather_tools(
         internal_tools=internal,
         data_frames_tools=data_frames_tools,
         work_item_tools=work_item_tools,
+        document_tools=document_tools,
     )
 
     message.agent_metadata["tools"] = [tool.model_dump() for tool in tools_bundle.all]
