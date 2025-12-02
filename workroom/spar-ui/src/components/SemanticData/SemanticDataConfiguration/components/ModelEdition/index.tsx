@@ -69,7 +69,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
                   onClick={onToggleRenameDialog}
                 />
               </Box>
-              <Box display="flex" alignItems="center" gap="$8" maxWidth={720}>
+              <Box display="flex" alignItems="center" gap="$8" maxWidth={860}>
                 <Typography variant="body-large" color="content.subtle">
                   Review your data model and add details to improve how your agent understands the data. Use
                   descriptions and synonyms to clarify meaning, provide business context, and make the data easier for

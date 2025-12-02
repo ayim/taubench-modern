@@ -33,7 +33,9 @@ export const DataConnectionSelect: FC<Props> = ({ errorMessage }) => {
     if (!supportedSemanticDataEngines) {
       return [];
     }
-    return dataConnections.filter((dataConnection) => supportedSemanticDataEngines.includes(dataConnection.engine));
+    return dataConnections
+      .filter((dataConnection) => supportedSemanticDataEngines.includes(dataConnection.engine))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [dataConnections, supportedSemanticDataEngines]);
 
   return (

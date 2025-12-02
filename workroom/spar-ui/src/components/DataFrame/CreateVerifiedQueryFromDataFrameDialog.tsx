@@ -1,5 +1,5 @@
 import { FC, useEffect, useState, useMemo, useCallback } from 'react';
-import { Box, Button, Dialog, Select, Typography, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Dialog, Progress, Select, Typography, useSnackbar } from '@sema4ai/components';
 
 import { useAgentSemanticDataQuery, VerifiedQuery, useVerifyVerifiedQueryMutation } from '../../queries/semanticData';
 import { useDataFrameAsValidatedQuery, useSaveVerifiedQueryMutation } from '../../queries/dataFrames';
@@ -224,20 +224,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
   ]);
 
   if (isLoading) {
-    return (
-      <Dialog open={open} onClose={handleClose}>
-        <Dialog.Header>
-          <Typography fontSize="$20" fontWeight="bold">
-            Create Verified Query
-          </Typography>
-        </Dialog.Header>
-        <Dialog.Content>
-          <Box display="flex" justifyContent="center" padding="$16">
-            <Typography>Loading semantic data models...</Typography>
-          </Box>
-        </Dialog.Content>
-      </Dialog>
-    );
+    return <Progress variant="page" />;
   }
 
   if (semanticModels.length === 0) {
@@ -349,7 +336,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
             disabled={!isFormNotEmpty || saveMutation.isPending || verifyMutation.isPending}
             loading={saveMutation.isPending || verifyMutation.isPending}
           >
-            Create Verified Query
+            Save
           </Button>
           {semanticModels.length === 1 ? (
             <Button
