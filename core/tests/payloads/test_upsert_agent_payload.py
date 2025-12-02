@@ -1076,3 +1076,64 @@ def test_legacy_azure_chat_openai_api_key_conversion():
     assert azure_config.azure_deployment_name_embeddings == "embeddings-deployment"
     assert azure_config.azure_api_version == "2024-02-01"
     assert azure_config.models == {"openai": ["gpt-5-low"]}
+
+
+def test_legacy_litellm_conversion():
+    """Test that legacy LiteLLM payloads become platform configs."""
+
+    payload = UpsertAgentPayload(
+        name="Legacy LiteLLM Agent",
+        description="desc",
+        version="1.0.0",
+        runbook="hi",
+        agent_architecture=DEFAULT_ARCH,
+        model={
+            "provider": "LiteLLM",
+            "name": "litellm/openai/gpt-5-low",
+            "config": {
+                "litellm_api_key": "test-litellm-key",
+                "litellm_base_url": "https://router.litellm.example/v1",
+            },
+        },
+    )
+
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+
+    assert len(agent.platform_configs) == 1
+    litellm_config = agent.platform_configs[0]
+    assert litellm_config.kind == "litellm"
+    assert litellm_config.litellm_api_key is not None
+    assert litellm_config.litellm_api_key.get_secret_value() == "test-litellm-key"
+    assert litellm_config.litellm_base_url == "https://router.litellm.example/v1"
+    # TODO: Not building allowlists for litellm yet, we expect Studio to just
+    # be getting the default model for this platform right now
+    assert litellm_config.models == {}
+
+
+def test_legacy_litellm_defaults_when_missing_config():
+    """Test that LiteLLM legacy payloads fall back to default values."""
+
+    payload = UpsertAgentPayload(
+        name="Legacy LiteLLM Agent Defaults",
+        description="desc",
+        version="1.0.0",
+        runbook="hi",
+        agent_architecture=DEFAULT_ARCH,
+        model={
+            "provider": "LiteLLM",
+            "name": "litellm/openai/gpt-5-low",
+            # Intentionally missing config
+        },
+    )
+
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+
+    assert len(agent.platform_configs) == 1
+    litellm_config = agent.platform_configs[0]
+    assert litellm_config.kind == "litellm"
+    assert litellm_config.litellm_api_key is not None
+    assert litellm_config.litellm_api_key.get_secret_value() == "UNSET"
+    assert litellm_config.litellm_base_url == "https://llm.backend.sema4.ai"
+    # TODO: Not building allowlists for litellm yet, we expect Studio to just
+    # be getting the default model for this platform right now
+    assert litellm_config.models == {}

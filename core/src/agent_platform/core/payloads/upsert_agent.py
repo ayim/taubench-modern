@@ -626,6 +626,39 @@ class UpsertAgentPayload:
         ]
         self.model = None
 
+    def _handle_legacy_model_litellm(self):
+        """Handle backward compatibility for 'model' field with LiteLLM."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "LiteLLM":
+            return
+
+        params_to_keep = [
+            "litellm_api_key",
+            "litellm_base_url",
+        ]
+        params = {
+            "litellm_api_key": "UNSET",
+            "litellm_base_url": "https://llm.backend.sema4.ai",
+        }
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        self.platform_configs = [
+            {
+                "kind": "litellm",
+                **params,
+                # TODO: Not building allowlists for litellm yet, we expect Studio to just
+                # be getting the default model for this platform right now (which will happen
+                # when no allowlist is provided)
+                "models": {},
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
+
     def _handle_legacy_model(self):
         """Handle backward compatibility for 'model' field."""
         if self.model:
@@ -641,6 +674,7 @@ class UpsertAgentPayload:
             self._handle_legacy_model_snowflake()
             self._handle_legacy_model_google()
             self._handle_legacy_model_groq()
+            self._handle_legacy_model_litellm()
 
     def _validate_architecture_based_on_platform_configs(
         self, platform_configs: list[AnyPlatformParameters]
