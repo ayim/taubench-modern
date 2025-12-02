@@ -16,6 +16,38 @@ import { formatDuration, getPassFailCounts, getRunAverageTrialDuration, isRunTer
 import { useAnalytics } from '../../../../../queries';
 import { isRunThrottled } from '../utils';
 
+// versions in Studio are managed by Studio based on the arch name
+// here we repropose what Studio does as a temporary fix
+// we should store this info in the agent platform,
+// but currently it is not possible
+const getArchitectureLabel = (
+  configuration: components['schemas']['ScenarioRun']['configuration'] | undefined,
+): string => {
+  const architectureName =
+    configuration && typeof configuration.architecture_name === 'string' ? configuration.architecture_name : null;
+  const defaultLabel = '2.0';
+  const experimentalLabel = '2.1';
+
+  if (architectureName) {
+    const normalizedName = architectureName.toLowerCase();
+    if (normalizedName.includes('experimental')) {
+      return experimentalLabel;
+    }
+    if (normalizedName.includes('default')) {
+      return defaultLabel;
+    }
+  }
+
+  const architectureVersion =
+    configuration && typeof configuration.architecture_version === 'string' ? configuration.architecture_version : null;
+
+  if (architectureVersion) {
+    return architectureVersion;
+  }
+
+  return 'N/A';
+};
+
 export interface ScenarioResultsProps {
   scenarioId: string;
   scenarioRunId: string | undefined;
@@ -88,7 +120,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
                 : String(configuration?.models || 'N/A')}
             </Typography>
             <Typography variant="body-small" style={{ userSelect: 'text' }}>
-              • Arch: {String(configuration?.architecture_version || 'N/A')}
+              • Arch: {getArchitectureLabel(configuration)}
             </Typography>
             {runTerminated && (
               <Typography variant="body-small" style={{ userSelect: 'text' }}>
