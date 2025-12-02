@@ -62,6 +62,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
   const trialKey = `${scenarioId}-${scenarioRunId}-${trial.trial_id}`;
   const isTrialExpanded = expandedTrials.has(trialKey);
   const isTrialCompleted = isTrialTerminal(trial);
+  const canViewThreadLink = Boolean(isTrialCompleted && trial.thread_id);
   const hasEvaluationResults = isTrialCompleted && trial.evaluation_results && trial.evaluation_results.length > 0;
 
   const getTrialStatusBadges = () => {
@@ -160,7 +161,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
             aria-label="Toggle trial details"
           />
         )}
-        {trial.thread_id && (
+        {canViewThreadLink && (
           <Button
             variant="ghost"
             round
