@@ -93,12 +93,14 @@ export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionI
             />
           </Cell>
           <Cell>
-            <Button
-              variant="ghost-subtle"
-              aria-label="Remove dimension"
-              icon={IconCloseSmall}
-              onClick={handleRemoveDimension}
-            />
+            {dimensions.length > 1 && (
+              <Button
+                variant="ghost-subtle"
+                aria-label="Remove dimension"
+                icon={IconCloseSmall}
+                onClick={handleRemoveDimension}
+              />
+            )}
           </Cell>
         </>
       }

@@ -53,16 +53,19 @@ const dimensionTypes = ['dimensions', 'time_dimensions', 'facts', 'metrics'] as 
 export const TableTree: FC<Props> = ({ modelId }) => {
   const { data: validation } = useSemanticDataValidationQuery({ modelId });
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
-  const tables = watch('tables');
+  const { tables, dataSelection } = watch();
 
   if (!tables) {
     return null;
   }
 
-  const handleRemoveTable = (tableIndex: number) => {
+  const handleRemoveTable = (tableName: string, tableIndex: number) => {
     const newTables = [...tables];
     newTables.splice(tableIndex, 1);
     setValue('tables', newTables);
+
+    const newDataSelection = dataSelection.filter((selection) => selection.name !== tableName);
+    setValue('dataSelection', newDataSelection);
   };
 
   return (
@@ -105,7 +108,7 @@ export const TableTree: FC<Props> = ({ modelId }) => {
                       variant="ghost-subtle"
                       aria-label="Remove dimension"
                       icon={IconCloseSmall}
-                      onClick={() => handleRemoveTable(tableIndex)}
+                      onClick={() => handleRemoveTable(table.base_table.table, tableIndex)}
                     />
                   )}
                 </Cell>

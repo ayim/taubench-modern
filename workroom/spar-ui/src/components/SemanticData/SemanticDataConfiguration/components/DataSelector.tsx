@@ -62,6 +62,10 @@ export const DataSelector = ({
           ? columns.filter((c) => c.name !== column.name)
           : [...columns, columnDefinition];
 
+      if (updatedColumns.length === 0) {
+        return dataSelection.filter((s) => s.name !== tableName);
+      }
+
       const updated = { ...rest, columns: updatedColumns };
       return dataSelection.map((s, i) => (i === existingIndex ? updated : s));
     })();
@@ -79,10 +83,7 @@ export const DataSelector = ({
 
     const nextSelection = (() => {
       if (isFullySelected) {
-        if (existingIndex === -1) return dataSelection;
-        const { ...rest } = dataSelection[existingIndex];
-        const updated = { ...rest, columns: [] };
-        return dataSelection.map((s, i) => (i === existingIndex ? updated : s));
+        return dataSelection.filter((_, i) => i !== existingIndex);
       }
 
       const allColumns = table.columns.map((column) => ({
