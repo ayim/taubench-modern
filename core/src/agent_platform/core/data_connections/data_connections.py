@@ -59,6 +59,41 @@ def _serialize_config_to_dict(config: DataConnectionConfiguration) -> dict[str, 
     return config_dict
 
 
+DEFAULT_EXCLUDE_FIELDS = {"password", "private_key_passphrase"}
+
+
+def _trim_config_whitespace(
+    config_dict: dict[str, Any],
+    exclude_fields: set[str] = DEFAULT_EXCLUDE_FIELDS,
+) -> dict[str, Any]:
+    """Recursively trim whitespace from string values in configuration dict.
+
+    Excludes specified fields from trimming.
+
+    Args:
+        config_dict: The configuration dictionary to trim
+        exclude_fields: Set of field names to exclude from trimming
+            (e.g., 'password', 'private_key_passphrase')
+
+    Returns:
+        A new dictionary with trimmed string values
+    """
+
+    result = {}
+    for key, value in config_dict.items():
+        if key in exclude_fields:
+            result[key] = value
+        elif isinstance(value, str):
+            result[key] = value.strip()
+        elif isinstance(value, dict):
+            # Recursively process nested dictionaries
+            result[key] = _trim_config_whitespace(value, exclude_fields)
+        else:
+            result[key] = value
+
+    return result
+
+
 @dataclass(frozen=True)
 class DataConnection:
     """Data connection class for storing data connections in the database."""
@@ -423,12 +458,18 @@ class DataConnection:
         if payload.configuration is None:
             raise ValueError("DataConnection configuration cannot be None")
 
+        # Convert configuration to dict, trim whitespace (excluding password fields),
+        # and reconstruct
+        config_dict = asdict(payload.configuration)
+        trimmed_config_dict = _trim_config_whitespace(config_dict)
+        trimmed_configuration = cls._parse_configuration(payload.engine, trimmed_config_dict)
+
         return cls(
             id=connection_id,
             name=payload.name,
             description=payload.description,
             engine=payload.engine,
-            configuration=payload.configuration,
+            configuration=trimmed_configuration,
             external_id=payload.external_id,
             tags=payload.tags,
         )

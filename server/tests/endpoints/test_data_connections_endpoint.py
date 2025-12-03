@@ -64,6 +64,47 @@ def sample_postgres_data_connection_with_tag():
 
 
 @pytest.fixture
+def sample_postgres_data_connection_with_whitespaces_in_connection_details():
+    """Sample postges data connection payload with whitespaces in connection details."""
+    return {
+        "name": "test-postgres-connection-whitespaces",
+        "description": "Test postgres connection with whitespaces in details",
+        "engine": "postgres",
+        "tags": ["production"],
+        "configuration": {
+            "host": " localhost ",
+            "port": 5432,
+            "database": " testdb ",
+            "user": " testuser ",
+            "password": " testpass ",
+            "schema": " public ",
+            "sslmode": "require",
+        },
+    }
+
+
+@pytest.fixture
+def sample_snowflake_data_connection_with_whitespaces_in_connection_details():
+    """Sample snowflake data connection payload with whitespaces in connection details."""
+    return {
+        "name": "test-snowflake-connection-whitespaces",
+        "description": "Test snowflake connection with whitespaces in details",
+        "engine": "snowflake",
+        "tags": ["production"],
+        "configuration": {
+            "user": " myuser ",
+            "account": " myaccount ",
+            "private_key_path": " /path/to/private_key ",
+            "warehouse": " warehouse_name ",
+            "database": " database_name ",
+            "schema": " public ",
+            "credential_type": "custom-key-pair",
+            "private_key_passphrase": " mypassphrase ",
+        },
+    }
+
+
+@pytest.fixture
 def sample_sqlite_data_connection(tmp_path: Path):
     """Sample SQLite data connection payload for API requests."""
     import sqlite3
@@ -415,3 +456,69 @@ def test_inspect_data_connection_success(client: TestClient, sample_sqlite_data_
     city_table = next(table for table in data["tables"] if table["name"] == "user_and_city")
     assert {"user_id", "country"} == {column["name"] for column in coutry_table["columns"]}
     assert {"user_id", "city"} == {column["name"] for column in city_table["columns"]}
+
+
+def test_create_postgres_data_connection_with_sanitized_connection_details(
+    client: TestClient,
+    sample_postgres_data_connection_with_whitespaces_in_connection_details: dict,
+):
+    """Test creating a postgres data connection with sanitized the connection details."""
+    response = client.post(
+        "/api/v2/private/data-connections/",
+        json=sample_postgres_data_connection_with_whitespaces_in_connection_details,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    sample = sample_postgres_data_connection_with_whitespaces_in_connection_details
+    assert data["name"] == sample["name"]
+    assert data["description"] == sample["description"]
+    assert data["engine"] == sample["engine"]
+    assert data["tags"] == sample["tags"]
+    assert data["configuration"]["host"] == sample["configuration"]["host"].strip()
+    assert data["configuration"]["user"] == sample["configuration"]["user"].strip()
+    assert data["configuration"]["password"] == sample["configuration"]["password"]
+    assert data["configuration"]["schema"] == sample["configuration"]["schema"].strip()
+    assert "id" in data
+    assert data["id"] is not None
+    assert data["created_at"] is not None
+    assert data["updated_at"] is not None
+
+
+def test_create_snowflake_data_connection_with_sanitized_connection_details(
+    client: TestClient,
+    sample_snowflake_data_connection_with_whitespaces_in_connection_details: dict,
+):
+    """Test creating a snowflake data connection with sanitized connection details."""
+    response = client.post(
+        "/api/v2/private/data-connections/",
+        json=sample_snowflake_data_connection_with_whitespaces_in_connection_details,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    sample = sample_snowflake_data_connection_with_whitespaces_in_connection_details
+    assert data["name"] == sample["name"]
+    assert data["description"] == sample["description"]
+    assert data["engine"] == sample["engine"]
+    assert data["tags"] == sample["tags"]
+    assert data["configuration"]["user"] == sample["configuration"]["user"].strip()
+    assert data["configuration"]["account"] == sample["configuration"]["account"].strip()
+    assert data["configuration"]["private_key_path"] == (
+        sample["configuration"]["private_key_path"].strip()
+    )
+    assert data["configuration"]["warehouse"] == sample["configuration"]["warehouse"].strip()
+    assert data["configuration"]["database"] == sample["configuration"]["database"].strip()
+    assert data["configuration"]["credential_type"] == (
+        sample["configuration"]["credential_type"].strip()
+    )
+    assert data["configuration"]["database"] == sample["configuration"]["database"].strip()
+    assert data["configuration"]["schema"] == sample["configuration"]["schema"].strip()
+    assert (
+        data["configuration"]["private_key_passphrase"]
+        == (sample["configuration"]["private_key_passphrase"])
+    )
+    assert "id" in data
+    assert data["id"] is not None
+    assert data["created_at"] is not None
+    assert data["updated_at"] is not None
