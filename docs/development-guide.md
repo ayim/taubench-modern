@@ -158,8 +158,9 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
 
 1. **Update `server/pyproject.toml`**: Change the version field manually
 2. **Update lockfile**: Run `make sync` to ensure uv relocks the repository with the new version
-3. **Create Git Tag**: Tag must match `agent-server-v{VERSION}` (e.g., `agent-server-v2.1.0`)
-4. **Push Tag**: `git push origin agent-server-v2.1.0` triggers the release build
+3. **Update Agent-Server-Interface**: Run `make update-interface` to generate a new ASI version.
+4. **Create Git Tag**: Tag must match `agent-server-v{VERSION}` (e.g., `agent-server-v2.1.0`)
+5. **Push Tag**: `git push origin agent-server-v2.1.0` triggers the release build
 
 ### Pre-release Guidelines
 

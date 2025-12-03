@@ -1,3 +1,10 @@
+# Sema4.ai Agent Server 2.2.4 (2025-12-03)
+
+- GPT-1599 update file name validation rules to be platform-dependent (#1836)
+- [SDM-210] Fix SDM-related Thread Conversion Utils to use collected Semantic Data Models (#1827)
+- SDM-208: Semantic Data Model multi sheet selection (#1831)
+- Sai SDK support for LiteLLM (#1830)
+
 # Sema4.ai Agent Server 2.2.3 (2025-12-03)
 
 - [SDM-181] Supported SDM Data connection types (#1794)
