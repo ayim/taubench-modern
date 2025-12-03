@@ -1,4 +1,4 @@
-# ruff: noqa: E501, C901
+# ruff: noqa: E501
 import typing
 from typing import Annotated, Protocol
 
@@ -188,22 +188,29 @@ async def _get_related_to_semantic_data_model_name(
 ) -> str | None:
     """Check if a file is related to a semantic data model.
     Returns the semantic data model name if found, otherwise None."""
+    # TODO: This function is in the core module but importing server, needs to be fixed.
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-    from agent_platform.server.storage.base import BaseStorage
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelCollector,
+    )
     from agent_platform.server.storage.option import StorageService
 
     try:
         storage = StorageService.get_instance()
-        # Get semantic data models for the thread
-        semantic_data_models_info: list[
-            BaseStorage.SemanticDataModelInfo
-        ] = await storage.list_semantic_data_models(
-            agent_id=kernel.agent.agent_id, thread_id=kernel.thread.thread_id
+
+        collector = SemanticDataModelCollector(
+            agent_id=kernel.agent.agent_id,
+            thread_id=kernel.thread.thread_id,
+            user=kernel.user,
+            state=None,
         )
+        sdms_and_refs = await collector.collect_semantic_data_models(storage)
 
         # Check if file_ref matches any file reference in semantic data models
-        for sdm_info in semantic_data_models_info:
-            semantic_data_model: SemanticDataModel = sdm_info["semantic_data_model"]
+        for sdm_and_references in sdms_and_refs:
+            semantic_data_model: SemanticDataModel = sdm_and_references.semantic_data_model_info[
+                "semantic_data_model"
+            ]
             tables = semantic_data_model.get("tables") or []
             for semantic_data_model_table in tables:
                 base_table = semantic_data_model_table.get("base_table")
