@@ -417,49 +417,108 @@ class TestFileManager:
                 user_id=sample_thread.user_id,
             )
 
-    async def test_upload_invalid_file_names(
+    @patch("agent_platform.server.file_manager.base.sys.platform", new="win32")
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "",  # Empty
+            ".",  # Current dir
+            "..",  # Parent dir
+            "CON",  # Reserved device name
+            "PRN",  # Reserved device name
+            "AUX",  # Reserved device name
+            "NUL",  # Reserved device name
+            "COM1",  # Reserved device name
+            "LPT1",  # Reserved device name
+            "CON.txt",  # Reserved device name with extension
+            "test<file.txt",  # Invalid char <
+            "test>file.txt",  # Invalid char >
+            "test:file.txt",  # Invalid char :
+            'test"file.txt',  # Invalid char "
+            "test\\file.txt",  # Invalid char \
+            "test|file.txt",  # Invalid char |
+            "test?file.txt",  # Invalid char ?
+            "test*file.txt",  # Invalid char *
+            "test_file.txt ",  # Trailing space
+            "test_file.txt.",  # Trailing period
+        ],
+    )
+    async def test_windows_invalid_filenames(
         self,
+        filename: str,
         file_manager: BaseFileManager,
-        sample_file: UploadFile,
-        sample_thread: Thread,
-        setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        invalid_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", ".."]
+        """Test that invalid filenames are rejected on Windows."""
+        with pytest.raises(InvalidFileUploadError):
+            file_manager._validate_files_pre_upload([filename])
 
-        sample_file.filename = ""
-        with pytest.raises(InvalidFileUploadError, match="Invalid empty file name"):
-            await file_manager.upload(
-                files=[UploadFilePayload(file=sample_file)],
-                owner=sample_thread,
-                user_id=sample_thread.user_id,
-            )
-
-        for invalid_name in invalid_names:
-            sample_file.filename = invalid_name
-            with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
-                await file_manager.upload(
-                    files=[UploadFilePayload(file=sample_file)],
-                    owner=sample_thread,
-                    user_id=sample_thread.user_id,
-                )
-
-    async def test_upload_invalid_characters(
+    @patch("agent_platform.server.file_manager.base.sys.platform", new="win32")
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "normal_file.txt",
+            "file-name.pdf",
+            "file_123.csv",
+            "my_document.docx",
+            "data (1).json",
+        ],
+    )
+    async def test_windows_valid_filenames(
         self,
+        filename: str,
         file_manager: BaseFileManager,
-        sample_file: UploadFile,
-        sample_thread: Thread,
-        setup_storage: SQLiteStorage | PostgresStorage,
     ):
-        invalid_chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
+        """Test that valid filenames are accepted on Windows."""
+        # Should not raise an exception
+        file_manager._validate_files_pre_upload([filename])
 
-        for char in invalid_chars:
-            sample_file.filename = f"test{char}file.txt"
-            with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
-                await file_manager.upload(
-                    files=[UploadFilePayload(file=sample_file)],
-                    owner=sample_thread,
-                    user_id=sample_thread.user_id,
-                )
+    @patch("agent_platform.server.file_manager.base.sys.platform", new="darwin")
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "",  # Empty
+            ".",  # Current dir
+            "..",  # Parent dir
+            "test/file.txt",  # Forward slash
+            "test\x00file.txt",  # Null character
+        ],
+    )
+    async def test_unix_invalid_filenames(
+        self,
+        filename: str,
+        file_manager: BaseFileManager,
+    ):
+        """Test that invalid filenames are rejected on Unix."""
+        with pytest.raises(InvalidFileUploadError):
+            file_manager._validate_files_pre_upload([filename])
+
+    @patch("agent_platform.server.file_manager.base.sys.platform", new="darwin")
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "normal_file.txt",
+            "file-name.pdf",
+            "file_123.csv",
+            "CON.txt",  # Windows reserved name is OK on Unix
+            "PRN.log",  # Windows reserved name is OK on Unix
+            "AUX.dat",  # Windows reserved name is OK on Unix
+            "file:name.txt",  # Colon is OK on Unix
+            "file*name.txt",  # Asterisk is OK on Unix
+            "file<name.txt",  # < is OK on Unix
+            "file>name.txt",  # > is OK on Unix
+            'file"name.txt',  # " is OK on Unix
+            "file|name.txt",  # | is OK on Unix
+            "file?name.txt",  # ? is OK on Unix
+        ],
+    )
+    async def test_unix_valid_filenames(
+        self,
+        filename: str,
+        file_manager: BaseFileManager,
+    ):
+        """Test that valid filenames are accepted on Unix."""
+        # Should not raise an exception
+        file_manager._validate_files_pre_upload([filename])
 
     async def test_delete_file(
         self,
@@ -928,35 +987,6 @@ class TestFileManager:
         )
         assert stored_file is not None
         assert stored_file.file_id == request_result.file_id
-
-    async def test_request_remote_file_upload_invalid_filename(
-        self,
-        file_manager: BaseFileManager,
-        sample_thread: Thread,
-        setup_storage: SQLiteStorage | PostgresStorage,
-    ):
-        """Test requesting remote file upload with invalid filename."""
-        # Reserved Windows names
-        reserved_names = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1", ".", "..", ""]
-        # Invalid characters
-        invalid_chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
-
-        invalid_filenames = [
-            *reserved_names,  # Add all reserved Windows names
-            *[
-                f"test{char}file.txt" for char in invalid_chars
-            ],  # Add all invalid character combinations
-            "../file.txt",  # Path traversal attempt
-            "folder/../file.txt",  # Another path traversal attempt
-            "",  # Empty filename
-        ]
-
-        for invalid_filename in invalid_filenames:
-            with pytest.raises(InvalidFileUploadError, match="Invalid file name"):
-                await file_manager.request_remote_file_upload(
-                    owner=sample_thread,
-                    file_name=invalid_filename,
-                )
 
     async def test_uploaded_file_contains_file_url(
         self,

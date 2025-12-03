@@ -1,5 +1,6 @@
 import hashlib
 import os
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 
@@ -142,7 +143,28 @@ class BaseFileManager(ABC):
 
     def _validate_files_pre_upload(self, file_names: list[str]) -> None:
         # https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names/31976060#31976060
-        reserved_unix_file_names = {".", ".."}
+
+        # Check for duplicate names first (platform-independent)
+        if len(file_names) != len(set(file_names)):
+            raise InvalidFileUploadError("File names must be unique")
+
+        for filename in file_names:
+            if filename == "":
+                raise InvalidFileUploadError("Invalid file name")
+
+            # Check for . and .. (invalid on all platforms)
+            if filename in {".", ".."}:
+                raise InvalidFileUploadError(f"Invalid file name: {filename}")
+
+            # Platform-specific validation
+            if sys.platform == "win32":
+                self._validate_windows_restrictions(filename)
+            else:
+                self._validate_unix_restrictions(filename)
+
+    def _validate_windows_restrictions(self, filename: str) -> None:
+        """Validate filename against Windows-specific restrictions."""
+        # Reserved Windows device names
         reserved_windows_file_names = {
             "CON",
             "PRN",
@@ -168,23 +190,27 @@ class BaseFileManager(ABC):
             "LPT9",
         }
 
-        if len(file_names) != len(set(file_names)):
-            raise InvalidFileUploadError("File names must be unique")
+        file_base, _ = os.path.splitext(filename)
+        if (
+            filename.upper() in reserved_windows_file_names
+            or file_base.upper() in reserved_windows_file_names
+        ):
+            raise InvalidFileUploadError(f"Invalid file name: {filename}")
 
-        for filename in file_names:
-            file_base, _ = os.path.splitext(filename)
-            if (
-                filename == ""
-                or filename.upper() in reserved_windows_file_names
-                or file_base.upper() in reserved_windows_file_names
-                or filename in reserved_unix_file_names
-            ):
-                raise InvalidFileUploadError(f"Invalid file name: {filename}")
+        # Invalid characters for Windows
+        invalid_chars = '<>:"/\\|?*'
+        if any(char in filename for char in invalid_chars):
+            raise InvalidFileUploadError("Invalid file name")
 
-            # Check for invalid characters
-            invalid_chars = '<>:"/\\|?*'
-            if any(char in filename for char in invalid_chars):
-                raise InvalidFileUploadError("Invalid file name")
+        # Windows doesn't allow trailing spaces or periods
+        if filename.endswith(" ") or filename.endswith("."):
+            raise InvalidFileUploadError("Invalid file name")
+
+    def _validate_unix_restrictions(self, filename: str) -> None:
+        """Validate filename against Unix-specific restrictions."""
+        # Only reject forward slash and null character on Unix
+        if "/" in filename or "\x00" in filename:
+            raise InvalidFileUploadError("Invalid file name")
 
     @abstractmethod
     async def generate_unique_file_ref(
