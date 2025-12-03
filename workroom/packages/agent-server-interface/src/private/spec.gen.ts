@@ -10802,9 +10802,13 @@ export const spec = {
             type: 'string',
             title: 'Config Value',
           },
+          description: {
+            type: 'string',
+            title: 'Description',
+          },
         },
         type: 'object',
-        required: ['config_type', 'config_value'],
+        required: ['config_type', 'config_value', 'description'],
         title: 'ConfigResponse',
       },
       ConfigType: {

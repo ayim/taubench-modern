@@ -3966,6 +3966,8 @@ export interface components {
       config_type: components['schemas']['ConfigType'];
       /** Config Value */
       config_value: string;
+      /** Description */
+      description: string;
     };
     /**
      * ConfigType

@@ -89,6 +89,7 @@ function Settings() {
           <Form.Fieldset key={configEntry.config_type}>
             <Input
               label={beautifyConfigType(configEntry.config_type)}
+              description={configEntry.description}
               {...formProps.register(configEntry.config_type)}
             />
           </Form.Fieldset>

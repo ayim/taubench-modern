@@ -48,7 +48,7 @@ class QuotasService:
         WORK_ITEM_PAYLOAD_SIZE: QuotaConfig(
             storage_key=ConfigType.MAX_WORK_ITEM_PAYLOAD_SIZE,
             default_value=100,
-            description="Maximum work item payload size in KB",
+            description="Maximum work item JSON payload size in KB",
             env_vars=["SEMA4AI_AGENT_SERVER_MAX_WORK_ITEM_PAYLOAD_SIZE_IN_KB"],
         ),
         WORK_ITEM_FILE_ATTACHMENT_SIZE: QuotaConfig(
@@ -60,7 +60,7 @@ class QuotasService:
         MAX_AGENTS: QuotaConfig(
             storage_key=ConfigType.MAX_AGENTS,
             default_value=100,
-            description="Maximum number of agents",
+            description="Maximum number of agents for this workspace",
             env_vars=["SEMA4AI_AGENT_SERVER_MAX_AGENTS"],
         ),
         PARALLEL_WORK_ITEMS: QuotaConfig(

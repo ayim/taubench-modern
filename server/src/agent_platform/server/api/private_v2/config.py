@@ -25,6 +25,7 @@ class ConfigResponse:
 
     config_type: ConfigType
     config_value: str
+    description: str
 
 
 @router.post("/")
@@ -58,12 +59,11 @@ async def get_all_configs(
         logger.error("Failed to get all configurations", error=str(e))
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-    result = []
-    for _, quota_data in all_quotas.items():
-        config_response = ConfigResponse(
+    return [
+        ConfigResponse(
             config_type=quota_data["storage_key"],
             config_value=str(quota_data["value"]),
+            description=quota_data["description"],
         )
-        result.append(config_response)
-
-    return result
+        for quota_data in all_quotas.values()
+    ]
