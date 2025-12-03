@@ -1,5 +1,5 @@
 import { Button, Dialog, Input, Form, Box, useSnackbar } from '@sema4ai/components';
-import React, { FC, useCallback } from 'react';
+import { FC, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
