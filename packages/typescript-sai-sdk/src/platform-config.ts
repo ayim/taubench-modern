@@ -70,6 +70,14 @@ export const BedrockPlatformConfigSchema = z.object({
   models: z.record(z.string(), z.array(z.string())).optional(), // { 'bedrock': ["claude-4-opus"] }
 });
 
+// LiteLLM platform config
+export const LiteLLMPlatformConfigSchema = z.object({
+  kind: z.literal('litellm'),
+  litellm_api_key: z.string().optional(),
+  litellm_base_url: z.string().optional(),
+  models: z.record(z.string(), z.array(z.string())).optional(), // { 'litellm': ['model-1', 'model-2'] }
+});
+
 // Union of all platform configs
 export const PlatformConfigSchema = z.discriminatedUnion('kind', [
   OpenAIPlatformConfigSchema,
@@ -78,6 +86,7 @@ export const PlatformConfigSchema = z.discriminatedUnion('kind', [
   AnthropicPlatformConfigSchema,
   SnowflakePlatformConfigSchema,
   BedrockPlatformConfigSchema,
+  LiteLLMPlatformConfigSchema,
 ]);
 
 // Type exports
@@ -88,3 +97,4 @@ export type OLLamaPlatformConfig = z.infer<typeof OLLamaPlatformConfigSchema>;
 export type AnthropicPlatformConfig = z.infer<typeof AnthropicPlatformConfigSchema>;
 export type SnowflakePlatformConfig = z.infer<typeof SnowflakePlatformConfigSchema>;
 export type BedrockPlatformConfig = z.infer<typeof BedrockPlatformConfigSchema>;
+export type LiteLLMPlatformConfig = z.infer<typeof LiteLLMPlatformConfigSchema>;

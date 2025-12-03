@@ -116,6 +116,20 @@ export function createOpenAIConfig(apiKey: string, availableModels?: string[]): 
 }
 
 /**
+ * Create a LiteLLM platform config
+ */
+export function createLiteLLMConfig(baseUrl: string, apiKey: string, availableModels?: string[]): PlatformConfig {
+  return {
+    kind: 'litellm',
+    litellm_base_url: baseUrl,
+    litellm_api_key: apiKey,
+    models: {
+      litellm: availableModels || [],
+    },
+  };
+}
+
+/**
  * Create a Bedrock platform config
  */
 export function createBedrockConfig(
