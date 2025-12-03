@@ -1,1 +1,1 @@
-export * from './View';
+export { DataFrameView } from './View';

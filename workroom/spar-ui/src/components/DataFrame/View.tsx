@@ -1,7 +1,8 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, DataFrame, Menu, Typography } from '@sema4ai/components';
+import { Box, Button, DataFrame, Dialog, EmptyState, Menu, Typography } from '@sema4ai/components';
+import { dataFuzzySearcher } from '@sema4ai/components/utils';
 import { styled } from '@sema4ai/theme';
-import { IconDotsHorizontal, IconMenu } from '@sema4ai/icons';
+import { IconDotsHorizontal, IconExport, IconMenu, IconSearch } from '@sema4ai/icons';
 import { IconDataFrames } from '@sema4ai/icons/logos';
 
 import { useMessageStream } from '../../hooks';
@@ -15,7 +16,7 @@ import { useDownloadCSV } from '../../hooks/useDownloadCSV';
 import { AssemblyInfoDialog } from './AssemblyInfoDialog';
 
 const MAX_DOWNLOAD_SIZE_MB = 10;
-const MAX_DOWNLOAD_SIZE = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
+const MAX_DATA_FRAME_DOWNLOAD_SIZE = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
 
 const Container = styled.div`
   display: flex;
@@ -40,7 +41,7 @@ const StyledDataFrame = styled(DataFrame)`
   }
 `;
 
-type DataFrame = {
+type DataFrameViewProps = {
   column_headers: string[];
   thread_id: string;
   data_frame_id: string;
@@ -50,7 +51,7 @@ type DataFrame = {
   parent_data_frame_ids: string[] | null;
 };
 
-const getDataFrameColumns = (dataFrame: DataFrame) => {
+const getDataFrameColumns = (dataFrame: DataFrameViewProps) => {
   return dataFrame.column_headers.map((header: string) => {
     return {
       id: header,
@@ -60,11 +61,12 @@ const getDataFrameColumns = (dataFrame: DataFrame) => {
 };
 
 interface DataFrameEntryProps {
-  dataFrame: DataFrame;
+  dataFrame: DataFrameViewProps;
   agentId: string;
+  preview?: boolean;
 }
 
-const DataFrameEntry: FC<DataFrameEntryProps> = ({ dataFrame, agentId }) => {
+const DataFrameEntry: FC<DataFrameEntryProps> = ({ dataFrame, agentId, preview = false }) => {
   const { sendMessage } = useMessageStream({
     agentId,
     threadId: dataFrame.thread_id,
@@ -86,6 +88,8 @@ const DataFrameEntry: FC<DataFrameEntryProps> = ({ dataFrame, agentId }) => {
   });
 
   const columnsWithActions = useMemo(() => {
+    if (preview) return columns;
+
     return columns.map((column) => {
       return {
         ...column,
@@ -115,10 +119,76 @@ const DataFrameEntry: FC<DataFrameEntryProps> = ({ dataFrame, agentId }) => {
   );
 };
 
+const FullScreenDialogContent: FC<{ agentId: string; dataFrame: DataFrameViewProps; onClose: () => void }> = ({
+  dataFrame,
+  agentId,
+  onClose,
+}) => {
+  const { fetchNextPage } = useDataFrameSliceInfiniteQuery({
+    threadId: dataFrame.thread_id,
+    dataFrameId: dataFrame.data_frame_id,
+    totalRows: dataFrame.num_rows,
+    queryOptions: { enabled: false },
+  });
+
+  const flatChunkCount = useRef(0);
+  const { startDownload, isDownloading } = useDownloadCSV({
+    headers: dataFrame.column_headers,
+    filename: `${dataFrame.name}.csv`,
+    maxSize: MAX_DATA_FRAME_DOWNLOAD_SIZE,
+    fetchChunk: async () => {
+      const result = await fetchNextPage();
+      const pageData = (result.data ?? []) as Record<string, unknown>[];
+      const chunkData = pageData.slice(flatChunkCount.current, pageData.length);
+
+      /**
+       * Query flattens page data in single array, so we need to keep track of the current chunk index.
+       */
+      flatChunkCount.current = pageData.length;
+      if (!result.hasNextPage) {
+        flatChunkCount.current = 0;
+      }
+
+      return { hasNextChunk: result.hasNextPage, data: chunkData };
+    },
+  });
+
+  return (
+    <>
+      <Dialog.Header>
+        <Dialog.Header.Title title={dataFrame.name} />
+        <Dialog.Header.Description>{dataFrame.description}</Dialog.Header.Description>
+      </Dialog.Header>
+      <Dialog.Content>
+        <DataFrameEntry agentId={agentId} dataFrame={dataFrame} preview />
+      </Dialog.Content>
+      <Dialog.Actions>
+        <Button onClick={startDownload} disabled={isDownloading} iconAfter={IconExport} round>
+          Export as CSV
+        </Button>
+        <Button onClick={onClose} variant="outline" round>
+          Cancel
+        </Button>
+      </Dialog.Actions>
+    </>
+  );
+};
+
+const FullScreenDialog: FC<{ open: boolean; onClose: () => void; dataFrame: DataFrameViewProps; agentId: string }> = ({
+  open,
+  onClose,
+  dataFrame,
+  agentId,
+}) => (
+  <Dialog open={open} onClose={onClose} size="full-screen">
+    <FullScreenDialogContent dataFrame={dataFrame} agentId={agentId} onClose={onClose} />
+  </Dialog>
+);
+
 interface DataFrameViewComponentProps {
   agentId: string;
-  dataFrames: DataFrame[];
-  activeDataFrame: DataFrame;
+  dataFrames: DataFrameViewProps[];
+  activeDataFrame: DataFrameViewProps;
   activeDataFrameIndex: number;
   setActiveDataFrameIndex: (index: number) => void;
 }
@@ -132,6 +202,8 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
 }) => {
   const [isMenuListOpen, setIsMenuListOpen] = useState(false);
   const [isAssemblyInfoDialogOpen, setIsAssemblyInfoDialogOpen] = useState(false);
+  const [isFullScreenDialogOpen, setIsFullScreenDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dataFrameCount = dataFrames.length;
 
   const { fetchNextPage } = useDataFrameSliceInfiniteQuery({
@@ -149,7 +221,7 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
   const { startDownload, isDownloading } = useDownloadCSV({
     headers: activeDataFrame.column_headers,
     filename: `${activeDataFrame.name}.csv`,
-    maxSize: MAX_DOWNLOAD_SIZE,
+    maxSize: MAX_DATA_FRAME_DOWNLOAD_SIZE,
     fetchChunk: async () => {
       const result = await fetchNextPage();
       const pageData = (result.data ?? []) as Record<string, unknown>[];
@@ -186,6 +258,12 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
       setIsAssemblyInfoDialogOpen(true);
     });
   };
+
+  const searchDataFrames = useMemo(
+    () => dataFuzzySearcher({ name: { value: (item) => item.name } }, dataFrames),
+    [dataFrames],
+  );
+  const resultDataFrames = useMemo(() => searchDataFrames(searchTerm), [searchDataFrames, searchTerm]);
 
   const assemblyInfo = assemblyInfoData?.[activeDataFrame.name] || '';
 
@@ -228,6 +306,7 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                 >
                   Show Lineage
                 </Menu.Item>
+                <Menu.Item onClick={() => setIsFullScreenDialogOpen(true)}>View Full Screen</Menu.Item>
               </Menu>
               {dataFrameCount > 1 && (
                 <Menu
@@ -235,7 +314,17 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
                   setVisible={setIsMenuListOpen}
                   trigger={<Button icon={IconMenu} variant="outline" aria-label="choose data frame" round />}
                 >
-                  {dataFrames.map((frame, index) => (
+                  <Menu.Input
+                    variant="ghost"
+                    placeholder="Search"
+                    value={searchTerm}
+                    iconLeft={IconSearch}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    aria-label="search data frames"
+                    autoFocus
+                    $sticky
+                  />
+                  {resultDataFrames.map((frame, index) => (
                     <Menu.Item
                       key={frame.name ?? index}
                       onClick={() => setActiveDataFrameIndex(index)}
@@ -265,19 +354,25 @@ const DataFrameViewComponent: FC<DataFrameViewComponentProps> = ({
         dataFrameName={activeDataFrame.name}
         assemblyInfo={assemblyInfo}
       />
+      <FullScreenDialog
+        open={isFullScreenDialogOpen}
+        onClose={() => setIsFullScreenDialogOpen(false)}
+        dataFrame={activeDataFrame}
+        agentId={agentId}
+      />
     </Box>
   );
 };
 
 const EmptyDataFrameView: FC = () => {
   return (
-    <Box display="flex" flexDirection="column" height="100%">
-      <Box display="flex" flexDirection="column" flex={1} alignItems="center" justifyContent="center" gap="$8">
-        <IconDataFrames size={100} />
-        <Typography variant="body-medium" color="content.subtle.light">
-          No Data Frames created.
-        </Typography>
-      </Box>
+    <Box display="flex" height="100%" alignItems="center" justifyContent="center">
+      <EmptyState
+        illustration={<IconDataFrames size={150} />}
+        title="No DataFrames Created"
+        description="Upload a spreadsheet, or run a Named Query."
+        action={null}
+      />
     </Box>
   );
 };

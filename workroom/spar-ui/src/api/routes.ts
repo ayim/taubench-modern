@@ -27,6 +27,11 @@ export type SparUIRoutes = {
     workItemId: string;
     threadId: string;
   };
+  '/workItem/$agentId/$workItemId/$threadId/data-frames': {
+    agentId: string;
+    workItemId: string;
+    threadId: string;
+  };
   '/workItem/$agentId/$workItemId': {
     agentId: string;
     workItemId: string;

@@ -307,7 +307,12 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
   const evaluationError = thread?.metadata?.evaluation_error as string | undefined;
 
   return (
-    <Container {...getRootProps()} $hasEvalBanner={isEvaluationThread} key={`chat-${threadId}`}>
+    <Container
+      {...getRootProps()}
+      $hasEvalBanner={isEvaluationThread}
+      key={`chat-${threadId}`}
+      id="thread-conversation"
+    >
       {isEvaluationThread && (
         <BannerWrapper>
           <Banner

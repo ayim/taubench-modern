@@ -44,7 +44,7 @@ export const Sidebar: FC<Props> = ({ children, name }) => {
   }, [resizeWidth, setInitialWidth]);
 
   return (
-    <Container ref={containerRef}>
+    <Container ref={containerRef} id="thread-details-sidebar">
       {children}
       <ResizeHandle ref={resizeHandlerRef} position="left" />
     </Container>
