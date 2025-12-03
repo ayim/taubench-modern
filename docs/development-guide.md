@@ -196,7 +196,14 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    - Your new features here
    ```
 
-3. **Create PR and tag**:
+3. **_(OPTIONAL)_ the Agent Server Interface package is needed or fails in the checks**
+
+   ```bash
+   # Update the Agent Server Interface
+   make update-interface
+   ```
+
+4. **Create PR and tag**:
 
    ```bash
    # Create PR with version bump and changelog updates
@@ -211,7 +218,7 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    git push origin agent-server-v2.1.0
    ```
 
-4. **Automatic deployment**: The tag push triggers the build and deployment automatically.
+5. **Automatic deployment**: The tag push triggers the build and deployment automatically.
 
 ### Pre-Release (from `main` branch)
 
@@ -239,7 +246,14 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    - Your new features here
    ```
 
-3. **Create PR and tag**:
+3. **_(OPTIONAL)_ the Agent Server Interface package is needed or fails in the checks**
+
+   ```bash
+   # Update the Agent Server Interface
+   make update-interface
+   ```
+
+4. **Create PR and tag**:
 
    ```bash
    # Create PR with version bump and changelog updates
@@ -254,7 +268,7 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    git push origin agent-server-v2.1.0-alpha.1
    ```
 
-4. **Automatic deployment**: The tag push triggers the build and deployment automatically.
+5. **Automatic deployment**: The tag push triggers the build and deployment automatically.
 
 ## Local Development
 

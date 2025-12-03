@@ -1,3 +1,28 @@
+# Sema4.ai Agent Server 2.2.3 (2025-12-03)
+
+- [SDM-181] Supported SDM Data connection types (#1794)
+- [SDM-144] Make redshift data connection work with ibis (#1730)
+- [SDM-144] Detect engine for ibis duckdb backend (#1800)
+- [SDM-172] Make the connection to MYSQL work with SDM (#1768)
+- [SDM-196] Move Create Verified Query to Action Envelope (#1798)
+- [SDM-198] Add integration tests for redshift (#1802)
+- [CLOUD-5610] Spar UI layout fix (#1806)
+- feat: Add possibility to enable and disable existing observability integration, fixing zod resolver for react-hook-form usages (#1805)
+- [PRD-1188] Semantic Data Model fixes and updates (#1808)
+- Spar UI: Next Release (#1767)
+- [GPT-1565] hide go to thread if not completed (#1788)
+- [GPT-1482] fix architecture version in eval results (#1789)
+- [SDM-183]: Copy/Export Conversation transcript (#1799)
+- Fix: Semantic Data Model layout updates (#1817)
+- Add DocumentInterface and parse_document tool (#1807)
+- [GPT-1597] Handle dict to SecretString conversion for MPC parameters (#1822)
+- [GPT-1531] Add LiteLLM legacy model conversion support (#1673)
+- [GPT-1594] Targeted Fixes for Pre-Installed Agent (#1823)
+- Sanitize the data connection details from payload (#1801)
+- [CLOUD-5726] feat: surface description for agent-server settings (#1821)
+
+
+
 # Sema4.ai Agent Server 2.2.2 (2025-11-27)
 
 - [PRD-1168] SDM: Support Linked Snowflake data connection (#1787)
