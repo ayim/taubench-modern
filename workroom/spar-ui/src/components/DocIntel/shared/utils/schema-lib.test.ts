@@ -14,12 +14,12 @@ import {
   renameProperty,
   moveProperty,
   cloneProperty,
-  propertyPointer,
   getProperty,
   hasProperty,
   setProperty,
   updateProperty,
   deleteProperty,
+  validateSchema,
 } from './schema-lib';
 
 const getSchemaType = (schema: JSONSchema): string | undefined => {
@@ -129,36 +129,150 @@ describe('Pointer Utilities', () => {
   });
 });
 
-describe('Path Conversion', () => {
-  it('propertyPointer returns logical paths for root', () => {
-    const ptr = propertyPointer('', 'name');
-    expect(ptr).toBe('/name');
-  });
-
-  it('propertyPointer returns logical paths for nested', () => {
-    const ptr = propertyPointer('/address', 'city');
-    expect(ptr).toBe('/address/city');
-  });
-
-  it('propertyPointer escapes special characters', () => {
-    const ptr = propertyPointer('', 'prop/name');
-    expect(ptr).toBe('/prop~1name');
-  });
-
-  it('getProperty works with logical paths', () => {
+describe('Path Handling', () => {
+  it('getProperty works with JSON Pointer paths', () => {
     const prop = getProperty(testSchema, '', 'name');
     expect(prop).toBeDefined();
   });
 
-  it('walk returns logical paths not internal paths', () => {
+  it('walk returns JSON Pointer paths', () => {
     const visitedPointers: string[] = [];
     walk(testSchema, (node) => {
       visitedPointers.push(node.pointer);
     });
 
-    expect(visitedPointers).toContain('/name');
-    expect(visitedPointers).toContain('/address');
-    expect(visitedPointers.some((p) => p.includes('/properties/'))).toBe(false);
+    expect(visitedPointers).toContain('/properties/name');
+    expect(visitedPointers).toContain('/properties/address');
+    expect(visitedPointers).toContain('/properties/tags');
+    expect(visitedPointers).toContain('/properties/tags/items');
+  });
+});
+
+describe('Schema Validation', () => {
+  it('validateSchema passes for well-formed schema', () => {
+    expect(() => validateSchema(testSchema)).not.toThrow();
+  });
+
+  it('validateSchema passes for schema with empty properties', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {},
+    };
+    expect(() => validateSchema(schema)).not.toThrow();
+  });
+
+  it('validateSchema passes for schema with empty items', () => {
+    const schema: JSONSchema = {
+      type: 'array',
+      items: {},
+    };
+    expect(() => validateSchema(schema)).not.toThrow();
+  });
+
+  it('validateSchema throws for object without properties', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      // Missing properties
+    };
+    expect(() => validateSchema(schema)).toThrow(/missing 'properties' attribute/);
+  });
+
+  it('validateSchema throws for array without items', () => {
+    const schema: JSONSchema = {
+      type: 'array',
+      // Missing items
+    };
+    expect(() => validateSchema(schema)).toThrow(/missing 'items' attribute/);
+  });
+
+  it('validateSchema throws for nested object without properties', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          // Missing properties
+        },
+      },
+    };
+    expect(() => validateSchema(schema)).toThrow(/missing 'properties' attribute/);
+    expect(() => validateSchema(schema)).toThrow(/\/address/);
+  });
+
+  it('validateSchema throws for nested array without items', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        tags: {
+          type: 'array',
+          // Missing items
+        },
+      },
+    };
+    expect(() => validateSchema(schema)).toThrow(/missing 'items' attribute/);
+    expect(() => validateSchema(schema)).toThrow(/\/tags/);
+  });
+
+  it('validateSchema passes for implicit object (has properties but no type)', () => {
+    const schema: JSONSchema = {
+      properties: {
+        name: { type: 'string' },
+      },
+    };
+    // Implicit objects (no type but has properties) are valid
+    expect(() => validateSchema(schema)).not.toThrow();
+  });
+
+  it('validateSchema passes for implicit array (has items but no type)', () => {
+    const schema: JSONSchema = {
+      items: { type: 'string' },
+    };
+    // Implicit arrays (no type but has items) are valid
+    expect(() => validateSchema(schema)).not.toThrow();
+  });
+
+  it('validateSchema validates complex nested schema', () => {
+    const complexSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    };
+    expect(() => validateSchema(complexSchema)).not.toThrow();
+  });
+
+  it('validateSchema throws for complex nested schema with missing items', () => {
+    const complexSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              tags: {
+                type: 'array',
+                // Missing items
+              },
+            },
+          },
+        },
+      },
+    };
+    expect(() => validateSchema(complexSchema)).toThrow(/missing 'items' attribute/);
+    expect(() => validateSchema(complexSchema)).toThrow(/\/properties\/users\/items\/properties\/tags/);
   });
 });
 
@@ -179,25 +293,25 @@ describe('Traversal', () => {
       visitedPointers.push(node.pointer);
     });
 
-    expect(visitedPointers).toContain('/name');
-    expect(visitedPointers).toContain('/address');
-    expect(visitedPointers).toContain('/address/city');
-    expect(visitedPointers).toContain('/tags');
+    expect(visitedPointers).toContain('/properties/name');
+    expect(visitedPointers).toContain('/properties/address');
+    expect(visitedPointers).toContain('/properties/address/properties/city');
+    expect(visitedPointers).toContain('/properties/tags');
   });
 
-  it('walk does not visit array items as separate nodes', () => {
+  it('walk visits array items as separate nodes', () => {
     const visitedPointers: string[] = [];
     walk(testSchema, (node) => {
       visitedPointers.push(node.pointer);
     });
 
-    expect(visitedPointers).not.toContain('/tags/items');
+    expect(visitedPointers).toContain('/properties/tags/items');
   });
 
   it('walk provides correct node metadata', () => {
     let nameNodeFound = false;
     walk(testSchema, (node) => {
-      if (node.pointer === '/name') {
+      if (node.pointer === '/properties/name') {
         expect(node.kind).toBe('scalar');
         expect(node.key).toBe('name');
         expect(node.parentPointer).toBe('');
@@ -221,12 +335,12 @@ describe('Traversal', () => {
   it('buildIndex contains root node', () => {
     const index = buildIndex(testSchema);
     expect(index.has('')).toBe(true);
-    expect(index.has('/name')).toBe(true);
+    expect(index.has('/properties/name')).toBe(true);
   });
 
   it('buildIndex indexed nodes have correct metadata', () => {
     const index = buildIndex(testSchema);
-    const nameNode = index.get('/name');
+    const nameNode = index.get('/properties/name');
 
     expect(nameNode).toBeDefined();
     expect(nameNode?.kind).toBe('scalar');
@@ -237,10 +351,10 @@ describe('Traversal', () => {
   it('buildIndex correctly identifies node kinds', () => {
     const index = buildIndex(testSchema);
 
-    const addressNode = index.get('/address');
+    const addressNode = index.get('/properties/address');
     expect(addressNode?.kind).toBe('object');
 
-    const tagsNode = index.get('/tags');
+    const tagsNode = index.get('/properties/tags');
     expect(tagsNode?.kind).toBe('array');
   });
 });
@@ -273,37 +387,37 @@ describe('Query Operations', () => {
   });
 
   it('getChildren returns children for nested objects', () => {
-    const addressChildren = getChildren(testSchema, '/address');
+    const addressChildren = getChildren(testSchema, '/properties/address');
     expect(addressChildren.length).toBeGreaterThan(0);
     expect(addressChildren.some((c) => c.key === 'city')).toBe(true);
   });
 
   it('getChildren returns empty array for scalar nodes', () => {
-    const namePointer = propertyPointer('', 'name');
-    const nameChildren = getChildren(testSchema, namePointer);
+    const nameChildren = getChildren(testSchema, '/properties/name');
     expect(nameChildren).toHaveLength(0);
   });
 
-  it('getChildren returns empty array for array nodes', () => {
-    const tagsChildren = getChildren(testSchema, '/tags');
-    expect(tagsChildren).toHaveLength(0);
+  it('getChildren returns children for array nodes', () => {
+    const tagsChildren = getChildren(testSchema, '/properties/tags');
+    expect(tagsChildren.length).toBeGreaterThan(0);
+    expect(tagsChildren.some((c) => c.key === 'items')).toBe(true);
   });
 
   it('getChildren returns empty array for non-existent nodes', () => {
-    const children = getChildren(testSchema, '/nonexistent');
+    const children = getChildren(testSchema, '/properties/nonexistent');
     expect(children).toEqual([]);
   });
 
   it('getParent returns parent for property nodes', () => {
-    const nameParent = getParent(testSchema, propertyPointer('', 'name'));
+    const nameParent = getParent(testSchema, '/properties/name');
     expect(nameParent).toBeDefined();
     expect(nameParent?.pointer).toBe('');
   });
 
   it('getParent returns parent for nested properties', () => {
-    const cityParent = getParent(testSchema, propertyPointer('/address', 'city'));
+    const cityParent = getParent(testSchema, '/properties/address/properties/city');
     expect(cityParent).toBeDefined();
-    expect(cityParent?.pointer).toBe('/address');
+    expect(cityParent?.pointer).toBe('/properties/address');
   });
 
   it('getParent returns undefined for root node', () => {
@@ -311,34 +425,45 @@ describe('Query Operations', () => {
     expect(rootParent).toBeUndefined();
   });
 
+  it('getParent returns parent for nested properties', () => {
+    const cityParent = getParent(testSchema, '/properties/address/properties/city');
+    expect(cityParent).toBeDefined();
+    expect(cityParent?.pointer).toBe('/properties/address');
+  });
+
+  it('getParent returns parent for array items', () => {
+    const arrayObjectSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+          },
+        },
+      },
+    };
+    const usersParent = getParent(arrayObjectSchema, '/properties/users/items');
+    expect(usersParent).toBeDefined();
+    expect(usersParent?.pointer).toBe('/properties/users');
+  });
+
+  it('getParent return undefined for root node', () => {
+    const rootParent = getParent(testSchema, '');
+    expect(rootParent).toBeUndefined();
+  });
+
   it('getParent returns parent even for non-existent nodes', () => {
-    const parent = getParent(testSchema, '/nonexistent');
+    const parent = getParent(testSchema, '/properties/nonexistent');
     expect(parent).toBeDefined();
     expect(parent?.pointer).toBe('');
   });
 });
 
 describe('Property Operations', () => {
-  it('propertyPointer builds logical path for root property', () => {
-    const ptr = propertyPointer('', 'name');
-    expect(ptr).toBe('/name');
-  });
-
-  it('propertyPointer builds logical path for nested property', () => {
-    const ptr = propertyPointer('/address', 'city');
-    expect(ptr).toBe('/address/city');
-  });
-
-  it('propertyPointer escapes special characters in property names', () => {
-    const ptr = propertyPointer('', 'prop/name');
-    expect(ptr).toBe('/prop~1name');
-  });
-
-  it('propertyPointer handles deeply nested paths', () => {
-    const ptr = propertyPointer('/a/b/c', 'd');
-    expect(ptr).toBe('/a/b/c/d');
-  });
-
   it('getProperty gets root level property', () => {
     const nameSchema = getProperty(testSchema, '', 'name');
     expect(nameSchema).toBeDefined();
@@ -346,7 +471,7 @@ describe('Property Operations', () => {
   });
 
   it('getProperty gets nested property', () => {
-    const citySchema = getProperty(testSchema, '/address', 'city');
+    const citySchema = getProperty(testSchema, '/properties/address', 'city');
     expect(citySchema).toBeDefined();
     expect(getSchemaType(citySchema!)).toBe('string');
   });
@@ -357,8 +482,10 @@ describe('Property Operations', () => {
   });
 
   it('getProperty returns undefined for property on non-existent parent', () => {
-    const nonExistent = getProperty(testSchema, '/doesNotExist', 'field');
-    expect(nonExistent).toBeUndefined();
+    // Accessing property on non-existent parent - operation returns undefined
+    // This is not a schema malformation issue, but an invalid navigation attempt
+    const result = getProperty(testSchema, '/properties/doesNotExist', 'field');
+    expect(result).toBeUndefined();
   });
 
   it('hasProperty returns true for existing root property', () => {
@@ -366,7 +493,7 @@ describe('Property Operations', () => {
   });
 
   it('hasProperty returns true for existing nested property', () => {
-    expect(hasProperty(testSchema, '/address', 'city')).toBe(true);
+    expect(hasProperty(testSchema, '/properties/address', 'city')).toBe(true);
   });
 
   it('hasProperty returns false for non-existent property', () => {
@@ -374,7 +501,9 @@ describe('Property Operations', () => {
   });
 
   it('hasProperty returns false for property on non-existent parent', () => {
-    expect(hasProperty(testSchema, '/doesNotExist', 'field')).toBe(false);
+    // Accessing property on non-existent parent - operation returns false
+    // This is not a schema malformation issue, but an invalid navigation attempt
+    expect(hasProperty(testSchema, '/properties/doesNotExist', 'field')).toBe(false);
   });
 
   it('setProperty sets new property schema', () => {
@@ -472,9 +601,9 @@ describe('Property Operations', () => {
   });
 
   it('deleteProperty works with nested properties', () => {
-    const modified = deleteProperty(testSchema, '/address', 'city');
-    expect(hasProperty(modified, '/address', 'city')).toBe(false);
-    expect(hasProperty(modified, '/address', 'street')).toBe(true);
+    const modified = deleteProperty(testSchema, '/properties/address', 'city');
+    expect(hasProperty(modified, '/properties/address', 'city')).toBe(false);
+    expect(hasProperty(modified, '/properties/address', 'street')).toBe(true);
   });
 });
 
@@ -506,10 +635,10 @@ describe('Specialized Mutations', () => {
   });
 
   it('addProperty adds property to nested object', () => {
-    const modified = addProperty(testSchema, '/address', 'state', {
+    const modified = addProperty(testSchema, '/properties/address', 'state', {
       type: 'string',
     });
-    expect(hasProperty(modified, '/address', 'state')).toBe(true);
+    expect(hasProperty(modified, '/properties/address', 'state')).toBe(true);
   });
 
   it('addProperty creates properties object if missing', () => {
@@ -535,9 +664,9 @@ describe('Specialized Mutations', () => {
   });
 
   it('renameProperty works with nested properties', () => {
-    const modified = renameProperty(testSchema, '/address', 'zipCode', 'postalCode');
-    expect(hasProperty(modified, '/address', 'zipCode')).toBe(false);
-    expect(hasProperty(modified, '/address', 'postalCode')).toBe(true);
+    const modified = renameProperty(testSchema, '/properties/address', 'zipCode', 'postalCode');
+    expect(hasProperty(modified, '/properties/address', 'zipCode')).toBe(false);
+    expect(hasProperty(modified, '/properties/address', 'postalCode')).toBe(true);
   });
 
   it('renameProperty returns same schema if old and new names are identical', () => {
@@ -564,31 +693,31 @@ describe('Specialized Mutations', () => {
   });
 
   it('cloneProperty works across different parent objects', () => {
-    const modified = cloneProperty(testSchema, '', 'email', '/address', 'contactEmail');
+    const modified = cloneProperty(testSchema, '', 'email', '/properties/address', 'contactEmail');
     expect(hasProperty(modified, '', 'email')).toBe(true);
-    expect(hasProperty(modified, '/address', 'contactEmail')).toBe(true);
+    expect(hasProperty(modified, '/properties/address', 'contactEmail')).toBe(true);
   });
 
   it('moveProperty removes property from original location', () => {
-    const modified = moveProperty(testSchema, '', 'email', '/address', 'email');
+    const modified = moveProperty(testSchema, '', 'email', '/properties/address', 'email');
     expect(hasProperty(modified, '', 'email')).toBe(false);
   });
 
   it('moveProperty adds property to new location', () => {
-    const modified = moveProperty(testSchema, '', 'email', '/address', 'email');
-    expect(hasProperty(modified, '/address', 'email')).toBe(true);
+    const modified = moveProperty(testSchema, '', 'email', '/properties/address', 'email');
+    expect(hasProperty(modified, '/properties/address', 'email')).toBe(true);
   });
 
   it('moveProperty preserves property schema', () => {
-    const modified = moveProperty(testSchema, '', 'email', '/address', 'email');
-    const movedEmailNode = getProperty(modified, '/address', 'email') as { format?: string };
+    const modified = moveProperty(testSchema, '', 'email', '/properties/address', 'email');
+    const movedEmailNode = getProperty(modified, '/properties/address', 'email') as { format?: string };
     expect(movedEmailNode.format).toBe('email');
   });
 
   it('moveProperty allows renaming during move', () => {
-    const modified = moveProperty(testSchema, '', 'email', '/address', 'contactEmail');
+    const modified = moveProperty(testSchema, '', 'email', '/properties/address', 'contactEmail');
     expect(hasProperty(modified, '', 'email')).toBe(false);
-    expect(hasProperty(modified, '/address', 'contactEmail')).toBe(true);
+    expect(hasProperty(modified, '/properties/address', 'contactEmail')).toBe(true);
   });
 });
 
@@ -599,18 +728,18 @@ describe('Integration & Edge Cases', () => {
       type: 'object',
       properties: {},
     });
-    schema = addProperty(schema, '/settings', 'locale', {
+    schema = addProperty(schema, '/properties/settings', 'locale', {
       type: 'string',
       default: 'en-US',
     });
-    schema = addProperty(schema, '/settings', 'timezone', {
+    schema = addProperty(schema, '/properties/settings', 'timezone', {
       type: 'string',
       default: 'UTC',
     });
 
     expect(hasProperty(schema, '', 'settings')).toBe(true);
-    expect(hasProperty(schema, '/settings', 'locale')).toBe(true);
-    expect(hasProperty(schema, '/settings', 'timezone')).toBe(true);
+    expect(hasProperty(schema, '/properties/settings', 'locale')).toBe(true);
+    expect(hasProperty(schema, '/properties/settings', 'timezone')).toBe(true);
   });
 
   it('reorganizes schema structure', () => {
@@ -619,21 +748,21 @@ describe('Integration & Edge Cases', () => {
       type: 'object',
       properties: {},
     });
-    schema = addProperty(schema, '/settings', 'locale', {
+    schema = addProperty(schema, '/properties/settings', 'locale', {
       type: 'string',
       default: 'en-US',
     });
-    schema = addProperty(schema, '/settings', 'timezone', {
+    schema = addProperty(schema, '/properties/settings', 'timezone', {
       type: 'string',
       default: 'UTC',
     });
 
-    schema = renameProperty(schema, '/settings', 'locale', 'language');
-    schema = moveProperty(schema, '/settings', 'timezone', '', 'timezone');
+    schema = renameProperty(schema, '/properties/settings', 'locale', 'language');
+    schema = moveProperty(schema, '/properties/settings', 'timezone', '', 'timezone');
 
-    expect(hasProperty(schema, '/settings', 'locale')).toBe(false);
-    expect(hasProperty(schema, '/settings', 'language')).toBe(true);
-    expect(hasProperty(schema, '/settings', 'timezone')).toBe(false);
+    expect(hasProperty(schema, '/properties/settings', 'locale')).toBe(false);
+    expect(hasProperty(schema, '/properties/settings', 'language')).toBe(true);
+    expect(hasProperty(schema, '/properties/settings', 'timezone')).toBe(false);
     expect(hasProperty(schema, '', 'timezone')).toBe(true);
   });
 
@@ -671,12 +800,12 @@ describe('Integration & Edge Cases', () => {
   it('adds custom properties to all attributes in nested object', () => {
     let schema = testSchema;
 
-    const addressChildren = getChildren(schema, '/address');
+    const addressChildren = getChildren(schema, '/properties/address');
     expect(addressChildren.length).toBeGreaterThan(0);
 
     addressChildren.forEach((child) => {
       if (child.key !== null) {
-        schema = updateProperty(schema, '/address', child.key, (current) => ({
+        schema = updateProperty(schema, '/properties/address', child.key, (current) => ({
           ...(current as Record<string, unknown>),
           'x-required-level': 'high',
           'x-pii': true,
@@ -685,10 +814,10 @@ describe('Integration & Edge Cases', () => {
       }
     });
 
-    const updatedChildren = getChildren(schema, '/address');
+    const updatedChildren = getChildren(schema, '/properties/address');
     updatedChildren.forEach((child) => {
       if (child.key !== null) {
-        const childSchema = getProperty(schema, '/address', child.key) as Record<string, unknown>;
+        const childSchema = getProperty(schema, '/properties/address', child.key) as Record<string, unknown>;
         expect(childSchema['x-required-level']).toBe('high');
         expect(childSchema['x-pii']).toBe(true);
         expect(childSchema['x-category']).toBe('address-component');
@@ -753,10 +882,11 @@ describe('Integration & Edge Cases', () => {
     };
 
     const nestedIndex = buildIndex(nestedArraySchema);
-    expect(nestedIndex.size).toBe(1);
+    expect(nestedIndex.size).toBeGreaterThan(1); // Should include root array and its items
 
     const level1Children = getChildren(nestedArraySchema, '');
-    expect(level1Children).toHaveLength(0);
+    expect(level1Children.length).toBeGreaterThan(0); // Array root should have items as children
+    expect(level1Children.some((c) => c.key === 'items')).toBe(true);
   });
 
   it('handles schema without type field', () => {
@@ -782,5 +912,198 @@ describe('Integration & Edge Cases', () => {
     const rootNode = index.get('');
     expect(rootNode).toBeDefined();
     expect(rootNode?.kind).toBe('array');
+  });
+
+  it('validateSchema catches array with no items schema', () => {
+    const arrayWithoutItems: JSONSchema = {
+      type: 'object',
+      properties: {
+        tags: {
+          type: 'array',
+          // No items property
+        },
+      },
+    };
+
+    // Validation should catch malformed schema upfront
+    expect(() => validateSchema(arrayWithoutItems)).toThrow(/missing 'items' attribute/);
+    expect(() => validateSchema(arrayWithoutItems)).toThrow(/\/properties\/tags/);
+  });
+
+  it('throws error when navigating into scalar values', () => {
+    const schemaWithScalar: JSONSchema = {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+      },
+    };
+
+    // Schema is well-formed
+    validateSchema(schemaWithScalar);
+
+    // When trying to navigate into a scalar, operations throw an error
+    // This is not a schema malformation issue, but an invalid navigation attempt
+    expect(() => hasProperty(schemaWithScalar, '/properties/name', 'subfield')).toThrow(
+      /Invalid path: cannot navigate into scalar value at "\/properties\/name"/,
+    );
+    expect(() => getProperty(schemaWithScalar, '/properties/name', 'subfield')).toThrow(
+      /Invalid path: cannot navigate into scalar value at "\/properties\/name"/,
+    );
+  });
+
+  it('validateSchema catches object with no properties', () => {
+    const objectWithoutProperties: JSONSchema = {
+      type: 'object',
+      // No properties field
+    };
+
+    // Validation should catch malformed schema upfront
+    expect(() => validateSchema(objectWithoutProperties)).toThrow(/missing 'properties' attribute/);
+  });
+
+  it('handles non-existent properties in path resolution', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          properties: {
+            city: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    // Property doesn't exist but path is valid - should return undefined/false
+    // Note: '/properties/address' exists, 'state' doesn't - this is legitimate missing property
+    const nonExistent = getProperty(schema, '/properties/address', 'state');
+    expect(nonExistent).toBeUndefined();
+    expect(hasProperty(schema, '/properties/address', 'state')).toBe(false);
+
+    // Non-existent nested path - accessing property on non-existent parent
+    // '/properties/address/properties/state' doesn't exist, so accessing 'code' on it returns undefined
+    const deeplyNested = getProperty(schema, '/properties/address/properties/state', 'code');
+    expect(deeplyNested).toBeUndefined();
+  });
+
+  it('handles array items path resolution correctly', () => {
+    const arrayObjectSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        users: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              contact: {
+                type: 'object',
+                properties: {
+                  email: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    // Should resolve path through array items
+    const userNameSchema = getProperty(arrayObjectSchema, '/properties/users/items', 'name');
+    expect(userNameSchema).toBeDefined();
+    expect(getSchemaType(userNameSchema!)).toBe('string');
+
+    // Should resolve nested path through array items
+    const emailSchema = getProperty(arrayObjectSchema, '/properties/users/items/properties/contact', 'email');
+    expect(emailSchema).toBeDefined();
+    expect(getSchemaType(emailSchema!)).toBe('string');
+
+    // Should handle hasProperty for array item properties
+    expect(hasProperty(arrayObjectSchema, '/properties/users/items', 'name')).toBe(true);
+    expect(hasProperty(arrayObjectSchema, '/properties/users/items/properties/contact', 'email')).toBe(true);
+
+    // Should handle non-existent array item property
+    expect(hasProperty(arrayObjectSchema, '/properties/users/items', 'age')).toBe(false);
+  });
+
+  it('handles complex nested array paths', () => {
+    const complexNestedSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        projects: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              tasks: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    title: { type: 'string' },
+                    metadata: {
+                      type: 'object',
+                      properties: {
+                        priority: { type: 'number' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    // Should resolve deeply nested paths through arrays
+    const taskTitleSchema = getProperty(
+      complexNestedSchema,
+      '/properties/projects/items/properties/tasks/items',
+      'title',
+    );
+    expect(taskTitleSchema).toBeDefined();
+    expect(getSchemaType(taskTitleSchema!)).toBe('string');
+
+    // Should resolve nested object within array items
+    const prioritySchema = getProperty(
+      complexNestedSchema,
+      '/properties/projects/items/properties/tasks/items/properties/metadata',
+      'priority',
+    );
+    expect(prioritySchema).toBeDefined();
+    expect(getSchemaType(prioritySchema!)).toBe('number');
+
+    // Should handle hasProperty for nested array paths
+    expect(hasProperty(complexNestedSchema, '/properties/projects/items/properties/tasks/items', 'title')).toBe(true);
+    expect(
+      hasProperty(
+        complexNestedSchema,
+        '/properties/projects/items/properties/tasks/items/properties/metadata',
+        'priority',
+      ),
+    ).toBe(true);
+  });
+
+  it('handles path resolution when schema structure is incomplete', () => {
+    const incompleteSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        partial: {
+          type: 'object',
+          // Missing properties - just an empty object type
+        },
+      },
+    };
+
+    // Should handle gracefully when properties don't exist
+    const children = getChildren(incompleteSchema, '/properties/partial');
+    expect(children).toHaveLength(0);
+
+    // When object has no properties field, validation should catch it upfront
+    expect(() => validateSchema(incompleteSchema)).toThrow(/missing 'properties' attribute/);
   });
 });

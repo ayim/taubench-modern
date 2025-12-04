@@ -37,7 +37,7 @@ export type SchemaNodeKind = 'object' | 'array' | 'scalar';
  * A node in the schema tree with metadata
  */
 export interface SchemaNode {
-  /** Logical path for this node (e.g. "" for root, "/name" for property) */
+  /** JSON Pointer path for this node (e.g. "" for root, "/properties/name" for property) */
   pointer: string;
   /** Parent pointer (null for root) */
   parentPointer: string | null;
@@ -50,7 +50,7 @@ export interface SchemaNode {
 }
 
 /**
- * Index mapping logical paths to schema nodes
+ * Index mapping JSON Pointer paths to schema nodes
  */
 export type SchemaIndex = Map<string, SchemaNode>;
 
@@ -122,48 +122,6 @@ export function pathToPointer(path: string[]): string {
    They handle low-level operations like path conversion and direct schema
    manipulation using JSON Pointers.
    ======================================================================== */
-
-/**
- * Convert a logical path to an internal JSON Pointer path.
- * Logical paths use simplified notation without /properties/ or /items/.
- *
- * Examples:
- *   "" -> ""
- *   "/name" -> "/properties/name"
- *   "/address/city" -> "/properties/address/properties/city"
- *   "/tags" -> "/properties/tags" (array itself, not items)
- *
- * @internal
- */
-function logicalToInternal(logicalPath: string): string {
-  if (logicalPath === '') return '';
-
-  const tokens = pointerToPath(logicalPath);
-  const internalTokens = tokens.flatMap((token) => ['properties', token]);
-
-  return pathToPointer(internalTokens);
-}
-
-/**
- * Convert an internal JSON Pointer path to a logical path.
- * Removes /properties/ and /items/ segments to create simplified notation.
- *
- * Examples:
- *   "" -> ""
- *   "/properties/name" -> "/name"
- *   "/properties/address/properties/city" -> "/address/city"
- *   "/properties/tags/items" -> "/tags" (array itself)
- *
- * @internal
- */
-function internalToLogical(internalPath: string): string {
-  if (internalPath === '') return '';
-
-  const tokens = pointerToPath(internalPath);
-  const logicalTokens = tokens.filter((token) => token !== 'properties' && token !== 'items');
-
-  return pathToPointer(logicalTokens);
-}
 
 /**
  * Determine the kind of a schema node
@@ -257,29 +215,64 @@ function deleteNode(schema: JSONSchema, pointer: string): JSONSchema {
   return copy;
 }
 
+/**
+ * Build a property path from an object pointer and property name.
+ * Handles both root-level properties (objectPointer === '') and nested properties.
+ * @internal
+ */
+function buildPropertyPath(objectPointer: string, propertyName: string): string {
+  return objectPointer === ''
+    ? `/properties/${escapePointerToken(propertyName)}`
+    : `${objectPointer}/properties/${escapePointerToken(propertyName)}`;
+}
+
+/**
+ * Validate that an object pointer is not a scalar (scalars cannot have properties).
+ * Throws an error if the pointer points to a scalar value.
+ * Used for read operations that allow undefined nodes.
+ * @internal
+ */
+function validateNotScalar(schema: JSONSchema, objectPointer: string): void {
+  if (objectPointer !== '') {
+    const parentNode = getNode(schema, objectPointer);
+    if (parentNode && getNodeKind(parentNode) === 'scalar') {
+      throw new Error(`Invalid path: cannot navigate into scalar value at "${objectPointer}"`);
+    }
+  }
+}
+
+/**
+ * Validate that an object pointer exists and points to an object (not scalar, array, or undefined).
+ * Throws an error if the node doesn't exist or is not an object.
+ * Used for write operations that require the node to exist.
+ * @internal
+ */
+function validateIsObject(schema: JSONSchema, objectPointer: string): void {
+  const objectNode = getNode(schema, objectPointer);
+  if (!objectNode || typeof objectNode !== 'object') {
+    throw new Error(`Node at ${objectPointer} is not an object`);
+  }
+  if (getNodeKind(objectNode) === 'scalar') {
+    throw new Error(`Invalid path: cannot navigate into scalar value at "${objectPointer}"`);
+  }
+}
+
 /* ========================================================================
    4. PUBLIC API - TRAVERSAL
    ======================================================================== */
 
 /**
  * Walk a JSON Schema in depth-first order, calling the visitor for each node.
- * Traverses properties (for objects). Array items are not traversed as separate nodes
- * since they are implicit in the array's schema.
- * Node pointers are returned in logical format (e.g., "/address/city" not "/properties/address/properties/city").
+ * Traverses properties (for objects) and items (for arrays).
+ * Node pointers are returned as JSON Pointer paths (e.g., "/properties/address/properties/city").
  */
 export function walk(schema: JSONSchema, visitor: SchemaVisitor): void {
-  function recurse(
-    node: JSONSchema,
-    internalPointer: string,
-    internalParentPointer: string | null,
-    key: string | null,
-  ): void {
+  function recurse(node: JSONSchema, pointer: string, parentPointer: string | null, key: string | null): void {
     const kind = getNodeKind(node);
 
-    // Convert internal pointers to logical format for the visitor
     const schemaNode: SchemaNode = {
-      pointer: internalToLogical(internalPointer),
-      parentPointer: internalParentPointer !== null ? internalToLogical(internalParentPointer) : null,
+      pointer,
+      parentPointer,
       key,
       schema: node,
       kind,
@@ -290,21 +283,45 @@ export function walk(schema: JSONSchema, visitor: SchemaVisitor): void {
     // Traverse object properties
     if (kind === 'object' && node.properties && typeof node.properties === 'object') {
       Object.entries(node.properties as Record<string, JSONSchema>).forEach(([propName, propSchema]) => {
-        const childPointer = `${internalPointer}/properties/${escapePointerToken(propName)}`;
-        recurse(propSchema, childPointer, internalPointer, propName);
+        const childPointer = `${pointer}/properties/${escapePointerToken(propName)}`;
+        recurse(propSchema, childPointer, pointer, propName);
       });
     }
 
-    // Note: We do NOT traverse into array items as separate nodes.
-    // Array items are implicit in the array node and can be accessed via node.schema.items
+    // Traverse array items
+    if (kind === 'array' && node.items && typeof node.items === 'object') {
+      const itemsPointer = `${pointer}/items`;
+      recurse(node.items as JSONSchema, itemsPointer, pointer, 'items');
+    }
   }
 
   recurse(schema, '', null, null);
 }
 
 /**
- * Build an index of all schema nodes keyed by their logical path.
- * Logical paths use simplified notation without /properties/ or /items/.
+ * Validates a single schema node.
+ * @internal
+ */
+function validateSchemaNode(node: SchemaNode): void {
+  const nodeSchema = node.schema as { type?: string; properties?: unknown; items?: unknown };
+
+  if (node.kind === 'object') {
+    if (nodeSchema.type === 'object' && !nodeSchema.properties) {
+      throw new Error(
+        `Schema validation failed: object at "${node.pointer}" has type="object" but missing 'properties' attribute`,
+      );
+    }
+  } else if (node.kind === 'array') {
+    if (nodeSchema.type === 'array' && !nodeSchema.items) {
+      throw new Error(
+        `Schema validation failed: array at "${node.pointer}" has type="array" but missing 'items' attribute`,
+      );
+    }
+  }
+}
+
+/**
+ * Build an index of all schema nodes keyed by their JSON Pointer path.
  */
 export function buildIndex(schema: JSONSchema): SchemaIndex {
   const index = new Map<string, SchemaNode>();
@@ -317,6 +334,31 @@ export function buildIndex(schema: JSONSchema): SchemaIndex {
 /* ========================================================================
    5. PUBLIC API - QUERY OPERATIONS
    ======================================================================== */
+
+/**
+ * Validate that a JSON Schema is well-formed.
+ * Uses the `walk` function to traverse the schema and ensure all type=object nodes
+ * have 'properties' and all type=array nodes have 'items'.
+ *
+ * This is a tool for callers to validate schemas upfront before using other operations.
+ * Once validated, operations can assume the schema is well-formed.
+ *
+ * @param schema The JSON Schema to validate
+ * @throws {Error} If the schema is malformed (missing required attributes)
+ *
+ * @example
+ * // Validate schema when received from API or user input
+ * try {
+ *   validateSchema(schema);
+ *   // Schema is well-formed, safe to use with other operations
+ *   getProperty(schema, '', 'name');
+ * } catch (error) {
+ *   // Handle malformed schema
+ * }
+ */
+export function validateSchema(schema: JSONSchema): void {
+  walk(schema, validateSchemaNode);
+}
 
 /**
  * Find all nodes matching a predicate function
@@ -332,16 +374,15 @@ export function findNodes(schema: JSONSchema, predicate: SchemaNodePredicate): S
 }
 
 /**
- * Get the direct children of a node at the given logical path.
+ * Get the direct children of a node at the given JSON Pointer path.
  * For objects, returns child nodes from properties.
- * For arrays, returns an empty array (items are implicit, not separate nodes).
+ * For arrays, returns child nodes from items.
  * For scalars, returns an empty array.
  *
- * @param pointer Logical path (e.g., "/address" not "/properties/address")
+ * @param pointer JSON Pointer path (e.g., "/properties/address")
  */
 export function getChildren(schema: JSONSchema, pointer: string): SchemaNode[] {
-  const internalPointer = logicalToInternal(pointer);
-  const node = getNode(schema, internalPointer);
+  const node = getNode(schema, pointer);
   if (!node) return [];
 
   const kind = getNodeKind(node);
@@ -349,9 +390,9 @@ export function getChildren(schema: JSONSchema, pointer: string): SchemaNode[] {
 
   if (kind === 'object' && node.properties && typeof node.properties === 'object') {
     Object.entries(node.properties as Record<string, JSONSchema>).forEach(([propName, propSchema]) => {
-      const childInternalPointer = `${internalPointer}/properties/${escapePointerToken(propName)}`;
+      const childPointer = `${pointer}/properties/${escapePointerToken(propName)}`;
       children.push({
-        pointer: internalToLogical(childInternalPointer),
+        pointer: childPointer,
         parentPointer: pointer,
         key: propName,
         schema: propSchema,
@@ -360,37 +401,47 @@ export function getChildren(schema: JSONSchema, pointer: string): SchemaNode[] {
     });
   }
 
-  // Note: Arrays do not have children in the logical model.
-  // The items schema is implicit and can be accessed via node.schema.items
+  if (kind === 'array' && node.items && typeof node.items === 'object') {
+    const itemsPointer = `${pointer}/items`;
+    const itemsSchema = node.items as JSONSchema;
+    children.push({
+      pointer: itemsPointer,
+      parentPointer: pointer,
+      key: 'items',
+      schema: itemsSchema,
+      kind: getNodeKind(itemsSchema),
+    });
+  }
 
   return children;
 }
 
 /**
- * Get the parent node of the node at the given logical path.
+ * Get the parent node of the node at the given JSON Pointer path.
  * Returns undefined if the node is the root or doesn't exist.
  *
- * @param pointer Logical path (e.g., "/address/city" not "/properties/address/properties/city")
+ * @param pointer JSON Pointer path (e.g., "/properties/address/properties/city")
  */
 export function getParent(schema: JSONSchema, pointer: string): SchemaNode | undefined {
   if (pointer === '') return undefined; // root has no parent
 
-  const internalPointer = logicalToInternal(pointer);
-  const internalPath = pointerToPath(internalPointer);
-  if (internalPath.length < 2) return undefined; // need at least 2 segments to have a meaningful parent
+  const path = pointerToPath(pointer);
+  if (path.length < 2) return undefined; // need at least 2 segments to have a meaningful parent
 
-  // Parent is typically 2 segments up: /properties/foo -> ""
-  const parentInternalPath = internalPath.slice(0, -2);
-  const parentInternalPointer = pathToPointer(parentInternalPath);
+  // Properties add 2 segments (/properties/name), so parent is 2 segments up
+  // Array items add 1 segment (/items), so parent is 1 segment up
+  const isArrayItem = path[path.length - 1] === 'items';
+  const segmentsToGoUp = isArrayItem ? 1 : 2;
+  const parentPath = path.slice(0, -segmentsToGoUp);
+  const parentPointer = pathToPointer(parentPath);
 
-  const parentSchema = getNode(schema, parentInternalPointer);
+  const parentSchema = getNode(schema, parentPointer);
   if (!parentSchema) return undefined;
 
   return {
-    pointer: internalToLogical(parentInternalPointer),
-    parentPointer:
-      parentInternalPath.length >= 2 ? internalToLogical(pathToPointer(parentInternalPath.slice(0, -2))) : null,
-    key: parentInternalPath.length > 0 ? parentInternalPath[parentInternalPath.length - 1] : null,
+    pointer: parentPointer,
+    parentPointer: parentPath.length >= 2 ? pathToPointer(parentPath.slice(0, -2)) : null,
+    key: parentPath.length > 0 ? parentPath[parentPath.length - 1] : null,
     schema: parentSchema,
     kind: getNodeKind(parentSchema),
   };
@@ -401,59 +452,40 @@ export function getParent(schema: JSONSchema, pointer: string): SchemaNode | und
    ======================================================================== */
 
 /**
- * Build a logical path for a property within an object.
- * Convenience helper to avoid manual path construction.
- *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
- * @param propertyName Name of the property
- * @returns Logical path to the property
- *
- * @example
- * propertyPointer("", "name") → "/name"
- * propertyPointer("/address", "city") → "/address/city"
- */
-export function propertyPointer(objectPointer: string, propertyName: string): string {
-  if (objectPointer === '') {
-    return `/${escapePointerToken(propertyName)}`;
-  }
-  return `${objectPointer}/${escapePointerToken(propertyName)}`;
-}
-
-/**
  * Get a property schema by name from an object (convenience wrapper).
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param propertyName Name of the property
  *
  * @example
  * getProperty(schema, "", "name") // Gets the "name" property from root
- * getProperty(schema, "/address", "city") // Gets the "city" property from address
+ * getProperty(schema, "/properties/address", "city") // Gets the "city" property from address
  */
 export function getProperty(schema: JSONSchema, objectPointer: string, propertyName: string): JSONSchema | undefined {
-  const logicalPath = propertyPointer(objectPointer, propertyName);
-  const internalPath = logicalToInternal(logicalPath);
-  return getNode(schema, internalPath);
+  validateNotScalar(schema, objectPointer);
+  const propertyPath = buildPropertyPath(objectPointer, propertyName);
+  return getNode(schema, propertyPath);
 }
 
 /**
  * Check if a property exists in an object (convenience wrapper).
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param propertyName Name of the property
  *
  * @example
  * hasProperty(schema, "", "name") // Check if root has "name" property
  */
 export function hasProperty(schema: JSONSchema, objectPointer: string, propertyName: string): boolean {
-  const logicalPath = propertyPointer(objectPointer, propertyName);
-  const internalPath = logicalToInternal(logicalPath);
-  return hasNode(schema, internalPath);
+  validateNotScalar(schema, objectPointer);
+  const propertyPath = buildPropertyPath(objectPointer, propertyName);
+  return hasNode(schema, propertyPath);
 }
 
 /**
  * Set a property schema by name (convenience wrapper).
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param propertyName Name of the property
  * @param propertySchema The schema to set for the property
  *
@@ -466,15 +498,15 @@ export function setProperty(
   propertyName: string,
   propertySchema: JSONSchema,
 ): JSONSchema {
-  const logicalPath = propertyPointer(objectPointer, propertyName);
-  const internalPath = logicalToInternal(logicalPath);
-  return setNode(schema, internalPath, propertySchema);
+  validateNotScalar(schema, objectPointer);
+  const propertyPath = buildPropertyPath(objectPointer, propertyName);
+  return setNode(schema, propertyPath, propertySchema);
 }
 
 /**
  * Update a property schema by name using an updater function (convenience wrapper).
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param propertyName Name of the property
  * @param updater Function that receives current schema and returns updated schema
  *
@@ -487,24 +519,24 @@ export function updateProperty<T = JSONSchema>(
   propertyName: string,
   updater: NodeUpdater<T>,
 ): JSONSchema {
-  const logicalPath = propertyPointer(objectPointer, propertyName);
-  const internalPath = logicalToInternal(logicalPath);
-  return updateNode(schema, internalPath, updater);
+  validateNotScalar(schema, objectPointer);
+  const propertyPath = buildPropertyPath(objectPointer, propertyName);
+  return updateNode(schema, propertyPath, updater);
 }
 
 /**
  * Delete a property by name (convenience wrapper).
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param propertyName Name of the property to delete
  *
  * @example
  * deleteProperty(schema, "", "obsoleteField")
  */
 export function deleteProperty(schema: JSONSchema, objectPointer: string, propertyName: string): JSONSchema {
-  const logicalPath = propertyPointer(objectPointer, propertyName);
-  const internalPath = logicalToInternal(logicalPath);
-  return deleteNode(schema, internalPath);
+  validateNotScalar(schema, objectPointer);
+  const propertyPath = buildPropertyPath(objectPointer, propertyName);
+  return deleteNode(schema, propertyPath);
 }
 
 /* ========================================================================
@@ -515,7 +547,7 @@ export function deleteProperty(schema: JSONSchema, objectPointer: string, proper
  * Add a property to an object schema (immutable).
  * Returns a new schema with the property added.
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param propertyName Name of the property to add
  * @param propertySchema Schema for the new property
  */
@@ -525,13 +557,9 @@ export function addProperty(
   propertyName: string,
   propertySchema: JSONSchema,
 ): JSONSchema {
-  const internalPointer = logicalToInternal(objectPointer);
+  validateIsObject(schema, objectPointer);
   const copy = cloneDeep(schema);
-  const objectNode = jsonpointer.get(copy, internalPointer);
-
-  if (!objectNode || typeof objectNode !== 'object') {
-    throw new Error(`Node at ${objectPointer} is not an object`);
-  }
+  const objectNode = jsonpointer.get(copy, objectPointer);
 
   // Ensure properties object exists
   if (!objectNode.properties) {
@@ -548,7 +576,7 @@ export function addProperty(
  * Rename a property in an object schema (immutable).
  * Returns a new schema with the property renamed.
  *
- * @param objectPointer Logical path to the parent object (e.g., "" for root, "/address" for nested)
+ * @param objectPointer JSON Pointer path to the parent object (e.g., "" for root, "/properties/address" for nested)
  * @param oldName Current name of the property
  * @param newName New name for the property
  */
@@ -562,13 +590,9 @@ export function renameProperty(
     return schema; // no change needed
   }
 
-  const internalPointer = logicalToInternal(objectPointer);
+  validateIsObject(schema, objectPointer);
   const copy = cloneDeep(schema);
-  const parentNode = jsonpointer.get(copy, internalPointer);
-
-  if (!parentNode || typeof parentNode !== 'object') {
-    throw new Error(`Node at ${objectPointer} is not an object`);
-  }
+  const parentNode = jsonpointer.get(copy, objectPointer);
 
   if (!parentNode.properties) {
     throw new Error(`Object at ${objectPointer} has no properties`);
@@ -591,9 +615,9 @@ export function renameProperty(
  * Move a property from one location to another (immutable).
  * Returns a new schema with the property moved.
  *
- * @param fromObjectPointer Logical path to the source parent object
+ * @param fromObjectPointer JSON Pointer path to the source parent object
  * @param propertyName Name of the property to move
- * @param toObjectPointer Logical path to the target parent object
+ * @param toObjectPointer JSON Pointer path to the target parent object
  * @param newPropertyName Name for the property in the new location
  */
 export function moveProperty(
@@ -622,9 +646,9 @@ export function moveProperty(
  * Clone (copy) a property from one location to another (immutable).
  * Returns a new schema with the property cloned.
  *
- * @param fromObjectPointer Logical path to the source parent object
+ * @param fromObjectPointer JSON Pointer path to the source parent object
  * @param propertyName Name of the property to clone
- * @param toObjectPointer Logical path to the target parent object
+ * @param toObjectPointer JSON Pointer path to the target parent object
  * @param newPropertyName Name for the property in the new location
  */
 export function cloneProperty(

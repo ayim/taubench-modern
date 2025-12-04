@@ -157,7 +157,10 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, disabled
       if (!schema || !onChange) return;
 
       const pathParts = fieldId.split('.');
-      const objectPointer = pathParts.length > 1 ? `/${pathParts.slice(0, -1).join('/')}` : '';
+      // Convert dot-notation path to JSON Pointer path
+      // e.g., "address.city" -> "/properties/address"
+      // e.g., "address.city.zip" -> "/properties/address/properties/city"
+      const objectPointer = pathParts.length > 1 ? `/properties/${pathParts.slice(0, -1).join('/properties/')}` : '';
       const propertyName = pathParts[pathParts.length - 1];
 
       const updatedSchema = deleteProperty(schema, objectPointer, propertyName) as ExtractionSchemaPayload;
