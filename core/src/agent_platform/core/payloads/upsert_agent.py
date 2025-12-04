@@ -636,10 +636,12 @@ class UpsertAgentPayload:
         params_to_keep = [
             "litellm_api_key",
             "litellm_base_url",
+            "models",
         ]
         params = {
             "litellm_api_key": "UNSET",
             "litellm_base_url": "https://llm.backend.sema4.ai",
+            "models": {},
         }
         if "config" in self.model:
             for param in params_to_keep:
@@ -650,14 +652,9 @@ class UpsertAgentPayload:
             {
                 "kind": "litellm",
                 **params,
-                # TODO: Not building allowlists for litellm yet, we expect Studio to just
-                # be getting the default model for this platform right now (which will happen
-                # when no allowlist is provided)
-                "models": {},
             },
             *self.platform_configs,
         ]
-        self.model = None
 
     def _handle_legacy_model(self):
         """Handle backward compatibility for 'model' field."""
