@@ -6,7 +6,7 @@ export const spec = {
   openapi: '3.1.0',
   info: {
     title: 'Sema4.ai Agent Server Public API Version 2',
-    version: '2.2.4',
+    version: '2.2.5',
   },
   paths: {
     '/api/public/v1/agents': {

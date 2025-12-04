@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.2.5 (2025-12-04)
+
+* [PRD-1175]: Semantic Data Model fixes and updates (#1844)
+* Spar UI: Next Release by @github-actions[bot] in (#1813)
+* fix: include models parameter in UpsertAgentPayload for LiteLLM support(#1848)
+
 # Sema4.ai Agent Server 2.2.4 (2025-12-03)
 
 - GPT-1599 update file name validation rules to be platform-dependent (#1836)
