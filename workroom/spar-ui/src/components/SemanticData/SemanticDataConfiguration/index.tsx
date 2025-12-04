@@ -29,6 +29,7 @@ import { DataSelection } from './components/DataSelection';
 import { ModelEdition } from './components/ModelEdition';
 import { Processing } from './components/Processing';
 import { SuccessView } from './components/SuccessView';
+import { ImportWithErrors } from './components/ImportWithErrors';
 
 type Props = {
   onClose: () => void;
@@ -57,6 +58,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     error: undefined,
     inspectionResult: undefined,
   });
+  const [forceModelRegeneration, setForceModelRegeneration] = useState(false);
   const [dataSourceType, setDataSourceType] = useState<DataSourceType | undefined>(undefined);
 
   const { data: semanticModel, isLoading: isLoadingSemanticModel } = useSemanticModelQuery(
@@ -91,7 +93,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
 
   const onSubmit = formMethods.handleSubmit(async (values) => {
     if (modelId) {
-      const shouldRegenerateModel = hasDataSelectionChanged(values);
+      const shouldRegenerateModel = forceModelRegeneration || hasDataSelectionChanged(values);
 
       if (shouldRegenerateModel) {
         setActiveStep(ConfigurationStep.Processing);
@@ -115,10 +117,16 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         { ...values, agentId },
         {
           onSuccess: (result) => {
-            setActiveStep(ConfigurationStep.Success);
-            setModelId(result.semantic_data_model_id);
+            if (result.withErrors) {
+              setActiveStep(ConfigurationStep.ImportWithErrors);
+            } else {
+              setActiveStep(ConfigurationStep.Success);
+            }
+
+            setModelId(result.semanticModelId);
           },
           onError: (error) => {
+            setActiveStep(ConfigurationStep.DataConnection);
             addSnackbar({ message: error.message, variant: 'danger' });
           },
         },
@@ -141,8 +149,14 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   });
 
   const formContextValue = useMemo(
-    () => ({ databaseInspectionState, setDatabaseInspectionState, onSubmit }),
-    [databaseInspectionState, onSubmit],
+    () => ({
+      databaseInspectionState,
+      setDatabaseInspectionState,
+      onSubmit,
+      forceModelRegeneration,
+      setForceModelRegeneration,
+    }),
+    [databaseInspectionState, onSubmit, forceModelRegeneration],
   );
 
   const { fileRefId, dataConnectionId, dataSelection, tables } = formMethods.watch();
@@ -291,32 +305,30 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                 </Steps>
               </Dialog.Bar>
             )}
-            {activeStep === ConfigurationStep.Processing ? (
-              <Processing />
-            ) : (
-              <>
-                {activeStep === ConfigurationStep.DataConnection && (
-                  <DataConnection
-                    onClose={onCloseWithConfirmation}
-                    setActiveStep={setActiveStep}
-                    setDataSourceType={setDataSourceType}
-                    dataSourceType={dataSourceType}
-                  />
-                )}
-                {activeStep === ConfigurationStep.DataSelection && (
-                  <DataSelection onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} />
-                )}
-                {activeStep === ConfigurationStep.ModelEdition && modelId && (
-                  <ModelEdition onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} modelId={modelId} />
-                )}
-                {activeStep === ConfigurationStep.Success && (
-                  <SuccessView
-                    onClose={onCloseWithConfirmation}
-                    setActiveStep={setActiveStep}
-                    modelName={semanticModel?.name}
-                  />
-                )}
-              </>
+            {activeStep === ConfigurationStep.Processing && <Processing />}
+            {activeStep === ConfigurationStep.ImportWithErrors && (
+              <ImportWithErrors onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} />
+            )}
+            {activeStep === ConfigurationStep.DataConnection && (
+              <DataConnection
+                onClose={onCloseWithConfirmation}
+                setActiveStep={setActiveStep}
+                setDataSourceType={setDataSourceType}
+                dataSourceType={dataSourceType}
+              />
+            )}
+            {activeStep === ConfigurationStep.DataSelection && (
+              <DataSelection onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} />
+            )}
+            {activeStep === ConfigurationStep.ModelEdition && modelId && (
+              <ModelEdition onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} modelId={modelId} />
+            )}
+            {activeStep === ConfigurationStep.Success && (
+              <SuccessView
+                onClose={onCloseWithConfirmation}
+                setActiveStep={setActiveStep}
+                modelName={semanticModel?.name}
+              />
             )}
           </DataConnectionFormContext.Provider>
         </FormProvider>

@@ -321,7 +321,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
             </Box>
             <VerifiedQueryForm
               isNewQuery
-              initialQuery={memoizedInitialQuery}
+              initialQuery={memoizedInitialQuery as VerifiedQuery}
               semanticDataModel={selectedModel}
               verifyMutation={verifyMutation}
               onFormDataChange={handleFormDataChange}

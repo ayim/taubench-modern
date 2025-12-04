@@ -20,6 +20,9 @@ export const DataConnectionFormContext = createContext<{
   databaseInspectionState: DatabaseInspectionState;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setDatabaseInspectionState: (state: DatabaseInspectionState) => void;
+  forceModelRegeneration: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setForceModelRegeneration: (force: boolean) => void;
   onSubmit: () => void;
 }>({
   databaseInspectionState: {
@@ -29,6 +32,8 @@ export const DataConnectionFormContext = createContext<{
   },
   setDatabaseInspectionState: () => {},
   onSubmit: () => {},
+  forceModelRegeneration: false,
+  setForceModelRegeneration: () => {},
 });
 
 export const DataConnectionFormSchema = z.object({
@@ -119,6 +124,7 @@ export enum ConfigurationStep {
   ImportDataConnection = 3,
   Success = 4,
   Processing = 5,
+  ImportWithErrors = 6,
 }
 
 type ConfigurationStepProps = {

@@ -13,6 +13,37 @@ import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDat
 
 // TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel
 
+export enum SemanticDataValidationErrorKind {
+  'semantic_model_missing_required_field' = 'semantic_model_missing_required_field',
+  'semantic_model_duplicate_table' = 'semantic_model_duplicate_table',
+  'data_connection_not_found' = 'data_connection_not_found',
+  'data_connection_connection_failed' = 'data_connection_connection_failed',
+  'data_connection_table_not_found' = 'data_connection_table_not_found',
+  'data_connection_table_access_error' = 'data_connection_table_access_error',
+  'data_connection_column_invalid_expression' = 'data_connection_column_invalid_expression',
+  'file_reference_unresolved' = 'file_reference_unresolved',
+  'file_missing_thread_context' = 'file_missing_thread_context',
+  'file_not_found' = 'file_not_found',
+  'file_inspection_error' = 'file_inspection_error',
+  'file_sheet_missing' = 'file_sheet_missing',
+  'file_column_missing' = 'file_column_missing',
+  'validation_execution_error' = 'validation_execution_error',
+  'verified_query_missing_sql_field' = 'verified_query_missing_sql_field',
+  'verified_query_references_missing_tables' = 'verified_query_references_missing_tables',
+  'verified_query_references_data_frame' = 'verified_query_references_data_frame',
+  'verified_query_sql_validation_failed' = 'verified_query_sql_validation_failed',
+  'verified_query_missing_nlq_field' = 'verified_query_missing_nlq_field',
+  'verified_query_missing_name_field' = 'verified_query_missing_name_field',
+  'verified_query_name_validation_failed' = 'verified_query_name_validation_failed',
+  'verified_query_name_not_unique' = 'verified_query_name_not_unique',
+}
+
+const ValidationMessage = z.object({
+  message: z.string(),
+  level: z.enum(['error', 'warning']),
+  kind: z.enum(SemanticDataValidationErrorKind),
+});
+
 export const Dimension = z.object({
   name: z.string(),
   expr: z.string(),
@@ -20,47 +51,9 @@ export const Dimension = z.object({
   description: z.string().optional(),
   synonyms: z.array(z.string()).optional(),
   sample_values: z.array(z.any()).optional(),
-  errors: z
-    .array(
-      z.object({
-        message: z.string(),
-        level: z.enum(['error', 'warning']),
-      }),
-    )
-    .optional(),
+  errors: z.array(ValidationMessage).optional(),
 });
 export type Dimension = z.infer<typeof Dimension>;
-
-const ValidationMessage = z.object({
-  message: z.string(),
-  level: z.enum(['error', 'warning']),
-  kind: z.enum([
-    // Is there a better way to reference the ValidationMessageKind from
-    // the agent-server-interface?
-    'semantic_model_missing_required_field',
-    'semantic_model_duplicate_table',
-    'data_connection_not_found',
-    'data_connection_connection_failed',
-    'data_connection_table_not_found',
-    'data_connection_table_access_error',
-    'data_connection_column_invalid_expression',
-    'file_reference_unresolved',
-    'file_missing_thread_context',
-    'file_not_found',
-    'file_inspection_error',
-    'file_sheet_missing',
-    'file_column_missing',
-    'validation_execution_error',
-    'verified_query_missing_sql_field',
-    'verified_query_references_missing_tables',
-    'verified_query_references_data_frame',
-    'verified_query_sql_validation_failed',
-    'verified_query_missing_nlq_field',
-    'verified_query_missing_name_field',
-    'verified_query_name_validation_failed',
-    'verified_query_name_not_unique',
-  ]),
-});
 
 export const VerifiedQuery = z.object({
   name: z.string(),
@@ -100,14 +93,7 @@ export const SemanticModel = z.object({
       time_dimensions: z.array(Dimension).optional(),
       facts: z.array(Dimension).optional(),
       metrics: z.array(Dimension).optional(),
-      errors: z
-        .array(
-          z.object({
-            message: z.string(),
-            level: z.enum(['error', 'warning']),
-          }),
-        )
-        .optional(),
+      errors: z.array(ValidationMessage).optional(),
     }),
   ),
   verified_queries: z.array(VerifiedQuery).optional(),
@@ -536,7 +522,27 @@ export const useImportSemanticDataModelMutation = createSparMutation<
       });
     }
 
-    return response.data;
+    const validationResponse = await sparAPIClient.queryAgentServer('post', '/api/v2/semantic-data-models/validate', {
+      params: {},
+      body: {
+        semantic_data_model_id: response.data.semantic_data_model_id,
+      },
+    });
+
+    if (!validationResponse.success) {
+      throw new QueryError(validationResponse.message || 'Failed to validate Semantic Data model', {
+        code: validationResponse.code,
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    const withErrors =
+      validationResponse.data.summary?.total_errors && validationResponse.data.summary.total_errors > 0;
+
+    return {
+      semanticModelId: response.data.semantic_data_model_id,
+      withErrors,
+    };
   },
   onSuccess: (_, { agentId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });

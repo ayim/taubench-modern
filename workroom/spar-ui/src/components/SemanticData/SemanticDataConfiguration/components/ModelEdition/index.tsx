@@ -2,7 +2,7 @@
 import { useContext, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { IconInformation, IconPencil, IconPlus } from '@sema4ai/icons';
-import { Box, Button, Dialog, Typography, Link, Banner, Input, Tabs } from '@sema4ai/components';
+import { Box, Button, Dialog, Typography, Link, Banner, Tabs } from '@sema4ai/components';
 
 import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { EXTERNAL_LINKS } from '../../../../../lib/constants';
@@ -10,6 +10,7 @@ import { ConfigurationStep, ConfigurationStepView, DataConnectionFormContext, Da
 import { TableTree } from './components/TableTree';
 import { ModelScore } from './components/ModelScore';
 import { VerifiedQueriesTable } from './components/VerifiedQueriesTable';
+import { BusinessContext } from './components/BusinessContext';
 
 type Props = {
   modelId: string;
@@ -17,7 +18,7 @@ type Props = {
 
 export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, setActiveStep }) => {
   const [activeTab, setActiveTab] = useState<number>(1);
-  const { watch, setValue, register } = useFormContext<DataConnectionFormSchema>();
+  const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
 
   const { databaseInspectionState } = useContext(DataConnectionFormContext);
@@ -89,14 +90,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
             <Tabs.Tab>Data Model</Tabs.Tab>
             <Tabs.Tab>Verified Queries</Tabs.Tab>
             <Tabs.Panel>
-              <Box display="flex" flexDirection="column" gap="$8" maxWidth={720} margin="0 auto">
-                <Input
-                  rows={20}
-                  {...register('description')}
-                  placeholder="Enter business context..."
-                  aria-label="Business Context"
-                />
-              </Box>
+              <BusinessContext />
             </Tabs.Panel>
 
             <Tabs.Panel>

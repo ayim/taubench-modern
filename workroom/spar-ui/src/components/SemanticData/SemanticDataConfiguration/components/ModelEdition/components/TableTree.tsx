@@ -16,6 +16,10 @@ type Props = {
   modelId: string;
 };
 
+const ErrorMessage = styled(Typography)`
+  white-space: normal;
+`;
+
 const columns = [
   'Semantic Name',
   'Description',
@@ -79,13 +83,31 @@ export const TableTree: FC<Props> = ({ modelId }) => {
 
         const Icon = table.base_table.file_reference ? IconDbSpreadsheet : IconDbDatabase;
 
+        const tableErrors = validation?.tables?.find(
+          (curr) => curr.base_table.table === table.base_table.table,
+        )?.errors;
+
+        const description = (
+          <>
+            {table.base_table.table}{' '}
+            {tableErrors && (
+              <>
+                <br />
+                <ErrorMessage as="span" color="content.error">
+                  {tableErrors.map((error) => error.message).join(', ')}
+                </ErrorMessage>
+              </>
+            )}
+          </>
+        );
+
         return (
           <TreeList.Item
             key={table.name}
             label={table.name}
             icon={Icon}
             open
-            description={table.base_table.table}
+            description={description}
             columns={
               <>
                 <Cell>
