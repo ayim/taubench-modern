@@ -1,5 +1,16 @@
 # @sema4ai/spar-ui
 
+## 0.9.1
+
+### Patch Changes
+
+- f18bfac: Remove link to thread if trial is not in a terminal state
+- 49df17a: Improve Semantic Data Model error reporting
+- b2b3ba5: Fix Semantic Data Model multi sheet/table selection issues
+- c6287e0: Data frame design spec updates
+- 0419faf: Align architecture version with Studio convention
+- 7b6dc50: Fix and refactor spar-ui tests
+
 ## 0.9.0
 
 ### Minor Changes
