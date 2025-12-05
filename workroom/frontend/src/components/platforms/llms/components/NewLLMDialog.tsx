@@ -6,11 +6,13 @@ import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
 import { beautifyLabel } from '~/lib/utils';
 import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
+import { VertexServiceAccountUploadField } from './VertexServiceAccountUploadField';
 import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
   GROQ_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
+  GOOGLE_MODEL_VALUES,
   Platform,
   createOrUpdateLLMFormSchema,
   getGroqProviderForModel,
@@ -26,9 +28,17 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>('openai');
   const form = useForm<CreateOrUpdateLLMFormSchema>({
     resolver: zodResolver(createOrUpdateLLMFormSchema),
-    defaultValues: { name: '', model: OPENAI_MODEL_VALUES[0], platform: 'openai', validateLLM: true },
+    defaultValues: {
+      name: '',
+      model: OPENAI_MODEL_VALUES[0],
+      platform: 'openai',
+      validateLLM: true,
+      google_use_vertex_ai: false,
+      google_vertex_service_account_json: undefined,
+    },
     mode: 'onChange',
   });
+  const googleUseVertexAI = form.watch('google_use_vertex_ai');
 
   const mutation = useCreateLLMMutation();
 
@@ -44,6 +54,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
       ...makeItems(AZURE_MODEL_VALUES),
       ...makeItems(BEDROCK_MODEL_VALUES),
       ...makeItems(GROQ_MODEL_VALUES),
+      ...makeItems(GOOGLE_MODEL_VALUES),
     ];
   }, []);
 
@@ -64,6 +75,18 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
       if (values.azure_api_version) credentials.azure_api_version = values.azure_api_version;
       if (values.azure_deployment_name) credentials.azure_deployment_name = values.azure_deployment_name;
       provider = 'openai';
+    }
+    if (platform === 'google') {
+      if (values.google_api_key) credentials.google_api_key = values.google_api_key;
+      if (typeof values.google_use_vertex_ai === 'boolean')
+        credentials.google_use_vertex_ai = values.google_use_vertex_ai;
+      if (values.google_use_vertex_ai) {
+        if (values.google_cloud_project_id) credentials.google_cloud_project_id = values.google_cloud_project_id;
+        if (values.google_cloud_location) credentials.google_cloud_location = values.google_cloud_location;
+        if (values.google_vertex_service_account_json)
+          credentials.google_vertex_service_account_json = values.google_vertex_service_account_json;
+      }
+      provider = 'google';
     }
     if (platform === 'bedrock') {
       if (values.aws_access_key_id) credentials.aws_access_key_id = values.aws_access_key_id;
@@ -182,6 +205,47 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
                     type="password"
                     placeholder="Enter API key"
                   />
+                )}
+                {selectedPlatform === 'google' && (
+                  <Box display="flex" flexDirection="column" gap="$12">
+                    {!googleUseVertexAI && (
+                      <InputControlled
+                        fieldName="google_api_key"
+                        label="Google API Key"
+                        type="password"
+                        placeholder="Enter API key"
+                      />
+                    )}
+                    <Controller
+                      name="google_use_vertex_ai"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Checkbox
+                          checked={Boolean(field.value)}
+                          onChange={field.onChange}
+                          label="Use Google Vertex AI"
+                          description="Enable if your Gemini deployment is configured through Vertex AI."
+                        />
+                      )}
+                    />
+                    {googleUseVertexAI && (
+                      <Box display="flex" flexDirection="column" gap="$8">
+                        <Input
+                          label="Google Cloud Project ID"
+                          placeholder="my-gcp-project"
+                          {...form.register('google_cloud_project_id')}
+                          error={form.formState.errors.google_cloud_project_id?.message}
+                        />
+                        <Input
+                          label="Google Cloud Location"
+                          placeholder="us-central1"
+                          {...form.register('google_cloud_location')}
+                          error={form.formState.errors.google_cloud_location?.message}
+                        />
+                        <VertexServiceAccountUploadField />
+                      </Box>
+                    )}
+                  </Box>
                 )}
 
                 {selectedPlatform === 'azure' && (

@@ -6,7 +6,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.platforms.google.converters import GoogleConverters
 from agent_platform.core.platforms.google.prompts import GooglePrompt
+from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
 
 if TYPE_CHECKING:
     from google.genai.types import Content
@@ -50,16 +52,47 @@ class TestGooglePrompt:
             max_output_tokens=4096,
         )
 
+    async def _convert_prompt_for_model(
+        self,
+        kernel: Kernel,
+        model_id: str,
+    ) -> GooglePrompt:
+        """Convert a minimal prompt using the Google converters for a model."""
+        from google.genai.types import Content, Part
+
+        converters = GoogleConverters()
+        prompt = Prompt(
+            messages=[PromptUserMessage([PromptTextContent(text="Resolve reasoning suffixes")])],
+        )
+
+        mock_content = MagicMock(spec=Content)
+        mock_content.role = "user"
+        mock_part = MagicMock(spec=Part)
+        mock_part.text = "Resolve reasoning suffixes"
+        mock_content.parts = [mock_part]
+        mock_messages = cast(list[Content], [mock_content])
+
+        with patch.object(converters, "_convert_messages", return_value=mock_messages):
+            converters.attach_kernel(kernel)
+            finalized_prompt = await prompt.finalize_messages(
+                kernel,
+                prompt_finalizers=[],
+            )
+            return await converters.convert_prompt(
+                finalized_prompt,
+                model_id=model_id,
+            )
+
     def test_as_platform_request(self, google_prompt: GooglePrompt) -> None:
         """Test converting to platform request."""
         from google.genai import types
         from google.genai.types import Content
 
-        request = google_prompt.as_platform_request(model="gemini-1.5-pro")
+        request = google_prompt.as_platform_request(model="gemini-2.5-pro")
 
         assert isinstance(request, dict)
         assert "model" in request
-        assert request["model"] == "gemini-1.5-pro"
+        assert request["model"] == "gemini-2.5-pro"
         assert "contents" in request
 
         # Use cast to help type checker understand what we're doing
@@ -81,11 +114,11 @@ class TestGooglePrompt:
         from google.genai import types
         from google.genai.types import Content
 
-        request = google_prompt.as_platform_request(model="gemini-1.5-pro", stream=True)
+        request = google_prompt.as_platform_request(model="gemini-2.5-pro", stream=True)
 
         assert isinstance(request, dict)
         assert "model" in request
-        assert request["model"] == "gemini-1.5-pro"
+        assert request["model"] == "gemini-2.5-pro"
         assert "contents" in request
 
         # Use cast to help type checker
@@ -109,11 +142,11 @@ class TestGooglePrompt:
             top_p=0.8,
         )
 
-        request = google_prompt.as_platform_request(model="gemini-1.5-pro")
+        request = google_prompt.as_platform_request(model="gemini-2.5-pro")
 
         assert isinstance(request, dict)
         assert "model" in request
-        assert request["model"] == "gemini-1.5-pro"
+        assert request["model"] == "gemini-2.5-pro"
         assert "contents" in request
 
         # Use cast to help type checker
@@ -162,11 +195,11 @@ class TestGooglePrompt:
             temperature=0.7,
         )
 
-        request = google_prompt.as_platform_request(model="gemini-1.5-pro")
+        request = google_prompt.as_platform_request(model="gemini-2.5-pro")
 
         assert isinstance(request, dict)
         assert "model" in request
-        assert request["model"] == "gemini-1.5-pro"
+        assert request["model"] == "gemini-2.5-pro"
         assert "contents" in request
 
         # Use cast to help type checker
@@ -182,6 +215,37 @@ class TestGooglePrompt:
         tools = getattr(config, "tools", None)
         assert tools is not None
         assert tools == mock_tools
+
+    def test_as_platform_request_includes_thinking_budget(
+        self,
+        contents: "list[Content]",
+    ) -> None:
+        from google.genai import types
+
+        google_prompt = GooglePrompt(contents=contents, thinking_budget=2048)
+        request = google_prompt.as_platform_request(model="gemini-2.5-pro")
+
+        config = request["config"]
+        assert isinstance(config, types.GenerateContentConfig)
+        thinking_config = getattr(config, "thinking_config", None)
+        assert thinking_config is not None
+        assert thinking_config.thinking_budget == 2048
+        assert thinking_config.include_thoughts is True
+
+    def test_as_platform_request_includes_thinking_level(
+        self,
+        contents: "list[Content]",
+    ) -> None:
+        from google.genai import types
+
+        google_prompt = GooglePrompt(contents=contents, thinking_level="low")
+        request = google_prompt.as_platform_request(model="gemini-3-pro-preview")
+
+        config = request["config"]
+        assert isinstance(config, types.GenerateContentConfig)
+        thinking_config = getattr(config, "thinking_config", None)
+        assert thinking_config is not None
+        assert str(thinking_config.thinking_level).lower().endswith("low")
 
     def test_prompt_properties(self, contents: "list[Content]") -> None:
         """Test prompt properties and defaults."""
@@ -290,3 +354,74 @@ class TestGooglePrompt:
                 assert isinstance(request, dict)
                 assert "config" in request
                 assert request["config"] is mock_config2
+
+    @pytest.mark.asyncio
+    async def test_gemini3_suffixes_affect_thinking_level(
+        self,
+        kernel: Kernel,
+    ) -> None:
+        low_prompt = await self._convert_prompt_for_model(kernel, "gemini-3-pro-low")
+        high_prompt = await self._convert_prompt_for_model(kernel, "gemini-3-pro-high")
+
+        low_request = low_prompt.as_platform_request(model="gemini-3-pro-low")
+        high_request = high_prompt.as_platform_request(model="gemini-3-pro-high")
+
+        low_config = low_request["config"]
+        low_thinking = getattr(low_config, "thinking_config", None)
+        assert low_thinking is not None
+
+        high_config = high_request["config"]
+        high_thinking = getattr(high_config, "thinking_config", None)
+        assert high_thinking is not None
+
+        low_level = str(low_thinking.thinking_level).lower()
+        high_level = str(high_thinking.thinking_level).lower()
+        assert low_level.endswith("low")
+        assert high_level.endswith("high")
+        assert low_level != high_level
+
+    @pytest.mark.parametrize(
+        ("model_id", "expected_budget"),
+        [
+            ("gemini-2.5-pro-low", 1024),
+            ("gemini-2.5-pro-medium", 8192),
+            ("gemini-2.5-pro-high", 24576),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_gemini25_pro_suffixes_affect_thinking_budget(
+        self,
+        kernel: Kernel,
+        model_id: str,
+        expected_budget: int,
+    ) -> None:
+        prompt = await self._convert_prompt_for_model(kernel, model_id)
+        request = prompt.as_platform_request(model=model_id)
+        config = request["config"]
+        thinking_config = getattr(config, "thinking_config", None)
+        assert thinking_config is not None
+        assert thinking_config.thinking_budget == expected_budget
+        assert thinking_config.include_thoughts is True
+
+    @pytest.mark.parametrize(
+        ("model_id", "expected_budget"),
+        [
+            ("gemini-2.5-flash-preview-04-17-low", 1024),
+            ("gemini-2.5-flash-preview-04-17-medium", 8192),
+            ("gemini-2.5-flash-preview-04-17-high", 24576),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_gemini25_flash_suffixes_affect_thinking_budget(
+        self,
+        kernel: Kernel,
+        model_id: str,
+        expected_budget: int,
+    ) -> None:
+        prompt = await self._convert_prompt_for_model(kernel, model_id)
+        request = prompt.as_platform_request(model=model_id)
+        config = request["config"]
+        thinking_config = getattr(config, "thinking_config", None)
+        assert thinking_config is not None
+        assert thinking_config.thinking_budget == expected_budget
+        assert thinking_config.include_thoughts is True

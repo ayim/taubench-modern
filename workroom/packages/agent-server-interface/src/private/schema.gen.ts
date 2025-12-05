@@ -5093,6 +5093,25 @@ export interface components {
       platform_id: string;
       /** @description The Google API key. If not provided, it will be attempted to be inferred from the environment. */
       google_api_key?: components['schemas']['SecretString'] | null;
+      /**
+       * Google Cloud Project Id
+       * @description The Google Cloud project ID used for Vertex AI requests.
+       */
+      google_cloud_project_id?: string | null;
+      /**
+       * Google Cloud Location
+       * @description The Google Cloud region/location for Vertex AI requests.
+       */
+      google_cloud_location?: string | null;
+      /**
+       * Google Use Vertex Ai
+       * @description Whether to route requests through Vertex AI.
+       */
+      google_use_vertex_ai?: boolean | null;
+      /** @description Service account JSON used to authenticate with Vertex AI. */
+      google_vertex_service_account_json?:
+        | components['schemas']['SecretString']
+        | null;
     };
     /**
      * GrafanaSettingsREST
@@ -9668,7 +9687,7 @@ export interface components {
      *         "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
      *         "cortex": "cortex/anthropic/claude-3-5-sonnet",
      *         "openai": "openai/openai/gpt-5-medium",
-     *         "google": "google/google/gemini-2-5-pro",
+     *         "google": "google/google/gemini-3-pro-high",
      *         "groq": "groq/openai/gpt-oss-120b",
      *         "reducto": "reducto/reducto/reducto-standard-parse",
      *         "litellm": "litellm/openai/gpt-5-low"
@@ -9747,9 +9766,16 @@ export interface components {
      *         "openai/openai/o4-mini-low",
      *         "openai/openai/o3-high",
      *         "openai/openai/o3-low",
-     *         "google/google/gemini-2-5-pro",
-     *         "google/google/gemini-2-0-flash",
-     *         "google/google/gemini-2-0-flash-lite",
+     *         "google/google/gemini-3-pro-high",
+     *         "google/google/gemini-3-pro-medium",
+     *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-2-5-pro-high",
+     *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-2-5-pro-low",
+     *         "google/google/gemini-2-5-flash-high",
+     *         "google/google/gemini-2-5-flash-medium",
+     *         "google/google/gemini-2-5-flash-low",
+     *         "google/google/gemini-2-5-flash-lite",
      *         "groq/meta/llama-4-scout",
      *         "groq/meta/llama-4-maverick",
      *         "groq/moonshotai/kimi-k2",
@@ -9863,9 +9889,16 @@ export interface components {
      *         "openai/openai/o3-low": "o3-2025-04-16",
      *         "openai/openai/text-embedding-3-small": "text-embedding-3-small",
      *         "openai/openai/text-embedding-3-large": "text-embedding-3-large",
-     *         "google/google/gemini-2-5-pro": "gemini-2.5-pro",
-     *         "google/google/gemini-2-0-flash": "gemini-2.0-flash",
-     *         "google/google/gemini-2-0-flash-lite": "gemini-2.0-flash-lite",
+     *         "google/google/gemini-3-pro-high": "gemini-3-pro-preview",
+     *         "google/google/gemini-3-pro-medium": "gemini-3-pro-preview",
+     *         "google/google/gemini-3-pro-low": "gemini-3-pro-preview",
+     *         "google/google/gemini-2-5-pro-high": "gemini-2.5-pro",
+     *         "google/google/gemini-2-5-pro-medium": "gemini-2.5-pro",
+     *         "google/google/gemini-2-5-pro-low": "gemini-2.5-pro",
+     *         "google/google/gemini-2-5-flash-high": "gemini-2.5-flash",
+     *         "google/google/gemini-2-5-flash-medium": "gemini-2.5-flash",
+     *         "google/google/gemini-2-5-flash-low": "gemini-2.5-flash",
+     *         "google/google/gemini-2-5-flash-lite": "gemini-2.5-flash-lite",
      *         "google/google/text-embedding-004": "text-embedding-004",
      *         "groq/meta/llama-4-scout": "meta-llama/llama-4-scout-17b-16e-instruct",
      *         "groq/meta/llama-4-maverick": "meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -9982,9 +10015,16 @@ export interface components {
      *         "openai/openai/o3-low": "openai-o-series",
      *         "openai/openai/text-embedding-3-small": "openai-embeddings",
      *         "openai/openai/text-embedding-3-large": "openai-embeddings",
-     *         "google/google/gemini-2-5-pro": "gemini",
-     *         "google/google/gemini-2-0-flash": "gemini",
-     *         "google/google/gemini-2-0-flash-lite": "gemini",
+     *         "google/google/gemini-3-pro-high": "gemini",
+     *         "google/google/gemini-3-pro-medium": "gemini",
+     *         "google/google/gemini-3-pro-low": "gemini",
+     *         "google/google/gemini-2-5-pro-high": "gemini",
+     *         "google/google/gemini-2-5-pro-medium": "gemini",
+     *         "google/google/gemini-2-5-pro-low": "gemini",
+     *         "google/google/gemini-2-5-flash-high": "gemini",
+     *         "google/google/gemini-2-5-flash-medium": "gemini",
+     *         "google/google/gemini-2-5-flash-low": "gemini",
+     *         "google/google/gemini-2-5-flash-lite": "gemini",
      *         "google/google/text-embedding-004": "google-embeddings",
      *         "groq/meta/llama-4-scout": "llama",
      *         "groq/meta/llama-4-maverick": "llama",
@@ -10101,9 +10141,16 @@ export interface components {
      *         "openai/openai/o3-low": "llm",
      *         "openai/openai/text-embedding-3-small": "embedding",
      *         "openai/openai/text-embedding-3-large": "embedding",
-     *         "google/google/gemini-2-5-pro": "llm",
-     *         "google/google/gemini-2-0-flash": "llm",
-     *         "google/google/gemini-2-0-flash-lite": "llm",
+     *         "google/google/gemini-3-pro-high": "llm",
+     *         "google/google/gemini-3-pro-medium": "llm",
+     *         "google/google/gemini-3-pro-low": "llm",
+     *         "google/google/gemini-2-5-pro-high": "llm",
+     *         "google/google/gemini-2-5-pro-medium": "llm",
+     *         "google/google/gemini-2-5-pro-low": "llm",
+     *         "google/google/gemini-2-5-flash-high": "llm",
+     *         "google/google/gemini-2-5-flash-medium": "llm",
+     *         "google/google/gemini-2-5-flash-low": "llm",
+     *         "google/google/gemini-2-5-flash-lite": "llm",
      *         "google/google/text-embedding-004": "embedding",
      *         "groq/meta/llama-4-scout": "llm",
      *         "groq/meta/llama-4-maverick": "llm",
@@ -10220,9 +10267,16 @@ export interface components {
      *         "openai/openai/o3-low": 200000,
      *         "openai/openai/text-embedding-3-small": 8000,
      *         "openai/openai/text-embedding-3-large": 8000,
-     *         "google/google/gemini-2-5-pro": 1000000,
-     *         "google/google/gemini-2-0-flash": 1000000,
-     *         "google/google/gemini-2-0-flash-lite": 1000000,
+     *         "google/google/gemini-3-pro-high": 1000000,
+     *         "google/google/gemini-3-pro-medium": 1000000,
+     *         "google/google/gemini-3-pro-low": 1000000,
+     *         "google/google/gemini-2-5-pro-high": 1000000,
+     *         "google/google/gemini-2-5-pro-medium": 1000000,
+     *         "google/google/gemini-2-5-pro-low": 1000000,
+     *         "google/google/gemini-2-5-flash-high": 1000000,
+     *         "google/google/gemini-2-5-flash-medium": 1000000,
+     *         "google/google/gemini-2-5-flash-low": 1000000,
+     *         "google/google/gemini-2-5-flash-lite": 1000000,
      *         "google/google/text-embedding-004": 8000,
      *         "groq/meta/llama-4-scout": 128000,
      *         "groq/meta/llama-4-maverick": 128000,
@@ -10514,6 +10568,56 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-nano": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-pro-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-pro-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-pro-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-pro-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-pro-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-pro-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-lite": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -10551,7 +10655,7 @@ export interface components {
      *         "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
      *         "cortex": "cortex/anthropic/claude-3-5-sonnet",
      *         "openai": "openai/openai/gpt-5-medium",
-     *         "google": "google/google/gemini-2-5-pro",
+     *         "google": "google/google/gemini-3-pro-high",
      *         "groq": "groq/openai/gpt-oss-120b",
      *         "reducto": "reducto/reducto/reducto-standard-parse",
      *         "litellm": "litellm/openai/gpt-5-low"
@@ -10630,9 +10734,16 @@ export interface components {
      *         "openai/openai/o4-mini-low",
      *         "openai/openai/o3-high",
      *         "openai/openai/o3-low",
-     *         "google/google/gemini-2-5-pro",
-     *         "google/google/gemini-2-0-flash",
-     *         "google/google/gemini-2-0-flash-lite",
+     *         "google/google/gemini-3-pro-high",
+     *         "google/google/gemini-3-pro-medium",
+     *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-2-5-pro-high",
+     *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-2-5-pro-low",
+     *         "google/google/gemini-2-5-flash-high",
+     *         "google/google/gemini-2-5-flash-medium",
+     *         "google/google/gemini-2-5-flash-low",
+     *         "google/google/gemini-2-5-flash-lite",
      *         "groq/meta/llama-4-scout",
      *         "groq/meta/llama-4-maverick",
      *         "groq/moonshotai/kimi-k2",
@@ -10746,9 +10857,16 @@ export interface components {
      *         "openai/openai/o3-low": "o3-2025-04-16",
      *         "openai/openai/text-embedding-3-small": "text-embedding-3-small",
      *         "openai/openai/text-embedding-3-large": "text-embedding-3-large",
-     *         "google/google/gemini-2-5-pro": "gemini-2.5-pro",
-     *         "google/google/gemini-2-0-flash": "gemini-2.0-flash",
-     *         "google/google/gemini-2-0-flash-lite": "gemini-2.0-flash-lite",
+     *         "google/google/gemini-3-pro-high": "gemini-3-pro-preview",
+     *         "google/google/gemini-3-pro-medium": "gemini-3-pro-preview",
+     *         "google/google/gemini-3-pro-low": "gemini-3-pro-preview",
+     *         "google/google/gemini-2-5-pro-high": "gemini-2.5-pro",
+     *         "google/google/gemini-2-5-pro-medium": "gemini-2.5-pro",
+     *         "google/google/gemini-2-5-pro-low": "gemini-2.5-pro",
+     *         "google/google/gemini-2-5-flash-high": "gemini-2.5-flash",
+     *         "google/google/gemini-2-5-flash-medium": "gemini-2.5-flash",
+     *         "google/google/gemini-2-5-flash-low": "gemini-2.5-flash",
+     *         "google/google/gemini-2-5-flash-lite": "gemini-2.5-flash-lite",
      *         "google/google/text-embedding-004": "text-embedding-004",
      *         "groq/meta/llama-4-scout": "meta-llama/llama-4-scout-17b-16e-instruct",
      *         "groq/meta/llama-4-maverick": "meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -10865,9 +10983,16 @@ export interface components {
      *         "openai/openai/o3-low": "openai-o-series",
      *         "openai/openai/text-embedding-3-small": "openai-embeddings",
      *         "openai/openai/text-embedding-3-large": "openai-embeddings",
-     *         "google/google/gemini-2-5-pro": "gemini",
-     *         "google/google/gemini-2-0-flash": "gemini",
-     *         "google/google/gemini-2-0-flash-lite": "gemini",
+     *         "google/google/gemini-3-pro-high": "gemini",
+     *         "google/google/gemini-3-pro-medium": "gemini",
+     *         "google/google/gemini-3-pro-low": "gemini",
+     *         "google/google/gemini-2-5-pro-high": "gemini",
+     *         "google/google/gemini-2-5-pro-medium": "gemini",
+     *         "google/google/gemini-2-5-pro-low": "gemini",
+     *         "google/google/gemini-2-5-flash-high": "gemini",
+     *         "google/google/gemini-2-5-flash-medium": "gemini",
+     *         "google/google/gemini-2-5-flash-low": "gemini",
+     *         "google/google/gemini-2-5-flash-lite": "gemini",
      *         "google/google/text-embedding-004": "google-embeddings",
      *         "groq/meta/llama-4-scout": "llama",
      *         "groq/meta/llama-4-maverick": "llama",
@@ -10984,9 +11109,16 @@ export interface components {
      *         "openai/openai/o3-low": "llm",
      *         "openai/openai/text-embedding-3-small": "embedding",
      *         "openai/openai/text-embedding-3-large": "embedding",
-     *         "google/google/gemini-2-5-pro": "llm",
-     *         "google/google/gemini-2-0-flash": "llm",
-     *         "google/google/gemini-2-0-flash-lite": "llm",
+     *         "google/google/gemini-3-pro-high": "llm",
+     *         "google/google/gemini-3-pro-medium": "llm",
+     *         "google/google/gemini-3-pro-low": "llm",
+     *         "google/google/gemini-2-5-pro-high": "llm",
+     *         "google/google/gemini-2-5-pro-medium": "llm",
+     *         "google/google/gemini-2-5-pro-low": "llm",
+     *         "google/google/gemini-2-5-flash-high": "llm",
+     *         "google/google/gemini-2-5-flash-medium": "llm",
+     *         "google/google/gemini-2-5-flash-low": "llm",
+     *         "google/google/gemini-2-5-flash-lite": "llm",
      *         "google/google/text-embedding-004": "embedding",
      *         "groq/meta/llama-4-scout": "llm",
      *         "groq/meta/llama-4-maverick": "llm",
@@ -11103,9 +11235,16 @@ export interface components {
      *         "openai/openai/o3-low": 200000,
      *         "openai/openai/text-embedding-3-small": 8000,
      *         "openai/openai/text-embedding-3-large": 8000,
-     *         "google/google/gemini-2-5-pro": 1000000,
-     *         "google/google/gemini-2-0-flash": 1000000,
-     *         "google/google/gemini-2-0-flash-lite": 1000000,
+     *         "google/google/gemini-3-pro-high": 1000000,
+     *         "google/google/gemini-3-pro-medium": 1000000,
+     *         "google/google/gemini-3-pro-low": 1000000,
+     *         "google/google/gemini-2-5-pro-high": 1000000,
+     *         "google/google/gemini-2-5-pro-medium": 1000000,
+     *         "google/google/gemini-2-5-pro-low": 1000000,
+     *         "google/google/gemini-2-5-flash-high": 1000000,
+     *         "google/google/gemini-2-5-flash-medium": 1000000,
+     *         "google/google/gemini-2-5-flash-low": 1000000,
+     *         "google/google/gemini-2-5-flash-lite": 1000000,
      *         "google/google/text-embedding-004": 8000,
      *         "groq/meta/llama-4-scout": 128000,
      *         "groq/meta/llama-4-maverick": 128000,
@@ -11397,6 +11536,56 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "cortex/openai/gpt-5-nano": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-pro-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-pro-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-pro-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-pro-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-pro-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-pro-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-2-5-flash-lite": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -11619,9 +11808,16 @@ export interface components {
       | 'cortex/snowflake/snowflake-arctic-embed-l'
       | 'cortex/snowflake/snowflake-arctic-embed-m'
       | 'cortex/voyage/voyage-multilingual'
-      | 'google/google/gemini-2-0-flash'
-      | 'google/google/gemini-2-0-flash-lite'
-      | 'google/google/gemini-2-5-pro'
+      | 'google/google/gemini-2-5-flash-high'
+      | 'google/google/gemini-2-5-flash-lite'
+      | 'google/google/gemini-2-5-flash-low'
+      | 'google/google/gemini-2-5-flash-medium'
+      | 'google/google/gemini-2-5-pro-high'
+      | 'google/google/gemini-2-5-pro-low'
+      | 'google/google/gemini-2-5-pro-medium'
+      | 'google/google/gemini-3-pro-high'
+      | 'google/google/gemini-3-pro-low'
+      | 'google/google/gemini-3-pro-medium'
       | 'google/google/text-embedding-004'
       | 'groq/meta/llama-4-maverick'
       | 'groq/meta/llama-4-scout'
@@ -11825,9 +12021,16 @@ export interface components {
      *         "cortex/voyage/voyage-multilingual"
      *       ],
      *       "google": [
-     *         "google/google/gemini-2-0-flash",
-     *         "google/google/gemini-2-0-flash-lite",
-     *         "google/google/gemini-2-5-pro",
+     *         "google/google/gemini-2-5-flash-high",
+     *         "google/google/gemini-2-5-flash-lite",
+     *         "google/google/gemini-2-5-flash-low",
+     *         "google/google/gemini-2-5-flash-medium",
+     *         "google/google/gemini-2-5-pro-high",
+     *         "google/google/gemini-2-5-pro-low",
+     *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-pro-high",
+     *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-3-pro-medium",
      *         "google/google/text-embedding-004"
      *       ],
      *       "groq": [
@@ -11959,9 +12162,16 @@ export interface components {
      *         "cortex/voyage/voyage-multilingual"
      *       ],
      *       "google": [
-     *         "google/google/gemini-2-0-flash",
-     *         "google/google/gemini-2-0-flash-lite",
-     *         "google/google/gemini-2-5-pro",
+     *         "google/google/gemini-2-5-flash-high",
+     *         "google/google/gemini-2-5-flash-lite",
+     *         "google/google/gemini-2-5-flash-low",
+     *         "google/google/gemini-2-5-flash-medium",
+     *         "google/google/gemini-2-5-pro-high",
+     *         "google/google/gemini-2-5-pro-low",
+     *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-pro-high",
+     *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-3-pro-medium",
      *         "google/google/text-embedding-004"
      *       ],
      *       "groq": [
@@ -12120,9 +12330,16 @@ export interface components {
      *         "cortex/voyage/voyage-multilingual"
      *       ],
      *       "google/google": [
-     *         "google/google/gemini-2-0-flash",
-     *         "google/google/gemini-2-0-flash-lite",
-     *         "google/google/gemini-2-5-pro",
+     *         "google/google/gemini-2-5-flash-high",
+     *         "google/google/gemini-2-5-flash-lite",
+     *         "google/google/gemini-2-5-flash-low",
+     *         "google/google/gemini-2-5-flash-medium",
+     *         "google/google/gemini-2-5-pro-high",
+     *         "google/google/gemini-2-5-pro-low",
+     *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-pro-high",
+     *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-3-pro-medium",
      *         "google/google/text-embedding-004"
      *       ],
      *       "groq/meta": [
@@ -12271,9 +12488,16 @@ export interface components {
      *         "cortex/voyage/voyage-multilingual"
      *       ],
      *       "google/google": [
-     *         "google/google/gemini-2-0-flash",
-     *         "google/google/gemini-2-0-flash-lite",
-     *         "google/google/gemini-2-5-pro",
+     *         "google/google/gemini-2-5-flash-high",
+     *         "google/google/gemini-2-5-flash-lite",
+     *         "google/google/gemini-2-5-flash-low",
+     *         "google/google/gemini-2-5-flash-medium",
+     *         "google/google/gemini-2-5-pro-high",
+     *         "google/google/gemini-2-5-pro-low",
+     *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-pro-high",
+     *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-3-pro-medium",
      *         "google/google/text-embedding-004"
      *       ],
      *       "groq/meta": [
@@ -12503,9 +12727,16 @@ export interface components {
      *           "cortex/voyage/voyage-multilingual"
      *         ],
      *         "google": [
-     *           "google/google/gemini-2-0-flash",
-     *           "google/google/gemini-2-0-flash-lite",
-     *           "google/google/gemini-2-5-pro",
+     *           "google/google/gemini-2-5-flash-high",
+     *           "google/google/gemini-2-5-flash-lite",
+     *           "google/google/gemini-2-5-flash-low",
+     *           "google/google/gemini-2-5-flash-medium",
+     *           "google/google/gemini-2-5-pro-high",
+     *           "google/google/gemini-2-5-pro-low",
+     *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-pro-high",
+     *           "google/google/gemini-3-pro-low",
+     *           "google/google/gemini-3-pro-medium",
      *           "google/google/text-embedding-004"
      *         ],
      *         "groq": [
@@ -12651,9 +12882,16 @@ export interface components {
      *           "cortex/voyage/voyage-multilingual"
      *         ],
      *         "google/google": [
-     *           "google/google/gemini-2-0-flash",
-     *           "google/google/gemini-2-0-flash-lite",
-     *           "google/google/gemini-2-5-pro",
+     *           "google/google/gemini-2-5-flash-high",
+     *           "google/google/gemini-2-5-flash-lite",
+     *           "google/google/gemini-2-5-flash-low",
+     *           "google/google/gemini-2-5-flash-medium",
+     *           "google/google/gemini-2-5-pro-high",
+     *           "google/google/gemini-2-5-pro-low",
+     *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-pro-high",
+     *           "google/google/gemini-3-pro-low",
+     *           "google/google/gemini-3-pro-medium",
      *           "google/google/text-embedding-004"
      *         ],
      *         "groq/meta": [
@@ -12863,9 +13101,16 @@ export interface components {
      *           "cortex/voyage/voyage-multilingual"
      *         ],
      *         "google": [
-     *           "google/google/gemini-2-0-flash",
-     *           "google/google/gemini-2-0-flash-lite",
-     *           "google/google/gemini-2-5-pro",
+     *           "google/google/gemini-2-5-flash-high",
+     *           "google/google/gemini-2-5-flash-lite",
+     *           "google/google/gemini-2-5-flash-low",
+     *           "google/google/gemini-2-5-flash-medium",
+     *           "google/google/gemini-2-5-pro-high",
+     *           "google/google/gemini-2-5-pro-low",
+     *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-pro-high",
+     *           "google/google/gemini-3-pro-low",
+     *           "google/google/gemini-3-pro-medium",
      *           "google/google/text-embedding-004"
      *         ],
      *         "groq": [
@@ -13011,9 +13256,16 @@ export interface components {
      *           "cortex/voyage/voyage-multilingual"
      *         ],
      *         "google/google": [
-     *           "google/google/gemini-2-0-flash",
-     *           "google/google/gemini-2-0-flash-lite",
-     *           "google/google/gemini-2-5-pro",
+     *           "google/google/gemini-2-5-flash-high",
+     *           "google/google/gemini-2-5-flash-lite",
+     *           "google/google/gemini-2-5-flash-low",
+     *           "google/google/gemini-2-5-flash-medium",
+     *           "google/google/gemini-2-5-pro-high",
+     *           "google/google/gemini-2-5-pro-low",
+     *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-pro-high",
+     *           "google/google/gemini-3-pro-low",
+     *           "google/google/gemini-3-pro-medium",
      *           "google/google/text-embedding-004"
      *         ],
      *         "groq/meta": [

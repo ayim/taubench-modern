@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Sequence
+from types import UnionType
 from typing import TYPE_CHECKING, Any, Literal, Union, cast
 
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
-from agent_platform.core.platforms.google.configs import GoogleRoleMap
 from agent_platform.core.platforms.google.prompts import GooglePrompt
 from agent_platform.core.prompts import (
     Prompt,
@@ -13,6 +15,7 @@ from agent_platform.core.prompts import (
     PromptAudioContent,
     PromptImageContent,
     PromptMessageContent,
+    PromptReasoningContent,
     PromptTextContent,
     PromptToolResultContent,
     PromptToolUseContent,
@@ -34,50 +37,63 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def convert_text_content(
         self,
         content: PromptTextContent,
-    ) -> dict[str, Any]:
+    ) -> Part:
         """Converts text content to Google format."""
-        return {
-            "text": content.text,
-        }
+        from google.genai.types import Part
+
+        return Part(text=content.text)
 
     async def convert_image_content(
         self,
         content: PromptImageContent,
-    ) -> dict[str, Any]:
+    ) -> Part:
         """Converts image content to Google format."""
         raise NotImplementedError("Image not supported yet")
 
     async def convert_audio_content(
         self,
         content: PromptAudioContent,
-    ) -> dict[str, Any]:
+    ) -> Part:
         """Converts audio content to Google format."""
         raise NotImplementedError("Audio not supported yet")
 
     async def convert_tool_use_content(
         self,
         content: PromptToolUseContent,
-    ) -> dict[str, Any]:
+    ) -> Part:
         """Converts tool use content to Google format."""
-        return {
-            "function_call": {
-                "name": content.tool_name,
-                "args": content.tool_input,
-            },
-        }
+        from google.genai.types import FunctionCall, Part
+
+        return Part(
+            function_call=FunctionCall(name=content.tool_name, args=content.tool_input),
+        )
+
+    async def convert_reasoning_content(
+        self,
+        content: PromptReasoningContent,
+    ) -> Part:
+        """Converts reasoning content to Google format."""
+        from google.genai.types import Part
+
+        # signature for us was a `.hex()` of the bytes, so
+        # now we need to convert it back to bytes
+        signature_bytes = None
+        if content.signature:
+            signature_bytes = bytes.fromhex(content.signature)
+
+        return Part(
+            text=content.reasoning,
+            thought_signature=signature_bytes,
+            thought=True,
+        )
 
     async def convert_tool_result_content(
         self,
         content: PromptToolResultContent,
-    ) -> dict[str, Any]:
-        """Converts tool result content to Google format.
+    ) -> Part:
+        """Converts tool result content to Google format."""
+        from google.genai.types import FunctionResponse, Part
 
-        Args:
-            content: The tool result content to convert.
-
-        Returns:
-            A tool message parameter for the Google API.
-        """
         text_content = ""
         for content_item in content.content:
             if isinstance(content_item, PromptTextContent):
@@ -92,19 +108,17 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
                 raise ValueError(f"Unsupported content type: {type(content_item)}")
 
         # Format as a function response
-        return {
-            "function_response": {
-                "name": content.tool_name,
-                "response": {
-                    "content": text_content.strip(),
-                },
-            },
-        }
+        return Part(
+            function_response=FunctionResponse(
+                name=content.tool_name,
+                response={"content": text_content.strip()},
+            ),
+        )
 
     async def convert_document_content(
         self,
         content: PromptDocumentContent,
-    ) -> dict[str, Any]:
+    ) -> Part:
         """Converts document content to Google format."""
         raise NotImplementedError("Document not supported yet")
 
@@ -120,15 +134,18 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         Raises:
             ValueError: If the role is not found in the map.
         """
-        for google_role, our_role in GoogleRoleMap.role_map.items():
-            if our_role == role:
-                return cast(Literal["user", "model"], google_role)
-        raise ValueError(f"Role '{role}' not found in GoogleRoleMap")
+        match role:
+            case "user":
+                return "user"
+            case "agent":
+                return "model"
+            case _:
+                raise ValueError(f"Role '{role}' not found in Google role map")
 
     async def _process_message_content(
         self,
         content_list: Sequence[PromptMessageContent],
-    ) -> "list[Part]":
+    ) -> list[Part]:
         """Process prompt message content and organize into parts.
 
         Args:
@@ -150,6 +167,8 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
                 parts.append(
                     cast(Part, await self.convert_tool_result_content(content)),
                 )
+            elif isinstance(content, PromptReasoningContent):
+                parts.append(cast(Part, await self.convert_reasoning_content(content)))
             elif isinstance(content, PromptImageContent):
                 raise NotImplementedError("Image content not supported yet")
             elif isinstance(content, PromptAudioContent):
@@ -162,7 +181,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_system_instruction(
         self,
         system_instruction: str | None,
-    ) -> "Content | None":
+    ) -> Content | None:
         """Convert system instruction to Google format.
 
         Args:
@@ -184,7 +203,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
-    ) -> "list[Content]":
+    ) -> list[Content]:
         """Convert prompt messages to Google message format.
 
         Args:
@@ -438,7 +457,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _convert_tools(
         self,
         tools: list[ToolDefinition],
-    ) -> "list[types.Tool]":
+    ) -> list[types.Tool]:
         """Convert tool definitions to Google tool parameters.
 
         Args:
@@ -511,12 +530,10 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         fixed_schema = {"type": "object", "properties": {}}
 
         for param_name, param_type in getattr(tool, "_parameter_types", {}).items():
-            # Handle different parameter types
-            if hasattr(param_type, "__origin__") and param_type.__origin__ is Union:
-                # Handle Union types
+            is_typing_union = hasattr(param_type, "__origin__") and param_type.__origin__ is Union
+            if is_typing_union or isinstance(param_type, UnionType):
                 self._add_union_param_to_schema(fixed_schema, param_name, param_type)
             else:
-                # Handle basic types
                 self._add_basic_param_to_schema(fixed_schema, param_name, param_type)
 
         return fixed_schema
@@ -597,7 +614,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         self,
         tool: ToolDefinition,
         schema: dict[str, Any],
-    ) -> "types.Tool | None":
+    ) -> types.Tool | None:
         """Create function declaration for tool.
 
         Args:
@@ -636,7 +653,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
     async def _create_tool_with_minimal_schema(
         self,
         tool: ToolDefinition,
-    ) -> "types.Tool | None":
+    ) -> types.Tool | None:
         """Create tool with minimal schema as fallback.
 
         Args:
@@ -698,6 +715,11 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
             if system_message:
                 messages.insert(0, system_message)
 
+        thinking_budget, thinking_level = self._determine_reasoning_settings(
+            model_id,
+            prompt.minimize_reasoning,
+        )
+
         # Convert tools if present
         tools = None
         if prompt.tools:
@@ -708,9 +730,86 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
             contents=messages,
             tools=tools,
             temperature=prompt.temperature or 0.0,
+            thinking_budget=thinking_budget,
+            thinking_level=thinking_level,
             top_p=prompt.top_p or 1.0,
             max_output_tokens=prompt.max_output_tokens or 4096,
         )
+
+    def _determine_reasoning_settings(
+        self,
+        model_id: str | None,
+        minimize_reasoning: bool,
+    ) -> tuple[int, str | None]:
+        """Return the thinking budget/level for the provided model."""
+        if not model_id:
+            return 0, None
+
+        if "gemini-3" in model_id:
+            return 0, self._gemini3_thinking_level(model_id, minimize_reasoning)
+
+        thinking_budget = self._resolve_reasoning_budget(model_id)
+        final_budget = self._apply_minimize_reasoning_budget(
+            model_id,
+            thinking_budget,
+            minimize_reasoning,
+        )
+        return final_budget, None
+
+    def _gemini3_thinking_level(self, model_id: str, minimize_reasoning: bool) -> str:
+        if minimize_reasoning:
+            return "low"
+
+        suffix_map = {
+            "-low": "low",
+            "-medium": "low",
+            "-high": "high",
+        }
+        for suffix, level in suffix_map.items():
+            if model_id.endswith(suffix):
+                return level
+
+        return "high"
+
+    def _resolve_reasoning_budget(self, model_id: str) -> int:
+        suffix_budget_map = {
+            "-lite": (512, "lite"),
+            "-low": (1024, "low"),
+            "-medium": (8192, "medium"),
+            "-high": (24576, "high"),
+        }
+        for suffix, (budget, label) in suffix_budget_map.items():
+            if model_id.endswith(suffix):
+                logger.info(f"Using {model_id} with {label} thinking budget ({budget})")
+                return budget
+
+        if "-pro" in model_id:
+            default_budget = 1024
+            logger.info(
+                f"Model {model_id} requires reasoning budget, defaulting to {default_budget}",
+            )
+            return default_budget
+
+        return 0
+
+    def _apply_minimize_reasoning_budget(
+        self,
+        model_id: str,
+        thinking_budget: int,
+        minimize_reasoning: bool,
+    ) -> int:
+        if not minimize_reasoning:
+            return thinking_budget
+
+        if "-pro" in model_id:
+            minimum_budget = 1024
+            logger.info(
+                f"Model {model_id} is a Gemini Pro model, "
+                f"setting minimum thinking budget to {minimum_budget}",
+            )
+            return minimum_budget
+
+        return 0
 
     def _get_json_schema_type(self, python_type: type) -> str:
         """Convert Python type to JSON Schema type.

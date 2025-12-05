@@ -14,6 +14,12 @@ from yaml.nodes import MappingNode, Node
 
 from core.tests.vcrx.config import CASSETTE_ROOT_DIR
 
+_GOOGLE_SCRUB_DEFAULTS = {
+    "GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON": "CREDENTIAL_FILE_PATH",
+    "GOOGLE_CLOUD_PROJECT_ID": "PROJECT_ID",
+    "GOOGLE_CLOUD_LOCATION": "GLOBAL",
+}
+
 
 def _deserialize_leniently(cassette_text: str) -> tuple[list[Any], list[Any]]:
     """

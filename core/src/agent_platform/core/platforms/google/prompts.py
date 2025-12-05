@@ -1,9 +1,8 @@
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from agent_platform.core.platforms.base import PlatformPrompt
-from agent_platform.core.platforms.google.configs import GoogleModelMap
 
 if TYPE_CHECKING:
     from google.genai.types import Content, GenerateContentConfig, Tool
@@ -55,6 +54,22 @@ class GooglePrompt(PlatformPrompt):
     )
     """The top p for the prompt."""
 
+    thinking_budget: int = field(
+        default=0,
+        metadata={
+            "description": "The thinking budget for the prompt.",
+        },
+    )
+    """The thinking budget for the prompt."""
+
+    thinking_level: str | None = field(
+        default=None,
+        metadata={
+            "description": "Thinking level for Gemini 3 models (e.g., 'low' or 'high').",
+        },
+    )
+    """The thinking level for Gemini 3 models."""
+
     def as_platform_request(
         self,
         model: str,
@@ -70,8 +85,7 @@ class GooglePrompt(PlatformPrompt):
             A Google Gemini request."""
         from google.genai.types import Content, GenerateContentConfig, ThinkingConfig
 
-        model_id = GoogleModelMap.model_aliases[model]
-        logger.info(f"Using Google model: {model} (model_id: {model_id})")
+        logger.info(f"Using Google model: {model}")
 
         # Create the generation config
         generation_config_kwargs = {
@@ -79,25 +93,16 @@ class GooglePrompt(PlatformPrompt):
             "top_p": self.top_p,
             "max_output_tokens": self.max_output_tokens,
         }
-        thinking_budget = 0
-        if "2.5" in model:
-            if model.endswith("-high"):
-                thinking_budget = 2048
-                logger.info(f"Using {model} with high thinking budget (2048)")
-            elif model.endswith("-low"):
-                thinking_budget = 1024
-                logger.info(f"Using {model} with low thinking budget (1024)")
-            elif "pro" in model:
-                thinking_budget = 4096
-                logger.info(f"Using {model} with pro thinking budget (4096)")
-            else:
-                logger.info(f"Using {model} with default thinking budget (0)")
-        else:
-            logger.info(f"Using {model} with no thinking budget")
 
-        if "2.5" in model:  # thinking_config is only supported on 2.5 models
+        if self.thinking_level or self.thinking_budget > 0:
+            thinking_config_fields: dict[str, Any] = {}
+            if self.thinking_level:
+                thinking_config_fields["thinking_level"] = self.thinking_level
+            if self.thinking_budget > 0:
+                thinking_config_fields["thinking_budget"] = self.thinking_budget
+                thinking_config_fields["include_thoughts"] = True
             generation_config_kwargs["thinking_config"] = ThinkingConfig(
-                thinking_budget=thinking_budget,
+                **thinking_config_fields,
             )
 
         # Add streaming parameter if requested
@@ -117,7 +122,7 @@ class GooglePrompt(PlatformPrompt):
         generation_config = GenerateContentConfig(**generation_config_kwargs)
 
         results_dict: dict[str, str | list[Content] | GenerateContentConfig] = {
-            "model": model_id,
+            "model": model,
             "contents": self.contents,
             "config": generation_config,
         }

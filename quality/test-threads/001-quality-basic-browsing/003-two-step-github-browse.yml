@@ -19,7 +19,7 @@ target-platforms:
   - name: bedrock
   - name: cortex
   - name: groq
-  # - name: google
+  - name: google
 
 evaluations:
   - kind: llm-eval-of-last-agent-turn

@@ -17,7 +17,7 @@ target-platforms:
   # - name: azure
   # - name: bedrock
   # - name: cortex
-  # - name: google
+  - name: google
 
 evaluations:
   - kind: llm-eval-of-last-agent-turn

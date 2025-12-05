@@ -12,6 +12,7 @@ from core.tests.vcrx.env import debug, env_bool, get_vcr_record_mode
 from core.tests.vcrx.persisters.zip_archive import ZipArchivePersister
 from core.tests.vcrx.shims.httpx_shim import install_httpx_shim
 from core.tests.vcrx.shims.httpx_stream import patch_httpx_stream
+from core.tests.vcrx.shims.requests_shim import install_requests_shim
 from core.tests.vcrx.vcr_builder import build_vcr
 
 
@@ -60,6 +61,7 @@ def patched_vcr(cassette_path: str, **use_kwargs: Any):
     """
     our_vcr = build_vcr()
     install_httpx_shim()  # Ensure shim is installed before VCR context is active
+    install_requests_shim()
 
     t_enter = time.monotonic()
     debug(f"[VCR] Using cassette: {cassette_path} (mode={get_vcr_record_mode()})")

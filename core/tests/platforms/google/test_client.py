@@ -1,5 +1,7 @@
 """Unit tests for the Google platform client."""
 
+import json
+import os
 from collections.abc import (
     AsyncGenerator,
     AsyncIterable,
@@ -18,8 +20,10 @@ from agent_platform.core.delta import GenericDelta
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.platforms.configs import (
+    resolve_generic_model_id_to_platform_specific_model_id,
+)
 from agent_platform.core.platforms.google.client import GoogleClient
-from agent_platform.core.platforms.google.configs import GoogleModelMap
 from agent_platform.core.platforms.google.parameters import GooglePlatformParameters
 from agent_platform.core.platforms.google.prompts import GooglePrompt
 from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
@@ -125,12 +129,12 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "bad_request"
             assert "something went wrong" in result.response.message.lower()
-            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["model"] == "gemini-3-pro-preview"
             assert result.data["status_code"] == status.HTTP_400_BAD_REQUEST
             assert result.data["status"] == "INVALID_ARGUMENT"
 
@@ -144,12 +148,12 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "unauthorized"
             assert "authentication failed" in result.response.message.lower()
-            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["model"] == "gemini-3-pro-preview"
             assert result.data["status_code"] == status.HTTP_401_UNAUTHORIZED
 
     def test_handle_google_error_forbidden(self, google_client: GoogleClient) -> None:
@@ -162,12 +166,12 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "forbidden"
             assert "access denied" in result.response.message.lower()
-            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["model"] == "gemini-3-pro-preview"
             assert result.data["status_code"] == status.HTTP_403_FORBIDDEN
 
     def test_handle_google_error_not_found(self, google_client: GoogleClient) -> None:
@@ -198,12 +202,12 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "unprocessable_entity"
             assert "something went wrong" in result.response.message.lower()
-            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["model"] == "gemini-3-pro-preview"
             assert result.data["status_code"] == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_handle_google_error_too_many_requests(self, google_client: GoogleClient) -> None:
@@ -216,12 +220,12 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "too_many_requests"
             assert "usage limit reached" in result.response.message.lower()
-            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["model"] == "gemini-3-pro-preview"
             assert result.data["status_code"] == status.HTTP_429_TOO_MANY_REQUESTS
 
     def test_handle_google_error_other_client_error(self, google_client: GoogleClient) -> None:
@@ -234,7 +238,7 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "bad_request"
@@ -251,12 +255,12 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ServerError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "unexpected"
             assert "something went wrong" in result.response.message.lower()
-            assert result.data["model"] == "gemini-1.5-pro"
+            assert result.data["model"] == "gemini-3-pro-preview"
             assert result.data["status_code"] == status.HTTP_500_INTERNAL_SERVER_ERROR
 
     def test_handle_google_error_service_unavailable(self, google_client: GoogleClient) -> None:
@@ -269,11 +273,11 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ServerError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "unexpected"
-            assert "something went wrong" in result.response.message.lower()
+            assert "currently unavailable" in result.response.message.lower()
             assert result.data["status_code"] == status.HTTP_503_SERVICE_UNAVAILABLE
 
     def test_handle_google_error_unknown_status_code(self, google_client: GoogleClient) -> None:
@@ -286,7 +290,7 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "APIError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "unexpected"
@@ -303,7 +307,7 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "APIError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro")
+            result = google_client._handle_google_error(error, "gemini-3-pro-preview")
 
             assert isinstance(result, PlatformError)
             assert result.response.code == "bad_request"
@@ -314,7 +318,7 @@ class TestGoogleErrorHandling:
         error = ValueError("Some unexpected error")
 
         with pytest.raises(ValueError, match="Some unexpected error"):
-            google_client._handle_google_error(error, "gemini-1.5-pro")
+            google_client._handle_google_error(error, "gemini-3-pro-preview")
 
     def test_handle_google_error_with_custom_error_type(self, google_client: GoogleClient) -> None:
         """Test that custom error types are respected."""
@@ -326,7 +330,11 @@ class TestGoogleErrorHandling:
             )
             error.__class__.__name__ = "ClientError"
 
-            result = google_client._handle_google_error(error, "gemini-1.5-pro", PlatformHTTPError)
+            result = google_client._handle_google_error(
+                error,
+                "gemini-3-pro-preview",
+                PlatformHTTPError,
+            )
 
             assert isinstance(result, PlatformHTTPError)
             assert result.response.code == "too_many_requests"
@@ -348,8 +356,12 @@ class TestGoogleErrorHandling:
             with patch.object(google_client, "_google_client") as mock_client:
                 mock_client.aio.models.generate_content.side_effect = error
 
-                with pytest.raises(PlatformHTTPError) as exc_info:
-                    await google_client.generate_response(google_prompt, "gemini-1.5-pro")
+                with patch(
+                    "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+                    new=AsyncMock(return_value="gemini-2.5-pro"),
+                ):
+                    with pytest.raises(PlatformHTTPError) as exc_info:
+                        await google_client.generate_response(google_prompt, "gemini-2.5-pro")
 
                 assert exc_info.value.response.code == "too_many_requests"
 
@@ -372,11 +384,15 @@ class TestGoogleErrorHandling:
             with patch.object(google_client, "_google_client") as mock_client:
                 mock_client.aio.models.generate_content_stream.side_effect = error
 
-                with pytest.raises(StreamingError) as exc_info:
-                    async for _ in google_client.generate_stream_response(
-                        google_prompt, "gemini-1.5-pro"
-                    ):
-                        pass  # This shouldn't execute due to the exception
+                with patch(
+                    "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+                    new=AsyncMock(return_value="gemini-3-pro-preview"),
+                ):
+                    with pytest.raises(StreamingError) as exc_info:
+                        async for _ in google_client.generate_stream_response(
+                            google_prompt, "gemini-3-pro-preview"
+                        ):
+                            pass  # This shouldn't execute due to the exception
 
                 assert exc_info.value.response.code == "forbidden"
 
@@ -397,7 +413,7 @@ class TestGoogleErrorHandling:
 
                 with pytest.raises(PlatformHTTPError) as exc_info:
                     await google_client.create_embeddings(
-                        ["test text"], "models/text-embedding-004"
+                        ["test text"], "google/google/text-embedding-004"
                     )
 
                 assert exc_info.value.response.code == "bad_request"
@@ -421,9 +437,22 @@ class TestGoogleClient:
     def parameters(self) -> GooglePlatformParameters:
         """Create Google platform parameters for testing."""
         mock_secret = SecretString("test-api-key")
-        with patch("agent_platform.core.utils.SecretString", return_value=mock_secret):
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GOOGLE_USE_VERTEX_AI": "",
+                    "GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON": "",
+                    "GOOGLE_CLOUD_PROJECT_ID": "",
+                    "GOOGLE_CLOUD_LOCATION": "",
+                },
+                clear=False,
+            ),
+            patch("agent_platform.core.utils.SecretString", return_value=mock_secret),
+        ):
             return GooglePlatformParameters(
                 google_api_key=mock_secret,
+                google_use_vertex_ai=False,
             )
 
     @pytest.fixture
@@ -512,9 +541,9 @@ class TestGoogleClient:
     @pytest.fixture
     def google_prompt(self) -> GooglePrompt:
         """Create a Google prompt for testing."""
-        # Create proper Content objects instead of dictionaries
         from google.genai.types import Content, Part
 
+        # Create proper Content objects instead of dictionaries
         content1 = MagicMock(spec=Content)
         content1.role = "user"
         part1 = MagicMock(spec=Part)
@@ -557,6 +586,210 @@ class TestGoogleClient:
                 http_options.async_client_args.get("transport"),
                 httpx.AsyncHTTPTransport,
             )
+            assert "vertexai" not in called_kwargs or not called_kwargs["vertexai"]
+
+    def test_build_vertex_credentials_returns_none_when_not_vertex(
+        self,
+        parameters: GooglePlatformParameters,
+    ) -> None:
+        with patch("google.genai.Client"):
+            client = GoogleClient(parameters=parameters)
+        assert client._build_vertex_credentials() is None
+
+    def test_update_token_counters_from_chunk_tracks_max(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Token counters should use the max values observed from the stream."""
+        chunk = MagicMock()
+        usage_metadata = MagicMock()
+        usage_metadata.prompt_token_count = 20
+        usage_metadata.candidates_token_count = 10
+        usage_metadata.total_token_count = None
+        usage_metadata.thoughts_token_count = 5
+        chunk.usage_metadata = usage_metadata
+
+        counters = {"prompt": 5, "completion": 7, "total": 12, "thinking": 2}
+
+        google_client._update_token_counters_from_chunk(chunk, counters)
+
+        assert counters["prompt"] == 20
+        assert counters["completion"] == 10
+        assert counters["total"] == 30
+        assert counters["thinking"] == 5
+
+    def test_update_token_counters_ignores_chunks_without_usage(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Chunks that omit metadata should not mutate counters."""
+        chunk = MagicMock()
+        chunk.usage_metadata = None
+        counters = {"prompt": 1, "completion": 2, "total": 3, "thinking": 4}
+
+        google_client._update_token_counters_from_chunk(chunk, counters)
+
+        assert counters == {"prompt": 1, "completion": 2, "total": 3, "thinking": 4}
+
+    def test_add_final_metadata_sets_usage_and_token_metrics(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Final metadata should include platform info, usage, and thinking tokens."""
+        message: dict[str, Any] = {}
+        counters = {"prompt": 11, "completion": 13, "total": 24, "thinking": 3}
+
+        google_client._add_final_metadata(message, counters)
+
+        assert message["usage"] == {
+            "input_tokens": 11,
+            "output_tokens": 13,
+            "total_tokens": 24,
+        }
+        token_metrics = message["metadata"]["token_metrics"]
+        assert token_metrics["thinking_tokens"] == 3
+        assert message["metadata"]["sema4ai_metadata"]["platform_name"] == "google"
+
+    def test_normalize_google_models_adds_provider_specific_ids(self) -> None:
+        """Allow list entries should be deduped and augmented with provider IDs."""
+        params = GooglePlatformParameters(
+            google_api_key=SecretString("test-api-key"),
+            google_use_vertex_ai=False,
+            models={
+                "google": [
+                    "google/google/gemini-3-pro-high",
+                    "gemini-3-pro-preview",
+                ],
+            },
+        )
+
+        with patch("google.genai.Client"):
+            client = GoogleClient(parameters=params)
+
+        normalized = client._normalize_google_models(
+            client._get_configured_google_models(),
+        )
+
+        assert normalized.count("gemini-3-pro-preview") == 1
+        assert "google/google/gemini-3-pro-high" in normalized
+        # Alias and provider IDs should both be present once
+        assert len(normalized) == 2
+
+    def test_load_service_account_info_from_json_string(
+        self,
+        parameters: GooglePlatformParameters,
+    ) -> None:
+        """Service account JSON strings should be parsed without hitting disk."""
+        with patch("google.genai.Client"):
+            client = GoogleClient(parameters=parameters)
+
+        info = client._load_service_account_info(json.dumps({"type": "service_account"}))
+        assert info is not None
+        assert info["type"] == "service_account"
+
+    def test_load_service_account_info_from_file_path(
+        self,
+        parameters: GooglePlatformParameters,
+        tmp_path,
+    ) -> None:
+        """Service account helper should read from filesystem paths."""
+        sa_path = tmp_path / "account.json"
+        sa_path.write_text(json.dumps({"client_email": "foo@example.com"}), encoding="utf-8")
+
+        with patch("google.genai.Client"):
+            client = GoogleClient(parameters=parameters)
+
+        info = client._load_service_account_info(str(sa_path))
+        assert info is not None
+        assert info["client_email"] == "foo@example.com"
+
+    def test_load_service_account_info_invalid_content_raises(
+        self,
+        parameters: GooglePlatformParameters,
+    ) -> None:
+        """Invalid service account values should raise a ValueError."""
+        with patch("google.genai.Client"):
+            client = GoogleClient(parameters=parameters)
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid service account JSON provided for Vertex AI authentication",
+        ):
+            client._load_service_account_info("not-a-json-or-path")
+
+    def test_build_vertex_credentials_uses_service_account_json(self) -> None:
+        """Vertex credential helper should hydrate google auth credentials."""
+        service_account_data = {
+            "type": "service_account",
+            "project_id": "demo",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nABC\n-----END PRIVATE KEY-----\n",
+            "client_email": "demo@example.com",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+        service_account_json = SecretString(json.dumps(service_account_data))
+
+        with (
+            patch("google.genai.Client"),
+            patch(
+                "google.oauth2.service_account.Credentials.from_service_account_info",
+                return_value=MagicMock(name="credentials"),
+            ) as mock_creds,
+        ):
+            params = GooglePlatformParameters(
+                google_use_vertex_ai=True,
+                google_cloud_project_id="project-123",
+                google_cloud_location="us-central1",
+                google_vertex_service_account_json=service_account_json,
+            )
+            client = GoogleClient(parameters=params)
+
+            creds = client._build_vertex_credentials()
+
+        assert creds is mock_creds.return_value
+        assert mock_creds.call_count >= 1
+
+    def test_init_vertex_ai_without_credentials_raises_error(self) -> None:
+        """Vertex AI configuration without credentials should fail at runtime."""
+        api_key = SecretString("test-api-key")
+        with patch.dict(os.environ, {}, clear=True):
+            params = GooglePlatformParameters(
+                google_api_key=api_key,
+                google_use_vertex_ai=True,
+                google_cloud_project_id="project-123",
+                google_cloud_location="us-central1",
+            )
+
+            with (
+                patch("google.genai.Client"),
+                pytest.raises(ValueError, match="google_vertex_service_account_json"),
+            ):
+                GoogleClient(parameters=params)
+
+    def test_init_vertex_ai_without_api_key_succeeds_with_service_account(self) -> None:
+        """Vertex AI initialization does not require API key when service account is provided."""
+        service_account_data = {
+            "type": "service_account",
+            "project_id": "demo",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nABC\n-----END PRIVATE KEY-----\n",
+            "client_email": "demo@example.com",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+        service_account_json = SecretString(json.dumps(service_account_data))
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("google.genai.Client"),
+            patch(
+                "google.oauth2.service_account.Credentials.from_service_account_info",
+                return_value=MagicMock(name="credentials"),
+            ),
+        ):
+            params = GooglePlatformParameters(
+                google_use_vertex_ai=True,
+                google_cloud_project_id="project-123",
+                google_cloud_location="us-central1",
+                google_vertex_service_account_json=service_account_json,
+            )
+            GoogleClient(parameters=params)
 
     def test_init_parameters_with_updates(
         self,
@@ -600,14 +833,13 @@ class TestGoogleClient:
         async_mock = AsyncMock(return_value=mock_response)
         google_client._google_client.aio.models.generate_content = async_mock
 
-        with patch.object(
-            GoogleModelMap,
-            "model_aliases",
-            return_value="gemini-1.5-pro",
+        with patch(
+            "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+            new=AsyncMock(return_value="gemini-2.5-pro"),
         ):
             response = await google_client.generate_response(
                 prompt=google_prompt,
-                model="gemini-1.5-pro",
+                model="gemini-2.5-pro",
             )
 
             # Check response structure without asserting on the parser
@@ -631,15 +863,14 @@ class TestGoogleClient:
         async_mock = AsyncMock(return_value=mock_stream)
         google_client._google_client.aio.models.generate_content_stream = async_mock
 
-        with patch.object(
-            GoogleModelMap,
-            "model_aliases",
-            return_value="gemini-1.5-pro",
+        with patch(
+            "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+            new=AsyncMock(return_value="gemini-2.5-pro"),
         ):
             deltas = []
             async for delta in google_client.generate_stream_response(
                 prompt=google_prompt,
-                model="gemini-1.5-pro",
+                model="gemini-2.5-pro",
             ):
                 deltas.append(delta)
 
@@ -650,7 +881,7 @@ class TestGoogleClient:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "embedding_model",
-        ["gemini-embedding-exp-03-07", "models/text-embedding-004"],
+        ["google/google/text-embedding-004"],
     )
     async def test_create_embeddings_single_text(
         self,
@@ -668,10 +899,9 @@ class TestGoogleClient:
         async_mock = AsyncMock(return_value=mock_embedding)
         google_client._google_client.aio.models.embed_content = async_mock
 
-        with patch.object(
-            GoogleModelMap,
-            "model_aliases",
-            return_value=embedding_model,
+        with patch(
+            "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+            new=AsyncMock(return_value=embedding_model),
         ):
             text = "This is a test text for embedding"
             result = await google_client.create_embeddings([text], embedding_model)
@@ -695,7 +925,7 @@ class TestGoogleClient:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "embedding_model",
-        ["gemini-embedding-exp-03-07", "models/text-embedding-004"],
+        ["google/google/text-embedding-004"],
     )
     async def test_create_embeddings_batch(
         self,
@@ -713,10 +943,9 @@ class TestGoogleClient:
         async_mock = AsyncMock(return_value=mock_embedding)
         google_client._google_client.aio.models.embed_content = async_mock
 
-        with patch.object(
-            GoogleModelMap,
-            "model_aliases",
-            return_value=embedding_model,
+        with patch(
+            "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+            new=AsyncMock(return_value=embedding_model),
         ):
             texts = ["First test text", "Second test text", "Third test text"]
             result = await google_client.create_embeddings(texts, embedding_model)
@@ -745,7 +974,7 @@ class TestGoogleClient:
         google_client: GoogleClient,
     ) -> None:
         """Test creating embeddings with empty text list."""
-        embedding_model = "models/text-embedding-004"
+        embedding_model = "google/google/text-embedding-004"
 
         # Create flags to track if functions were called
         embed_content_called = False
@@ -757,10 +986,9 @@ class TestGoogleClient:
 
         google_client._google_client.aio.models.embed_content = mock_embed_content
 
-        with patch.object(
-            GoogleModelMap,
-            "model_aliases",
-            return_value=embedding_model,
+        with patch(
+            "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+            new=AsyncMock(return_value=embedding_model),
         ):
             result = await google_client.create_embeddings([], embedding_model)
 
@@ -816,14 +1044,13 @@ class TestGoogleClient:
         google_client._parsers.parse_response = MagicMock()
         google_client._parsers.parse_response.return_value = expected_response
 
-        with patch.object(
-            GoogleModelMap,
-            "model_aliases",
-            return_value="gemini-1.5-pro",
+        with patch(
+            "agent_platform.core.platforms.google.client.resolve_generic_model_id_to_platform_specific_model_id",
+            new=AsyncMock(return_value="gemini-2.5-pro"),
         ):
             response = await google_client.generate_response(
                 prompt=google_prompt,
-                model="gemini-1.5-pro",
+                model="gemini-2.5-pro",
             )
 
             # Verify token usage
@@ -833,3 +1060,73 @@ class TestGoogleClient:
             assert "token_metrics" in response.metadata
             assert "thinking_tokens" in response.metadata["token_metrics"]
             assert response.metadata["token_metrics"]["thinking_tokens"] == 25
+
+    @pytest.mark.asyncio
+    async def test_get_available_models_returns_configured_values(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Ensure model availability is sourced solely from configs."""
+        with patch.object(
+            GoogleClient,
+            "_get_configured_google_models",
+            return_value=["gemini-3-pro-preview", "gemini-2.5-pro"],
+        ) as mock_config_models:
+            google_client._available_models_cache.clear()
+            available = await google_client.get_available_models()
+
+        mock_config_models.assert_called_once()
+        assert available == {
+            "google": ["gemini-3-pro-preview", "gemini-2.5-pro"],
+        }
+
+    @pytest.mark.asyncio
+    async def test_get_available_models_uses_cache(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Ensure results are cached after first resolution."""
+        with patch.object(
+            GoogleClient,
+            "_get_configured_google_models",
+            return_value=["gemini-3-pro-preview"],
+        ) as mock_config_models:
+            google_client._available_models_cache.clear()
+            await google_client.get_available_models()
+            await google_client.get_available_models()
+
+        mock_config_models.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_resolve_generic_model_id_accepts_generic_allowlist(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Generic aliases in allow-list should still resolve to provider IDs."""
+        google_client.get_available_models = AsyncMock(  # type: ignore[assignment]
+            return_value={"google": ["gemini-3-pro-preview"]},
+        )
+
+        resolved = await resolve_generic_model_id_to_platform_specific_model_id(
+            google_client,
+            "google/google/gemini-3-pro-low",
+        )
+
+        assert resolved == "gemini-3-pro-preview"
+
+    @pytest.mark.asyncio
+    async def test_resolve_generic_model_id_accepts_fully_qualified_alias(
+        self,
+        google_client: GoogleClient,
+    ) -> None:
+        """Fully qualified aliases should also resolve correctly."""
+        google_client.get_available_models = AsyncMock(  # type: ignore[assignment]
+            return_value={"google": ["gemini-3-pro-preview"]},
+        )
+
+        resolved = await resolve_generic_model_id_to_platform_specific_model_id(
+            google_client,
+            "google/google/gemini-3-pro-low",
+        )
+
+        assert resolved == "gemini-3-pro-preview"

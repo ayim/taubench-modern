@@ -56,8 +56,10 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         # Claude models: our config uses claude-3-5-sonnet but llms.json has claude-35-sonnet
         "claude-3-5-sonnet": "claude-35-sonnet",
         # Note: claude-3-5-haiku exists as-is in llms.json so no mapping needed
-        # Gemini models: our config uses simplified names but llms.json has versioned slugs
-        "gemini-2-0-flash-lite": "gemini-2-0-flash-lite-001",
+        # Gemini models
+        "gemini-2-5-flash-lite": "gemini-2-5-flash-lite-reasoning",
+        # flash and flash lite can reason or one shot
+        "gemini-2-5-flash": "gemini-2-5-flash-reasoning",
         # llms.json uses "-thinking" suffix for some Claude models and "-reasoning" for others
         # keeping sema4 config naming convention as "thinking", and mapping to llms.json
         "claude-4-5-haiku-thinking": "claude-4-5-haiku-reasoning",
@@ -65,6 +67,8 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         "gpt-5-1-none": "gpt-5-1-non-reasoning",
         # GPT-5.1 Codex models will be mapped to GPT-5 Codex in llms.json
         "gpt-5-1-codex": "gpt-5-codex",
+        # Cohere command R plus changed slugs in llms.json
+        "command-r-plus": "command-r-plus-04-2024",
     }
 
     return slug_mappings.get(slug, slug)
@@ -120,7 +124,7 @@ class PlatformModelConfigs(Configuration):
             "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
             "cortex": "cortex/anthropic/claude-3-5-sonnet",
             "openai": "openai/openai/gpt-5-medium",
-            "google": "google/google/gemini-2-5-pro",
+            "google": "google/google/gemini-3-pro-high",
             "groq": "groq/openai/gpt-oss-120b",
             "reducto": "reducto/reducto/reducto-standard-parse",
             "litellm": "litellm/openai/gpt-5-low",
@@ -223,9 +227,18 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/o3-high",
             "openai/openai/o3-low",
             # Google
-            "google/google/gemini-2-5-pro",
-            "google/google/gemini-2-0-flash",
-            "google/google/gemini-2-0-flash-lite",
+            "google/google/gemini-3-pro-high",
+            # medium level not supported at launch 11/18/25
+            # Will be disallowed until available
+            "google/google/gemini-3-pro-medium",
+            "google/google/gemini-3-pro-low",
+            "google/google/gemini-2-5-pro-high",
+            "google/google/gemini-2-5-pro-medium",
+            "google/google/gemini-2-5-pro-low",
+            "google/google/gemini-2-5-flash-high",
+            "google/google/gemini-2-5-flash-medium",
+            "google/google/gemini-2-5-flash-low",
+            "google/google/gemini-2-5-flash-lite",
             # Groq
             "groq/meta/llama-4-scout",
             "groq/meta/llama-4-maverick",
@@ -379,9 +392,16 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/text-embedding-3-small": "text-embedding-3-small",
             "openai/openai/text-embedding-3-large": "text-embedding-3-large",
             # Google (has no date/version pinning!?)
-            "google/google/gemini-2-5-pro": "gemini-2.5-pro",
-            "google/google/gemini-2-0-flash": "gemini-2.0-flash",
-            "google/google/gemini-2-0-flash-lite": "gemini-2.0-flash-lite",
+            "google/google/gemini-3-pro-high": "gemini-3-pro-preview",
+            "google/google/gemini-3-pro-medium": "gemini-3-pro-preview",
+            "google/google/gemini-3-pro-low": "gemini-3-pro-preview",
+            "google/google/gemini-2-5-pro-high": "gemini-2.5-pro",
+            "google/google/gemini-2-5-pro-medium": "gemini-2.5-pro",
+            "google/google/gemini-2-5-pro-low": "gemini-2.5-pro",
+            "google/google/gemini-2-5-flash-high": "gemini-2.5-flash",
+            "google/google/gemini-2-5-flash-medium": "gemini-2.5-flash",
+            "google/google/gemini-2-5-flash-low": "gemini-2.5-flash",
+            "google/google/gemini-2-5-flash-lite": "gemini-2.5-flash-lite",
             "google/google/text-embedding-004": "text-embedding-004",
             # Groq (has no date/version pinning!?)
             "groq/meta/llama-4-scout": "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -514,9 +534,16 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/text-embedding-3-small": "openai-embeddings",
             "openai/openai/text-embedding-3-large": "openai-embeddings",
             # Google (has no date/version pinning!?)
-            "google/google/gemini-2-5-pro": "gemini",
-            "google/google/gemini-2-0-flash": "gemini",
-            "google/google/gemini-2-0-flash-lite": "gemini",
+            "google/google/gemini-3-pro-high": "gemini",
+            "google/google/gemini-3-pro-medium": "gemini",
+            "google/google/gemini-3-pro-low": "gemini",
+            "google/google/gemini-2-5-pro-high": "gemini",
+            "google/google/gemini-2-5-pro-medium": "gemini",
+            "google/google/gemini-2-5-pro-low": "gemini",
+            "google/google/gemini-2-5-flash-high": "gemini",
+            "google/google/gemini-2-5-flash-medium": "gemini",
+            "google/google/gemini-2-5-flash-low": "gemini",
+            "google/google/gemini-2-5-flash-lite": "gemini",
             "google/google/text-embedding-004": "google-embeddings",
             # Groq (has no date/version pinning!?)
             "groq/meta/llama-4-scout": "llama",
@@ -649,9 +676,16 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/text-embedding-3-small": "embedding",
             "openai/openai/text-embedding-3-large": "embedding",
             # Google
-            "google/google/gemini-2-5-pro": "llm",
-            "google/google/gemini-2-0-flash": "llm",
-            "google/google/gemini-2-0-flash-lite": "llm",
+            "google/google/gemini-3-pro-high": "llm",
+            "google/google/gemini-3-pro-medium": "llm",
+            "google/google/gemini-3-pro-low": "llm",
+            "google/google/gemini-2-5-pro-high": "llm",
+            "google/google/gemini-2-5-pro-medium": "llm",
+            "google/google/gemini-2-5-pro-low": "llm",
+            "google/google/gemini-2-5-flash-high": "llm",
+            "google/google/gemini-2-5-flash-medium": "llm",
+            "google/google/gemini-2-5-flash-low": "llm",
+            "google/google/gemini-2-5-flash-lite": "llm",
             "google/google/text-embedding-004": "embedding",
             # Groq
             "groq/meta/llama-4-scout": "llm",
@@ -788,10 +822,19 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/text-embedding-3-small": 8_000,
             "openai/openai/text-embedding-3-large": 8_000,
             # Google
-            "google/google/gemini-2-5-pro": 1_000_000,
-            "google/google/gemini-2-0-flash": 1_000_000,
-            "google/google/gemini-2-0-flash-lite": 1_000_000,
+            "google/google/gemini-3-pro-high": 1_000_000,
+            "google/google/gemini-3-pro-medium": 1_000_000,
+            "google/google/gemini-3-pro-low": 1_000_000,
+            "google/google/gemini-2-5-pro-high": 1_000_000,
+            "google/google/gemini-2-5-pro-medium": 1_000_000,
+            "google/google/gemini-2-5-pro-low": 1_000_000,
+            "google/google/gemini-2-5-flash-high": 1_000_000,
+            "google/google/gemini-2-5-flash-medium": 1_000_000,
+            "google/google/gemini-2-5-flash-low": 1_000_000,
+            "google/google/gemini-2-5-flash-lite": 1_000_000,
             "google/google/text-embedding-004": 8_000,
+            # TODO: add gemini-embedding-001
+            # TODO: add text-embedding-005
             # Groq
             "groq/meta/llama-4-scout": 128_000,
             "groq/meta/llama-4-maverick": 128_000,
@@ -897,6 +940,17 @@ class PlatformModelConfigs(Configuration):
             "cortex/openai/gpt-5-minimal": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/openai/gpt-5-mini": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/openai/gpt-5-nano": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            # Google
+            "google/google/gemini-3-pro-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-3-pro-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-3-pro-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-pro-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-pro-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-pro-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-flash-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-flash-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-flash-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-2-5-flash-lite": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # groq
             "groq/openai/gpt-oss-120b": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "groq/openai/gpt-oss-20b": list(DEFAULT_ARCHITECTURE_OVERRIDES),

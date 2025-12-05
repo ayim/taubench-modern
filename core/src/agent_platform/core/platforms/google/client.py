@@ -1,4 +1,6 @@
+import json
 import logging
+import os
 from collections.abc import AsyncGenerator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, ClassVar, cast
@@ -10,20 +12,17 @@ from agent_platform.core.delta.compute_delta import compute_generic_deltas
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
 from agent_platform.core.errors.streaming import StreamingError
-from agent_platform.core.platforms.base import (
-    PlatformClient,
-    PlatformConfigs,
-    PlatformModelMap,
-)
-from agent_platform.core.platforms.google.configs import (
-    GoogleModelMap,
-    GooglePlatformConfigs,
+from agent_platform.core.platforms.base import PlatformClient
+from agent_platform.core.platforms.configs import (
+    PlatformModelConfigs,
+    resolve_generic_model_id_to_platform_specific_model_id,
 )
 from agent_platform.core.platforms.google.converters import GoogleConverters
 from agent_platform.core.platforms.google.parameters import GooglePlatformParameters
 from agent_platform.core.platforms.google.parsers import GoogleParsers
 from agent_platform.core.platforms.google.prompts import GooglePrompt
 from agent_platform.core.responses.response import ResponseMessage
+from agent_platform.core.utils import SecretString
 
 if TYPE_CHECKING:
     from google import genai
@@ -47,8 +46,6 @@ class GoogleClient(
     """A client for the Google Gemini platform."""
 
     NAME: ClassVar[str] = "google"
-    configs: ClassVar[type[PlatformConfigs]] = GooglePlatformConfigs
-    model_map: ClassVar[type[PlatformModelMap]] = GoogleModelMap
 
     def __init__(
         self,
@@ -63,6 +60,7 @@ class GoogleClient(
             **kwargs,
         )
         self._google_client = self._init_client(self._parameters)
+        self._available_models_cache: dict[str, list[str]] = {}
 
     def _init_client(self, parameters: GooglePlatformParameters) -> "genai.Client":
         """Initialize the Google GenAI client.
@@ -80,17 +78,42 @@ class GoogleClient(
         from google import genai
         from google.genai import types as genai_types
 
-        if parameters.google_api_key is None:
+        if parameters.google_api_key is None and not parameters.google_use_vertex_ai:
             raise ValueError("Google API key is required")
 
         http_options = genai_types.HttpOptions(
             async_client_args={"transport": httpx.AsyncHTTPTransport()},
         )
 
-        return genai.Client(
-            api_key=parameters.google_api_key.get_secret_value(),
-            http_options=http_options,
-        )
+        client_kwargs: dict[str, Any] = {
+            "http_options": http_options,
+            "vertexai": parameters.google_use_vertex_ai,
+        }
+
+        if parameters.google_use_vertex_ai:
+            project = parameters.google_cloud_project_id
+            if isinstance(project, SecretString):
+                project = project.get_secret_value()
+
+            location = parameters.google_cloud_location
+            if isinstance(location, SecretString):
+                location = location.get_secret_value()
+
+            client_kwargs.update(
+                {
+                    "project": project,
+                    "location": location,
+                },
+            )
+            vertex_credentials = self._build_vertex_credentials()
+            if vertex_credentials is not None:
+                client_kwargs["credentials"] = vertex_credentials
+        elif parameters.google_api_key is not None:
+            client_kwargs["api_key"] = parameters.google_api_key.get_secret_value()
+        else:
+            raise ValueError("Google API key is required")
+
+        return genai.Client(**client_kwargs)
 
     def _init_converters(self, kernel: "Kernel | None" = None) -> GoogleConverters:
         """Initialize the Google converters.
@@ -135,7 +158,7 @@ class GoogleClient(
         """
         return GoogleParsers()
 
-    def _handle_google_error(  # noqa: PLR0911
+    def _handle_google_error(
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         """Handle Google GenAI errors and convert them to PlatformError instances.
@@ -159,121 +182,64 @@ class GoogleClient(
         status_code = getattr(error, "code", 0)
         error_message = getattr(error, "message", str(error))
         error_status = getattr(error, "status", None)
+        error_code, message = self._resolve_google_error_details(model, status_code)
+        return error_type(
+            error_code=error_code,
+            message=message,
+            data={
+                "model": model,
+                "status_code": status_code,
+                "status": error_status,
+                "error_message": error_message,
+            },
+        )
 
-        # Map HTTP status codes to platform error codes using match/case
-        match status_code:
-            case status.HTTP_400_BAD_REQUEST:
-                return error_type(
-                    error_code=ErrorCode.BAD_REQUEST,
-                    message="Something went wrong while sending the request to Google model "
-                    f"'{model}', please try again or contact support.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case status.HTTP_401_UNAUTHORIZED:
-                return error_type(
-                    error_code=ErrorCode.UNAUTHORIZED,
-                    message="Authentication failed for Google API. Please check your API "
-                    "key and credentials.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case status.HTTP_403_FORBIDDEN:
-                return error_type(
-                    error_code=ErrorCode.FORBIDDEN,
-                    message=f"Access denied for Google model '{model}'. Please check "
-                    "your permissions.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case status.HTTP_404_NOT_FOUND:
-                return error_type(
-                    error_code=ErrorCode.NOT_FOUND,
-                    message=f"Google model '{model}' not found. Please verify the model name.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case status.HTTP_422_UNPROCESSABLE_ENTITY:
-                return error_type(
-                    error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-                    message=f"Something went wrong while sending the request to Google model "
-                    f"'{model}', please try again or contact support.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case status.HTTP_429_TOO_MANY_REQUESTS:
-                return error_type(
-                    error_code=ErrorCode.TOO_MANY_REQUESTS,
-                    message=f"Google API usage limit reached for model '{model}'. "
-                    f"Please increase the limit or switch to an available model.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case _ if (
-                status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR
-            ):
-                # Other client errors
-                return error_type(
-                    error_code=ErrorCode.BAD_REQUEST,
-                    message=f"Something went wrong while sending the request to Google model "
-                    f"'{model}', please try again or contact support.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case _ if status.HTTP_500_INTERNAL_SERVER_ERROR <= status_code < 600:  # noqa: PLR2004
-                # Server errors
-                return error_type(
-                    error_code=ErrorCode.UNEXPECTED,
-                    message="Something went wrong while sending the request to Google model "
-                    f"'{model}', please try again or contact support.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
-            case _:
-                # Unknown status code
-                return error_type(
-                    error_code=ErrorCode.UNEXPECTED,
-                    message="Something went wrong while sending the request to Google model "
-                    f"'{model}', please try again or contact support.",
-                    data={
-                        "model": model,
-                        "status_code": status_code,
-                        "status": error_status,
-                        "error_message": error_message,
-                    },
-                )
+    def _resolve_google_error_details(self, model: str, status_code: int) -> tuple[ErrorCode, str]:
+        """Return the error code/message tuple for a Google GenAI failure."""
+        default_message = (
+            "Something went wrong while sending the request to Google model "
+            "'{model}', please try again or contact support."
+        )
+        template_map = {
+            status.HTTP_400_BAD_REQUEST: (ErrorCode.BAD_REQUEST, default_message),
+            status.HTTP_401_UNAUTHORIZED: (
+                ErrorCode.UNAUTHORIZED,
+                "Authentication failed for Google API. Please check your API key and credentials.",
+            ),
+            status.HTTP_403_FORBIDDEN: (
+                ErrorCode.FORBIDDEN,
+                "Access denied for Google model '{model}'. Please check your permissions.",
+            ),
+            status.HTTP_404_NOT_FOUND: (
+                ErrorCode.NOT_FOUND,
+                "Google model '{model}' not found. Please verify the model name.",
+            ),
+            status.HTTP_422_UNPROCESSABLE_ENTITY: (
+                ErrorCode.UNPROCESSABLE_ENTITY,
+                default_message,
+            ),
+            status.HTTP_429_TOO_MANY_REQUESTS: (
+                ErrorCode.TOO_MANY_REQUESTS,
+                "Google API usage limit reached for model '{model}'. "
+                "Please increase the limit or switch to an available model.",
+            ),
+            status.HTTP_503_SERVICE_UNAVAILABLE: (
+                ErrorCode.UNEXPECTED,
+                "Google model '{model}' is currently unavailable. Please try again later.",
+            ),
+        }
+
+        if status_code in template_map:
+            error_code, message_template = template_map[status_code]
+            return error_code, message_template.format(model=model)
+
+        if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
+            return ErrorCode.BAD_REQUEST, default_message.format(model=model)
+
+        if status.HTTP_500_INTERNAL_SERVER_ERROR <= status_code < 600:  # noqa: PLR2004
+            return ErrorCode.UNEXPECTED, default_message.format(model=model)
+
+        return ErrorCode.UNEXPECTED, default_message.format(model=model)
 
     async def generate_response(
         self,
@@ -294,12 +260,20 @@ class GoogleClient(
             GenerateContentConfig,
         )
 
-        request = prompt.as_platform_request(model)
-        logger.info(f"Sending request to Google model: {model}")
+        resolved_model = await resolve_generic_model_id_to_platform_specific_model_id(
+            self,
+            model,
+        )
+        request = prompt.as_platform_request(resolved_model)
+        logger.info(
+            "Sending request to Google model %s (resolved: %s)",
+            model,
+            resolved_model,
+        )
 
         try:
             response = await self._google_client.aio.models.generate_content(
-                model=cast(str, request["model"]),
+                model=resolved_model,
                 contents=cast(ContentListUnion, request["contents"]),
                 config=cast(GenerateContentConfig, request["config"]),
             )
@@ -354,9 +328,17 @@ class GoogleClient(
             GenerateContentConfig,
         )
 
-        logger.info(f"Streaming with Google model: {model}")
+        resolved_model = await resolve_generic_model_id_to_platform_specific_model_id(
+            self,
+            model,
+        )
+        logger.info(
+            "Streaming with Google model %s (resolved: %s)",
+            model,
+            resolved_model,
+        )
 
-        request = prompt.as_platform_request(model, stream=True)
+        request = prompt.as_platform_request(resolved_model, stream=True)
 
         # Initialize state
         message_state = self._initialize_stream_state()
@@ -365,7 +347,7 @@ class GoogleClient(
         try:
             # Get stream response
             stream_response = await self._google_client.aio.models.generate_content_stream(
-                model=cast(str, request["model"]),
+                model=resolved_model,
                 contents=cast(ContentListUnion, request["contents"]),
                 config=cast(GenerateContentConfig, request["config"]),
             )
@@ -575,9 +557,11 @@ class GoogleClient(
         Returns:
             A dictionary containing the embeddings and usage information.
         """
-        model_id = cast(str, GoogleModelMap.model_aliases[model])
+        model_id = await resolve_generic_model_id_to_platform_specific_model_id(self, model)
         logger.info(
-            f"Creating embeddings with Google model: {model} (model_id: {model_id})",
+            "Creating embeddings with Google model %s (resolved id: %s)",
+            model,
+            model_id,
         )
 
         if not texts:
@@ -629,6 +613,104 @@ class GoogleClient(
             "model": model,
             "usage": {"total_tokens": total_tokens},
         }
+
+    async def get_available_models(self) -> dict[str, list[str]]:
+        """Return the provider-specific model IDs available for the configured account.
+
+        Google availability is controlled entirely by PlatformModelConfigs. Note that
+        Google may have account level config subject to change.
+        """
+        if self._available_models_cache:
+            return deepcopy(self._available_models_cache)
+
+        configured_models = self._get_configured_google_models()
+        normalized_models = self._normalize_google_models(configured_models)
+        logger.info(
+            "Returning configured Google models: %s",
+            normalized_models,
+        )
+
+        available: dict[str, list[str]] = {
+            "google": normalized_models,
+        }
+
+        self._available_models_cache = deepcopy(available)
+        return self._available_models_cache
+
+    def _build_vertex_credentials(self) -> Any | None:
+        """Build Vertex AI credentials from stored service account details."""
+        if not self._parameters.google_use_vertex_ai:
+            return None
+
+        info: dict[str, Any] | None = None
+        raw_secret = None
+        if self._parameters.google_vertex_service_account_json:
+            raw_secret = self._parameters.google_vertex_service_account_json.get_secret_value()
+
+        if raw_secret:
+            info = self._load_service_account_info(raw_secret)
+
+        if info:
+            logger.info("Vertex service account credentials successfully parsed.")
+
+        if not info:
+            raise ValueError("google_vertex_service_account_json is required for Vertex AI")
+
+        from google.oauth2 import service_account
+
+        scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+        return service_account.Credentials.from_service_account_info(info, scopes=scopes)
+
+    @staticmethod
+    def _load_service_account_info(raw_data: str) -> dict[str, Any] | None:
+        try:
+            return json.loads(raw_data)
+        except json.JSONDecodeError as exc:
+            if os.path.exists(raw_data):
+                return GoogleClient._load_service_account_file(raw_data)
+            raise ValueError(
+                "Invalid service account JSON provided for Vertex AI authentication",
+            ) from exc
+
+    @staticmethod
+    def _load_service_account_file(path: str) -> dict[str, Any]:
+        if not os.path.exists(path):
+            raise ValueError(f"Service account file not found: {path}")
+        with open(path, encoding="utf-8") as fp:
+            return json.load(fp)
+
+    def _get_configured_google_models(self) -> list[str]:
+        """Return the configured models provided via parameters."""
+        if not self._parameters.models:
+            return []
+        return list(self._parameters.models.get("google", []))
+
+    def _normalize_google_models(self, models: list[str]) -> list[str]:
+        """Return the configured models plus any provider-specific IDs."""
+        if not models:
+            return []
+
+        platform_configs = PlatformModelConfigs()
+        normalized: list[str] = []
+        seen: set[str] = set()
+
+        def _add(model_value: str | None) -> None:
+            if not model_value or model_value in seen:
+                return
+            seen.add(model_value)
+            normalized.append(model_value)
+
+        for model in models:
+            _add(model)
+
+            slug = model.rsplit("/", 1)[-1]
+            generic_id = f"google/google/{slug}"
+            provider_specific = platform_configs.models_to_platform_specific_model_ids.get(
+                generic_id
+            )
+            _add(provider_specific)
+
+        return normalized
 
 
 PlatformClient.register_platform_client("google", GoogleClient)

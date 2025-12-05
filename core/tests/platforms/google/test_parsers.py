@@ -1,11 +1,12 @@
 """Unit tests for the Google platform parsers."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from agent_platform.core.delta import GenericDelta
 from agent_platform.core.platforms.google.parsers import GoogleParsers
+from agent_platform.core.responses.content.reasoning import ResponseReasoningContent
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.responses.response import ResponseMessage, TokenUsage
@@ -42,6 +43,76 @@ class TestGoogleParsers:
         assert result.tool_name == "test-tool"
         assert result.tool_input_raw == '{"key": "value"}'
 
+    def test_parse_tool_use_content_generates_uuid(self, parsers: GoogleParsers) -> None:
+        """Tool invocations without an id should fall back to a generated UUID."""
+        expected_id = "12345678-1234-5678-1234-567812345678"
+        with patch(
+            "agent_platform.core.platforms.google.parsers.uuid.uuid4",
+            return_value=expected_id,
+        ):
+            result = parsers.parse_tool_use_content(
+                {"name": "tool-no-id", "args": {}},
+                tool_call_id="",
+            )
+
+        assert result.tool_call_id == expected_id
+
+    def test_parse_response_requires_candidates(self, parsers: GoogleParsers) -> None:
+        """Responses that omit candidates should raise a ValueError."""
+        from google.genai.types import GenerateContentResponse
+
+        mock_response = MagicMock(spec=GenerateContentResponse)
+        mock_response.candidates = []
+
+        with pytest.raises(ValueError, match="No candidates"):
+            parsers.parse_response(mock_response)
+
+    def test_parse_response_requires_content(self, parsers: GoogleParsers) -> None:
+        """Responses with empty candidate content should raise."""
+        from google.genai.types import GenerateContentResponse
+
+        candidate = MagicMock()
+        candidate.content = None
+
+        mock_response = MagicMock(spec=GenerateContentResponse)
+        mock_response.candidates = [candidate]
+
+        with pytest.raises(ValueError, match="No content"):
+            parsers.parse_response(mock_response)
+
+    def test_parse_response_includes_reasoning_content(self, parsers: GoogleParsers) -> None:
+        """Reasoning parts should be converted into ResponseReasoningContent entries."""
+        import base64
+
+        from google.genai.types import GenerateContentResponse
+
+        mock_part = MagicMock()
+        mock_part.text = "chain of thought"
+        mock_part.function_call = None
+        mock_part.thought = True
+        mock_part.thought_signature = b"\xde\xad\xbe\xef"
+
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+
+        candidate = MagicMock()
+        candidate.content = mock_content
+
+        mock_response = MagicMock(spec=GenerateContentResponse)
+        mock_response.candidates = [candidate]
+
+        usage_metadata = MagicMock()
+        usage_metadata.prompt_token_count = 0
+        usage_metadata.candidates_token_count = 0
+        usage_metadata.total_token_count = 0
+        usage_metadata.thoughts_token_count = 0
+        mock_response.usage_metadata = usage_metadata
+
+        response = parsers.parse_response(mock_response)
+        assert isinstance(response.content[0], ResponseReasoningContent)
+        expected_signature = base64.b64encode(b"\xde\xad\xbe\xef").decode("utf-8")
+        assert response.content[0].signature == expected_signature
+
     def test_parse_response(self, parsers: GoogleParsers) -> None:
         """Test parsing a response."""
         # Mock a GenerateContentResponse
@@ -53,6 +124,8 @@ class TestGoogleParsers:
         mock_part = MagicMock()
         mock_part.text = "Hello, world!"
         mock_part.function_call = None
+        mock_part.thought = None
+        mock_part.thought_signature = None
 
         mock_content = MagicMock()
         mock_content.parts = [mock_part]
@@ -149,6 +222,8 @@ class TestGoogleParsers:
         mock_part = MagicMock()
         mock_part.text = "Hello, world!"
         mock_part.function_call = None
+        mock_part.thought = None
+        mock_part.thought_signature = None
 
         # Set up content and candidate
         mock_content = MagicMock()
@@ -213,6 +288,57 @@ class TestGoogleParsers:
         assert message["metadata"]["token_metrics"]["thinking_tokens"] == 5
 
     @pytest.mark.asyncio
+    async def test_parse_stream_event_tracks_modality_tokens(
+        self,
+        parsers: GoogleParsers,
+    ) -> None:
+        """Streaming metadata should capture modality-specific counts."""
+        mock_event = MagicMock()
+        mock_part = MagicMock()
+        mock_part.text = ""
+        mock_part.function_call = None
+        mock_part.thought = None
+        mock_part.thought_signature = None
+
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+
+        mock_candidate = MagicMock()
+        mock_candidate.content = mock_content
+        mock_event.candidates = [mock_candidate]
+
+        usage_metadata = MagicMock()
+        usage_metadata.prompt_token_count = 0
+        usage_metadata.candidates_token_count = 0
+        usage_metadata.total_token_count = 0
+        usage_metadata.thoughts_token_count = 0
+
+        detail = MagicMock()
+        detail.modality = "TEXT"
+        detail.token_count = 42
+        usage_metadata.prompt_tokens_details = [detail]
+        usage_metadata.candidates_tokens_details = None
+
+        mock_event.usage_metadata = usage_metadata
+
+        message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+        last_message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+
+        async for _ in parsers.parse_stream_event(mock_event, message, last_message):
+            pass
+
+        modality_tokens = message["metadata"]["token_metrics"]["modality_tokens"]
+        assert modality_tokens == {"TEXT": 42}
+
+    @pytest.mark.asyncio
     async def test_parse_stream_event_with_tool_call(
         self,
         parsers: GoogleParsers,
@@ -230,6 +356,8 @@ class TestGoogleParsers:
         mock_part = MagicMock()
         mock_part.text = None
         mock_part.function_call = mock_function_call
+        mock_part.thought = None
+        mock_part.thought_signature = None
 
         # Set up content and candidate
         mock_content = MagicMock()
@@ -281,17 +409,49 @@ class TestGoogleParsers:
             for item in message["content"]
         )
 
-        # Check token usage was added
-        assert "usage" in message
-        assert message["usage"]["input_tokens"] == 10
-        assert message["usage"]["output_tokens"] == 20
-        assert message["usage"]["total_tokens"] == 30
+    @pytest.mark.asyncio
+    async def test_parse_stream_event_with_tool_call_thought_signature(
+        self,
+        parsers: GoogleParsers,
+    ) -> None:
+        """Tool calls with thought signatures should store base64-encoded strings."""
+        import base64
 
-        # Check thinking tokens in metadata
-        assert "metadata" in message
-        assert "token_metrics" in message["metadata"]
-        assert "thinking_tokens" in message["metadata"]["token_metrics"]
-        assert message["metadata"]["token_metrics"]["thinking_tokens"] == 5
+        mock_event = MagicMock()
+
+        mock_function_call = MagicMock()
+        mock_function_call.name = "test-tool"
+        mock_function_call.args = {"key": "value"}
+
+        mock_part = MagicMock()
+        mock_part.text = None
+        mock_part.function_call = mock_function_call
+        mock_part.thought = None
+        mock_part.thought_signature = b"\xde\xad\xbe\xef"
+
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+
+        mock_candidate = MagicMock()
+        mock_candidate.content = mock_content
+
+        mock_event.candidates = [mock_candidate]
+        mock_event.usage_metadata = None
+
+        message = {
+            "role": "agent",
+            "content": [],
+            "additional_response_fields": {},
+        }
+        last_message = {"role": "agent", "content": [], "additional_response_fields": {}}
+
+        async for _ in parsers.parse_stream_event(mock_event, message, last_message):
+            pass
+
+        tool_items = [item for item in message["content"] if item.get("kind") == "tool_use"]
+        assert tool_items, "Expected tool use entry"
+        expected_signature = base64.b64encode(b"\xde\xad\xbe\xef").decode("utf-8")
+        assert tool_items[0]["metadata"]["thought_signature"] == expected_signature
 
     def test_extract_token_usage(self, parsers: GoogleParsers) -> None:
         """Test extracting token usage from a response."""

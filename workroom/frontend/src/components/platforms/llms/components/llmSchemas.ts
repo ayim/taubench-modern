@@ -45,6 +45,18 @@ export const GROQ_MODEL_VALUES = [
   'groq:gpt-oss-120b',
   'groq:gpt-oss-20b',
 ] as const;
+export const GOOGLE_MODEL_VALUES = [
+  'google:gemini-3-pro-high',
+  //'google:gemini-3-pro-medium',
+  'google:gemini-3-pro-low',
+  'google:gemini-2-5-pro-high',
+  'google:gemini-2-5-pro-medium',
+  'google:gemini-2-5-pro-low',
+  'google:gemini-2-5-flash-high',
+  'google:gemini-2-5-flash-medium',
+  'google:gemini-2-5-flash-low',
+  'google:gemini-2-5-flash-lite',
+] as const;
 
 export const GROQ_MODEL_PROVIDER_MAP = {
   'groq:llama-4-scout': 'meta',
@@ -66,11 +78,12 @@ type AllPlatformParameters =
   | components['schemas']['OpenAIPlatformParameters']
   | components['schemas']['AzureOpenAIPlatformParameters']
   | components['schemas']['BedrockPlatformParameters']
-  | components['schemas']['GroqPlatformParameters'];
+  | components['schemas']['GroqPlatformParameters']
+  | components['schemas']['GooglePlatformParameters'];
 
-export type Platform = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock' | 'groq'>;
+export type Platform = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock' | 'groq' | 'google'>;
 
-export const PLATFORMS = ['openai', 'azure', 'bedrock', 'groq'] as const satisfies readonly Platform[];
+export const PLATFORMS = ['openai', 'azure', 'bedrock', 'groq', 'google'] as const satisfies readonly Platform[];
 
 export const isPlatformValue = (value: string): value is Platform => {
   return PLATFORMS.includes(value as Platform);
@@ -88,7 +101,42 @@ const baseLLMSchema = z.object({
   aws_access_key_id: z.string().nullable().optional(),
   aws_secret_access_key: z.string().nullable().optional(),
   region_name: z.string().nullable().optional(),
+  google_api_key: z.string().nullable().optional(),
+  google_cloud_project_id: z.string().nullable().optional(),
+  google_cloud_location: z.string().nullable().optional(),
+  google_use_vertex_ai: z.boolean().nullable().optional(),
+  google_vertex_service_account_json: z.string().nullable().optional(),
 });
+
+type BaseLLMFormValues = z.infer<typeof baseLLMSchema>;
+
+const validateGoogleVertexRequirements = (values: BaseLLMFormValues, ctx: z.RefinementCtx) => {
+  if (values.platform !== 'google' || !values.google_use_vertex_ai) return;
+
+  if (!values.google_cloud_project_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['google_cloud_project_id'],
+      message: 'Project ID is required',
+    });
+  }
+
+  if (!values.google_cloud_location) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['google_cloud_location'],
+      message: 'Location is required',
+    });
+  }
+
+  if (!values.google_vertex_service_account_json) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['google_vertex_service_account_json'],
+      message: 'Service account JSON is required',
+    });
+  }
+};
 
 export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
   if (values.platform === 'openai') {
@@ -113,10 +161,18 @@ export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ct
   if (values.platform === 'groq') {
     if (!values.apiKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apiKey'], message: 'API key is required' });
   }
+  if (values.platform === 'google') {
+    const usingVertexAI = Boolean(values.google_use_vertex_ai);
+    if (!usingVertexAI && !values.google_api_key)
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['google_api_key'], message: 'API key is required' });
+    validateGoogleVertexRequirements(values, ctx);
+  }
 });
 
 // TODO: [fix-type] Use strictEditLLMSchema once backend guarantees non-null values for editing
-export const editLLMFormSchema = baseLLMSchema;
+export const editLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
+  validateGoogleVertexRequirements(values, ctx);
+});
 
 export type CreateOrUpdateLLMFormSchema = z.infer<typeof createOrUpdateLLMFormSchema>;
 export type EditLLMFormSchema = z.infer<typeof editLLMFormSchema>;

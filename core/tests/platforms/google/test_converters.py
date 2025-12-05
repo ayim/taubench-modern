@@ -11,6 +11,7 @@ from agent_platform.core.platforms.google.prompts import GooglePrompt
 from agent_platform.core.prompts import (
     Prompt,
     PromptImageContent,
+    PromptReasoningContent,
     PromptTextContent,
     PromptToolResultContent,
     PromptToolUseContent,
@@ -38,9 +39,8 @@ class TestGoogleConverters:
         content = PromptTextContent(text="Hello, world!")
         result = await converters.convert_text_content(content)
 
-        assert isinstance(result, dict)
-        assert "text" in result
-        assert result["text"] == "Hello, world!"
+        assert hasattr(result, "text")
+        assert result.text == "Hello, world!"
 
     @pytest.mark.asyncio
     async def test_convert_image_content(
@@ -71,12 +71,10 @@ class TestGoogleConverters:
         result = await converters.convert_tool_use_content(content)
 
         # Check the result
-        assert isinstance(result, dict)
-        assert "function_call" in result
-        assert "name" in result["function_call"]
-        assert result["function_call"]["name"] == "test-tool"
-        assert "args" in result["function_call"]
-        assert result["function_call"]["args"] == {"key": "value"}
+        assert hasattr(result, "function_call")
+        assert result.function_call is not None
+        assert result.function_call.name == "test-tool"
+        assert result.function_call.args == {"key": "value"}
 
     @pytest.mark.asyncio
     async def test_convert_tool_use_content_missing_name(
@@ -94,7 +92,8 @@ class TestGoogleConverters:
         # Empty name is allowed in the current implementation
         # Let's just verify it works with empty name
         result = await converters.convert_tool_use_content(content)
-        assert result["function_call"]["name"] == ""
+        assert result.function_call is not None
+        assert result.function_call.name == ""
 
     @pytest.mark.asyncio
     async def test_convert_tool_result_content(
@@ -113,13 +112,11 @@ class TestGoogleConverters:
         result = await converters.convert_tool_result_content(content)
 
         # Check the result
-        assert isinstance(result, dict)
-        assert "function_response" in result
-        assert "name" in result["function_response"]
-        assert result["function_response"]["name"] == "test-tool"
-        assert "response" in result["function_response"]
-        assert "content" in result["function_response"]["response"]
-        assert result["function_response"]["response"]["content"] == "Hello, world!"
+        assert hasattr(result, "function_response")
+        assert result.function_response is not None
+        assert result.function_response.name == "test-tool"
+        assert result.function_response.response is not None
+        assert result.function_response.response["content"] == "Hello, world!"
 
     @pytest.mark.asyncio
     async def test_convert_prompt(
@@ -183,6 +180,81 @@ class TestGoogleConverters:
             assert result.contents[0].parts[0].text == "You are a helpful assistant."  # type: ignore
             assert result.contents[1].role == "user"
             assert result.contents[1].parts[0].text == "Hello, world!"  # type: ignore
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_sets_thinking_budget(
+        self,
+        converters: GoogleConverters,
+        kernel: Kernel,
+    ) -> None:
+        from google.genai.types import Content, Part
+
+        prompt = Prompt(
+            messages=[PromptUserMessage([PromptTextContent(text="Hello, world!")])],
+        )
+
+        mock_content = MagicMock(spec=Content)
+        mock_content.role = "user"
+        mock_part = MagicMock(spec=Part)
+        mock_part.text = "Hello, world!"
+        mock_content.parts = [mock_part]
+
+        mock_messages = cast(list[Content], [mock_content])
+
+        with patch.object(converters, "_convert_messages", return_value=mock_messages):
+            converters.attach_kernel(kernel)
+            finalized_prompt = await prompt.finalize_messages(kernel)
+            result = await converters.convert_prompt(
+                finalized_prompt, model_id="gemini-2.5-pro-high"
+            )
+
+        assert result.thinking_budget == 24576
+        assert result.thinking_level is None
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_sets_thinking_level_for_gemini3(
+        self,
+        converters: GoogleConverters,
+        kernel: Kernel,
+    ) -> None:
+        from google.genai.types import Content, Part
+
+        prompt = Prompt(
+            messages=[PromptUserMessage([PromptTextContent(text="Hi")])],
+        )
+
+        mock_content = MagicMock(spec=Content)
+        mock_content.role = "user"
+        mock_part = MagicMock(spec=Part)
+        mock_part.text = "Hi"
+        mock_content.parts = [mock_part]
+
+        mock_messages = cast(list[Content], [mock_content])
+
+        with patch.object(converters, "_convert_messages", return_value=mock_messages):
+            converters.attach_kernel(kernel)
+            finalized_prompt = await prompt.finalize_messages(kernel)
+            result = await converters.convert_prompt(
+                finalized_prompt,
+                model_id="gemini-3-pro-preview",
+            )
+
+        assert result.thinking_level == "high"
+        assert result.thinking_budget == 0
+
+        prompt_min = Prompt(
+            minimize_reasoning=True,
+            messages=[PromptUserMessage([PromptTextContent(text="Hi")])],
+        )
+        with patch.object(converters, "_convert_messages", return_value=mock_messages):
+            converters.attach_kernel(kernel)
+            finalized_prompt = await prompt_min.finalize_messages(kernel)
+            result_low = await converters.convert_prompt(
+                finalized_prompt,
+                model_id="gemini-3-pro-preview",
+            )
+
+        assert result_low.thinking_level == "low"
 
     @pytest.mark.asyncio
     async def test_convert_prompt_with_tools(
@@ -276,12 +348,31 @@ class TestGoogleConverters:
             )
 
             # Check if the result is a GooglePrompt
-            assert isinstance(result, GooglePrompt)
-            # Safe access to tools - verify tools attribute exists and is not None
-            assert hasattr(result, "tools")
-            assert result.tools is not None
-            # Compare tools when we know it's not None
-            assert result.tools == mock_tools
+        assert isinstance(result, GooglePrompt)
+        # Safe access to tools - verify tools attribute exists and is not None
+        assert hasattr(result, "tools")
+        assert result.tools is not None
+        # Compare tools when we know it's not None
+        assert result.tools == mock_tools
+
+    @pytest.mark.asyncio
+    async def test_process_message_content_includes_reasoning(
+        self,
+        converters: GoogleConverters,
+    ) -> None:
+        """Reasoning content should be converted with thought metadata."""
+        contents = [
+            PromptTextContent(text="visible output"),
+            PromptReasoningContent(reasoning="internal", signature="deadbeef"),
+        ]
+
+        parts = await converters._process_message_content(contents)
+
+        assert len(parts) == 2
+        reasoning_parts = [part for part in parts if getattr(part, "thought", False)]
+        assert reasoning_parts, "Expected at least one reasoning part"
+        assert reasoning_parts[0].text == "internal"
+        assert reasoning_parts[0].thought_signature.hex() == "deadbeef"  # type: ignore[attr-defined]
 
     @pytest.mark.asyncio
     async def test_fix_schema_types(self, converters: GoogleConverters) -> None:
@@ -312,3 +403,50 @@ class TestGoogleConverters:
         assert fixed_schema["type"] == "object"
         assert len(fixed_schema["properties"]) == 4  # All properties kept
         assert fixed_schema["required"] == ["string_prop"]
+
+    @pytest.mark.asyncio
+    async def test_convert_prompt_minimize_reasoning_clamps_budget(
+        self,
+        converters: GoogleConverters,
+        kernel: Kernel,
+    ) -> None:
+        """Minimize reasoning should dial Gemini Pro budgets down to minimum."""
+        prompt = Prompt(
+            minimize_reasoning=True,
+            messages=[PromptUserMessage([PromptTextContent(text="Hello")])],
+        )
+
+        converters.attach_kernel(kernel)
+        finalized_prompt = await prompt.finalize_messages(kernel)
+        result = await converters.convert_prompt(
+            finalized_prompt,
+            model_id="gemini-2.5-pro-high",
+        )
+
+        assert result.thinking_budget == 1024
+        assert result.thinking_level is None
+
+    def test_create_schema_from_param_types_handles_union_types(
+        self,
+        converters: GoogleConverters,
+    ) -> None:
+        """Fallback schema generation should mark optional params as nullable."""
+        tool = ToolDefinition(
+            name="fallback-tool",
+            description="",
+            input_schema={},
+        )
+        object.__setattr__(  # type: ignore[misc]
+            tool,
+            "_parameter_types",
+            {
+                "maybe": str | None,
+                "count": int,
+            },
+        )
+
+        schema = converters._create_schema_from_param_types(tool)
+
+        assert schema["properties"]["maybe"]["type"] == "string"
+        assert schema["properties"]["maybe"]["nullable"] is True
+        assert schema["properties"]["count"]["type"] == "integer"

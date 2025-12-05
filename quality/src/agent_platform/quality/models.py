@@ -60,10 +60,13 @@ class Platform:
                 ).model_dump()
             case "google":
                 from agent_platform.core.platforms.google import GooglePlatformParameters
+                from agent_platform.core.platforms.google.parameters import (
+                    extract_vertex_platform_kwargs_from_env,
+                )
 
-                return GooglePlatformParameters(
-                    google_api_key=SecretString(os.environ["GOOGLE_API_KEY"]),
-                ).model_dump()
+                params_kwargs = extract_vertex_platform_kwargs_from_env(["gemini-3-pro-preview"])
+
+                return GooglePlatformParameters(**params_kwargs).model_dump()
             case "reducto":
                 raise NotImplementedError("Reducto is not supported for quality testing")
             case _:

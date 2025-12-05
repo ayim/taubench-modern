@@ -1,31 +1,35 @@
-import os
 from unittest.mock import MagicMock
 
 import pytest
 
 from agent_platform.core.delta import combine_generic_deltas
 from agent_platform.core.kernel import Kernel
+from agent_platform.core.platforms.configs import PlatformModelConfigs
 from agent_platform.core.platforms.google.client import GoogleClient
-from agent_platform.core.platforms.google.configs import GoogleModelMap
 from agent_platform.core.platforms.google.parameters import GooglePlatformParameters
 from agent_platform.core.responses.content.text import ResponseTextContent
 from agent_platform.core.responses.response import ResponseMessage
-from agent_platform.core.utils import SecretString
 from core.tests.platforms.conftest import compare_responses
 from core.tests.vcrx import patched_vcr
 
 # -------------------------------------------------------------------------
 # MODEL LISTS
 # -------------------------------------------------------------------------
-MODELS_WITH_TEXT_INPUT = [m for m in GoogleModelMap.distinct_llm_model_ids()]
-MODELS_WITH_TOOL_INPUT = [
-    m
-    for m in GoogleModelMap.distinct_llm_model_ids_with_tool_input()
-    if m not in GoogleModelMap.distinct_llm_model_ids_with_audio_input()
-]
+_PLATFORM_CONFIGS = PlatformModelConfigs()
+_GOOGLE_ALIAS_MAP = {
+    model_id: alias
+    for model_id, alias in _PLATFORM_CONFIGS.models_to_platform_specific_model_ids.items()
+    if model_id.startswith("google/")
+}
+MODELS_WITH_TEXT_INPUT = sorted(
+    alias
+    for model_id, alias in _GOOGLE_ALIAS_MAP.items()
+    if _PLATFORM_CONFIGS.models_to_model_types.get(model_id) == "llm"
+)
+MODELS_WITH_TOOL_INPUT = MODELS_WITH_TEXT_INPUT
 TEST_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "google/google/gemini-2-5-flash-high",
+    "google/google/gemini-3-pro-high",
 ]
 
 # -------------------------------------------------------------------------
@@ -82,11 +86,24 @@ def kernel() -> Kernel:
 @pytest.fixture
 def google_client(kernel: Kernel):
     """Fixture for Google client with proper cleanup."""
-    api_key = os.environ.get("GOOGLE_API_KEY", "UNUSED")
+    # for now we need to use vertex only for gemini 3
+    # genai will change to using google api if it sees a key at all
+    # api_key = os.environ.get("GOOGLE_API_KEY", "")
+
+    from agent_platform.core.platforms.google.parameters import (
+        extract_vertex_platform_kwargs_from_env,
+    )
+
+    models = [
+        "gemini-3-pro-preview",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+    ]
+
+    params_kwargs = extract_vertex_platform_kwargs_from_env(models=models)
+
     client = GoogleClient(
-        parameters=GooglePlatformParameters(
-            google_api_key=SecretString(api_key),
-        ),
+        parameters=GooglePlatformParameters(**params_kwargs),
     )
     client.attach_kernel(kernel)
     return client

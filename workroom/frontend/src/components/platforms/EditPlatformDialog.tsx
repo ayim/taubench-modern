@@ -8,12 +8,14 @@ import {
   AZURE_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
   GROQ_MODEL_VALUES,
+  GOOGLE_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
   editLLMFormSchema,
   getGroqProviderForModel,
   type EditLLMFormSchema,
   type Platform,
 } from '~/components/platforms/llms/components/llmSchemas';
+import { VertexServiceAccountUploadField } from '~/components/platforms/llms/components/VertexServiceAccountUploadField';
 import { beautifyLabel, getAlowedModelFromPlatform } from '~/lib/utils';
 import { type PlatformForEditing } from '~/queries/agent-interface-patches';
 import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
@@ -24,6 +26,13 @@ type Props = {
   onUpdated?: (platform: GetPlatformResponse) => void;
   platform: PlatformForEditing;
   tenantId: string;
+};
+
+type GooglePlatformExtras = {
+  google_cloud_project_id?: string | null;
+  google_cloud_location?: string | null;
+  google_use_vertex_ai?: boolean | null;
+  google_vertex_service_account_json?: string | null;
 };
 
 export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated, tenantId }) => {
@@ -56,6 +65,16 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
       ...(platform.kind === 'groq' && {
         apiKey: platform.groq_api_key?.value,
       }),
+      ...(platform.kind === 'google' && {
+        google_api_key: platform.google_api_key?.value,
+        google_use_vertex_ai: (platform as PlatformForEditing & GooglePlatformExtras).google_use_vertex_ai ?? false,
+        google_cloud_project_id:
+          (platform as PlatformForEditing & GooglePlatformExtras).google_cloud_project_id ?? undefined,
+        google_cloud_location:
+          (platform as PlatformForEditing & GooglePlatformExtras).google_cloud_location ?? undefined,
+        google_vertex_service_account_json:
+          (platform as PlatformForEditing & GooglePlatformExtras).google_vertex_service_account_json ?? undefined,
+      }),
     };
   }, [platform, kind, currentModel]);
 
@@ -72,6 +91,8 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   const isAzure = kind === 'azure';
   const isBedrock = kind === 'bedrock';
   const isGroq = kind === 'groq';
+  const isGoogle = kind === 'google';
+  const googleUseVertexAI = form.watch('google_use_vertex_ai');
 
   const mutation = useUpdateLLMMutation();
 
@@ -100,6 +121,17 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     } else if (kind === 'groq') {
       if (values.apiKey) credentials.groq_api_key = values.apiKey;
       provider = getGroqProviderForModel(modelValue) ?? null;
+    } else if (kind === 'google') {
+      if (values.google_api_key) credentials.google_api_key = values.google_api_key;
+      if (typeof values.google_use_vertex_ai === 'boolean')
+        credentials.google_use_vertex_ai = values.google_use_vertex_ai;
+      if (values.google_use_vertex_ai) {
+        if (values.google_cloud_project_id) credentials.google_cloud_project_id = values.google_cloud_project_id;
+        if (values.google_cloud_location) credentials.google_cloud_location = values.google_cloud_location;
+        if (values.google_vertex_service_account_json)
+          credentials.google_vertex_service_account_json = values.google_vertex_service_account_json;
+      }
+      provider = 'google';
     } else {
       kind satisfies never;
     }
@@ -141,6 +173,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     if (kind === 'azure') return forPlatform(AZURE_MODEL_VALUES);
     if (kind === 'bedrock') return forPlatform(BEDROCK_MODEL_VALUES);
     if (kind === 'openai') return forPlatform(OPENAI_MODEL_VALUES);
+    if (kind === 'google') return forPlatform(GOOGLE_MODEL_VALUES);
     if (kind === 'groq') return forPlatform(GROQ_MODEL_VALUES);
     else {
       kind satisfies never;
@@ -203,6 +236,43 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
                   <Input label="AWS Access Key ID" {...form.register('aws_access_key_id')} />
                   <InputControlled fieldName="aws_secret_access_key" label="AWS Secret Access Key" type="password" />
                   <Input label="Region" {...form.register('region_name')} />
+                </Box>
+              )}
+
+              {isGoogle && (
+                <Box display="flex" flexDirection="column" gap="$12">
+                  {!googleUseVertexAI && (
+                    <InputControlled fieldName="google_api_key" label="Google API Key" type="password" />
+                  )}
+                  <Controller
+                    name="google_use_vertex_ai"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Checkbox
+                        checked={Boolean(field.value)}
+                        onChange={field.onChange}
+                        label="Use Google Vertex AI"
+                        description="Enable if this configuration should route through Vertex AI."
+                      />
+                    )}
+                  />
+                  {googleUseVertexAI && (
+                    <Box display="flex" flexDirection="column" gap="$8">
+                      <Input
+                        label="Google Cloud Project ID"
+                        placeholder="my-gcp-project"
+                        {...form.register('google_cloud_project_id')}
+                        error={form.formState.errors.google_cloud_project_id?.message}
+                      />
+                      <Input
+                        label="Google Cloud Location"
+                        placeholder="us-central1"
+                        {...form.register('google_cloud_location')}
+                        error={form.formState.errors.google_cloud_location?.message}
+                      />
+                      <VertexServiceAccountUploadField />
+                    </Box>
+                  )}
                 </Box>
               )}
             </Box>
