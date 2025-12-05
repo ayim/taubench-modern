@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import typing
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from structlog import get_logger
@@ -24,6 +25,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelAndReferences,
     )
+    from agent_platform.server.kernel.sql import SqlGenerationStrategy
     from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
@@ -34,6 +36,7 @@ DF_SLICE_TOOL_NAME = "data_frames_slice"
 DF_CREATE_FROM_FILE_TOOL_NAME = "data_frames_create_from_file"
 DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME = "data_frames_create_from_verified_query"
 DF_CREATE_FROM_JSON_TOOL_NAME = "data_frames_create_from_json"
+DF_GENERATE_SQL_TOOL_NAME = "generate_sql"
 
 _TOOLS_THAT_CAN_REFERENCE_DATA_FRAMES = (
     f"{DF_SLICE_TOOL_NAME}, {DF_DELETE_TOOL_NAME}, {DF_CREATE_FROM_SQL_TOOL_NAME} "
@@ -154,334 +157,9 @@ async def create_data_frame_from_columns_and_rows(
     return data_frame
 
 
-def _handle_some_table_field(k: str, v: Any) -> str:
-    k = k.replace("_", " ").title()
-
-    import yaml
-
-    return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
-
-
-def _get_postgres_json_guidance(model: SemanticDataModel) -> str:
-    """
-    Generate PostgreSQL-specific JSON/JSONB column guidance for a semantic data model.
-
-    Scans the model for JSON and JSONB columns and returns targeted guidance
-    on which functions to use and how to handle aggregations with LATERAL joins.
-
-    Args:
-        model: The semantic data model to scan for JSON columns
-
-    Returns:
-        A formatted guidance string if JSON columns are found, empty string otherwise
-    """
-    json_columns = []
-    jsonb_columns = []
-    tables = model.get("tables", [])
-
-    # Scan for JSON/JSONB columns in the semantic data model
-    if tables:
-        for table in tables:
-            if not isinstance(table, dict):
-                continue
-            table_name = table.get("name", "")
-
-            # Check all column categories
-            for category in ["dimensions", "facts", "metrics", "time_dimensions"]:
-                columns = table.get(category, [])
-                if isinstance(columns, list):
-                    for col in columns:
-                        if isinstance(col, dict):
-                            data_type = col.get("data_type", "").lower()
-                            col_name = col.get("name", "")
-                            if data_type == "json" and col_name:
-                                json_columns.append(f"{table_name}.{col_name}")
-                            elif data_type == "jsonb" and col_name:
-                                jsonb_columns.append(f"{table_name}.{col_name}")
-
-    # Generate guidance if JSON columns are detected
-    if not json_columns and not jsonb_columns:
-        return ""
-
-    guidance_parts = ["\n  PostgreSQL JSON Column Rules:"]
-
-    if json_columns:
-        cols = ", ".join(json_columns)
-        guidance_parts.append(
-            f"• Type 'json' columns ({cols}): Use json_array_elements(), NOT jsonb_*\n"
-            f"  Aggregation pattern: LATERAL (SELECT SUM((x->>'field')::numeric) FROM json_array_elements(col->'array') x)"
-        )
-
-    if jsonb_columns:
-        cols = ", ".join(jsonb_columns)
-        guidance_parts.append(
-            f"• Type 'jsonb' columns ({cols}): Use jsonb_array_elements(), NOT json_*\n"
-            f"  Aggregation pattern: LATERAL (SELECT SUM((x->>'field')::numeric) FROM jsonb_array_elements(col->'array') x)"
-        )
-
-    return "\n".join(guidance_parts)
-
-
-def _get_snowflake_variant_guidance(model: SemanticDataModel) -> str:
-    """
-    Generate Snowflake-specific VARIANT/ARRAY/OBJECT column guidance for a semantic data model.
-    Scans the model for these special Snowflake types and returns targeted guidance
-    on how to query them properly.
-    Args:
-        model: The semantic data model to scan for Snowflake-specific columns
-    Returns:
-        A formatted guidance string if special columns are found, empty string otherwise
-    """
-    variant_columns = []
-    array_columns = []
-    object_columns = []
-    tables = model.get("tables", [])
-
-    # Scan for Snowflake-specific column types in the semantic data model
-    if tables:
-        for table in tables:
-            if not isinstance(table, dict):
-                continue
-            table_name = table.get("name", "")
-
-            # Check all column categories
-            for category in ["dimensions", "facts", "metrics", "time_dimensions"]:
-                columns = table.get(category, [])
-                if isinstance(columns, list) and columns:
-                    for col in columns:
-                        if isinstance(col, dict):
-                            data_type = col.get("data_type", "").upper()
-                            col_name = col.get("name", "")
-                            if "VARIANT" in data_type and col_name:
-                                variant_columns.append(f"{table_name}.{col_name}")
-                            elif "ARRAY" in data_type and col_name:
-                                array_columns.append(f"{table_name}.{col_name}")
-                            elif "OBJECT" in data_type and col_name:
-                                object_columns.append(f"{table_name}.{col_name}")
-
-    # Generate guidance if Snowflake-specific columns are detected
-    if not variant_columns and not array_columns and not object_columns:
-        return ""
-
-    all_special_cols = variant_columns + array_columns + object_columns
-    guidance_parts = [
-        "\n⚠️  SYNTAX REQUIREMENT: BRACKET NOTATION ONLY ⚠️",
-        f"For columns: {', '.join(all_special_cols)}",
-        "NEVER use colon notation (col:field) - it will cause 'Invalid expression' errors",
-        "ALWAYS use bracket notation: col['field']\n",
-    ]
-
-    if variant_columns:
-        cols = ", ".join(variant_columns)
-        guidance_parts.append(
-            f"• VARIANT columns ({cols}):\n"
-            f"  - Syntax: col['field'] NOT col:field\n"
-            f"  - Extract string: col['field']::TEXT or CAST(col['field'] AS TEXT)\n"
-            f"  - Nested: col['field']['subfield']\n"
-            f"  - Array element: col['field'][0]\n"
-            f"  - Filter: WHERE col['brand']::TEXT = 'value'\n"
-            f"  - WRONG: WHERE {cols}:brand = 'value'\n"
-            f"  - CORRECT: WHERE {cols}['brand']::TEXT = 'value'"
-        )
-
-    if array_columns:
-        cols = ", ".join(array_columns)
-        guidance_parts.append(
-            f"• ARRAY columns ({cols}):\n"
-            f"  - Check if contains value: ARRAY_CONTAINS('value'::VARIANT, col)\n"
-            f"  - Get array size: ARRAY_SIZE(col)\n"
-            f"  - Access element by index: col[0] for first element (0-indexed)\n"
-            f"  - Iterate/expand array: Use FLATTEN(col) in a lateral join or subquery"
-        )
-
-    if object_columns:
-        cols = ", ".join(object_columns)
-        guidance_parts.append(
-            f"• OBJECT columns ({cols}):\n"
-            f"  - Syntax: col['field'] NOT col:field\n"
-            f"  - Extract string: col['field']::TEXT or CAST(col['field'] AS TEXT)\n"
-            f"  - Nested: col['field']['subfield']\n"
-            f"  - Filter: WHERE col['city']::TEXT = 'value'\n"
-            f"  - WRONG: WHERE {cols}:city = 'value'\n"
-            f"  - CORRECT: WHERE {cols}['city']::TEXT = 'value'"
-        )
-
-    return "\n".join(guidance_parts)
-
-
-def _get_mysql_json_guidance(model: SemanticDataModel) -> str:
-    """
-    Generate MySQL-specific JSON column guidance for a semantic data model.
-
-    Scans the model for JSON columns and returns targeted guidance on MySQL JSON
-    syntax, operators, and functions.
-
-    Args:
-        model: The semantic data model to scan for JSON columns
-
-    Returns:
-        A formatted guidance string if JSON columns are found, empty string otherwise
-    """
-    json_columns = []
-    tables = model.get("tables", [])
-
-    # Scan for JSON columns in the semantic data model
-    if tables:
-        for table in tables:
-            if not isinstance(table, dict):
-                continue
-            table_name = table.get("name", "")
-
-            # Check all column categories
-            for category in ["dimensions", "facts", "metrics", "time_dimensions"]:
-                columns = table.get(category, [])
-                if isinstance(columns, list):
-                    for col in columns:
-                        if isinstance(col, dict):
-                            data_type = col.get("data_type", "").lower()
-                            col_name = col.get("name", "")
-                            if data_type == "json" and col_name:
-                                json_columns.append(f"{table_name}.{col_name}")
-
-    # Generate guidance if JSON columns are detected
-    if not json_columns:
-        return ""
-
-    cols = ", ".join(json_columns)
-    guidance_parts = [
-        "\n  MySQL JSON Column Rules:",
-        f"• JSON columns ({cols}):",
-        "  - Path syntax: ALWAYS use '$.path' (dollar sign required) for JSON_EXTRACT and paths",
-        "  - Extract as JSON: col->'$.field' or JSON_EXTRACT(col, '$.field')",
-        "  - Extract as string: col->>'$.field' or JSON_UNQUOTE(JSON_EXTRACT(col, '$.field'))",
-        "  - Nested paths: col->'$.field.subfield' or col->'$.field.subfield[0]'",
-        "  - Array elements: col->'$.array[0]' for first element (0-indexed)",
-        "  - Filter: WHERE col->>'$.brand' = 'value' or WHERE JSON_EXTRACT(col, '$.brand') = '\"value\"'",
-        "  - Check contains: JSON_CONTAINS(col, '\"value\"', '$.path')",
-        "  - Search in JSON: JSON_SEARCH(col, 'one', 'searchtext', NULL, '$.path')",
-        "",
-        "  ⚠️ CRITICAL: Aggregating JSON arrays (SUM/COUNT/AVG):",
-        "  - JSON_TABLE requires JSON type input - use JSON_EXTRACT (NOT JSON_UNQUOTE) or reference column directly",
-        "  - WRONG: JSON_UNQUOTE(JSON_EXTRACT(col, '$.array')) then JSON_TABLE(result, ...) - converts to string!",
-        "  - CORRECT: JSON_TABLE(col, '$.array[*]' ...) or JSON_TABLE(JSON_EXTRACT(col, '$.array'), '$[*]' ...)",
-        "  - JSON_TABLE MUST be in FROM clause with CROSS JOIN - NEVER in SELECT",
-        "  - Pattern: FROM base_table CROSS JOIN JSON_TABLE(base_table.json_col, '$.array[*]' COLUMNS (...)) AS alias",
-        "  - Example:",
-        "      SELECT base.id, SUM(items.amount) AS total",
-        "        FROM my_table AS base",
-        "        CROSS JOIN JSON_TABLE(base.json_col, '$.line_items[*]' COLUMNS (amount DECIMAL(10,2) PATH '$.amount')) AS items",
-        "      GROUP BY base.id;",
-        "",
-        f"  - WRONG: WHERE {cols}:brand = 'value' (colon syntax doesn't work in MySQL)",
-        f"  - CORRECT: WHERE {cols}->>'$.brand' = 'value' or JSON_EXTRACT({cols}, '$.brand') = '\"value\"'",
-    ]
-
-    return "\n".join(guidance_parts)
-
-
-def _convert_semantic_data_model_to_context_string(
-    data: list[tuple[SemanticDataModel, str]],
-) -> str:
-    """
-    Convert data to a string that can be used in an LLM context.
-
-    We try to format the data in a way that is easy to read and understand,
-    but still trying to keep it concise so that we don't use few tokens
-    (right now we use yaml.safe_dump to convert the data to a string).
-    """
-    import textwrap
-    from textwrap import indent
-
-    if not data:
-        return "No semantic data models available."
-
-    verified_queries = []
-    result = []
-
-    for model, engine in data:
-        if not isinstance(model, dict):
-            continue
-
-        model = model.copy()  # noqa: PLW2901
-
-        # Model header
-        name = model.pop("name", "Unnamed")
-        description = model.pop("description", "")
-
-        model_header = f"### Model: {name}"
-        model_header += f"\nSQL dialect: {engine}"
-        if description:
-            model_header += f"\nDescription: {description}"
-        result.append(model_header)
-
-        # Add database-specific guidance IMMEDIATELY after header for maximum visibility
-        if engine == "snowflake":
-            snowflake_guidance = _get_snowflake_variant_guidance(model)
-            if snowflake_guidance:
-                # Add prominent banner to make it unmissable
-                result.append("\n" + "=" * 80)
-                result.append("🚨 CRITICAL: SNOWFLAKE VARIANT/OBJECT/ARRAY COLUMN SYNTAX 🚨")
-                result.append("=" * 80)
-                result.append(snowflake_guidance)
-                result.append("=" * 80 + "\n")
-        elif engine == "postgres":
-            postgres_guidance = _get_postgres_json_guidance(model)
-            if postgres_guidance:
-                result.append(postgres_guidance)
-        elif engine == "mysql":
-            mysql_guidance = _get_mysql_json_guidance(model)
-            if mysql_guidance:
-                result.append(mysql_guidance)
-
-        # Tables
-        tables = model.pop("tables", [])
-        if tables:
-            for table in tables:
-                if not isinstance(table, dict):
-                    continue
-
-                table = table.copy()  # noqa: PLW2901
-                table_name = table.pop("name")
-                if not table_name:
-                    continue
-                table_desc = table.pop("description", "")
-
-                table_line = f"Table: {table_name}"
-                if table_desc:
-                    table_line += f"\n Description: {table_desc}"
-                result.append(table_line)
-
-                for k, v in table.items():
-                    if v:
-                        result.append(indent(_handle_some_table_field(k, v), " "))
-
-        verified_queries.extend(model.pop("verified_queries", None) or ())
-
-        # Handle what we haven't added yet (relationships, etc.)
-        for k, v in model.items():
-            if v:
-                result.append(_handle_some_table_field(k, v))
-
-        result.append("")  # Empty line between models
-
-    # Add verified queries
-    if verified_queries:
-        result.append(
-            textwrap.dedent(f"""
-        ### Verified Queries
-
-        Note: These can be used to create data frames using the `{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME}` tool.
-              by providing the "name" of the verified query as a parameter to the `{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME}` tool.
-
-        Below is a list with the verified query names and a description on what the verified queries can be used for:
-        """)
-        )
-        for verified_query in verified_queries:
-            result.append(f"- name: {verified_query['name']}")
-            result.append(f"  description: {verified_query['nlq']}")
-            result.append("")
-
-    return "\n".join(result)
+class SqlGeneration(StrEnum):
+    LEGACY = "legacy"
+    AGENTIC = "agentic"
 
 
 class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
@@ -497,6 +175,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         # Storage is needed to get data connections
         self._data_connection_id_to_engine: dict[str, str] = {}
+
+        # SQL generation strategy (initialized in step_initialize)
+        self._sql_strategy: SqlGenerationStrategy | None = None
 
     def is_enabled(self) -> bool:
         """Returns True if data frames are enabled (and False otherwise).
@@ -516,6 +197,28 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             return not disable_data_frames
 
         return True
+
+    def _get_sql_generation_mode(self) -> SqlGeneration:
+        """Get SQL generation mode from agent settings."""
+        agent_settings = self.kernel.agent.extra.get("agent_settings", {})
+        mode = agent_settings.get("sql_generation", "legacy").lower()
+        # If the user gives something other than these values, it will error.
+        return SqlGeneration(mode)
+
+    def _create_sql_strategy(self) -> SqlGenerationStrategy:
+        """Create appropriate SQL generation strategy based on agent settings."""
+        from agent_platform.server.kernel.sql import (
+            AgenticSqlStrategy,
+            LegacySqlStrategy,
+        )
+
+        mode = self._get_sql_generation_mode()
+        if mode == SqlGeneration.AGENTIC:
+            return AgenticSqlStrategy()
+        else:
+            if mode != SqlGeneration.LEGACY:
+                logger.warning(f"Unknown SQL generation mode: {mode}, defaulting to legacy")
+            return LegacySqlStrategy()
 
     async def step_initialize(
         self, *, storage: BaseStorage | None = None, state: DataFrameArchState
@@ -583,6 +286,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             for data_connection in data_connections:
                 self._data_connection_id_to_engine[data_connection.id] = data_connection.engine
 
+        # Initialize SQL generation strategy
+        self._sql_strategy = self._create_sql_strategy()
+
         data_frame_tools = _DataFrameTools(
             self.kernel.user,
             self.kernel.thread.thread_id,
@@ -629,7 +335,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             # Creating from a file or JSON should be always there (i.e.: the user should be able to
             # create a data frame from a file or JSON data even if there are no data frames yet).
             # Transform should also be available for general JSON manipulation.
-            self._data_frame_tools = (
+            tools = [
                 ToolDefinition.from_callable(
                     data_frame_tools.create_data_frame_from_file,
                     name=DF_CREATE_FROM_FILE_TOOL_NAME,
@@ -638,11 +344,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     data_frame_tools.create_data_frame_from_json,
                     name=DF_CREATE_FROM_JSON_TOOL_NAME,
                 ),
-            )
+            ]
 
-            tools_list: list[ToolDefinition] = []
             if self._semantic_data_models:
-                tools_list.append(
+                tools.append(
                     ToolDefinition.from_callable(
                         data_frame_tools.create_data_frame_from_sql,
                         name=DF_CREATE_FROM_SQL_TOOL_NAME,
@@ -651,15 +356,20 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             # Add tool for verified queries if any exist
             if self._verified_queries:
-                tools_list.append(
+                tools.append(
                     ToolDefinition.from_callable(
                         data_frame_tools.create_data_frame_from_verified_query,
                         name=DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
                     )
                 )
 
-            if tools_list:
-                self._data_frame_tools += tuple(tools_list)
+            self._data_frame_tools = tuple(tools)
+
+        # Add SQL generation tools (if any)
+        if self._sql_strategy:
+            sql_tools = self._sql_strategy.get_tools()
+            if sql_tools:
+                self._data_frame_tools += sql_tools
 
     @property
     def data_frames_system_prompt_no_tools(self) -> str:
@@ -718,35 +428,28 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             if self._semantic_data_models:
                 try:
-                    ret += (
-                        f"## Semantic Data Models (tables available to be used in the "
-                        f"`{DF_CREATE_FROM_SQL_TOOL_NAME}` tool):\n"
-                        f"{self.sdm_join_guidance}\n"
-                        f"{self.semantic_data_models_summary}\n\n"
-                    )
+                    # Use strategy to get appropriate context for semantic data models
+                    sdm_context = self._get_sdm_context_additions()
+                    if sdm_context:
+                        ret += (
+                            f"## Semantic Data Models (tables available to be used in the "
+                            f"`{DF_CREATE_FROM_SQL_TOOL_NAME}` tool):\n"
+                            f"{sdm_context}\n\n"
+                        )
                 except Exception:
                     logger.exception("Error creating semantic data models summary")
         return ret
 
-    @property
-    def sdm_join_guidance(self) -> str:
-        from textwrap import dedent
-
+    def _get_sdm_context_additions(self) -> str:
+        """Get context additions for semantic data models using the SQL strategy."""
         models_and_engines = self._semantic_data_models_with_engines()
         if not models_and_engines:
             return ""
 
-        has_non_snowflake = any(
-            engine and engine.lower() != "snowflake" for _, engine in models_and_engines
+        assert self._sql_strategy is not None, "SQL strategy not initialized"
+        return self._sql_strategy.get_context_additions(
+            semantic_models_and_engines=models_and_engines,
         )
-        if not has_non_snowflake:
-            return ""
-
-        return dedent("""
-        **SQL SYNTAX RULES:**
-        - Reference tables by their logical name only (e.g., `FROM my_table`). Do NOT prefix with the model name.
-        - Always qualify column names with their table (e.g., `my_table.column_name`), especially in CTEs and JOINs.
-        """)
 
     def _semantic_data_models_with_engines(self) -> list[tuple[SemanticDataModel, str]]:
         from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
@@ -807,6 +510,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
     @property
     def semantic_data_models_summary(self) -> str:
+        """Get a summary of semantic data models (structure only, no SQL instructions)."""
         if not self._semantic_data_models:
             return "You have no semantic data models to work with."
 
@@ -814,7 +518,11 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         if not models_and_engines:
             return "No semantic data models available."
 
-        return _convert_semantic_data_model_to_context_string(models_and_engines)
+        # Get just the data model summary (structure), not SQL generation instructions
+        # We use the prompter's summarize method directly for this
+        from agent_platform.server.kernel.semantic_data_model import summarize_data_models
+
+        return summarize_data_models(models_and_engines)
 
     @property
     def data_frames_summary(self) -> str:
