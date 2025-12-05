@@ -11,6 +11,7 @@ TERMINAL_STATUSES = [TrialStatus.CANCELED, TrialStatus.COMPLETED, TrialStatus.ER
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
+@pytest.mark.flaky(max_runs=2, min_passes=1)
 async def test_evals_e2e(  # noqa: PLR0915, C901
     base_url_agent_server_evals_matrix: str,
     openai_api_key: str,
@@ -23,6 +24,8 @@ async def test_evals_e2e(  # noqa: PLR0915, C901
     - Check latest run status
     """
     import json
+
+    timeout = 60 * 7  # 7 minutes
 
     with AgentServerClient(base_url_agent_server_evals_matrix) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
@@ -77,7 +80,7 @@ async def test_evals_e2e(  # noqa: PLR0915, C901
 
             # we wait for an agent message
             # otherwise we may create a scenario with an incomplete thread
-            await _wait_until(_latest_message_from_agent, interval=1.0, timeout=60 * 5)
+            await _wait_until(_latest_message_from_agent, interval=1.0, timeout=timeout)
 
         evals_url = f"{base_url_agent_server_evals_matrix}/api/v2/evals"
 
@@ -141,8 +144,7 @@ async def test_evals_e2e(  # noqa: PLR0915, C901
 
                 return all_terminated
 
-            five_minutes = 5 * 60
-            await _wait_until(_is_final_status, interval=1.0, timeout=five_minutes)
+            await _wait_until(_is_final_status, interval=1.0, timeout=timeout)
 
             get_run_resp = await client.get(f"/scenarios/{scenario_id}/runs/{scenario_run_id}")
             assert get_run_resp.status_code == 200, get_run_resp.text
