@@ -285,3 +285,26 @@ type AgentPayload struct {
 	Public               bool                        `json:"public"`
 	SelectedTools        SelectedTools               `json:"selected_tools,omitempty"`
 }
+
+// AgentPackagePayload represents the payload for creating/updating an agent from a package
+// This is used with the /api/v2/agents/package endpoint
+type AgentPackagePayload struct {
+	Name               string            `json:"name"`
+	Description        string            `json:"description,omitempty"`
+	Public             bool              `json:"public"`
+	AgentPackageURL    *string           `json:"agent_package_url,omitempty"`
+	AgentPackageBase64 *string           `json:"agent_package_base64,omitempty"`
+	Model              map[string]any    `json:"model,omitempty"`
+	PlatformParamsIds  []string          `json:"platform_params_ids,omitempty"`
+	ActionServers      []ActionServerRef `json:"action_servers,omitempty"`
+	McpServers         []McpServer       `json:"mcp_servers,omitempty"`
+	McpServerIds       []string          `json:"mcp_server_ids,omitempty"`
+	Langsmith          *LangSmithConfig  `json:"langsmith,omitempty"`
+	SelectedTools      *SelectedTools    `json:"selected_tools,omitempty"`
+}
+
+// ActionServerRef represents an action server reference in the package payload
+type ActionServerRef struct {
+	URL    string `json:"url"`
+	APIKey string `json:"api_key"`
+}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -290,35 +291,56 @@ func BuildAgentPayload(
 func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePath, serverUrl, modelConfiguration, actionServerConfiguration, langSmithConfiguration string, makePublic bool) error {
 	agentServerClient := AgentServer.NewClient(serverUrl)
 
+	// Read the agent package zip file
+	zipBytes, err := os.ReadFile(agentPackageSourcePath)
+	if err != nil {
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to read agent package file: %w", err)
+	}
+
+	// Encode to base64
+	packageBase64 := base64.StdEncoding.EncodeToString(zipBytes)
+
+	// Extract metadata to get the agent name (we still need this for the payload)
 	metadata, err := GenerateAgentMetadataFromPackageTo(agentPackageSourcePath, agentPackageDestPath)
 	if err != nil {
 		return fmt.Errorf("[importAgentPackageToAgentServer] failed to generate metadata: %w", err)
 	}
 
-	spec, err := ReadSpec(agentPackageDestPath)
-	if err != nil {
-		return fmt.Errorf("[importAgentPackageToAgentServer] failed to read spec: %w", err)
+	agentName := getAgentNameFromMetadata(metadata)
+	if agentName == "" {
+		return fmt.Errorf("[importAgentPackageToAgentServer] agent name not found in metadata")
 	}
 
-	runbook, err := ReadRunbook(filepath.Join(agentPackageDestPath, spec.AgentPackage.Agents[0].Runbook))
+	// Build the AgentPackagePayload
+	payload, err := BuildAgentPackagePayload(
+		agentName,
+		metadata,
+		packageBase64,
+		modelConfiguration,
+		actionServerConfiguration,
+		langSmithConfiguration,
+		makePublic,
+	)
 	if err != nil {
-		return fmt.Errorf("[importAgentPackageToAgentServer] failed to read runbook: %w", err)
+		return fmt.Errorf("[importAgentPackageToAgentServer] failed to build payload: %w", err)
 	}
 
-	err = prepareActionPackages(metadata, agentPackageDestPath)
-	if err != nil {
-		return fmt.Errorf("[importAgentPackageToAgentServer] failed to prepare action packages: %w", err)
-	}
-
-	payload, err := BuildAgentPayload(metadata, spec, runbook, modelConfiguration, actionServerConfiguration, langSmithConfiguration, makePublic)
-	if err != nil {
-		return err
-	}
-
-	agent, err := createOrUpdateAgent(*payload, agentServerClient)
+	// Create or update agent using the package endpoint
+	agent, err := createOrUpdateAgentFromPackage(*payload, agentServerClient)
 	if err != nil {
 		return fmt.Errorf("[importAgentPackageToAgentServer] failed to create or update Agent: %w", err)
 	}
+
+	// Prepare action packages locally (for Studio to use them)
+	// This is needed even though the server processes the package, because
+	// Studio needs local copies of custom action packages to run agents locally
+	err = prepareActionPackages(metadata, agentPackageDestPath)
+	if err != nil {
+		// Don't fail the import if action package preparation fails
+		// The agent and SDMs are already created on the server
+		pretty.LogIfVerbose("[importAgentPackageToAgentServer] WARNING: failed to prepare action packages locally: %v", err)
+	}
+
 	agentJson, err := json.Marshal(agent)
 	if err != nil {
 		return fmt.Errorf("[importAgentPackageToAgentServer] failed to marshal Agent: %w", err)
@@ -327,7 +349,112 @@ func importAgentPackageToAgentServer(agentPackageDestPath, agentPackageSourcePat
 	return nil
 }
 
+// BuildAgentPackagePayload builds an AgentPackagePayload from metadata and configuration
+func BuildAgentPackagePayload(
+	agentName string,
+	metadata []*common.AgentPackageMetadata,
+	packageBase64 string,
+	modelConfiguration string,
+	actionServerConfiguration string,
+	langSmithConfiguration string,
+	makePublic bool,
+) (*AgentServer.AgentPackagePayload, error) {
+	// Parse model configuration
+	var modelConfig map[string]interface{}
+	if modelConfiguration != "" {
+		if err := json.Unmarshal([]byte(modelConfiguration), &modelConfig); err != nil {
+			return nil, fmt.Errorf("[BuildAgentPackagePayload] failed to parse model config: %w", err)
+		}
+	}
+
+	// Parse action server configuration
+	var actionServers []AgentServer.ActionServerRef
+	if actionServerConfiguration != "" {
+		var actionServerConfig AgentServer.ActionServerRef
+		if err := json.Unmarshal([]byte(actionServerConfiguration), &actionServerConfig); err != nil {
+			return nil, fmt.Errorf("[BuildAgentPackagePayload] failed to parse action server config: %w", err)
+		}
+		actionServers = []AgentServer.ActionServerRef{actionServerConfig}
+	}
+
+	// Parse langsmith configuration
+	var langsmithConfig *AgentServer.LangSmithConfig
+	if langSmithConfiguration != "" {
+		var config AgentServer.LangSmithConfig
+		if err := json.Unmarshal([]byte(langSmithConfiguration), &config); err != nil {
+			return nil, fmt.Errorf("[BuildAgentPackagePayload] failed to parse langsmith config: %w", err)
+		}
+		langsmithConfig = &config
+	}
+
+	// Get description from metadata
+	description := ""
+	if len(metadata) > 0 && metadata[0] != nil {
+		description = metadata[0].Description
+	}
+
+	// Build the payload
+	selectedTools := getSelectedToolsFromMetadata(metadata)
+	payload := AgentServer.AgentPackagePayload{
+		Name:               agentName,
+		Description:        description,
+		Public:             makePublic,
+		AgentPackageBase64: &packageBase64,
+		Model:              modelConfig,
+		ActionServers:      actionServers,
+		Langsmith:          langsmithConfig,
+		SelectedTools:      &selectedTools,
+	}
+
+	return &payload, nil
+}
+
+// createOrUpdateAgentFromPackage creates or updates an agent from a package using the /agents/package endpoint
+func createOrUpdateAgentFromPackage(
+	payload AgentServer.AgentPackagePayload,
+	client *AgentServer.Client,
+) (*AgentServer.Agent, error) {
+	agents, err := client.GetAgents(false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch agents: %w", err)
+	}
+
+	var existingAgentID string
+	for _, a := range *agents {
+		if a.Name == payload.Name {
+			existingAgentID = a.ID
+			break
+		}
+	}
+
+	var agent *AgentServer.Agent
+
+	if existingAgentID != "" {
+		pretty.LogIfVerbose("[createOrUpdateAgentFromPackage] found existing agent. will update: %s", payload.Name)
+		agent, err = client.UpdateAgentFromPackage(existingAgentID, payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update agent from package: %w", err)
+		}
+	} else {
+		pretty.LogIfVerbose("[createOrUpdateAgentFromPackage] creating a new agent with name: %s", payload.Name)
+		agent, err = client.CreateAgentFromPackage(payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create agent from package: %w", err)
+		}
+	}
+
+	pretty.LogIfVerbose("[createOrUpdateAgentFromPackage] succeeded!\n")
+
+	rawAgent, err := client.GetAgent(agent.ID, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	return rawAgent, nil
+}
+
 // createOrUpdateAgent creates or updates an agent given an AgentPayload object and an AgentServer client
+// DEPRECATED: Use createOrUpdateAgentFromPackage instead
 func createOrUpdateAgent(
 	payload AgentServer.AgentPayload,
 	client *AgentServer.Client,

@@ -145,3 +145,135 @@ func TestBuildAgentPayload_ActionServerConfig(t *testing.T) {
 		assert.Equal(t, "MyActions", ap3.Organization)
 	}
 }
+
+// Tests for the NEW BuildAgentPackagePayload function (used with /agents/package endpoint)
+
+func TestBuildAgentPackagePayload_Success(t *testing.T) {
+	metadata := minimalMetadata()
+	packageBase64 := "dGVzdC16aXAtZmlsZQ==" // base64 encoded string
+	
+	payload, err := cmd.BuildAgentPackagePayload(
+		"test-agent",
+		metadata,
+		packageBase64,
+		"", // no model config
+		"", // no action server config
+		"", // no langsmith config
+		false,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, payload)
+	assert.Equal(t, "test-agent", payload.Name)
+	assert.Equal(t, metadata[0].Description, payload.Description)
+	assert.False(t, payload.Public)
+	assert.NotNil(t, payload.AgentPackageBase64)
+	assert.Equal(t, packageBase64, *payload.AgentPackageBase64)
+	assert.Nil(t, payload.AgentPackageURL)
+}
+
+func TestBuildAgentPackagePayload_WithModelConfig(t *testing.T) {
+	metadata := minimalMetadata()
+	packageBase64 := "dGVzdC16aXAtZmlsZQ=="
+	modelConfig := `{"temperature": 0.7, "max_tokens": 1000}`
+	
+	payload, err := cmd.BuildAgentPackagePayload(
+		"test-agent",
+		metadata,
+		packageBase64,
+		modelConfig,
+		"",
+		"",
+		true,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, payload)
+	assert.True(t, payload.Public)
+	assert.NotNil(t, payload.Model)
+	assert.Equal(t, 0.7, payload.Model["temperature"])
+	assert.Equal(t, float64(1000), payload.Model["max_tokens"])
+}
+
+func TestBuildAgentPackagePayload_InvalidModelConfig(t *testing.T) {
+	metadata := minimalMetadata()
+	packageBase64 := "dGVzdC16aXAtZmlsZQ=="
+	
+	payload, err := cmd.BuildAgentPackagePayload(
+		"test-agent",
+		metadata,
+		packageBase64,
+		"{invalid-json}",
+		"",
+		"",
+		false,
+	)
+	
+	assert.Error(t, err)
+	assert.Nil(t, payload)
+	assert.Contains(t, err.Error(), "failed to parse model config")
+}
+
+func TestBuildAgentPackagePayload_WithActionServerConfig(t *testing.T) {
+	metadata := minimalMetadata()
+	packageBase64 := "dGVzdC16aXAtZmlsZQ=="
+	actionServerConfig := `{"url": "http://localhost:8080", "api_key": "test-key"}`
+	
+	payload, err := cmd.BuildAgentPackagePayload(
+		"test-agent",
+		metadata,
+		packageBase64,
+		"",
+		actionServerConfig,
+		"",
+		false,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, payload)
+	assert.Len(t, payload.ActionServers, 1)
+	assert.Equal(t, "http://localhost:8080", payload.ActionServers[0].URL)
+	assert.Equal(t, "test-key", payload.ActionServers[0].APIKey)
+}
+
+func TestBuildAgentPackagePayload_WithLangsmithConfig(t *testing.T) {
+	metadata := minimalMetadata()
+	packageBase64 := "dGVzdC16aXAtZmlsZQ=="
+	langsmithConfig := `{"api_key": "ls-key", "api_url": "https://api.smith.langchain.com", "project_name": "test-project"}`
+	
+	payload, err := cmd.BuildAgentPackagePayload(
+		"test-agent",
+		metadata,
+		packageBase64,
+		"",
+		"",
+		langsmithConfig,
+		false,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, payload)
+	assert.NotNil(t, payload.Langsmith)
+	assert.Equal(t, "ls-key", payload.Langsmith.APIKey)
+	assert.Equal(t, "https://api.smith.langchain.com", payload.Langsmith.URL)
+	assert.Equal(t, "test-project", payload.Langsmith.ProjectName)
+}
+
+func TestBuildAgentPackagePayload_InvalidLangsmithConfig(t *testing.T) {
+	metadata := minimalMetadata()
+	packageBase64 := "dGVzdC16aXAtZmlsZQ=="
+	
+	payload, err := cmd.BuildAgentPackagePayload(
+		"test-agent",
+		metadata,
+		packageBase64,
+		"",
+		"",
+		"{invalid-json}",
+		false,
+	)
+	
+	assert.Error(t, err)
+	assert.Nil(t, payload)
+	assert.Contains(t, err.Error(), "failed to parse langsmith config")
+}

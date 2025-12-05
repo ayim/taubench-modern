@@ -91,6 +91,62 @@ func (c *Client) DeleteAgent(agentID string) error {
 	return nil
 }
 
+// CreateAgentFromPackage creates a new agent from an agent package
+func (c *Client) CreateAgentFromPackage(req AgentPackagePayload) (*Agent, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
+	}
+
+	resp, err := c.post("/api/v2/agents/package", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to create agent from package: %w", err), http.StatusInternalServerError)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to read response: %w", err), resp.StatusCode)
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, NewAgentError(fmt.Errorf("failed to create agent from package: %s", string(body)), resp.StatusCode)
+	}
+
+	var agent Agent
+	if err := json.Unmarshal(body, &agent); err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to decode response: %w", err), http.StatusInternalServerError)
+	}
+	return &agent, nil
+}
+
+// UpdateAgentFromPackage updates an existing agent from an agent package
+func (c *Client) UpdateAgentFromPackage(agentID string, req AgentPackagePayload) (*Agent, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to marshal request: %w", err), http.StatusBadRequest)
+	}
+
+	resp, err := c.put(fmt.Sprintf("/api/v2/agents/package/%s", agentID), bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to update agent from package: %w", err), http.StatusInternalServerError)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to read response: %w", err), resp.StatusCode)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, NewAgentError(fmt.Errorf("failed to update agent from package: %s", string(body)), resp.StatusCode)
+	}
+
+	var agent Agent
+	if err := json.Unmarshal(body, &agent); err != nil {
+		return nil, NewAgentError(fmt.Errorf("failed to decode response: %w", err), http.StatusInternalServerError)
+	}
+	return &agent, nil
+}
+
 // GetAgentsWithFiles returns a set of agents along with attached files given a set of IDs.
 func (c *Client) GetAgentsWithFiles(agentIDs []string, raw bool) ([]Agent, error) {
 	var wg sync.WaitGroup
