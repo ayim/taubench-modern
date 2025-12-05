@@ -72,6 +72,8 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
     ? `Updated at ${runbookDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}, ${runbookDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
     : null;
 
+  const isExecutionLocked = isAnyTestRunning || isBatchRunning;
+
   const runTestsMenu = (
     <Menu
       trigger={
@@ -80,14 +82,14 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
           round
           icon={IconDotsHorizontal}
           aria-label="Run tests options"
-          disabled={isAnyTestRunning}
+          disabled={isExecutionLocked}
         />
       }
     >
-      <Menu.Item onClick={() => onSetSelectedTrialsForAll(1)} disabled={isAnyTestRunning}>
+      <Menu.Item onClick={() => onSetSelectedTrialsForAll(1)} disabled={isExecutionLocked}>
         Switch to 1x runs
       </Menu.Item>
-      <Menu.Item onClick={() => onSetSelectedTrialsForAll(4)} disabled={isAnyTestRunning}>
+      <Menu.Item onClick={() => onSetSelectedTrialsForAll(4)} disabled={isExecutionLocked}>
         Switch to 4x runs
       </Menu.Item>
     </Menu>
@@ -113,9 +115,9 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
             </Tooltip>
           </Box>
           <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
-            {isAnyTestRunning || !hasRunBatch ? '--' : `${overallPercent}%`}
+            {isExecutionLocked || !hasRunBatch ? '--' : `${overallPercent}%`}
           </Typography>
-          {!isAnyTestRunning && overallDetailText && (
+          {!isExecutionLocked && overallDetailText && (
             <Typography
               variant="body-small"
               color="content.success"
@@ -137,9 +139,9 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
               </Tooltip>
             </Box>
             <Typography variant="display-small" color="content.primary" style={{ userSelect: 'text' }}>
-              {isAnyTestRunning || !hasRunBatch ? '--' : `${consistencyPercent}%`}
+              {isExecutionLocked || !hasRunBatch ? '--' : `${consistencyPercent}%`}
             </Typography>
-            {!isAnyTestRunning && consistencyDetailText && (
+            {!isExecutionLocked && consistencyDetailText && (
               <Typography variant="body-small" color="content.success" style={{ userSelect: 'text' }}>
                 {consistencyDetailText}
               </Typography>
@@ -187,7 +189,7 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
             icon={IconSendSmall}
             variant="outline"
             round
-            disabled={isAnyTestRunning}
+            disabled={isExecutionLocked}
             onClick={() => onRunAllTests(selectedTrialsForAll)}
           >
             {selectedTrialsForAll === 1 ? 'Run All Tests' : `Run All Tests (${selectedTrialsForAll}x)`}

@@ -142,6 +142,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
                 currentRun={currentRun}
                 isRunning={isRunning}
                 isAnyTestRunning={sidebar.isAnyTestRunning}
+                isBatchRunning={sidebar.isBatchRunning}
                 selectedTrials={selectedTrials}
                 expandedResults={expandedResults}
                 onRunTest={(numTrials) => sidebar.handleRunTest(scenario, numTrials)}

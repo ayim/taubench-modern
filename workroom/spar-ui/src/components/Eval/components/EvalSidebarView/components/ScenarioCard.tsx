@@ -27,6 +27,7 @@ export interface ScenarioCardProps {
   currentRun: ScenarioRun | null;
   isRunning: boolean;
   isAnyTestRunning: boolean;
+  isBatchRunning: boolean;
   selectedTrials: number;
   expandedResults: boolean;
   onRunTest: (numTrials: number) => void;
@@ -43,6 +44,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
   currentRun,
   isRunning,
   isAnyTestRunning,
+  isBatchRunning,
   selectedTrials,
   expandedResults,
   onRunTest,
@@ -186,7 +188,7 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
             <Button
               variant="outline"
               round
-              disabled={isAnyTestRunning}
+              disabled={isBatchRunning}
               icon={IconPlay}
               onClick={() => onRunTest(selectedTrials)}
             >
