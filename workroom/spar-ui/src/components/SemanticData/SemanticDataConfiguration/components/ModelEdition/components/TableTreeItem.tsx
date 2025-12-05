@@ -61,7 +61,7 @@ export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionI
     const dataSlectionTableIndex = dataSelection.findIndex((selection) => selection.name === baseTableName);
     const newDataSelection = [...dataSelection];
     newDataSelection[dataSlectionTableIndex].columns = newDataSelection[dataSlectionTableIndex].columns.filter(
-      (column) => column.name !== dimension.name,
+      (column) => column.name !== dimension.expr,
     );
     setValue('dataSelection', newDataSelection);
   };

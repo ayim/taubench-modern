@@ -74,6 +74,9 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
           return {
             name: dimension.expr,
             data_type: dimension.data_type,
+            sample_values: dimension.sample_values,
+            synonyms: dimension.synonyms,
+            description: dimension.description,
           };
         }),
       };
