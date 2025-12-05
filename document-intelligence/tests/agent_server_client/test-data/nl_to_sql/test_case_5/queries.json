@@ -1,0 +1,56 @@
+{
+  "category": "Multi-Document Queries",
+  "queries": [
+    {
+      "name": "cross_document_total",
+      "nl_query": "what is the total payment amount for all customer payments",
+      "expected_result": [{ "total_payment_amount": 1338.46 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "cross_document_customer_totals",
+      "nl_query": "what is the total payment amount for each customer",
+      "expected_result": [
+        { "customer_id": "CUST_001", "customer_name": "John Doe", "total_payment_amount": 465.24 },
+        { "customer_id": "CUST_002", "customer_name": "Jane Smith", "total_payment_amount": 259.04 },
+        { "customer_id": "CUST_003", "customer_name": "Bob Johnson", "total_payment_amount": 378.44 },
+        { "customer_id": "CUST_004", "customer_name": "Alice Brown", "total_payment_amount": 235.74 }
+      ],
+      "grouping_columns": ["customer_id", "customer_name"],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "cross_document_payment_methods",
+      "nl_query": "how many payments were made with each payment method",
+      "expected_result": [
+        { "payment_method": "credit_card", "payment_count": 6 },
+        { "payment_method": "paypal", "payment_count": 4 }
+      ],
+      "grouping_columns": ["payment_method"],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "cross_document_average_by_method",
+      "nl_query": "what is the average payment amount for each payment method",
+      "expected_result": [
+        { "payment_method": "credit_card", "average_payment_amount": 161.32666666666665 },
+        { "payment_method": "paypal", "average_payment_amount": 92.625 }
+      ],
+      "grouping_columns": ["payment_method"],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "cross_document_date_range",
+      "nl_query": "show payments from March 2023 onwards",
+      "expected_result": [
+        { "payment_date": "2023-03-10", "payment_amount": 245.75 },
+        { "payment_date": "2023-03-25", "payment_amount": 189.99 },
+        { "payment_date": "2023-04-05", "payment_amount": 156.8 },
+        { "payment_date": "2023-05-20", "payment_amount": 78.45 },
+        { "payment_date": "2023-06-15", "payment_amount": 34.99 },
+        { "payment_date": "2023-07-08", "payment_amount": 45.75 }
+      ],
+      "comparison_mode": "exact_match"
+    }
+  ]
+}

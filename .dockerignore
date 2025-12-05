@@ -58,6 +58,9 @@ conftest.py
 .pytest_cache/
 test-*/
 
+# Document intelligence tests (keep source code, exclude tests)
+document-intelligence/tests/
+
 # Client SDKs (not needed for server build)
 packages/
 

@@ -1,0 +1,62 @@
+[
+  {
+    "path": "customer.id",
+    "name": "CUSTOMER_ID",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "customer.name",
+    "name": "CUSTOMER_NAME",
+    "format": { "type": "string", "attributes": { "length": 100 } }
+  },
+  {
+    "path": "orders[].id",
+    "name": "ORDER_ID",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "orders[].date",
+    "name": "ORDER_DATE",
+    "format": { "type": "date" }
+  },
+  {
+    "path": "orders[].items[].sku",
+    "name": "ITEM_SKU",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "orders[].items[].name",
+    "name": "ITEM_NAME",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "orders[].items[].qty",
+    "name": "ITEM_QUANTITY",
+    "format": { "type": "integer" }
+  },
+  {
+    "path": "orders[].items[].price",
+    "name": "ITEM_PRICE",
+    "format": { "type": "number", "attributes": { "precision": 10, "scale": 2 } }
+  },
+  {
+    "path": "payments[].id",
+    "name": "PAYMENT_ID",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "payments[].order_id",
+    "name": "PAYMENT_ORDER_ID",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "payments[].amount",
+    "name": "PAYMENT_AMOUNT",
+    "format": { "type": "number", "attributes": { "precision": 12, "scale": 2 } }
+  },
+  {
+    "path": "payments[].method",
+    "name": "PAYMENT_METHOD",
+    "format": { "type": "string" }
+  }
+]

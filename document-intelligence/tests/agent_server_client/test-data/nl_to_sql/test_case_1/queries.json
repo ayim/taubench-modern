@@ -1,0 +1,41 @@
+{
+  "category": "Select Queries",
+  "queries": [
+    {
+      "name": "single_column_single_record",
+      "nl_query": "what is the name of the customer CUST_001",
+      "expected_result": [{ "customer_name": "John Doe" }],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "single_column_multiple_records",
+      "nl_query": "show me all payment ids",
+      "expected_result": [
+        { "payment_id": "PAY_2023_001" },
+        { "payment_id": "PAY_2023_002" },
+        { "payment_id": "PAY_2023_003" }
+      ],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "multiple_columns_single_record",
+      "nl_query": "whats the name and email of customer CUST_001",
+      "expected_result": [{ "customer_name": "John Doe", "customer_email": "john.doe@email.com" }],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "multiple_columns_multiple_records",
+      "nl_query": "Show me all payment details",
+      "expected_result": [
+        { "payment_id": "PAY_2023_001", "payment_amount": 129.99 },
+        { "payment_id": "PAY_2023_002", "payment_amount": 89.5 },
+        { "payment_id": "PAY_2023_003", "payment_amount": 245.75 }
+      ],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "exact_match"
+    }
+  ]
+}

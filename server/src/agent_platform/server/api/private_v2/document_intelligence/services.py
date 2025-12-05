@@ -411,9 +411,14 @@ def _create_job_result(result: Any, job_id: str) -> JobResult:
             # result can't be typed, but citations has some structure.
             #
             # We expect that we only get single results because we haven't enabled chunking.
+            citations = (
+                extract_resp.citations[0]
+                if (extract_resp.citations and len(extract_resp.citations) > 0)
+                else None
+            )
             return ExtractJobResult(
                 result=extract_resp.result[0],  # type: ignore
-                citations=extract_resp.citations[0] if extract_resp.citations else None,  # type: ignore
+                citations=citations,  # type: ignore
                 job_id=job_id,
             )
         case SplitResponse(result=SplitResult() as split_result):

@@ -1,0 +1,123 @@
+{
+  "type": "object",
+  "required": ["Invoice_details", "Buyer", "Seller", "Transactions"],
+  "properties": {
+    "Buyer": {
+      "type": "object",
+      "required": ["name", "address", "email", "phone_no"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone_no": {
+          "type": "string"
+        }
+      }
+    },
+    "Seller": {
+      "type": "object",
+      "required": ["name", "address", "email", "phone_no"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone_no": {
+          "type": "string"
+        }
+      }
+    },
+    "Transactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "deal_date",
+          "type",
+          "amount",
+          "price",
+          "volume",
+          "pipeline",
+          "location",
+          "start_date",
+          "end_date",
+          "deal_id"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "volume": {
+            "type": "number"
+          },
+          "deal_id": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "location": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "deal_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
+    },
+    "Invoice_details": {
+      "type": "object",
+      "required": ["invoice_number", "invoice_total", "tax_amount", "invoice_date", "delivery_peried", "due_date"],
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "tax_amount": {
+          "type": "number"
+        },
+        "invoice_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "invoice_total": {
+          "type": "number"
+        },
+        "invoice_number": {
+          "type": "string"
+        },
+        "delivery_peried": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

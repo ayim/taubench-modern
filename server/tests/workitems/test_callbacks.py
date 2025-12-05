@@ -347,7 +347,7 @@ class TestWorkItemsCallbacks:
         received_requests = []
 
         class TestRequestHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
@@ -461,7 +461,7 @@ class TestWorkItemsCallbacks:
         received_requests = []
 
         class TestRequestHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
@@ -580,7 +580,7 @@ class TestWorkItemsCallbacks:
         received_requests = []
 
         class TestRequestHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
@@ -698,7 +698,7 @@ class TestWorkItemsCallbacks:
         received_requests = []
 
         class CallbackHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
                 received_requests.append(json.loads(body))
@@ -762,7 +762,7 @@ class TestWorkItemsCallbacks:
         received_requests = []
 
         class TestRequestHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
@@ -825,7 +825,7 @@ class TestWorkItemsCallbacks:
         received_requests = []
 
         class TestRequestHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 

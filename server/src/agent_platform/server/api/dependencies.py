@@ -303,7 +303,7 @@ DocIntDatasourceDependency = Annotated[DataSource, Depends(get_docint_datasource
 
 
 async def get_agent_server_transport(
-    request: Request, agent_id: str, thread_id: str | None = None
+    request: Request, agent_id: str | None = None, thread_id: str | None = None
 ) -> MemoryTransport:
     """Get an agent server transport from the sema4ai-docint package for use in DIv2.
 

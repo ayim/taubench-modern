@@ -1,0 +1,3 @@
+{
+  "INVOICES_TRANSACTIONS": "CREATE VIEW test_project.INVOICES_TRANSACTIONS AS ( SELECT docs.id AS DOCUMENT_ID, docs.document_name AS DOCUMENT_NAME, docs.document_layout AS DOCUMENT_LAYOUT , CAST(doc->'customer'->>'id' AS VARCHAR) AS CUSTOMER_ID, CAST(doc->'customer'->>'name' AS VARCHAR) AS CUSTOMER_NAME, CAST(json_array_elements(doc->'transactions')->>'id' AS VARCHAR) AS TRANSACTION_ID, CAST(json_array_elements(doc->'transactions')->>'trade_date' AS VARCHAR) AS TRANSACTION_DATE, CAST(json_array_elements(doc->'transactions')->>'buy_sell' AS VARCHAR) AS TRANSACTION_TYPE, TRY_TO_NUMBER(json_array_elements(doc->'transactions')->>'amount') AS TRANSACTION_AMOUNT FROM `local_datasource`.docs AS docs WHERE docs.data_model = 'invoices' );"
+}

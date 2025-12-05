@@ -94,6 +94,9 @@ def action_server_executable_path() -> Path:
 
 @pytest.fixture
 def action_server_process(tmpdir, action_server_executable_path: Path):
+    import subprocess
+    import threading
+
     from agent_platform.orchestrator.bootstrap_action_server import ActionServerProcess
 
     action_server_process = ActionServerProcess(
@@ -101,7 +104,42 @@ def action_server_process(tmpdir, action_server_executable_path: Path):
         executable_path=action_server_executable_path,
     )
     yield action_server_process
-    action_server_process.stop()
+
+    # Stop with timeout to prevent indefinite hangs during teardown
+    stop_timeout = 30  # seconds
+    stop_event = threading.Event()
+
+    def stop_with_timeout():
+        try:
+            action_server_process.stop()
+        finally:
+            stop_event.set()
+
+    stop_thread = threading.Thread(target=stop_with_timeout, daemon=True)
+    stop_thread.start()
+    stop_thread.join(timeout=stop_timeout)
+
+    if not stop_event.is_set():
+        log.error(
+            f"Action server process did not stop within {stop_timeout}s timeout. "
+            "This may indicate a hung subprocess. Attempting forceful cleanup..."
+        )
+        # Try to forcefully kill the process if we have access to it
+        if hasattr(action_server_process, "_process") and action_server_process._process:
+            try:
+                pid = action_server_process._process.pid
+                log.warning(f"Sending SIGKILL to action server process tree (PID: {pid})")
+                subprocess.run(
+                    ["pkill", "-9", "-P", str(pid)],
+                    capture_output=True,
+                    timeout=5,
+                    check=False,
+                )
+                subprocess.run(
+                    ["kill", "-9", str(pid)], capture_output=True, timeout=5, check=False
+                )
+            except Exception as e:
+                log.error(f"Failed to forcefully kill action server process: {e}")
 
 
 @pytest.fixture(scope="session")

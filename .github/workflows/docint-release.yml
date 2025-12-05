@@ -1,0 +1,55 @@
+name: sema4ai-docint Release to PyPI
+
+on:
+  push:
+    tags:
+      - 'sema4ai-docint-*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    env:
+      UV_PYTHON: python3.12
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+
+      - name: Install UV
+        run: pipx install uv
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install invoke
+        run: pip install "invoke>=2.2.0,<3.0.0"
+
+      - name: Install project dependencies
+        run: invoke install
+        working-directory: './document-intelligence'
+
+      - name: Run checks
+        run: invoke lint
+        # Should add inv typecheck later
+        working-directory: './document-intelligence'
+
+      - name: Build project
+        run: invoke build
+        working-directory: './document-intelligence'
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sema4ai-docint-wheel
+          path: document-intelligence/dist/*.whl
+          retention-days: 30
+
+      - name: Upload to PyPI
+        run: invoke publish --token ${{ secrets.PYPI_TOKEN_SEMA4AI_DOCINT }}
+        working-directory: './document-intelligence'

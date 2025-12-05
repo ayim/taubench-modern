@@ -1,4 +1,4 @@
-# ruff: noqa: PLR0912, PLR0915
+# ruff: noqa: PLR0915
 """Integration tests for semantic data model API endpoints."""
 
 import pytest

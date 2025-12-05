@@ -43,9 +43,6 @@ else
 RUNNER_TEMP      ?= /tmp
 endif
 
-DOCINT_PATH := ../document-intelligence
-
-
 # --------------------------------------------------------------------
 # Help
 # --------------------------------------------------------------------
@@ -591,19 +588,6 @@ update-interface:
 				--force 2> /dev/null; \
 		fi \
 	)
-
-# --------------------------------------------------------------------
-# Document Intelligence
-# --------------------------------------------------------------------
-dev-docint-up:
-	echo "Installing sema4ai-docint in editable mode..."
-	uv add --editable $(DOCINT_PATH)/document-intelligence-core/sema4ai-docint
-
-dev-docint-down:
-	echo "Removing sema4ai-docint from editable mode..."
-	uv remove --frozen sema4ai-docint
-	$(MAKE) sync
-
 
 # --------------------------------------------------------------------
 # All

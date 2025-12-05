@@ -16244,8 +16244,8 @@ export interface operations {
   };
   create_data_model_document_intelligence_data_models_post: {
     parameters: {
-      query: {
-        agent_id: string;
+      query?: {
+        agent_id?: string | null;
         thread_id?: string | null;
       };
       header?: never;
@@ -16383,7 +16383,7 @@ export interface operations {
     parameters: {
       query: {
         thread_id: string;
-        agent_id: string;
+        agent_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -16420,7 +16420,7 @@ export interface operations {
       query: {
         thread_id: string;
         file_ref: string;
-        agent_id: string;
+        agent_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -16451,8 +16451,8 @@ export interface operations {
   generate_schema_modifications_document_intelligence_data_models_modify_post: {
     parameters: {
       query: {
-        thread_id: string;
         agent_id: string;
+        thread_id: string;
       };
       header?: never;
       path?: never;
@@ -16486,8 +16486,8 @@ export interface operations {
   };
   generate_quality_checks_document_intelligence_quality_checks_generate_post: {
     parameters: {
-      query: {
-        agent_id: string;
+      query?: {
+        agent_id?: string | null;
         thread_id?: string | null;
       };
       header?: never;
@@ -16714,7 +16714,7 @@ export interface operations {
       query: {
         data_model_name: string;
         thread_id: string;
-        agent_id: string;
+        agent_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -16752,7 +16752,7 @@ export interface operations {
         thread_id: string;
         /** @description Force re-generation of the schema. */
         force?: boolean;
-        agent_id: string;
+        agent_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -16930,7 +16930,7 @@ export interface operations {
         thread_id: string;
         data_model_name: string;
         layout_name: string;
-        agent_id: string;
+        agent_id?: string | null;
       };
       header?: never;
       path?: never;

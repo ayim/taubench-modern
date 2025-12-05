@@ -1,0 +1,95 @@
+{
+  "category": "Aggregation Queries",
+  "queries": [
+    {
+      "name": "sum_payments",
+      "nl_query": "what is the total payment amount",
+      "expected_result": [{ "total_payment_amount": 1338.46 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "count_payments",
+      "nl_query": "how many payments are there",
+      "expected_result": [{ "payment_count": 10 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "average_payment",
+      "nl_query": "what is the average payment amount",
+      "expected_result": [{ "average_payment_amount": 133.846 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "min_payment",
+      "nl_query": "what is the smallest payment amount",
+      "expected_result": [{ "minimum_payment_amount": 34.99 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "max_payment",
+      "nl_query": "what is the largest payment amount",
+      "expected_result": [{ "maximum_payment_amount": 299.99 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "multiple_aggregations",
+      "nl_query": "show me the total amount and count of payments",
+      "expected_result": [{ "total_payment_amount": 1338.46, "payment_count": 10 }],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "grouped_customer_totals",
+      "nl_query": "what is the total payment amount for each customer",
+      "expected_result": [
+        {
+          "customer_id": "CUST_001",
+          "customer_name": "John Doe",
+          "total_payment_amount": 465.24
+        },
+        {
+          "customer_id": "CUST_002",
+          "customer_name": "Jane Smith",
+          "total_payment_amount": 259.04
+        },
+        {
+          "customer_id": "CUST_003",
+          "customer_name": "Bob Johnson",
+          "total_payment_amount": 378.44
+        },
+        {
+          "customer_id": "CUST_004",
+          "customer_name": "Alice Brown",
+          "total_payment_amount": 235.74
+        }
+      ],
+      "grouping_columns": ["customer_id", "customer_name"],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "grouped_payment_methods",
+      "nl_query": "how many payments were made with each payment method",
+      "expected_result": [
+        { "payment_method": "credit_card", "payment_count": 6 },
+        { "payment_method": "paypal", "payment_count": 4 }
+      ],
+      "grouping_columns": ["payment_method"],
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "single_document_total",
+      "nl_query": "what is the total payment amount for John Doe's statement",
+      "expected_result": [{ "total_payment_amount": 465.24 }],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "flexible_match"
+    },
+    {
+      "name": "aggregate_with_non_aggregate_column_requires_group_by",
+      "nl_query": "what is the total payment amount and customer name for John Doe's statement",
+      "expected_result": [{ "total_payment_amount": 465.24, "customer_name": "John Doe" }],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "flexible_match",
+      "validate_group_by": true,
+      "required_group_by_columns": ["customer_name"]
+    }
+  ]
+}

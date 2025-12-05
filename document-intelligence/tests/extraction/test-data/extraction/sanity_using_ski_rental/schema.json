@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Equipment Inspection Record",
+  "description": "Schema representing an equipment inspection report, including metadata, inspection summary, and detailed component evaluations.",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "The name of the company conducting the inspection, as shown at the top of the document."
+    },
+    "company_address": {
+      "type": "string",
+      "description": "The address of the company, including street, city, and state."
+    },
+    "company_phone": {
+      "type": "string",
+      "description": "The contact phone number for the company."
+    },
+    "inspection_title": {
+      "type": "string",
+      "description": "The title of the inspection document, typically 'EQUIPMENT INSPECTION'."
+    },
+    "machine": {
+      "type": "string",
+      "description": "The name or type of the machine being inspected."
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "The serial number of the machine under inspection."
+    },
+    "inspection_grade": {
+      "type": "string",
+      "description": "The overall assessment or grade given to the machine after inspection."
+    },
+    "inspection_summary": {
+      "type": "string",
+      "description": "A narrative summary describing the inspection process, findings, and recommendations."
+    },
+    "component_evaluations": {
+      "type": "array",
+      "description": "A list of evaluations for each major component or system of the equipment, as detailed in the inspection table.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string",
+            "description": "The name of the equipment component or system evaluated."
+          },
+          "condition": {
+            "type": "string",
+            "description": "A qualitative assessment of the component's condition, e.g., 'Good'."
+          },
+          "passed": {
+            "type": "string",
+            "description": "Indicates whether the component passed inspection, typically represented by a checkmark or similar notation."
+          }
+        },
+        "required": ["component", "condition", "passed"]
+      }
+    },
+    "inspected_by": {
+      "type": "string",
+      "description": "The name of the individual who performed the inspection."
+    },
+    "inspection_date": {
+      "type": "string",
+      "description": "The date the inspection was completed, formatted as YYYY-MM-DD."
+    }
+  },
+  "required": [
+    "company_name",
+    "company_address",
+    "company_phone",
+    "inspection_title",
+    "machine",
+    "serial_number",
+    "inspection_grade",
+    "inspection_summary",
+    "component_evaluations",
+    "inspected_by",
+    "inspection_date"
+  ]
+}

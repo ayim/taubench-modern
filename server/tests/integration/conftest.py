@@ -27,7 +27,7 @@ class CallbackServer:
         callback_server = self
 
         class CallbackHandler(BaseHTTPRequestHandler):
-            def do_POST(self):  # noqa: N802
+            def do_POST(self):
                 # Only accept requests to the /webhook path
                 if self.path != "/webhook":
                     self.send_response(404)

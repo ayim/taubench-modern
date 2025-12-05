@@ -705,8 +705,8 @@ def test_async_action_polling_with_fast_retry_interval(
     action_server_process.start(
         cwd=cwd,
         actions_sync=True,
-        min_processes=1,
-        max_processes=1,
+        min_processes=2,
+        max_processes=4,
         reuse_processes=True,
         lint=True,
         timeout=500,  # Can be slow (time to bootstrap env)

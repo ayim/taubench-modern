@@ -19,10 +19,13 @@ from agent_platform.core.platforms.reducto.converters import ReductoConverters
 from agent_platform.core.platforms.reducto.parameters import ReductoPlatformParameters
 from agent_platform.core.platforms.reducto.parsers import ReductoParsers
 from agent_platform.core.platforms.reducto.prompts import ReductoPrompt
-from agent_platform.core.platforms.reducto.reducto import PollingReductoClient
 from agent_platform.core.responses.response import ResponseMessage
 
 if TYPE_CHECKING:
+    from sema4ai_docint.agent_server_client.transport.base import TransportBase
+    from sema4ai_docint.extraction.reducto import AsyncExtractionClient
+    from sema4ai_docint.services.persistence.base import ParsedDocumentPersistence
+
     from agent_platform.core.context import AgentServerContext
     from agent_platform.core.kernel import Kernel
 
@@ -47,7 +50,7 @@ class ReductoClient(
         self,
         *,
         kernel: "Kernel | None" = None,
-        parameters: ReductoPlatformParameters | None = None,
+        parameters: ReductoPlatformParameters,
         **kwargs: Any,
     ):
         super().__init__(
@@ -55,15 +58,8 @@ class ReductoClient(
             parameters=parameters,
             **kwargs,
         )
-        if parameters is None or self._parameters.reducto_api_key is None:
-            raise ValueError("Reducto API key is required")
-
-        self._reducto_client = PollingReductoClient(
-            self._parameters.reducto_api_url,
-            self._parameters.reducto_api_key.get_secret_value(),
-        )
-
-        # Optionally initialize a delegate client
+        self._extraction_service: AsyncExtractionClient | None = None
+        # Optionally initialize a delegate client for classify operations
         if self._parameters.delegate_kind:
             match self._parameters.delegate_kind:
                 case "openai":
@@ -81,29 +77,31 @@ class ReductoClient(
             logger.warning("No delegate configured for Reducto platform client")
             self._delegate = None
 
-    def _init_converters(self, kernel: "Kernel | None" = None) -> ReductoConverters:
-        converters = ReductoConverters()
-        if kernel is not None:
-            converters.attach_kernel(kernel)
-        return converters
+    @property
+    def extraction_service(self) -> "AsyncExtractionClient":
+        """Get the async extraction service for Reducto operations."""
+        from sema4ai_docint.extraction.reducto import AsyncExtractionClient
 
-    def _init_parameters(
-        self,
-        parameters: ReductoPlatformParameters | None = None,
-        **kwargs: Any,
-    ) -> ReductoPlatformParameters:
-        if parameters is None:
-            raise ValueError("Parameters are required for Reducto client")
-        return parameters
+        if not self._parameters.reducto_api_key:
+            raise ValueError("Reducto API key is required")
 
-    def _init_parsers(self) -> ReductoParsers:
-        return ReductoParsers()
+        if self._extraction_service is None:
+            # Create extraction service directly - no transport needed
+            self._extraction_service = AsyncExtractionClient(
+                api_key=self._parameters.reducto_api_key.get_secret_value(),
+                disable_ssl_verification=False,
+                base_url=self._parameters.reducto_api_url,
+            )
+        return self._extraction_service
 
     async def generate_response(
         self,
         prompt: ReductoPrompt,
         model: str,
         ctx: Optional["AgentServerContext"] = None,
+        *,
+        transport: Optional["TransportBase"] = None,
+        persistence: Optional["ParsedDocumentPersistence"] = None,
     ) -> ResponseMessage:
         """Generate a response from the Reducto platform.
 
@@ -111,48 +109,26 @@ class ReductoClient(
             prompt: The prompt to send to the model.
             model: The model to use for the generation.
             ctx: Optional AgentServerContext for telemetry.
+            transport: Optional transport for file access (required for parse/extract).
+            persistence: Optional persistence for caching parse results.
 
         Returns:
             A ResponseMessage with the model's response.
         """
-
         processed_prompt = prompt.as_platform_request(model)
-
         # Create a standard span with AgentServerContext
         with self.kernel.ctx.start_span("reducto_generate_response") as span:
             span.set_attribute("model", model)
             span.set_attribute("model_provider", "reducto")
 
             try:
-                # Upload the document to Reducto
-                uploaded_document = await self._reducto_client.upload(
-                    file=(
-                        processed_prompt.document_name,
-                        processed_prompt.document_bytes,
-                    ),
-                )
-
-                # Then, do some processing over it.
                 match prompt.operation:
-                    case "classify":
-                        return await self._classify(
-                            prompt=processed_prompt,
-                            uploaded_document=uploaded_document,
-                        )
-                        pass
                     case "parse":
-                        parse_response = await self._reducto_client.parse(
-                            prompt=processed_prompt,
-                            uploaded_document=uploaded_document,
-                        )
-
-                        return self.parsers.parse_response(parse_response)
+                        return await self._parse(prompt=processed_prompt)
+                    case "classify":
+                        return await self._classify(prompt=processed_prompt)
                     case "extract":
-                        extract_response = await self._reducto_client.extract(
-                            prompt=processed_prompt,
-                            uploaded_document=uploaded_document,
-                        )
-                        return self.parsers.parse_response(extract_response)
+                        return await self._extract(prompt)
                     case _:
                         raise ValueError(f"Unsupported operation: {prompt.operation}")
 
@@ -186,11 +162,111 @@ class ReductoClient(
     async def create_embeddings(self, texts: list[str], model: str) -> dict[str, Any]:
         raise NotImplementedError("Reducto does not support embeddings at this time")
 
-    async def _classify(
+    def _init_converters(self, kernel: "Kernel | None" = None) -> ReductoConverters:
+        converters = ReductoConverters()
+        if kernel is not None:
+            converters.attach_kernel(kernel)
+        return converters
+
+    def _init_parameters(
         self,
-        prompt: ReductoPrompt,
-        uploaded_document,
-    ) -> ResponseMessage:
+        parameters: ReductoPlatformParameters | None = None,
+        **kwargs: Any,
+    ) -> ReductoPlatformParameters:
+        if parameters is None:
+            raise ValueError("Parameters are required for Reducto client")
+        return parameters
+
+    def _init_parsers(self) -> ReductoParsers:
+        return ReductoParsers()
+
+    def _get_api_key(self) -> str:
+        """Get the Reducto API key, raising if not configured."""
+        if self._parameters.reducto_api_key is None:
+            raise ValueError("Reducto API key is required")
+        return self._parameters.reducto_api_key.get_secret_value()
+
+    async def _parse(self, prompt: ReductoPrompt) -> ResponseMessage:
+        """Parse a document using sema4ai-docint extraction service directly."""
+        from pathlib import Path
+
+        from agent_platform.server.data_frames.data_reader import get_file_metadata
+        from agent_platform.server.file_manager.utils import url_to_fs_path
+        from agent_platform.server.storage.option import StorageService
+
+        # Get the file metadata using file_ref
+        storage = StorageService.get_instance()
+        file_metadata = await get_file_metadata(
+            user_id=self.kernel.user.user_id,
+            thread_id=self.kernel.thread.thread_id,
+            storage=storage,
+            file_ref=prompt.file_name,
+        )
+
+        # Convert the file URL to a local filesystem path
+        if not file_metadata.file_path:
+            raise ValueError(f"File path not available for: {prompt.file_name}")
+
+        local_file_path = Path(url_to_fs_path(file_metadata.file_path))
+
+        # Extract parse options
+        full_output = False
+        if prompt.parse_options:
+            full_output = prompt.parse_options.full_output
+
+        # Upload and parse the document using the extraction service
+        reducto_id = await self.extraction_service.upload(local_file_path)
+        parse_response = await self.extraction_service.parse(reducto_id)
+
+        return self.parsers.parse_response(parse_response, full_output)
+
+    async def _extract(self, prompt: ReductoPrompt) -> ResponseMessage:
+        """Extract data from a document using build_extraction_service.extract_with_schema."""
+        import json
+        from pathlib import Path
+
+        from agent_platform.server.data_frames.data_reader import get_file_metadata
+        from agent_platform.server.file_manager.utils import url_to_fs_path
+        from agent_platform.server.storage.option import StorageService
+
+        extract_options = prompt.extract_options
+        if extract_options is None:
+            raise ValueError("Extract options are required for extract operation")
+
+        # Get the file metadata using file_ref
+        storage = StorageService.get_instance()
+        file_metadata = await get_file_metadata(
+            user_id=self.kernel.user.user_id,
+            thread_id=self.kernel.thread.thread_id,
+            storage=storage,
+            file_ref=prompt.file_name,
+        )
+
+        if not file_metadata.file_path:
+            raise ValueError(f"File path not available for: {prompt.file_name}")
+
+        local_file_path = Path(url_to_fs_path(file_metadata.file_path))
+
+        if isinstance(extract_options.extraction_schema, str):
+            extraction_schema = json.loads(extract_options.extraction_schema)
+        else:
+            extraction_schema = extract_options.extraction_schema
+
+        extract_resp = await self.extraction_service.extract_with_schema(
+            local_file_path,
+            extraction_schema,
+            prompt=prompt.system_prompt,
+            extraction_config=extract_options.extraction_config,
+            start_page=extract_options.start_page,
+            end_page=extract_options.end_page,
+        )
+
+        return self.parsers.parse_response(extract_resp)
+
+    async def _classify(self, prompt: ReductoPrompt) -> ResponseMessage:
+        """Classify a document by parsing it first, then using LLM delegation."""
+        from pathlib import Path
+
         from openai.types.responses import (
             ResponseInputItemParam,
             ResponseInputTextParam,
@@ -199,15 +275,33 @@ class ReductoClient(
             ResultURLResult,
         )
 
+        from agent_platform.server.data_frames.data_reader import get_file_metadata
+        from agent_platform.server.file_manager.utils import url_to_fs_path
+        from agent_platform.server.storage.option import StorageService
+
         if self._delegate is None:
             raise ValueError("Delegate client is required for classify operation")
         if prompt.system_prompt is None:
             raise ValueError("System prompt is required for classify operation")
 
-        parse_resp = await self._reducto_client.parse(
-            prompt=prompt,
-            uploaded_document=uploaded_document,
+        # Get the file metadata and local path
+        storage = StorageService.get_instance()
+        file_metadata = await get_file_metadata(
+            user_id=self.kernel.user.user_id,
+            thread_id=self.kernel.thread.thread_id,
+            storage=storage,
+            file_ref=prompt.file_name,
         )
+
+        if not file_metadata.file_path:
+            raise ValueError(f"File path not available for: {prompt.file_name}")
+
+        local_file_path = Path(url_to_fs_path(file_metadata.file_path))
+
+        # Upload and parse the document
+        reducto_id = await self.extraction_service.upload(local_file_path)
+        parse_resp = await self.extraction_service.parse(reducto_id)
+
         if isinstance(parse_resp.result, ResultURLResult):
             raise ValueError("Parse response is a URL result, cannot classify")
 

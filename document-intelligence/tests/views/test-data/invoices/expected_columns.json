@@ -1,0 +1,26 @@
+[
+  {
+    "name": "CUSTOMER_ID",
+    "type": "text"
+  },
+  {
+    "name": "CUSTOMER_NAME",
+    "type": "text"
+  },
+  {
+    "name": "TRANSACTION_ID",
+    "type": "text"
+  },
+  {
+    "name": "TRANSACTION_DATE",
+    "type": "text"
+  },
+  {
+    "name": "TRANSACTION_TYPE",
+    "type": "text"
+  },
+  {
+    "name": "TRANSACTION_AMOUNT",
+    "type": "decimal"
+  }
+]

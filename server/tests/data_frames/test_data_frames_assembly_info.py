@@ -1,4 +1,4 @@
-# ruff: noqa: PLR0912, PLR0913, PLR0915, C901, E501
+# ruff: noqa: PLR0913
 import typing
 from pathlib import Path
 

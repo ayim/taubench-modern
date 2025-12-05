@@ -1,0 +1,6 @@
+{
+  "python.testing.pytestArgs": ["."],
+  "python.testing.cwd": "${workspaceFolder}/document-intelligence-core/sema4ai-docint",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false
+}

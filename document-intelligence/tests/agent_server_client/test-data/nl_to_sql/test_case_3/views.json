@@ -1,0 +1,43 @@
+[
+  {
+    "name": "customer_payments",
+    "columns": [
+      {
+        "name": "document_id",
+        "type": "text"
+      },
+      {
+        "name": "customer_id",
+        "type": "text"
+      },
+      {
+        "name": "customer_name",
+        "type": "text"
+      },
+      {
+        "name": "customer_email",
+        "type": "text"
+      },
+      {
+        "name": "payment_id",
+        "type": "text"
+      },
+      {
+        "name": "order_id",
+        "type": "text"
+      },
+      {
+        "name": "payment_amount",
+        "type": "decimal"
+      },
+      {
+        "name": "payment_method",
+        "type": "text"
+      },
+      {
+        "name": "payment_date",
+        "type": "date"
+      }
+    ]
+  }
+]

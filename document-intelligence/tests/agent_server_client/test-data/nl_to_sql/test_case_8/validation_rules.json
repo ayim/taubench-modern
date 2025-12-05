@@ -1,0 +1,7 @@
+{
+  "use_case_description": "You should extract the following from every resume: candidate name, email, contact, job title, skills.",
+  "rules_description": "Every candidate should have at least one email",
+  "expected_result": [{ "is_valid": true, "email": "john.doe@gmail.com" }],
+  "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+  "comparison_mode": "flexible_match"
+}

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Annotated, Optional
+from typing import Annotated
 
 import pytest
 
@@ -28,7 +28,7 @@ class PersonData:
     """Simple dataclass to test nested object schema."""
 
     name: Annotated[str, "Name of the person"]
-    age: Optional[int] = None  # noqa: UP007 (we want to explicitly test)
+    age: int | None = None
     height: Annotated[float, "Height of the person in meters"] = 1.75
 
 

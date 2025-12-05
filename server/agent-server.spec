@@ -71,7 +71,15 @@ ibis_hiddenimports.extend(collect_submodules("ibis.backends.databricks"))
 sqlglot_hiddenimports = collect_submodules("sqlglot")
 
 numpy_datas, numpy_binaries, numpy_hiddenimports = collect_all("numpy")
+# Filter out test packages from numpy
+numpy_hiddenimports = [m for m in numpy_hiddenimports if ".tests" not in m and ".test" not in m]
+numpy_datas = [(src, dst) for src, dst in numpy_datas if "/tests/" not in src and "/test/" not in src]
+
 pandas_datas, pandas_binaries, pandas_hiddenimports = collect_all("pandas")
+# Filter out test packages from pandas - this can save 100+ MB
+pandas_hiddenimports = [m for m in pandas_hiddenimports if ".tests" not in m and ".test" not in m]
+pandas_datas = [(src, dst) for src, dst in pandas_datas if "/tests/" not in src and "/test/" not in src]
+
 databricks_datas, databricks_binaries, databricks_hiddenimports = collect_all("databricks.sql")
 
 
@@ -264,7 +272,19 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        # Exclude test packages to reduce binary size
+        "pandas.tests",
+        "numpy.tests",
+        "pytest",
+        "unittest",
+        "test",
+        "tests",
+        # Exclude unnecessary packages
+        "tkinter",
+        "matplotlib.tests",
+        "scipy.tests",
+    ],
     noarchive=False,
     optimize=0,
 )

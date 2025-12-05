@@ -1,0 +1,80 @@
+{
+  "category": "Filtering Queries",
+  "queries": [
+    {
+      "name": "customer_filter",
+      "nl_query": "show me all payments for CUST_001",
+      "expected_result": [
+        { "payment_id": "PAY_2023_001", "payment_amount": 129.99 },
+        { "payment_id": "PAY_2023_002", "payment_amount": 89.5 },
+        { "payment_id": "PAY_2023_003", "payment_amount": 245.75 }
+      ],
+      "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "amount_filter_greater_than",
+      "nl_query": "show payments over 100 dollars",
+      "expected_result": [
+        { "payment_id": "PAY_2023_001", "payment_amount": 129.99 },
+        { "payment_id": "PAY_2023_003", "payment_amount": 245.75 },
+        { "payment_id": "PAY_2023_005", "payment_amount": 156.8 },
+        { "payment_id": "PAY_2023_007", "payment_amount": 299.99 },
+        { "payment_id": "PAY_2023_009", "payment_amount": 189.99 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "amount_filter_less_than",
+      "nl_query": "show payments under 50 dollars",
+      "expected_result": [
+        { "payment_id": "PAY_2023_006", "payment_amount": 34.99 },
+        { "payment_id": "PAY_2023_010", "payment_amount": 45.75 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "date_filter",
+      "nl_query": "show payments from March 2023 onwards",
+      "expected_result": [
+        { "payment_date": "2023-03-10", "payment_amount": 245.75 },
+        { "payment_date": "2023-03-25", "payment_amount": 189.99 },
+        { "payment_date": "2023-04-05", "payment_amount": 156.8 },
+        { "payment_date": "2023-05-20", "payment_amount": 78.45 },
+        { "payment_date": "2023-06-15", "payment_amount": 34.99 },
+        { "payment_date": "2023-07-08", "payment_amount": 45.75 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "string_pattern_match",
+      "nl_query": "show customers with email containing 'johnson'",
+      "expected_result": [{ "customer_email": "bob.johnson@email.com", "customer_name": "Bob Johnson" }],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "payment_method_filter",
+      "nl_query": "show all credit card payments",
+      "expected_result": [
+        { "payment_id": "PAY_2023_001", "payment_amount": 129.99 },
+        { "payment_id": "PAY_2023_003", "payment_amount": 245.75 },
+        { "payment_id": "PAY_2023_004", "payment_amount": 67.25 },
+        { "payment_id": "PAY_2023_006", "payment_amount": 34.99 },
+        { "payment_id": "PAY_2023_007", "payment_amount": 299.99 },
+        { "payment_id": "PAY_2023_009", "payment_amount": 189.99 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "multiple_conditions",
+      "nl_query": "show credit card payments over 100 dollars",
+      "expected_result": [
+        { "payment_id": "PAY_2023_001", "payment_amount": 129.99 },
+        { "payment_id": "PAY_2023_003", "payment_amount": 245.75 },
+        { "payment_id": "PAY_2023_007", "payment_amount": 299.99 },
+        { "payment_id": "PAY_2023_009", "payment_amount": 189.99 }
+      ],
+      "comparison_mode": "exact_match"
+    }
+  ]
+}

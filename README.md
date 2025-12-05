@@ -189,13 +189,7 @@ In order to use the DIv2 endpoints, you will need to configure the data connecti
 
 ### Developing with Document Intelligence v2
 
-To develop with Document Intelligence v2, you will need to install it in editable mode. This can be done by running `make dev-docint-up`. To remove it, run `make dev-docint-down`. The target uses a default document-intelligence repository path of `../document-intelligence` so if you have it in a different location, you can override it by setting the `DOCINT_PATH` variable.
-
-Example:
-
-```sh
-DOCINT_PATH=../document-intelligence-worktree-1 make dev-docint-up
-```
+Document Intelligence is now part of the monorepo workspace. Changes to `document-intelligence/` will be automatically picked up by uv when you run `make sync`.
 
 #### Hot-reloading SPAR integration tests
 

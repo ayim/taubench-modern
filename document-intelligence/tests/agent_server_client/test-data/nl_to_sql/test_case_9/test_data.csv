@@ -1,0 +1,9 @@
+document_id,candidate_name,email,contact,job_title,skills,submission_date
+doc_550e8400-e29b-41d4-a716-446655440001,John Doe,john.doe@gmail.com,+1-555-1234,Software Engineer,"Python|Java|SQL",2024-01-15
+doc_550e8400-e29b-41d4-a716-446655440002,Jane Smith,jane.smith@company.com,jane@company.com,Data Analyst,"Python|R|SQL",2024-01-20
+doc_550e8400-e29b-41d4-a716-446655440003,Bob Johnson,bob@temp-mail.org,+1-555-5678,Product Manager,"Agile|Scrum",2024-01-25
+doc_550e8400-e29b-41d4-a716-446655440004,Alice Brown,alice.brown@email.com,+1-555-9012,UX Designer,"Figma|Sketch",2024-02-01
+doc_550e8400-e29b-41d4-a716-446655440005,Charlie Wilson,charlie@tech.com,+1-555-3456,DevOps Engineer,"Docker|Kubernetes",2024-02-05
+doc_550e8400-e29b-41d4-a716-446655440006,Sarah Davis,sarah.davis@email.com,+1-555-7890,Marketing Manager,"SEO|Social Media|Content",2023-12-15
+doc_550e8400-e29b-41d4-a716-446655440007,David Lee,david.lee@tech.com,+1-555-2345,Frontend Developer,"React|JavaScript|HTML",2023-11-20
+doc_550e8400-e29b-41d4-a716-446655440008,Emma Wilson,emma@design.com,+1-555-3456,Graphic Designer,"Photoshop|Illustrator|InDesign",2024-03-01 

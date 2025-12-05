@@ -1,0 +1,35 @@
+[
+  {
+    "name": "resume_data",
+    "columns": [
+      {
+        "name": "document_id",
+        "type": "text"
+      },
+      {
+        "name": "candidate_name",
+        "type": "text"
+      },
+      {
+        "name": "email",
+        "type": "text"
+      },
+      {
+        "name": "contact",
+        "type": "text"
+      },
+      {
+        "name": "job_title",
+        "type": "text"
+      },
+      {
+        "name": "skills",
+        "type": "text"
+      },
+      {
+        "name": "submission_date",
+        "type": "date"
+      }
+    ]
+  }
+]

@@ -1,0 +1,11 @@
+document_id,customer_id,customer_name,customer_email,payment_id,order_id,payment_amount,payment_method,payment_date
+doc_550e8400-e29b-41d4-a716-446655440001,CUST_001,John Doe,john.doe@email.com,PAY_2023_001,ORD_2023_001,129.99,credit_card,2023-01-15
+doc_550e8400-e29b-41d4-a716-446655440001,CUST_001,John Doe,john.doe@email.com,PAY_2023_002,ORD_2023_002,89.50,paypal,2023-02-20
+doc_550e8400-e29b-41d4-a716-446655440001,CUST_001,John Doe,john.doe@email.com,PAY_2023_003,ORD_2023_003,245.75,credit_card,2023-03-10
+doc_550e8400-e29b-41d4-a716-446655440002,CUST_002,Jane Smith,jane.smith@email.com,PAY_2023_004,ORD_2023_004,67.25,credit_card,2023-01-25
+doc_550e8400-e29b-41d4-a716-446655440002,CUST_002,Jane Smith,jane.smith@email.com,PAY_2023_005,ORD_2023_005,156.80,paypal,2023-04-05
+doc_550e8400-e29b-41d4-a716-446655440002,CUST_002,Jane Smith,jane.smith@email.com,PAY_2023_006,ORD_2023_006,34.99,credit_card,2023-06-15
+doc_550e8400-e29b-41d4-a716-446655440003,CUST_003,Bob Johnson,bob.johnson@email.com,PAY_2023_007,ORD_2023_007,299.99,credit_card,2023-02-10
+doc_550e8400-e29b-41d4-a716-446655440003,CUST_003,Bob Johnson,bob.johnson@email.com,PAY_2023_008,ORD_2023_008,78.45,paypal,2023-05-20
+doc_550e8400-e29b-41d4-a716-446655440004,CUST_004,Alice Brown,alice.brown@email.com,PAY_2023_009,ORD_2023_009,189.99,credit_card,2023-03-25
+doc_550e8400-e29b-41d4-a716-446655440004,CUST_004,Alice Brown,alice.brown@email.com,PAY_2023_010,ORD_2023_010,45.75,paypal,2023-07-08 

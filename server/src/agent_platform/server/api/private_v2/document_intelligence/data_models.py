@@ -53,6 +53,7 @@ async def create_data_model(
     payload: CreateDataModelRequest,
     docint_ds: DocIntDatasourceDependency,
     di_service: DIDependency,
+    agent_id: str | None = None,
 ) -> DataModelResponse:
     try:
         existing = DataModel.find_by_name(docint_ds, payload.data_model.name)
@@ -218,6 +219,7 @@ async def generate_data_model_description(
 @router.post("/data-models/modify")
 async def generate_schema_modifications(  # noqa: PLR0913
     payload: ModifySchemaRequestPayload,
+    agent_id: str,
     thread_id: str,
     user: AuthedUser,
     storage: StorageDependency,

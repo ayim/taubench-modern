@@ -1,0 +1,32 @@
+[
+  {
+    "path": "customer.id",
+    "name": "CUSTOMER_ID",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "customer.name",
+    "name": "CUSTOMER_NAME",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "transactions[].id",
+    "name": "TRANSACTION_ID",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "transactions[].trade_date",
+    "name": "TRANSACTION_DATE",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "transactions[].buy_sell",
+    "name": "TRANSACTION_TYPE",
+    "format": { "type": "string" }
+  },
+  {
+    "path": "transactions[].amount",
+    "name": "TRANSACTION_AMOUNT",
+    "format": { "type": "number", "attributes": { "precision": 10, "scale": 2 } }
+  }
+]

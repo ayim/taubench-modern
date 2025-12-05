@@ -1,10 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
-
-if TYPE_CHECKING:
-    from reducto.types import ExtractRunParams, ParseRunParams
-    from reducto.types.shared_params.array_extract_config import ArrayExtractConfig
+from typing import Any, Literal
 
 from agent_platform.core.platforms.base import PlatformPrompt
 
@@ -14,6 +10,61 @@ logger = logging.getLogger(__name__)
 DEFAULT_EXTRACT_SYSTEM_PROMPT = (
     "Be precise and thorough. Mark required, missing fields as null. Omit optional fields."
 )
+
+
+@dataclass(frozen=True)
+class ExtractOptions:
+    """Options for the extract operation."""
+
+    extraction_schema: str | dict[str, Any] = field(
+        metadata={
+            "description": (
+                "The JSONSchema which describes the desired extracted output from the file."
+            )
+        }
+    )
+    """The schema to use for the extract operation."""
+
+    extraction_config: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={"description": "Advanced Reducto configuration."},
+    )
+    """Advanced Reducto configuration."""
+
+    start_page: int | None = field(
+        default=None,
+        metadata={"description": "The start page of the file to extract from."},
+    )
+    """The start page of the file to extract from."""
+
+    end_page: int | None = field(
+        default=None,
+        metadata={"description": "The end page of the file to extract from."},
+    )
+    """The end page of the file to extract from."""
+
+
+@dataclass(frozen=True)
+class ParseOptions:
+    """Options for the parse operation."""
+
+    full_output: bool = field(
+        default=False,
+        metadata={
+            "description": (
+                "If True, returns complete document structure with coordinates, metadata, "
+                "and job details (recommended for tables/complex documents). If False, "
+                "returns only basic text content."
+            )
+        },
+    )
+    """If True, returns complete document structure."""
+
+    force_reload: bool = field(
+        default=False,
+        metadata={"description": "Force a new parse even if the file has already been parsed."},
+    )
+    """Force a new parse even if the file has already been parsed."""
 
 
 @dataclass(frozen=True)
@@ -27,19 +78,12 @@ class ReductoPrompt(PlatformPrompt):
     )
     """The operation this prompt wishes to perform."""
 
-    document_name: str = field(
+    file_name: str = field(
         metadata={
             "description": "The name of the document to use for the operation.",
         },
     )
     """The name of the document to use for the operation."""
-
-    document_bytes: bytes = field(
-        metadata={
-            "description": "The bytes of the document to use for the operation.",
-        },
-    )
-    """The bytes of the document to use for the operation."""
 
     system_prompt: str | None = field(
         default=None,
@@ -49,7 +93,7 @@ class ReductoPrompt(PlatformPrompt):
     )
     """A system prompt to use for the operation."""
 
-    parse_options: "ParseRunParams | None" = field(
+    parse_options: ParseOptions | None = field(
         default=None,
         metadata={
             "description": "Options to use if this prompt is for a parse operation.",
@@ -57,7 +101,7 @@ class ReductoPrompt(PlatformPrompt):
     )
     """Options to use if this prompt is for a parse operation."""
 
-    extract_options: "ExtractRunParams | None" = field(
+    extract_options: ExtractOptions | None = field(
         default=None,
         metadata={
             "description": "Options to use if this prompt is for an extract operation.",
@@ -77,152 +121,9 @@ class ReductoPrompt(PlatformPrompt):
 
         For now, we will just return the prompt as is.
         """
-        from reducto.types import (
-            ExtractRunParams,
-            ParseRunParams,
-        )
-        from reducto.types.shared_params import (
-            AdvancedProcessingOptions,
-            BaseProcessingOptions,
-            PageRange,
-        )
-        from reducto.types.shared_params.advanced_processing_options import (
-            LargeTableChunking,
-        )
-        from reducto.types.shared_params.base_processing_options import (
-            Chunking,
-            FigureSummary,
-            TableSummary,
-        )
-
-        parse_options = self.parse_options
-        if self.operation in {"parse", "classify"} and parse_options is None:
-            parse_options = ParseRunParams(
-                document_url="unset",
-                options=BaseProcessingOptions(
-                    extraction_mode="ocr",
-                    ocr_mode="standard",
-                    chunking=Chunking(
-                        chunk_mode="disabled",
-                    ),
-                    table_summary=TableSummary(
-                        enabled=False,
-                    ),
-                    figure_summary=FigureSummary(
-                        enabled=False,
-                    ),
-                    filter_blocks=[
-                        "Comment",
-                        "Footer",
-                        "Header",
-                        "Page Number",
-                    ],
-                    force_url_result=False,
-                ),
-                advanced_options=AdvancedProcessingOptions(
-                    ocr_system="highres",
-                    table_output_format="html",
-                    merge_tables=False,
-                    continue_hierarchy=True,
-                    keep_line_breaks=False,
-                    page_range=PageRange(
-                        start=None,
-                        end=None,
-                    ),
-                    large_table_chunking=LargeTableChunking(
-                        enabled=True,
-                        size=50,
-                    ),
-                    spreadsheet_table_clustering="default",
-                    remove_text_formatting=False,
-                    filter_line_numbers=False,
-                ),
-                experimental_options={
-                    # This might not be typeable always, as they
-                    # could add things to the backend before updating
-                    # the client library.
-                    "enrich": {"enabled": False, "mode": "standard"},
-                    "native_office_conversion": False,
-                    "enable_checkboxes": False,
-                    "rotate_pages": False,
-                    "enable_underlines": False,
-                    "enable_equations": False,
-                    "return_figure_images": False,
-                    "layout_enrichment": False,
-                    "layout_model": "default",
-                },
-            )
-
-        extract_options = self.extract_options
-        if self.operation == "extract" and extract_options is None:
-            extract_options = ExtractRunParams(
-                document_url="unset",
-                schema={},  # TODO: where from prompt do we get this?
-                options=BaseProcessingOptions(
-                    extraction_mode="ocr",
-                    ocr_mode="standard",
-                    chunking=Chunking(
-                        chunk_mode="disabled",
-                    ),
-                    table_summary=TableSummary(
-                        enabled=False,
-                    ),
-                    figure_summary=FigureSummary(
-                        enabled=False,
-                    ),
-                    filter_blocks=[
-                        "Comment",
-                        "Footer",
-                        "Header",
-                        "Page Number",
-                    ],
-                    force_url_result=False,
-                ),
-                advanced_options=AdvancedProcessingOptions(
-                    ocr_system="highres",
-                    table_output_format="html",
-                    merge_tables=False,
-                    continue_hierarchy=True,
-                    keep_line_breaks=False,
-                    page_range=PageRange(
-                        start=None,
-                        end=None,
-                    ),
-                    large_table_chunking=LargeTableChunking(
-                        enabled=True,
-                        size=50,
-                    ),
-                    spreadsheet_table_clustering="default",
-                    remove_text_formatting=False,
-                    filter_line_numbers=False,
-                ),
-                array_extract=ArrayExtractConfig(
-                    enabled=False,
-                    # Let the mode default to legacy, don't set it to streaming
-                ),
-                experimental_options={
-                    # This might not be typeable always, as they
-                    # could add things to the backend before updating
-                    # the client library.
-                    "enrich": {"enabled": False, "mode": "standard"},
-                    "native_office_conversion": False,
-                    "enable_checkboxes": False,
-                    "rotate_pages": False,
-                    "enable_underlines": False,
-                    "enable_equations": False,
-                    "return_figure_images": False,
-                    "layout_enrichment": False,
-                    "layout_model": "default",
-                },
-                generate_citations=True,
-                system_prompt=self.system_prompt or DEFAULT_EXTRACT_SYSTEM_PROMPT,
-            )
 
         return ReductoPrompt(
             operation=self.operation,
-            document_name=self.document_name,
-            document_bytes=self.document_bytes,
+            file_name=self.file_name,
             system_prompt=self.system_prompt,
-            parse_options=parse_options,
-            extract_options=extract_options,
         )

@@ -49,7 +49,7 @@ env:
 jobs:
   build:
     name: Build SPAR
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.build-metadata.outputs.tag }}
       image-uri: ${{ steps.print-image-uri.outputs.image-uri }}
@@ -153,8 +153,9 @@ jobs:
           context: '.'
           push: true
           tags: '${{ env.repository }}:${{ env.tag }}'
+          outputs: type=registry
           cache-from: type=registry,ref=${{ env.cache-repository }}:build-cache,timeout=1m
-          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache,ignore-error=true,timeout=3m
+          cache-to: type=registry,mode=min,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache,ignore-error=true,timeout=3m
           provenance: false
           secret-files: |
             "npmrc=./.npmrc"

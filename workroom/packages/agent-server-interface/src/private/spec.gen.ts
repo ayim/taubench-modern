@@ -4290,9 +4290,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },
@@ -4506,9 +4513,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },
@@ -4576,9 +4590,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },
@@ -4617,21 +4638,21 @@ export const spec = {
           'generate_schema_modifications_document_intelligence_data_models_modify_post',
         parameters: [
           {
-            name: 'thread_id',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              title: 'Thread Id',
-            },
-          },
-          {
             name: 'agent_id',
             in: 'query',
             required: true,
             schema: {
               type: 'string',
               title: 'Agent Id',
+            },
+          },
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
             },
           },
         ],
@@ -4679,9 +4700,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },
@@ -5026,9 +5054,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },
@@ -5099,9 +5134,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },
@@ -5392,9 +5434,16 @@ export const spec = {
           {
             name: 'agent_id',
             in: 'query',
-            required: true,
+            required: false,
             schema: {
-              type: 'string',
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
               title: 'Agent Id',
             },
           },

@@ -105,7 +105,7 @@ class ReductoConverters(PlatformConverters, UsesKernelMixin):
                 "Expected a document content item in the message",
             )
 
-        document_name, document_bytes = await self.convert_document_content(
+        file_name, _document_bytes = await self.convert_document_content(
             prompt.finalized_messages[0].content[0],
         )
 
@@ -121,6 +121,5 @@ class ReductoConverters(PlatformConverters, UsesKernelMixin):
         return ReductoPrompt(
             operation=op,
             system_prompt=prompt.system_instruction,
-            document_name=document_name,
-            document_bytes=document_bytes,
+            file_name=file_name,
         )

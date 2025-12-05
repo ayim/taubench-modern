@@ -1,0 +1,69 @@
+{
+  "type": "object",
+  "required": ["line_items", "invoice_total", "tax_amount"],
+  "properties": {
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gas_day", "deal_number", "buy_sell", "pipeline", "location", "price", "volume", "amount"],
+        "properties": {
+          "UOM": {
+            "type": "string",
+            "description": "UOM column"
+          },
+          "days": {
+            "type": "number",
+            "description": "DAYS column"
+          },
+          "price": {
+            "type": "number",
+            "description": "Price of the transaction"
+          },
+          "amount": {
+            "type": "number",
+            "description": "The monetary amount involved in the transaction. If the price is in parentheses, the amount is negative."
+          },
+          "volume": {
+            "type": "number",
+            "description": "Volume of the transaction. If the volume is in parentheses, the volume is negative."
+          },
+          "gas_day": {
+            "type": "string",
+            "format": "date",
+            "description": "PROD DATE column"
+          },
+          "buy_sell": {
+            "enum": ["Buy", "Sell"],
+            "type": "string",
+            "description": "Buy/Sell indicator, is in the BUY/SELL column"
+          },
+          "location": {
+            "type": "string",
+            "description": "LOCATION column, can be empty"
+          },
+          "pipeline": {
+            "type": "string",
+            "description": "PIPELINE column, can be empty"
+          },
+          "deal_number": {
+            "type": "string",
+            "description": "TRADE column"
+          },
+          "description": {
+            "type": "string",
+            "description": "the description of the transaction"
+          }
+        }
+      }
+    },
+    "tax_amount": {
+      "type": "number",
+      "description": "Tax amount of the invoice, can be found at the bottom follow by Tax"
+    },
+    "invoice_total": {
+      "type": "number",
+      "description": "Total amount of the invoice, can be found at the top follow by TOTAL AMOUNT DUE"
+    }
+  }
+}

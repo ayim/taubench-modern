@@ -76,22 +76,11 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         do we have the ability to use Documents rather than the choice to add
         Document tools?
         """
-        logger.info("Checking if documents are enabled")
+        doc_int_agent_setting = self.kernel.agent.extra.get("document_intelligence", "")
 
-        # Check agent settings first
-        agent_settings = self.kernel.agent.extra.get("agent_settings", {})
-        doc_int_agent_setting = agent_settings.get("document_intelligence", "")
-
-        logger.info(
-            "Agent settings check",
-            document_intelligence_setting=doc_int_agent_setting,
-            all_agent_settings=agent_settings,
-        )
-
-        # Require explicit opt-in.
-        if doc_int_agent_setting != "internal":
+        if doc_int_agent_setting:
             logger.warning(
-                "Documents disabled: agent setting not 'internal'",
+                "Agent is already using document intelligence",
                 current_value=doc_int_agent_setting,
             )
             return False
@@ -277,28 +266,9 @@ class _DocumentTools:
         )
         from agent_platform.core.platforms.reducto.prompts import ReductoPrompt
         from agent_platform.core.utils import SecretString
-        from agent_platform.server.data_frames.data_reader import (
-            _get_file_contents,
-            get_file_metadata,
-        )
         from agent_platform.server.storage.errors import IntegrationNotFoundError
 
         try:
-            # Get the file metadata and contents
-            file_metadata = await get_file_metadata(
-                user_id=self._user.user_id,
-                thread_id=self._tid,
-                storage=self._storage,
-                file_ref=file_ref,
-            )
-
-            file_contents = await _get_file_contents(
-                user_id=self._user.user_id,
-                thread_id=self._tid,
-                storage=self._storage,
-                file_metadata=file_metadata,
-            )
-
             # Get Reducto integration configuration
             try:
                 reducto_integration = await self._storage.get_integration_by_kind("reducto")
@@ -339,11 +309,7 @@ class _DocumentTools:
             reducto_client.attach_kernel(self._kernel)
 
             # Create prompt for parsing
-            prompt = ReductoPrompt(
-                operation="parse",
-                document_name=file_metadata.file_ref,
-                document_bytes=file_contents,
-            )
+            prompt = ReductoPrompt(operation="parse", file_name=file_ref)
 
             # Generate response using Reducto
             response = await reducto_client.generate_response(

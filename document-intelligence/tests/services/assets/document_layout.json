@@ -1,0 +1,13 @@
+[
+  {
+    "name": "invoice_designs_llc",
+    "data_model": "american_airlines",
+    "extraction_schema": "{\"type\": \"object\", \"required\": [\"billed_to\", \"date_issued\", \"due_date\", \"invoice_number\", \"amount_due\", \"items\", \"total\", \"balance_due\"], \"properties\": {\"items\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"description\", \"rate\", \"quantity\", \"amount\"], \"properties\": {\"rate\": {\"type\": \"string\"}, \"amount\": {\"type\": \"string\"}, \"quantity\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}}}, \"description\": \"Details of billed items/services.\"}, \"total\": {\"type\": \"string\", \"description\": \"Total amount including fees.\"}, \"due_date\": {\"type\": \"string\", \"description\": \"Due date for invoice payment.\"}, \"billed_to\": {\"type\": \"string\", \"description\": \"The entity being billed.\"}, \"amount_due\": {\"type\": \"string\", \"description\": \"Total amount due on invoice.\"}, \"balance_due\": {\"type\": \"string\", \"description\": \"Remaining balance due.\"}, \"date_issued\": {\"type\": \"string\", \"description\": \"Date invoice was issued.\"}, \"invoice_number\": {\"type\": \"string\", \"description\": \"Unique invoice number.\"}}}",
+    "translation_schema": "{\"rules\": [{\"source\": \"billed_to\", \"target\": \"billed_to\"}, {\"source\": \"date_issued\", \"target\": \"date_issued\"}, {\"source\": \"due_date\", \"target\": \"due_date\"}, {\"source\": \"invoice_number\", \"target\": \"invoice_number\"}, {\"source\": \"amount_due\", \"target\": \"amount_due\"}, {\"mode\": \"flatten\", \"extras\": {\"rate\": \"rate\", \"amount\": \"amount\", \"quantity\": \"quantity\", \"description\": \"description\"}, \"source\": \"items[*]\", \"target\": \"items\"}, {\"source\": \"total\", \"target\": \"total\"}, {\"source\": \"balance_due\", \"target\": \"balance_due\"}]}",
+    "summary": "The document defines a JSON schema for an invoice layout named \"invoice_designs_llc\" under the data model \"american_airlines\". The schema specifies required fields such as \"billed_to\", \"date_issued\", \"due_date\", \"invoice_number\", \"amount_due\", \"items\", \"total\", and \"balance_due\". Each field has a defined data type and description, outlining the structure for items, which include \"description\", \"rate\", \"quantity\", and \"amount\". This schema provides a structured format for representing invoice details and amounts.",
+    "extraction_config": "null",
+    "created_at": "2025-08-20 12:53:47.472785+00",
+    "updated_at": "2025-08-20 12:53:47.472785+00",
+    "system_prompt": null
+  }
+]

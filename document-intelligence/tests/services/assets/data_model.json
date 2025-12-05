@@ -1,0 +1,126 @@
+[
+  {
+    "name": "american_airlines",
+    "description": "A schema representing an invoice document for American Airlines.",
+    "model_schema": {
+      "type": "object",
+      "title": "Invoice",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "required": [
+        "billed_to",
+        "date_issued",
+        "due_date",
+        "invoice_number",
+        "amount_due",
+        "items",
+        "total",
+        "balance_due"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["description", "rate", "quantity", "amount"],
+            "properties": {
+              "rate": {
+                "type": "string",
+                "description": "The rate per unit for the item or service."
+              },
+              "amount": {
+                "type": "string",
+                "description": "The total amount for the given item or service."
+              },
+              "quantity": {
+                "type": "string",
+                "description": "The quantity of the items or services billed."
+              },
+              "description": {
+                "type": "string",
+                "description": "A brief description of the billed item or service."
+              }
+            }
+          },
+          "description": "A list of items or services billed in the invoice."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes provided in the invoice."
+        },
+        "terms": {
+          "type": "string",
+          "description": "The terms of payment as specified on the invoice."
+        },
+        "total": {
+          "type": "string",
+          "description": "The total amount including taxes and additional fees, e.g., '$17,250.00'."
+        },
+        "due_date": {
+          "type": "string",
+          "description": "The date by which payment is due, e.g., 'September 19, 2025'."
+        },
+        "subtotal": {
+          "type": "string",
+          "description": "The subtotal amount before taxes and additional fees, e.g., '$17,250.00'."
+        },
+        "billed_to": {
+          "type": "string",
+          "description": "The name and address of the entity being billed."
+        },
+        "amount_due": {
+          "type": "string",
+          "description": "The total amount due on the invoice, e.g., '$17,250.00'."
+        },
+        "balance_due": {
+          "type": "string",
+          "description": "The remaining balance due, e.g., '$17,250.00'."
+        },
+        "date_issued": {
+          "type": "string",
+          "description": "The date the invoice was issued in a string format, e.g., 'August 20, 2025'."
+        },
+        "invoice_number": {
+          "type": "string",
+          "description": "The unique identifier for the invoice, e.g., 'INV-00001'."
+        }
+      },
+      "description": "A schema representing an invoice document."
+    },
+    "views": [
+      {
+        "sql": "CREATE VIEW document_intelligence.TEST_ITEMS AS (\nSELECT\n    documents.id AS DOCUMENT_ID, documents.document_name AS DOCUMENT_NAME, documents.document_layout AS DOCUMENT_LAYOUT ,\n    CAST(translated_content->>'notes' AS VARCHAR) AS NOTES,\n    CAST(translated_content->>'terms' AS VARCHAR) AS TERMS,\n    CAST(translated_content->>'total' AS VARCHAR) AS TOTAL,\n    CAST(translated_content->>'due_date' AS VARCHAR) AS DUE_DATE,\n    CAST(translated_content->>'subtotal' AS VARCHAR) AS SUBTOTAL,\n    CAST(translated_content->>'billed_to' AS VARCHAR) AS BILLED_TO,\n    CAST(translated_content->>'amount_due' AS VARCHAR) AS AMOUNT_DUE,\n    CAST(translated_content->>'balance_due' AS VARCHAR) AS BALANCE_DUE,\n    CAST(translated_content->>'date_issued' AS VARCHAR) AS DATE_ISSUED,\n    CAST(translated_content->>'invoice_number' AS VARCHAR) AS INVOICE_NUMBER,\n    CAST(json_array_elements(translated_content->'items')->>'rate' AS VARCHAR) AS ITEMS_RATE,\n    CAST(json_array_elements(translated_content->'items')->>'amount' AS VARCHAR) AS ITEMS_AMOUNT,\n    CAST(json_array_elements(translated_content->'items')->>'quantity' AS VARCHAR) AS ITEMS_QUANTITY,\n    CAST(json_array_elements(translated_content->'items')->>'description' AS VARCHAR) AS ITEMS_DESCRIPTION\nFROM\n    `test_postgres_00000`.documents AS documents\nWHERE\n    documents.data_model = 'american_airlines'\n);",
+        "name": "TEST_ITEMS",
+        "columns": [
+          { "name": "DOCUMENT_ID", "type": "string" },
+          { "name": "DOCUMENT_NAME", "type": "string" },
+          { "name": "DOCUMENT_LAYOUT", "type": "string" },
+          { "name": "NOTES", "type": "string" },
+          { "name": "TERMS", "type": "string" },
+          { "name": "TOTAL", "type": "string" },
+          { "name": "DUE_DATE", "type": "string" },
+          { "name": "SUBTOTAL", "type": "string" },
+          { "name": "BILLED_TO", "type": "string" },
+          { "name": "AMOUNT_DUE", "type": "string" },
+          { "name": "BALANCE_DUE", "type": "string" },
+          { "name": "DATE_ISSUED", "type": "string" },
+          { "name": "INVOICE_NUMBER", "type": "string" },
+          { "name": "ITEMS_RATE", "type": "string" },
+          { "name": "ITEMS_AMOUNT", "type": "string" },
+          { "name": "ITEMS_QUANTITY", "type": "string" },
+          { "name": "ITEMS_DESCRIPTION", "type": "string" }
+        ]
+      }
+    ],
+    "quality_checks": [
+      {
+        "rule_name": "validate_total_with_item_sum",
+        "rule_description": "Checks if total matches the sum of all item amounts accurately, with currency and separator handling.",
+        "sql_query": "SELECT \n  ABS( \n    SUM(CAST(REPLACE(REPLACE(ITEMS_AMOUNT, '$', ''), ',', '') AS DECIMAL)) - \n    CAST(REPLACE(REPLACE(MAX(TOTAL), '$', ''), ',', '') AS DECIMAL) \n  ) <= 0.01 AS is_valid,\n  SUM(CAST(REPLACE(REPLACE(ITEMS_AMOUNT, '$', ''), ',', '') AS DECIMAL)) AS sum_of_items_amount,\n  CAST(REPLACE(REPLACE(MAX(TOTAL), '$', ''), ',', '') AS DECIMAL) AS total_amount \nFROM \n  document_intelligence.TEST_ITEMS \nWHERE \n  DOCUMENT_ID = $document_id \nGROUP BY \n  DOCUMENT_ID, TOTAL;"
+      }
+    ],
+    "prompt": null,
+    "summary": "A JSON schema named \"test\" representing an invoice document specifically for American Airlines. It includes details like the entity being billed, dates, invoice number, total amount due, itemized services, subtotal, total, remaining balance, notes, and payment terms. The schema ensures specific required fields such as billed_to, date_issued, due_date, invoice_number, amount_due, items, total, and balance_due are included.",
+    "created_at": "2025-08-20 12:53:13.668791+00",
+    "updated_at": "2025-08-22 13:17:17.780281+00"
+  }
+]

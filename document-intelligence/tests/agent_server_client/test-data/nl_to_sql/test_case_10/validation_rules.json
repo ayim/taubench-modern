@@ -1,0 +1,7 @@
+{
+  "use_case_description": "You should extract following from every order payment: customer id, customer name, customer email, order details, payment details",
+  "rules_description": "Order payment document should have only one document id",
+  "expected_result": [{ "is_valid": true, "distinct_document_ids": 1 }],
+  "document_id": "doc_550e8400-e29b-41d4-a716-446655440001",
+  "comparison_mode": "flexible_match"
+}

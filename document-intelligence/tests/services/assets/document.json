@@ -1,0 +1,12 @@
+[
+  {
+    "id": "cf26a2ea-11be-6437-eddf-65ad0b9f806f",
+    "document_name": "INV-00001.pdf",
+    "document_layout": "invoice_designs_llc",
+    "data_model": "american_airlines",
+    "extracted_content": "{\"items\": [{\"rate\": \"$55.00\", \"amount\": \"$5,500.00\", \"quantity\": \"100\", \"description\": \"Services\"}, {\"rate\": \"$35.00\", \"amount\": \"$1,750.00\", \"quantity\": \"50\", \"description\": \"Support\"}, {\"rate\": \"$5,000.00\", \"amount\": \"$10,000.00\", \"quantity\": \"2\", \"description\": \"Hardware\"}], \"total\": \"$17,250.00\", \"due_date\": \"September 19, 2025\", \"billed_to\": \"American Airlines\", \"amount_due\": \"$17,250.00\", \"balance_due\": \"$17,250.00\", \"date_issued\": \"August 20, 2025\", \"invoice_number\": \"INV-00001\"}",
+    "translated_content": "{\"items\": [{\"rate\": \"$55.00\", \"amount\": \"$5,500.00\", \"quantity\": \"100\", \"description\": \"Services\"}, {\"rate\": \"$35.00\", \"amount\": \"$1,750.00\", \"quantity\": \"50\", \"description\": \"Support\"}, {\"rate\": \"$5,000.00\", \"amount\": \"$10,000.00\", \"quantity\": \"2\", \"description\": \"Hardware\"}], \"total\": \"$17,250.00\", \"due_date\": \"September 19, 2025\", \"billed_to\": \"American Airlines\", \"amount_due\": \"$17,250.00\", \"balance_due\": \"$17,250.00\", \"date_issued\": \"August 20, 2025\", \"invoice_number\": \"INV-00001\"}",
+    "created_at": "2025-08-20 12:57:25.46963+00",
+    "updated_at": "2025-08-20 13:33:26.053525+00"
+  }
+]

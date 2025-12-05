@@ -32,12 +32,18 @@ COPY pyproject.toml uv.lock Makefile ./
 
 COPY core/ core/
 COPY server/ server/
+COPY document-intelligence/ document-intelligence/
 COPY architectures/ architectures/
 
 COPY scripts/build_exe.py scripts/build_exe.py
 COPY scripts/entrypoint.sh scripts/entrypoint.sh
 
-RUN make sync && make build-exe
+# Run sync and build with cleanup to reduce layer size
+# Use cache mount for uv to avoid storing cache in the layer
+RUN --mount=type=cache,target=/root/.cache/uv \
+    make sync && \
+    make build-exe && \
+    rm -rf .venv
 
 # [ Workroom ] #####################################################################################
 
@@ -73,9 +79,11 @@ RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
 
 COPY --from=workroom-pruner /build/out/full/ .
 
+# Build with cleanup to reduce layer size and prevent disk space issues
 RUN npm run build && \
     rm -rf node_modules && \
-    rm -rf ./**/node_modules
+    rm -rf ./**/node_modules && \
+    npm cache clean --force
 
 RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
     npm ci --workspace=backend --omit=dev

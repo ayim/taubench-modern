@@ -1,0 +1,91 @@
+{
+  "category": "Sorting and Limiting Queries",
+  "queries": [
+    {
+      "name": "sort_by_amount_asc",
+      "nl_query": "show payments ordered by amount from lowest to highest",
+      "expected_result": [
+        { "payment_amount": 34.99 },
+        { "payment_amount": 45.75 },
+        { "payment_amount": 67.25 },
+        { "payment_amount": 78.45 },
+        { "payment_amount": 89.5 },
+        { "payment_amount": 129.99 },
+        { "payment_amount": 156.8 },
+        { "payment_amount": 189.99 },
+        { "payment_amount": 245.75 },
+        { "payment_amount": 299.99 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "sort_by_amount_desc",
+      "nl_query": "show payments ordered by amount from highest to lowest",
+      "expected_result": [
+        { "payment_amount": 299.99 },
+        { "payment_amount": 245.75 },
+        { "payment_amount": 189.99 },
+        { "payment_amount": 156.8 },
+        { "payment_amount": 129.99 },
+        { "payment_amount": 89.5 },
+        { "payment_amount": 78.45 },
+        { "payment_amount": 67.25 },
+        { "payment_amount": 45.75 },
+        { "payment_amount": 34.99 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "sort_by_date_asc",
+      "nl_query": "show payments ordered by date from earliest to latest",
+      "expected_result": [
+        { "payment_date": "2023-01-15", "payment_amount": 129.99 },
+        { "payment_date": "2023-01-25", "payment_amount": 67.25 },
+        { "payment_date": "2023-02-10", "payment_amount": 299.99 },
+        { "payment_date": "2023-02-20", "payment_amount": 89.5 },
+        { "payment_date": "2023-03-10", "payment_amount": 245.75 },
+        { "payment_date": "2023-03-25", "payment_amount": 189.99 },
+        { "payment_date": "2023-04-05", "payment_amount": 156.8 },
+        { "payment_date": "2023-05-20", "payment_amount": 78.45 },
+        { "payment_date": "2023-06-15", "payment_amount": 34.99 },
+        { "payment_date": "2023-07-08", "payment_amount": 45.75 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "limit_top_3_payments",
+      "nl_query": "show the 3 highest payment amounts",
+      "expected_result": [{ "payment_amount": 299.99 }, { "payment_amount": 245.75 }, { "payment_amount": 189.99 }],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "sort_and_limit",
+      "nl_query": "show customer name and payment amount ordered by amount descending, limit 5",
+      "expected_result": [
+        { "customer_name": "Bob Johnson", "payment_amount": 299.99 },
+        { "customer_name": "John Doe", "payment_amount": 245.75 },
+        { "customer_name": "Alice Brown", "payment_amount": 189.99 },
+        { "customer_name": "Jane Smith", "payment_amount": 156.8 },
+        { "customer_name": "John Doe", "payment_amount": 129.99 }
+      ],
+      "comparison_mode": "exact_match"
+    },
+    {
+      "name": "sort_multiple_columns",
+      "nl_query": "show customer name and payment amount ordered by customer name ascending, then amount descending",
+      "expected_result": [
+        { "customer_name": "Alice Brown", "payment_amount": 189.99 },
+        { "customer_name": "Alice Brown", "payment_amount": 45.75 },
+        { "customer_name": "Bob Johnson", "payment_amount": 299.99 },
+        { "customer_name": "Bob Johnson", "payment_amount": 78.45 },
+        { "customer_name": "Jane Smith", "payment_amount": 156.8 },
+        { "customer_name": "Jane Smith", "payment_amount": 67.25 },
+        { "customer_name": "Jane Smith", "payment_amount": 34.99 },
+        { "customer_name": "John Doe", "payment_amount": 245.75 },
+        { "customer_name": "John Doe", "payment_amount": 129.99 },
+        { "customer_name": "John Doe", "payment_amount": 89.5 }
+      ],
+      "comparison_mode": "exact_match"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "customer": {
+    "id": "C123",
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "orders": [
+    {
+      "id": "O456",
+      "date": "2023-05-15",
+      "items": [
+        { "sku": "PROD-A", "name": "Product A", "qty": 2, "price": 19.99 },
+        { "sku": "PROD-B", "name": "Product B", "qty": 1, "price": 29.99 }
+      ]
+    },
+    {
+      "id": "O789",
+      "date": "2023-06-20",
+      "items": [{ "sku": "PROD-C", "name": "Product C", "qty": 3, "price": 15.99 }]
+    }
+  ],
+  "payments": [
+    {
+      "id": "P001",
+      "order_id": "O456",
+      "amount": 69.97,
+      "method": "credit_card",
+      "date": "2023-05-15"
+    },
+    {
+      "id": "P002",
+      "order_id": "O789",
+      "amount": 47.97,
+      "method": "paypal",
+      "date": "2023-06-20"
+    }
+  ]
+}

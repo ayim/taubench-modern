@@ -93,10 +93,10 @@ async def test_is_enabled_requires_reducto_integration():
 
     interface = AgentServerDocumentsInterface()
 
-    # Create mock kernel with agent settings enabled
+    # Create mock kernel without document_intelligence setting (to allow internal processing)
     mock_kernel = Mock()
     mock_kernel.agent = Mock()
-    mock_kernel.agent.extra = {"agent_settings": {"document_intelligence": "internal"}}
+    mock_kernel.agent.extra = {"agent_settings": {}}
 
     # Mock storage that doesn't have Reducto
     mock_storage = AsyncMock()
@@ -115,20 +115,20 @@ async def test_is_enabled_requires_reducto_integration():
 
 
 @pytest.mark.asyncio
-async def test_is_enabled_requires_agent_setting():
-    """Test that is_enabled checks for agent setting."""
+async def test_is_enabled_disabled_when_external_system_configured():
+    """Test that is_enabled returns False when external document intelligence is configured."""
     from agent_platform.server.kernel.documents import AgentServerDocumentsInterface
 
     interface = AgentServerDocumentsInterface()
 
-    # Create mock kernel without document_intelligence setting
+    # Create mock kernel with external document_intelligence setting
     mock_kernel = Mock()
     mock_kernel.agent = Mock()
-    mock_kernel.agent.extra = {"agent_settings": {}}
+    mock_kernel.agent.extra = {"document_intelligence": "v2"}
 
     interface.attach_kernel(mock_kernel)
 
-    # Should be disabled without the setting
+    # Should be disabled when using external system
     is_enabled = await interface.is_enabled()
     assert is_enabled is False
 
@@ -147,7 +147,8 @@ async def test_step_initialize_creates_tools_when_documents_present():
     mock_kernel.user = Mock()
     mock_kernel.user.user_id = "user-456"
     mock_kernel.agent = Mock()
-    mock_kernel.agent.extra = {"agent_settings": {"document_intelligence": "internal"}}
+    # Don't set document_intelligence - leave it empty to enable internal processing
+    mock_kernel.agent.extra = {"agent_settings": {}}
 
     # Mock storage with Reducto integration
     mock_storage = AsyncMock()
@@ -195,7 +196,8 @@ async def test_step_initialize_no_tools_when_no_documents():
     mock_kernel.user = Mock()
     mock_kernel.user.user_id = "user-456"
     mock_kernel.agent = Mock()
-    mock_kernel.agent.extra = {"agent_settings": {"document_intelligence": "internal"}}
+    # Don't set document_intelligence - leave it empty to enable internal processing
+    mock_kernel.agent.extra = {"agent_settings": {}}
 
     # Mock storage with Reducto integration but no documents
     mock_storage = AsyncMock()

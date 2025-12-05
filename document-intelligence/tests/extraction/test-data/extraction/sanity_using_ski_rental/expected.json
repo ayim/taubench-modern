@@ -1,0 +1,54 @@
+{
+  "company_name": "SkiGear Co.",
+  "company_address": "1661 Mesa Drive, Las Vegas, Nevada",
+  "company_phone": "123-555-5555",
+  "inspection_title": "EQUIPMENT INSPECTION",
+  "machine": "Injection Molder",
+  "serial_number": "SGMM-12345",
+  "inspection_grade": "PASS",
+  "inspection_summary": "Following a thorough inspection of the injection molder, no issues or concerns were found. The technician meticulously examined the machine's components and operating systems, ensuring they were all in proper working order. Additionally, the safety measures underwent a comprehensive assessment and were determined to be fully compliant with standards, functioning effectively. As a preventive measure, the technician recommended regular maintenance to sustain the machine's excellent condition for future production runs. Overall, the inspection confirmed that the machine was operating optimally, meeting safety regulations, and ready for immediate use.",
+  "component_evaluations": [
+    {
+      "component": "Injection Unit",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Mold Clamping Unit",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Hydraulic System",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Temperature Control System",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Ejector System",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Lubrication System",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Safety Devices",
+      "condition": "Good",
+      "passed": "Yes"
+    },
+    {
+      "component": "Control Software",
+      "condition": "Good",
+      "passed": "Yes"
+    }
+  ],
+  "inspected_by": "Emily Johnson",
+  "inspection_date": "2022-02-01"
+}
