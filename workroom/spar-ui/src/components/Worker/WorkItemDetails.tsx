@@ -1,5 +1,5 @@
 import { ThreadTextContent, components } from '@sema4ai/agent-server-interface';
-import { Box, Code, Progress, Typography } from '@sema4ai/components';
+import { Box, Progress, Typography } from '@sema4ai/components';
 import {
   IconStatusCompleted,
   IconStatusError,
@@ -11,6 +11,7 @@ import {
 import { FC, memo } from 'react';
 import { formatDateTime, formatWorkItemStatus } from '../../common/helpers';
 import { useWorkItemQuery } from '../../queries/workItems';
+import { Code } from '../../common/code';
 
 export type WorkItem = components['schemas']['WorkItem'];
 export type WorkItemStatus = components['schemas']['WorkItemStatus'];

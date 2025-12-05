@@ -9,7 +9,6 @@ type Props = {
 
 const Container = styled.div`
   position: relative;
-  user-select: none;
   padding: ${({ theme }) => theme.space.$8};
   overflow-x: hidden;
   width: var(--width);
@@ -22,7 +21,6 @@ const Container = styled.div`
   }
 `;
 
-// TODO: The behaviour and layout of the sidebar will change once final design is there
 export const Sidebar: FC<Props> = ({ children, name }) => {
   const { storageValue: initialWidth, setStorageValue: setInitialWidth } = useLocalStorage<number>({
     key: `sidebar-${name}-width`,
