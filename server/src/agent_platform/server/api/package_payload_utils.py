@@ -1,9 +1,6 @@
-from collections.abc import Mapping
-from typing import Any
-
 from structlog import get_logger
 
-from agent_platform.server.api import StorageDependency
+from agent_platform.server.api.dependencies import StorageDependency
 
 logger = get_logger(__name__)
 
@@ -54,7 +51,7 @@ def _normalize_sdm_for_comparison(sdm: dict) -> str:
     return json.dumps(normalized, sort_keys=True)
 
 
-def _find_matching_sdm(
+def find_matching_sdm(
     new_sdm: dict,
     existing_sdms: list[dict],
 ) -> str | None:
@@ -96,7 +93,7 @@ def _find_matching_sdm(
     return None  # No match found - need to create new
 
 
-async def _resolve_data_connection_names(
+async def resolve_data_connection_names(
     sdm_content: dict,
     storage: StorageDependency,
 ) -> dict:
@@ -141,103 +138,3 @@ async def _resolve_data_connection_names(
                 )
 
     return sdm
-
-
-async def upsert_semantic_data_models(  # noqa: C901
-    agent_id: str,
-    sdms: Mapping[str, dict[str, Any]] | None,
-    storage: StorageDependency,
-) -> None:
-    """
-    Import semantic data models from agent package with deduplication.
-
-    Mode: Additive - preserves existing SDMs and adds new ones.
-
-    Args:
-        agent_id: ID of the agent to link SDMs to
-        sdms: Dictionary of SDM filename to content (or None if no SDMs)
-        storage: Storage dependency
-    """
-    if not sdms:
-        logger.info(f"No SDMs to import for agent {agent_id}")
-        return
-
-    logger.info(f"Importing {len(sdms)} SDMs for agent {agent_id}", agent_id=agent_id)
-
-    # Get existing SDMs for this agent
-    existing_sdms = await storage.get_agent_semantic_data_models(agent_id)
-
-    # Track which SDM IDs to link (existing + new)
-    sdm_ids_to_link = []
-
-    # Keep existing SDM IDs (additive mode)
-    existing_ids = [next(iter(sdm_entry.keys())) for sdm_entry in existing_sdms]
-    sdm_ids_to_link.extend(existing_ids)
-    logger.info(f"Keeping {len(existing_ids)} existing SDMs", count=len(existing_ids))
-
-    # Process each SDM from package
-    for filename, sdm_content in sdms.items():
-        # Resolve data connection names to IDs (if possible)
-        sdm_resolved = await _resolve_data_connection_names(sdm_content, storage)
-
-        # Strip environment-specific fields for comparison only
-        sdm_for_comparison = _strip_environment_specific_fields(sdm_resolved)
-
-        # Check for match
-        matching_id = _find_matching_sdm(sdm_for_comparison, existing_sdms)
-
-        if matching_id:
-            logger.info(
-                f"Reusing existing SDM {matching_id} for {filename}",
-                sdm_id=matching_id,
-                sdm_filename=filename,
-            )
-            # Don't add to list if already there (from additive mode)
-            if matching_id not in sdm_ids_to_link:
-                sdm_ids_to_link.append(matching_id)
-        else:
-            # Prepare SDM for storage: keep data_connection_id, remove data_connection_name
-            import copy
-
-            sdm_for_storage = copy.deepcopy(sdm_resolved)
-            for table in sdm_for_storage.get("tables", []):
-                if "base_table" in table:
-                    # Remove data_connection_name (was only needed for import resolution)
-                    table["base_table"].pop("data_connection_name", None)
-                    # Keep data_connection_id (needed for querying)
-
-            # Extract data connection IDs from resolved SDM (for junction table)
-            data_connection_ids = []
-            for table in sdm_resolved.get("tables", []):
-                base_table = table.get("base_table", {})
-                if "data_connection_id" in base_table:
-                    dc_id = base_table["data_connection_id"]
-                    if dc_id and dc_id not in data_connection_ids:
-                        data_connection_ids.append(dc_id)
-
-            # Create new SDM
-            # Note: We store sdm_for_storage which has data_connection_id (for querying)
-            # The junction table also stores the IDs for reference
-            new_id = await storage.set_semantic_data_model(
-                semantic_data_model_id=None,
-                semantic_model=sdm_for_storage,
-                data_connection_ids=data_connection_ids,
-                file_references=[],
-            )
-            logger.info(
-                f"Created new SDM {new_id} for {filename}",
-                sdm_id=new_id,
-                sdm_filename=filename,
-                sdm_name=sdm_for_storage.get("name", ""),
-                data_connection_count=len(data_connection_ids),
-            )
-            sdm_ids_to_link.append(new_id)
-
-    # Link all SDMs to agent
-    if sdm_ids_to_link:
-        await storage.set_agent_semantic_data_models(agent_id, sdm_ids_to_link)
-        logger.info(
-            f"Linked {len(sdm_ids_to_link)} SDMs to agent {agent_id}",
-            agent_id=agent_id,
-            sdm_count=len(sdm_ids_to_link),
-        )
