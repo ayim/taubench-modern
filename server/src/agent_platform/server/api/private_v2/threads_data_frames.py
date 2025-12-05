@@ -1480,8 +1480,15 @@ async def get_data_frame_as_validated_query(
 
     full_sql_query_logical_str = resolved_df.full_sql_query_logical_str
 
+    # Convert data frame name to verified query name format
+    from agent_platform.core.data_frames.data_frame_utils import (
+        data_frame_name_to_verified_query_name,
+    )
+
+    verified_query_name = data_frame_name_to_verified_query_name(payload.data_frame_name)
+
     verified_query: VerifiedQuery = {
-        "name": payload.data_frame_name,
+        "name": verified_query_name,
         "nlq": data_frame.description or "",
         "verified_at": datetime.datetime.now(datetime.UTC).isoformat(),
         "verified_by": user.user_id,

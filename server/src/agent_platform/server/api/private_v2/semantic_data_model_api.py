@@ -1184,8 +1184,8 @@ async def verify_verified_query(
     import datetime
 
     from agent_platform.core.data_frames.data_frame_utils import (
-        DataFrameNameError,
-        make_data_frame_name_valid,
+        VerifiedQueryNameError,
+        validate_verified_query_name,
     )
     from agent_platform.core.data_frames.semantic_data_model_types import (
         LogicalTable,
@@ -1314,9 +1314,9 @@ async def verify_verified_query(
             )
         else:
             try:
-                name = make_data_frame_name_valid(name)
+                name = validate_verified_query_name(name)
                 verified_query["name"] = name
-            except DataFrameNameError as e:
+            except VerifiedQueryNameError as e:
                 name_errors.append(
                     ValidationMessage(
                         message=str(e),

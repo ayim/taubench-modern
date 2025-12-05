@@ -1030,6 +1030,13 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             f"Tool input missing new_data_frame_name: {sql_tool_call.input_data}"
         )
 
+        # The verified query name is converted to human-readable format
+        from agent_platform.core.data_frames.data_frame_utils import (
+            data_frame_name_to_verified_query_name,
+        )
+
+        expected_verified_query_name = data_frame_name_to_verified_query_name(data_frame_name)
+
         # Verify the data frame was created
         data_frames = agent_client.get_data_frames(thread_id, num_samples=5)
         matching_data_frame = next(
@@ -1066,7 +1073,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             f"{get_response.text}"
         )
         validated_query = get_response.json()
-        assert validated_query["name"] == data_frame_name
+        assert validated_query["name"] == expected_verified_query_name
         assert "sql" in validated_query
         assert validated_query["sql"]  # SQL should not be empty
 
@@ -1094,7 +1101,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         assert len(retrieved_model["verified_queries"]) == 1
 
         verified_query = retrieved_model["verified_queries"][0]
-        assert verified_query["name"] == data_frame_name
+        assert verified_query["name"] == expected_verified_query_name
         assert "sql" in verified_query
         assert verified_query["sql"]  # SQL should not be empty
 
@@ -1109,7 +1116,8 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         new_final_response, new_tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             new_thread_id,
-            f"Please create a data frame using the verified query named '{data_frame_name}'.",
+            f"Please create a data frame using the verified query "
+            f"named '{expected_verified_query_name}'.",
         )
         verified_query_tool_calls = [
             tool_call
@@ -1140,9 +1148,10 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         )
 
         # Verify the verified query name was used
-        assert verified_query_tool_call.input_data.get("verified_query_name") == data_frame_name, (
-            f"Expected verified_query_name to be '{data_frame_name}', "
-            f"got '{verified_query_tool_call.input_data.get('verified_query_name')}'"
+        actual_verified_query_name = verified_query_tool_call.input_data.get("verified_query_name")
+        assert actual_verified_query_name == expected_verified_query_name, (
+            f"Expected verified_query_name to be '{expected_verified_query_name}', "
+            f"got '{actual_verified_query_name}'"
         )
 
         new_data_frame_name = verified_query_tool_call.input_data.get("new_data_frame_name")

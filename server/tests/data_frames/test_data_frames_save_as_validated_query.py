@@ -171,7 +171,13 @@ async def test_save_data_frame_as_validated_query(
 
     assert get_response.status_code == 200
     validated_query = get_response.json()
-    assert validated_query["name"] == data_frame_name
+    # The verified query name is converted to human-readable format (spaces + title case)
+    from agent_platform.core.data_frames.data_frame_utils import (
+        data_frame_name_to_verified_query_name,
+    )
+
+    expected_verified_query_name = data_frame_name_to_verified_query_name(data_frame_name)
+    assert validated_query["name"] == expected_verified_query_name
     assert validated_query["nlq"] == data_frame_description
     assert validated_query["verified_by"] == test_user.user_id
     assert "verified_at" in validated_query
@@ -203,7 +209,7 @@ async def test_save_data_frame_as_validated_query(
     assert len(retrieved_model_after["verified_queries"]) == 1
 
     verified_query = retrieved_model_after["verified_queries"][0]
-    assert verified_query["name"] == data_frame_name
+    assert verified_query["name"] == expected_verified_query_name
     assert verified_query["nlq"] == data_frame_description
     assert verified_query["verified_by"] == test_user.user_id
 
@@ -240,7 +246,7 @@ async def test_save_data_frame_as_validated_query(
     assert len(retrieved_model_updated["verified_queries"]) == 1
 
     updated_query = retrieved_model_updated["verified_queries"][0]
-    assert updated_query["name"] == data_frame_name
+    assert updated_query["name"] == expected_verified_query_name
     assert updated_query["nlq"] == data_frame_description
     assert fix_sql_query(updated_query["sql"]) == "SELECT * FROM file_data"
     # Verify verified_at was updated (should be different timestamp)
