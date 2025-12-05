@@ -325,12 +325,12 @@ class QualityOrchestrator:
         logger.info("Extracting action packages from agent spec")
 
         try:
-            from agent_platform.core.agent_spec.extract_spec import (
-                extract_and_validate_agent_package,
+            from agent_platform.core.agent_package.read import (
+                read_and_validate_agent_package,
             )
 
             # Extract and validate the agent package
-            agent_package = await extract_and_validate_agent_package(path=agent_zip_path)
+            agent_package = await read_and_validate_agent_package(path=agent_zip_path)
             spec = agent_package.spec
 
             # Get action packages from the spec

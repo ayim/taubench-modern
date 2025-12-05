@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 from fastapi import HTTPException, status
 
-from agent_platform.core.agent_spec.config import AgentSpecConfig
+from agent_platform.core.agent_package.config import AgentSpecConfig
 
 
 async def read_package_bytes(

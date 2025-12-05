@@ -5717,7 +5717,7 @@ export const spec = {
         description:
           'Calculate agent package environment hash. Accepts JSON and binary ZIP files.',
         operationId:
-          'calculate_agent_package_hash_package_environment_hash_agent_post',
+          'calculate_agent_package_environment_hash_package_environment_hash_agent_post',
         requestBody: {
           content: {
             'application/json': {
@@ -5929,6 +5929,86 @@ export const spec = {
                 schema: {
                   $ref: '#/components/schemas/ErrorEnvelope',
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/create': {
+      post: {
+        tags: ['package'],
+        summary: 'Create new Agent Package',
+        description: 'Create a new Agent Package.',
+        operationId: 'create_agent_package_package_create_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UpsertAgentPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/read': {
+      post: {
+        tags: ['package'],
+        summary: 'Read Agent data from an Agent Package',
+        description:
+          'Read Agent data from an Agent Package. Accepts binary ZIP files.',
+        operationId: 'read_agent_package_package_read_post',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AgentCompat',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/build': {
+      post: {
+        tags: ['package'],
+        summary: 'Builds an Agent Package.',
+        description:
+          'Builds an Agent Package from zipped Agent Project. Accepts binary ZIP files.',
+        operationId: 'build_agent_package_package_build_post',
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
               },
             },
           },

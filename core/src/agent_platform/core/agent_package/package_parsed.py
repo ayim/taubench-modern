@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from agent_platform.core.agent.question_group import QuestionGroup
-from agent_platform.core.agent_spec.knowledge import KnowledgeStreams
+from agent_platform.core.agent_package.knowledge import KnowledgeStreams
 
 
 @dataclass(frozen=True)

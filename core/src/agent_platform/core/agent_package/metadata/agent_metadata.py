@@ -1,19 +1,10 @@
-import io
-import zipfile
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Literal
 
 import structlog
-from fastapi import HTTPException, status
-from ruamel.yaml import YAML
 
 from agent_platform.core.agent.question_group import QuestionGroup
-from agent_platform.core.agent_spec.config import AgentSpecConfig
-from agent_platform.core.agent_spec.utils import read_file_from_zip, read_package_bytes
 from agent_platform.core.selected_tools import SelectedTools
-
-_yaml = YAML(typ="safe")
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -938,38 +929,3 @@ class AgentPackageMetadata:
             document_intelligence=data.get("document_intelligence", None),
             selected_tools=SelectedTools.model_validate(data.get("selected_tools", {})),
         )
-
-
-async def extract_agent_package_metadata(
-    path: str | Path | None = None,
-    url: str | None = None,
-    package_base64: str | bytes | None = None,
-) -> AgentPackageMetadata:
-    """
-    Extract the metadata from an agent package.
-
-    * Pass **exactly one** of *path*, *url*, *package_base64*.
-
-    FastAPI detail: any failure raises ``HTTPException`` with descriptive text.
-
-    Arguments:
-        path: local path to the agent package
-        url: URL to the agent package
-        package_base64: base64-encoded agent package
-
-    Returns:
-        An AgentPackageMetadata instance.
-    """
-    blob = await read_package_bytes(path, url, package_base64)
-
-    try:
-        with zipfile.ZipFile(io.BytesIO(blob)) as zf:
-            metadata_raw = read_file_from_zip(zf, AgentSpecConfig.metadata_filename)
-            metadata: list[dict[str, Any]] = _yaml.load(metadata_raw.decode())
-            return AgentPackageMetadata.model_validate(metadata[0])
-
-    except zipfile.BadZipFile as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provided bytes are not a valid zip archive",
-        ) from exc

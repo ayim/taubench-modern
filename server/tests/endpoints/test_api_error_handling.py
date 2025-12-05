@@ -573,7 +573,7 @@ class TestHTTPErrorHandling:
         message = error_info["message"]
         assert "Request validation failed:" in message
 
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
     def test_agent_creation_conflict_error(
         self, mock_quotas_get_instance, mock_extract, client: TestClient, mock_error_storage

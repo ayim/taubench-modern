@@ -392,6 +392,9 @@ class AgentPackage:
     path: Path
     zip_path: Path
 
+    # @TODO (agent-cli sunset):
+    # Remove this method and agent-cli dependency, and use "read_agent_package_metadata" from
+    # agent_platform.core.agent_package.metadata instead.
     async def extract_package_metadata(self) -> Any:
         """Agent Metadata contain info from yaml/json file but also Python code."""
 

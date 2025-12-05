@@ -2070,7 +2070,7 @@ export interface paths {
      * Calculate agent package environment hash
      * @description Calculate agent package environment hash. Accepts JSON and binary ZIP files.
      */
-    post: operations['calculate_agent_package_hash_package_environment_hash_agent_post'];
+    post: operations['calculate_agent_package_environment_hash_package_environment_hash_agent_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2111,6 +2111,66 @@ export interface paths {
      * @description Inspect action package metadata. Accepts JSON and binary ZIP files.
      */
     post: operations['inspect_action_from_package_package_inspect_action_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/create': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create new Agent Package
+     * @description Create a new Agent Package.
+     */
+    post: operations['create_agent_package_package_create_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/read': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Read Agent data from an Agent Package
+     * @description Read Agent data from an Agent Package. Accepts binary ZIP files.
+     */
+    post: operations['read_agent_package_package_read_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/build': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Builds an Agent Package.
+     * @description Builds an Agent Package from zipped Agent Project. Accepts binary ZIP files.
+     */
+    post: operations['build_agent_package_package_build_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -16802,7 +16862,7 @@ export interface operations {
       };
     };
   };
-  calculate_agent_package_hash_package_environment_hash_agent_post: {
+  calculate_agent_package_environment_hash_package_environment_hash_agent_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -16915,6 +16975,79 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  create_agent_package_package_create_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpsertAgentPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  read_agent_package_package_read_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AgentCompat'];
+        };
+      };
+    };
+  };
+  build_agent_package_package_build_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
     };

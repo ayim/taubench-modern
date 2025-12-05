@@ -8,7 +8,8 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from agent_platform.core.agent_spec.package_parsed import AgentPackageParsed
+from agent_platform.core.agent_package.package_parsed import AgentPackageParsed
+from agent_platform.core.agent_package.upsert_from_package import upsert_agent_from_package
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.payloads.agent_package import (
     AgentPackagePayload,
@@ -27,7 +28,6 @@ from agent_platform.server.api.private_v2.agents import (
     update_agent_from_package,
 )
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
-from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
 from agent_platform.server.storage.errors import AgentNotFoundError
 
 # Test data directory
@@ -289,7 +289,7 @@ class TestCreateAgentFromPackage:
         """Direct function call path with dataclass payload should accept MCPServer objects."""
         # Mock extraction of the package spec
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.extract_and_validate_agent_package",
+            "agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package",
             AsyncMock(return_value=AgentPackageParsed(**sample_agent_spec)),
         )
 
@@ -348,7 +348,7 @@ class TestCreateAgentFromPackage:
         """
         # Mock extraction of the package spec
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.extract_and_validate_agent_package",
+            "agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package",
             AsyncMock(return_value=AgentPackageParsed(**sample_agent_spec)),
         )
 
@@ -419,7 +419,7 @@ class TestCreateAgentFromPackage:
         """
         # Mock extraction of the package spec
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.extract_and_validate_agent_package",
+            "agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package",
             AsyncMock(return_value=AgentPackageParsed(**sample_agent_spec)),
         )
 
@@ -811,7 +811,7 @@ class TestCreateAgentFromPackage:
         mock_storage.upsert_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_create_agent_from_package_url_success(
         self,
         mock_extract_package,
@@ -845,7 +845,7 @@ class TestCreateAgentFromPackage:
         )
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_create_agent_from_package_base64_success(
         self,
         mock_extract_package,
@@ -879,7 +879,7 @@ class TestCreateAgentFromPackage:
         )
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_create_agent_from_package_with_action_servers(
         self,
         mock_extract_package,
@@ -930,7 +930,7 @@ class TestCreateAgentFromPackage:
         assert isinstance(action_package.api_key, SecretString)
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_create_agent_from_package_with_langsmith(
         self,
         mock_extract_package,
@@ -972,7 +972,7 @@ class TestCreateAgentFromPackage:
         assert as_legacy.advanced_config["langsmith"]["api_key"] == "langsmith-123"
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_create_agent_package_extraction_error(
         self,
         mock_extract_package,
@@ -994,7 +994,7 @@ class TestCreateAgentFromPackage:
             )
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_create_agent_missing_agent_in_spec(
         self,
         mock_extract_package,
@@ -1064,7 +1064,7 @@ class TestUpdateAgentFromPackage:
         assert created_agent.agent_id == aid
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_update_agent_from_package_success(
         self,
         mock_extract_package,
@@ -1100,8 +1100,8 @@ class TestCreateOrUpdateAgentFromPackageHelper:
     """Test cases for the _create_or_update_agent_from_package helper function."""
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
-    @patch("agent_platform.server.api.private_v2.package.ToolDefinitionCache")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.ToolDefinitionCache")
     async def test_tools_cache_cleared(  # noqa: PLR0913
         self,
         mock_cache_class,
@@ -1118,7 +1118,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         mock_extract_package.return_value = AgentPackageParsed(**sample_agent_spec)
 
         # Execute
-        await create_or_update_agent_from_package(
+        await upsert_agent_from_package(
             user=mock_user,
             aid=str(uuid4()),
             payload=sample_agent_package_payload,
@@ -1131,7 +1131,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         mock_cache_instance.clear_for_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_complex_agent_spec_processing(
         self,
         mock_extract_package,
@@ -1187,7 +1187,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         mock_extract_package.return_value = AgentPackageParsed(**complex_spec)
 
         # Execute
-        result = await create_or_update_agent_from_package(
+        result = await upsert_agent_from_package(
             user=mock_user,
             aid=str(uuid4()),
             payload=payload,
@@ -1210,7 +1210,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
             assert action_package.api_key.get_secret_value() == "complex-key-123"
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_agent_architecture_mapping(
         self,
         mock_extract_package,
@@ -1223,7 +1223,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         mock_extract_package.return_value = AgentPackageParsed(**sample_agent_spec)
 
         # Execute
-        await create_or_update_agent_from_package(
+        await upsert_agent_from_package(
             user=mock_user,
             aid=str(uuid4()),
             payload=sample_agent_package_payload,
@@ -1241,7 +1241,7 @@ class TestConversationFields:
     """Test cases for conversation-related fields in agent specifications."""
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_agent_spec_with_conversation_fields(
         self,
         mock_extract_package,
@@ -1355,7 +1355,7 @@ class TestConversationFields:
         assert created_agent.extra["agent_settings"] == expected_settings
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_agent_spec_with_minimal_conversation_fields(
         self,
         mock_extract_package,
@@ -1441,7 +1441,7 @@ class TestConversationFields:
         assert created_agent.question_groups == []
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_agent_spec_with_complex_agent_settings(
         self,
         mock_extract_package,
@@ -1595,7 +1595,7 @@ class TestConversationFields:
         assert created_agent.extra["agent_settings"] == expected_complex_settings
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.extract_and_validate_agent_package")
+    @patch("agent_platform.core.agent_package.upsert_from_package.read_and_validate_agent_package")
     async def test_agent_spec_with_conversation_guide_question_groups(
         self,
         mock_extract_package,

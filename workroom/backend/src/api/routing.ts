@@ -62,6 +62,9 @@ function getRouteMap(): {
     'get /api/v2/evals/agents/{agent_id}/batches/{batch_run_id}': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/evals/agents/{agent_id}/batches': [ALLOWED, SIGN_WITH_TENANT, agentReadPermissions],
     'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
+    'post /api/v2/package/create': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
+    'post /api/v2/package/read': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
+    'post /api/v2/package/build': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing
     'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

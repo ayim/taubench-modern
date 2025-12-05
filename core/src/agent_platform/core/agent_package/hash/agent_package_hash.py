@@ -6,18 +6,16 @@ from typing import Any
 from fastapi import HTTPException, status
 from ruamel.yaml import YAML
 
-from agent_platform.core.agent_spec.config import AgentSpecConfig
-from agent_platform.core.agent_spec.extract_spec import extract_agent_package_data
-from agent_platform.core.agent_spec.package.package_hash import (
-    blueprint_hash,
-    calculate_environment_hash,
-)
-from agent_platform.core.agent_spec.utils import read_file_from_zip, read_package_bytes
+from agent_platform.core.agent_package.config import AgentSpecConfig
+from agent_platform.core.agent_package.hash.blueprint_hash import blueprint_hash
+from agent_platform.core.agent_package.hash.environment_hash import calculate_environment_hash
+from agent_platform.core.agent_package.read import read_agent_package
+from agent_platform.core.agent_package.utils import read_file_from_zip, read_package_bytes
 
 _yaml = YAML(typ="safe")
 
 
-async def calculate_agent_hash(
+async def calculate_agent_package_hash(
     path: str | Path | None = None,
     url: str | None = None,
     package_base64: str | bytes | None = None,
@@ -42,7 +40,7 @@ async def calculate_agent_hash(
         with zipfile.ZipFile(io.BytesIO(blob)) as zf:
             # Extract agent metadata to get action packages list
             spec_raw = read_file_from_zip(zf, AgentSpecConfig.agent_spec_filename)
-            agent_package_parsed = await extract_agent_package_data(spec_raw, zf)
+            agent_package_parsed = await read_agent_package(spec_raw, zf)
 
             # Calculate hash for each action package
             packages_hashes: list[str] = []

@@ -40,7 +40,7 @@ agent_platform.core.actions.action_utils.ActionUtilsRetryConfig:
 # 'agent-spec.yaml', runbook_filename: str = 'runbook.md', knowledge_dir: str
 # = 'knowledge/', conversation_guide_filename: str =
 # 'conversation-guide.yaml')
-agent_platform.core.agent_spec.config.AgentSpecConfig:
+agent_platform.core.agent_package.config.AgentSpecConfig:
   # The maximum size of the agent package in bytes.
   max_size_bytes: 50000000
   # The filename of the agent package metadata.

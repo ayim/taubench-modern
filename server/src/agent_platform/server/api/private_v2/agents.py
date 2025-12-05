@@ -436,9 +436,9 @@ async def create_agent_from_package(
     _: AgentQuotaCheck,
 ) -> AgentCompat:
     aid = str(uuid.uuid4())
-    from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
+    from agent_platform.core.agent_package.upsert_from_package import upsert_agent_from_package
 
-    return await create_or_update_agent_from_package(
+    return await upsert_agent_from_package(
         user=user,
         aid=aid,
         payload=payload,
@@ -453,9 +453,9 @@ async def update_agent_from_package(
     payload: AgentPackagePayload,
     storage: StorageDependency,
 ) -> AgentCompat:
-    from agent_platform.server.api.private_v2.package import create_or_update_agent_from_package
+    from agent_platform.core.agent_package.upsert_from_package import upsert_agent_from_package
 
-    return await create_or_update_agent_from_package(
+    return await upsert_agent_from_package(
         user=user,
         aid=aid,
         payload=payload,

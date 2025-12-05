@@ -9,17 +9,17 @@ from fastapi import HTTPException, status
 from ruamel.yaml import YAML
 
 from agent_platform.core.agent.question_group import QuestionGroup
-from agent_platform.core.agent_spec.config import AgentSpecConfig
-from agent_platform.core.agent_spec.knowledge import KnowledgeStreams
-from agent_platform.core.agent_spec.package_parsed import ActionPackageParsed, AgentPackageParsed
-from agent_platform.core.agent_spec.utils import read_file_from_zip, read_package_bytes
+from agent_platform.core.agent_package.config import AgentSpecConfig
+from agent_platform.core.agent_package.knowledge import KnowledgeStreams
+from agent_platform.core.agent_package.package_parsed import ActionPackageParsed, AgentPackageParsed
+from agent_platform.core.agent_package.utils import read_file_from_zip, read_package_bytes
 
 _yaml = YAML(typ="safe")
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-async def extract_and_validate_agent_package(
+async def read_and_validate_agent_package(
     path: str | Path | None = None,
     url: str | None = None,
     package_base64: str | bytes | None = None,
@@ -54,9 +54,7 @@ async def extract_and_validate_agent_package(
     try:
         with zipfile.ZipFile(io.BytesIO(blob)) as zf:
             spec_raw = read_file_from_zip(zf, AgentSpecConfig.agent_spec_filename)
-            return await extract_agent_package_data(
-                spec_raw, zf, include_knowledge, knowledge_return
-            )
+            return await read_agent_package(spec_raw, zf, include_knowledge, knowledge_return)
 
     except zipfile.BadZipFile as exc:
         raise HTTPException(
@@ -65,7 +63,7 @@ async def extract_and_validate_agent_package(
         ) from exc
 
 
-async def extract_agent_package_data(
+async def read_agent_package(
     spec_raw: bytes,
     zf: zipfile.ZipFile,
     include_knowledge: bool = False,
@@ -75,12 +73,12 @@ async def extract_agent_package_data(
     _validate_spec(spec, zf)
 
     runbook_raw = read_file_from_zip(zf, AgentSpecConfig.runbook_filename)
-    question_groups = _extract_question_groups(spec, zf)
-    conversation_starter = _extract_conversation_starter(spec)
-    welcome_message = _extract_welcome_message(spec)
-    agent_settings = _extract_agent_settings(spec)
-    action_packages = _extract_action_packages(spec)
-    semantic_data_models = _extract_semantic_data_models(spec, zf)
+    question_groups = _read_question_groups(spec, zf)
+    conversation_starter = _read_conversation_starter(spec)
+    welcome_message = _read_welcome_message(spec)
+    agent_settings = _read_agent_settings(spec)
+    action_packages = _read_action_packages(spec)
+    semantic_data_models = _read_semantic_data_models(spec, zf)
 
     knowledge: Mapping[str, bytes] | KnowledgeStreams | None
     if include_knowledge:
@@ -182,7 +180,7 @@ def _validate_spec(
         )
 
 
-def _extract_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[QuestionGroup]:
+def _read_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[QuestionGroup]:
     # Exceptions are ignored as the conversation guide is optional
     # ---------------- agent check ---------------- #
     agent0 = _get_single_agent(spec)
@@ -229,28 +227,28 @@ def _extract_question_groups(spec: dict[str, Any], zf: zipfile.ZipFile) -> list[
     return question_groups
 
 
-def _extract_conversation_starter(spec: dict[str, Any]) -> str | None:
+def _read_conversation_starter(spec: dict[str, Any]) -> str | None:
     agent0 = _get_single_agent(spec)
     return agent0.get("conversation-starter", None)
 
 
-def _extract_welcome_message(spec: dict[str, Any]) -> str | None:
+def _read_welcome_message(spec: dict[str, Any]) -> str | None:
     agent0 = _get_single_agent(spec)
     return agent0.get("welcome-message", None)
 
 
-def _extract_agent_settings(spec: dict[str, Any]) -> dict[str, Any] | None:
+def _read_agent_settings(spec: dict[str, Any]) -> dict[str, Any] | None:
     agent0 = _get_single_agent(spec)
     return agent0.get("agent-settings", None)
 
 
-def _extract_action_packages(spec: dict[str, Any]) -> list[ActionPackageParsed]:
+def _read_action_packages(spec: dict[str, Any]) -> list[ActionPackageParsed]:
     agent0 = _get_single_agent(spec)
     action_packages = agent0.get("action-packages", [])
     return [ActionPackageParsed.model_validate(ap) for ap in action_packages]
 
 
-def _extract_semantic_data_models(
+def _read_semantic_data_models(
     spec: dict[str, Any], zf: zipfile.ZipFile
 ) -> dict[str, dict[str, Any]] | None:
     """
