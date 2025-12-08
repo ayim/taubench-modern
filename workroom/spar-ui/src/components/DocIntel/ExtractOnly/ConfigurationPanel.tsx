@@ -5,6 +5,7 @@ import { ProcessingLoadingState } from '../shared/components/ProcessingLoadingSt
 import { FormattedJsonData } from '../shared/components/FormattedJsonData';
 import type { ExtractionSchemaPayload, ExtractResponse } from '../shared/types';
 import { PROCESSING_STATES } from '../shared/constants/processingStates';
+import { deleteProperty, parseFieldId } from '../shared/utils/schema-lib';
 
 /**
  * ConfigurationPanel
@@ -44,6 +45,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
   ) => {
     const [currentPrompt, setCurrentPrompt] = useState('');
     const [hasChanges, setHasChanges] = useState(false);
+    const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
     const { addSnackbar } = useSnackbar();
 
     // Notify parent about changes
@@ -61,13 +63,27 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
 
     const handleReExtract = useCallback(async () => {
       if (!currentSchema || !onReExtract) return;
+
+      let schemaToExtract = currentSchema;
+
+      if (deletedFields.size > 0) {
+        const deletedPaths = Array.from(deletedFields).sort((a, b) => b.length - a.length);
+
+        schemaToExtract = deletedPaths.reduce((schema, dotPath) => {
+          const parsed = parseFieldId(dotPath);
+          if (!parsed) return schema;
+
+          return deleteProperty(schema, parsed.parentPointer, parsed.propertyName) as ExtractionSchemaPayload;
+        }, schemaToExtract);
+      }
+
       try {
-        await onReExtract(currentSchema, currentPrompt);
+        await onReExtract(schemaToExtract, currentPrompt);
         setHasChanges(false);
       } catch (err) {
         addSnackbar({ message: `Re-extraction failed: ${err}`, variant: 'danger' });
       }
-    }, [currentSchema, currentPrompt, onReExtract, addSnackbar]);
+    }, [currentSchema, currentPrompt, onReExtract, deletedFields, addSnackbar]);
 
     // Expose re-extract method to parent via ref
     useImperativeHandle(
@@ -153,6 +169,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
             <SchemaEditor
               schema={currentSchema}
               onChange={handleSchemaChange}
+              onDeletedFieldsChange={setDeletedFields}
               disabled={isGeneratingSchema || isExtracting}
             />
           </Box>

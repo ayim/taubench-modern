@@ -27,6 +27,10 @@ const StyledTable = styled(Table)`
     background: transparent !important;
   }
 
+  td:last-child {
+    padding-right: 0 !important;
+  }
+
   thead {
     border-bottom: 1px solid #d1d5db !important;
   }

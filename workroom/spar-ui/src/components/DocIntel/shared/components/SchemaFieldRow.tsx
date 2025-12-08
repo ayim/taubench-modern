@@ -1,7 +1,12 @@
-import { Table, Input, Box, TableRowProps, Select, Button } from '@sema4ai/components';
-import { IconTrash } from '@sema4ai/icons';
+import { Table, Input, Box, TableRowProps, Select, Button, Tooltip } from '@sema4ai/components';
+import { IconTrash, IconRefresh } from '@sema4ai/icons';
 import { FC, useState, useEffect, useRef } from 'react';
-import { StyledDeleteButton } from './styles';
+import { styled } from '@sema4ai/theme';
+import { StyledDeleteButton, StyledRestoreButton } from './styles';
+
+const StyledTableCell = styled(Table.Cell)<{ $isDeleted?: boolean }>`
+  opacity: ${(props) => (props.$isDeleted ? 0.98 : 1)};
+`;
 
 export interface SchemaFieldData {
   id: string;
@@ -12,16 +17,20 @@ export interface SchemaFieldData {
   level?: number;
   parentPath?: string;
   hasChildren?: boolean;
+  deleted?: boolean;
+  parentDeleted?: boolean;
 }
 
 export interface SchemaFieldRowProps {
   onChange: (id: string, key: 'name' | 'type' | 'description', value: string) => void;
   onDelete?: (id: string) => void;
+  onRestore?: (id: string) => void;
   onToggleExpand?: (fieldId: string) => void;
   expandedFields?: Set<string>;
   showDeleteButton?: boolean;
   disabled?: boolean;
   onBlur?: (id: string, key: 'name' | 'type' | 'description') => (e: React.FocusEvent<HTMLInputElement>) => void;
+  inputRefCallback?: (element: HTMLInputElement | null, fieldId: string) => void;
 }
 
 const TYPE_OPTIONS = [
@@ -34,7 +43,17 @@ const TYPE_OPTIONS = [
 ];
 
 export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowProps>> = ({ rowData, props }) => {
-  const { onChange, onDelete, onToggleExpand, expandedFields, showDeleteButton, disabled, onBlur } = props;
+  const {
+    onChange,
+    onDelete,
+    onRestore,
+    onToggleExpand,
+    expandedFields,
+    showDeleteButton = true,
+    disabled,
+    onBlur,
+    inputRefCallback,
+  } = props;
 
   const [localName, setLocalName] = useState(rowData.name);
   const [localDescription, setLocalDescription] = useState(rowData.description || '');
@@ -64,17 +83,20 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
   const indent = (rowData.level || 0) * 32;
   const isExpanded = expandedFields?.has(rowData.id) ?? false;
   const hasChildren = rowData.hasChildren ?? false;
+  const isDeleted = rowData.deleted ?? false;
+  const isParentDeleted = rowData.parentDeleted ?? false;
+  const isFieldDisabled = disabled || isDeleted || isParentDeleted;
 
-  // Get row styling based on nesting level
+  // Get row styling based on nesting level and deleted state
   const rowStyle: React.CSSProperties = {};
   if ((rowData.level || 0) > 0) {
     rowStyle.backgroundColor = 'rgba(229, 231, 235, 0.25)';
     rowStyle.borderLeft = '4px solid rgba(64, 176, 50, 0.4)';
   }
 
-  return (
+  const rowContent = (
     <Table.Row data-field-id={rowData.id} style={rowStyle}>
-      <Table.Cell>
+      <StyledTableCell $isDeleted={isDeleted}>
         <Box display="flex" alignItems="center" gap="$4" style={{ paddingLeft: `${indent}px` }}>
           {hasChildren ? (
             <Button
@@ -101,6 +123,7 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
 
           <Input
             key={rowData.id}
+            ref={(el) => inputRefCallback?.(el, rowData.id)}
             id={`field-name-${rowData.id}`}
             name={`field-name-${rowData.id}`}
             aria-label="Field name"
@@ -122,22 +145,22 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
               minWidth: '120px',
               maxWidth: '220px',
             }}
-            disabled={disabled}
+            disabled={isFieldDisabled}
           />
         </Box>
-      </Table.Cell>
+      </StyledTableCell>
 
-      <Table.Cell>
+      <StyledTableCell $isDeleted={isDeleted}>
         <Select
           aria-label="Field type"
           value={rowData.type}
           onChange={(value) => onChange(rowData.id, 'type', value)}
-          disabled={disabled}
+          disabled={isFieldDisabled}
           items={TYPE_OPTIONS}
         />
-      </Table.Cell>
+      </StyledTableCell>
 
-      <Table.Cell>
+      <StyledTableCell $isDeleted={isDeleted}>
         <Input
           key={`${rowData.id}-description`}
           id={`field-description-${rowData.id}`}
@@ -172,26 +195,46 @@ export const SchemaFieldRow: FC<TableRowProps<SchemaFieldData, SchemaFieldRowPro
             minWidth: '180px',
             width: '100%',
           }}
-          disabled={disabled}
+          disabled={isFieldDisabled}
         />
-      </Table.Cell>
+      </StyledTableCell>
 
-      {showDeleteButton && onDelete && (
-        <Table.Cell style={{ textAlign: 'left' }}>
-          <StyledDeleteButton
-            aria-label="Delete Field"
-            size="medium"
-            variant="outline"
-            icon={IconTrash}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(rowData.id);
-            }}
-            disabled={disabled}
-            round
-          />
-        </Table.Cell>
-      )}
+      <Table.Cell>
+        {showDeleteButton &&
+          (isDeleted ? (
+            onRestore && (
+              <Tooltip text="Restore Field" placement="top">
+                <StyledRestoreButton
+                  aria-label="Restore Field"
+                  size="medium"
+                  variant="primary"
+                  icon={IconRefresh}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRestore(rowData.id);
+                  }}
+                  disabled={disabled || isParentDeleted}
+                  round
+                />
+              </Tooltip>
+            )
+          ) : (
+            <StyledDeleteButton
+              aria-label="Delete Field"
+              size="medium"
+              variant="outline"
+              icon={IconTrash}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(rowData.id);
+              }}
+              disabled={disabled || !onDelete}
+              round
+            />
+          ))}
+      </Table.Cell>
     </Table.Row>
   );
+
+  return rowContent;
 };

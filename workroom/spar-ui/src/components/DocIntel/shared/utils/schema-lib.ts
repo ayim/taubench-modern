@@ -115,6 +115,93 @@ export function pathToPointer(path: string[]): string {
   return `/${path.map(escapePointerToken).join('/')}`;
 }
 
+/**
+ * Converts a JSON Pointer path to dot-notation format.
+ * Only processes property paths (e.g., "/properties/address/properties/city" -> "address.city").
+ * Returns empty string for non-property paths (root, array items, etc.).
+ *
+ * Uses pointerToPath() internally to leverage existing path parsing logic.
+ *
+ * @param pointer JSON Pointer path (e.g., "/properties/address/properties/city")
+ * @returns Dot-notation path (e.g., "address.city") or empty string
+ *
+ * @example
+ * jsonPointerToDotNotation("/properties/address/properties/city") // "address.city"
+ * jsonPointerToDotNotation("/properties/name") // "name"
+ * jsonPointerToDotNotation("/items") // "" (array item, not a property)
+ * jsonPointerToDotNotation("") // "" (root)
+ */
+export function jsonPointerToDotNotation(pointer: string): string {
+  if (!pointer.startsWith('/properties/')) {
+    return '';
+  }
+
+  // Use existing pointerToPath to parse the pointer
+  const pathTokens = pointerToPath(pointer);
+
+  // Filter out "properties" tokens and join remaining with "."
+  const fieldTokens = pathTokens.filter((token) => token !== 'properties');
+
+  return fieldTokens.join('.');
+}
+
+/**
+ * Converts a dot-notation path to JSON Pointer format.
+ * Uses pathToPointer() internally to leverage existing pointer building logic.
+ *
+ * @param dotNotationPath Dot-notation path (e.g., "address.city")
+ * @returns JSON Pointer path (e.g., "/properties/address/properties/city")
+ *
+ * @example
+ * dotNotationToJsonPointer("address.city") // "/properties/address/properties/city"
+ * dotNotationToJsonPointer("name") // "/properties/name"
+ * dotNotationToJsonPointer("") // ""
+ */
+export function dotNotationToJsonPointer(dotNotationPath: string): string {
+  if (!dotNotationPath) return '';
+
+  const fieldTokens = dotNotationPath.split('.');
+
+  // ["address", "city"] => ["properties", "address", "properties", "city"]
+  const pathTokens = fieldTokens.flatMap((fieldToken) => ['properties', fieldToken]);
+
+  return pathToPointer(pathTokens);
+}
+
+/**
+ * Parses a dot-notation field ID into parent pointer and property name.
+ * This is a higher-level utility that combines dotNotationToJsonPointer,
+ * pointerToPath, and pathToPointer to extract parent-child relationships.
+ *
+ * @param fieldId Dot-notation path (e.g., "address.city" or "name")
+ * @returns Object containing parentPointer and propertyName, or null if parsing fails
+ *
+ * @example
+ * parseFieldId("address.city")
+ * // { parentPointer: "/properties/address", propertyName: "city" }
+ *
+ * parseFieldId("name")
+ * // { parentPointer: "", propertyName: "name" }
+ *
+ * parseFieldId("")
+ * // null
+ */
+export function parseFieldId(fieldId: string): { parentPointer: string; propertyName: string } | null {
+  const fieldPointer = dotNotationToJsonPointer(fieldId);
+  if (!fieldPointer) return null;
+
+  const pathTokens = pointerToPath(fieldPointer);
+  if (pathTokens.length === 0) return null;
+
+  const propertyName = pathTokens.at(-1);
+  if (!propertyName) return null;
+
+  const parentPathTokens = pathTokens.slice(0, -2);
+  const parentPointer = pathToPointer(parentPathTokens);
+
+  return { parentPointer, propertyName };
+}
+
 /* ========================================================================
    3. INTERNAL HELPER FUNCTIONS
 

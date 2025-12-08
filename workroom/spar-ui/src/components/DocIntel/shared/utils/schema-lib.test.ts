@@ -5,6 +5,9 @@ import {
   unescapePointerToken,
   pointerToPath,
   pathToPointer,
+  jsonPointerToDotNotation,
+  dotNotationToJsonPointer,
+  parseFieldId,
   walk,
   buildIndex,
   findNodes,
@@ -126,6 +129,151 @@ describe('Pointer Utilities', () => {
     const pointer = pathToPointer(originalPath);
     const roundtripPath = pointerToPath(pointer);
     expect(roundtripPath).toEqual(originalPath);
+  });
+});
+
+describe('jsonPointerToDotNotation', () => {
+  it('converts simple property path', () => {
+    expect(jsonPointerToDotNotation('/properties/name')).toBe('name');
+  });
+
+  it('converts nested property path', () => {
+    expect(jsonPointerToDotNotation('/properties/address/properties/city')).toBe('address.city');
+  });
+
+  it('converts deeply nested property path', () => {
+    expect(jsonPointerToDotNotation('/properties/address/properties/city/properties/zip')).toBe('address.city.zip');
+  });
+
+  it('returns empty string for non-property paths', () => {
+    expect(jsonPointerToDotNotation('/items')).toBe('');
+    expect(jsonPointerToDotNotation('')).toBe('');
+    expect(jsonPointerToDotNotation('/some/other/path')).toBe('');
+  });
+
+  it('handles escaped characters in property names', () => {
+    const pointer = '/properties/prop~0name/properties/sub~1prop';
+    const dotNotation = jsonPointerToDotNotation(pointer);
+    expect(dotNotation).toBe('prop~name.sub/prop');
+  });
+
+  it('handles empty root pointer', () => {
+    expect(jsonPointerToDotNotation('')).toBe('');
+  });
+});
+
+describe('dotNotationToJsonPointer', () => {
+  it('converts simple field path', () => {
+    expect(dotNotationToJsonPointer('name')).toBe('/properties/name');
+  });
+
+  it('converts nested field path', () => {
+    expect(dotNotationToJsonPointer('address.city')).toBe('/properties/address/properties/city');
+  });
+
+  it('converts deeply nested field path', () => {
+    expect(dotNotationToJsonPointer('address.city.zip')).toBe('/properties/address/properties/city/properties/zip');
+  });
+
+  it('returns empty string for empty input', () => {
+    expect(dotNotationToJsonPointer('')).toBe('');
+  });
+
+  it('handles special characters in field names', () => {
+    const dotNotation = 'prop~name.sub/prop';
+    const pointer = dotNotationToJsonPointer(dotNotation);
+    // Should escape special characters properly
+    expect(pointer).toContain('properties');
+    expect(pointer).toContain('prop~0name');
+    expect(pointer).toContain('sub~1prop');
+  });
+});
+
+describe('dotNotationToJsonPointer roundtrip with jsonPointerToDotNotation', () => {
+  it('roundtrip for simple path', () => {
+    const input = 'name';
+    const asJsonPointer = dotNotationToJsonPointer(input);
+    const backToDotNotation = jsonPointerToDotNotation(asJsonPointer);
+    expect(backToDotNotation).toBe(input);
+  });
+
+  it('roundtrip for nested path', () => {
+    const input = 'address.city';
+    const asJsonPointer = dotNotationToJsonPointer(input);
+    const backToDotNotation = jsonPointerToDotNotation(asJsonPointer);
+    expect(backToDotNotation).toBe(input);
+  });
+
+  it('roundtrip for deeply nested path', () => {
+    const input = 'address.city.zip';
+    const asJsonPointer = dotNotationToJsonPointer(input);
+    const backToDotNotation = jsonPointerToDotNotation(asJsonPointer);
+    expect(backToDotNotation).toBe(input);
+  });
+});
+
+describe('parseFieldId', () => {
+  it('parses simple field to root parent', () => {
+    const result = parseFieldId('name');
+    expect(result).toEqual({
+      parentPointer: '',
+      propertyName: 'name',
+    });
+  });
+
+  it('parses nested field to parent pointer', () => {
+    const result = parseFieldId('address.city');
+    expect(result).toEqual({
+      parentPointer: '/properties/address',
+      propertyName: 'city',
+    });
+  });
+
+  it('parses deeply nested field', () => {
+    const result = parseFieldId('user.address.city');
+    expect(result).toEqual({
+      parentPointer: '/properties/user/properties/address',
+      propertyName: 'city',
+    });
+  });
+
+  it('parses very deeply nested field', () => {
+    const result = parseFieldId('user.profile.address.location.city');
+    expect(result).toEqual({
+      parentPointer: '/properties/user/properties/profile/properties/address/properties/location',
+      propertyName: 'city',
+    });
+  });
+
+  it('returns null for empty string', () => {
+    const result = parseFieldId('');
+    expect(result).toBeNull();
+  });
+
+  it('handles field names with special characters', () => {
+    const result = parseFieldId('field~name.sub/prop');
+    expect(result).not.toBeNull();
+    expect(result?.propertyName).toBe('sub/prop');
+    // Special characters get escaped in JSON Pointers: ~ becomes ~0, / becomes ~1
+    expect(result?.parentPointer).toBe('/properties/field~0name');
+  });
+
+  it('extracts correct property name from single-level path', () => {
+    const result = parseFieldId('email');
+    expect(result?.propertyName).toBe('email');
+    expect(result?.parentPointer).toBe('');
+  });
+
+  it('extracts correct property name from two-level path', () => {
+    const result = parseFieldId('user.email');
+    expect(result?.propertyName).toBe('email');
+    expect(result?.parentPointer).toBe('/properties/user');
+  });
+
+  it('extracts correct property name from three-level path', () => {
+    const result = parseFieldId('company.user.email');
+    expect(result?.propertyName).toBe('email');
+    expect(result?.parentPointer).toBe('/properties/company/properties/user');
   });
 });
 
