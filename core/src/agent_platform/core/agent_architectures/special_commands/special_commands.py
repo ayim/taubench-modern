@@ -303,6 +303,21 @@ async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but
             _append_tool_group(message, "data_frames", [], 0)
             await _append(message, f"  - <error: {e}>\n")
 
+        # SQL generation (optional and only used by the SQL generation subagent)
+        try:
+            await kernel.sql_generation.step_initialize()
+            sql_generation_tools = list(kernel.sql_generation.get_sql_generation_tools())
+            sql_generation_names = [f"`{t.name}`" for t in sql_generation_tools]
+            _append_tool_group(
+                message, "sql_generation", sql_generation_names, len(sql_generation_tools)
+            )
+            await message.stream_delta()
+            all_tools_dump.extend([t.model_dump() for t in sql_generation_tools])
+        except Exception as e:
+            logger.exception("/debug: sql generation tools failed")
+            _append_tool_group(message, "sql_generation", [], 0)
+            await _append(message, f"  - <error: {e}>\n")
+
         # Work item (optional)
         try:
             await kernel.work_item.step_initialize(state=state)

@@ -212,3 +212,17 @@ class MinimalKernelStub(Kernel):
                 return ()
 
         return _Docs()
+
+    @property
+    def sql_generation(self) -> Any:
+        class _SQLGeneration:
+            def is_enabled(self) -> bool:
+                return False
+
+            def step_initialize(self) -> None:
+                pass
+
+            def get_sql_generation_tools(self) -> tuple:
+                return ()
+
+        return _SQLGeneration()

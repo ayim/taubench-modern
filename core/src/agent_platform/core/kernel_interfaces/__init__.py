@@ -16,6 +16,7 @@ from agent_platform.core.kernel_interfaces.model_platform import PlatformInterfa
 from agent_platform.core.kernel_interfaces.otel import OTelInterface
 from agent_platform.core.kernel_interfaces.prompts import PromptsInterface
 from agent_platform.core.kernel_interfaces.runbook import RunbookInterface
+from agent_platform.core.kernel_interfaces.sql_generation import SQLGenerationInterface
 from agent_platform.core.kernel_interfaces.storage import StorageInterface
 from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
 from agent_platform.core.kernel_interfaces.tools import ToolsInterface
@@ -35,6 +36,7 @@ __all__ = [
     "PlatformInterface",
     "PromptsInterface",
     "RunbookInterface",
+    "SQLGenerationInterface",
     "StorageInterface",
     "ThreadStateInterface",
     "ToolsInterface",

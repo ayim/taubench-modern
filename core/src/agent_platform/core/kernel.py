@@ -25,6 +25,7 @@ from agent_platform.core.kernel_interfaces import (
     PlatformInterface,
     PromptsInterface,
     RunbookInterface,
+    SQLGenerationInterface,
     StorageInterface,
     ThreadStateInterface,
     ToolsInterface,
@@ -315,6 +316,13 @@ class Kernel(ABC):
     @abstractmethod
     def documents(self) -> DocumentsInterface:
         """Interface for interacting with the agent-server's documents."""
+
+    @property
+    @abstractmethod
+    def sql_generation(self) -> SQLGenerationInterface:
+        """Interface for interacting with the agent-server's SQL generation interface used
+        by the SQL generation subagent.
+        """
 
     async def get_platform_and_model(
         self,

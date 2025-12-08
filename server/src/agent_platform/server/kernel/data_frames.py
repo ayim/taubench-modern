@@ -1,4 +1,4 @@
-# ruff: noqa: E501, PLR0912, PLR0913, PLR0915, C901, PLR0911
+# ruff: noqa: E501, PLR0912, PLR0913, C901, PLR0911
 from __future__ import annotations
 
 import typing

@@ -139,6 +139,10 @@ class _MinimalKernel(Kernel):
     def documents(self):  # type: ignore[override]
         raise NotImplementedError
 
+    @property
+    def sql_generation(self):  # type: ignore[override]
+        raise NotImplementedError
+
 
 @pytest.mark.unit
 def test_default_selector_accepts_simple_model_slug():

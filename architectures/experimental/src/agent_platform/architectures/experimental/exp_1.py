@@ -111,6 +111,7 @@ class ToolsBundle:
     client_tools: Sequence[ToolDefinition]
     internal_tools: Sequence[ToolDefinition]
     data_frames_tools: Sequence[ToolDefinition]
+    sql_generation_tools: Sequence[ToolDefinition]
     work_item_tools: Sequence[ToolDefinition]
     document_tools: Sequence[ToolDefinition]
 
@@ -123,6 +124,7 @@ class ToolsBundle:
             *self.client_tools,
             *self.internal_tools,
             *self.data_frames_tools,
+            *self.sql_generation_tools,
             *self.work_item_tools,
             *self.document_tools,
         )
@@ -329,6 +331,9 @@ async def _gather_tools(
     await kernel.data_frames.step_initialize(state=state)
     data_frames_tools = kernel.data_frames.get_data_frame_tools()
 
+    await kernel.sql_generation.step_initialize()
+    sql_generation_tools = kernel.sql_generation.get_sql_generation_tools()
+
     await kernel.work_item.step_initialize(state=state)
     work_item_tools = kernel.work_item.get_work_item_tools()
 
@@ -360,6 +365,7 @@ async def _gather_tools(
         f"client={len(client)}, "
         f"internal={len(internal)}, "
         f"data_frames={len(data_frames_tools)}, "
+        f"sql_generation={len(sql_generation_tools)}, "
         f"work_item={len(work_item_tools)}, "
         f"documents={len(document_tools)}",
     )
@@ -372,6 +378,7 @@ async def _gather_tools(
         client_tools=client,
         internal_tools=internal,
         data_frames_tools=data_frames_tools,
+        sql_generation_tools=sql_generation_tools,
         work_item_tools=work_item_tools,
         document_tools=document_tools,
     )

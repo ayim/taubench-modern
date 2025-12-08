@@ -17,6 +17,7 @@ from agent_platform.core.kernel_interfaces import (
     PlatformInterface,
     PromptsInterface,
     RunbookInterface,
+    SQLGenerationInterface,
     StorageInterface,
     ThreadStateInterface,
     ToolsInterface,
@@ -56,6 +57,7 @@ class AgentServerKernel(Kernel):
         from agent_platform.server.kernel.otel import AgentServerOTelInterface
         from agent_platform.server.kernel.prompts import AgentServerPromptsInterface
         from agent_platform.server.kernel.runbook import AgentServerRunbookInterface
+        from agent_platform.server.kernel.sql_generation import AgentServerSQLGenerationInterface
         from agent_platform.server.kernel.storage import AgentServerStorageInterface
         from agent_platform.server.kernel.thread_state import AgentServerThreadStateInterface
         from agent_platform.server.kernel.tools import AgentServerToolsInterface
@@ -133,7 +135,8 @@ class AgentServerKernel(Kernel):
             self._documents = AgentServerDocumentsInterface()
             span.add_event("initialized documents")
             self._model_platforms = []
-
+            self._sql_generation = AgentServerSQLGenerationInterface()
+            span.add_event("initialized sql generation")
             # TODO: if kernel is used in init for some interfaces,
             # the order of initialization is important.
             self._outgoing_events.attach_kernel(self)
@@ -164,6 +167,8 @@ class AgentServerKernel(Kernel):
             span.add_event("attached work items")
             self._documents.attach_kernel(self)
             span.add_event("attached documents")
+            self._sql_generation.attach_kernel(self)
+            span.add_event("attached sql generation")
 
             # Go through agent.platform_configs and create a platform interface for each
             span.add_event("initializing model platforms")
@@ -275,3 +280,7 @@ class AgentServerKernel(Kernel):
     @property
     def model_selector(self) -> ModelSelector:
         return self._model_selector
+
+    @property
+    def sql_generation(self) -> SQLGenerationInterface:
+        return self._sql_generation

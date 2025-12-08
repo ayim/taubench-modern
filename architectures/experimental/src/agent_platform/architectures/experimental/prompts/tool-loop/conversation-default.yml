@@ -162,6 +162,8 @@ messages:
 
           {{ kernel.data_frames.data_frames_system_prompt }}
 
+          {{ kernel.sql_generation.sql_generation_system_prompt }}
+
           {{ kernel.work_item.work_item_summary_with_tools }}
 
           {{ kernel.documents.documents_system_prompt }}
