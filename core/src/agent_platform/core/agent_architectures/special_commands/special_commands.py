@@ -24,7 +24,10 @@ from typing import TYPE_CHECKING, Any, Final, Literal, cast
 if TYPE_CHECKING:
     from agent_platform.architectures.default.state import ArchState
     from agent_platform.core import Kernel
-    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+    from agent_platform.core.kernel_interfaces.data_frames import (
+        DataFrameArchState,
+        DataFramesInterface,
+    )
     from agent_platform.core.tools.tool_definition import ToolDefinition
 
 # ---- Constants ----------------------------------------------------------------
@@ -58,6 +61,13 @@ class HelpCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class DataCommand:
+    """Dump data frame and semantic model context (no model call)."""
+
+    pass
+
+
+@dataclass(frozen=True, slots=True)
 class ToggleCommand:
     """Quick toggle for common agent settings."""
 
@@ -80,9 +90,12 @@ class UnsetCommand:
     path: str  # must begin with agent_settings.
 
 
-SpecialCommand = DebugCommand | HelpCommand | ToggleCommand | SetCommand | UnsetCommand
+SpecialCommand = (
+    DebugCommand | HelpCommand | DataCommand | ToggleCommand | SetCommand | UnsetCommand
+)
 
 __all__ = [
+    "DataCommand",
     "DebugCommand",
     "HelpCommand",
     "SetCommand",
@@ -96,7 +109,7 @@ __all__ = [
 # ---- Parsing ------------------------------------------------------------------
 
 
-def parse_special_command(  # noqa: PLR0911
+def parse_special_command(  # noqa: C901, PLR0911
     text: str,
 ) -> SpecialCommand | None:
     """
@@ -104,6 +117,7 @@ def parse_special_command(  # noqa: PLR0911
 
     Grammar (whitespace around tokens is tolerated):
       /debug
+      /data
       /help
       /toggle <memory|data-frames> <on|off>
       /set agent_settings.<path> <value>
@@ -120,6 +134,8 @@ def parse_special_command(  # noqa: PLR0911
     s = text.strip()
     if s == "/debug":
         return DebugCommand()
+    if s == "/data":
+        return DataCommand()
     if s == "/help":
         return HelpCommand()
 
@@ -150,7 +166,7 @@ def parse_special_command(  # noqa: PLR0911
 # ---- Dispatcher ---------------------------------------------------------------
 
 
-async def handle_special_command(
+async def handle_special_command(  # noqa: PLR0911
     command: SpecialCommand,
     kernel: Kernel,
     *,
@@ -166,6 +182,9 @@ async def handle_special_command(
     match command:
         case DebugCommand():
             await _handle_debug(kernel, state, internal_tools_provider)
+            return True
+        case DataCommand():
+            await _handle_data(kernel, state)
             return True
         case HelpCommand():
             await _handle_help(kernel)
@@ -447,6 +466,9 @@ async def _handle_help(kernel: Kernel) -> None:
         "### /debug",
         "Dump internal info (no model call).",
         "",
+        "### /data",
+        "Show data frames, semantic models, and data context prompt.",
+        "",
         "### /help",
         "Show this help.",
         "",
@@ -473,6 +495,333 @@ async def _handle_help(kernel: Kernel) -> None:
 
 
 # ---- Settings -----------------------------------------------------------------
+
+
+async def _handle_data(kernel: Kernel, state: DataFrameArchState | None) -> None:
+    """Render a detailed view of cached data frames and semantic models."""
+
+    message = await kernel.thread_state.new_agent_message(
+        tag_expected_past_response=None,
+        tag_expected_pre_response=None,
+    )
+
+    await _append(message, "Data Context Overview\n\n")
+
+    if state is None:
+        await _append(
+            message,
+            "- Data frame architecture state unavailable; unable to gather cached data.\n",
+            complete=True,
+        )
+        await message.commit()
+        return
+
+    df_interface = kernel.data_frames
+
+    enabled = _is_data_frames_enabled(df_interface)
+    if enabled is False:
+        reason = _data_frames_disable_reason(kernel)
+        await _append(
+            message,
+            (
+                "- Data frames are disabled"
+                f"{f' ({reason})' if reason else ''}. "
+                "Enable them and rerun `/data` to inspect context.\n"
+            ),
+            complete=True,
+        )
+        await message.commit()
+        return
+
+    if not await _initialize_data_frames(df_interface, state, message):
+        await message.commit()
+        return
+
+    await _append_data_frames_section(message, df_interface)
+    await _append_semantic_models_section(message, df_interface)
+    await _append_system_prompt_section(message, df_interface)
+
+    await message.commit()
+
+
+async def _initialize_data_frames(
+    df_interface: DataFramesInterface,
+    state: DataFrameArchState,
+    message,
+) -> bool:
+    try:
+        await df_interface.step_initialize(state=state)
+    except Exception as exc:
+        logger.exception("/data: initialization failed")
+        await _append(
+            message,
+            f"- Error initializing data frames interface: {exc}\n",
+        )
+        return False
+    return True
+
+
+async def _append_data_frames_section(message, df_interface: DataFramesInterface) -> None:
+    await _append(message, "### Data Frames\n")
+
+    summary = _optional_text_attr(
+        df_interface, "data_frames_summary", "/data: data frame summary failed"
+    )
+    if summary:
+        await _append(message, _with_trailing_newline(summary))
+    else:
+        await _append(message, "- No data frames available.\n")
+
+    payload = _optional_call(
+        df_interface,
+        "debug_data_frames_payload",
+        "/data: data frame payload failed",
+    )
+    if payload:
+        await _append(message, "\n#### Raw Data Frames\n")
+        await _append_yaml_block(message, payload)
+
+
+async def _append_semantic_models_section(message, df_interface: DataFramesInterface) -> None:
+    await _append(message, "\n### Semantic Data Models\n")
+
+    payload = _optional_call(
+        df_interface,
+        "debug_semantic_data_models_payload",
+        "/data: semantic payload failed",
+    )
+    formatted_semantic_models = ""
+    if payload:
+        try:
+            formatted_semantic_models = _format_semantic_models(payload)
+        except Exception:
+            logger.exception("/data: semantic payload formatting failed")
+
+    if formatted_semantic_models:
+        await _append(message, formatted_semantic_models)
+    else:
+        summary = _optional_text_attr(
+            df_interface,
+            "semantic_data_models_summary",
+            "/data: semantic summary failed",
+        )
+        if summary:
+            await _append(message, _with_trailing_newline(summary))
+        else:
+            await _append(message, "- No semantic data models available.\n")
+
+    if payload:
+        await _append(message, "\n#### Raw Semantic Data Models\n")
+        await _append_yaml_block(message, _strip_sample_values_from_semantic_models(payload))
+
+
+async def _append_system_prompt_section(message, df_interface: DataFramesInterface) -> None:
+    await _append(message, "\n### Data Frames System Prompt\n")
+
+    prompt = _optional_text_attr(
+        df_interface, "data_frames_system_prompt", "/data: system prompt retrieval failed"
+    )
+    if prompt:
+        await _append(message, f"```\n{prompt}\n```\n")
+    else:
+        await _append(message, "- No data frames system prompt applied.\n")
+
+
+def _optional_text_attr(obj: Any, attr: str, log_label: str) -> str | None:
+    if not hasattr(obj, attr):
+        return None
+
+    try:
+        value = getattr(obj, attr)
+        if callable(value):
+            value = value()
+    except Exception:
+        logger.exception(log_label)
+        return None
+
+    if isinstance(value, str):
+        return value.strip()
+    return None
+
+
+def _is_data_frames_enabled(df_interface: DataFramesInterface) -> bool | None:
+    try:
+        return df_interface.is_enabled()
+    except Exception:
+        logger.exception("/data: data frames enablement check failed")
+        return None
+
+
+def _data_frames_disable_reason(kernel: Kernel) -> str | None:
+    """Best-effort explanation for why data frames are disabled."""
+    try:
+        import os
+
+        agent_settings = kernel.agent.extra.get("agent_settings", {})
+        if isinstance(agent_settings, dict) and "enable_data_frames" in agent_settings:
+            if not bool(agent_settings.get("enable_data_frames")):
+                return "agent_settings.enable_data_frames is false/0"
+
+        env_val = os.environ.get("SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES")
+        if env_val is not None and env_val.lower() in {"0", "false"}:
+            return "SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES is set to false/0"
+    except Exception:
+        logger.exception("/data: failed to resolve data frames disable reason")
+    return None
+
+
+def _optional_call(obj: Any, attr: str, log_label: str) -> Any | None:
+    if not hasattr(obj, attr):
+        return None
+
+    method = getattr(obj, attr)
+    if not callable(method):
+        return None
+
+    try:
+        return method()
+    except Exception:
+        logger.exception(log_label)
+        return None
+
+
+def _with_trailing_newline(text: str) -> str:
+    return text if text.endswith("\n") else text + "\n"
+
+
+def _format_semantic_models(payload: list[dict[str, Any]]) -> str:  # noqa: C901, PLR0912
+    lines: list[str] = []
+
+    for model in payload:
+        semantic_model = model.get("semantic_data_model")
+        if not isinstance(semantic_model, dict):
+            continue
+
+        model_name = semantic_model.get("name") or model.get("semantic_data_model_id")
+        model_name = model_name or "Semantic data model"
+        model_description = semantic_model.get("description")
+
+        lines.append(f"#### Semantic Model: {model_name}")
+        if model_description:
+            lines.append(f"- Description: {model_description}")
+        if updated_at := model.get("updated_at"):
+            lines.append(f"- Updated at: {updated_at}")
+
+        tables = semantic_model.get("tables") or []
+        if not tables:
+            lines.append("- No tables available.\n")
+            continue
+
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+
+            table_name = table.get("name") or "Unnamed table"
+            lines.append(f"\n##### Table `{table_name}`")
+
+            table_description = table.get("description")
+            base_table = table.get("base_table")
+            metadata_parts: list[str] = []
+            if base_table:
+                metadata_parts.append(f"Base table: {base_table}")
+            if table_description:
+                metadata_parts.append(f"Description: {table_description}")
+            if metadata_parts:
+                lines.append("\n".join(metadata_parts))
+
+            section_added = False
+            for heading, column_key in (
+                ("Dimensions", "dimensions"),
+                ("Time Dimensions", "time_dimensions"),
+                ("Facts", "facts"),
+            ):
+                formatted_columns = _format_semantic_columns_table(
+                    columns=table.get(column_key), heading=heading
+                )
+                if formatted_columns:
+                    lines.append(formatted_columns)
+                    section_added = True
+
+            if not section_added:
+                lines.append("- No dimensions, time dimensions, or facts defined.")
+
+        lines.append("")  # Blank line between models
+
+    return _with_trailing_newline("\n".join(lines)) if lines else ""
+
+
+def _format_semantic_columns_table(*, columns: Any, heading: str) -> str:
+    if not columns or not isinstance(columns, list):
+        return ""
+
+    rows: list[str] = []
+    for column in columns:
+        if not isinstance(column, dict):
+            continue
+
+        name = _escape_table_cell(str(column.get("name", "") or "—"))
+        expr = _escape_table_cell(str(column.get("expr", "") or "—"))
+        data_type = _escape_table_cell(str(column.get("data_type", "") or "—"))
+        description = _escape_table_cell(str(column.get("description", "") or "—"))
+
+        synonyms = column.get("synonyms") or []
+        if isinstance(synonyms, list):
+            synonyms_str = ", ".join(str(item) for item in synonyms if item)
+        else:
+            synonyms_str = str(synonyms)
+
+        notes: list[str] = []
+        if synonyms_str:
+            notes.append(f"synonyms: {synonyms_str}")
+        if column.get("unique") is not None:
+            notes.append(f"unique: {column['unique']}")
+        if errors := column.get("errors"):
+            notes.append(f"errors: {errors}")
+
+        notes_text = _escape_table_cell("; ".join(notes) if notes else "—")
+        rows.append(f"| {name} | {expr} | {data_type} | {description} | {notes_text} |")
+
+    if not rows:
+        return ""
+
+    header = "\n".join(
+        [
+            f"**{heading}**",
+            "| Name | Expr | Type | Description | Notes |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+    )
+    return f"{header}\n" + "\n".join(rows)
+
+
+def _escape_table_cell(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", "<br>")
+
+
+def _strip_sample_values_from_semantic_models(payload: list[dict[str, Any]]) -> list[dict]:  # noqa: C901
+    from copy import deepcopy
+
+    sanitized = deepcopy(payload)
+    for model in sanitized:
+        if not isinstance(model, dict):
+            continue
+        semantic_model = model.get("semantic_data_model")
+        if not isinstance(semantic_model, dict):
+            continue
+        tables = semantic_model.get("tables")
+        if not isinstance(tables, list):
+            continue
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+            for column_key in ("dimensions", "time_dimensions", "facts"):
+                columns = table.get(column_key)
+                if not isinstance(columns, list):
+                    continue
+                for column in columns:
+                    if isinstance(column, dict):
+                        column.pop("sample_values", None)
+    return sanitized
 
 
 async def _handle_toggle(
@@ -643,3 +992,31 @@ async def _append_json_block(message, data: Any) -> None:
         except Exception:
             dumped = '"<unserializable>"'
     await _append(message, "```json\n" + dumped + "\n```\n")
+
+
+async def _append_yaml_block(message, data: Any) -> None:
+    """Append a YAML code block for the given data."""
+    try:
+        from io import StringIO
+
+        from ruamel.yaml import YAML
+    except Exception:
+        logger.exception("Failed to import ruamel.yaml; falling back to JSON.")
+        await _append_json_block(message, data)
+        return
+
+    try:
+        yaml = YAML()
+        yaml.default_flow_style = False
+        yaml.indent(mapping=2, sequence=4, offset=2)
+        yaml.width = 120
+
+        stream = StringIO()
+        yaml.dump(data, stream)
+        dumped = stream.getvalue()
+    except Exception:
+        logger.exception("Failed to render YAML block; falling back to JSON.")
+        await _append_json_block(message, data)
+        return
+
+    await _append(message, "```yaml\n" + dumped + "\n```\n")

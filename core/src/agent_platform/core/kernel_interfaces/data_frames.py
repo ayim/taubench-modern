@@ -83,3 +83,11 @@ class DataFramesInterface(ABC):
             The prompt for the user after uploading a file, or None if no custom
             prompt should be added.
         """
+
+    @abstractmethod
+    def debug_data_frames_payload(self) -> list[dict[str, Any]]:
+        """Return structured data frame information for diagnostics."""
+
+    @abstractmethod
+    def debug_semantic_data_models_payload(self) -> list[dict[str, Any]]:
+        """Return structured semantic data model information for diagnostics."""

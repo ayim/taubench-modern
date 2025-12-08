@@ -563,6 +563,88 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
     ) -> tuple[ToolDefinition, ...]:
         return self._data_frame_tools
 
+    def debug_data_frames_payload(self) -> list[dict[str, Any]]:
+        payload: list[dict[str, Any]] = []
+        for data_frame in self._name_to_data_frame.values():
+            try:
+                dumped = data_frame.model_dump()
+            except Exception:
+                logger.exception(
+                    "Error serializing data frame for debug payload",
+                    data_frame_name=data_frame.name,
+                )
+                continue
+
+            parquet_contents = dumped.get("parquet_contents")
+            if isinstance(parquet_contents, bytes | bytearray):
+                dumped["parquet_contents"] = f"<{len(parquet_contents)} bytes>"
+            elif parquet_contents is not None and not isinstance(parquet_contents, str):
+                dumped["parquet_contents"] = f"<{type(parquet_contents).__name__}>"
+
+            payload.append(dumped)
+
+        return payload
+
+    def debug_semantic_data_models_payload(self) -> list[dict[str, Any]]:
+        from dataclasses import asdict
+
+        payload: list[dict[str, Any]] = []
+        for semantic_data_model in self._semantic_data_models:
+            info = semantic_data_model.semantic_data_model_info
+            references = semantic_data_model.references
+
+            serialized_references: dict[str, Any] = {
+                "data_connection_ids": sorted(references.data_connection_ids),
+                "file_references": [
+                    {
+                        "thread_id": ref.thread_id,
+                        "file_ref": ref.file_ref,
+                        "sheet_name": ref.sheet_name,
+                    }
+                    for ref in sorted(
+                        references.file_references,
+                        key=lambda item: (item.thread_id, item.file_ref, item.sheet_name or ""),
+                    )
+                ],
+                "data_connection_id_to_logical_table_names": {
+                    key: sorted(value)
+                    for key, value in references.data_connection_id_to_logical_table_names.items()
+                },
+                "file_reference_to_logical_table_names": [
+                    {
+                        "file_reference": {
+                            "thread_id": ref.thread_id,
+                            "file_ref": ref.file_ref,
+                            "sheet_name": ref.sheet_name,
+                        },
+                        "logical_table_names": sorted(names),
+                    }
+                    for ref, names in references.file_reference_to_logical_table_names.items()
+                ],
+                "logical_table_name_to_connection_info": {
+                    logical_table: asdict(info)
+                    for logical_table, info in references.logical_table_name_to_connection_info.items()
+                },
+                "errors": references.errors,
+                "tables_with_unresolved_file_references": [
+                    asdict(item) for item in references.tables_with_unresolved_file_references
+                ],
+                "semantic_data_model_with_errors": references.semantic_data_model_with_errors,
+            }
+
+            payload.append(
+                {
+                    "semantic_data_model_id": info["semantic_data_model_id"],
+                    "semantic_data_model": info["semantic_data_model"],
+                    "agent_ids": sorted(info["agent_ids"]),
+                    "thread_ids": sorted(info["thread_ids"]),
+                    "updated_at": info["updated_at"],
+                    "references": serialized_references,
+                }
+            )
+
+        return payload
+
     async def _create_in_memory_data_frame(
         self,
         name: str,

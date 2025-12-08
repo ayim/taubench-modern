@@ -1,4 +1,5 @@
 from .special_commands import (
+    DataCommand,
     DebugCommand,
     HelpCommand,
     SetCommand,
@@ -9,6 +10,7 @@ from .special_commands import (
 )
 
 __all__ = [
+    "DataCommand",
     "DebugCommand",
     "HelpCommand",
     "SetCommand",
