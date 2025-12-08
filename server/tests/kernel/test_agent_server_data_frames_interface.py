@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -61,10 +62,12 @@ class TestAgentServerDataFramesInterface:
 
     def test_legacy_strategy_creation(self):
         """Test that legacy mode creates LegacySqlStrategy."""
-        strategy = LegacySqlStrategy()
-        assert strategy.get_tools() == ()
+        mock_data_frame_tools = MagicMock()
+        strategy = LegacySqlStrategy(data_frame_tools=mock_data_frame_tools)
+        assert len(strategy.get_tools()) == 1
 
     def test_agentic_strategy_creation(self):
         """Test that agentic mode creates AgenticSqlStrategy."""
-        strategy = AgenticSqlStrategy()
-        assert len(strategy.get_tools()) == 1
+        mock_data_frame_tools = MagicMock()
+        strategy = AgenticSqlStrategy(data_frame_tools=mock_data_frame_tools)
+        assert len(strategy.get_tools()) == 2

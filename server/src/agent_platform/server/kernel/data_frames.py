@@ -205,7 +205,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         # If the user gives something other than these values, it will error.
         return SqlGeneration(mode)
 
-    def _create_sql_strategy(self) -> SqlGenerationStrategy:
+    def _create_sql_strategy(
+        self,
+        data_frame_tools: _DataFrameTools,
+    ) -> SqlGenerationStrategy:
         """Create appropriate SQL generation strategy based on agent settings."""
         from agent_platform.server.kernel.sql import (
             AgenticSqlStrategy,
@@ -214,11 +217,11 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         mode = self._get_sql_generation_mode()
         if mode == SqlGeneration.AGENTIC:
-            return AgenticSqlStrategy()
+            return AgenticSqlStrategy(data_frame_tools=data_frame_tools)
         else:
             if mode != SqlGeneration.LEGACY:
                 logger.warning(f"Unknown SQL generation mode: {mode}, defaulting to legacy")
-            return LegacySqlStrategy()
+            return LegacySqlStrategy(data_frame_tools=data_frame_tools)
 
     async def step_initialize(
         self, *, storage: BaseStorage | None = None, state: DataFrameArchState
@@ -286,9 +289,6 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             for data_connection in data_connections:
                 self._data_connection_id_to_engine[data_connection.id] = data_connection.engine
 
-        # Initialize SQL generation strategy
-        self._sql_strategy = self._create_sql_strategy()
-
         data_frame_tools = _DataFrameTools(
             self.kernel.user,
             self.kernel.thread.thread_id,
@@ -296,6 +296,11 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             storage,
             thread_state=self.kernel.thread_state,
             verified_queries=self._verified_queries,
+        )
+
+        # Initialize SQL generation strategy with the data frame tools
+        self._sql_strategy = self._create_sql_strategy(
+            data_frame_tools=data_frame_tools,
         )
         if data_frames or previous_state == "enabled":
             if not previous_state:
@@ -315,9 +320,6 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 ),
                 ToolDefinition.from_callable(
                     data_frame_tools.data_frame_slice, name=DF_SLICE_TOOL_NAME
-                ),
-                ToolDefinition.from_callable(
-                    data_frame_tools.create_data_frame_from_sql, name=DF_CREATE_FROM_SQL_TOOL_NAME
                 ),
             ]
 
@@ -346,14 +348,6 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 ),
             ]
 
-            if self._semantic_data_models:
-                tools.append(
-                    ToolDefinition.from_callable(
-                        data_frame_tools.create_data_frame_from_sql,
-                        name=DF_CREATE_FROM_SQL_TOOL_NAME,
-                    )
-                )
-
             # Add tool for verified queries if any exist
             if self._verified_queries:
                 tools.append(
@@ -365,8 +359,12 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             self._data_frame_tools = tuple(tools)
 
-        # Add SQL generation tools (if any)
-        if self._sql_strategy:
+        # Add SQL generation tools (if there are data frames, semantic data models, or state is enabled)
+        # SQL can be used to query both data frames and semantic data models
+        # Once enabled, keep SQL tools available even if data frames are temporarily cleared
+        if self._sql_strategy and (
+            data_frames or previous_state == "enabled" or self._semantic_data_models
+        ):
             sql_tools = self._sql_strategy.get_tools()
             if sql_tools:
                 self._data_frame_tools += sql_tools
@@ -1221,72 +1219,16 @@ class _DataFrameTools:
                 "message": f"Unable to sample data frame. Error: {e!r}",
             }
 
-    async def create_data_frame_from_sql(
+    async def _create_data_frame_from_sql_impl(
         self,
-        sql_query: Annotated[
-            str,
-            """
-            A SQL "SELECT" query to execute against existing data frames
-            or "logical" tables in semantic data models.
-            Any data frame or "logical" table can be referenced by its name in the SQL query.
-            Some common SQL features:
-                • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
-                • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
-                • String functions like CONCAT, UPPER, LOWER
-                • Math functions and operators
-                • JOIN operations (when using multiple data frames)
-                • Common Table Expressions (CTEs)
-            Examples:
-                • 'SELECT * FROM my_data_frame WHERE age > 30'
-                • 'SELECT country, COUNT(*) as count FROM my_data_frame GROUP BY country'
-                • 'SELECT name, age FROM my_data_frame ORDER BY age DESC LIMIT 10'
-                • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
-                • 'SELECT * FROM my_data_frame
-                       JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
-
-            Note: The SQL dialect syntax used for the query should be inferred from the
-                  SQL dialect specified in the semantic data model or data frame being used in
-                  the query (if multiple engines are found, duckdb will be used for
-                  queries across different engines, so, if a single engine is being used,
-                  the SQL query syntax should be compatible with that specific engine, if more than
-                  one engine is being used, duckdb syntax should be used for the query).
-            """,
-        ],
-        new_data_frame_name: Annotated[
-            str,
-            """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
-            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
-            and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
-            unique in the thread (updating an existing data frame is not possible).""",
-        ],
-        new_data_frame_description: Annotated[
-            str | None,
-            "The description of the new data frame to create.",
-        ] = None,
-        num_samples: Annotated[
-            int,
-            """The number of samples to return from the newly created data frame (number of rows
-            to return). Default is 10 (max 500).
-            """,
-        ] = 10,
+        sql_query: str,
+        new_data_frame_name: str,
+        new_data_frame_description: str | None = None,
+        num_samples: int = 10,
     ) -> dict[str, Any]:
-        """Run a SQL query against the existing data frames or "logical" tables in semantic
-        data models and use its data to create a new data frame.
+        """Internal implementation for creating a data frame from SQL.
 
-        A sample of the newly created data frame is returned (specified by num_samples).
-
-        Use SQL using syntax matching the SQL dialect of the semantic data model or data frame being queried.
-        Existing data frames and "logical" tables in semantic data models are available by their name in your query.
-
-        IMPORTANT RETRY BEHAVIOR:
-        - If this tool returns status='needs_retry', read the error message carefully
-        - The message contains specific guidance on what went wrong and how to fix it
-        - Modify your SQL based on the feedback provided in the message
-        - Call this tool again with the corrected SQL
-        - After 5 failed attempts with different SQL variations, explain the issue to the user
-        - Do NOT keep retrying the same SQL - each retry should incorporate the feedback from previous attempts
-
-        If the query is not valid, a structured response will be returned with guidance so it can be corrected and retried.
+        This is called by both the SQL strategies and create_data_frame_from_verified_query.
         """
         import keyword
 
@@ -1406,8 +1348,8 @@ class _DataFrameTools:
 
         verified_query = self._verified_queries[verified_query_name]
 
-        # Use the existing create_data_frame_from_sql method with the verified query's SQL
-        return await self.create_data_frame_from_sql(
+        # Use the internal implementation with the verified query's SQL
+        return await self._create_data_frame_from_sql_impl(
             sql_query=verified_query["sql"],
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,

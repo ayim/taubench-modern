@@ -1,9 +1,12 @@
 # ruff: noqa: E501
 from abc import ABC, abstractmethod
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.tools.tool_definition import ToolDefinition
+
+if TYPE_CHECKING:
+    from agent_platform.server.kernel.data_frames import _DataFrameTools
 
 
 class SqlGenerationStrategy(ABC):
@@ -13,6 +16,14 @@ class SqlGenerationStrategy(ABC):
     1. Context-based (Legacy): Give current agent context/instructions, it generates SQL
     2. Tool-based (Agentic): Provide a tool that delegates to a specialized SQL agent
     """
+
+    def __init__(self, data_frame_tools: "_DataFrameTools"):
+        """Initialize the strategy with data frame tools.
+
+        Args:
+            data_frame_tools: The data frame tools instance containing all necessary dependencies
+        """
+        self._data_frame_tools = data_frame_tools
 
     @abstractmethod
     def get_context_additions(
@@ -30,10 +41,20 @@ class SqlGenerationStrategy(ABC):
 
     @abstractmethod
     def get_tools(self) -> tuple[ToolDefinition, ...]:
-        """Whether to provide the generate_sql tool for this strategy.
+        """Get the tools provided by this strategy.
 
         Returns:
-            True if generate_sql tool should be available, False otherwise
+            Tuple of tool definitions for this strategy
+        """
+
+    @abstractmethod
+    def get_sql_query_parameter_prompt(self) -> str:
+        """Get the prompt text for the sql_query parameter in create_data_frame_from_sql.
+
+        This prompt describes what SQL queries the agent should write and how.
+
+        Returns:
+            Prompt text for the sql_query parameter
         """
 
 
@@ -71,8 +92,124 @@ class LegacySqlStrategy(SqlGenerationStrategy):
         return "\n".join(parts)
 
     def get_tools(self) -> tuple[ToolDefinition, ...]:
-        """Legacy mode does not provide generate_sql tool."""
-        return ()
+        """Legacy mode provides create_data_frame_from_sql tool."""
+        from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
+
+        return (
+            ToolDefinition.from_callable(
+                self.create_data_frame_from_sql,
+                name=DF_CREATE_FROM_SQL_TOOL_NAME,
+            ),
+        )
+
+    def get_sql_query_parameter_prompt(self) -> str:
+        """Get the SQL query prompt for LegacySqlStrategy.
+
+        This is used when the agent generates SQL directly.
+        """
+        return """
+            A SQL "SELECT" query to execute against existing data frames
+            or "logical" tables in semantic data models.
+            Any data frame or "logical" table can be referenced by its name in the SQL query.
+            Some common SQL features:
+                • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
+                • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
+                • String functions like CONCAT, UPPER, LOWER
+                • Math functions and operators
+                • JOIN operations (when using multiple data frames)
+                • Common Table Expressions (CTEs)
+            Examples:
+                • 'SELECT * FROM my_data_frame WHERE age > 30'
+                • 'SELECT country, COUNT(*) as count FROM my_data_frame GROUP BY country'
+                • 'SELECT name, age FROM my_data_frame ORDER BY age DESC LIMIT 10'
+                • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
+                • 'SELECT * FROM my_data_frame
+                       JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
+
+            Note: The SQL dialect syntax used for the query should be inferred from the
+                  SQL dialect specified in the semantic data model or data frame being used in
+                  the query (if multiple engines are found, duckdb will be used for
+                  queries across different engines, so, if a single engine is being used,
+                  the SQL query syntax should be compatible with that specific engine, if more than
+                  one engine is being used, duckdb syntax should be used for the query).
+            """
+
+    async def create_data_frame_from_sql(
+        self,
+        sql_query: Annotated[
+            str,
+            """
+            A SQL "SELECT" query to execute against existing data frames
+            or "logical" tables in semantic data models.
+            Any data frame or "logical" table can be referenced by its name in the SQL query.
+            Some common SQL features:
+                • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
+                • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
+                • String functions like CONCAT, UPPER, LOWER
+                • Math functions and operators
+                • JOIN operations (when using multiple data frames)
+                • Common Table Expressions (CTEs)
+            Examples:
+                • 'SELECT * FROM my_data_frame WHERE age > 30'
+                • 'SELECT country, COUNT(*) as count FROM my_data_frame GROUP BY country'
+                • 'SELECT name, age FROM my_data_frame ORDER BY age DESC LIMIT 10'
+                • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
+                • 'SELECT * FROM my_data_frame
+                       JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
+
+            Note: The SQL dialect syntax used for the query should be inferred from the
+                  SQL dialect specified in the semantic data model or data frame being used in
+                  the query (if multiple engines are found, duckdb will be used for
+                  queries across different engines, so, if a single engine is being used,
+                  the SQL query syntax should be compatible with that specific engine, if more than
+                  one engine is being used, duckdb syntax should be used for the query).
+            """,
+        ],
+        new_data_frame_name: Annotated[
+            str,
+            """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
+            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
+            and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
+            unique in the thread (updating an existing data frame is not possible).""",
+        ],
+        new_data_frame_description: Annotated[
+            str | None,
+            "The description of the new data frame to create.",
+        ] = None,
+        num_samples: Annotated[
+            int,
+            """The number of samples to return from the newly created data frame (number of rows
+            to return). Default is 10 (max 500).
+            """,
+        ] = 10,
+    ) -> dict[str, Any]:
+        """Run a SQL query against the existing data frames or "logical" tables in semantic
+        data models and use its data to create a new data frame.
+
+        A sample of the newly created data frame is returned (specified by num_samples).
+
+        Use SQL using syntax matching the SQL dialect of the semantic data model or data frame being queried.
+        Existing data frames and "logical" tables in semantic data models are available by their name in your query.
+
+        IMPORTANT RETRY BEHAVIOR:
+        - If this tool returns status='needs_retry', read the error message carefully
+        - The message contains specific guidance on what went wrong and how to fix it
+        - Modify your SQL based on the feedback provided in the message
+        - Call this tool again with the corrected SQL
+        - After 5 failed attempts with different SQL variations, explain the issue to the user
+        - Do NOT keep retrying the same SQL - each retry should incorporate the feedback from previous attempts
+
+        If the query is not valid, a structured response will be returned with guidance so it can be corrected and retried.
+        """
+        assert self._data_frame_tools._create_data_frame_from_sql_impl is not None, (
+            "create_df_from_sql_impl is required for SQL operations"
+        )
+        return await self._data_frame_tools._create_data_frame_from_sql_impl(
+            sql_query=sql_query,
+            new_data_frame_name=new_data_frame_name,
+            new_data_frame_description=new_data_frame_description,
+            num_samples=num_samples,
+        )
 
 
 def _get_sql_generation_instructions(  # noqa: C901
@@ -369,15 +506,99 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         # The specialized SQL agent will handle the HOW
         return summarize_data_models(semantic_models_and_engines)
 
-    def get_tools(self) -> tuple[ToolDefinition, ...]:
-        """Agentic mode provides generate_sql tool."""
+    def _choose_sdm_for_query_prompt(self) -> str:
+        """Instructions for the agent to choose the semantic data model to use for the query."""
+        from textwrap import dedent
+
         from agent_platform.server.kernel.data_frames import DF_GENERATE_SQL_TOOL_NAME
+
+        return dedent(f"""
+        **Choose Semantic Data Model for Query**
+        When interacting with a Semantic Data Model, you need to determine the intent of the user's
+        request. From this intent, you should analyze the available Semantic Data Models and choose
+        the Semantic Data Model which is most relevant to the request. You should determine the best
+        Semantic Data Model that contains tables that are most relevant to the request.
+
+        Once you have identified the best Semantic Data Model, you should use the {DF_GENERATE_SQL_TOOL_NAME}
+        tool to generate a SQL query. You should never generate SQL queries directly, always use the tool
+        to generate a query. If this tool responds that it was unable to generate a query against the
+        specified Semantic Data Model, you may attempt to choose a different Semantic Data Model. You
+        should only attempt to choose a different Semantic Data Model if there is another likely
+        Semantic Data Model that may also be relevant.
+        """)
+
+    def get_tools(self) -> tuple[ToolDefinition, ...]:
+        """Agentic mode provides both generate_sql and create_data_frame_from_sql tools."""
+        from agent_platform.server.kernel.data_frames import (
+            DF_CREATE_FROM_SQL_TOOL_NAME,
+            DF_GENERATE_SQL_TOOL_NAME,
+        )
 
         return (
             ToolDefinition.from_callable(
                 self.generate_sql,
                 name=DF_GENERATE_SQL_TOOL_NAME,
             ),
+            ToolDefinition.from_callable(
+                self.create_data_frame_from_sql,
+                name=DF_CREATE_FROM_SQL_TOOL_NAME,
+            ),
+        )
+
+    def get_sql_query_parameter_prompt(self) -> str:
+        """Get the SQL query prompt for AgenticSqlStrategy.
+
+        This is a placeholder for when SQL generation is delegated to a specialized agent.
+        """
+        from agent_platform.server.kernel.data_frames import DF_GENERATE_SQL_TOOL_NAME
+
+        return f"""
+            A SQL query to execute against existing data frames
+            or "logical" tables in semantic data models. You should only provide
+            a query as constructed by the {DF_GENERATE_SQL_TOOL_NAME} tool.
+            """
+
+    async def create_data_frame_from_sql(
+        self,
+        sql_query: Annotated[
+            str,
+            """
+            A SQL query to execute against existing data frames
+            or tables in semantic data models. You should only provide
+            a query as constructed by the generate_sql tool.
+            """,
+        ],
+        new_data_frame_name: Annotated[
+            str,
+            """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
+            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
+            and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
+            unique in the thread (updating an existing data frame is not possible).""",
+        ],
+        new_data_frame_description: Annotated[
+            str | None,
+            "The description of the new data frame to create.",
+        ] = None,
+        num_samples: Annotated[
+            int,
+            """The number of samples to return from the newly created data frame (number of rows
+            to return). Default is 10 (max 500).
+            """,
+        ] = 10,
+    ) -> dict[str, Any]:
+        """Run a SQL query against the existing data frames or "logical" tables in semantic
+        data models and use its data to create a new data frame.
+
+        A sample of the newly created data frame is returned (specified by num_samples).
+        """
+        assert self._data_frame_tools._create_data_frame_from_sql_impl is not None, (
+            "create_df_from_sql_impl is required for SQL operations"
+        )
+        return await self._data_frame_tools._create_data_frame_from_sql_impl(
+            sql_query=sql_query,
+            new_data_frame_name=new_data_frame_name,
+            new_data_frame_description=new_data_frame_description,
+            num_samples=num_samples,
         )
 
     async def generate_sql(

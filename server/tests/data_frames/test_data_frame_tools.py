@@ -452,7 +452,7 @@ async def test_data_frame_tools(sqlite_storage: "SQLiteStorage", tmp_path: Path)
 
     assert rows == {"columns": ["col1", "col2"], "rows": [[1, 4], [2, 5], [3, 6]]}
 
-    result = await tools.create_data_frame_from_sql(
+    result = await tools._create_data_frame_from_sql_impl(
         sql_query="SELECT col1 FROM test_data_frame WHERE col1 > 1",
         new_data_frame_name="test data frame 2",
     )
@@ -623,7 +623,7 @@ async def test_sql_error_returns_needs_retry_status():
     )
 
     # Test 1: Bad SQL with wrong column name should return needs_retry
-    bad_result = await tools.create_data_frame_from_sql(
+    bad_result = await tools._create_data_frame_from_sql_impl(
         sql_query="SELECT wrong_column_name FROM test_data",
         new_data_frame_name="bad_query_result",
     )
@@ -641,7 +641,7 @@ async def test_sql_error_returns_needs_retry_status():
     )
 
     # Test 2: Good SQL after "retry" should succeed
-    good_result = await tools.create_data_frame_from_sql(
+    good_result = await tools._create_data_frame_from_sql_impl(
         sql_query="SELECT col1 FROM test_data WHERE col1 > 1",
         new_data_frame_name="good_query_result",
     )
