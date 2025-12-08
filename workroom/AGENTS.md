@@ -30,13 +30,13 @@ The Work Room folder is an app that comprises of 4 main pieces:
 - ALL errors thrown in `QueryError` should be customer-facing. If unsure about how technical you should get, ask the operator
 - ALL mutations must have an `onError` handler defined. It uses the `addSnackbar` and `getSnackbarContent`
 
-## Working in [workroom](@)
+## Working in workroom
 
 ### Scripts
 
 - Run `npm run build` for build
 
-## Working in [workroom frontend][@frontend]
+## Working in workroom frontend
 
 ### Scripts
 

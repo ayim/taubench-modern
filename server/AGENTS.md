@@ -31,7 +31,7 @@ core/tests/
 ### Import Patterns
 
 - **Use absolute imports**: `from agent_platform.core.errors import PlatformError`
-- **Explicit re-exports in **init**.py**: All public APIs use `__all__` lists
+- **Explicit re-exports in `__init__.py`**: All public APIs use `__all__` lists
   ```python
   __all__ = [
       "ErrorCode",
@@ -335,35 +335,29 @@ class AsyncLockLike(Protocol):
 
 **Use Google-style docstrings** with comprehensive module-level docs:
 
-````python
+```python
 """Platform error system with automatic structured logging integration.
 
 This module defines a hierarchy of exception classes designed to work seamlessly with
 FastAPI and structlog for rich, structured error logging and handling.
 
-## Architecture Overview
+Architecture Overview:
+    The error system provides:
+    - Automatic unique error IDs (UUIDs) for tracing
+    - Structured context data that integrates with structlog
+    - FastAPI-compatible HTTP and WebSocket exceptions
 
-The error system provides:
-- Automatic unique error IDs (UUIDs) for tracing
-- Structured context data that integrates with structlog
-- FastAPI-compatible HTTP and WebSocket exceptions
-
-## Usage Patterns
-
-### Basic Usage
-```python
-raise PlatformError(
-    ErrorCode.UNEXPECTED,
-    "Configuration validation failed",
-    data={"config_key": "database_url"}
-)
-````
-
+Example:
+    raise PlatformError(
+        ErrorCode.UNEXPECTED,
+        "Configuration validation failed",
+        data={"config_key": "database_url"}
+    )
 """
-
-````
+```
 
 **Function/method docstrings:**
+
 ```python
 def setup_logging(default_mode: bool = False, log_level: str | None = None):
     """Set up logging configuration.
@@ -375,7 +369,7 @@ def setup_logging(default_mode: bool = False, log_level: str | None = None):
                    variable SEMA4AI_AGENT_SERVER_LOG_LEVEL or defaults to
                    "INFO".
     """
-````
+```
 
 ### Inline Comments
 
