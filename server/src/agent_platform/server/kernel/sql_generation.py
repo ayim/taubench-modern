@@ -15,6 +15,7 @@ from agent_platform.server.data_frames.semantic_data_model_collector import (
     SemanticDataModelAndReferences,
     SemanticDataModelCollector,
 )
+from agent_platform.server.kernel.data_frames import _DataFrameTools
 from agent_platform.server.kernel.sql import LegacySqlStrategy
 from agent_platform.server.storage.option import StorageService
 
@@ -37,7 +38,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         self._storage = StorageService.get_instance()
         # TODO: Currently we are mimicing legacy in a subagent, but we should have our own tools
         # and guidance here eventually and can remove use of data frames interface.
-        self._sql_generation_strategy = LegacySqlStrategy()
+        self._sql_generation_strategy: LegacySqlStrategy | None = None
         self._semantic_data_models: list[SemanticDataModelAndReferences] = []
         # verified_query_name -> VerifiedQuery
         self._verified_queries: dict[str, VerifiedQuery] = {}
@@ -47,6 +48,16 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
     async def step_initialize(self) -> None:
         from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+
+        # Initialize the SQL generation strategy
+        self._sql_generation_strategy = LegacySqlStrategy(
+            data_frame_tools=_DataFrameTools(
+                user=self.kernel.user,
+                tid=self.kernel.thread.thread_id,
+                storage=self._storage,
+                name_to_data_frame={},
+            )
+        )
 
         class _DataFrameArchState(DataFrameArchState):
             data_frames_tools_state: Literal["enabled", ""] = "enabled"
@@ -169,6 +180,9 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         from textwrap import dedent
 
         if self.is_enabled():
+            if not self._sql_generation_strategy:
+                raise ValueError("SQL generation strategy not initialized")
+
             models_and_engines = self._semantic_data_models_with_engines()
             return dedent(f"""
             ## Semantic Data Models (tables available to be used in the \
@@ -257,22 +271,13 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         Existing "logical" tables in your semantic data model are available by their name in
         your query.
         """
-        # TODO: Ultimately our tool doesn't need to return success with retry_needed for
-        # our subagent since tool errors are not being seen by the user. Retry guidance
-        # is in the runbook and would likely not need to be here.
-        from agent_platform.server.kernel.data_frames import _DataFrameTools
-
-        data_frames_tools = _DataFrameTools(
-            user=self.kernel.user,
-            tid=self.kernel.thread.thread_id,
-            storage=self._storage,
-            name_to_data_frame={},  # As we should be an ephemeral agent, we don't have any dfs yet.
-        )
+        if not self._sql_generation_strategy:
+            raise ValueError("SQL generation strategy not initialized")
 
         # TODO: We need to consider how we handle actual errors and convert them to
         # "failed_approaches" so those can be returned and/or stored in the SDM.
 
-        return await data_frames_tools.create_data_frame_from_sql(
+        return await self._sql_generation_strategy.create_data_frame_from_sql(
             sql_query=logical_sql,
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
