@@ -161,6 +161,9 @@ else
 DB_ENV =
 endif
 
+# OTEL env inside docker
+OTEL_ENV = SEMA4AI_AGENT_SERVER_OTEL_ENABLED=$${SEMA4AI_AGENT_SERVER_OTEL_ENABLED:-true} SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL=$${SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL:-http://localhost:4318}
+
 # MCP Runtime environment
 MCP_RUNTIME_ENV = SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL=$${SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL:-http://localhost:8003}
 
@@ -179,6 +182,7 @@ ifeq ($(DB),postgres)
 	@echo ""
 endif
 	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
+	$(OTEL_ENV) \
 	$(DB_ENV) \
 	$(MCP_RUNTIME_ENV) \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \

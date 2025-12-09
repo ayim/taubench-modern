@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from agent_platform.server.app import create_app
 from agent_platform.server.cli import parse_config_path_args
 from agent_platform.server.cli.args import ServerArgs
+from agent_platform.server.cli.configurations import load_full_config
 from agent_platform.server.configuration_manager import ConfigurationService
 from agent_platform.server.log_config import setup_logging
 
@@ -117,6 +118,13 @@ def create_dev_app() -> FastAPI:  # noqa: PLR0915
     except Exception as e:
         logger.warning(f"Full logging setup failed, using fallback: {e}")
         # Keep the basic logging we already set up
+
+    # Step 8.5: Load full configuration including OTELConfig (same as main.py lifecycle)
+    # This is critical for telemetry and other Configuration classes to be initialized
+    # with environment variables before the app starts
+    logger.info("Loading full configuration...")
+    load_full_config()
+    logger.info("Full configuration loaded")
 
     # Step 9: Create FastAPI application
     logger.info("Creating FastAPI application...")
