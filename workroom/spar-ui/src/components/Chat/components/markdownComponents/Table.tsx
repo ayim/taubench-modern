@@ -5,27 +5,29 @@ import { FC } from 'react';
 
 const Container = styled(Box)`
   position: relative;
-  margin-bottom: ${({ theme }) => theme.space.$24};
+  margin: 0 -${({ theme }) => theme.space.$8};
 
   &:before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -40px;
+    top: 1px;
+    right: 0;
     width: 40px;
-    height: 100%;
+    height: 40px;
   }
 
   > button {
     position: absolute;
-    top: 0;
-    left: -${({ theme }) => theme.space.$40};
+    top: 2px;
+    right: 2px;
     display: none;
+    z-index: 100;
   }
 
   &:hover {
     > button {
       display: block;
+      background-color: ${({ theme }) => theme.colors.background.primary.color};
     }
   }
 `;
@@ -45,7 +47,7 @@ export const Table: FC<Props> = ({ columns, data, raw }) => {
         aria-label="Copy table"
         onClick={onCopyToClipboard(raw)}
       />
-      <TableComponent columns={columns} data={data} />
+      <TableComponent columns={columns} data={data} size="small" rowCount={50} />
     </Container>
   );
 };

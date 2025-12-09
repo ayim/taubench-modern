@@ -70,6 +70,7 @@ function HomePage() {
         onChange={(e) => setSearch(e.target.value)}
         onClear={() => setSearch('')}
         buttonVariant="ghost-subtle"
+        round
       />
     );
   }, [search]);

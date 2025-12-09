@@ -1,4 +1,4 @@
-import { Avatar, Box, Divider, Menu } from '@sema4ai/components';
+import { Avatar, Box, Menu } from '@sema4ai/components';
 import { IconLogOut, IconMoon, IconSun, IconUserCircle } from '@sema4ai/icons';
 import { useAuth } from '@sema4ai/robocloud-ui-utils';
 import { FC, useCallback, useMemo } from 'react';
@@ -40,14 +40,16 @@ export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
       trigger={
         <Box
           as="button"
-          width="24px"
-          height="24px"
+          width="36px"
+          height="36px"
           display="flex"
-          backgroundColor={theme == 'dark' ? 'magenta-dark80' : 'magenta90'}
           borderRadius="30px"
+          backgroundColor="transparent"
+          alignItems="center"
+          justifyContent="center"
         >
           {(profilePictureUrl && <Avatar alt="User" src={profilePictureUrl} />) || (
-            <IconUserCircle color="content.inverted" />
+            <IconUserCircle color="content.primary" />
           )}
         </Box>
       }
@@ -60,7 +62,6 @@ export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
       </Menu.Item>
       {canLogout && (
         <>
-          <Divider />
           <Menu.Item onClick={handleLogout} icon={IconLogOut}>
             Log out
           </Menu.Item>

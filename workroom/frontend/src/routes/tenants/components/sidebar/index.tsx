@@ -1,15 +1,6 @@
 import { FC, useMemo } from 'react';
 import { Box, Button, Link, useScreenSize } from '@sema4ai/components';
-import {
-  IconAgents,
-  IconArrowUpRight,
-  IconFileText,
-  IconHelpCircle,
-  IconMenu,
-  IconSettings2,
-  IconMcp,
-  IconUsers,
-} from '@sema4ai/icons';
+import { IconAgents, IconMenu, IconSettings2, IconMcp, IconUsers, IconDatabase, IconPoll } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
@@ -93,13 +84,23 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
               Agents
             </RouterSideNavigationLink>
 
+            {features.workerAgents.enabled && (
+              <RouterSideNavigationLink
+                icon={<IconPoll />}
+                to="/tenants/$tenantId/workItems/overview"
+                params={{ tenantId }}
+              >
+                Work Items
+              </RouterSideNavigationLink>
+            )}
+
             {permissions[ADMINISTRATION_ACCESS_PERMISSION] && features.deploymentWizard.enabled && (
               <RouterSideNavigationLink
-                icon={<IconAgents />}
+                icon={<IconDatabase />}
                 to="/tenants/$tenantId/data-access/data-connections"
                 params={{ tenantId }}
               >
-                Data Access
+                Data
               </RouterSideNavigationLink>
             )}
 
@@ -109,13 +110,9 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
               </RouterSideNavigationLink>
             )}
 
-            {features.workerAgents.enabled && (
-              <RouterSideNavigationLink
-                icon={<IconFileText />}
-                to="/tenants/$tenantId/workItems/overview"
-                params={{ tenantId }}
-              >
-                Work Items
+            {permissions['users.read'] && (
+              <RouterSideNavigationLink icon={<IconUsers />} to="/tenants/$tenantId/users" params={{ tenantId }}>
+                Users
               </RouterSideNavigationLink>
             )}
 
@@ -128,27 +125,15 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
                 Configuration
               </RouterSideNavigationLink>
             )}
-
-            {permissions['users.read'] && (
-              <RouterSideNavigationLink icon={<IconUsers />} to="/tenants/$tenantId/users" params={{ tenantId }}>
-                Users
-              </RouterSideNavigationLink>
-            )}
           </Box>
 
           <AgentsMenu />
         </ScrollContainer>
 
-        <Box display="flex" justifyContent="space-between" mt="auto">
+        <Box display="flex" justifyContent="space-between" mt="auto" pr="$8">
           <UserMenu profilePictureUrl={profilePictureUrl} />
 
-          <Link
-            href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP}
-            variant="subtle"
-            icon={IconHelpCircle}
-            iconAfter={IconArrowUpRight}
-            target="_blank"
-          >
+          <Link href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP} variant="subtle" target="_blank" aria-label="Help">
             Help
           </Link>
         </Box>

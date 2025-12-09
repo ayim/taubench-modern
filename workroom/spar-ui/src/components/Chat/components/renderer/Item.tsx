@@ -46,8 +46,6 @@ const otherMessageActionsCss = css`
 
 const MessageActions = styled(Box)<{ $isLastMessage?: boolean; $isLastContentItem?: boolean }>`
   position: relative;
-  padding-bottom: ${({ $isLastMessage, $isLastContentItem, theme }) =>
-    !$isLastMessage && $isLastContentItem ? theme.space.$4 : 0};
 
   > div {
     opacity: ${({ $isLastMessage }) => ($isLastMessage ? 1 : 0)};
@@ -56,6 +54,7 @@ const MessageActions = styled(Box)<{ $isLastMessage?: boolean; $isLastContentIte
     justify-content: flex-start;
     gap: ${({ theme }) => theme.space.$4};
     margin-left: -${({ theme }) => theme.space.$8};
+    padding-top: ${({ $isLastMessage, theme }) => ($isLastMessage ? theme.space.$16 : 0)};
     ${({ $isLastMessage, $isLastContentItem }) => !$isLastMessage && $isLastContentItem && otherMessageActionsCss}
   }
 `;

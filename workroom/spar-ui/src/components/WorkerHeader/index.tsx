@@ -52,7 +52,7 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
         </Box>
       </Box>
       {leftAction}
-      <Box display="flex" alignItems="center" gap="$8" ml="auto">
+      <Box display="flex" alignItems="center" gap="$12" ml="auto">
         <Tooltip text="New Work Item" placement="bottom">
           {isChatInteractive ? (
             <SideNavigation.Item as="a" icon={IconPlus} round aria-label="New Work Item" {...createWorkItemLinkProps} />

@@ -37,16 +37,20 @@ export const TenantMenu = () => {
   };
 
   const applicationIcon = branding?.logoUrl ? (
-    <img src={branding.logoUrl} width={36} height={36} alt="logo" />
+    <img src={branding.logoUrl} width={24} height={24} alt="logo" />
   ) : (
-    <IconSema4 size={36} />
+    <IconSema4 size={24} />
   );
 
   if (isSingleTenant) {
     return (
-      <Box display="flex" alignItems="center" pl="$6" pb="$4">
+      <Box display="flex" alignItems="center" pl="$8" minHeight="$40">
         {applicationIcon}
-        <Box pl="$8">{currentTenant.name}</Box>
+        <Box pl="$8">
+          <Typography variant="body-large" fontWeight="medium">
+            {currentTenant.name}
+          </Typography>
+        </Box>
       </Box>
     );
   }

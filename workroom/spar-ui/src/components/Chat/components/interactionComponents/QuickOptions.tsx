@@ -1,12 +1,10 @@
 import { Box, Button, Tooltip } from '@sema4ai/components';
-import * as Icons from '@sema4ai/icons';
-import { FC, useMemo } from 'react';
+import { IconEnterKey } from '@sema4ai/icons';
+import { FC } from 'react';
 
 import { useMessageStream, useParams } from '../../../../hooks';
 import { useThreadMessagesQuery } from '../../../../queries/threads';
 import { InteractionComponent } from './shared';
-
-type IconsType = typeof Icons;
 
 type QuickOption = {
   message: string;
@@ -28,22 +26,15 @@ type OptionProps = {
 };
 
 const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunning }) => {
-  const IconComponent = useMemo(() => {
-    if (choice.iconName !== undefined && Object.keys(Icons).includes(choice.iconName))
-      return Icons[choice.iconName as keyof IconsType];
-
-    return Icons.IconReply;
-  }, [choice.iconName]);
-
   return (
     <Tooltip text={!disabled ? choice.message : undefined}>
       <Button
         round
         loading={isRunning}
-        variant={choice.primary ? 'primary' : 'outline'}
+        variant="outline"
         disabled={disabled}
         onClick={() => onSelect(choice.message, [])}
-        icon={IconComponent}
+        icon={IconEnterKey}
         truncate
       >
         {choice.title}
@@ -81,16 +72,22 @@ export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payloa
   };
 
   return (
-    <Box display="flex" gap="$8" flexWrap="wrap">
-      {choices.map((choice) => (
-        <QuickOptionButton
-          key={choice.title}
-          choice={choice}
-          isRunning={wasSelected(choice) && running}
-          onSelect={sendMessage}
-          disabled={streaming || moreRecentHumanMessage}
-        />
-      ))}
+    <Box display="flex" gap="$8" flexWrap="wrap" marginTop="$16">
+      {choices
+        .filter(() => {
+          // Hide disabled buttons for previous messages
+          const isDisabled = streaming || moreRecentHumanMessage;
+          return !isDisabled;
+        })
+        .map((choice) => (
+          <QuickOptionButton
+            key={choice.title}
+            choice={choice}
+            isRunning={wasSelected(choice) && running}
+            onSelect={sendMessage}
+            disabled={false}
+          />
+        ))}
     </Box>
   );
 };

@@ -1,5 +1,5 @@
 import { Box, Button, SideNavigation, Tooltip, Typography } from '@sema4ai/components';
-import { IconLayoutRight, IconPlus } from '@sema4ai/icons';
+import { IconLayoutRight, IconWriteNote } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
@@ -80,15 +80,15 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
         </Box>
         <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
       </Box>
-      <Box display="flex" alignItems="center" gap="$8" ml="auto">
+      <Box display="flex" alignItems="center" gap="$12" ml="auto">
         {/* Hide new chat button for evaluation threads */}
         {!isEvaluationThread && (
-          <Tooltip text="New Chat" placement="bottom">
+          <Tooltip text="New Conversation" placement="bottom">
             <SideNavigation.Item
-              icon={IconPlus}
+              icon={IconWriteNote}
               disabled={isNewThreadDisabled}
               round
-              aria-label="New Chat"
+              aria-label="New Conversation"
               onClick={onNewThread}
             />
           </Tooltip>

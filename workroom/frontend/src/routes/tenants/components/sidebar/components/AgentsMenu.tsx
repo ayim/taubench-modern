@@ -1,12 +1,19 @@
-import { Box, Typography } from '@sema4ai/components';
+import { Box } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
+import { styled } from '@sema4ai/theme';
 import { useParams, useRouteContext } from '@tanstack/react-router';
 import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
 import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
-import { isConversationalAgent, isWorkerAgent } from '~/utils';
+import { isConversationalAgent } from '~/utils';
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
+
+const AgentsMenuContainer = styled(Box)`
+  border-top: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
+  padding-top: ${({ theme }) => theme.space.$12};
+  margin-top: ${({ theme }) => theme.space.$12};
+`;
 
 export const AgentsMenu = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
@@ -17,57 +24,33 @@ export const AgentsMenu = () => {
     return null;
   }
 
-  const conversationalAgents = agents.filter(isConversationalAgent).sort(sortByCreatedAtDesc);
-
-  const workerAgents = agents.filter(isWorkerAgent).sort(sortByCreatedAtDesc);
+  const sortedAgents = [...agents].sort(sortByCreatedAtDesc);
 
   return (
-    <Box display="flex" flexDirection="column" pt="$8">
-      <Box mb="$8">
-        <Typography variant="body-small" fontWeight="bold">
-          Conversational Agents
-        </Typography>
-      </Box>
+    <AgentsMenuContainer display="flex" flexDirection="column">
+      {sortedAgents.map((agent) => {
+        if (!agent.id) {
+          return null;
+        }
 
-      {conversationalAgents.map((agent) => {
+        const isConversational = isConversationalAgent(agent);
+        const mode = isConversational ? 'conversational' : 'worker';
+        const route = isConversational
+          ? '/tenants/$tenantId/conversational/$agentId'
+          : '/tenants/$tenantId/worker/$agentId';
+
         return (
-          agent.id && (
-            <RouterSideNavigationLink
-              icon={<AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />}
-              key={agent.id}
-              to="/tenants/$tenantId/conversational/$agentId"
-              params={{ tenantId, agentId: agent.id }}
-              action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentContextMenu agent={agent} /> : null}
-            >
-              {agent.name}
-            </RouterSideNavigationLink>
-          )
+          <RouterSideNavigationLink
+            icon={<AgentIcon mode={mode} size="s" identifier={agent.id} />}
+            key={agent.id}
+            to={route}
+            params={{ tenantId, agentId: agent.id }}
+            action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentContextMenu agent={agent} /> : null}
+          >
+            {agent.name}
+          </RouterSideNavigationLink>
         );
       })}
-
-      {workerAgents.length ? (
-        <Box mt="$16" mb="$8">
-          <Typography variant="body-small" fontWeight="bold">
-            Worker Agents
-          </Typography>
-        </Box>
-      ) : undefined}
-
-      {workerAgents.map((agent) => {
-        return (
-          agent.id && (
-            <RouterSideNavigationLink
-              icon={<AgentIcon mode="worker" size="s" identifier={agent.id || ''} />}
-              key={agent.id}
-              to="/tenants/$tenantId/worker/$agentId"
-              params={{ tenantId, agentId: agent.id }}
-              action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentContextMenu agent={agent} /> : null}
-            >
-              {agent.name}
-            </RouterSideNavigationLink>
-          )
-        );
-      })}
-    </Box>
+    </AgentsMenuContainer>
   );
 };
