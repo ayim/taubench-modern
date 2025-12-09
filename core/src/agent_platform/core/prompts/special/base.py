@@ -31,6 +31,8 @@ class SpecialPromptMessage(ABC):
         dict[
             Literal[
                 "$conversation-history",
+                "$conversation-history-minus-latest-user-message",
+                "$latest-user-message",
                 "$documents",
                 "$memories",
             ],
@@ -40,6 +42,8 @@ class SpecialPromptMessage(ABC):
 
     role: Literal[
         "$conversation-history",
+        "$conversation-history-minus-latest-user-message",
+        "$latest-user-message",
         "$documents",
         "$memories",
     ]
@@ -56,7 +60,13 @@ class SpecialPromptMessage(ABC):
     @classmethod
     def register_message_by_role(
         cls,
-        role: Literal["$conversation-history", "$documents", "$memories"],
+        role: Literal[
+            "$conversation-history",
+            "$conversation-history-minus-latest-user-message",
+            "$latest-user-message",
+            "$documents",
+            "$memories",
+        ],
         message_class: type["SpecialPromptMessage"],
     ) -> None:
         """Register a special message by its role with its corresponding class.

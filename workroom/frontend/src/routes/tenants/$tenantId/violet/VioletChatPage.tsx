@@ -2,7 +2,8 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import { Badge, Button, Input, Progress, Select, Typography } from '@sema4ai/components';
 import { Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Chat, SparUIContext as PackageSparUIContext, SparUIFeatureFlag, streamManager } from '@sema4ai/spar-ui';
+import { SparUIContext as PackageSparUIContext, SparUIFeatureFlag, streamManager } from '@sema4ai/spar-ui';
+import { Chat } from '../../../../../../spar-ui/src/components/violet/Chat';
 import type { SparAPIClient } from '@sema4ai/spar-ui';
 import { useThreadsQuery } from '@sema4ai/spar-ui/queries';
 import { NewThreadItem } from '../../../../../../spar-ui/src/components/Thread/components/NewThreadItem';
@@ -232,6 +233,14 @@ export function VioletChatPage({ tenantId, agentAPIClient, loaderData }: VioletC
         setThreadId(undefined);
         return;
       }
+
+      // Keep Violet on the same page when data frame tools auto-navigate after creation.
+      if (to === '/thread/$agentId/$threadId/data-frames') {
+        const tid = (params as { threadId: string }).threadId;
+        setThreadId(tid);
+        return;
+      }
+
       return client.navigate({ to, params } as never);
     };
 

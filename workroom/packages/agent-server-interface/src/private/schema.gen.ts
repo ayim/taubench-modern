@@ -424,6 +424,26 @@ export interface paths {
     patch: operations['patch_thread_threads__tid__patch'];
     trace?: never;
   };
+  '/api/v2/threads/{tid}/messages/{message_id}/metadata/ops': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Apply Thread Message Metadata Ops
+     * @description Apply metadata operations to a specific message (doc_int namespace).
+     */
+    patch: operations['apply_thread_message_metadata_ops_threads__tid__messages__message_id__metadata_ops_patch'];
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/state': {
     parameters: {
       query?: never;
@@ -4104,7 +4124,12 @@ export interface components {
        * Role
        * @enum {string}
        */
-      role: '$conversation-history' | '$documents' | '$memories';
+      role:
+        | '$conversation-history'
+        | '$conversation-history-minus-latest-user-message'
+        | '$latest-user-message'
+        | '$documents'
+        | '$memories';
       /** Include Expr */
       include_expr?: string | null;
       /**
@@ -4712,7 +4737,12 @@ export interface components {
        * Role
        * @enum {string}
        */
-      role: '$conversation-history' | '$documents' | '$memories';
+      role:
+        | '$conversation-history'
+        | '$conversation-history-minus-latest-user-message'
+        | '$latest-user-message'
+        | '$documents'
+        | '$memories';
       /** Include Expr */
       include_expr?: string | null;
       /**
@@ -5843,7 +5873,12 @@ export interface components {
        * Role
        * @enum {string}
        */
-      role: '$conversation-history' | '$documents' | '$memories';
+      role:
+        | '$conversation-history'
+        | '$conversation-history-minus-latest-user-message'
+        | '$latest-user-message'
+        | '$documents'
+        | '$memories';
       /** Include Expr */
       include_expr?: string | null;
       /**
@@ -5852,6 +5887,30 @@ export interface components {
        */
       include: boolean;
       params?: components['schemas']['MemoriesParams'];
+    };
+    /** MessageMetadataOp */
+    MessageMetadataOp: {
+      /** Op */
+      op: string;
+      /** File Ref */
+      file_ref?: string | null;
+      /** Comment */
+      comment?: string | null;
+      /** Page */
+      page?: number | null;
+      /** Anchor */
+      anchor?: {
+        [key: string]: unknown;
+      } | null;
+      /** Status */
+      status?: string | null;
+      /** Field Id */
+      field_id?: string | null;
+    };
+    /** MessageMetadataOpsPayload */
+    MessageMetadataOpsPayload: {
+      /** Ops */
+      ops: components['schemas']['MessageMetadataOp'][];
     };
     /**
      * Metric
@@ -14419,6 +14478,42 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Thread'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  apply_thread_message_metadata_ops_threads__tid__messages__message_id__metadata_ops_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MessageMetadataOpsPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
         };
       };
       /** @description Validation Error */

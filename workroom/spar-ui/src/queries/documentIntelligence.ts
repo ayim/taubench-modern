@@ -222,7 +222,7 @@ export const useUpdateDataModelMutation = createSparMutation<
     }
     return response.data;
   },
-  onSuccess: (data, { modelName }) => {
+  onSuccess: (_data, { modelName }) => {
     queryClient.invalidateQueries({ queryKey: getListModelsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getDataModelQueryKey(modelName) });
   },

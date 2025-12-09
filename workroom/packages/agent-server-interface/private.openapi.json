@@ -1463,6 +1463,64 @@
         }
       }
     },
+    "/threads/{tid}/messages/{message_id}/metadata/ops": {
+      "patch": {
+        "tags": ["threads"],
+        "summary": "Apply Thread Message Metadata Ops",
+        "description": "Apply metadata operations to a specific message (doc_int namespace).",
+        "operationId": "apply_thread_message_metadata_ops_threads__tid__messages__message_id__metadata_ops_patch",
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tid"
+            }
+          },
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageMetadataOpsPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/threads/{tid}/state": {
       "get": {
         "tags": ["threads"],
@@ -11080,7 +11138,13 @@
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["$conversation-history", "$documents", "$memories"],
+            "enum": [
+              "$conversation-history",
+              "$conversation-history-minus-latest-user-message",
+              "$latest-user-message",
+              "$documents",
+              "$memories"
+            ],
             "title": "Role"
           },
           "include_expr": {
@@ -12600,7 +12664,13 @@
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["$conversation-history", "$documents", "$memories"],
+            "enum": [
+              "$conversation-history",
+              "$conversation-history-minus-latest-user-message",
+              "$latest-user-message",
+              "$documents",
+              "$memories"
+            ],
             "title": "Role"
           },
           "include_expr": {
@@ -15183,7 +15253,13 @@
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["$conversation-history", "$documents", "$memories"],
+            "enum": [
+              "$conversation-history",
+              "$conversation-history-minus-latest-user-message",
+              "$latest-user-message",
+              "$documents",
+              "$memories"
+            ],
             "title": "Role"
           },
           "include_expr": {
@@ -15209,6 +15285,98 @@
         "type": "object",
         "required": ["role"],
         "title": "MemoriesSpecialMessage"
+      },
+      "MessageMetadataOp": {
+        "properties": {
+          "op": {
+            "type": "string",
+            "title": "Op"
+          },
+          "file_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Ref"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "anchor": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "field_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Id"
+          }
+        },
+        "type": "object",
+        "required": ["op"],
+        "title": "MessageMetadataOp"
+      },
+      "MessageMetadataOpsPayload": {
+        "properties": {
+          "ops": {
+            "items": {
+              "$ref": "#/components/schemas/MessageMetadataOp"
+            },
+            "type": "array",
+            "title": "Ops"
+          }
+        },
+        "type": "object",
+        "required": ["ops"],
+        "title": "MessageMetadataOpsPayload"
       },
       "Metric": {
         "properties": {

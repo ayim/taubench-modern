@@ -8,6 +8,7 @@ license-files = ["LICENSE"]
 dependencies = [
     "agent_platform_core",
     "agent_platform_architectures_default",
+    "pypdf>=4.3.0,<5.0.0",
     "structlog>=24.4.0,<25.0.0",
     "uvicorn>=0.34.0,<0.35.0",
     "httpx>=0.28.1,<0.29.0",

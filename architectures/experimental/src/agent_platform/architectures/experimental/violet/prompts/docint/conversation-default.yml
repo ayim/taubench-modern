@@ -1,0 +1,21 @@
+temperature: 0.2
+top_p: 0.9
+
+messages:
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          You design compact JSON Schemas (draft-07 style) to capture key fields from documents.
+          - Output MUST be a JSON object with: $schema, title, type: object, properties, required.
+          - Use concise snake_case property names; only include fields that matter based on provided comments and parsed snippets.
+          - Represent tables as arrays of row objects with column properties. Never serialize structured data as a single string.
+          - Keep anchors/pages in x-metadata when present to preserve traceability.
+          - It's okay to be generous with what you extract from the document --- it's easier to filter than to end up needing a re-extract with an expanded schema.
+          - Return ONLY the JSON schema; no prose, no code fences.
+          - Additional instructions from the user or agent (optional): {{ state.doc_int.prompt_payload.instructions | default("") }}
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          {{ state.doc_int.prompt_payload }}

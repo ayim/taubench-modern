@@ -207,6 +207,55 @@ export const useDeleteThreadMutation = createSparMutation<{ agentId: string }, {
 );
 
 /**
+ * Apply metadata ops to a specific message (doc_int and future namespaces)
+ */
+type ThreadMessageMetadataOpsRequest = {
+  threadId: string;
+  messageId: string;
+  ops: Array<{
+    op: string;
+    file_ref?: string;
+    comment?: string;
+    page?: number;
+    field_id?: string;
+    anchor?: Record<string, unknown>;
+    status?: string;
+  }>;
+};
+
+type ThreadMessageMetadataOpsResponse = {
+  doc_cards?: unknown;
+  doc_int_revision?: number;
+  doc_int_input_locked?: boolean;
+  doc_int?: unknown;
+};
+
+export const useThreadMessageMetadataOpsMutation = createSparMutation<
+  Record<string, never>,
+  ThreadMessageMetadataOpsRequest
+>()<ThreadMessageMetadataOpsResponse>(({ sparAPIClient }) => ({
+  mutationFn: async ({ threadId, messageId, ops }) => {
+    const response = await sparAPIClient.queryAgentServer(
+      'patch',
+      '/api/v2/threads/{tid}/messages/{message_id}/metadata/ops',
+      {
+        params: { path: { tid: threadId, message_id: messageId } },
+        body: { ops },
+      },
+    );
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to apply metadata operations', {
+        code: response.code,
+        resource: ResourceType.Thread,
+      });
+    }
+
+    return response.data as ThreadMessageMetadataOpsResponse;
+  },
+}));
+
+/**
  * Upload Thread Files
  */
 export const useUploadThreadFilesMutation = createSparMutation<{ threadId: string }, { files: File[] }>()(

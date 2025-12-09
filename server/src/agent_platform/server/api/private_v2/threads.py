@@ -1,10 +1,11 @@
 import dataclasses
 import hashlib
 from mimetypes import guess_type
-from typing import cast
+from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from structlog import get_logger
 
 from agent_platform.core.context import AgentServerContext
@@ -41,6 +42,20 @@ from agent_platform.server.storage import (
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+class MessageMetadataOp(BaseModel):
+    op: str
+    file_ref: str | None = None
+    comment: str | None = None
+    page: int | None = None
+    anchor: dict[str, Any] | None = None
+    status: str | None = None
+    field_id: str | None = None
+
+
+class MessageMetadataOpsPayload(BaseModel):
+    ops: list[MessageMetadataOp]
 
 
 @router.post("/", response_model=Thread)
@@ -197,6 +212,61 @@ async def delete_threads_for_agent(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     await storage.delete_threads_for_agent(user.user_id, agent_id, thread_ids)
+
+
+@router.patch("/{tid}/messages/{message_id}/metadata/ops")
+async def apply_thread_message_metadata_ops(
+    user: AuthedUser,
+    tid: str,
+    message_id: str,
+    payload: MessageMetadataOpsPayload,
+    storage: StorageDependency,
+):
+    """Apply metadata operations to a specific message (doc_int namespace)."""
+    # NOTE: this is _kind_ of a weird coupling given we want to (aspirationally)
+    # treat the agent arches as plugins... when we stabilize what we want "zero setup
+    # doc int" to look like, we can fix this by bringing it into core
+    from agent_platform.architectures.experimental.violet.docintel.ops import (
+        apply_doc_int_ops,
+    )
+
+    thread = await storage.get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    message = next((m for m in thread.messages if m.message_id == message_id), None)
+    if message is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    if getattr(message, "role", None) != "agent":
+        raise HTTPException(
+            status_code=400,
+            detail="Metadata ops are only supported on agent messages.",
+        )
+
+    ops_dicts = [op.model_dump() for op in payload.ops]
+    try:
+        doc_int_result = await apply_doc_int_ops(
+            storage=storage,
+            thread=thread,
+            message=message,
+            user_id=user.user_id,
+            ops=ops_dicts,
+        )
+    except Exception as exc:
+        logger.exception(
+            "Failed to apply metadata ops", thread_id=tid, message_id=message_id, error=str(exc)
+        )
+        raise HTTPException(status_code=500, detail="Failed to apply metadata ops") from exc
+
+    return {
+        "doc_int": doc_int_result.get("doc_int"),
+        "doc_cards": doc_int_result.get("doc_cards"),
+        "doc_int_revision": doc_int_result.get("doc_int_revision"),
+        "doc_int_input_locked": doc_int_result.get("doc_int_input_locked"),
+        "thread_id": tid,
+        "message_id": message_id,
+    }
 
 
 @router.get("/{tid}", response_model=Thread)
