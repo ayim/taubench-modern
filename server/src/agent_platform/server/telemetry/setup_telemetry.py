@@ -41,7 +41,7 @@ def setup_telemetry(agent_trace_dir: Path | None = None):  # noqa: PLR0915
     from opentelemetry.sdk.resources import Resource
 
     from agent_platform.core.conditional_langsmith_processor import ConditionalLangSmithProcessor
-    from agent_platform.core.otel_orchestrator import OtelOrchestrator
+    from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
 
     # Validate collector URL before proceeding
     if not collector_url or not collector_url.strip():

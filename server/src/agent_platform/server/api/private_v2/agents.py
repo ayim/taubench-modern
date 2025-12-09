@@ -220,8 +220,15 @@ async def create_agent(
     _quota: AgentQuotaCheck,
     _validation: PlatformParamsValidationCheck,
 ) -> AgentCompat:
+    from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
+
     agent = UpsertAgentPayload.to_agent(payload, user_id=user.user_id)
     await storage.upsert_agent(user.user_id, agent)
+
+    # Reload orchestrator to include new agent in routing map
+    orchestrator = OtelOrchestrator.get_instance()
+    await orchestrator.reload_from_storage(storage)
+    logger.info(f"Reloaded orchestrator after creating agent {agent.agent_id}")
 
     return AgentCompat.from_agent(agent)
 
@@ -425,7 +432,14 @@ async def delete_agent(
     aid: str,
     storage: StorageDependency,
 ) -> None:
+    from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
+
     await storage.delete_agent(user.user_id, aid)
+
+    # Reload orchestrator to remove deleted agent from routing map
+    orchestrator = OtelOrchestrator.get_instance()
+    await orchestrator.reload_from_storage(storage)
+    logger.info(f"Reloaded orchestrator after deleting agent {aid}")
 
 
 @router.post("/package", response_model=AgentCompat)

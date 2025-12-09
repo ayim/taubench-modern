@@ -623,6 +623,13 @@ async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         storage=storage,
     )
 
+    # Reload orchestrator to include new/updated agent in routing map
+    from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
+
+    orchestrator = OtelOrchestrator.get_instance()
+    await orchestrator.reload_from_storage(storage)
+    logger.info(f"Reloaded orchestrator after creating/updating agent {aid} from package")
+
     # We might technically clear on a create here, which shouldn't be
     # problem (even if it's not strictly necessary)
     ToolDefinitionCache().clear_for_agent(as_agent)

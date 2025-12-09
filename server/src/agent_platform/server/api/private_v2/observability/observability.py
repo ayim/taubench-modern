@@ -1,6 +1,6 @@
 """REST API endpoints for observability integrations."""
 
-from typing import Annotated, cast
+from typing import Annotated
 from uuid import uuid4
 
 import structlog
@@ -9,7 +9,6 @@ from pydantic import TypeAdapter
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.integrations import Integration, IntegrationScope
-from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.integrations.observability.models import (
     GrafanaObservabilitySettings,
     LangSmithObservabilitySettings,
@@ -18,7 +17,7 @@ from agent_platform.core.integrations.observability.models import (
 from agent_platform.core.integrations.settings.observability import (
     ObservabilityIntegrationSettings,
 )
-from agent_platform.core.otel_orchestrator import OtelOrchestrator
+from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
@@ -164,13 +163,13 @@ async def create_observability_integration(
     await storage.upsert_integration(integration)
 
     created = await storage.get_integration(integration.id)
-    # We are positive that we have an observability integration, cast it.
-    created_obs = cast(ObservabilityIntegration, created)
 
-    # Hot-reload in orchestrator
+    # Reload orchestrator from storage
+    # Note: Integration won't route spans
+    # until a scope is explicitly assigned via the scopes endpoint
     orchestrator = OtelOrchestrator.get_instance()
-    orchestrator.reload_integration(created_obs)
-    logger.info(f"Hot-reloaded observability integration: {created.id}")
+    await orchestrator.reload_from_storage(storage)
+    logger.info(f"Reloaded orchestrator after creating integration {created.id}")
 
     return _integration_to_observability(created)
 
@@ -226,13 +225,11 @@ async def update_observability_integration(
 
     await storage.upsert_integration(updated_integration)
     refreshed = await storage.get_integration(integration_id)
-    # We are positive that we have an observability integration, cast it.
-    refreshed_obs = cast(ObservabilityIntegration, refreshed)
 
-    # Hot-reload in orchestrator
+    # Reload orchestrator from storage
     orchestrator = OtelOrchestrator.get_instance()
-    orchestrator.reload_integration(refreshed_obs)
-    logger.info(f"Hot-reloaded observability integration: {refreshed.id}")
+    await orchestrator.reload_from_storage(storage)
+    logger.info(f"Reloaded orchestrator after updating integration {refreshed.id}")
 
     return _integration_to_observability(refreshed)
 
@@ -251,10 +248,10 @@ async def delete_observability_integration(
     """Delete an observability integration."""
     await storage.delete_integration_by_id(integration_id)
 
-    # Remove from orchestrator
+    # Reload orchestrator from storage
     orchestrator = OtelOrchestrator.get_instance()
-    orchestrator.remove_integration(integration_id)
-    logger.info(f"Removed observability integration from orchestrator: {integration_id}")
+    await orchestrator.reload_from_storage(storage)
+    logger.info(f"Reloaded orchestrator after deleting integration {integration_id}")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -345,6 +342,10 @@ async def set_integration_scope(
         agent_id=payload.agent_id,
     )
 
+    # Reload orchestrator from storage (rebuilds routing map)
+    orchestrator = OtelOrchestrator.get_instance()
+    await orchestrator.reload_from_storage(storage)
+
     logger.info(
         "Set integration scope",
         extra={
@@ -377,6 +378,10 @@ async def delete_integration_scope(
     """
     # Pydantic validation ensures scope and agent_id are consistent
     await storage.delete_integration_scope(integration_id, params.scope, params.agent_id)
+
+    # Reload orchestrator from storage (rebuilds routing map)
+    orchestrator = OtelOrchestrator.get_instance()
+    await orchestrator.reload_from_storage(storage)
 
     logger.info(
         "Deleted integration scope",

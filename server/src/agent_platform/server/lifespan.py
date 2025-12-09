@@ -84,8 +84,8 @@ def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # noqa: PLR0915
-    from agent_platform.core.otel_orchestrator import OtelOrchestrator
+async def lifespan(app: FastAPI):
+    from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
     from agent_platform.server.telemetry.setup_telemetry import setup_telemetry
 
     agent_trace_dir = SystemPaths.agent_trace_dir
@@ -117,11 +117,10 @@ async def lifespan(app: FastAPI):  # noqa: PLR0915
     await QuotasService.get_instance()
     logger.info("QuotasService initialized")
 
-    # Load enabled observability integrations into orchestrator
+    # Load enabled observability integrations and scopes into orchestrator
     logger.info("Loading observability integrations...")
-    observability_integrations = await storage.list_enabled_observability_integrations()
     orchestrator = OtelOrchestrator.get_instance()
-    orchestrator.load_integrations(observability_integrations)
+    await orchestrator.reload_from_storage(storage)
 
     # IMPORTANT: Order of operations is critical here!
     # Current sequence: DB Migrations (create v2 tables) -> Data migration (v1 to v2)
