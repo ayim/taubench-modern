@@ -414,3 +414,82 @@ def test_semantic_model_validation_missing_data_connection_and_file_reference():
 
     references = validate_semantic_model_payload_and_extract_references(semantic_model)
     assert len(references.errors) == 0
+
+
+def test_semantic_model_validation_unresolved_data_connection_name():
+    """Test validation when data_connection_name is present but data_connection_id is not.
+
+    This happens when an SDM is imported from a package but the referenced
+    data connection does not exist in the current environment.
+    """
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {
+                    "table": "sales_table",
+                    # data_connection_name is present but data_connection_id is not
+                    # This simulates an unresolved connection from package import
+                    "data_connection_name": "postgres-spar",
+                },
+                "dimensions": [
+                    {"name": "product", "expr": "product_col", "data_type": "TEXT"},
+                ],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+
+    # Should have exactly one error for the unresolved connection
+    assert len(references.errors) == 1
+    assert "postgres-spar" in references.errors[0]
+    assert "not found" in references.errors[0]
+    assert "sales_data" in references.errors[0]
+
+    # Check the structured error has the correct kind
+    assert len(references._structured_errors) == 1
+    error = references._structured_errors[0]
+    assert error["level"] == "error"
+    assert error["kind"] == "missing_data_connection"
+
+
+def test_semantic_model_validation_resolved_data_connection_name():
+    """Test no error when both data_connection_name and data_connection_id are present.
+
+    When the connection is successfully resolved, both fields may be present temporarily
+    before data_connection_name is stripped. This should not cause errors.
+    """
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
+
+    semantic_model: SemanticDataModel = {
+        "name": "Test Model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {
+                    "table": "sales_table",
+                    # Both name and ID are present (resolved connection)
+                    "data_connection_name": "postgres-spar",
+                    "data_connection_id": "conn-123",
+                },
+                "dimensions": [
+                    {"name": "product", "expr": "product_col", "data_type": "TEXT"},
+                ],
+            }
+        ],
+    }
+
+    references = validate_semantic_model_payload_and_extract_references(semantic_model)
+
+    # Should have no errors - the connection is resolved
+    assert len(references.errors) == 0
+    # The data_connection_id should be in the references
+    assert "conn-123" in references.data_connection_ids

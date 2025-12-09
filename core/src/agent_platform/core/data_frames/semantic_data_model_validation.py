@@ -171,6 +171,24 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
 
         base_table_data_connection_id = base_table.get("data_connection_id")
         if not base_table_data_connection_id:
+            # Check if there's an unresolved data_connection_name
+            # This happens when an SDM is imported from a package but the referenced
+            # data connection does not exist in the current environment
+            unresolved_connection_name = base_table.get("data_connection_name")
+            if unresolved_connection_name:
+                error = ValidationMessage(
+                    message=(
+                        f"Data connection '{unresolved_connection_name}' not found for table "
+                        f"'{logical_table_name}'. Please create the data connection in this "
+                        "environment or update the semantic data model configuration."
+                    ),
+                    level=ValidationMessageLevel.ERROR,
+                    kind=ValidationMessageKind.MISSING_DATA_CONNECTION,
+                )
+                add_error(error)
+                table.setdefault("errors", []).append(error)
+                continue
+
             # We're dealing with a file reference or data frame
             base_table_file_reference = base_table.get("file_reference")
             if base_table_file_reference:

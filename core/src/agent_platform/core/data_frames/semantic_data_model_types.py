@@ -33,6 +33,10 @@ class ValidationMessageKind(StrEnum):
     """Raised when the same logical table name is declared twice in the model."""
     DATA_CONNECTION_NOT_FOUND = "data_connection_not_found"
     """Raised when a referenced data connection id cannot be found."""
+    MISSING_DATA_CONNECTION = "missing_data_connection"
+    """Raised when a data_connection_name is present but could not be resolved to an ID.
+    This typically happens when an SDM is imported from a package but the referenced
+    data connection does not exist in the current environment."""
     DATA_CONNECTION_CONNECTION_FAILED = "data_connection_connection_failed"
     """Raised when connecting to a data connection fails (includes connection
     and authentication errors)."""

@@ -688,9 +688,12 @@ async def upsert_semantic_data_models(  # noqa: C901
             sdm_for_storage = copy.deepcopy(sdm_resolved)
             for table in sdm_for_storage.get("tables", []):
                 if "base_table" in table:
-                    # Remove data_connection_name (was only needed for import resolution)
-                    table["base_table"].pop("data_connection_name", None)
-                    # Keep data_connection_id (needed for querying)
+                    base_table = table["base_table"]
+                    # Only remove data_connection_name if data_connection_id was resolved.
+                    # If data_connection_id is missing but name exists, keep the name
+                    # so validation can report the unresolved connection as an error.
+                    if base_table.get("data_connection_id"):
+                        base_table.pop("data_connection_name", None)
 
             # Extract data connection IDs from resolved SDM (for junction table)
             data_connection_ids = []

@@ -1843,11 +1843,15 @@ class TestSemanticDataModelImport:
         sdm_id = next(iter(sdms[0].keys()))
         stored_sdm = sdms[0][sdm_id]
 
-        # Verify data_connection_name was removed even though it couldn't be resolved
+        # Verify SDM structure
         assert "tables" in stored_sdm
         assert len(stored_sdm["tables"]) > 0
         assert "base_table" in stored_sdm["tables"][0]
-        assert "data_connection_name" not in stored_sdm["tables"][0]["base_table"]
+
+        # Verify data_connection_name is KEPT when it couldn't be resolved
+        # This allows validation to report the unresolved connection as an error
+        assert "data_connection_name" in stored_sdm["tables"][0]["base_table"]
+        assert stored_sdm["tables"][0]["base_table"]["data_connection_name"] == "Local postgres"
 
         # Verify no data_connection_id was added (since it couldn't be resolved)
         assert "data_connection_id" not in stored_sdm["tables"][0]["base_table"]

@@ -21755,6 +21755,7 @@ export const spec = {
           'semantic_model_missing_required_field',
           'semantic_model_duplicate_table',
           'data_connection_not_found',
+          'missing_data_connection',
           'data_connection_connection_failed',
           'data_connection_table_not_found',
           'data_connection_table_access_error',
