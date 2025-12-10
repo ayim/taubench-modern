@@ -135,6 +135,10 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
                     document_tools.parse_document,
                     name="parse_document",
                 ),
+                ToolDefinition.from_callable(
+                    document_tools.generate_schema,
+                    name="generate_schema",
+                ),
             )
             state.documents_tools_state = "enabled"
             logger.info("Document tools registered", num_tools=len(self._document_tools))
@@ -174,7 +178,8 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         prompt = dedent("""
         ## Documents Available
         The following documents have been uploaded and are available for parsing and analysis.
-        Use the `parse_document` tool to get the content from these documents.
+        Use the `parse_document` tool to get the content from a document.
+        Use the `generate_schema` tool to create a JSON schema from a document.
 
         """)
         prompt += self.documents_summary
@@ -330,4 +335,76 @@ class _DocumentTools:
             return {
                 "error_code": "parse_error",
                 "message": f"Failed to parse document: {e!s}",
+            }
+
+    async def generate_schema(
+        self,
+        file_ref: Annotated[
+            str,
+            (
+                "The file reference to generate a schema from. This should be the filename only "
+                "(e.g., 'invoice.pdf' or 'document.docx')."
+            ),
+        ],
+        start_page: Annotated[
+            int | None,
+            "Optional starting page number (1-indexed) for page range extraction.",
+        ] = None,
+        end_page: Annotated[
+            int | None,
+            "Optional ending page number (1-indexed) for page range extraction.",
+        ] = None,
+        user_prompt: Annotated[
+            str | None,
+            "Optional additional instructions to guide the schema generation process.",
+        ] = None,
+    ) -> dict[str, Any]:
+        """Generate a JSON Schema from a document by analyzing its structure and content.
+
+        This tool analyzes a document (PDF, DOCX, Excel, images, etc.) and generates a JSON Schema
+        that describes the document's data structure.
+
+        Args:
+            file_ref: The filename of the document to analyze
+            model_schema: Optional reference schema to guide the structure (JSON string)
+            start_page: Optional starting page for analysis (1-indexed, PDF/TIFF only)
+            end_page: Optional ending page for analysis (1-indexed, PDF/TIFF only)
+            user_prompt: Optional additional instructions for schema generation
+
+        Returns:
+            The generated JSON Schema.
+        """
+        from fastapi.concurrency import run_in_threadpool
+        from sema4ai_docint.agent_server_client.client import AgentServerClient
+        from sema4ai_docint.agent_server_client.transport.memory import MemoryTransport
+
+        try:
+            kernel = self._kernel
+            base_url = str(kernel.ctx.http.request.base_url).rstrip("/")
+            base_url = base_url.replace("ws://", "http://").replace("wss://", "https://")
+
+            transport = MemoryTransport(
+                base_url=base_url,
+                agent_id=kernel.agent.agent_id,
+                thread_id=kernel.thread.thread_id,
+                app=kernel.ctx.http.request.app,
+            )
+
+            agent_server_client = await run_in_threadpool(AgentServerClient, transport=transport)
+
+            schema = await run_in_threadpool(
+                agent_server_client.generate_schema,
+                file_ref,
+                start_page=start_page,
+                end_page=end_page,
+                user_prompt=user_prompt,
+            )
+
+            return schema
+
+        except Exception as e:
+            logger.exception("Error generating schema", error=e, file_ref=file_ref)
+            return {
+                "error_code": "schema_generation_error",
+                "message": f"Failed to generate schema: {e!s}",
             }
