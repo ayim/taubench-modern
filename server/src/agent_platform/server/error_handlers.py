@@ -24,6 +24,7 @@ from fastapi.requests import Request
 from fastapi.responses import ORJSONResponse
 from fastapi.utils import is_body_allowed_for_status_code
 from fastapi.websockets import WebSocket
+from pydantic import ValidationError
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import (
@@ -278,6 +279,9 @@ def add_exception_handlers(app: Starlette) -> None:
     # exceptions like 404s and 405s.
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, request_validation_exception_handler)  # type: ignore[arg-type]
+    # FastAPI is seemingly not picking up pydantic's ValidationError as RequestValidationError
+    # on its own, so we set the handler for this type explicitly.
+    app.add_exception_handler(ValidationError, request_validation_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(
         WebSocketRequestValidationError,
         websocket_request_validation_exception_handler,  # type: ignore[arg-type]

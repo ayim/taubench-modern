@@ -35,25 +35,6 @@ agent_platform.core.actions.action_utils.ActionUtilsRetryConfig:
   allowed_methods:
   - GET
 
-# AgentSpecConfig(max_size_bytes: int = 50000000, metadata_filename: str =
-# '__agent_package_metadata__.json', agent_spec_filename: str =
-# 'agent-spec.yaml', runbook_filename: str = 'runbook.md', knowledge_dir: str
-# = 'knowledge/', conversation_guide_filename: str =
-# 'conversation-guide.yaml')
-agent_platform.core.agent_package.config.AgentSpecConfig:
-  # The maximum size of the agent package in bytes.
-  max_size_bytes: 50000000
-  # The filename of the agent package metadata.
-  metadata_filename: __agent_package_metadata__.json
-  # The filename of the agent package specification.
-  agent_spec_filename: agent-spec.yaml
-  # The filename of the runbook.
-  runbook_filename: runbook.md
-  # The directory of the knowledge files.
-  knowledge_dir: knowledge/
-  # The filename of the conversation guide.
-  conversation_guide_filename: conversation-guide.yaml
-
 # MCPClientConfiguration(probe_timeout_seconds: int = 2,
 # handshake_timeout_seconds: int = 5, stdio_handshake_timeout_seconds: int =
 # 30, cleanup_timeout_seconds: int = 3, tool_call_read_timeout_seconds: int =

@@ -1,11 +1,10 @@
 import base64
-import zipfile
 from pathlib import Path
 
 import httpx
 from fastapi import HTTPException, status
 
-from agent_platform.core.agent_package.config import AgentSpecConfig
+from agent_platform.core.agent_package.config import AgentPackageConfig
 
 
 async def read_package_bytes(
@@ -40,9 +39,9 @@ async def read_package_bytes(
                         status_code=resp.status_code,
                         detail=f"Failed to download package: HTTP {resp.status_code}",
                     )
-                if len(resp.content) > AgentSpecConfig.max_size_bytes:
+                if len(resp.content) > AgentPackageConfig.max_size_bytes:
                     size_in_mb = len(resp.content) / 1_000_000
-                    max_size_mb = AgentSpecConfig.max_size_bytes / 1_000_000
+                    max_size_mb = AgentPackageConfig.max_size_bytes / 1_000_000
                     raise HTTPException(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                         detail=(f"Package exceeds {max_size_mb:.1f}MB limit ({size_in_mb:.1f}MB)"),
@@ -66,15 +65,4 @@ async def read_package_bytes(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid base-64 encoded package",
-        ) from exc
-
-
-def read_file_from_zip(zf: zipfile.ZipFile, member: str) -> bytes:
-    """Read *member* or raise 400."""
-    try:
-        return zf.read(member)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"'{member}' not found in agent package",
         ) from exc

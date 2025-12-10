@@ -6,7 +6,7 @@ integration with the new error system.
 """
 
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI, status
@@ -573,10 +573,14 @@ class TestHTTPErrorHandling:
         message = error_info["message"]
         assert "Request validation failed:" in message
 
-    @patch("agent_platform.server.api.private_v2.package.read_and_validate_agent_package")
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
     def test_agent_creation_conflict_error(
-        self, mock_quotas_get_instance, mock_extract, client: TestClient, mock_error_storage
+        self,
+        mock_quotas_get_instance,
+        agent_package_handler_factory,
+        client: TestClient,
+        mock_error_storage,
+        monkeypatch,
     ):
         """Test agent creation with name conflict."""
         # Mock QuotasService to prevent SQLiteStorage initialization issues
@@ -588,8 +592,28 @@ class TestHTTPErrorHandling:
 
         mock_quotas_get_instance.side_effect = mock_get_instance
 
-        # Configure mock
-        mock_extract.return_value = ({"agents": {"test-agent": {"name": "test-agent"}}}, [])
+        sample_spec = {
+            "spec": {
+                "agent-package": {
+                    "spec-version": "v2",
+                    "agents": [
+                        {
+                            "name": "test-agent",
+                            "version": "1.0.0",
+                            "description": "test-desc",
+                            "action-packages": [],
+                        }
+                    ],
+                }
+            },
+            "runbook_text": "# Minimal Agent\nYou are a simple assistant.",
+        }
+
+        # Mock AgentPackageHandler creation.
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            AsyncMock(return_value=agent_package_handler_factory(sample_spec)),
+        )
 
         # Configure storage to raise conflict error (old style)
         mock_error_storage.configure_error(

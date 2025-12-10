@@ -1,105 +1,70 @@
-import io
-import zipfile
-from pathlib import Path
 from typing import Any
 
-from fastapi import HTTPException, status
 from ruamel.yaml import YAML
 
-from agent_platform.core.agent_package.config import AgentSpecConfig
+from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
+from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.hash.blueprint_hash import blueprint_hash
 from agent_platform.core.agent_package.hash.environment_hash import calculate_environment_hash
-from agent_platform.core.agent_package.read import read_agent_package
-from agent_platform.core.agent_package.utils import read_file_from_zip, read_package_bytes
 
 _yaml = YAML(typ="safe")
 
 
-async def calculate_agent_package_hash(
-    path: str | Path | None = None,
-    url: str | None = None,
-    package_base64: str | bytes | None = None,
-) -> dict[str, Any]:
+async def calculate_agent_package_hash(handler: AgentPackageHandler) -> dict[str, Any]:
     """
     Calculate the agent's actions environment hash by extracting all action packages
     and combining all their hashes into a single hash.
 
-    * Pass **exactly one** of *path*, *url*, *package_base64*.
-
     Args:
-        path: local path to the agent package
-        url: URL to the agent package
-        package_base64: base64-encoded agent package
+        handler: AgentPackageHandler
 
     Returns:
         16-character hexadecimal hash string representing the combined hash of all action packages
     """
-    blob = await read_package_bytes(path, url, package_base64)
 
-    try:
-        with zipfile.ZipFile(io.BytesIO(blob)) as zf:
-            # Extract agent metadata to get action packages list
-            spec_raw = read_file_from_zip(zf, AgentSpecConfig.agent_spec_filename)
-            agent_package_parsed = await read_agent_package(spec_raw, zf)
+    spec_agent = await handler.get_spec_agent()
 
-            # Calculate hash for each action package
-            packages_hashes: list[str] = []
+    # Calculate hash for each action package
+    packages_hashes: list[str] = []
 
-            for action_package in agent_package_parsed.action_packages:
+    for action_package in spec_agent.action_packages:
+        try:
+            if not action_package.path:
+                continue
+
+            # The action_package.path is a path to a zip file within the main agent package
+            # We need to read the action package zip from the main zip
+            # then read package.yaml from it
+            action_packages_zip_bytes = await handler.read_action_package_zip_raw(
+                action_package.path
+            )
+
+            with await ActionPackageHandler.from_bytes(
+                action_packages_zip_bytes
+            ) as action_package_handler:
                 try:
-                    # The action_package.path is a path to a zip file within the main agent package
-                    # We need to read the action package zip from the main zip
-                    # then read package.yaml from it
+                    yaml_raw = await action_package_handler.read_package_spec_raw()
 
-                    # Build the full path within the agent package
-                    # (action packages are under "actions" folder)
-                    action_package_zip_path = f"actions/{action_package.path}"
-
-                    # Read the action package zip file from the main agent package zip
-                    action_package_zip_bytes = read_file_from_zip(zf, action_package_zip_path)
-
-                    try:
-                        # Open the action package zip from bytes
-                        with zipfile.ZipFile(
-                            io.BytesIO(action_package_zip_bytes)
-                        ) as action_package_zf:
-                            # Build path to the action package's package.yaml file
-                            package_yaml_path = "package.yaml"
-
-                            # Read the package.yaml file from the action package zip
-                            yaml_raw = read_file_from_zip(action_package_zf, package_yaml_path)
-
-                            # Calculate hash for this action package
-                            action_hash, _ = calculate_environment_hash([yaml_raw.decode()])
-                            packages_hashes.append(action_hash)
-                    except FileNotFoundError:
-                        # If package.yaml is not found, skip this action package
-                        # This could happen if the action package doesn't have environment
-                        # dependencies
-                        continue
-
+                    # Calculate hash for this action package
+                    action_hash, _ = calculate_environment_hash([yaml_raw.decode()])
+                    packages_hashes.append(action_hash)
                 except FileNotFoundError:
                     # If package.yaml is not found, skip this action package
-                    # This could happen if the action package doesn't have environment dependencies
-                    # or if the action package is not a valid zip file
+                    # This could happen if the action package doesn't have environment
+                    # dependencies
                     continue
 
-            # Combine all action package hashes into a single agent hash
-            return {
-                "combined_hash": _combine_hashes(packages_hashes),
-                "packages_hashes": packages_hashes,
-            }
+        except FileNotFoundError:
+            # If package.yaml is not found, skip this action package
+            # This could happen if the action package doesn't have environment dependencies
+            # or if the action package is not a valid zip file
+            continue
 
-    except zipfile.BadZipFile as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provided bytes are not a valid zip archive",
-        ) from exc
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Agent package metadata file not found: {exc}",
-        ) from exc
+    # Combine all action package hashes into a single agent hash
+    return {
+        "combined_hash": _combine_hashes(packages_hashes),
+        "packages_hashes": packages_hashes,
+    }
 
 
 def _combine_hashes(action_hashes: list[str]) -> str:

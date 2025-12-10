@@ -8,6 +8,9 @@ import httpx
 import structlog
 from agent_platform.orchestrator.default_locations import get_agent_server_executable_path
 
+from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
+from agent_platform.core.agent_package.spec import SpecActionPackage
+from agent_platform.core.agent_package.utils import read_package_bytes
 from agent_platform.quality.models import AgentPackage, Platform
 
 logger = structlog.get_logger(__name__)
@@ -320,41 +323,33 @@ class QualityOrchestrator:
         self._started = False
         logger.info("Infrastructure stopped")
 
-    async def _extract_action_packages_from_agent(self, agent_zip_path: Path) -> list[dict]:
+    async def _extract_action_packages_from_agent(
+        self, agent_zip_path: Path
+    ) -> list[SpecActionPackage]:
         """Extract action package information from the agent spec."""
         logger.info("Extracting action packages from agent spec")
 
         try:
-            from agent_platform.core.agent_package.read import (
-                read_and_validate_agent_package,
+            # @TODO:
+            #  Remove the read_package_bytes dependency, and use data stream to create
+            # AgentPackageHandler.
+            package_bytes = await read_package_bytes(
+                path=agent_zip_path, url=None, package_base64=None
             )
 
-            # Extract and validate the agent package
-            agent_package = await read_and_validate_agent_package(path=agent_zip_path)
-            spec = agent_package.spec
+            with await AgentPackageHandler.from_bytes(package_bytes) as handler:
+                spec_agent = await handler.get_spec_agent()
 
-            # Get action packages from the spec
-            action_packages = []
-            agent_pkg = spec.get("agent-package", {})
-            agents = agent_pkg.get("agents", [])
+                logger.info(f"Found {len(spec_agent.action_packages)} action packages in spec")
 
-            # Action packages are defined per agent, so we need to look in each agent
-            # For now, we'll take action packages from the first agent (the spec validation
-            # ensures there's only one agent anyway)
-            if agents and "action-packages" in agents[0]:
-                action_packages = agents[0]["action-packages"]
-                logger.info(f"Found {len(action_packages)} action packages in spec")
-            else:
-                logger.info("No action packages found in agent spec")
-
-            return action_packages
+                return spec_agent.action_packages
 
         except Exception as e:
             logger.error(f"Failed to extract action packages from agent spec: {e}")
             return []
 
     async def _start_action_server_with_packages(
-        self, agent_zip_path: Path, action_packages: list[dict]
+        self, agent_zip_path: Path, action_packages: list[SpecActionPackage]
     ) -> str:
         """Start action server and import the required action packages."""
         logger.info(f"Starting action server and importing {len(action_packages)} action packages")

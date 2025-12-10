@@ -1,4 +1,5 @@
 # server/tests/endpoints/conftest.py
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
@@ -6,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
+from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.server.api.private_v2 import (
     data_connections,
@@ -99,3 +101,32 @@ def fastapi_app(storage, stub_user) -> FastAPI:
 @pytest.fixture
 def client(fastapi_app: FastAPI) -> TestClient:
     return TestClient(fastapi_app)
+
+
+# ──────────────────────────────────────────────────────────────
+# AgentPackageHandler fixtures
+# ──────────────────────────────────────────────────────────────
+@pytest.fixture
+def agent_package_handler_factory():
+    def _create_agent_package_handler(spec: dict):
+        handler = AsyncMock()
+
+        handler.read_agent_spec = AsyncMock(return_value=AgentSpec.model_validate(spec["spec"]))
+        handler.get_spec_agent = AsyncMock(
+            return_value=SpecAgent.model_validate(spec["spec"]["agent-package"]["agents"][0])
+        )
+
+        if "runbook_text" in spec:
+            handler.read_runbook = AsyncMock(return_value=spec["runbook_text"])
+
+        # Configure the mock to behave as an asynchronous context manager
+        # that returns itself
+        handler.__enter__.return_value = handler
+        handler.__exit__.return_value = None
+
+        handler.read_conversation_guide_raw = AsyncMock(return_value=None)
+        handler.read_semantic_data_model_raw = AsyncMock(return_value=None)
+
+        return handler
+
+    return _create_agent_package_handler

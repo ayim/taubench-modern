@@ -10,18 +10,14 @@ from structlog import get_logger
 from agent_platform.core import MCPServer
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.agent import AgentArchitecture
+from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
+from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.hash.agent_package_hash import calculate_agent_package_hash
-from agent_platform.core.agent_package.metadata.action_metadata import (
-    ActionPackageMetadata,
+from agent_platform.core.agent_package.read import (
+    read_question_groups,
+    read_semantic_data_models,
 )
-from agent_platform.core.agent_package.metadata.agent_metadata import (
-    AgentPackageMetadata,
-)
-from agent_platform.core.agent_package.metadata.read_metadata import (
-    read_action_package_metadata,
-    read_agent_package_metadata,
-)
-from agent_platform.core.agent_package.read import read_and_validate_agent_package
+from agent_platform.core.agent_package.utils import read_package_bytes
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
 from agent_platform.core.payloads import AgentPackagePayload, UpsertAgentPayload
@@ -192,29 +188,20 @@ async def calculate_agent_package_environment_hash(
             payload_model=AgentPackagePayload,
         )
 
-        if zip_content:
-            package_base64 = await convert_binary_to_base64(zip_content)
-            # Create a new payload with the uploaded file as base64
-            validated_payload = AgentPackagePayload(
-                name=validated_payload.name,
-                description=validated_payload.description,
-                public=validated_payload.public,
-                agent_package_url=None,  # Clear URL since we have binary content
-                agent_package_base64=package_base64,  # Set base64 from binary ZIP
-                model=validated_payload.model,
-                action_servers=validated_payload.action_servers,
-                mcp_servers=validated_payload.mcp_servers,
-                mcp_server_ids=validated_payload.mcp_server_ids,
-                langsmith=validated_payload.langsmith,
-                platform_params_ids=validated_payload.platform_params_ids,
+        # @TODO:
+        # Remove when we are able to produce AgentPackageHandler directly
+        # in handle_json_or_binary_zip.
+        package_bytes = zip_content or (
+            await read_package_bytes(
+                path=None,
+                url=validated_payload.agent_package_url,
+                package_base64=validated_payload.agent_package_base64,
             )
-
-        # Calculate the hash
-        calculation_result = await calculate_agent_package_hash(
-            path=None,  # No local path option here: either URL or base64
-            url=validated_payload.agent_package_url,
-            package_base64=validated_payload.agent_package_base64,
         )
+
+        with await AgentPackageHandler.from_bytes(package_bytes) as handler:
+            # Calculate the hash
+            calculation_result = await calculate_agent_package_hash(handler)
 
         return StatusResponse.success(calculation_result)
     except PlatformError as e:
@@ -245,23 +232,20 @@ async def inspect_agent_from_package(
             payload_model=AgentPackagePayload,
         )
 
-        # If binary ZIP was uploaded, convert it to base64 and set it in the payload
-        if zip_content:
-            package_base64 = await convert_binary_to_base64(zip_content)
-            # Create a new payload with the uploaded file as base64
-            validated_payload = AgentPackagePayload(
-                name=validated_payload.name,
-                description=validated_payload.description,
-                public=validated_payload.public,
-                agent_package_url=None,  # Clear URL since we have binary content
-                agent_package_base64=package_base64,  # Set base64 from binary ZIP
-                model=validated_payload.model,
-                action_servers=validated_payload.action_servers,
-                mcp_servers=validated_payload.mcp_servers,
-                langsmith=validated_payload.langsmith,
+        # @TODO:
+        # Remove when we are able to produce AgentPackageHandler directly
+        # in handle_json_or_binary_zip.
+        package_bytes = zip_content or (
+            await read_package_bytes(
+                path=None,
+                url=validated_payload.agent_package_url,
+                package_base64=validated_payload.agent_package_base64,
             )
+        )
 
-        metadata = await inspect_agent_package(validated_payload)
+        with await AgentPackageHandler.from_bytes(package_bytes) as handler:
+            metadata = await handler.read_metadata()
+
         result = metadata.model_dump()
 
         # If binary ZIP was uploaded, add file metadata to the response
@@ -296,18 +280,20 @@ async def inspect_action_from_package(
             payload_model=ActionPackagePayload,
         )
 
-        # If binary ZIP was uploaded, convert it to base64 and set it in the payload
-        if zip_content:
-            package_base64 = await convert_binary_to_base64(zip_content)
-            # Create a new payload with the uploaded file as base64
-            validated_payload = ActionPackagePayload(
-                name=validated_payload.name,
-                description=validated_payload.description,
-                action_package_url=None,  # Clear URL since we have binary content
-                action_package_base64=package_base64,  # Set base64 from binary ZIP
+        # @TODO:
+        # Remove when we are able to produce AgentPackageHandler directly
+        # in handle_json_or_binary_zip.
+        package_bytes = zip_content or (
+            await read_package_bytes(
+                path=None,
+                url=validated_payload.action_package_url,
+                package_base64=validated_payload.action_package_base64,
             )
+        )
 
-        metadata = await inspect_action_package(validated_payload)
+        with await ActionPackageHandler.from_bytes(package_bytes) as handler:
+            metadata = await handler.read_metadata()
+
         result = metadata.model_dump()
 
         # If binary ZIP was uploaded, add file metadata to the response
@@ -372,46 +358,6 @@ async def build_agent_package(
 # ===============================
 
 
-async def inspect_agent_package(
-    payload: AgentPackagePayload,
-) -> AgentPackageMetadata:
-    # Validate that exactly one of URL or base64 is provided
-    sources = [payload.agent_package_url, payload.agent_package_base64]
-    non_none_sources = [s for s in sources if s is not None]
-
-    if len(non_none_sources) != 1:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Specify exactly one of 'agent_package_url' or 'agent_package_base64'",
-        )
-
-    return await read_agent_package_metadata(
-        path=None,  # No local path option here: either URL or base64
-        url=payload.agent_package_url,
-        package_base64=payload.agent_package_base64,
-    )
-
-
-async def inspect_action_package(
-    payload: ActionPackagePayload,
-) -> ActionPackageMetadata:
-    # Validate that exactly one of URL or base64 is provided
-    sources = [payload.action_package_url, payload.action_package_base64]
-    non_none_sources = [s for s in sources if s is not None]
-
-    if len(non_none_sources) != 1:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Specify exactly one of 'action_package_url' or 'action_package_base64'",
-        )
-
-    return await read_action_package_metadata(
-        path=None,  # No local path option here: either URL or base64
-        url=payload.action_package_url,
-        package_base64=payload.action_package_base64,
-    )
-
-
 async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
     user: AuthedUser,
     aid: str,
@@ -427,20 +373,6 @@ async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Specify exactly one of 'agent_package_url' or 'agent_package_base64'",
         )
-
-    # We do a 3 step dance here: wetake the payload, and extract the agent
-    # spec and runbook from it (and knowledge files... but ignore those for now)
-    agent_package = await read_and_validate_agent_package(
-        path=None,  # No local path option here: either URL or base64
-        url=payload.agent_package_url,
-        package_base64=payload.agent_package_base64,
-        include_knowledge=False,
-        knowledge_return="stream",
-    )
-    # The spec _must_ be the v2 agent spec; which represents "v1 agents"
-    # from our perspective. So we use UpsertAgentPayload to re-use our
-    # legacy conversion logic and get a "v2 agent" out of it.
-    agent0 = agent_package.spec["agent-package"]["agents"][0]
 
     # TODO (agent-cli sunset):
     # Langsmith support for Package import should most likely be dropped.
@@ -552,54 +484,65 @@ async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
         except Exception:
             normalized_model = None
 
-    # Original architecture name (if not present, use default)
-    mapped_architecture_name = agent0.get("architecture", "agent_platform.architectures.default")
-    if not mapped_architecture_name.startswith("agent_platform.architectures."):
-        # If we have any legacy value, use default
-        mapped_architecture_name = "agent_platform.architectures.default"
-
-    as_upsert_payload = UpsertAgentPayload(
-        name=payload.name,  # Want name from payload, not agent project
-        description=payload.description
-        if payload.description is not None
-        else agent0.get("description", ""),
-        version=agent0.get("version", "1.0.0"),
-        action_packages=[
-            ActionPackage(
-                name=action_package["name"],
-                organization=action_package["organization"],
-                version=action_package["version"],
-                url=action_server_url,
-                api_key=action_server_api_key,
-            )
-            for action_package in agent0.get("action-packages", [])
-        ],
-        mcp_servers=normalized_mcp_servers,
-        mcp_server_ids=mcp_server_ids,
-        selected_tools=payload.selected_tools,
-        platform_params_ids=platform_params_ids,
-        runbook=agent_package.runbook_text,
-        advanced_config=advanced_config,
-        question_groups=agent_package.question_groups,
-        agent_settings=agent_package.agent_settings or {},
-        extra={
-            "conversation_starter": agent_package.conversation_starter,
-            "welcome_message": agent_package.welcome_message,
-            "agent_settings": agent_package.agent_settings,
-        },
-        model=normalized_model,
-        agent_architecture=AgentArchitecture(
-            # Take architecture name from package, force
-            # version to 1.0.0 (we don't support arch versioning yet
-            # across the stack)
-            name=mapped_architecture_name,
-            version="1.0.0",
-        ),
-        metadata={
-            **agent0.get("metadata", {}),
-        },
-        document_intelligence=agent0.get("document-intelligence", None),
+    blob = await read_package_bytes(
+        path=None, url=payload.agent_package_url, package_base64=payload.agent_package_base64
     )
+
+    with await AgentPackageHandler.from_bytes(blob) as handler:
+        spec_agent = await handler.get_spec_agent()
+        runbook_text = await handler.read_runbook()
+
+        question_groups = await read_question_groups(handler)
+        semantic_data_models = await read_semantic_data_models(handler)
+
+        # Original architecture name (if not present, use default)
+        mapped_architecture_name = spec_agent.architecture or "agent_platform.architectures.default"
+        if not mapped_architecture_name.startswith("agent_platform.architectures."):
+            # If we have any legacy value, use default
+            mapped_architecture_name = "agent_platform.architectures.default"
+
+        as_upsert_payload = UpsertAgentPayload(
+            name=payload.name,  # Want name from payload, not agent project
+            description=payload.description
+            if payload.description is not None
+            else spec_agent.description,
+            version=spec_agent.version or "1.0.0",
+            action_packages=[
+                ActionPackage(
+                    name=action_package.name,
+                    organization=action_package.organization,
+                    version=action_package.version,
+                    url=action_server_url,
+                    api_key=action_server_api_key,
+                )
+                for action_package in spec_agent.action_packages
+            ],
+            mcp_servers=normalized_mcp_servers,
+            mcp_server_ids=mcp_server_ids,
+            selected_tools=payload.selected_tools,
+            platform_params_ids=platform_params_ids,
+            runbook=runbook_text,
+            advanced_config=advanced_config,
+            question_groups=question_groups,
+            agent_settings=spec_agent.agent_settings or {},
+            extra={
+                "conversation_starter": spec_agent.conversation_starter,
+                "welcome_message": spec_agent.welcome_message,
+                "agent_settings": spec_agent.agent_settings,
+            },
+            model=normalized_model,
+            agent_architecture=AgentArchitecture(
+                # Take architecture name from package, force
+                # version to 1.0.0 (we don't support arch versioning yet
+                # across the stack)
+                name=mapped_architecture_name,
+                version="1.0.0",
+            ),
+            metadata={
+                **(spec_agent.metadata.model_dump() if spec_agent.metadata is not None else {}),
+            },
+            document_intelligence=spec_agent.document_intelligence,
+        )
 
     # Now, for the third and final step, we have essentially a normal
     # agent create (just as the upsert_agent endpoint does)
@@ -619,7 +562,7 @@ async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
     # Import semantic data models if present in the package
     await upsert_semantic_data_models(
         agent_id=aid,
-        sdms=agent_package.semantic_data_models,
+        sdms=semantic_data_models,
         storage=storage,
     )
 

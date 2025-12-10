@@ -16,6 +16,7 @@ import { Route as TenantsTenantIdVioletRouteImport } from './routes/tenants/$ten
 import { Route as TenantsTenantIdUsersRouteImport } from './routes/tenants/$tenantId/users'
 import { Route as TenantsTenantIdSignoutCallbackRouteImport } from './routes/tenants/$tenantId/signout-callback'
 import { Route as TenantsTenantIdSigninCallbackRouteImport } from './routes/tenants/$tenantId/signin-callback'
+import { Route as TenantsTenantIdPackageRouteImport } from './routes/tenants/$tenantId/package'
 import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tenantId/oauth'
 import { Route as TenantsTenantIdMcpServersRouteImport } from './routes/tenants/$tenantId/mcp-servers'
 import { Route as TenantsTenantIdConfigurationRouteImport } from './routes/tenants/$tenantId/configuration'
@@ -99,6 +100,11 @@ const TenantsTenantIdSigninCallbackRoute =
     path: '/signin-callback',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
+const TenantsTenantIdPackageRoute = TenantsTenantIdPackageRouteImport.update({
+  id: '/package',
+  path: '/package',
+  getParentRoute: () => TenantsTenantIdRoute,
+} as any)
 const TenantsTenantIdOauthRoute = TenantsTenantIdOauthRouteImport.update({
   id: '/oauth',
   path: '/oauth',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/configuration': typeof TenantsTenantIdConfigurationRouteWithChildren
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersRouteWithChildren
   '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
+  '/tenants/$tenantId/package': typeof TenantsTenantIdPackageRoute
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersRouteWithChildren
   '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
+  '/tenants/$tenantId/package': typeof TenantsTenantIdPackageRoute
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
@@ -493,6 +501,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/configuration': typeof TenantsTenantIdConfigurationRouteWithChildren
   '/tenants/$tenantId/mcp-servers': typeof TenantsTenantIdMcpServersRouteWithChildren
   '/tenants/$tenantId/oauth': typeof TenantsTenantIdOauthRoute
+  '/tenants/$tenantId/package': typeof TenantsTenantIdPackageRoute
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
@@ -549,6 +558,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration'
     | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/oauth'
+    | '/tenants/$tenantId/package'
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
@@ -601,6 +611,7 @@ export interface FileRouteTypes {
     | '/'
     | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/oauth'
+    | '/tenants/$tenantId/package'
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration'
     | '/tenants/$tenantId/mcp-servers'
     | '/tenants/$tenantId/oauth'
+    | '/tenants/$tenantId/package'
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
@@ -755,6 +767,13 @@ declare module '@tanstack/react-router' {
       path: '/signin-callback'
       fullPath: '/tenants/$tenantId/signin-callback'
       preLoaderRoute: typeof TenantsTenantIdSigninCallbackRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/package': {
+      id: '/tenants/$tenantId/package'
+      path: '/package'
+      fullPath: '/tenants/$tenantId/package'
+      preLoaderRoute: typeof TenantsTenantIdPackageRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/oauth': {
@@ -1281,6 +1300,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdConfigurationRoute: typeof TenantsTenantIdConfigurationRouteWithChildren
   TenantsTenantIdMcpServersRoute: typeof TenantsTenantIdMcpServersRouteWithChildren
   TenantsTenantIdOauthRoute: typeof TenantsTenantIdOauthRoute
+  TenantsTenantIdPackageRoute: typeof TenantsTenantIdPackageRoute
   TenantsTenantIdSigninCallbackRoute: typeof TenantsTenantIdSigninCallbackRoute
   TenantsTenantIdSignoutCallbackRoute: typeof TenantsTenantIdSignoutCallbackRoute
   TenantsTenantIdUsersRoute: typeof TenantsTenantIdUsersRouteWithChildren
@@ -1306,6 +1326,7 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
     TenantsTenantIdConfigurationRouteWithChildren,
   TenantsTenantIdMcpServersRoute: TenantsTenantIdMcpServersRouteWithChildren,
   TenantsTenantIdOauthRoute: TenantsTenantIdOauthRoute,
+  TenantsTenantIdPackageRoute: TenantsTenantIdPackageRoute,
   TenantsTenantIdSigninCallbackRoute: TenantsTenantIdSigninCallbackRoute,
   TenantsTenantIdSignoutCallbackRoute: TenantsTenantIdSignoutCallbackRoute,
   TenantsTenantIdUsersRoute: TenantsTenantIdUsersRouteWithChildren,
