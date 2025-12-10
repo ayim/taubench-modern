@@ -205,6 +205,10 @@ export const TrialResults: FC<TrialResultsProps> = ({
                   }
                   onToggleEvaluationDetails(evaluationKey);
                 };
+                const explanationText =
+                  'explanation' in result && typeof result.explanation === 'string' ? result.explanation : null;
+                const shouldShowInlineExplanation =
+                  !result.passed && explanationText && explanationText.toLowerCase().includes('error_id=');
 
                 return (
                   <Box key={evaluationKey} display="flex" flexDirection="column" gap="$4">
@@ -225,6 +229,11 @@ export const TrialResults: FC<TrialResultsProps> = ({
                         aria-label="Toggle evaluation details"
                       />
                     </Box>
+                    {shouldShowInlineExplanation && (
+                      <Typography variant="body-small" color="content.error" style={{ userSelect: 'text' }}>
+                        {explanationText}
+                      </Typography>
+                    )}
                     {isExpanded && hasDetails && (
                       <Box
                         paddingLeft="$14"

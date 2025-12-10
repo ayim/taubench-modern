@@ -23,6 +23,10 @@ class RetryPolicy:
 class RetryExceededError(Exception):
     """Raised when retries are exhausted."""
 
+    def __init__(self, message: str, *, last_error: BaseException | None = None) -> None:
+        super().__init__(message)
+        self.last_error = last_error
+
 
 async def retry_async(
     op: Callable[[], Awaitable[T]],
@@ -46,7 +50,9 @@ async def retry_async(
             if on_error:
                 on_error(e, attempt)
             if attempt >= policy.max_attempts:
-                raise RetryExceededError(f"Operation failed after {attempt} attempts") from e
+                raise RetryExceededError(
+                    f"Operation failed after {attempt} attempts", last_error=e
+                ) from e
 
             # exponential backoff + jitter
             jitter = random.uniform(policy.jitter_min, policy.jitter_max)

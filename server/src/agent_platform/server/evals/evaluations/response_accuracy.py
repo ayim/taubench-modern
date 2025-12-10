@@ -7,6 +7,7 @@ from agent_platform.architectures.default.thread_conversion import (
     thread_messages_to_prompt_messages,
 )
 from agent_platform.core.context import AgentServerContext
+from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.evals.types import (
     EvaluationResult,
     ResponseAccuracyResult,
@@ -24,7 +25,7 @@ from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.evals.conversation_formatting import (
     format_thread_conversation_for_eval,
 )
-from agent_platform.server.evals.errors import log_and_format_error
+from agent_platform.server.evals.errors import is_rate_limit_error, log_and_format_error
 from agent_platform.server.evals.json import parse_json_object
 from agent_platform.server.evals.retry import RetryExceededError, retry_async
 
@@ -116,9 +117,17 @@ async def evaluate_response_accuracy(
 
     try:
         return await retry_async(_generate_once, on_error=_on_error)
-    except RetryExceededError:
-        error_message = log_and_format_error(
-            log_message="Response Accuracy could not be parsed after retries",
-            user_message="Unexpected error: cannot evaluate flow adherence",
-        )
+    except RetryExceededError as exc:
+        last_error = exc.last_error or exc.__cause__
+        if last_error and is_rate_limit_error(last_error):
+            error_message = log_and_format_error(
+                log_message="Response Accuracy evaluation failed due to rate limits",
+                user_message="Response Accuracy evaluation was rate limited.",
+                error_code=ErrorCode.TOO_MANY_REQUESTS,
+            )
+        else:
+            error_message = log_and_format_error(
+                log_message="Response Accuracy could not be parsed after retries",
+                user_message="Unexpected error: cannot evaluate response accuracy",
+            )
         return ResponseAccuracyResult(passed=False, explanation=error_message, score=0)

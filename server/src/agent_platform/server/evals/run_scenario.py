@@ -12,8 +12,6 @@ from starlette.datastructures import Headers
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
-from agent_platform.core.errors.responses import ErrorCode
-from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.evals.agent_client import (
     AgentClient,
     ToolExecutionError,
@@ -46,7 +44,9 @@ from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.constants import EVALS_SYSTEM_USER_SUB
 from agent_platform.server.evals.errors import (
     TrialRateLimitedError,
+    is_rate_limit_error,
     log_and_format_error,
+    retry_after_from_exception,
 )
 from agent_platform.server.evals.evaluations.flow_adherence import evaluate_flow_adherence
 from agent_platform.server.evals.evaluations.response_accuracy import evaluate_response_accuracy
@@ -56,28 +56,6 @@ from agent_platform.server.kernel.tools import AgentServerToolsInterface
 from agent_platform.server.storage.option import StorageService
 
 logger = logging.getLogger(__name__)
-
-
-def _is_rate_limit_exception(exc: Exception) -> bool:
-    if isinstance(exc, StreamingError):
-        return exc.response.error_code == ErrorCode.TOO_MANY_REQUESTS
-    return False
-
-
-def _retry_after_from_exception(exc: Exception) -> float | None:
-    data: dict[str, Any] | None = None
-    if isinstance(exc, StreamingError):
-        data = getattr(exc, "data", None)
-
-    if not isinstance(data, dict):
-        return None
-    value = data.get("retry_after_seconds")
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):  # pragma: no cover - defensive
-        return None
 
 
 def _list_scenario_next_user_messages(
@@ -639,8 +617,8 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 await agent_client.run_once()
                 tool_executor.finalize()
             except Exception as e:
-                if _is_rate_limit_exception(e):
-                    retry_after = _retry_after_from_exception(e)
+                if is_rate_limit_error(e):
+                    retry_after = retry_after_from_exception(e)
                     logger.warning(
                         "Trial %s turn=%s rate limited; scheduling retry.",
                         task.trial_id,
