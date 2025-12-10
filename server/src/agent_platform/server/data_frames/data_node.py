@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
+    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisTable
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -199,7 +200,7 @@ def convert_pyarrow_slice_to_list_of_rows(
 
 
 async def _convert_ibis_slice_to_format(  # noqa: PLR0913
-    result: Any,
+    result: "AsyncIbisTable",
     offset: int,
     limit: int | None,
     column_names: list[str] | None,
@@ -225,12 +226,8 @@ async def _convert_ibis_slice_to_format(  # noqa: PLR0913
         else:
             result = result[offset : offset + limit]
 
-    # Convert to pyarrow table using backend-specific handler
-    from agent_platform.server.semantic_data_models.handlers import (
-        execute_query_with_backend_handler,
-    )
-
-    table = await execute_query_with_backend_handler(result)
+    # Convert to pyarrow table via async proxy
+    table = await result.to_pyarrow()
     return _convert_arrow_to_format(table, output_format)
 
 
@@ -530,12 +527,12 @@ class DataNodeFromIbisResult(DataNodeResult):
     def __init__(
         self,
         platform_data_frame: "PlatformDataFrame",
-        ibis_result: Any,
+        ibis_result: "AsyncIbisTable",
         full_sql_query_str: str,
         full_sql_query_logical_str: str,
     ):
         self._platform_data_frame = platform_data_frame
-        self._ibis_result = ibis_result
+        self._ibis_result: AsyncIbisTable = ibis_result
         self._full_sql_query_str = full_sql_query_str
         self._full_sql_query_logical_str = full_sql_query_logical_str
 
@@ -553,14 +550,9 @@ class DataNodeFromIbisResult(DataNodeResult):
         """
         return self._full_sql_query_logical_str
 
-    async def _to_arrow_safe(self, ibis_expr: Any) -> Any:
-        """Convert ibis expression to Arrow using backend-specific handler."""
-        from agent_platform.server.semantic_data_models.handlers import (
-            execute_query_with_backend_handler,
-        )
-
-        result: pyarrow.Table = await execute_query_with_backend_handler(ibis_expr)
-        return result
+    async def _to_arrow_safe(self, ibis_table: "AsyncIbisTable") -> "pyarrow.Table":
+        """Convert ibis table to Arrow using backend-specific handler."""
+        return await ibis_table.to_pyarrow()
 
     async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if num_samples == 0:
@@ -575,12 +567,7 @@ class DataNodeFromIbisResult(DataNodeResult):
         return [list(row) for row in pylist]
 
     async def num_rows(self) -> int:
-        from agent_platform.server.semantic_data_models.handlers import (
-            execute_count_with_backend_handler,
-        )
-
-        count_result = self._ibis_result.count()
-        return await execute_count_with_backend_handler(count_result)
+        return await self._ibis_result.execute_count()
 
     @property
     def num_columns(self) -> int:

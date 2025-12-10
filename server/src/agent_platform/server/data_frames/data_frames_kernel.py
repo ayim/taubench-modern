@@ -15,6 +15,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelAndReferences,
     )
+    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
     from agent_platform.server.storage.base import BaseStorage
 
     from .data_frames_assembly_info import AssemblyInfo
@@ -182,9 +183,13 @@ class Dependencies:
 
                 import ibis
 
+                from agent_platform.server.kernel.ibis_async_proxy import (
+                    AsyncIbisConnection,
+                )
+
                 initial_time = time.monotonic()
-                con = ibis.duckdb.connect()
-                con.__s4engine__ = "duckdb"
+                raw_con = ibis.duckdb.connect()
+                con = AsyncIbisConnection(raw_con, engine="duckdb")
                 logger.info(
                     f"Created ibis.duckdb connection in "
                     f"{time.monotonic() - initial_time:.2f} seconds"
@@ -362,7 +367,7 @@ class Dependencies:
         self,
         kernel: "DataFramesKernel",
         data_frame: "PlatformDataFrame",
-        con: "Any",
+        con: "AsyncIbisConnection",
     ) -> "DataNodeResult":
         import asyncio
         from collections.abc import Coroutine
@@ -496,7 +501,7 @@ class Dependencies:
         # tables directly).
 
         for variable_name, node in name_to_node.items():
-            await asyncio.to_thread(con.create_table, variable_name, node.to_ibis())
+            await con.create_table(variable_name, node.to_ibis())
 
         # Now, we need to go on to the computation (deps should be in order already).
         # We have to add preconditions as:
@@ -521,11 +526,8 @@ class Dependencies:
             table_name_to_column_names_to_expr={},
         )
 
-        # Execute the SQL query using ibis (blocking I/O operation)
         try:
-            result = await asyncio.to_thread(
-                con.sql, full_sql_query_str, dialect=data_frame.sql_dialect
-            )
+            result = await con.sql(full_sql_query_str, dialect=data_frame.sql_dialect)
 
             df = DataNodeFromIbisResult(
                 data_frame,

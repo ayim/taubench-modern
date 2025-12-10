@@ -1,6 +1,6 @@
 """Unit tests for DataConnectionInspector validation methods."""
 
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -29,14 +29,14 @@ async def test_validate_tables_exist_success():
 
     inspector = DataConnectionInspector(data_connection, request)
 
-    # Mock the connection and table objects
+    # Mock the connection and table objects - use AsyncMock for async methods
     mock_connection = Mock()
     mock_table1 = Mock()
-    mock_table1.schema.return_value = Mock()  # Successful schema access
+    mock_table1.columns = ("col1", "col2")  # AsyncIbisTable.columns returns tuple
     mock_table2 = Mock()
-    mock_table2.schema.return_value = Mock()
+    mock_table2.columns = ("col1", "col2")
 
-    def mock_get_table(name):
+    async def mock_get_table(name):
         if name == "table1":
             return mock_table1
         elif name == "table2":
@@ -348,10 +348,11 @@ async def test_validate_column_expression_method():
     inspector = DataConnectionInspector(data_connection, request)
 
     # Mock a table that will succeed for valid expressions
+    # execute() is now async, so we use AsyncMock
     mock_table = Mock()
     mock_select_result = Mock()
     mock_limit_result = Mock()
-    mock_limit_result.execute.return_value = []
+    mock_limit_result.execute = AsyncMock(return_value=[])
     mock_select_result.limit.return_value = mock_limit_result
     mock_table.select.return_value = mock_select_result
 
@@ -362,7 +363,7 @@ async def test_validate_column_expression_method():
     mock_table_error = Mock()
     mock_select_error = Mock()
     mock_limit_error = Mock()
-    mock_limit_error.execute.side_effect = Exception("Column not found")
+    mock_limit_error.execute = AsyncMock(side_effect=Exception("Column not found"))
     mock_select_error.limit.return_value = mock_limit_error
     mock_table_error.select.return_value = mock_select_error
 

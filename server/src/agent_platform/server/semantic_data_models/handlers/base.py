@@ -10,6 +10,7 @@ import structlog
 
 if typing.TYPE_CHECKING:
     import pyarrow
+    from ibis.backends import BaseBackend
 
 logger = structlog.get_logger(__name__)
 
@@ -91,7 +92,7 @@ class DefaultBackendHandler(BackendHandler):
         return "default"
 
 
-def _get_backend_from_expr(ibis_expr: Any) -> Any:
+def _get_backend_from_expr(ibis_expr: Any) -> "BaseBackend":
     """Extract the backend from an ibis expression.
 
     Args:
@@ -113,27 +114,6 @@ def _get_backend_from_expr(ibis_expr: Any) -> Any:
     except Exception as e:
         logger.warning("Failed to get backend from ibis expression", error=str(e))
         raise ValueError("Failed to get backend from ibis expression") from e
-
-
-def _get_engine_name(ibis_expr: Any) -> str:
-    """Get the engine name from an ibis expression.
-
-    Args:
-        ibis_expr: An ibis expression or result object
-
-    Returns:
-        The engine name from database backend or "default" if not found
-
-    Raises:
-        ValueError: If no engine name is found in the ibis expression
-    """
-    backend = _get_backend_from_expr(ibis_expr)
-
-    # Check for our custom __s4engine__ attribute
-    if hasattr(backend, "__s4engine__"):
-        return backend.__s4engine__
-
-    raise ValueError("No engine name found in ibis expression")
 
 
 @functools.cache
@@ -168,53 +148,60 @@ def _get_backend_registry() -> dict[str, BackendHandler]:
     return registry
 
 
-def _get_handler(ibis_expr: Any) -> BackendHandler:
+def _get_handler(ibis_expr: Any, engine: str) -> BackendHandler:
     """Get the appropriate handler for an ibis expression.
 
     Args:
         ibis_expr: An ibis expression or result object
+        engine: Engine name to use for handler selection.
 
     Returns:
         The handler for the expression's backend, or default handler
         if not found
     """
     registry = _get_backend_registry()
-    engine_name = _get_engine_name(ibis_expr)
 
-    handler = registry.get(engine_name, registry["default"])
-    logger.debug(f"Using backend handler: {handler.backend_name} for engine: {engine_name}")
+    handler = registry.get(engine, registry["default"])
+    logger.debug(f"Using backend handler: {handler.backend_name} for engine: {engine}")
     return handler
 
 
 async def execute_query_with_backend_handler(
     ibis_expr: Any,
+    engine: str,
 ) -> "pyarrow.Table":
     """Execute an ibis query using the appropriate backend handler.
 
     This is the main entry point for executing queries with
-    backend-specific logic.
+    backend-specific logic. Called internally by AsyncIbisExpression and
+    AsyncIbisTable.to_pyarrow() methods.
 
     Args:
-        ibis_expr: An ibis expression to execute
+        ibis_expr: A raw ibis expression to execute
+        engine: Engine name to use for handler selection.
 
     Returns:
         A pyarrow.Table containing the query results
     """
-    handler = _get_handler(ibis_expr)
+    handler = _get_handler(ibis_expr, engine=engine)
     return await handler.execute_query(ibis_expr)
 
 
-async def execute_count_with_backend_handler(count_expr: Any) -> int:
+async def execute_count_with_backend_handler(
+    count_expr: Any,
+    engine: str,
+) -> int:
     """Execute a count expression using the appropriate backend handler.
 
     This handles backend-specific differences in how count() results
-    are returned.
+    are returned. Called internally by AsyncIbisExpression.execute_count().
 
     Args:
-        count_expr: An ibis count expression (result of .count())
+        count_expr: A raw ibis count expression (result of .count())
+        engine: Engine name to use for handler selection.
 
     Returns:
         The count as an integer
     """
-    handler = _get_handler(count_expr)
+    handler = _get_handler(count_expr, engine=engine)
     return await handler.execute_count(count_expr)

@@ -1,4 +1,3 @@
-import asyncio
 import typing
 from typing import Any
 
@@ -9,7 +8,6 @@ from agent_platform.server.kernel.ibis_utils import DataConnectionInspectorError
 
 if typing.TYPE_CHECKING:
     import pyarrow
-    from ibis import Table
 
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
@@ -18,6 +16,10 @@ if typing.TYPE_CHECKING:
         DataConnectionsInspectResponse,
         TableInfo,
         TableToInspect,
+    )
+    from agent_platform.server.kernel.ibis_async_proxy import (
+        AsyncIbisConnection,
+        AsyncIbisTable,
     )
 
 logger = get_logger(__name__)
@@ -52,7 +54,7 @@ class DataConnectionInspector:
         self._connection: Any | None = None
 
     @property
-    async def connection(self) -> Any:
+    async def connection(self) -> "AsyncIbisConnection":
         if self._connection is None:
             self._connection = await self.create_ibis_connection(self.data_connection)
         return self._connection
@@ -100,34 +102,33 @@ class DataConnectionInspector:
         return DataConnectionsInspectResponse(tables=table_infos)
 
     @classmethod
-    async def create_ibis_connection(cls, data_connection: "DataConnection") -> Any:
-        from agent_platform.server.kernel import ibis_utils
+    async def create_ibis_connection(
+        cls, data_connection: "DataConnection"
+    ) -> "AsyncIbisConnection":
+        from agent_platform.server.kernel.ibis_utils import create_ibis_connection
 
-        return await ibis_utils.create_ibis_connection(data_connection)
+        return await create_ibis_connection(data_connection)
 
-    async def _get_table(self, table_spec: "TableToInspect") -> "Table":
+    async def _get_table(self, table_spec: "TableToInspect") -> "AsyncIbisTable":
         """
         Get a table from the connection.
 
         Returns:
-            Table: Table object if the table is found.
+            AsyncIbisTable: Async table wrapper if the table is found.
 
         Raises:
-
+            TableNotFoundError: If the table is not found.
         """
-        import ibis
-
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
-        connection = await self.connection
+        connection: AsyncIbisConnection = await self.connection
         try:
-            # Try to get the table
-            table = await asyncio.to_thread(connection.table, table_spec.name)
+            table: AsyncIbisTable = await connection.table(table_spec.name)
         except IbisDbCallNotInWorkerThreadError as e:
             raise e
         except Exception as e:
             raise TableNotFoundError(table_spec.name, str(e)) from e
-        return typing.cast(ibis.Table, table)
+        return table
 
     async def _validate_table(self, table_spec: "TableToInspect") -> ValidationMessage | None:
         """
@@ -182,7 +183,7 @@ class DataConnectionInspector:
         return errors
 
     async def _validate_column_expression(
-        self, table: "Table", column_expression: str
+        self, table: "AsyncIbisTable", column_expression: str
     ) -> ValidationMessage | None:
         """Extracted for testing purposes."""
         from agent_platform.core.data_frames.semantic_data_model_types import (
@@ -192,7 +193,7 @@ class DataConnectionInspector:
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
         try:
-            await asyncio.to_thread(table.select(column_expression).limit(0).execute)
+            await table.select(column_expression).limit(0).execute()
         except IbisDbCallNotInWorkerThreadError as e:
             raise e
         except Exception as e:
@@ -261,12 +262,11 @@ class DataConnectionInspector:
         return errors
 
     @classmethod
-    async def _get_all_tables(cls, connection: Any) -> "list[TableToInspect]":
+    async def _get_all_tables(cls, connection: "AsyncIbisConnection") -> "list[TableToInspect]":
         """Get all tables from the connection."""
         from agent_platform.core.payloads.data_connection import TableToInspect
 
-        # Get list of tables from ibis (blocking I/O operation)
-        tables = await asyncio.to_thread(connection.list_tables)
+        tables = await connection.list_tables()
 
         table_specs = []
         for table_name in tables:
@@ -278,7 +278,7 @@ class DataConnectionInspector:
 
             # Try to get current_schema (may not exist or may fail)
             try:
-                schema = await asyncio.to_thread(getattr, connection, "current_schema", None)
+                schema = await connection.get_current_schema()
             except (AttributeError, Exception) as e:
                 logger.info(
                     "Could not retrieve current_schema from connection",
@@ -288,7 +288,7 @@ class DataConnectionInspector:
 
             # Try to get current_database (may not exist or may fail)
             try:
-                database = await asyncio.to_thread(getattr, connection, "current_database", None)
+                database = await connection.get_current_database()
             except (AttributeError, Exception) as e:
                 logger.info(
                     "Could not retrieve current_database from connection",
@@ -306,8 +306,14 @@ class DataConnectionInspector:
 
         return table_specs
 
-    def _select_with_limit(self, table, columns_to_inspect, n_sample_rows):
-        """
+    def _select_with_limit(
+        self,
+        table: "AsyncIbisTable",
+        columns_to_inspect: list[str],
+        n_sample_rows: int,
+    ) -> "AsyncIbisTable":
+        """Build a select query with limit.
+
         Note: extracted just so that we can mock it easily for testing
         purposes (to simulate errors when inspecting columns).
 
@@ -318,12 +324,12 @@ class DataConnectionInspector:
         return table.select(columns_to_inspect).limit(n_sample_rows)
 
     async def _fetch_sample_data_for_all_columns(
-        self, table: Any, columns_to_inspect: list[str]
+        self, table: "AsyncIbisTable", columns_to_inspect: list[str]
     ) -> "pyarrow.Table":
         """Fetch sample data for all columns at once.
 
         Args:
-            table: The ibis table
+            table: The async table wrapper
             columns_to_inspect: List of column names to inspect
 
         Returns:
@@ -332,22 +338,20 @@ class DataConnectionInspector:
         Raises:
             Exception: If query execution fails
         """
-        from agent_platform.server.semantic_data_models.handlers import (
-            execute_query_with_backend_handler,
-        )
-
+        # Build query using async proxy (returns AsyncIbisExpression)
         sample_query = self._select_with_limit(
             table, columns_to_inspect, self.request.n_sample_rows
         )
-        return await execute_query_with_backend_handler(sample_query)
+        # Use async proxy's to_pyarrow which handles backend routing
+        return await sample_query.to_pyarrow()
 
     async def _fetch_sample_data_per_column(
-        self, table: Any, columns_to_inspect: list[str], table_name: str
+        self, table: "AsyncIbisTable", columns_to_inspect: list[str], table_name: str
     ) -> dict[str, "pyarrow.Table | None"]:
         """Fetch sample data for each column individually (fallback when bulk fetch fails).
 
         Args:
-            table: The ibis table
+            table: The async table wrapper
             columns_to_inspect: List of column names to inspect
             table_name: Name of the table (for logging)
 
@@ -355,25 +359,21 @@ class DataConnectionInspector:
             Dictionary mapping column names to their sample data (or None if failed)
         """
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
-        from agent_platform.server.semantic_data_models.handlers import (
-            execute_query_with_backend_handler,
-        )
 
         sample_table_dict: dict[str, pyarrow.Table | None] = {}
         for column_name in columns_to_inspect:
             try:
+                # Build query using async proxy (returns AsyncIbisExpression)
                 sample_query = table.select(column_name).limit(self.request.n_sample_rows)
-                result = await execute_query_with_backend_handler(sample_query)
+                # Use async proxy's to_pyarrow which handles backend routing
+                result = await sample_query.to_pyarrow()
                 sample_table_dict[column_name] = result
             except IbisDbCallNotInWorkerThreadError as e:
                 raise e
             except Exception as e:
                 # Get column type in a non-blocking way
-                def _get_col_type(col_name=column_name):
-                    return table[col_name].type()
-
                 try:
-                    col_type = await asyncio.to_thread(_get_col_type)
+                    col_type = await table[column_name].type()
                 except Exception:
                     col_type = "unknown"
                 logger.error(
@@ -383,19 +383,17 @@ class DataConnectionInspector:
                 sample_table_dict[column_name] = None
         return sample_table_dict
 
-    async def _inspect_table(self, connection: Any, table_spec: "TableToInspect") -> "TableInfo":
+    async def _inspect_table(
+        self, connection: "AsyncIbisConnection", table_spec: "TableToInspect"
+    ) -> "TableInfo":
         """Inspect a specific table and return its metadata."""
         import pyarrow
 
         from agent_platform.core.payloads.data_connection import TableInfo
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
-        # Get the table reference (blocking I/O)
-        table = await asyncio.to_thread(connection.table, table_spec.name)
-
-        # Get column names from table schema (blocking I/O)
-        schema = await asyncio.to_thread(table.schema)
-        column_names = schema.names
+        table = await connection.table(table_spec.name)
+        column_names = table.columns
 
         # Filter columns to inspect based on request
         columns_to_inspect = [
@@ -461,7 +459,7 @@ class DataConnectionInspector:
 
     async def _inspect_column(
         self,
-        table: Any,
+        table: "AsyncIbisTable",
         column_name: str,
         sample_table: "pyarrow.Table | dict[str, pyarrow.Table | None] | None",
     ) -> "ColumnInfo":
@@ -471,9 +469,8 @@ class DataConnectionInspector:
             convert_to_valid_json_types,
         )
 
-        # Get column type (blocking I/O)
         try:
-            column_type = await asyncio.to_thread(lambda: str(table[column_name].type()))
+            column_type = str(await table[column_name].type())
         except Exception as e:
             # For Snowflake, if .type() fails with Arrow error, use a fallback
             # Error 255003: "Conversion from Snowflake VARIANT/OBJECT/ARRAY to Arrow not supported"

@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
         SnowflakeLinkedConfiguration,
         SQLiteDataConnectionConfiguration,
     )
-
+    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
 logger = get_logger(__name__)
 
 
@@ -231,9 +231,12 @@ class IbisDbCallNotInWorkerThreadError(RuntimeError):
     pass
 
 
-async def create_ibis_connection(data_connection: DataConnection) -> Any:
-    """Create an ibis connection based on the data connection configuration."""
+async def create_ibis_connection(data_connection: DataConnection) -> AsyncIbisConnection:
+    """Create an ibis connection based on the data connection configuration.
 
+    Returns an AsyncIbisConnection wrapper that provides a clean async API
+    and integrates with the backend handler system for query execution.
+    """
     from agent_platform.core.payloads.data_connection import (
         DatabricksDataConnectionConfiguration,
         MySQLDataConnectionConfiguration,
@@ -244,6 +247,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
         SnowflakeLinkedConfiguration,
         SQLiteDataConnectionConfiguration,
     )
+    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
 
     engine = data_connection.engine
     config = data_connection.configuration
@@ -278,8 +282,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
     else:
         raise ValueError(f"Unsupported engine for inspection: {engine}")
 
-    # Mark with engine name for backend handler selection while executing queries
-    conn.__s4engine__ = engine  # type: ignore[attr-defined]
+    # Add thread verification to prevent blocking calls in async context
     for attr, must_exist in [("_safe_raw_sql", False), ("execute", True)]:
         if not hasattr(conn, attr):
             if must_exist:
@@ -287,7 +290,8 @@ async def create_ibis_connection(data_connection: DataConnection) -> Any:
             continue
         _replace_method_with_thread_verification(conn, attr)
 
-    return conn
+    # Wrap the connection in async proxy for clean async API
+    return AsyncIbisConnection(conn, engine=engine)
 
 
 def _replace_method_with_thread_verification(conn: Any, attr: str) -> None:

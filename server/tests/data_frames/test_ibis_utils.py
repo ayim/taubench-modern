@@ -15,16 +15,12 @@ from agent_platform.server.kernel.ibis_utils import (
 @pytest.mark.asyncio
 async def test_create_ibis_connection_sqlite(tmp_path: Path):
     """Test creating an ibis connection to SQLite."""
-    import asyncio
 
     from agent_platform.core.data_connections.data_connections import (
         DataConnection,
     )
     from agent_platform.core.payloads.data_connection import (
         SQLiteDataConnectionConfiguration,
-    )
-    from agent_platform.server.kernel.ibis_utils import (
-        IbisDbCallNotInWorkerThreadError,
     )
 
     # Create a SQLite database with some tables and data
@@ -64,23 +60,24 @@ async def test_create_ibis_connection_sqlite(tmp_path: Path):
     con = await create_ibis_connection(data_connection)
 
     # Perform SQL operations with ibis
-    # 1. Simple SELECT query
-    users_table = con.sql("SELECT * FROM users")  # no need for threads
+    # 1. Simple SELECT query (now returns AsyncIbisTable)
+    users_table = await con.sql("SELECT * FROM users")
 
-    with pytest.raises(IbisDbCallNotInWorkerThreadError):
-        # Make sure it errors when accessed from the main thread
-        users_table.to_pandas()
-
-    # thread required to execute the query
-    users_result = await asyncio.to_thread(users_table.to_pandas)
+    # Execute query using async API
+    users_arrow = await users_table.to_pyarrow()
+    users_result = users_arrow.to_pandas()
 
     assert len(users_result) == 3
     assert set(users_result["name"].tolist()) == {"Alice", "Bob", "Charlie"}
 
-    table = con.table("users")
-    assert table.schema()
-    assert table.columns
-    assert table["age"].type()
+    # Test table operations with async API
+    table = await con.table("users")
+    schema = await table.schema()
+    assert schema
+    assert list(table.columns) == ["id", "name", "age"]
+    column = table["age"]
+    col_type = await column.type()
+    assert col_type
 
 
 @pytest.mark.asyncio
