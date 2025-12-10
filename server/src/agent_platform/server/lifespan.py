@@ -29,6 +29,7 @@ from agent_platform.server.secret_manager.option import SecretService
 
 # Use our new telemetry module instead of the old otel module
 from agent_platform.server.shutdown_manager import ShutdownManager
+from agent_platform.server.sql_generation import ensure_sql_generation_agent
 from agent_platform.server.storage import StorageService
 from agent_platform.server.storage.pool_monitor import pool_monitor_loop
 from agent_platform.server.work_items.service import (
@@ -84,7 +85,7 @@ def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):  # noqa: PLR0915
     from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
     from agent_platform.server.telemetry.setup_telemetry import setup_telemetry
 
@@ -136,6 +137,9 @@ async def lifespan(app: FastAPI):
 
     await ensure_preinstalled_agents(storage=storage)
     logger.info("Pre-installed agents ensured")
+
+    await ensure_sql_generation_agent(storage=storage)
+    logger.info("SQL generation agent ensured")
 
     # Start the database connection pool monitor (only for PostgreSQL)
     pool_monitor_task: asyncio.Task | None = None

@@ -204,6 +204,11 @@ ALL_DATAS = [
     (
         "../architectures/experimental/src/agent_platform/architectures/experimental/consistency/prompts",
         "agent_platform/architectures/experimental/consistency/prompts",
+
+    ),
+    (
+        "src/agent_platform/server/sql_generation/runbook.md",
+        "agent_platform/server/sql_generation",
     ),
     *agent_arch_metadata,
     # *chromadb_datas,
