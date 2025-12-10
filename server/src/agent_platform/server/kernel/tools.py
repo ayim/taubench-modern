@@ -486,6 +486,8 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         additional_headers: dict | None = None,
     ) -> tuple[list[ToolDefinition], list[str]]:
         """Same contract as _fetch_action_tools()."""
+        from agent_platform.server.storage.option import StorageService
+
         tools: list[ToolDefinition] = []
         issues: list[str] = []
 
@@ -514,11 +516,17 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             else self.kernel.user.sub,
         }
 
+        base_storage = StorageService.get_instance()
+
         async def safe(srv: MCPServer):
             try:
                 logger.info(f"Fetching tool definitions from MCP server: {srv.url}")
                 return await srv.to_tool_definitions(
-                    additional_headers, data_server_details, mcp_sema4ai_action_invocation_context
+                    user_id=self.kernel.user.user_id,
+                    storage=base_storage,
+                    additional_headers=additional_headers,
+                    data_server_details=data_server_details,
+                    mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
                 ), None
             except Exception as exc:
                 detailed = (

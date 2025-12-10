@@ -207,11 +207,21 @@ class MCPServer:
         self,
         # Additional headers to be added to the request at
         # tool definition time
+        user_id: str,
+        storage,
         additional_headers: dict | None = None,
         data_server_details: DataServerDetails | None = None,
         mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
     ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions."""
+        url = self.url
+        if url is not None:
+            token = await storage.get_mcp_oauth_token(user_id, url, decrypt=True)
+            if token is not None:
+                if not additional_headers:
+                    additional_headers = {}
+                additional_headers["Authorization"] = f"Bearer {token.access_token}"
+
         async with MCPClient(
             self,
             additional_headers=additional_headers,

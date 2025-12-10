@@ -231,6 +231,13 @@ function getRouteMap(): {
       agentReadPermissions,
     ],
 
+    'get /api/v2/oauth2/login': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/oauth2/local_login': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/oauth2/logout': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/oauth2/status': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/oauth2/refresh': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/oauth2/callback/{callback_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+
     // #region Disallowed Routes
     'get /api/v2/health': [DISALLOWED],
     'get /api/v2/ready': [DISALLOWED],

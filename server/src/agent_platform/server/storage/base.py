@@ -49,6 +49,9 @@ from agent_platform.server.storage.errors import (
 )
 
 if typing.TYPE_CHECKING:
+    from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
+
+    from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
     from agent_platform.server.storage.types import StaleThreadsResult
 
 
@@ -2652,3 +2655,381 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 )
                 for row in rows
             }
+
+    # -------------------------------------------------------------------------
+    # Methods for OAuth Token Storage
+    # -------------------------------------------------------------------------
+
+    async def _load_mcp_oauth_token_from_row(
+        self, row: RowMapping, *, decrypt: bool = False
+    ) -> "OAuthToken":
+        from mcp.shared.auth import OAuthToken
+
+        # Decrypt tokens if requested
+        if decrypt:
+            access_token = self._secret_manager.fetch(row["access_token_enc"])
+            refresh_token = (
+                self._secret_manager.fetch(row["refresh_token_enc"])
+                if row["refresh_token_enc"]
+                else None
+            )
+        else:
+            access_token = row["access_token_enc"]
+            refresh_token = row["refresh_token_enc"]
+
+        # Calculate updated expires_in based on current time
+        expires_in = row["expires_in"]
+        if expires_in is not None:
+            # Get the updated_at timestamp (when token was last saved)
+            if self._sa_engine.dialect.name == "sqlite":
+                updated_at_str = row["updated_at"]
+                updated_at = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00"))
+            else:
+                updated_at = row["updated_at"]
+
+            # Calculate elapsed time since token was saved
+            now = datetime.now(UTC)
+            if updated_at.tzinfo is None:
+                updated_at = updated_at.replace(tzinfo=UTC)
+            elapsed_seconds = int((now - updated_at).total_seconds())
+
+            # Recalculate expires_in based on current time
+            expires_in = max(0, expires_in - elapsed_seconds)
+
+        return OAuthToken(
+            access_token=access_token,
+            token_type=row["token_type"] or "Bearer",
+            expires_in=expires_in,
+            scope=row["scope"],
+            refresh_token=refresh_token,
+        )
+
+    async def get_mcp_server_to_oauth_token(
+        self, user_id: str, *, decrypt: bool = False
+    ) -> dict[str, "OAuthToken"]:
+        """
+        Get a dictionary of MCP server URLs to OAuth tokens for a user.
+        Should be used for getting the status of all MCP servers that the user has access to.
+
+        Args:
+            user_id: The ID of the user
+
+        Returns:
+            A dictionary of MCP server URLs to OAuth tokens
+        """
+        from mcp.shared.auth import OAuthToken
+
+        token_table = self._get_table("oauth_token")
+
+        stmt = sa.select(token_table).where(token_table.c.user_id == user_id)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().all()
+
+        result_dict: dict[str, OAuthToken] = {}
+
+        for row in rows:
+            token = await self._load_mcp_oauth_token_from_row(row=row, decrypt=decrypt)
+
+            mcp_url = str(row["mcp_url"])
+            result_dict[mcp_url] = token
+
+        return result_dict
+
+    async def get_mcp_oauth_token(
+        self, user_id: str, mcp_url: str, *, decrypt: bool = False
+    ) -> "OAuthToken | None":
+        """Get OAuth token for a user and MCP server. May return None if no token is found."""
+
+        token_table = self._get_table("oauth_token")
+
+        stmt = sa.select(token_table).where(
+            (token_table.c.user_id == user_id) & (token_table.c.mcp_url == mcp_url)
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().first()
+
+            if row is None:
+                return None
+            return await self._load_mcp_oauth_token_from_row(row=row, decrypt=decrypt)
+
+    async def set_mcp_oauth_token(
+        self,
+        user_id: str,
+        mcp_url: str,
+        token: "OAuthToken",
+    ) -> None:
+        """Set OAuth token for a user and MCP server."""
+        token_table = self._get_table("oauth_token")
+
+        # Encrypt tokens
+        access_token_enc = self._secret_manager.store(token.access_token)
+        refresh_token_enc = (
+            self._secret_manager.store(token.refresh_token) if token.refresh_token else None
+        )
+        if token.expires_in is not None:
+            expires_at = datetime.now(UTC) + timedelta(seconds=token.expires_in)
+        else:
+            expires_at = datetime.now(UTC) + timedelta(seconds=3600)  # 1 hour
+
+        # Prepare values
+        values = {
+            "user_id": user_id,
+            "mcp_url": mcp_url,
+            "access_token_enc": access_token_enc,
+            "token_type": token.token_type or "Bearer",
+            "expires_in": token.expires_in,
+            "scope": token.scope,
+            "refresh_token_enc": refresh_token_enc,
+            "updated_at": datetime.now(UTC),
+            "expires_at": expires_at,
+        }
+
+        # Use dialect-specific insert for upsert
+        if self._sa_engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert
+        else:
+            from sqlalchemy.dialects.postgresql import insert
+
+        stmt = insert(token_table).values(**values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["user_id", "mcp_url"],
+            set_={
+                "access_token_enc": stmt.excluded.access_token_enc,
+                "token_type": stmt.excluded.token_type,
+                "expires_in": stmt.excluded.expires_in,
+                "scope": stmt.excluded.scope,
+                "refresh_token_enc": stmt.excluded.refresh_token_enc,
+                "updated_at": stmt.excluded.updated_at,
+            },
+        )
+
+        async with self._write_connection() as conn:
+            await conn.execute(stmt)
+
+    async def delete_mcp_oauth_token(self, user_id: str, mcp_url: str) -> None:
+        """Delete OAuth token for a user and MCP server."""
+        token_table = self._get_table("oauth_token")
+
+        stmt = token_table.delete().where(
+            (token_table.c.user_id == user_id) & (token_table.c.mcp_url == mcp_url)
+        )
+
+        async with self._write_connection() as conn:
+            await conn.execute(stmt)
+
+    # -------------------------------------------------------------------------
+    # Methods for OAuth Client Information Storage
+    # -------------------------------------------------------------------------
+    async def get_mcp_oauth_client_info(
+        self, user_id: str, mcp_url: str, *, decrypt: bool = False
+    ) -> "OAuthClientInformationFull | None":
+        """Get OAuth client information for a user and MCP server."""
+        from mcp.shared.auth import OAuthClientInformationFull
+
+        client_table = self._get_table("oauth_client_info")
+
+        stmt = sa.select(client_table).where(
+            (client_table.c.user_id == user_id) & (client_table.c.mcp_url == mcp_url)
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().first()
+
+            if row is None:
+                return None
+
+        if decrypt:
+            # Decrypt client_id and client_secret
+            client_id = self._secret_manager.fetch(row["client_id_enc"])
+            client_secret = (
+                self._secret_manager.fetch(row["client_secret_enc"])
+                if row["client_secret_enc"]
+                else None
+            )
+        else:
+            client_id = row["client_id_enc"]
+            client_secret = row["client_secret_enc"]
+
+        # Parse metadata JSON
+        if self._sa_engine.dialect.name == "sqlite":
+            metadata_dict = json.loads(row["metadata_json"])
+        else:
+            metadata_dict = row["metadata_json"]
+
+        # Reconstruct OAuthClientInformationFull
+        return OAuthClientInformationFull(
+            client_id=client_id,
+            client_secret=client_secret,
+            client_id_issued_at=row["client_id_issued_at"],
+            client_secret_expires_at=row["client_secret_expires_at"],
+            **metadata_dict,
+        )
+
+    async def set_mcp_oauth_client_info(
+        self,
+        user_id: str,
+        mcp_url: str,
+        client_info: "OAuthClientInformationFull",
+    ) -> None:
+        """Set OAuth client information for a user and MCP server."""
+        from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
+
+        client_table = self._get_table("oauth_client_info")
+
+        # Encrypt client_id and client_secret
+        client_id_enc = self._secret_manager.store(client_info.client_id)
+        client_secret_enc = (
+            self._secret_manager.store(client_info.client_secret)
+            if client_info.client_secret
+            else None
+        )
+
+        # Extract metadata (everything except client_id, client_secret, client_id_issued_at
+        # and client_secret_expires_at)
+        metadata_dict = client_info.model_dump(
+            exclude={
+                "client_id",
+                "client_secret",
+                "client_id_issued_at",
+                "client_secret_expires_at",
+            }
+        )
+
+        # Convert to python basic types
+        if metadata_dict:
+            metadata_dict = convert_to_valid_json_types(metadata_dict)
+
+        # Prepare values
+        values = {
+            "user_id": user_id,
+            "mcp_url": mcp_url,
+            "client_id_enc": client_id_enc,
+            "client_secret_enc": client_secret_enc,
+            "client_id_issued_at": client_info.client_id_issued_at,
+            "client_secret_expires_at": client_info.client_secret_expires_at,
+            "updated_at": datetime.now(UTC),
+            "expires_at": (
+                datetime.fromtimestamp(timestamp=client_info.client_secret_expires_at, tz=UTC)
+                if client_info.client_secret_expires_at
+                else None
+            ),
+        }
+
+        # Handle JSON serialization for SQLite
+        if self._sa_engine.dialect.name == "sqlite":
+            values["metadata_json"] = json.dumps(metadata_dict)
+        else:
+            values["metadata_json"] = metadata_dict
+
+        # Use dialect-specific insert for upsert
+        if self._sa_engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert
+        else:
+            from sqlalchemy.dialects.postgresql import insert
+
+        stmt = insert(client_table).values(**values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["user_id", "mcp_url"],
+            set_={
+                "client_id_enc": stmt.excluded.client_id_enc,
+                "client_secret_enc": stmt.excluded.client_secret_enc,
+                "client_id_issued_at": stmt.excluded.client_id_issued_at,
+                "client_secret_expires_at": stmt.excluded.client_secret_expires_at,
+                "metadata_json": stmt.excluded.metadata_json,
+                "updated_at": stmt.excluded.updated_at,
+            },
+        )
+
+        async with self._write_connection() as conn:
+            await conn.execute(stmt)
+
+    async def delete_mcp_oauth_client_info(self, user_id: str, mcp_url: str) -> None:
+        """Delete OAuth client information for a user and MCP server."""
+        client_table = self._get_table("oauth_client_info")
+
+        stmt = client_table.delete().where(
+            (client_table.c.user_id == user_id) & (client_table.c.mcp_url == mcp_url)
+        )
+
+        async with self._write_connection() as conn:
+            await conn.execute(stmt)
+
+    # -------------------------------------------------------------------------
+    # Methods for OAuth Callback Result Storage
+    # -------------------------------------------------------------------------
+    async def get_mcp_oauth_callback_result(self, callback_id: str) -> "OAuthCallbackResult | None":
+        """Get OAuth callback result by callback_id."""
+        from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
+
+        callback_table = self._get_table("oauth_callback_result")
+
+        stmt = sa.select(callback_table).where(callback_table.c.callback_id == callback_id)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().first()
+
+            if row is None:
+                return None
+
+        # Reconstruct OAuthCallbackResult
+        error = None
+        if row["error_message"]:
+            error = Exception(row["error_message"])
+
+        return OAuthCallbackResult(
+            code=row["code"],
+            state=row["state"],
+            error=error,
+        )
+
+    async def set_mcp_oauth_callback_result(
+        self,
+        callback_id: str,
+        code: str | None = None,
+        state: str | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        """Set OAuth callback result."""
+        callback_table = self._get_table("oauth_callback_result")
+
+        values = {
+            "callback_id": callback_id,
+            "code": code,
+            "state": state,
+            "error_message": str(error) if error else None,
+        }
+
+        # Use dialect-specific insert for upsert
+        if self._sa_engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert
+
+            stmt = insert(callback_table).values(**values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["callback_id"],
+                set_={
+                    "code": stmt.excluded.code,
+                    "state": stmt.excluded.state,
+                    "error_message": stmt.excluded.error_message,
+                },
+            )
+        else:
+            from sqlalchemy.dialects.postgresql import insert
+
+            stmt = insert(callback_table).values(**values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["callback_id"],
+                set_={
+                    "code": stmt.excluded.code,
+                    "state": stmt.excluded.state,
+                    "error_message": stmt.excluded.error_message,
+                },
+            )
+
+        async with self._write_connection() as conn:
+            await conn.execute(stmt)

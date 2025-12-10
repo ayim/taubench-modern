@@ -14,6 +14,7 @@ from agent_platform.server.api.private_v2.document_intelligence.document_intelli
 )
 from agent_platform.server.api.private_v2.evals import router as evals_router
 from agent_platform.server.api.private_v2.mcp_servers import router as mcp_servers_router
+from agent_platform.server.api.private_v2.oauth2 import router as oauth2_router
 from agent_platform.server.api.private_v2.observability import (
     router as observability_router,
 )
@@ -82,6 +83,11 @@ router.include_router(
     mcp_servers_router,
     prefix="/mcp-servers",
     tags=["mcp-servers"],
+)
+router.include_router(
+    oauth2_router,
+    prefix="/oauth2",
+    tags=["oauth2"],
 )
 router.include_router(
     config_router,

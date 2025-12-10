@@ -1251,6 +1251,144 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/oauth2/login': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Oauth2 Login
+     * @description Start OAuth2 login flow for an MCP server from a web browser.
+     *
+     *     Returns a redirect to the authorization URL. The OAuth flow continues
+     *     in the background and waits for the callback.
+     *
+     *     A client can poll for the status of the OAuth2 flow by calling the /oauth2/status API.
+     */
+    get: operations['oauth2_login_oauth2_login_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/oauth2/local_login': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Oauth2 Local Login
+     * @description Start OAuth2 login flow for an MCP server from local/API clients.
+     *
+     *     Opens a browser window for user authorization and waits for the callback.
+     *     This is intended for local development and will automatically open a browser window
+     *     in the same machine the server is running.
+     *
+     *     Returns a message indicating the OAuth2 flow has completed successfully or
+     *     a message with a non 200 status code if the flow fails (e.g.: timed out, etc.).
+     */
+    post: operations['oauth2_local_login_oauth2_local_login_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/oauth2/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Oauth2 Logout
+     * @description Logout from OAuth2 (delete tokens).
+     */
+    post: operations['oauth2_logout_oauth2_logout_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/oauth2/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Oauth2 Status
+     * @description Get OAuth2 authentication status for a user and MCP server.
+     *
+     *     If no MCP server ID is provided, will return status for all MCP servers that
+     *     the user has logged in to (otherwise, will return status for the specified MCP server).
+     *
+     *     Returns a dictionary of MCP server IDs (when mcp_server_id is provided) or MCP URLs
+     *     (when querying all servers) to OAuth2 status responses.
+     */
+    get: operations['oauth2_status_oauth2_status_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/oauth2/callback/{callback_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Oauth2 Callback
+     * @description Handle OAuth2 callback from provider.
+     */
+    get: operations['oauth2_callback_oauth2_callback__callback_id__get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/oauth2/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Oauth2 Refresh
+     * @description Refresh OAuth2 access token.
+     */
+    post: operations['oauth2_refresh_oauth2_refresh_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/config/': {
     parameters: {
       query?: never;
@@ -5999,6 +6137,34 @@ export interface components {
       ssl_cert?: string | null;
       /** Ssl Key */
       ssl_key?: string | null;
+    };
+    /**
+     * OAuth2LoginRequest
+     * @description Request to start OAuth2 login flow.
+     */
+    OAuth2LoginRequest: {
+      /** Mcp Server Url */
+      mcp_server_url: string;
+    };
+    /**
+     * OAuth2LoginResponse
+     * @description Response from OAuth2 login endpoint.
+     */
+    OAuth2LoginResponse: {
+      /** Message */
+      message: string;
+    };
+    /**
+     * OAuth2StatusResponse
+     * @description Response from OAuth2 status endpoint.
+     */
+    OAuth2StatusResponse: {
+      /** Authenticated */
+      authenticated: boolean;
+      /** Has Refresh Token */
+      has_refresh_token: boolean;
+      /** Token Expires In */
+      token_expires_in?: number | null;
     };
     /** OTelArtifact */
     OTelArtifact: {
@@ -15863,6 +16029,206 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  oauth2_login_oauth2_login_get: {
+    parameters: {
+      query: {
+        mcp_server_url: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  oauth2_local_login_oauth2_local_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OAuth2LoginRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuth2LoginResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  oauth2_logout_oauth2_logout_post: {
+    parameters: {
+      query: {
+        mcp_server_url: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  oauth2_status_oauth2_status_get: {
+    parameters: {
+      query?: {
+        /** @description Optional MCP server URL to filter by */
+        mcp_server_url?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: components['schemas']['OAuth2StatusResponse'];
+          };
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  oauth2_callback_oauth2_callback__callback_id__get: {
+    parameters: {
+      query?: {
+        /** @description Authorization code from OAuth provider */
+        code?: string | null;
+        /** @description State parameter from OAuth provider */
+        state?: string | null;
+      };
+      header?: never;
+      path: {
+        callback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  oauth2_refresh_oauth2_refresh_post: {
+    parameters: {
+      query: {
+        mcp_server_url: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
+        };
       };
       /** @description Validation Error */
       422: {

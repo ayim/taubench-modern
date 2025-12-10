@@ -3705,6 +3705,307 @@ export const spec = {
         },
       },
     },
+    '/api/v2/oauth2/login': {
+      get: {
+        tags: ['oauth2'],
+        summary: 'Oauth2 Login',
+        description:
+          'Start OAuth2 login flow for an MCP server from a web browser.\n\nReturns a redirect to the authorization URL. The OAuth flow continues\nin the background and waits for the callback.\n\nA client can poll for the status of the OAuth2 flow by calling the /oauth2/status API.',
+        operationId: 'oauth2_login_oauth2_login_get',
+        parameters: [
+          {
+            name: 'mcp_server_url',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Mcp Server Url',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/oauth2/local_login': {
+      post: {
+        tags: ['oauth2'],
+        summary: 'Oauth2 Local Login',
+        description:
+          'Start OAuth2 login flow for an MCP server from local/API clients.\n\nOpens a browser window for user authorization and waits for the callback.\nThis is intended for local development and will automatically open a browser window\nin the same machine the server is running.\n\nReturns a message indicating the OAuth2 flow has completed successfully or\na message with a non 200 status code if the flow fails (e.g.: timed out, etc.).',
+        operationId: 'oauth2_local_login_oauth2_local_login_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/OAuth2LoginRequest',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/OAuth2LoginResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/oauth2/logout': {
+      post: {
+        tags: ['oauth2'],
+        summary: 'Oauth2 Logout',
+        description: 'Logout from OAuth2 (delete tokens).',
+        operationId: 'oauth2_logout_oauth2_logout_post',
+        parameters: [
+          {
+            name: 'mcp_server_url',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Mcp Server Url',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  title: 'Response Oauth2 Logout Oauth2 Logout Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/oauth2/status': {
+      get: {
+        tags: ['oauth2'],
+        summary: 'Oauth2 Status',
+        description:
+          'Get OAuth2 authentication status for a user and MCP server.\n\nIf no MCP server ID is provided, will return status for all MCP servers that\nthe user has logged in to (otherwise, will return status for the specified MCP server).\n\nReturns a dictionary of MCP server IDs (when mcp_server_id is provided) or MCP URLs\n(when querying all servers) to OAuth2 status responses.',
+        operationId: 'oauth2_status_oauth2_status_get',
+        parameters: [
+          {
+            name: 'mcp_server_url',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'Optional MCP server URL to filter by',
+              title: 'Mcp Server Url',
+            },
+            description: 'Optional MCP server URL to filter by',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    $ref: '#/components/schemas/OAuth2StatusResponse',
+                  },
+                  title: 'Response Oauth2 Status Oauth2 Status Get',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/oauth2/callback/{callback_id}': {
+      get: {
+        tags: ['oauth2'],
+        summary: 'Oauth2 Callback',
+        description: 'Handle OAuth2 callback from provider.',
+        operationId: 'oauth2_callback_oauth2_callback__callback_id__get',
+        parameters: [
+          {
+            name: 'callback_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Callback Id',
+            },
+          },
+          {
+            name: 'code',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'Authorization code from OAuth provider',
+              title: 'Code',
+            },
+            description: 'Authorization code from OAuth provider',
+          },
+          {
+            name: 'state',
+            in: 'query',
+            required: false,
+            schema: {
+              anyOf: [
+                {
+                  type: 'string',
+                },
+                {
+                  type: 'null',
+                },
+              ],
+              description: 'State parameter from OAuth provider',
+              title: 'State',
+            },
+            description: 'State parameter from OAuth provider',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {},
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/oauth2/refresh': {
+      post: {
+        tags: ['oauth2'],
+        summary: 'Oauth2 Refresh',
+        description: 'Refresh OAuth2 access token.',
+        operationId: 'oauth2_refresh_oauth2_refresh_post',
+        parameters: [
+          {
+            name: 'mcp_server_url',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Mcp Server Url',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  additionalProperties: {
+                    type: 'string',
+                  },
+                  title: 'Response Oauth2 Refresh Oauth2 Refresh Post',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/config/': {
       get: {
         tags: ['config'],
@@ -15730,6 +16031,57 @@ export const spec = {
         type: 'object',
         required: ['host', 'port', 'database', 'user', 'password'],
         title: 'MySQLDataConnectionConfiguration',
+      },
+      OAuth2LoginRequest: {
+        properties: {
+          mcp_server_url: {
+            type: 'string',
+            title: 'Mcp Server Url',
+          },
+        },
+        type: 'object',
+        required: ['mcp_server_url'],
+        title: 'OAuth2LoginRequest',
+        description: 'Request to start OAuth2 login flow.',
+      },
+      OAuth2LoginResponse: {
+        properties: {
+          message: {
+            type: 'string',
+            title: 'Message',
+          },
+        },
+        type: 'object',
+        required: ['message'],
+        title: 'OAuth2LoginResponse',
+        description: 'Response from OAuth2 login endpoint.',
+      },
+      OAuth2StatusResponse: {
+        properties: {
+          authenticated: {
+            type: 'boolean',
+            title: 'Authenticated',
+          },
+          has_refresh_token: {
+            type: 'boolean',
+            title: 'Has Refresh Token',
+          },
+          token_expires_in: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Token Expires In',
+          },
+        },
+        type: 'object',
+        required: ['authenticated', 'has_refresh_token'],
+        title: 'OAuth2StatusResponse',
+        description: 'Response from OAuth2 status endpoint.',
       },
       OTelArtifact: {
         properties: {

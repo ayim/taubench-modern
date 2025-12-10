@@ -13,6 +13,7 @@ from agent_platform.core.actions.action_package import (
     AgentDetails,
 )
 from agent_platform.core.agent import AgentUserInterface
+from agent_platform.core.agent.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors.base import PlatformHTTPError
@@ -170,7 +171,9 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
     return all_action_details
 
 
-async def _process_mcp_servers(agent, storage: StorageDependency) -> list[MCPServerDetail]:
+async def _process_mcp_servers(
+    agent: Agent, storage: StorageDependency, user: AuthedUser
+) -> list[MCPServerDetail]:
     """Process MCP servers and return their details."""
     all_mcp_server_details = []
 
@@ -192,7 +195,9 @@ async def _process_mcp_servers(agent, storage: StorageDependency) -> list[MCPSer
     for mcp_server in all_mcp_servers:
         try:
             tool_defs = await mcp_server.to_tool_definitions(
-                data_server_details=data_server_details
+                user_id=user.user_id,
+                storage=storage,
+                data_server_details=data_server_details,
             )
             allowed_actions = [MCPToolDetail(name=tool_def.name) for tool_def in tool_defs]
             mcp_server_details = MCPServerDetail(
@@ -488,7 +493,7 @@ async def get_agent_details(
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Agent not found")
 
     action_packages = await _process_action_packages(agent)
-    mcp_servers = await _process_mcp_servers(agent, storage)
+    mcp_servers = await _process_mcp_servers(agent, storage, user)
 
     return AgentDetails(
         runbook=agent.runbook_structured.raw_text,
