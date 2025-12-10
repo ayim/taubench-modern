@@ -225,6 +225,10 @@ ALL_DATAS = [
         "src/agent_platform/server/templates",
         "agent_platform/server/templates",
     ),
+    (
+        "src/agent_platform/server/semantic_data_models",
+        "agent_platform/server/semantic_data_models",
+    ),
     *di_datas,
     *di_binaries,
     *ibis_metadata,

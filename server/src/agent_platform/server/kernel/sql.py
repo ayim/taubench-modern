@@ -4,9 +4,14 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
 if TYPE_CHECKING:
+    from agent_platform.core.agent import Agent
+    from agent_platform.core.kernel import Kernel
+    from agent_platform.core.runbook import Runbook
     from agent_platform.server.kernel.data_frames import _DataFrameTools
+    from agent_platform.server.storage import BaseStorage
 
 
 class SqlGenerationStrategy(ABC):
@@ -45,16 +50,6 @@ class SqlGenerationStrategy(ABC):
 
         Returns:
             Tuple of tool definitions for this strategy
-        """
-
-    @abstractmethod
-    def get_sql_query_parameter_prompt(self) -> str:
-        """Get the prompt text for the sql_query parameter in create_data_frame_from_sql.
-
-        This prompt describes what SQL queries the agent should write and how.
-
-        Returns:
-            Prompt text for the sql_query parameter
         """
 
 
@@ -101,38 +96,6 @@ class LegacySqlStrategy(SqlGenerationStrategy):
                 name=DF_CREATE_FROM_SQL_TOOL_NAME,
             ),
         )
-
-    def get_sql_query_parameter_prompt(self) -> str:
-        """Get the SQL query prompt for LegacySqlStrategy.
-
-        This is used when the agent generates SQL directly.
-        """
-        return """
-            A SQL "SELECT" query to execute against existing data frames
-            or "logical" tables in semantic data models.
-            Any data frame or "logical" table can be referenced by its name in the SQL query.
-            Some common SQL features:
-                • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
-                • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
-                • String functions like CONCAT, UPPER, LOWER
-                • Math functions and operators
-                • JOIN operations (when using multiple data frames)
-                • Common Table Expressions (CTEs)
-            Examples:
-                • 'SELECT * FROM my_data_frame WHERE age > 30'
-                • 'SELECT country, COUNT(*) as count FROM my_data_frame GROUP BY country'
-                • 'SELECT name, age FROM my_data_frame ORDER BY age DESC LIMIT 10'
-                • 'SELECT UPPER(name) as name_upper FROM my_data_frame'
-                • 'SELECT * FROM my_data_frame
-                       JOIN another_data_frame ON my_data_frame.id = another_data_frame.id'
-
-            Note: The SQL dialect syntax used for the query should be inferred from the
-                  SQL dialect specified in the semantic data model or data frame being used in
-                  the query (if multiple engines are found, duckdb will be used for
-                  queries across different engines, so, if a single engine is being used,
-                  the SQL query syntax should be compatible with that specific engine, if more than
-                  one engine is being used, duckdb syntax should be used for the query).
-            """
 
     async def create_data_frame_from_sql(
         self,
@@ -500,19 +463,17 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         if not semantic_models_and_engines:
             return ""
 
-        from agent_platform.server.kernel.semantic_data_model import summarize_data_models
-
-        # Only provide WHAT data is available, not HOW to write SQL
-        # The specialized SQL agent will handle the HOW
-        return summarize_data_models(semantic_models_and_engines)
-
-    def _choose_sdm_for_query_prompt(self) -> str:
-        """Instructions for the agent to choose the semantic data model to use for the query."""
         from textwrap import dedent
 
         from agent_platform.server.kernel.data_frames import DF_GENERATE_SQL_TOOL_NAME
+        from agent_platform.server.kernel.semantic_data_model import summarize_data_models
 
+        # Only provide WHAT data is available, not HOW to write SQL.
+        # The specialized SQL agent will handle the HOW.
+        # Include coaching as to how to use generate_sql in conjunction with create_data_frame_from_sql.
         return dedent(f"""
+        {summarize_data_models(semantic_models_and_engines)}
+
         **Choose Semantic Data Model for Query**
         When interacting with a Semantic Data Model, you need to determine the intent of the user's
         request. From this intent, you should analyze the available Semantic Data Models and choose
@@ -521,10 +482,11 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
 
         Once you have identified the best Semantic Data Model, you should use the {DF_GENERATE_SQL_TOOL_NAME}
         tool to generate a SQL query. You should never generate SQL queries directly, always use the tool
-        to generate a query. If this tool responds that it was unable to generate a query against the
-        specified Semantic Data Model, you may attempt to choose a different Semantic Data Model. You
-        should only attempt to choose a different Semantic Data Model if there is another likely
-        Semantic Data Model that may also be relevant.
+        to generate a query. If the tool indicates success, you should immediately run the {DF_CREATE_FROM_SQL_TOOL_NAME}
+        tool to execute that query. If the tool indicates needs_info, you should use the included information
+        in the response to clarify intent with the user for clarification.
+        After you receive clarification, run generate_sql again with a more specific query intent.
+        If the tool indicates failure, you should inform the user of the failure, along with the reason for that failure.
         """)
 
     def get_tools(self) -> tuple[ToolDefinition, ...]:
@@ -545,19 +507,6 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             ),
         )
 
-    def get_sql_query_parameter_prompt(self) -> str:
-        """Get the SQL query prompt for AgenticSqlStrategy.
-
-        This is a placeholder for when SQL generation is delegated to a specialized agent.
-        """
-        from agent_platform.server.kernel.data_frames import DF_GENERATE_SQL_TOOL_NAME
-
-        return f"""
-            A SQL query to execute against existing data frames
-            or "logical" tables in semantic data models. You should only provide
-            a query as constructed by the {DF_GENERATE_SQL_TOOL_NAME} tool.
-            """
-
     async def create_data_frame_from_sql(
         self,
         sql_query: Annotated[
@@ -565,7 +514,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             """
             A SQL query to execute against existing data frames
             or tables in semantic data models. You should only provide
-            a query as constructed by the generate_sql tool.
+            a query as returned by the generate_sql tool.
             """,
         ],
         new_data_frame_name: Annotated[
@@ -610,5 +559,206 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             str, "The name of the semantic data model to generate SQL for."
         ],
     ) -> str:
-        """Generate SQL from a natural language query."""
-        return "TODO"
+        """Generate SQL from a natural language query for the specified semantic data model.
+        This tool may return a status of success, needs_info, or failure.
+
+        If the status indicates success, the SQL query is ready for execution.
+        If the status indicates failure, you should inform the user of the failure,
+        along with the reason for that failure.
+        If the status indicates needs_info, you should use the included information
+        in the response to determine how to generate a more specific intent.
+        """
+        import json
+        from uuid import uuid4
+
+        from agent_platform.core.payloads import InitiateStreamPayload
+        from agent_platform.core.thread import ThreadTextContent, ThreadUserMessage
+        from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
+        from agent_platform.server.file_manager.option import FileManagerService
+        from agent_platform.server.runs.sync import invoke_agent_sync
+        from agent_platform.server.storage.option import StorageService
+
+        # Get kernel and necessary context from thread_state
+        if self._data_frame_tools._thread_state is None:
+            raise RuntimeError("Thread state is required for SQL generation")
+
+        kernel = self._data_frame_tools._thread_state.kernel
+        storage = StorageService.get_instance()
+
+        # Find the SDM ID that matches the requested name
+        target_sdm_id = await _find_sdm_id_by_name(
+            storage, kernel.agent.agent_id, semantic_data_model_name
+        )
+
+        if not target_sdm_id:
+            raise ValueError(
+                f"Semantic data model '{semantic_data_model_name}' not found on the user's agent"
+            )
+
+        # Create ephemeral SQL generation agent
+        sql_agent = _create_sql_agent(kernel)
+
+        # Store ephemeral agent
+        await storage.upsert_agent(kernel.user.user_id, sql_agent)
+
+        # Associate the specific SDM with the ephemeral agent (normal mechanism!)
+        await storage.set_agent_semantic_data_models(
+            sql_agent.agent_id,
+            [target_sdm_id],  # Just the one SDM
+        )
+
+        try:
+            # Create thread with initial message
+            thread_id = str(uuid4())
+            initial_message = ThreadUserMessage(
+                role="user",
+                content=[
+                    ThreadTextContent(
+                        text=f"Generate SQL for: {query_intent}\nUsing semantic data model: {semantic_data_model_name}"
+                    )
+                ],
+            )
+
+            payload = InitiateStreamPayload(
+                agent_id=sql_agent.agent_id,
+                thread_id=thread_id,
+                name="SQL Generation",
+                messages=[initial_message],
+            )
+
+            # Invoke agent to completion
+            thread, _agent_messages = await invoke_agent_sync(
+                agent=sql_agent,
+                user=kernel.user,
+                storage=storage,
+                server_context=kernel.ctx,
+                initial_payload=payload,
+            )
+
+            # Retrieve output.json
+            thread_files = await storage.get_thread_files(thread.thread_id, kernel.user.user_id)
+
+            output_file = next(
+                (f for f in thread_files if f.file_ref == "output.json"),
+                None,
+            )
+
+            if not output_file:
+                raise ValueError("SQL generation agent did not produce output.json")
+
+            # Read file contents
+            file_manager = FileManagerService.get_instance(storage=storage)
+            file_bytes = await file_manager.read_file_contents(
+                file_id=output_file.file_id,
+                user_id=kernel.user.user_id,
+            )
+
+            # Parse JSON to SQLGenerationContent
+            file_json = json.loads(file_bytes.decode("utf-8"))
+            sql_content = SQLGenerationContent.model_validate(file_json)
+
+            # Return JSON representation (as string for tool result)
+            return sql_content.model_dump_json()
+
+        finally:
+            # Clean up ephemeral agent (threads will cascade delete)
+            try:
+                await storage.delete_agent(kernel.user.user_id, sql_agent.agent_id)
+            except Exception as cleanup_error:
+                # Log but don't fail the operation
+                import structlog
+
+                logger = structlog.get_logger(__name__)
+                logger.warning(
+                    "Failed to cleanup ephemeral SQL generation agent",
+                    agent_id=sql_agent.agent_id,
+                    error=str(cleanup_error),
+                )
+
+
+async def _find_sdm_id_by_name(
+    storage: "BaseStorage",
+    agent_id: str,
+    semantic_data_model_name: str,
+) -> str | None:
+    """Find the SDM ID for a given SDM name on an agent.
+
+    Args:
+        storage: Storage instance
+        agent_id: ID of the agent to search
+        semantic_data_model_name: Name of the semantic data model to find
+
+    Returns:
+        The SDM ID if found, None otherwise
+    """
+    # Get parent agent's SDMs
+    agent_sdm_ids = await storage.get_agent_semantic_data_model_ids(agent_id)
+
+    # Find the SDM ID that matches the requested name
+    for sdm_id in agent_sdm_ids:
+        sdm = await storage.get_semantic_data_model(sdm_id)
+        if sdm.get("name") == semantic_data_model_name:
+            return sdm_id
+
+    return None
+
+
+def _create_sql_agent(kernel: "Kernel") -> "Agent":
+    """Create a SQL agent for the kernel."""
+    from agent_platform.core.agent import Agent
+    from agent_platform.core.agent.agent_architecture import AgentArchitecture
+
+    runbook = _read_sql_generation_runbook()
+    return Agent(
+        # Include the parent agent's thread ID to help identify this Agent in logs
+        name=f"SQL Generation Agent: {kernel.thread.thread_id}",
+        description="Generates SQL from natural language queries",
+        user_id=kernel.user.user_id,
+        runbook_structured=runbook,
+        platform_configs=kernel.agent.platform_configs,
+        # We always use the exp_1 arch for the SQL-gen agent.
+        agent_architecture=AgentArchitecture(
+            name="agent_platform.architectures.experimental_1", version="2.0.0"
+        ),
+        extra={
+            "agent_settings": {
+                "enable_data_frames": False,
+                "enable_sql_generation": True,
+            }
+        },
+        version="1.0.0",
+    )
+
+
+def _read_sql_generation_runbook() -> "Runbook":
+    """Load the SQL generation runbook from the bundled resources.
+
+    Uses importlib.resources for development and sys._MEIPASS for PyInstaller
+    bundled environments.
+
+    Returns:
+        The SQL generation runbook as a Runbook object.
+    """
+    import sys
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    from agent_platform.core.runbook import Runbook
+    from agent_platform.server.constants import IS_FROZEN
+
+    if IS_FROZEN:
+        # PyInstaller bundle - use sys._MEIPASS
+        base_path = Path(getattr(sys, "_MEIPASS"))  # noqa: B009
+        runbook_path = (
+            base_path / "agent_platform" / "server" / "semantic_data_models" / "runbook.md"
+        )
+        content = runbook_path.read_text(encoding="utf-8")
+    else:
+        # Development environment - use importlib.resources
+        from importlib import resources
+
+        package_resources = resources.files("agent_platform.server.semantic_data_models")
+        runbook_resource = package_resources / "runbook.md"
+        content = runbook_resource.read_text(encoding="utf-8")
+
+    return Runbook(raw_text=content, content=[], updated_at=datetime.now(UTC))

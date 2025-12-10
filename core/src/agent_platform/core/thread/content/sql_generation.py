@@ -47,17 +47,11 @@ class SQLGenerationContent(BaseModel):
     )
     """The status of the SQL generation"""
 
-    logical_sql_query: str | None = Field(
+    sql_query: str | None = Field(
         default=None,
-        description="The generated logical SQL query targeting semantic data model tables",
+        description="The generated SQL query targeting semantic data model tables",
     )
-    """The generated logical SQL query targeting semantic data model tables"""
-
-    physical_sql_query: str | None = Field(
-        default=None,
-        description="The generated physical SQL query targeting the database",
-    )
-    """The generated physical SQL query targeting the database"""
+    """The generated SQL query targeting semantic data model tables"""
 
     assumptions_used: str | None = Field(
         default=None,
@@ -110,10 +104,8 @@ class SQLGenerationContent(BaseModel):
             ValueError: If required fields are missing based on status.
         """
         if self.status == SQLGenerationStatus.SUCCESS:
-            if not self.logical_sql_query:
-                raise ValueError("logical_sql_query is required for SUCCESS status")
-            if not self.physical_sql_query:
-                raise ValueError("physical_sql_query is required for SUCCESS status")
+            if not self.sql_query:
+                raise ValueError("sql_query is required for SUCCESS status")
 
         elif self.status == SQLGenerationStatus.NEEDS_INFO:
             if not self.message_to_parent:
@@ -144,14 +136,9 @@ class SQLGenerationContent(BaseModel):
 
         if self.status == SQLGenerationStatus.SUCCESS:
             # Show SQL queries
-            lines.append("\n📝 LOGICAL SQL (targeting semantic data model):")
+            lines.append("\n📝 SQL (targeting semantic data model):")
             lines.append("```sql")
-            lines.append(self.logical_sql_query or "")
-            lines.append("```")
-
-            lines.append("\n🔧 PHYSICAL SQL (targeting database):")
-            lines.append("```sql")
-            lines.append(self.physical_sql_query or "")
+            lines.append(self.sql_query or "")
             lines.append("```")
 
             # Show assumptions if any

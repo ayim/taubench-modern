@@ -15,7 +15,6 @@ from agent_platform.server.data_frames.semantic_data_model_collector import (
     SemanticDataModelAndReferences,
     SemanticDataModelCollector,
 )
-from agent_platform.server.kernel.data_frames import _DataFrameTools
 from agent_platform.server.kernel.sql import LegacySqlStrategy
 from agent_platform.server.storage.option import StorageService
 
@@ -48,6 +47,16 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
     async def step_initialize(self) -> None:
         from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+        from agent_platform.server.kernel.data_frames import _DataFrameTools
+
+        self._sql_generation_strategy = LegacySqlStrategy(
+            data_frame_tools=_DataFrameTools(
+                user=self.kernel.user,
+                tid=self.kernel.thread.thread_id,
+                storage=self._storage,
+                name_to_data_frame={},
+            ),
+        )
 
         # Initialize the SQL generation strategy
         self._sql_generation_strategy = LegacySqlStrategy(
@@ -180,8 +189,8 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         from textwrap import dedent
 
         if self.is_enabled():
-            if not self._sql_generation_strategy:
-                raise ValueError("SQL generation strategy not initialized")
+            if self._sql_generation_strategy is None:
+                raise ValueError("SQL generation strategy is not initialized")
 
             models_and_engines = self._semantic_data_models_with_engines()
             return dedent(f"""
@@ -271,8 +280,8 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         Existing "logical" tables in your semantic data model are available by their name in
         your query.
         """
-        if not self._sql_generation_strategy:
-            raise ValueError("SQL generation strategy not initialized")
+        if self._sql_generation_strategy is None:
+            raise ValueError("SQL generation strategy is not initialized")
 
         # TODO: We need to consider how we handle actual errors and convert them to
         # "failed_approaches" so those can be returned and/or stored in the SDM.
@@ -508,8 +517,6 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         The results are added to the thread as file called "output.json".
         """
         from agent_platform.core.thread.content.sql_generation import SQLGenerationStatus
-        from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
-        from agent_platform.server.data_frames.data_node import DataNodeFromIbisResult
 
         content: SQLGenerationContent
 
@@ -544,27 +551,9 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             if not logical_sql_query:
                 raise ValueError(f"Data frame '{data_frame_name}' does not have a SQL computation")
 
-            # Resolve the data frame to get the physical SQL
-            data_frames_kernel = DataFramesKernel(
-                self._storage,
-                self.kernel.user,
-                self.kernel.thread.thread_id,
-            )
-            resolved_df = await data_frames_kernel.resolve_data_frame(data_frame)
-
-            # Extract physical SQL from the resolved data frame
-            physical_sql_query: str | None = None
-            if isinstance(resolved_df, DataNodeFromIbisResult):
-                physical_sql_query = resolved_df.full_sql_query_str
-            else:
-                # Fallback: use logical SQL if physical is not available
-                # (e.g., for in-memory or file-based data frames)
-                physical_sql_query = logical_sql_query
-
             content = SQLGenerationContent(
                 status=SQLGenerationStatus.SUCCESS,
-                logical_sql_query=logical_sql_query,
-                physical_sql_query=physical_sql_query,
+                sql_query=logical_sql_query,
                 assumptions_used=assumptions_used,
             )
 

@@ -38,8 +38,7 @@ async def test_upload_json_to_thread():
 
     content = SQLGenerationContent(
         status=SQLGenerationStatus.SUCCESS,
-        logical_sql_query="SELECT * FROM customers",
-        physical_sql_query="SELECT * FROM public.customers",
+        sql_query="SELECT * FROM customers",
         assumptions_used="Assumed customers table in public schema",
     )
 
@@ -65,6 +64,5 @@ async def test_upload_json_to_thread():
     assert uploaded_content is not None
     actual = SQLGenerationContent.model_validate_json(uploaded_content.decode("utf-8"))
     assert actual.status == SQLGenerationStatus.SUCCESS
-    assert actual.logical_sql_query == "SELECT * FROM customers"
-    assert actual.physical_sql_query == "SELECT * FROM public.customers"
+    assert actual.sql_query == "SELECT * FROM customers"
     assert actual.assumptions_used == "Assumed customers table in public schema"
