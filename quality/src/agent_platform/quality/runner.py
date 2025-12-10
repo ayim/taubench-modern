@@ -31,8 +31,11 @@ from agent_platform.quality.models import (
 from agent_platform.quality.oauth import OAuthManager
 from agent_platform.quality.orchestrator import QualityOrchestrator
 from agent_platform.quality.results_manager import QualityResultsManager
+from agent_platform.quality.sdm_setup import SDMSetup
 
-logger = structlog.get_logger(__name__)
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+PREINSTALLED_AGENT_PREFIX = "@preinstalled-"
 
 
 @dataclass(frozen=True)
@@ -54,10 +57,16 @@ class QualityTestRunner:
         server_url: str = "http://localhost:8000",
         is_in_github_actions: bool = False,
         agent_architecture_name_override: str | None = None,
+        test_data_dir: Path | None = None,
     ):
         self.test_threads_dir = test_threads_dir
         self.test_agents_dir = test_agents_dir
         self.server_url = server_url
+        self.test_data_dir = (
+            Path(test_data_dir)
+            if test_data_dir is not None
+            else (test_threads_dir.parent / "test-data")
+        )
 
         # Initialize components
         self.orchestrator = QualityOrchestrator(
@@ -70,6 +79,7 @@ class QualityTestRunner:
         self.evaluator = EvaluatorEngine(server_url=server_url)
         self.oauth = OAuthManager(data_dir=datadir)
         self.is_in_github_actions = is_in_github_actions
+        self.sdm_setup = SDMSetup(server_url=server_url, test_data_root=self.test_data_dir)
 
         # Serialize access to shared sf-auth.json credentials file.
         self._sf_auth_lock = asyncio.Lock()
@@ -83,10 +93,12 @@ class QualityTestRunner:
         )
 
     def discover_agents(self) -> list[AgentPackage]:
-        """Discover available agent packages."""
+        """Discover available agent packages including preinstalled test agents."""
         logger.info(f"Discovering agents in {self.test_agents_dir}")
 
-        agents = []
+        agents: list[AgentPackage] = []
+
+        # 1. Discover zip-based agents
         for zip_path in self.test_agents_dir.glob("*.zip"):
             name = zip_path.stem
             agents.append(
@@ -94,11 +106,111 @@ class QualityTestRunner:
                     name=name,
                     path=self.test_agents_dir / name,  # May not exist
                     zip_path=zip_path,
+                    is_preinstalled=False,
                 )
             )
 
-        logger.info(f"Found {len(agents)} agent packages")
+        # 2. Discover preinstalled agents based on test-case directories + server metadata
+        try:
+            preinstalled = self._discover_preinstalled_agents()
+            agents.extend(preinstalled)
+            logger.info(f"Found {len(preinstalled)} preinstalled agents")
+        except Exception as e:
+            logger.warning(f"Failed to discover preinstalled agents: {e}")
+
+        logger.info(f"Found {len(agents)} total agent packages")
         return agents
+
+    def _discover_preinstalled_agents(self) -> list[AgentPackage]:  # noqa: C901
+        """Discover preinstalled agents based on test directories and server metadata.
+
+        We infer which preinstalled agents are needed from directories under
+        test_threads_dir whose name starts with '@preinstalled-'. For each such
+        directory, we resolve a corresponding hidden preinstalled agent on the
+        server by querying the metadata-based search endpoint.
+
+        This keeps the runner generic and driven by tests, without hard-coding
+        specific feature or project tags.
+        """
+        from http import HTTPStatus
+
+        logical_names: set[str] = set()
+        for test_dir in self.test_threads_dir.iterdir():
+            if test_dir.is_dir() and test_dir.name.startswith(PREINSTALLED_AGENT_PREFIX):
+                logical_names.add(test_dir.name)
+
+        if not logical_names:
+            logger.info("No preinstalled agent test directories found")
+            return []
+
+        preinstalled_packages: list[AgentPackage] = []
+        search_url = f"{self.server_url}/api/v2/agents/search/by-metadata"
+
+        for logical_name in sorted(logical_names):
+            feature_key = logical_name.removeprefix(PREINSTALLED_AGENT_PREFIX)
+            params = {
+                "visibility": "hidden",
+                "feature": feature_key,
+            }
+            try:
+                with httpx.Client(timeout=10.0) as client:
+                    response = client.get(search_url, params=params)
+                if response.status_code != HTTPStatus.OK:
+                    logger.warning(
+                        f"Metadata search for preinstalled agent '{logical_name}' failed "
+                        f"(status {response.status_code})",
+                    )
+                    continue
+
+                agents_data = response.json() or []
+            except Exception as e:
+                logger.warning(
+                    f"Metadata search for preinstalled agent '{logical_name}' errored: {e}",
+                )
+                continue
+
+            if not agents_data:
+                logger.warning(
+                    f"No preinstalled agent found for logical name '{logical_name}' using metadata "
+                    f"{params}",
+                )
+                continue
+            if not isinstance(agents_data, list):
+                logger.warning(
+                    f"Preinstalled agent search result is not a list for '{logical_name}': "
+                    f"{agents_data}",
+                )
+                continue
+
+            agent_data = agents_data[0]
+
+            if not isinstance(agent_data, dict):
+                logger.warning(
+                    f"Preinstalled agent search result is not a dict for '{logical_name}': "
+                    f"{agent_data}",
+                )
+                continue
+
+            agent_id = agent_data.get("id")
+            if not agent_id:
+                logger.warning(
+                    f"Preinstalled agent search result missing agent_id for '{logical_name}': "
+                    f"{agent_data}",
+                )
+                continue
+
+            preinstalled_packages.append(
+                AgentPackage(
+                    name=logical_name,
+                    path=Path("preinstalled") / logical_name,
+                    zip_path=None,
+                    is_preinstalled=True,
+                    preinstalled_key=logical_name,
+                    agent_id=agent_id,
+                )
+            )
+
+        return preinstalled_packages
 
     def discover_test_cases(self, agent_name: str | None = None) -> list[TestCase]:
         """Discover test cases, optionally filtered by agent name."""
@@ -119,7 +231,7 @@ class QualityTestRunner:
         logger.info(f"Found {len(test_cases)} test cases")
         return test_cases
 
-    async def run_tests_for_all_agents_fully_parallel(  # noqa: C901 PLR0915
+    async def run_tests_for_all_agents_fully_parallel(  # noqa: C901, PLR0912, PLR0915
         self,
         selected_agents: list[str],
         max_concurrent_agents: int = 2,
@@ -227,6 +339,11 @@ class QualityTestRunner:
                 logger.info("Stopping shared infrastructure")
                 await self.orchestrator.stop_infrastructure()
 
+            try:
+                await self.sdm_setup.cleanup()
+            except Exception as cleanup_error:  # pragma: no cover - best-effort cleanup
+                logger.warning("Failed to clean up SDM resources", error=str(cleanup_error))
+
     async def _run_agent_fully_parallel(
         self,
         agent_package: AgentPackage,
@@ -256,7 +373,7 @@ class QualityTestRunner:
 
             # Upload agent variants (one per platform)
             platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
-                agent_package.zip_path,
+                agent_package,
                 target_platforms,
                 action_server_url,
                 agent_package_metadata[0],
@@ -365,7 +482,13 @@ class QualityTestRunner:
     ) -> list[ActionPackageSecret]:
         """Construct OAuth secrets defined in the package metadata."""
         package_oauth_secrets: list[ActionPackageSecret] = []
+
+        if isinstance(agent_package_metadata, dict):
+            agent_package_metadata = [agent_package_metadata]
+
         for agent_meta in agent_package_metadata:
+            if not isinstance(agent_meta, dict):
+                continue
             for pkg in agent_meta.get("action_packages", []):
                 package_action_oauth_secrets: list[ActionSecrets] = []
                 for _, action in pkg.get("secrets", {}).items():
@@ -651,8 +774,28 @@ class QualityTestRunner:
         logger.info(f"Running test on platform: {platform.name}")
 
         try:
+            if test_case.sdms and test_case.thread is None:
+                raise ValueError("SDM setup is only supported for thread-based test cases.")
+
+            on_thread_created = None
+            if test_case.sdms and test_case.thread is not None:
+
+                async def _on_thread_created(thread_id: str) -> None:
+                    await self.sdm_setup.ensure_sdms_for_thread(
+                        thread_id=thread_id,
+                        sdm_configs=test_case.sdms,
+                        agent_id=agent_id,
+                    )
+
+                on_thread_created = _on_thread_created
+
             # Run the conversation
-            test_run = await self.agent_runner.run_test_case(agent_id, test_case, platform.name)
+            test_run = await self.agent_runner.run_test_case(
+                agent_id,
+                test_case,
+                platform.name,
+                on_thread_created=on_thread_created,
+            )
 
             # Run evaluations
             evaluation_results = []

@@ -6,6 +6,15 @@ from typing import Any, Literal
 from agent_platform.core.utils import SecretString
 
 
+@dataclass
+class SDMConfig:
+    """Semantic Data Model configuration for a test."""
+
+    kind: Literal["excel", "postgres"]
+    sdm_path: str  # Relative to quality/test-data/
+    description: str | None = None
+
+
 @dataclass(frozen=True)
 class Platform:
     """A platform for testing."""
@@ -230,6 +239,7 @@ class TestCase:
     evaluations: list[Evaluation]
     file_path: Path
     action_secrets: list[ActionPackageSecret]
+    sdms: list[SDMConfig] = field(default_factory=list)
     sf_auth_override: SFAuthorizationOverride | None = None
     trials: int = field(default=1)
     metrics: list[Metric] = field(default_factory=list)
@@ -333,6 +343,15 @@ class TestCase:
         trials = data.get("trials", 1)
         metrics = [Metric(**m) for m in data.get("metrics", [])]
 
+        sdms = [
+            SDMConfig(
+                kind=sdm_config["kind"],
+                sdm_path=sdm_config["sdm_path"],
+                description=sdm_config.get("description"),
+            )
+            for sdm_config in data.get("sdms", [])
+        ]
+
         # Parse action-secrets
         action_secrets = [
             ActionPackageSecret(
@@ -384,6 +403,7 @@ class TestCase:
             action_secrets=action_secrets,
             sf_auth_override=sf_auth_override,
             workitem=workitem,
+            sdms=sdms,
         )
 
 
@@ -393,13 +413,26 @@ class AgentPackage:
 
     name: str
     path: Path
-    zip_path: Path
+    zip_path: Path | None = None  # Optional for preinstalled agents
+    is_preinstalled: bool = False  # Flag for preinstalled test agents
+    preinstalled_key: str | None = None  # Key for preinstalled agent (e.g., "sql-generation")
+    agent_id: str | None = None  # For preinstalled agents, store their ID
 
     # @TODO (agent-cli sunset):
     # Remove this method and agent-cli dependency, and use "read_agent_package_metadata" from
     # agent_platform.core.agent_package.metadata instead.
     async def extract_package_metadata(self) -> Any:
         """Agent Metadata contain info from yaml/json file but also Python code."""
+        if self.is_preinstalled:
+            # Preinstalled agents have minimal metadata
+            return [
+                {
+                    "name": self.name,
+                    "description": "Preinstalled test agent",
+                    "oauth": [],  # No OAuth for internal agents
+                    "docker_mcp_gateway": {},
+                }
+            ]
 
         import json
         import subprocess
@@ -422,6 +455,9 @@ class AgentPackage:
         action_server_executable = get_action_server_executable_path()
         # Set the action-server for the agent-cli.
         env["ACTION_SERVER_BIN_PATH"] = str(action_server_executable)
+
+        if self.zip_path is None:
+            raise ValueError(f"Agent package zip not found for {self.name}")
 
         result = subprocess.run(
             [agent_cli_exe, "package", "metadata", "--package", self.zip_path],

@@ -260,6 +260,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "rich" },
     { name = "structlog" },
+    { name = "testcontainers" },
 ]
 
 [package.metadata]
@@ -272,6 +273,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "rich", specifier = ">=13.0.0,<14.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
+    { name = "testcontainers", specifier = ">=4.0.0" },
 ]
 
 [[package]]

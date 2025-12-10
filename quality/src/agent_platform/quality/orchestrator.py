@@ -113,34 +113,51 @@ class QualityOrchestrator:
 
     async def upload_agent_with_platform_variants(
         self,
-        agent_zip_path: Path,
+        agent_package: AgentPackage,
         platforms: list[Platform],
         action_server_url: str | None = None,
         agent_package_metadata: dict | None = None,
     ) -> dict[str, str]:
         """Upload agent package multiple times, once per platform.
 
+        For preinstalled agents, skips upload and uses existing agent ID
+        with platform configuration.
+
         Args:
-            agent_zip_path: Path to the agent package zip file
+            agent_package: AgentPackage object (can be preinstalled or zip-based)
             platforms: List of platforms to create variants for
 
         Returns:
             Dict mapping platform_name -> agent_id
         """
 
+        # Check if this is a preinstalled agent
+        if agent_package.is_preinstalled:
+            logger.info(f"Using preinstalled agent: {agent_package.preinstalled_key}")
+            return await self._configure_preinstalled_agent_platforms(
+                agent_package,
+                platforms,
+            )
+
+        # Existing zip-based upload logic
         logger.info(
             f"Uploading agent variants for {len(platforms)} platforms: "
             f"{[p.name for p in platforms]}"
         )
 
-        base_name = agent_zip_path.stem
+        if agent_package.zip_path is None:
+            raise ValueError("No zip path provided for packaged agent.")
+        if not agent_package.zip_path.exists():
+            raise ValueError(f"Zip path does not exist: {agent_package.zip_path}")
+
+        base_name = agent_package.zip_path.stem
         agent_ids = {}
 
         # Upload one variant per platform
         for platform in platforms:
             platform_agent_name = f"{base_name}-{platform.name}"
             agent_id = await self._upload_agent_with_platform(
-                agent_zip_path,
+                agent_package.zip_path,
                 platform_agent_name,
                 platform,
                 action_server_url,
@@ -150,6 +167,97 @@ class QualityOrchestrator:
             logger.info(f"Uploaded {platform_agent_name} with ID: {agent_id}")
 
         logger.info(f"Successfully uploaded {len(agent_ids)} agent variants")
+        return agent_ids
+
+    async def _configure_preinstalled_agent_platforms(
+        self,
+        agent_package: AgentPackage,
+        platforms: list[Platform],
+    ) -> dict[str, str]:
+        """Configure platform variants for preinstalled agent.
+
+        For preinstalled agents, we clone the base agent once per platform and
+        configure each clone with the appropriate platform configuration.
+
+        This avoids races or cross-talk when tests run in parallel, since each
+        platform gets its own agent instance, just like zip-based agents.
+        """
+        agent_ids: dict[str, str] = {}
+        base_agent_id = agent_package.agent_id
+
+        if not base_agent_id:
+            raise ValueError(
+                f"Preinstalled agent {agent_package.preinstalled_key} missing agent_id"
+            )
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            # Fetch the base agent configuration we want to clone
+            response = await client.get(f"{self.server_url}/api/v2/agents/{base_agent_id}/raw")
+            response.raise_for_status()
+            base_agent = response.json()
+
+            base_name = base_agent.get("name", agent_package.name)
+
+            # For each platform, create a cloned agent and configure its platform
+            for platform in platforms:
+                platform_agent_name = f"{base_name}-{platform.name}"
+
+                # If an agent with this name already exists from a prior run, delete it
+                existing = await client.get(
+                    f"{self.server_url}/api/v2/agents/by-name",
+                    params={"name": platform_agent_name},
+                )
+                if existing.status_code == HTTPStatus.OK:
+                    existing_id = existing.json()["agent_id"]
+                    try:
+                        await client.delete(f"{self.server_url}/api/v2/agents/{existing_id}")
+                    except Exception as e:
+                        logger.error(
+                            f"Error deleting existing preinstalled clone {platform_agent_name}: {e}"
+                        )
+
+                # Create a new agent by cloning the base agent configuration
+                # and overriding the name; platform config will be set next.
+                clone_payload = {
+                    "name": platform_agent_name,
+                    "description": base_agent.get("description", ""),
+                    "agent_architecture": base_agent.get("agent_architecture"),
+                    "structured_runbook": base_agent.get("runbook_structured"),
+                    "mode": base_agent.get("mode", "conversational"),
+                    "extra": base_agent.get("extra", {}),
+                    "action_packages": base_agent.get("action_packages", []),
+                    "mcp_servers": base_agent.get("mcp_servers", []),
+                    "mcp_server_ids": base_agent.get("mcp_server_ids", []),
+                    "agent_settings": base_agent.get("agent_settings", {}),
+                    "advanced_config": base_agent.get("advanced_config", {}),
+                    "metadata": base_agent.get("metadata", {}),
+                    "observability_configs": base_agent.get("observability_configs", []),
+                    "question_groups": base_agent.get("question_groups", []),
+                    "selected_tools": base_agent.get("selected_tools", {}),
+                    # start with empty platform configs; we'll set via update_agent_platform_config
+                    "platform_configs": [],
+                    "version": base_agent.get("version"),
+                }
+
+                create_resp = await client.post(
+                    f"{self.server_url}/api/v2/agents/",
+                    json=clone_payload,
+                )
+                create_resp.raise_for_status()
+                clone_agent_id = create_resp.json()["agent_id"]
+
+                # Now configure the cloned agent with the specific platform
+                await self.update_agent_platform_config(clone_agent_id, platform)
+                agent_ids[platform.name] = clone_agent_id
+
+                logger.info(
+                    "Configured cloned preinstalled agent for platform",
+                    preinstalled_key=agent_package.preinstalled_key,
+                    platform=platform.name,
+                    agent_id=clone_agent_id,
+                    agent_name=platform_agent_name,
+                )
+
         return agent_ids
 
     async def _upload_agent_with_platform(
@@ -526,13 +634,25 @@ class QualityOrchestrator:
         from agent_platform.orchestrator.bootstrap_action_server import ActionServerProcess
         from agent_platform.orchestrator.default_locations import get_action_server_executable_path
 
-        logger.info(f"Starting action server for agent: {agent_package.name}")
+        logger.info("Starting action server for agent", agent_name=agent_package.name)
+
+        # Ensure we have a zip path for this agent package
+        if agent_package.zip_path is None:
+            logger.info(
+                "Agent package has no zip_path; skipping action server startup",
+                agent_name=agent_package.name,
+            )
+            # Return empty string to indicate no action server needed
+            return ""
 
         # Extract action packages from the agent
         action_packages = await self._extract_action_packages_from_agent(agent_package.zip_path)
 
         if not action_packages:
-            logger.info(f"No action packages found for agent {agent_package.name}")
+            logger.info(
+                "No action packages found for agent; skipping action server startup",
+                agent_name=agent_package.name,
+            )
             # Return empty string to indicate no action server needed
             return ""
 
@@ -596,7 +716,11 @@ class QualityOrchestrator:
         self._action_server_pool[agent_package.name] = action_server_process
         self._action_server_urls[agent_package.name] = actions_url
 
-        logger.info(f"Action server for {agent_package.name} started on {actions_url}")
+        logger.info(
+            "Action server started for agent",
+            agent_name=agent_package.name,
+            actions_url=actions_url,
+        )
         return actions_url
 
     async def stop_action_server_pool(self):

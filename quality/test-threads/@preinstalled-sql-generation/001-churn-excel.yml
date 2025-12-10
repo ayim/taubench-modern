@@ -1,0 +1,31 @@
+name: churn-risk-top-five
+description: Ask for top 5 at-risk customers from churn Excel SDM
+
+sdms:
+  - kind: excel
+    sdm_path: sdms/saas_customer_churn
+    description: SaaS customer churn Excel dataset
+
+thread:
+  - name: churn-risk
+    description: Identify at-risk customers from the churn dataset
+    messages:
+      - role: user
+        content: >
+          What are the top 5 most at-risk customers for churn based on the most recent
+          90 day time period?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should analyze the churn dataset and return the five customers most
+      at risk of churn, citing relevant signals (e.g., churn_flag, plan_tier, seats,
+      recency) and provide a concise ranked list with rationale.

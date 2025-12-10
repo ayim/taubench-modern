@@ -386,6 +386,9 @@ class Simulator:
             agent_server_url = await self.orchestrator.start_infrastructure()
             infrastructure_started = True
 
+            if agent.zip_path is None:
+                raise ValueError(f"Agent package zip not found for {agent.name}")
+
             agent_id = await self.orchestrator._upload_agent_with_platform(
                 agent_zip_path=agent.zip_path,
                 agent_name=agent.name,

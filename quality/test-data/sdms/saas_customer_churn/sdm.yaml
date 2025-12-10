@@ -1,0 +1,783 @@
+name: SaaS_Customer_Churn_and_Subscription_Analytics
+tables:
+  - name: customer_accounts
+    facts:
+      - expr: seats
+        name: licensed_seats
+        synonyms:
+          - licensed_seats_accounts
+          - seat_count_accounts
+          - number_of_seats_accounts
+          - user_licenses_accounts
+        data_type: numeric
+        description: Number of seats or user licenses purchased or provisioned for this
+          customer account.
+        sample_values:
+          - 9
+          - 18
+          - 1
+    synonyms:
+      - accounts_table
+      - customer_accounts_table
+      - customers_master
+      - customer_firms
+      - company_accounts
+    base_table:
+      table: accounts
+      file_reference:
+        file_ref: ''
+        thread_id: ''
+        sheet_name: null
+    dimensions:
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - account_id_accounts
+          - customer_account_id
+          - company_account_id
+          - account_key_accounts
+        data_type: string
+        description: Unique identifier for the customer account in the accounts table.
+        sample_values:
+          - A-2e4581
+          - A-43a9e3
+          - A-0a282f
+      - expr: account_name
+        name: account_name
+        synonyms:
+          - account_name_accounts
+          - customer_account_name
+          - company_name_accounts
+          - organization_name_accounts
+        data_type: string
+        description: Human-readable name of the customer account (company or organization).
+        sample_values:
+          - Company_0
+          - Company_1
+          - Company_2
+      - expr: industry
+        name: industry_segment
+        synonyms:
+          - industry_segment_accounts
+          - customer_industry_accounts
+          - vertical_industry_accounts
+          - business_industry_accounts
+        data_type: string
+        description: Industry or vertical segment of the customer account (for example,
+          EdTech, FinTech, DevTools).
+        sample_values:
+          - EdTech
+          - FinTech
+          - DevTools
+      - expr: country
+        name: country_code
+        synonyms:
+          - country_code_accounts
+          - account_country_accounts
+          - customer_country_accounts
+          - region_country_accounts
+        data_type: string
+        description: Country or market in which the customer account is located, typically
+          stored as a country code (for example, US, IN).
+        sample_values:
+          - US
+          - IN
+          - US
+      - expr: referral_source
+        name: referral_source_channel
+        synonyms:
+          - referral_source_channel_accounts
+          - acquisition_channel_accounts
+          - signup_source_accounts
+          - marketing_source_accounts
+        data_type: string
+        description: Marketing or acquisition channel that referred the account (for example,
+          partner, organic, other).
+        sample_values:
+          - partner
+          - other
+          - organic
+      - expr: plan_tier
+        name: current_plan_tier
+        synonyms:
+          - current_plan_tier_accounts
+          - account_plan_tier
+          - subscription_tier_accounts
+          - pricing_tier_accounts
+        data_type: string
+        description: Subscription plan tier currently assigned to this account (for example,
+          Basic, Pro, Enterprise).
+        sample_values:
+          - Basic
+          - Basic
+          - Basic
+      - expr: churn_flag
+        name: is_churned_account
+        synonyms:
+          - is_churned_account_flag
+          - account_churn_status_accounts
+          - churned_account_indicator
+          - lost_customer_flag_accounts
+        data_type: numeric
+        description: Flag indicating whether this account has churned (true) or is still
+          active (false) at the time of analysis snapshot.
+        sample_values:
+          - false
+          - true
+          - false
+      - expr: is_trial
+        name: is_trial_account
+        synonyms:
+          - is_trial_account_flag
+          - trial_status_accounts
+          - trial_account_indicator
+          - trial_customer_flag_accounts
+        data_type: numeric
+        description: Flag indicating whether this account is currently on a trial rather
+          than a paid subscription.
+        sample_values:
+          - false
+          - false
+          - false
+    description: Master list of customer accounts (companies or organizations) using
+      the SaaS product, including their profile, plan tier, region, industry, and key
+      churn indicators.
+    time_dimensions:
+      - expr: signup_date
+        name: signup_datetime
+        synonyms:
+          - signup_datetime_accounts
+          - account_signup_time
+          - customer_signup_timestamp_accounts
+          - account_created_datetime_accounts
+        data_type: string
+        description: Date and time when the customer account first signed up or was created
+          in the system.
+        sample_values:
+          - '2024-10-16T00:00:00'
+          - '2023-08-17T00:00:00'
+          - '2024-08-27T00:00:00'
+  - name: account_churn_events
+    facts:
+      - expr: refund_amount_usd
+        name: refund_amount_usd
+        synonyms:
+          - refund_amount_usd_churn
+          - refunded_revenue_usd
+          - cancellation_refund_amount_usd
+          - refund_value_usd
+        data_type: numeric
+        description: Refund amount issued to the customer in USD as part of the churn
+          or cancellation event.
+        sample_values:
+          - 4.03
+          - 96.45
+          - 0
+    synonyms:
+      - churn_events_table
+      - account_churn_events_table
+      - cancellation_events
+      - customer_cancellations
+    base_table:
+      table: churn_events
+      file_reference:
+        file_ref: ''
+        thread_id: ''
+        sheet_name: null
+    dimensions:
+      - expr: churn_event_id
+        name: churn_event_id
+        synonyms:
+          - churn_event_id_key
+          - cancellation_event_id
+          - account_churn_event_id
+          - churn_record_id
+        data_type: string
+        description: Unique identifier for the churn or reactivation event record.
+        sample_values:
+          - C-816288
+          - C-5a81e7
+          - C-a174be
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - account_id_churn_events
+          - churn_account_id
+          - customer_account_id_churn
+          - company_account_id_churn
+        data_type: string
+        description: Identifier of the customer account associated with this churn or
+          reactivation event.
+        sample_values:
+          - A-c37cab
+          - A-37f969
+          - A-b07346
+      - expr: reason_code
+        name: churn_reason_code
+        synonyms:
+          - churn_reason_code_field
+          - cancellation_reason_code
+          - loss_reason_code
+          - churn_category_code
+        data_type: string
+        description: Categorized reason for the churn or cancellation event (for example,
+          pricing, support, budget).
+        sample_values:
+          - pricing
+          - support
+          - budget
+      - expr: feedback_text
+        name: churn_feedback_text
+        synonyms:
+          - churn_feedback_text_field
+          - cancellation_feedback_notes
+          - exit_survey_comments
+          - churn_reason_free_text
+        data_type: string
+        description: Free-text feedback provided by the customer explaining why they churned
+          or cancelled, when available.
+        sample_values:
+          - switched to competitor
+          - null
+          - missing features
+      - expr: is_reactivation
+        name: is_reactivation_event
+        synonyms:
+          - is_reactivation_event_flag
+          - reactivation_indicator
+          - returning_customer_flag_churn
+          - reactivated_account_event
+        data_type: numeric
+        description: Flag indicating whether this record represents a reactivation event
+          (account returning after churn) rather than an initial churn.
+        sample_values:
+          - false
+          - false
+          - false
+      - expr: preceding_downgrade_flag
+        name: has_preceding_downgrade
+        synonyms:
+          - has_preceding_downgrade_flag
+          - preceding_downgrade_indicator
+          - downgraded_before_churn
+          - pre_churn_downgrade_flag
+        data_type: numeric
+        description: Flag indicating whether there was a subscription downgrade event
+          prior to this churn event.
+        sample_values:
+          - false
+          - false
+          - false
+      - expr: preceding_upgrade_flag
+        name: has_preceding_upgrade
+        synonyms:
+          - has_preceding_upgrade_flag
+          - preceding_upgrade_indicator
+          - upgraded_before_churn
+          - pre_churn_upgrade_flag
+        data_type: numeric
+        description: Flag indicating whether there was a subscription upgrade event prior
+          to this churn event.
+        sample_values:
+          - false
+          - true
+          - false
+    description: Event-level records capturing each churn or reactivation event for
+      customer accounts, including churn date, reasons, feedback, and upgrade or downgrade
+      context.
+    time_dimensions:
+      - expr: churn_date
+        name: churn_event_date
+        synonyms:
+          - churn_event_date_time
+          - cancellation_date_churn
+          - account_churn_date
+          - termination_date_churn
+        data_type: string
+        description: Date (and optionally time) when the churn or cancellation event was
+          recorded for the account.
+        sample_values:
+          - '2024-10-27T00:00:00'
+          - '2024-06-25T00:00:00'
+          - '2024-11-12T00:00:00'
+  - name: product_feature_usage
+    facts:
+      - expr: usage_count
+        name: feature_usage_count
+        synonyms:
+          - feature_usage_count_metric
+          - number_of_feature_uses
+          - usage_events_count
+          - feature_invocation_count
+        data_type: numeric
+        description: Count of how many times the feature was used in the recorded session
+          or aggregation window.
+        sample_values:
+          - 9
+          - 9
+          - 9
+      - expr: usage_duration_secs
+        name: usage_duration_seconds
+        synonyms:
+          - usage_duration_seconds_value
+          - feature_usage_duration_secs
+          - time_spent_using_feature_seconds
+          - session_length_seconds
+        data_type: numeric
+        description: Total duration of the recorded usage in seconds for this feature
+          and subscription.
+        sample_values:
+          - 5004
+          - 369
+          - 1458
+      - expr: error_count
+        name: error_count
+        synonyms:
+          - error_count_usage
+          - usage_error_events
+          - feature_error_occurrences
+          - application_error_count
+        data_type: numeric
+        description: Number of errors encountered during the recorded usage session or
+          period for this feature and subscription.
+        sample_values:
+          - 0
+          - 0
+          - 0
+    synonyms:
+      - usage_events_table
+      - feature_usage_table
+      - product_usage_events
+      - feature_activity
+    base_table:
+      table: usage
+      file_reference:
+        file_ref: ''
+        thread_id: ''
+        sheet_name: null
+    dimensions:
+      - expr: usage_id
+        name: usage_id
+        synonyms:
+          - usage_id_key
+          - usage_event_id
+          - feature_usage_record_id
+          - product_usage_id
+        data_type: string
+        description: Unique identifier for the product usage record or event.
+        sample_values:
+          - U-1c6c24
+          - U-f07cb8
+          - U-096807
+      - expr: subscription_id
+        name: subscription_id
+        synonyms:
+          - subscription_id_usage
+          - usage_subscription_key
+          - customer_subscription_id_usage
+          - account_subscription_id_usage
+        data_type: string
+        description: Identifier of the subscription associated with this usage record.
+        sample_values:
+          - S-0fcf7d
+          - S-c25263
+          - S-f29e7f
+      - expr: feature_name
+        name: feature_name
+        synonyms:
+          - feature_name_usage
+          - product_feature_name
+          - used_feature_name
+          - feature_label_usage
+        data_type: string
+        description: Name of the product feature being used in this usage record.
+        sample_values:
+          - feature_20
+          - feature_5
+          - feature_3
+      - expr: is_beta_feature
+        name: is_beta_feature
+        synonyms:
+          - is_beta_feature_flag
+          - beta_feature_indicator
+          - experimental_feature_flag
+          - early_access_feature_flag
+        data_type: numeric
+        description: Flag indicating whether the feature in this usage record is part
+          of a beta or experimental program.
+        sample_values:
+          - false
+          - false
+          - false
+    description: Event-level product usage data capturing how customers use specific
+      features, how often they use them, and for how long, including errors and beta-flagged
+      features.
+    time_dimensions:
+      - expr: usage_date
+        name: usage_date
+        synonyms:
+          - usage_date_time
+          - feature_usage_date
+          - usage_event_date
+          - product_usage_day
+        data_type: string
+        description: Date (and optionally time) associated with the feature usage record.
+        sample_values:
+          - '2023-07-27T00:00:00'
+          - '2023-08-07T00:00:00'
+          - '2023-12-07T00:00:00'
+  - name: subscriptions
+    facts:
+      - expr: seats
+        name: subscription_seats
+        synonyms:
+          - subscription_seats_count
+          - licensed_seats_subscriptions
+          - seat_quantity_subscription
+          - number_of_seats_subscription
+        data_type: numeric
+        description: Number of seats or user licenses associated with this subscription.
+        sample_values:
+          - 14
+          - 17
+          - 62
+      - expr: mrr_amount
+        name: mrr_amount_usd
+        synonyms:
+          - mrr_amount_usd_value
+          - monthly_recurring_revenue_usd
+          - subscription_mrr_usd
+          - mrr_booked_usd
+        data_type: numeric
+        description: Monthly recurring revenue (MRR) amount for this subscription in USD,
+          based on the current plan and billing terms.
+        sample_values:
+          - 2786
+          - 833
+          - 0
+      - expr: arr_amount
+        name: arr_amount_usd
+        synonyms:
+          - arr_amount_usd_value
+          - annual_recurring_revenue_usd
+          - subscription_arr_usd
+          - arr_booked_usd
+        data_type: numeric
+        description: Annual recurring revenue (ARR) amount for this subscription in USD,
+          based on the current plan and billing terms.
+        sample_values:
+          - 33432
+          - 9996
+          - 0
+    synonyms:
+      - subscriptions_table
+      - customer_subscriptions
+      - subscription_contracts
+      - billing_subscriptions
+    base_table:
+      table: subscriptions
+      file_reference:
+        file_ref: ''
+        thread_id: ''
+        sheet_name: null
+    dimensions:
+      - expr: subscription_id
+        name: subscription_id
+        synonyms:
+          - subscription_id_key
+          - subscription_record_id
+          - customer_subscription_id
+          - billing_subscription_id
+        data_type: string
+        description: Unique identifier for the subscription record.
+        sample_values:
+          - S-8cec59
+          - S-0f6f44
+          - S-51c0d1
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - account_id_subscriptions
+          - subscription_account_id
+          - customer_account_id_subscriptions
+          - company_account_id_subscriptions
+        data_type: string
+        description: Identifier of the customer account that owns this subscription.
+        sample_values:
+          - A-3c1a3f
+          - A-9b9fe9
+          - A-659280
+      - expr: plan_tier
+        name: plan_tier
+        synonyms:
+          - plan_tier_subscriptions
+          - subscription_plan_tier
+          - pricing_tier_subscriptions
+          - plan_level_subscriptions
+        data_type: string
+        description: Subscription plan tier associated with this subscription (for example,
+          Pro, Enterprise).
+        sample_values:
+          - Enterprise
+          - Pro
+          - Enterprise
+      - expr: billing_frequency
+        name: billing_frequency
+        synonyms:
+          - billing_frequency_subscriptions
+          - billing_period_subscriptions
+          - charge_frequency
+          - subscription_billing_cycle
+        data_type: string
+        description: Billing frequency for the subscription (for example, monthly, annual).
+        sample_values:
+          - monthly
+          - monthly
+          - annual
+      - expr: auto_renew_flag
+        name: is_auto_renew
+        synonyms:
+          - is_auto_renew_flag
+          - auto_renewal_indicator
+          - auto_renew_status_subscriptions
+          - renew_automatically_flag
+        data_type: numeric
+        description: Flag indicating whether the subscription is set to renew automatically
+          at the end of the current term.
+        sample_values:
+          - true
+          - true
+          - false
+      - expr: churn_flag
+        name: is_churned_subscription
+        synonyms:
+          - is_churned_subscription_flag
+          - subscription_churn_status
+          - cancelled_subscription_flag
+          - ended_subscription_indicator
+        data_type: numeric
+        description: Flag indicating whether this subscription has churned or been cancelled
+          (true) or remains active (false).
+        sample_values:
+          - true
+          - false
+          - false
+      - expr: downgrade_flag
+        name: is_downgraded_subscription
+        synonyms:
+          - is_downgraded_subscription_flag
+          - downgrade_indicator_subscription
+          - plan_downgrade_flag
+          - reduced_plan_tier_flag
+        data_type: numeric
+        description: Flag indicating whether this subscription has experienced a downgrade
+          in plan tier during its lifecycle.
+        sample_values:
+          - false
+          - false
+          - false
+      - expr: is_trial
+        name: is_trial_subscription
+        synonyms:
+          - is_trial_subscription_flag
+          - trial_status_subscription
+          - trial_subscription_indicator
+          - trial_plan_flag
+        data_type: numeric
+        description: Flag indicating whether this subscription is a trial rather than
+          a paid subscription.
+        sample_values:
+          - false
+          - false
+          - true
+      - expr: upgrade_flag
+        name: is_upgraded_subscription
+        synonyms:
+          - is_upgraded_subscription_flag
+          - upgrade_indicator_subscription
+          - plan_upgrade_flag
+          - expanded_plan_tier_flag
+        data_type: numeric
+        description: Flag indicating whether this subscription has experienced an upgrade
+          in plan tier during its lifecycle.
+        sample_values:
+          - false
+          - false
+          - true
+    description: Subscription contracts for customer accounts, including plan tier,
+      seats, billing frequency, trial status, MRR, ARR, and lifecycle dates used to
+      track revenue and churn.
+    time_dimensions:
+      - expr: end_date
+        name: subscription_end_datetime
+        synonyms:
+          - subscription_end_datetime_value
+          - subscription_end_date
+          - cancellation_effective_date
+          - term_end_datetime
+        data_type: string
+        description: Date and time when the subscription ended or is scheduled to end;
+          null for currently active subscriptions.
+        sample_values:
+          - '2024-04-12T00:00:00'
+          - null
+          - null
+      - expr: start_date
+        name: subscription_start_datetime
+        synonyms:
+          - subscription_start_datetime_value
+          - subscription_start_date
+          - contract_start_date
+          - activation_datetime_subscription
+        data_type: string
+        description: Date and time when the subscription term started or became active.
+        sample_values:
+          - '2023-12-23T00:00:00'
+          - '2024-06-11T00:00:00'
+          - '2024-11-25T00:00:00'
+  - name: customer_support_tickets
+    facts:
+      - expr: resolution_time_hours
+        name: resolution_time_hours
+        synonyms:
+          - resolution_time_hours_value
+          - time_to_resolution_hours
+          - ticket_resolution_duration_hours
+          - case_closure_time_hours
+        data_type: numeric
+        description: Time in hours taken to fully resolve and close the support ticket.
+        sample_values:
+          - 27
+          - 27
+          - 19
+      - expr: first_response_time_minutes
+        name: first_response_time_minutes
+        synonyms:
+          - first_response_time_minutes_value
+          - time_to_first_response_minutes
+          - initial_response_sla_minutes
+          - response_latency_minutes
+        data_type: numeric
+        description: Time in minutes from ticket submission until the first response from
+          support.
+        sample_values:
+          - 74
+          - 144
+          - 93
+      - expr: satisfaction_score
+        name: satisfaction_score
+        synonyms:
+          - satisfaction_score_value
+          - customer_satisfaction_rating_support
+          - csat_score_support
+          - support_experience_rating
+        data_type: numeric
+        description: Customer satisfaction score associated with the support ticket, typically
+          from a post-resolution survey; may be null if no response was given.
+        sample_values:
+          - null
+          - null
+          - 4
+    synonyms:
+      - support_tickets_table
+      - customer_support_cases
+      - helpdesk_tickets
+      - support_interactions
+    base_table:
+      table: support_tickets
+      file_reference:
+        file_ref: ''
+        thread_id: ''
+        sheet_name: null
+    dimensions:
+      - expr: ticket_id
+        name: ticket_id
+        synonyms:
+          - ticket_id_key
+          - support_ticket_id
+          - case_id_support
+          - support_record_id
+        data_type: string
+        description: Unique identifier for the support ticket record.
+        sample_values:
+          - T-0024de
+          - T-4d04b9
+          - T-d5e12f
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - account_id_support_tickets
+          - support_account_id
+          - customer_account_id_support
+          - company_account_id_support
+        data_type: string
+        description: Identifier of the customer account that submitted the support ticket.
+        sample_values:
+          - A-712f1c
+          - A-e43bf7
+          - A-0f3e88
+      - expr: priority
+        name: ticket_priority
+        synonyms:
+          - ticket_priority_level
+          - case_priority_support
+          - support_ticket_priority
+          - urgency_level_support
+        data_type: string
+        description: Priority level of the support ticket (for example, high, urgent).
+        sample_values:
+          - high
+          - urgent
+          - urgent
+      - expr: escalation_flag
+        name: is_escalated_ticket
+        synonyms:
+          - is_escalated_ticket_flag
+          - escalation_indicator_support
+          - escalated_case_flag
+          - higher_tier_support_flag
+        data_type: numeric
+        description: Flag indicating whether the support ticket was escalated to a higher
+          support tier or specialized team.
+        sample_values:
+          - false
+          - false
+          - false
+    description: Customer support tickets raised by accounts, including priority, response
+      and resolution times, escalations, and satisfaction scores used to assess support
+      quality and its impact on churn.
+    time_dimensions:
+      - expr: closed_at
+        name: ticket_closed_datetime
+        synonyms:
+          - ticket_closed_datetime_value
+          - case_closed_time
+          - support_ticket_closed_at
+          - resolution_timestamp_support
+        data_type: string
+        description: Date and time when the support ticket was closed.
+        sample_values:
+          - '2023-07-28T03:00:00'
+          - '2024-07-09T03:00:00'
+          - '2024-10-17T19:00:00'
+      - expr: submitted_at
+        name: ticket_submitted_datetime
+        synonyms:
+          - ticket_submitted_datetime_value
+          - case_created_time
+          - support_ticket_created_at
+          - ticket_opened_timestamp
+        data_type: string
+        description: Date and time when the support ticket was originally submitted or
+          created.
+        sample_values:
+          - '2023-07-27T00:00:00'
+          - '2024-07-08T00:00:00'
+          - '2024-10-17T00:00:00'
+description: Analytics model for a subscription-based (SaaS) business focused on customer
+  churn, subscription health, product feature usage, and the impact of customer support
+  on retention. Use this model to analyze churn by plan tier, region, industry, and
+  referral source; track MRR/ARR, active trials, upgrades/downgrades, and renewal
+  behavior; relate feature-level usage and reliability to churn; and evaluate support
+  performance (response and resolution times, escalations, CSAT) and its correlation
+  with churn and long-term retention.

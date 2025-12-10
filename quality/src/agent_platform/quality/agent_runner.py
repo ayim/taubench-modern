@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -236,7 +237,11 @@ class AgentRunner:
         self.server_url = server_url.rstrip("/")
 
     async def run_test_case(  # noqa: C901, PLR0912, PLR0915
-        self, agent_id: str, test_case: TestCase, platform_name: str
+        self,
+        agent_id: str,
+        test_case: TestCase,
+        platform_name: str,
+        on_thread_created: Callable[[str], Awaitable[None]] | None = None,
     ) -> TestRunResult:
         """Run a test case against an agent and return agent messages."""
         if test_case.workitem is not None:
@@ -364,6 +369,9 @@ class AgentRunner:
                 new_thread = response.json()
                 thread_id = new_thread["thread_id"]
                 logger.info(f"Created new thread: {thread_id}")
+
+            if on_thread_created is not None:
+                await on_thread_created(thread_id)
 
             test_case_folder = Path(test_case.file_path).parent
             thread_files: list[tuple[str, tuple[str, Any, str]]] = []
