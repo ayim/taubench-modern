@@ -80,7 +80,7 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, onDelete
     parentMap: Map<string, string>,
   ): SchemaFieldData | null => {
     // Only process property nodes
-    if (!node.key || !node.pointer.startsWith('/properties/')) {
+    if (!node.key || !node.pointer.startsWith('/properties/') || node.key === 'items') {
       return null;
     }
 
@@ -88,7 +88,13 @@ export const SchemaEditor: FC<SchemaEditorProps> = ({ schema, onChange, onDelete
     if (!dotNotationPath) return null;
 
     const nodeSchema = node.schema as { type?: string; description?: string; properties?: unknown; items?: unknown };
-    const parentDotNotation = node.parentPointer ? jsonPointerToDotNotation(node.parentPointer) : '';
+    let parentDotNotation = node.parentPointer ? jsonPointerToDotNotation(node.parentPointer) : '';
+
+    // If parent is an 'items' node, skip up to the array itself
+    if (node.parentPointer?.endsWith('/items')) {
+      const arrayPointer = node.parentPointer.slice(0, -6);
+      parentDotNotation = jsonPointerToDotNotation(arrayPointer);
+    }
 
     if (parentDotNotation) {
       parentMap.set(dotNotationPath, parentDotNotation);
