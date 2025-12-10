@@ -57,6 +57,7 @@ Output Requirements:
 - Include a description for each field — they are helpful and expected
 - Include `title`, `$schema`, and a top-level `description` field in every schema
 - You can truncate the schema to be shorter if required.
+- Important: For tabular data, use object-based rows with named properties, not arrays of arrays. This will ensure the generation of citations.
 
 Below is an example of a valid json schema :
 
@@ -77,6 +78,22 @@ Below is an example of a valid json schema :
 "required": ["location"]
 }
 ```
+
+**IMPORTANT - For tabular data, use this format (object-based rows):**
+```json
+{
+  "tables": [
+    {
+      "table_name": "Sales Data",
+      "rows": [
+        {"product": "Widget A", "quantity": 100, "price": 9.99},
+        {"product": "Widget B", "quantity": 50, "price": 14.99}
+      ]
+    }
+  ]
+}
+```
+
 When dealing with similar data items, prefer consolidating them into a single array to avoid duplicate JSON keys.
 Example - Instead of this:
 ```json
