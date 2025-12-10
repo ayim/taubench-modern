@@ -31,7 +31,7 @@ if typing.TYPE_CHECKING:
     "is_work_item_attachment",
     [
         True,
-        # False,
+        False,
     ],
 )
 async def test_thread_attachment_content_as_text_content_with_description(  # noqa: PLR0913
