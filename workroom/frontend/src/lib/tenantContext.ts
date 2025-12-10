@@ -47,6 +47,14 @@ export const TenantContext = createContext<TenantMeta>({
       enabled: false,
       reason: '',
     },
+    userManagement: {
+      enabled: false,
+      reason: '',
+    },
+    agentConfiguration: {
+      enabled: false,
+      reason: '',
+    },
   },
 });
 

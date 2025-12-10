@@ -42,7 +42,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@sema4ai/workroom-interface": "^2.5.1",
+    "@sema4ai/workroom-interface": "^2.7.0",
     "@types/cookie-signature": "^1.1.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",

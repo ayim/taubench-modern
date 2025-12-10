@@ -116,6 +116,14 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
+      agentConfiguration: {
+        enabled: true,
+        reason: null,
+      },
+      userManagement: {
+        enabled: true,
+        reason: null,
+      },
     },
   },
 });

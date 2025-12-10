@@ -1,15 +1,49 @@
 import { FC, useMemo } from 'react';
 import { Avatar, Box, Button, EmptyState, List, Typography } from '@sema4ai/components';
 import { Link, ErrorComponentProps } from '@tanstack/react-router';
+import { TRPCClientError } from '@trpc/client';
 
 import errorIllustration from '~/assets/error.svg';
 import { RequestError } from '~/lib/Error';
 import { useTenantId } from '~/hooks/tenant';
+import { InferrableClientTypes } from '@trpc/server/unstable-core-do-not-import';
 
-export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
+type ExpectedError = RequestError | TRPCClientError<InferrableClientTypes> | Error;
+
+type ParsedExpectedError = {
+  httpStatus: number | null;
+  errorMessage: string;
+  errorAction: RequestError['action'] | undefined;
+};
+
+const parseError = (error: ExpectedError): ParsedExpectedError => {
+  if (error instanceof RequestError) {
+    return {
+      httpStatus: error.status,
+      errorMessage: error.message,
+      errorAction: error.action,
+    };
+  }
+  if (error instanceof TRPCClientError) {
+    return {
+      httpStatus: error.data?.httpStatus ?? null,
+      errorMessage: error.message,
+      errorAction: undefined,
+    };
+  }
+  return {
+    httpStatus: null,
+    errorMessage: error.message,
+    errorAction: undefined,
+  };
+};
+
+export const ErrorRoute: FC<ErrorComponentProps<ExpectedError>> = ({ error }) => {
   const tenantId = useTenantId();
 
   const meta = useMemo((): { title: string; description: string; action: React.ReactElement } => {
+    const { httpStatus, errorMessage, errorAction } = parseError(error);
+
     const defaultMeta = {
       title: 'An error happened',
       description: 'An unknown error occured.',
@@ -22,15 +56,15 @@ export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
       ),
     };
 
-    if (!(error instanceof RequestError)) {
+    if (httpStatus === null) {
       return defaultMeta;
     }
 
-    switch (error.status) {
+    switch (httpStatus) {
       case 404: {
-        if (!error.action) {
+        if (!errorAction) {
           return {
-            title: `${error.message}`,
+            title: errorMessage,
             description: 'The page you are looking for could not be found',
             action: (
               <Link to="/tenants/$tenantId" params={{ tenantId }}>
@@ -42,10 +76,10 @@ export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
           };
         }
 
-        error.action satisfies { type: 'tenants_selection' };
+        errorAction satisfies { type: 'tenants_selection' };
 
         return {
-          title: `${error.message}`,
+          title: errorMessage,
           description: `Either you don't have access to this workspace, or it doesn't exist.`,
           action: (
             <>
@@ -54,7 +88,7 @@ export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
               </Typography>
               <Box mb="$16">
                 <List>
-                  {error.action.tenants.map(({ url, name }, idx) => (
+                  {errorAction.tenants.map(({ url, name }, idx) => (
                     <a href={url} key={idx}>
                       <List.Item icon={<Avatar placeholder={name} size="small" />}>{name}</List.Item>
                     </a>
@@ -62,6 +96,19 @@ export const ErrorRoute: FC<ErrorComponentProps> = ({ error }) => {
                 </List>
               </Box>
             </>
+          ),
+        };
+      }
+      case 403: {
+        return {
+          title: 'Access forbidden',
+          description: `You do not have the necessary permissions: ${errorMessage}`,
+          action: (
+            <Link to="/tenants/$tenantId" params={{ tenantId }}>
+              <Button forwardedAs="span" round>
+                Return to Home
+              </Button>
+            </Link>
           ),
         };
       }

@@ -110,7 +110,7 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
               </RouterSideNavigationLink>
             )}
 
-            {permissions['users.read'] && (
+            {permissions['users.read'] && features.userManagement.enabled && (
               <RouterSideNavigationLink icon={<IconUsers />} to="/tenants/$tenantId/users" params={{ tenantId }}>
                 Users
               </RouterSideNavigationLink>

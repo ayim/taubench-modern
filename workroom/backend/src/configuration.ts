@@ -394,6 +394,8 @@ export const getConfiguration = (): Configuration => {
           enabled: true,
           reason: null,
         },
+        userManagement: sparOnlyFeature,
+        agentConfiguration: sparOnlyFeature,
       },
     },
   };
