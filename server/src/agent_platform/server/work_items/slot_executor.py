@@ -765,6 +765,27 @@ class SlotExecutor:
         if slot_state.work_item_id:
             await self._storage.mark_incomplete_work_items_as_error([slot_state.work_item_id])
 
+    async def _mark_stale_processing_work_items(self, work_item_timeout_seconds: float) -> None:
+        """Mark EXECUTING work items that exceeded the timeout window as ERROR."""
+
+        if work_item_timeout_seconds <= 0:
+            return
+
+        max_processing_seconds = work_item_timeout_seconds * 1.2
+
+        try:
+            stale_count = await self._storage.mark_stuck_processing_work_items_as_error(
+                max_processing_seconds
+            )
+        except Exception as exc:
+            logger.error(
+                "Error marking stale processing work items as ERROR: %s", exc, exc_info=exc
+            )
+            return
+
+        if stale_count:
+            logger.warning("Marked %s stale processing work items as ERROR", stale_count)
+
     async def _fetch_and_queue_work_items(self) -> None:
         """Fetch pending work items from storage and queue them for execution."""
         # Calculate how many slots are currently free
@@ -807,10 +828,19 @@ class SlotExecutor:
             worker_interval: Interval between database polls
         """
         while not shutdown_event.is_set():
-            # Before each loop to fill the work queue, check if we need to resize first.
+            quotas_service = await self.quotas()
+
+            # First, mark any work items that are still in EXECUTING state after the timeout window
+            # as ERROR. This is to prevent work items from being stuck in EXECUTING state
+            # without a corresponding Slot executing them.
+            await self._mark_stale_processing_work_items(
+                quotas_service.get_work_item_timeout_seconds()
+            )
+
+            # Next, before each loop to fill the work queue, check if we need to resize first.
             # We want to resize _before_ we fill the work queue. This ensures that we
             # don't take workitems from the database w/o a Slot to immediately execute them.
-            desired_slots = (await self.quotas()).get_max_parallel_work_items_in_process()
+            desired_slots = quotas_service.get_max_parallel_work_items_in_process()
             if desired_slots != len(self.slot_manager.slots):
                 # We would normally want this resize to be synchronous, but because we're
                 # preventing the producer from adding more WorkItems to the queue, we can

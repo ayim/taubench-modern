@@ -305,6 +305,41 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
                 params,
             )
 
+    async def mark_stuck_processing_work_items_as_error(self, max_processing_seconds: float) -> int:
+        """Mark EXECUTING work items as ERROR when they exceed the timeout threshold."""
+
+        if max_processing_seconds <= 0:
+            return 0
+
+        async with self._transaction() as cur:
+            await cur.execute(
+                """
+                WITH candidate AS (
+                    SELECT work_item_id
+                    FROM v2_work_items
+                    WHERE status = :executing
+                       AND (strftime('%s', 'now') - strftime('%s', status_updated_at))
+                           > :max_processing_seconds
+                )
+                UPDATE v2_work_items
+                SET status = :error,
+                    status_updated_by = 'SYSTEM',
+                    status_updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                WHERE work_item_id IN (SELECT work_item_id FROM candidate)
+                RETURNING work_item_id
+                """,
+                {
+                    "executing": WorkItemStatus.EXECUTING.value,
+                    "error": WorkItemStatus.ERROR.value,
+                    "max_processing_seconds": max_processing_seconds,
+                },
+            )
+
+            rows = list(await cur.fetchall())
+
+            return len(rows)
+
     async def update_work_item_from_thread(
         self,
         user_id: str,

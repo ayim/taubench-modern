@@ -509,6 +509,10 @@ class AbstractStorage(ABC):
         """Mark given work items as ERROR if they are still PENDING/EXECUTING."""
 
     @abstractmethod
+    async def mark_stuck_processing_work_items_as_error(self, max_processing_seconds: float) -> int:
+        """Mark processing work items as ERROR when they exceed the given duration."""
+
+    @abstractmethod
     async def get_work_items_summary(self, user_id: str) -> list["AgentWorkItemsSummaryResponse"]:
         """Get work items summary grouped by agent and status.
 

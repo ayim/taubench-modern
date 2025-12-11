@@ -13,6 +13,8 @@ from agent_platform.core.work_items.work_item import WorkItemTaskStatus
 from agent_platform.server.work_items import slot_executor as slot_executor_module
 from agent_platform.server.work_items.slot_executor import SlotExecutor, SlotManager, SlotState
 
+pytest_plugins = ["server.tests.storage_fixtures"]
+
 # ============================================================================
 # Test Helpers
 # ============================================================================
@@ -48,6 +50,7 @@ def make_mock_storage():
     storage.get_pending_work_item_ids = AsyncMock(return_value=[])
     storage.get_work_items_by_ids = AsyncMock(return_value=[])
     storage.mark_incomplete_work_items_as_error = AsyncMock()
+    storage.mark_stuck_processing_work_items_as_error = AsyncMock(return_value=0)
     return storage
 
 
@@ -604,6 +607,66 @@ class TestSlotExecutorIntegration:
         await asyncio.gather(reader_task, slot_task)
 
         # If we get here without hanging, shutdown worked
+
+
+class TestDatabaseReader:
+    """Database reader behaviors backed by real storage backends."""
+
+    async def test_marks_stale_processing_items(self, storage):
+        """Database reader proactively marks stale processing items as errors."""
+
+        from datetime import UTC, datetime, timedelta
+
+        service = make_mock_service()
+        quotas = make_mock_quotas(num_slots=0)
+        # Set a short timeout so we can test within reasonable time
+        quotas.get_work_item_timeout_seconds.return_value = 2
+
+        user_sub = str(uuid4())
+        user, _ = await storage.get_or_create_user(user_sub)
+
+        # Create a stale item with very old timestamp
+        stale_item = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=user.user_id,
+            created_by=user.user_id,
+            status=WorkItemStatus.EXECUTING,
+            created_at=datetime.now(UTC) - timedelta(seconds=3600),
+            updated_at=datetime.now(UTC) - timedelta(seconds=3600),
+            status_updated_at=datetime.now(UTC) - timedelta(seconds=3600),
+            messages=[],
+            payload={},
+            callbacks=[],
+        )
+        await storage.create_work_item(stale_item)
+
+        # Create a fresh item with recent timestamp
+        fresh_item = WorkItem(
+            work_item_id=str(uuid4()),
+            user_id=user.user_id,
+            created_by=user.user_id,
+            status=WorkItemStatus.EXECUTING,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            status_updated_at=datetime.now(UTC),
+            messages=[],
+            payload={},
+            callbacks=[],
+        )
+        await storage.create_work_item(fresh_item)
+
+        executor = SlotExecutor(service.execute_work_item, storage=storage, quotas=quotas)
+
+        shutdown_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        loop.call_later(0.05, shutdown_event.set)
+        await executor._database_reader(shutdown_event, worker_interval=0.01)
+
+        persisted_stale = await storage.get_work_item(stale_item.work_item_id)
+        persisted_fresh = await storage.get_work_item(fresh_item.work_item_id)
+
+        assert persisted_stale.status == WorkItemStatus.ERROR
+        assert persisted_fresh.status == WorkItemStatus.EXECUTING
 
 
 class TestCrashHandling:

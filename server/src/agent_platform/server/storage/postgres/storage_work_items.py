@@ -339,6 +339,41 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
                 {"ids": work_item_ids, "error": WorkItemStatus.ERROR.value},
             )
 
+    async def mark_stuck_processing_work_items_as_error(self, max_processing_seconds: float) -> int:
+        """Mark EXECUTING work items as ERROR when they exceed the timeout threshold."""
+        if max_processing_seconds <= 0:
+            return 0
+
+        async with self._cursor() as cur:
+            await cur.execute(
+                """
+                WITH candidate AS (
+                    SELECT work_item_id
+                    FROM v2.work_items
+                    WHERE status = %(executing)s AND status_updated_at < CURRENT_TIMESTAMP
+                        - (%(max_processing_seconds)s * INTERVAL '1 second')
+                    FOR UPDATE SKIP LOCKED
+                )
+                UPDATE v2.work_items AS w
+                SET status = %(error)s,
+                    status_updated_by = 'SYSTEM',
+                    status_updated_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                FROM candidate
+                WHERE w.work_item_id = candidate.work_item_id
+                RETURNING w.work_item_id
+                """,
+                {
+                    "executing": WorkItemStatus.EXECUTING.value,
+                    "error": WorkItemStatus.ERROR.value,
+                    "max_processing_seconds": max_processing_seconds,
+                },
+            )
+
+            rows = await cur.fetchall()
+
+        return len(rows)
+
     async def update_work_item_from_thread(
         self,
         user_id: str,
