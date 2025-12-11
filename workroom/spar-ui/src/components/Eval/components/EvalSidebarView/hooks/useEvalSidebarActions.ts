@@ -13,6 +13,7 @@ export interface UseEvalSidebarActionsProps {
   handleSuggestEvaluation: () => Promise<Partial<CreateEvalFormData> | null>;
   handleRunBatch: (numTrials: number) => Promise<void>;
   handleDeleteScenario: (scenarioId: string) => Promise<void>;
+  handleDeleteAllScenarios: () => Promise<void>;
   handleCancelScenarioRun: (
     scenarioId: string,
     scenarioRunId: string,
@@ -23,6 +24,7 @@ export interface UseEvalSidebarActionsProps {
   setCreateDialogOpen: (open: boolean) => void;
   setSuggestedValues: (values: Partial<CreateEvalFormData> | undefined) => void;
   setDeleteTarget: (target: DeleteTarget | null) => void;
+  setDeleteAllDialogOpen: (open: boolean) => void;
   editingScenario: Scenario | null;
   setEditingScenario: (scenario: Scenario | null) => void;
   resetCreateDialogState: () => void;
@@ -35,12 +37,14 @@ export const useEvalSidebarActions = ({
   handleSuggestEvaluation,
   handleRunBatch,
   handleDeleteScenario,
+  handleDeleteAllScenarios,
   handleCancelScenarioRun,
   exportScenariosMutation,
   importScenariosMutation,
   setCreateDialogOpen,
   setSuggestedValues,
   setDeleteTarget,
+  setDeleteAllDialogOpen,
   editingScenario,
   setEditingScenario,
   resetCreateDialogState,
@@ -188,5 +192,13 @@ export const useEvalSidebarActions = ({
     handleCancelTest,
     handleExportScenarios,
     handleImportScenarios,
+    handleDeleteAllConfirm: async () => {
+      try {
+        await handleDeleteAllScenarios();
+        setDeleteAllDialogOpen(false);
+      } catch {
+        // Error handled in data layer, keep dialog open for retry.
+      }
+    },
   };
 };

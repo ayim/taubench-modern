@@ -9,6 +9,7 @@ export interface DeleteTarget {
 
 export const useEvalSidebarState = () => {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [suggestedValues, setSuggestedValues] = useState<Partial<CreateEvalFormData> | undefined>(undefined);
   const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
@@ -116,6 +117,7 @@ export const useEvalSidebarState = () => {
   return {
     // State values
     deleteTarget,
+    deleteAllDialogOpen,
     createDialogOpen,
     suggestedValues,
     isFetchingSuggestion,
@@ -131,6 +133,7 @@ export const useEvalSidebarState = () => {
     runbookWarningDismissed,
     // State setters
     setDeleteTarget,
+    setDeleteAllDialogOpen,
     setCreateDialogOpen,
     setSuggestedValues,
     setIsFetchingSuggestion,

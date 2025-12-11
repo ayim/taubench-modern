@@ -1,6 +1,14 @@
 import { FC } from 'react';
 import { Box, Button, Typography, Tooltip, Menu } from '@sema4ai/components';
-import { IconInformation, IconPlus, IconLightBulb, IconDownload, IconUpload, IconDotsHorizontal } from '@sema4ai/icons';
+import {
+  IconInformation,
+  IconPlus,
+  IconLightBulb,
+  IconDownload,
+  IconUpload,
+  IconDotsHorizontal,
+  IconTrash,
+} from '@sema4ai/icons';
 
 export interface EvalHeaderProps {
   hasMessages: boolean;
@@ -11,6 +19,8 @@ export interface EvalHeaderProps {
   isExporting: boolean;
   onImportScenarios: () => void;
   isImporting: boolean;
+  onDeleteAllScenarios: () => void;
+  isDeletingAll: boolean;
 }
 
 export const EvalHeader: FC<EvalHeaderProps> = ({
@@ -22,6 +32,8 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
   isExporting,
   onImportScenarios,
   isImporting,
+  onDeleteAllScenarios,
+  isDeletingAll,
 }) => {
   const evaluationActionsMenu = (
     <Menu
@@ -34,6 +46,9 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
       </Menu.Item>
       <Menu.Item icon={IconUpload} onClick={onExportScenarios} disabled={!hasEvaluations || isExporting}>
         {isExporting ? 'Exporting...' : 'Export Evaluations'}
+      </Menu.Item>
+      <Menu.Item icon={IconTrash} onClick={onDeleteAllScenarios} disabled={!hasEvaluations || isDeletingAll}>
+        {isDeletingAll ? 'Deleting...' : 'Delete All Evaluations'}
       </Menu.Item>
     </Menu>
   );
@@ -73,24 +88,21 @@ export const EvalHeader: FC<EvalHeaderProps> = ({
         )}
 
         <Box display="flex" alignItems="center" gap="$8">
-          {hasMessages && (
-            <Button
-              variant="outline"
-              round
-              onClick={onAddEvaluation}
-              loading={isFetchingSuggestion}
-              disabled={isFetchingSuggestion}
-            >
-              {!isFetchingSuggestion && (
-                <>
-                  <IconPlus size="16" />
-                  Add Evaluation
-                </>
-              )}
-              {isFetchingSuggestion && 'Generating Evaluation...'}
-            </Button>
-          )}
-
+          <Button
+            variant="outline"
+            round
+            onClick={onAddEvaluation}
+            loading={isFetchingSuggestion}
+            disabled={!hasMessages || isFetchingSuggestion}
+          >
+            {!isFetchingSuggestion && (
+              <>
+                <IconPlus size="16" />
+                Add Evaluation
+              </>
+            )}
+            {isFetchingSuggestion && 'Generating Evaluation...'}
+          </Button>
           {evaluationActionsMenu}
         </Box>
       </Box>

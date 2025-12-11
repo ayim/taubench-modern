@@ -28,12 +28,14 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     handleSuggestEvaluation: data.handleSuggestEvaluation,
     handleRunBatch: data.handleRunBatch,
     handleDeleteScenario: data.handleDeleteScenario,
+    handleDeleteAllScenarios: data.handleDeleteAllScenarios,
     handleCancelScenarioRun: data.handleCancelScenarioRun,
     exportScenariosMutation: data.exportScenariosMutation,
     importScenariosMutation: data.importScenariosMutation,
     setCreateDialogOpen: state.setCreateDialogOpen,
     setSuggestedValues: state.setSuggestedValues,
     setDeleteTarget: state.setDeleteTarget,
+    setDeleteAllDialogOpen: state.setDeleteAllDialogOpen,
     editingScenario: state.editingScenario,
     setEditingScenario: state.setEditingScenario,
     resetCreateDialogState: state.resetCreateDialogState,
@@ -46,6 +48,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
   return {
     // State values
     deleteTarget: state.deleteTarget,
+    deleteAllDialogOpen: state.deleteAllDialogOpen,
     createDialogOpen: state.createDialogOpen,
     suggestedValues: state.suggestedValues,
     isFetchingSuggestion: data.suggestScenarioMutation.isPending,
@@ -62,6 +65,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
 
     // State actions
     setDeleteTarget: state.setDeleteTarget,
+    setDeleteAllDialogOpen: state.setDeleteAllDialogOpen,
     setCreateDialogOpen: state.setCreateDialogOpen,
     setSuggestedValues: state.setSuggestedValues,
     setIsFetchingSuggestion: state.setIsFetchingSuggestion,
@@ -86,6 +90,7 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     isAnyTestRunning: data.isAnyTestRunning,
     isBatchRunning: data.isBatchRunning,
     isCancelingAll: data.isCancelingAll,
+    isDeletingAll: data.isDeletingAll,
     hasRunbookUpdated: data.hasRunbookUpdated,
     createScenarioMutation: data.createScenarioMutation,
     updateScenarioMutation: data.updateScenarioMutation,
@@ -113,5 +118,6 @@ export const useEvalSidebar = ({ agentId, threadId }: UseEvalSidebarProps) => {
     handleCancelTest: actions.handleCancelTest,
     handleExportScenarios: actions.handleExportScenarios,
     handleImportScenarios: actions.handleImportScenarios,
+    handleDeleteAllConfirm: actions.handleDeleteAllConfirm,
   };
 };

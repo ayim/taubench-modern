@@ -37,6 +37,54 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
   };
 
   const hasMessages = messages.length >= 2;
+  const deleteDialogs = (
+    <>
+      {sidebar.deleteTarget && (
+        <Dialog open onClose={() => sidebar.setDeleteTarget(null)}>
+          <Dialog.Header>
+            <Dialog.Header.Title title="Delete Evaluation" />
+          </Dialog.Header>
+          <Dialog.Content>
+            Are you sure you want to delete &quot;{sidebar.deleteTarget.name}&quot;? This action cannot be undone.
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              loading={sidebar.deleteScenarioMutation.isPending}
+              onClick={() => sidebar.handleDeleteConfirm(sidebar.deleteTarget)}
+            >
+              Delete
+            </Button>
+            <Button variant="secondary" onClick={() => sidebar.setDeleteTarget(null)}>
+              Cancel
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      )}
+
+      {sidebar.deleteAllDialogOpen && (
+        <Dialog open onClose={() => sidebar.setDeleteAllDialogOpen(false)}>
+          <Dialog.Header>
+            <Dialog.Header.Title title="Delete All Evaluations" />
+          </Dialog.Header>
+          <Dialog.Content>
+            Are you sure you want to delete all evaluations? This action cannot be undone.
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button loading={sidebar.isDeletingAll} onClick={sidebar.handleDeleteAllConfirm}>
+              Delete All
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={sidebar.isDeletingAll}
+              onClick={() => sidebar.setDeleteAllDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      )}
+    </>
+  );
 
   if (sidebar.loading) {
     return (
@@ -67,27 +115,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           onChange={handleFileChange}
         />
 
-        {sidebar.deleteTarget && (
-          <Dialog open onClose={() => sidebar.setDeleteTarget(null)}>
-            <Dialog.Header>
-              <Dialog.Header.Title title="Delete Evaluation" />
-            </Dialog.Header>
-            <Dialog.Content>
-              Are you sure you want to delete &quot;{sidebar.deleteTarget.name}&quot;? This action cannot be undone.
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button
-                loading={sidebar.deleteScenarioMutation.isPending}
-                onClick={() => sidebar.handleDeleteConfirm(sidebar.deleteTarget)}
-              >
-                Delete
-              </Button>
-              <Button variant="secondary" onClick={() => sidebar.setDeleteTarget(null)}>
-                Cancel
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        )}
+        {deleteDialogs}
 
         <CreateEvalDialog
           open={sidebar.createDialogOpen}
@@ -113,6 +141,8 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
           isFetchingSuggestion={sidebar.isFetchingSuggestion}
           onImportScenarios={handleImportClick}
           isImporting={sidebar.importScenariosMutation.isPending}
+          onDeleteAllScenarios={() => sidebar.setDeleteAllDialogOpen(true)}
+          isDeletingAll={sidebar.isDeletingAll}
         />
 
         <UserFacingMetrics
@@ -185,27 +215,7 @@ export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
         </Box>
       </Box>
 
-      {sidebar.deleteTarget && (
-        <Dialog open onClose={() => sidebar.setDeleteTarget(null)}>
-          <Dialog.Header>
-            <Dialog.Header.Title title="Delete Evaluation" />
-          </Dialog.Header>
-          <Dialog.Content>
-            Are you sure you want to delete &quot;{sidebar.deleteTarget.name}&quot;? This action cannot be undone.
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button
-              loading={sidebar.deleteScenarioMutation.isPending}
-              onClick={() => sidebar.handleDeleteConfirm(sidebar.deleteTarget)}
-            >
-              Delete
-            </Button>
-            <Button variant="secondary" onClick={() => sidebar.setDeleteTarget(null)}>
-              Cancel
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      )}
+      {deleteDialogs}
 
       <CreateEvalDialog
         open={sidebar.createDialogOpen}

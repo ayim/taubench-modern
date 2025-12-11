@@ -73,6 +73,7 @@ export const useEvalSidebarData = ({
   const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
   const [isCancelingAll, setIsCancelingAll] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const batchScenarioTrackingRef = useRef<Map<string, BatchScenarioState>>(new Map());
   const processedBatchScenarioRunsRef = useRef<Set<string>>(new Set());
   const batchTrialStatusRef = useRef<Map<string, Map<string, Trial['status']>>>(new Map());
@@ -748,6 +749,39 @@ export const useEvalSidebarData = ({
     });
   };
 
+  const handleDeleteAllScenarios = async () => {
+    if (isDeletingAll) {
+      return;
+    }
+
+    const scenarioIds = scenarios.map((scenario) => scenario.scenario_id);
+    if (scenarioIds.length === 0) {
+      return;
+    }
+
+    setIsDeletingAll(true);
+
+    try {
+      await scenarioIds.reduce<Promise<void>>(async (prevPromise, scenarioId) => {
+        await prevPromise;
+        return deleteScenarioMutation.mutateAsync({ scenarioId }).then(() => {});
+      }, Promise.resolve());
+
+      addSnackbar({
+        message: scenarioIds.length === 1 ? 'Deleted 1 evaluation' : `Deleted ${scenarioIds.length} evaluations`,
+        variant: 'success',
+      });
+    } catch (error) {
+      addSnackbar({
+        message: 'Failed to delete evaluations',
+        variant: 'danger',
+      });
+      throw error;
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   const handleCancelScenarioRun = useCallback(
     async (scenarioId: string, scenarioRunId: string, options?: { suppressToast?: boolean }): Promise<boolean> => {
       try {
@@ -858,6 +892,7 @@ export const useEvalSidebarData = ({
     isAnyTestRunning,
     isBatchRunning,
     isCancelingAll,
+    isDeletingAll,
     hasRunbookUpdated,
 
     // Mutations
@@ -876,6 +911,7 @@ export const useEvalSidebarData = ({
     handleRunTest,
     handleRunBatch,
     handleDeleteScenario,
+    handleDeleteAllScenarios,
     handleCancelScenarioRun,
     handleCancelAllRunning,
   };
