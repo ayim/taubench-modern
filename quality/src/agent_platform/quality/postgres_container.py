@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import structlog
 
 if TYPE_CHECKING:
+    from psycopg import Connection
     from testcontainers.postgres import PostgresContainer
 
 
@@ -33,6 +34,7 @@ class PostgresContainerManager:
 
     def __init__(self):
         self._containers: dict[str, _ContainerHandle] = {}
+        self._connections: dict[str, Connection] = {}
         self._lock = asyncio.Lock()
         self._log: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -60,7 +62,7 @@ class PostgresContainerManager:
             from testcontainers.postgres import PostgresContainer
 
             container = PostgresContainer(
-                image="postgres:16-alpine",
+                image="postgres:18-alpine",
                 username="postgres",
                 password="postgres",
                 dbname="test",
@@ -94,7 +96,7 @@ class PostgresContainerManager:
                 schema="public",
             )
 
-            await self._initialize_database(connection_info, schema_path, seed_path)
+            await self._initialize_database(folder_key, connection_info, schema_path, seed_path)
 
             self._containers[folder_key] = _ContainerHandle(
                 container=container,
@@ -108,22 +110,30 @@ class PostgresContainerManager:
         for handle in self._containers.values():
             tasks.append(asyncio.to_thread(handle.container.stop))
 
+        for connection in list(self._connections.values()):
+            tasks.append(asyncio.to_thread(connection.close))
+
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
         self._containers.clear()
+        self._connections.clear()
 
     async def _initialize_database(
         self,
+        folder_key: str,
         connection_info: PostgresConnectionInfo,
         schema_path: Path,
         seed_path: Path,
     ) -> None:
-        await self._apply_sql_file(connection_info, schema_path)
-        await self._apply_sql_file(connection_info, seed_path)
+        await self._apply_sql_file(folder_key, connection_info, schema_path)
+        await self._apply_sql_file(folder_key, connection_info, seed_path)
 
     async def _apply_sql_file(
-        self, connection_info: PostgresConnectionInfo, sql_path: Path
+        self,
+        folder_key: str,
+        connection_info: PostgresConnectionInfo,
+        sql_path: Path,
     ) -> None:
         if not sql_path.exists():
             raise ValueError(f"SQL file not found: {sql_path}")
@@ -132,26 +142,18 @@ class PostgresContainerManager:
         if not sql_text.strip():
             return
 
-        await asyncio.to_thread(self._execute_sql, connection_info, sql_text)
+        connection = await self._get_connection(folder_key, connection_info)
+        await asyncio.to_thread(self._execute_sql, connection, connection_info, sql_text)
 
     @staticmethod
-    def _execute_sql(connection_info: PostgresConnectionInfo, sql_text: str) -> None:
-        import psycopg
+    def _execute_sql(
+        connection: Connection, connection_info: PostgresConnectionInfo, sql_text: str
+    ) -> None:
         from psycopg import sql
 
         log = structlog.get_logger(__name__)
         try:
-            with (
-                psycopg.connect(
-                    host=connection_info.host,
-                    port=connection_info.port,
-                    dbname=connection_info.database,
-                    user=connection_info.user,
-                    password=connection_info.password,
-                    autocommit=True,
-                ) as conn,
-                conn.cursor() as cur,
-            ):
+            with connection.cursor() as cur:
                 if connection_info.schema:
                     cur.execute(
                         sql.SQL("SET search_path TO {}").format(
@@ -169,6 +171,29 @@ class PostgresContainerManager:
                 user=connection_info.user,
             )
             raise
+
+    async def _get_connection(
+        self, folder_key: str, connection_info: PostgresConnectionInfo
+    ) -> Connection:
+        cached = self._connections.get(folder_key)
+        if cached is not None and not cached.closed:
+            return cached
+
+        def _connect() -> Connection:
+            import psycopg
+
+            return psycopg.connect(
+                host=connection_info.host,
+                port=connection_info.port,
+                dbname=connection_info.database,
+                user=connection_info.user,
+                password=connection_info.password,
+                autocommit=True,
+            )
+
+        connection = await asyncio.to_thread(_connect)
+        self._connections[folder_key] = connection
+        return connection
 
 
 def _split_sql_statements(sql_text: str) -> list[bytes]:
