@@ -217,13 +217,16 @@ class SQLiteStorage(
         self._migrations = SQLiteMigrations(self._db_path)
         self._is_setup = False
         self._write_lock = NonReentrantAsyncLock()
-        _register_sqlite_adapters()
 
     async def setup(self) -> None:
         """Create and open the SQLite database connection, enable foreign keys,
         set up function, run migrations."""
         if self._is_setup:
             return  # Already setup
+
+        # Note: These adapters are for the synchronous sqlite3 DBAPI and may not be
+        # used by aiosqlite, but we register them for completeness
+        _register_sqlite_adapters()
 
         # Initialize dedicated read and write connections
         # Some imprecise benchmarking shows a 2-3x slowdown creating a new connection
@@ -237,6 +240,40 @@ class SQLiteStorage(
             echo=False,
             connect_args={"check_same_thread": False},
         )
+
+        # Override the SQLite dialect's DateTime type descriptor to use ISO8601 format
+        #
+        # Background:
+        # - SQLAlchemy's default DateTime handling for SQLite uses space separator
+        #   (e.g., '2024-12-10 17:09:32.500537')
+        # - We want to store datetimes in ISO8601 format with 'T' separator
+        #   (e.g., '2024-12-10T17:09:32.500537')
+        #
+        # Solution:
+        # - Override the dialect's type_descriptor method to inject a custom
+        #   bind_processor for all DateTime types
+        # - This ensures datetime.isoformat() is used for ALL datetime bind parameters,
+        # - This works with reflected tables (our current pattern)
+        from sqlalchemy.types import DateTime as SQLAlchemyDateTime
+
+        original_type_descriptor = self._sa_engine.sync_engine.dialect.type_descriptor
+
+        def custom_type_descriptor(typeobj):
+            """Override type descriptor to customize DateTime for SQLite."""
+            result = original_type_descriptor(typeobj)
+            if isinstance(result, SQLAlchemyDateTime):
+                # Inject a custom bind processor that uses ISO8601 format
+                def iso_bind_processor(value):
+                    if value is not None:
+                        return value.isoformat()
+                    return value
+
+                # Replace bind_processor method for this DateTime type instance
+                result.bind_processor = lambda dialect: iso_bind_processor
+            return result
+
+        # Monkey-patch the dialect's type_descriptor method
+        self._sa_engine.sync_engine.dialect.type_descriptor = custom_type_descriptor  # type: ignore[method-assign]
 
         # Enable foreign keys for all SQLAlchemy connections
         from sqlalchemy import event

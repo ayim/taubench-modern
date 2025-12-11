@@ -124,6 +124,14 @@ def _setup_additional_loggers(
     aiosqlite_logger.addHandler(file_handler)
     aiosqlite_logger.propagate = False
 
+    # # Enable SQLAlchemy engine logging to see all SQL queries and bind parameters
+    # sqlalchemy_engine_logger = logging.getLogger("sqlalchemy.engine")
+    # sqlalchemy_engine_logger.setLevel(logging.DEBUG)
+    # sqlalchemy_engine_logger.handlers.clear()
+    # sqlalchemy_engine_logger.addHandler(default_handler)
+    # sqlalchemy_engine_logger.addHandler(file_handler)
+    # sqlalchemy_engine_logger.propagate = False
+
     mcp_client_sse_logger = logging.getLogger("mcp.client.sse")
     mcp_client_sse_logger.addFilter(
         lambda record: "Unknown SSE event: ping" not in record.getMessage()

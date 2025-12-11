@@ -14,7 +14,7 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.types import JSON
+from sqlalchemy.types import JSON, DateTime, TypeDecorator
 from structlog.stdlib import get_logger
 
 from agent_platform.core.agent import Agent
@@ -79,6 +79,64 @@ def compile_json_as_jsonb(_type_, _compiler, **kw):
 @compiles(JSON, "sqlite")
 def compile_json_as_text(_type_, _compiler, **kw):
     return "TEXT"
+
+
+class ISO8601DateTime(TypeDecorator):
+    """Custom DateTime type that ensures ISO8601 format for SQLite.
+
+    SQLAlchemy's default DateTime handling for SQLite uses a space separator
+    (e.g., '2024-12-10 17:09:32.500537') instead of ISO8601's 'T' separator
+    (e.g., '2024-12-10T17:09:32.500537').
+
+    This TypeDecorator ensures consistent ISO8601 formatting across all database
+    backends by converting Python datetime objects to ISO8601 strings before
+    binding them as parameters for SQLite, while using native datetime handling
+    for Postgres.
+
+    Usage:
+        When explicitly defining table columns, use this type instead of DateTime:
+
+        ```python
+        table = sa.Table(
+            'my_table',
+            metadata,
+            sa.Column('created_at', ISO8601DateTime, nullable=False),
+        )
+        ```
+
+    Note: The current codebase uses table reflection, so this TypeDecorator is
+    not applied to reflected columns. Instead, sqlite.py monkey-patches the
+    SQLAlchemy DateTime.bind_processor method during engine setup to ensure
+    ISO8601 formatting for all datetime parameters (both column values and
+    literal values in WHERE clauses).
+
+    This TypeDecorator exists for:
+    1. Future-proofing if we migrate to explicit table definitions
+    2. Documentation of the datetime formatting requirements
+    3. Use in explicit table definitions if needed
+    """
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        """Convert datetime to ISO8601 string for SQLite, native for Postgres."""
+        if value is not None and dialect.name == "sqlite":
+            return value.isoformat()
+        return value
+
+    def process_result_value(self, value, dialect):
+        """Convert ISO8601 string back to datetime for SQLite, native for Postgres.
+
+        Note: SQLite stores datetimes as TEXT, so we need to parse them back.
+        """
+        if value is not None and dialect.name == "sqlite" and isinstance(value, str):
+            # Handle both with and without microseconds
+            if "." in value:
+                return datetime.fromisoformat(value)
+            else:
+                return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        return value
 
 
 class BaseStorage(AbstractStorage, CommonMixin):
@@ -1240,7 +1298,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             result = await conn.execute(claim_stmt)
             rows = result.mappings().fetchall()
 
-        return [row["trial_id"] for row in rows]
+        return [str(row["trial_id"]) for row in rows]
 
     async def get_trials_by_ids(self, trials_ids: list[str]) -> list[Trial]:
         """Retrieve multiple trials given their IDs."""
