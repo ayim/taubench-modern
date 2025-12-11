@@ -10,6 +10,10 @@ from agent_platform.core.errors.base import PlatformError
 from agent_platform.server.constants import SystemConfig, SystemPaths
 from agent_platform.server.env_vars import LOG_LEVEL
 
+# Uvicorn access log record.args has format: (client_addr, method, path, http_version, status_code)
+# Index 2 is the request path, which is used for per-request access log filtering
+_UVICORN_ACCESS_LOG_PATH_INDEX = 3
+
 
 def _platform_error_processor(logger, method_name, event_dict):
     """Extract error_id from PlatformError exceptions and inject into log message."""
@@ -100,6 +104,14 @@ def _setup_additional_loggers(
 
     uvicorn_access_logger = logging.getLogger("uvicorn.access")
     uvicorn_access_logger.setLevel(level)
+    uvicorn_access_logger.addFilter(
+        lambda record: not (
+            record.args
+            and isinstance(record.args, tuple)
+            and len(record.args) >= _UVICORN_ACCESS_LOG_PATH_INDEX
+            and record.args[2] in ("/api/v2/ready", "/api/v2/health", "/api/v2/ok")
+        )
+    )
     uvicorn_access_logger.handlers.clear()
     uvicorn_access_logger.addHandler(_get_access_handler())
     uvicorn_access_logger.addHandler(file_handler)

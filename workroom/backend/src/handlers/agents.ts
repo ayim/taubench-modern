@@ -52,7 +52,7 @@ export const createProxyHandler =
 
     const targetUrl = `${joinUrl(targetBaseUrl, targetPath)}${urlAttributes.searchParams}`;
 
-    monitoring.logger.info('Proxying agent server request', {
+    monitoring.logger.debug('Proxying agent server request', {
       authMode: configuration.auth.type,
       authSkip: skipAuthentication,
       requestMethod: req.method,

@@ -339,7 +339,6 @@ class AwsSecretManager(BaseSecretManager):
             # Clear the plaintext key from memory
             plaintext_data_key = b"\x00" * len(plaintext_data_key)
 
-            logger.info("Successfully decrypted data using AWS KMS envelope encryption")
             return plaintext_bytes.decode()
 
         except (RuntimeError, ValueError, json.JSONDecodeError, KeyError):
