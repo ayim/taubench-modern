@@ -2,16 +2,18 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Annotated, Any
 
+import structlog
+
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
 if TYPE_CHECKING:
-    from agent_platform.core.agent import Agent
-    from agent_platform.core.kernel import Kernel
-    from agent_platform.core.runbook import Runbook
     from agent_platform.server.kernel.data_frames import _DataFrameTools
     from agent_platform.server.storage import BaseStorage
+
+
+logger = structlog.get_logger(__name__)
 
 
 class SqlGenerationStrategy(ABC):
@@ -572,7 +574,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         from uuid import uuid4
 
         from agent_platform.core.payloads import InitiateStreamPayload
-        from agent_platform.core.thread import ThreadTextContent, ThreadUserMessage
+        from agent_platform.core.thread import Thread, ThreadTextContent, ThreadUserMessage
         from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
         from agent_platform.server.file_manager.option import FileManagerService
         from agent_platform.server.runs.sync import invoke_agent_sync
@@ -595,21 +597,37 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
                 f"Semantic data model '{semantic_data_model_name}' not found on the user's agent"
             )
 
-        # Create ephemeral SQL generation agent
-        sql_agent = _create_sql_agent(kernel)
+        # Get or create SQL generation agent with well-known name
+        # sql_agent = await _get_or_create_sql_agent(kernel, storage)
+        from agent_platform.server.sql_generation.preinstalled_agent import get_sql_generation_agent
 
-        # Store ephemeral agent
-        await storage.upsert_agent(kernel.user.user_id, sql_agent)
+        sql_agent = await get_sql_generation_agent(storage)
+        if sql_agent is None:
+            raise ValueError("SQL generation agent not found, this should never happen")
 
-        # Associate the specific SDM with the ephemeral agent (normal mechanism!)
-        await storage.set_agent_semantic_data_models(
-            sql_agent.agent_id,
-            [target_sdm_id],  # Just the one SDM
+        # The preinstalled agent doesn't have platform configs, so we add the user's platform configs.
+        sql_agent = sql_agent.copy(
+            platform_configs=kernel.agent.platform_configs,
         )
 
+        thread_id = str(uuid4())
         try:
-            # Create thread with initial message
-            thread_id = str(uuid4())
+            # Create thread for the SQL generation agent
+            sql_thread = Thread(
+                name=f"SQL Generation: user agent thread {kernel.thread.thread_id}",
+                user_id=kernel.user.user_id,
+                agent_id=sql_agent.agent_id,
+                thread_id=thread_id,
+                messages=[],
+            )
+            await storage.upsert_thread(kernel.user.user_id, sql_thread)
+
+            # Associate the specific SDM with just this thread
+            await storage.set_thread_semantic_data_models(
+                thread_id,
+                [target_sdm_id],
+            )
+
             initial_message = ThreadUserMessage(
                 role="user",
                 content=[
@@ -622,7 +640,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             payload = InitiateStreamPayload(
                 agent_id=sql_agent.agent_id,
                 thread_id=thread_id,
-                name="SQL Generation",
+                name=sql_thread.name,
                 messages=[initial_message],
             )
 
@@ -660,20 +678,16 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             # Return JSON representation (as string for tool result)
             return sql_content.model_dump_json()
 
-        finally:
-            # Clean up ephemeral agent (threads will cascade delete)
-            try:
-                await storage.delete_agent(kernel.user.user_id, sql_agent.agent_id)
-            except Exception as cleanup_error:
-                # Log but don't fail the operation
-                import structlog
-
-                logger = structlog.get_logger(__name__)
-                logger.warning(
-                    "Failed to cleanup ephemeral SQL generation agent",
-                    agent_id=sql_agent.agent_id,
-                    error=str(cleanup_error),
-                )
+        except Exception as e:
+            logger.error(
+                "Invocation of the preinstalled SQL generation agent failed",
+                user_id=kernel.user.user_id,
+                user_thread_id=kernel.thread.thread_id,
+                sql_agent_id=sql_agent.agent_id,
+                sql_thread_id=thread_id,
+                error=str(e),
+            )
+            raise e
 
 
 async def _find_sdm_id_by_name(
@@ -701,64 +715,3 @@ async def _find_sdm_id_by_name(
             return sdm_id
 
     return None
-
-
-def _create_sql_agent(kernel: "Kernel") -> "Agent":
-    """Create a SQL agent for the kernel."""
-    from agent_platform.core.agent import Agent
-    from agent_platform.core.agent.agent_architecture import AgentArchitecture
-
-    runbook = _read_sql_generation_runbook()
-    return Agent(
-        # Include the parent agent's thread ID to help identify this Agent in logs
-        name=f"SQL Generation Agent: {kernel.thread.thread_id}",
-        description="Generates SQL from natural language queries",
-        user_id=kernel.user.user_id,
-        runbook_structured=runbook,
-        platform_configs=kernel.agent.platform_configs,
-        # We always use the exp_1 arch for the SQL-gen agent.
-        agent_architecture=AgentArchitecture(
-            name="agent_platform.architectures.experimental_1", version="2.0.0"
-        ),
-        extra={
-            "agent_settings": {
-                "enable_data_frames": False,
-                "enable_sql_generation": True,
-            }
-        },
-        version="1.0.0",
-    )
-
-
-def _read_sql_generation_runbook() -> "Runbook":
-    """Load the SQL generation runbook from the bundled resources.
-
-    Uses importlib.resources for development and sys._MEIPASS for PyInstaller
-    bundled environments.
-
-    Returns:
-        The SQL generation runbook as a Runbook object.
-    """
-    import sys
-    from datetime import UTC, datetime
-    from pathlib import Path
-
-    from agent_platform.core.runbook import Runbook
-    from agent_platform.server.constants import IS_FROZEN
-
-    if IS_FROZEN:
-        # PyInstaller bundle - use sys._MEIPASS
-        base_path = Path(getattr(sys, "_MEIPASS"))  # noqa: B009
-        runbook_path = (
-            base_path / "agent_platform" / "server" / "semantic_data_models" / "runbook.md"
-        )
-        content = runbook_path.read_text(encoding="utf-8")
-    else:
-        # Development environment - use importlib.resources
-        from importlib import resources
-
-        package_resources = resources.files("agent_platform.server.semantic_data_models")
-        runbook_resource = package_resources / "runbook.md"
-        content = runbook_resource.read_text(encoding="utf-8")
-
-    return Runbook(raw_text=content, content=[], updated_at=datetime.now(UTC))

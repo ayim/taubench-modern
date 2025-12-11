@@ -39,16 +39,6 @@ def _get_runbook_path() -> Path:
 RUNBOOK_PATH = _get_runbook_path()
 
 
-def _has_required_metadata(candidate_metadata: object) -> bool:
-    """Check if candidate metadata contains at least the required entries."""
-    if not isinstance(candidate_metadata, dict):
-        return False
-
-    return all(
-        candidate_metadata.get(key) == value for key, value in SQL_GENERATION_AGENT_METADATA.items()
-    )
-
-
 def _load_runbook() -> str:
     """Load runbook content from runbook.md in the sql_generation module."""
     try:
@@ -103,6 +93,50 @@ async def _get_preinstalled_agents_system_user_id(storage: "AbstractStorage") ->
         return system_user.user_id
 
 
+async def get_sql_generation_agent(storage: "AbstractStorage | None" = None) -> "Agent | None":
+    """Get the preinstalled SQL generation agent.
+
+    Args:
+        storage: Optional storage instance. If None, uses the singleton StorageService.
+
+    Returns:
+        The SQL generation Agent instance, or None if it does not exist.
+    """
+    if storage is None:
+        from agent_platform.server.storage import StorageService
+
+        storage = StorageService.get_instance()
+
+    # Find all pre-installed agents.
+    system_user_id = await _get_preinstalled_agents_system_user_id(storage)
+    system_user = await storage.get_user_by_id(system_user_id)
+
+    # Find the SQL generation agent from the agents owned by that pre-installed user.
+    system_agents = await storage.list_agents(system_user.user_id)
+    agent = next(
+        (candidate for candidate in system_agents if candidate.name == _SQL_GENERATION_AGENT_NAME),
+        None,
+    )
+
+    return agent
+
+
+def _agent_needs_update(existing: "Agent", desired: "Agent") -> bool:
+    """Check if the existing agent differs from the desired specification.
+
+    Note: platform_configs are not compared as they are user/system configured,
+    not part of the agent specification.
+    """
+    return (
+        existing.description != desired.description
+        or existing.version != desired.version
+        or existing.mode != desired.mode
+        or existing.extra != desired.extra
+        or existing.runbook_structured.raw_text != desired.runbook_structured.raw_text
+        or existing.agent_architecture.model_dump() != desired.agent_architecture.model_dump()
+    )
+
+
 async def ensure_sql_generation_agent(storage: "AbstractStorage | None" = None) -> None:
     """Ensure the SQL generation agent exists with the correct settings."""
 
@@ -116,37 +150,50 @@ async def ensure_sql_generation_agent(storage: "AbstractStorage | None" = None) 
 
     desired_agent = _build_sql_generation_agent(system_user.user_id)
 
+    # Find the agent by name and user_id
     system_agents = await storage.list_agents(system_user.user_id)
-    agent = next(
-        (
-            candidate
-            for candidate in system_agents
-            if candidate.user_id == system_user.user_id
-            and _has_required_metadata((candidate.extra or {}).get("metadata"))
-        ),
+    existing_agent = next(
+        (candidate for candidate in system_agents if candidate.name == _SQL_GENERATION_AGENT_NAME),
         None,
     )
 
-    # If agent exists, preserve its agent_id and name
-    if agent is not None:
-        agent_to_upsert = agent.copy(
-            description=SQL_GENERATION_AGENT_DESCRIPTION,
-            platform_configs=[],
-            agent_architecture=desired_agent.agent_architecture,
-            extra=desired_agent.extra,
-            mode="conversational",
+    # If agent doesn't exist, create it
+    if existing_agent is None:
+        await storage.upsert_agent(system_user.user_id, desired_agent)
+        logger.info(
+            "SQL generation agent created",
+            agent_id=desired_agent.agent_id,
+            agent_name=desired_agent.name,
+            system_user_id=system_user.user_id,
             version=SQL_GENERATION_AGENT_VERSION,
+        )
+        return
+
+    # If agent exists but needs update, upsert with preserved agent_id and platform_configs
+    if _agent_needs_update(existing_agent, desired_agent):
+        agent_to_upsert = existing_agent.copy(
+            description=desired_agent.description,
+            version=desired_agent.version,
+            mode=desired_agent.mode,
+            extra=desired_agent.extra,
+            runbook_structured=desired_agent.runbook_structured,
+            agent_architecture=desired_agent.agent_architecture,
             updated_at=datetime.now(UTC),
+            # Note: platform_configs are preserved from existing_agent
+        )
+        await storage.upsert_agent(system_user.user_id, agent_to_upsert)
+        logger.info(
+            "SQL generation agent updated",
+            agent_id=agent_to_upsert.agent_id,
+            agent_name=agent_to_upsert.name,
+            system_user_id=system_user.user_id,
+            version=SQL_GENERATION_AGENT_VERSION,
         )
     else:
-        agent_to_upsert = desired_agent
-
-    await storage.upsert_agent(system_user.user_id, agent_to_upsert)
-    logger.info(
-        "SQL generation agent is updated",
-        agent_id=agent_to_upsert.agent_id,
-        agent_name=agent_to_upsert.name,
-        system_user_id=system_user.user_id,
-        version=SQL_GENERATION_AGENT_VERSION,
-        existed=agent is not None,
-    )
+        logger.debug(
+            "SQL generation agent already up to date",
+            agent_id=existing_agent.agent_id,
+            agent_name=existing_agent.name,
+            system_user_id=system_user.user_id,
+            version=SQL_GENERATION_AGENT_VERSION,
+        )
