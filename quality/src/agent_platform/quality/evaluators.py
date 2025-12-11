@@ -12,7 +12,17 @@ from agent_platform.quality.models import WorkitemResult
 if TYPE_CHECKING:
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
-    from agent_platform.quality.models import Evaluation, Message, TestResult
+    from agent_platform.quality.models import (
+        CountMessagesEvaluation,
+        Evaluation,
+        LLMEvalEvaluation,
+        Message,
+        SQLGenerationResultEvaluation,
+        SQLGoldenComparisonEvaluation,
+        TestResult,
+        ToolCallEvaluation,
+        WorkitemResultEvaluation,
+    )
 
 logger = structlog.get_logger(__name__)
 
@@ -51,22 +61,31 @@ class EvaluatorEngine:
             workitem: Optional workitem result for workitem evaluations.
             thread_files: Optional list of UploadedFile objects from the thread.
         """
-        from agent_platform.quality.models import TestResult
+        from agent_platform.quality.models import (
+            CountMessagesEvaluation,
+            LLMEvalEvaluation,
+            SQLGenerationResultEvaluation,
+            SQLGoldenComparisonEvaluation,
+            TestResult,
+            ToolCallEvaluation,
+            WorkitemResultEvaluation,
+        )
 
         logger.debug("Running evaluation", kind=evaluation.kind, num_messages=len(agent_messages))
 
         try:
-            if evaluation.kind == "count-messages-in-last-agent-turn":
+            # Use isinstance to narrow the type for each evaluation kind
+            if isinstance(evaluation, CountMessagesEvaluation):
                 result = await self._evaluate_message_count(evaluation, agent_messages)
-            elif evaluation.kind == "llm-eval-of-last-agent-turn":
+            elif isinstance(evaluation, LLMEvalEvaluation):
                 result = await self._evaluate_with_llm(evaluation, agent_messages)
-            elif evaluation.kind == "tool-call-evaluation":
+            elif isinstance(evaluation, ToolCallEvaluation):
                 result = await self._evaluate_tool_calls(evaluation, agent_messages)
-            elif evaluation.kind == "sql-generation-result":
+            elif isinstance(evaluation, SQLGenerationResultEvaluation):
                 result = await self._evaluate_sql_generation_result(evaluation, thread_files)
-            elif evaluation.kind == "sql-golden-comparison":
+            elif isinstance(evaluation, SQLGoldenComparisonEvaluation):
                 result = await self._evaluate_sql_golden_comparison(evaluation, thread_files)
-            elif evaluation.kind == "workitem-result-evaluation":
+            elif isinstance(evaluation, WorkitemResultEvaluation):
                 if workitem is None:
                     raise ValueError("Workitem is missing, cannot be evaluated")
                 result = await self._evaluate_workitem_result(evaluation, workitem)
@@ -75,7 +94,7 @@ class EvaluatorEngine:
                     evaluation=evaluation,
                     passed=False,
                     actual_value=None,
-                    error=f"Unknown evaluation kind: {evaluation.kind}",
+                    error=f"Unknown evaluation type: {type(evaluation)}",
                 )
 
             logger.info(
@@ -91,7 +110,7 @@ class EvaluatorEngine:
             return TestResult(evaluation=evaluation, passed=False, actual_value=None, error=str(e))
 
     async def _evaluate_message_count(
-        self, evaluation: Evaluation, agent_messages: list[Message]
+        self, evaluation: CountMessagesEvaluation, agent_messages: list[Message]
     ) -> TestResult:
         """Evaluate the count of messages in the last agent turn."""
         from agent_platform.quality.models import TestResult
@@ -104,7 +123,7 @@ class EvaluatorEngine:
         )
 
     async def _evaluate_with_llm(
-        self, evaluation: Evaluation, agent_messages: list[Message]
+        self, evaluation: LLMEvalEvaluation, agent_messages: list[Message]
     ) -> TestResult:
         """Evaluate using LLM via the server's /prompts/generate endpoint."""
         from agent_platform.quality.models import TestResult
@@ -216,7 +235,7 @@ Only respond with the JSON object, no other text.
             )
 
     async def _evaluate_tool_calls(  # noqa: PLR0912 C901
-        self, evaluation: Evaluation, agent_messages: list[Message]
+        self, evaluation: ToolCallEvaluation, agent_messages: list[Message]
     ) -> TestResult:
         """Evaluate tool call usage in agent messages."""
         from agent_platform.quality.models import TestResult, ToolUse
@@ -230,110 +249,79 @@ Only respond with the JSON object, no other text.
                 if isinstance(content, ToolUse):
                     all_tool_calls.append(content)
 
-        # Handle the new structured format
-        if isinstance(expected, dict) and "calls" in expected:
-            expected_calls = expected["calls"]
+        # Get expected calls from the typed model
+        expected_calls = expected.calls
 
-            # Ensure calls is a list
-            if not isinstance(expected_calls, list):
-                return TestResult(
-                    evaluation=evaluation,
-                    passed=False,
-                    actual_value=None,
-                    error="Expected calls must be a list",
-                )
+        results = []
+        overall_passed = True
 
-            results = []
-            overall_passed = True
+        for expected_call in expected_calls:
+            # Extract expected call details
+            expected_package = expected_call.get("package", "")
+            expected_tool = expected_call.get("tool", "")
+            is_required = expected_call.get("required", True)
+            expected_args = expected_call.get("expected-args", {})
 
-            for expected_call in expected_calls:
-                # Extract expected call details
-                expected_package = expected_call.get("package", "")
-                expected_tool = expected_call.get("tool", "")
-                is_required = expected_call.get("required", True)
-                expected_args = expected_call.get("expected-args", {})
+            # Find matching tool calls
+            matching_calls = [
+                tool_call for tool_call in all_tool_calls if tool_call.tool_name == expected_tool
+            ]
 
-                # Find matching tool calls
-                matching_calls = [
-                    tool_call
-                    for tool_call in all_tool_calls
-                    if tool_call.tool_name == expected_tool
-                ]
+            call_found = len(matching_calls) > 0
+            args_match = True
 
-                call_found = len(matching_calls) > 0
-                args_match = True
+            # If tool call found, check arguments
+            if call_found and expected_args:
+                args_match = False
+                for tool_call in matching_calls:
+                    try:
+                        tool_input = json.loads(tool_call.input_as_string)
+                        call_args_match = True
 
-                # If tool call found, check arguments
-                if call_found and expected_args:
-                    args_match = False
-                    for tool_call in matching_calls:
-                        try:
-                            tool_input = json.loads(tool_call.input_as_string)
-                            call_args_match = True
+                        for key, expected_value in expected_args.items():
+                            if key not in tool_input:
+                                call_args_match = False
+                                break
 
-                            for key, expected_value in expected_args.items():
-                                if key not in tool_input:
+                            # Check value if specified
+                            if expected_value is not None:
+                                actual_value = tool_input[key]
+                                if isinstance(expected_value, str) and isinstance(
+                                    actual_value, str
+                                ):
+                                    # Case-insensitive string comparison
+                                    if expected_value.lower() != actual_value.lower():
+                                        call_args_match = False
+                                        break
+                                elif expected_value != actual_value:
                                     call_args_match = False
                                     break
 
-                                # Check value if specified
-                                if expected_value is not None:
-                                    actual_value = tool_input[key]
-                                    if isinstance(expected_value, str) and isinstance(
-                                        actual_value, str
-                                    ):
-                                        # Case-insensitive string comparison
-                                        if expected_value.lower() != actual_value.lower():
-                                            call_args_match = False
-                                            break
-                                    elif expected_value != actual_value:
-                                        call_args_match = False
-                                        break
+                        if call_args_match:
+                            args_match = True
+                            break
 
-                            if call_args_match:
-                                args_match = True
-                                break
+                    except json.JSONDecodeError:
+                        # Skip tool calls with malformed JSON
+                        continue
 
-                        except json.JSONDecodeError:
-                            # Skip tool calls with malformed JSON
-                            continue
+            # Determine if this expected call passed
+            call_passed = call_found and args_match
 
-                # Determine if this expected call passed
-                call_passed = call_found and args_match
+            # If this is a required call and it didn't pass, overall evaluation fails
+            if is_required and not call_passed:
+                overall_passed = False
 
-                # If this is a required call and it didn't pass, overall evaluation fails
-                if is_required and not call_passed:
-                    overall_passed = False
-
-                results.append(
-                    {
-                        "expected_package": expected_package,
-                        "expected_tool": expected_tool,
-                        "required": is_required,
-                        "call_found": call_found,
-                        "args_match": args_match,
-                        "passed": call_passed,
-                        "expected_args": expected_args,
-                        "matching_calls": [
-                            {
-                                "tool_name": tool_call.tool_name,
-                                "input": tool_call.input_as_string,
-                                "output": tool_call.output_as_string[:CONTENT_PREVIEW_LENGTH]
-                                + "..."
-                                if len(tool_call.output_as_string) > CONTENT_PREVIEW_LENGTH
-                                else tool_call.output_as_string,
-                            }
-                            for tool_call in matching_calls
-                        ],
-                    }
-                )
-
-            return TestResult(
-                evaluation=evaluation,
-                passed=overall_passed,
-                actual_value={
-                    "call_results": results,
-                    "all_tool_calls": [
+            results.append(
+                {
+                    "expected_package": expected_package,
+                    "expected_tool": expected_tool,
+                    "required": is_required,
+                    "call_found": call_found,
+                    "args_match": args_match,
+                    "passed": call_passed,
+                    "expected_args": expected_args,
+                    "matching_calls": [
                         {
                             "tool_name": tool_call.tool_name,
                             "input": tool_call.input_as_string,
@@ -341,23 +329,31 @@ Only respond with the JSON object, no other text.
                             if len(tool_call.output_as_string) > CONTENT_PREVIEW_LENGTH
                             else tool_call.output_as_string,
                         }
-                        for tool_call in all_tool_calls
+                        for tool_call in matching_calls
                     ],
-                },
+                }
             )
 
         return TestResult(
             evaluation=evaluation,
-            passed=False,
-            actual_value=None,
-            error=(
-                "Invalid tool call evaluation format - expected 'calls' "
-                "key with list of call specifications"
-            ),
+            passed=overall_passed,
+            actual_value={
+                "call_results": results,
+                "all_tool_calls": [
+                    {
+                        "tool_name": tool_call.tool_name,
+                        "input": tool_call.input_as_string,
+                        "output": tool_call.output_as_string[:CONTENT_PREVIEW_LENGTH] + "..."
+                        if len(tool_call.output_as_string) > CONTENT_PREVIEW_LENGTH
+                        else tool_call.output_as_string,
+                    }
+                    for tool_call in all_tool_calls
+                ],
+            },
         )
 
     async def _evaluate_workitem_result(
-        self, evaluation: Evaluation, workitem: WorkitemResult
+        self, evaluation: WorkitemResultEvaluation, workitem: WorkitemResult
     ) -> TestResult:
         from agent_platform.quality.models import TestResult
 
@@ -440,22 +436,13 @@ Only respond with the JSON object, no other text.
         return SQLGenerationContent.model_validate(response.json())
 
     async def _evaluate_sql_generation_result(  # noqa: C901, PLR0912
-        self, evaluation: Evaluation, thread_files: list[UploadedFile]
+        self, evaluation: SQLGenerationResultEvaluation, thread_files: list[UploadedFile]
     ) -> TestResult:
         """Evaluate SQL generation subagent results.
 
         The SQL subagent finalizes by uploading an output.json file to the thread
         containing a SQLGenerationContent model. This evaluator fetches that file
         and validates its contents against the expected criteria.
-
-        Expected format:
-            {
-                "status": "success" | "needs_info" | "failed",
-                "has_sql": true | false,
-                "sql_contains": ["pattern1", "pattern2"],
-                "sql_not_contains": ["pattern1"],
-                "assumptions_used": true | false,
-            }
         """
         from agent_platform.core.thread.content.sql_generation import SQLGenerationStatus
         from agent_platform.quality.models import TestResult
@@ -478,8 +465,8 @@ Only respond with the JSON object, no other text.
         failures: list[str] = []
 
         # Check status
-        if "status" in expected:
-            expected_status = SQLGenerationStatus(expected["status"])
+        if expected.status is not None:
+            expected_status = SQLGenerationStatus(expected.status)
             actual_status = sql_gen_content.status
             if actual_status == expected_status:
                 checks.append(True)
@@ -490,22 +477,21 @@ Only respond with the JSON object, no other text.
                 )
 
         # Check for logical SQL presence
-        if "has_sql" in expected:
+        if expected.has_sql is not None:
             sql = sql_gen_content.sql_query
             has_sql = sql is not None and sql != ""
-            if has_sql == expected["has_sql"]:
+            if has_sql == expected.has_sql:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
-                    f"Logical SQL presence mismatch: "
-                    f"expected={expected['has_sql']}, actual={has_sql}"
+                    f"Logical SQL presence mismatch: expected={expected.has_sql}, actual={has_sql}"
                 )
 
         # Check for patterns in SQL
-        if "sql_contains" in expected:
+        if expected.sql_contains is not None:
             sql = (sql_gen_content.sql_query or "").lower()
-            for pattern in expected["sql_contains"]:
+            for pattern in expected.sql_contains:
                 if pattern.lower() in sql:
                     checks.append(True)
                 else:
@@ -513,9 +499,9 @@ Only respond with the JSON object, no other text.
                     failures.append(f"SQL missing expected pattern: '{pattern}'")
 
         # Check for absence of patterns in logical SQL
-        if "sql_not_contains" in expected:
+        if expected.sql_not_contains is not None:
             sql = (sql_gen_content.sql_query or "").lower()
-            for pattern in expected["sql_not_contains"]:
+            for pattern in expected.sql_not_contains:
                 if pattern.lower() not in sql:
                     checks.append(True)
                 else:
@@ -523,16 +509,16 @@ Only respond with the JSON object, no other text.
                     failures.append(f"SQL contains unexpected pattern: '{pattern}'")
 
         # Check for assumptions
-        if "has_assumptions" in expected:
+        if expected.has_assumptions is not None:
             assumptions = sql_gen_content.assumptions_used
             has_assumptions = assumptions is not None and assumptions != ""
-            if has_assumptions == expected["has_assumptions"]:
+            if has_assumptions == expected.has_assumptions:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
                     f"Assumptions presence mismatch: "
-                    f"expected={expected['has_assumptions']}, actual={has_assumptions}"
+                    f"expected={expected.has_assumptions}, actual={has_assumptions}"
                 )
 
         passed = all(checks) if checks else False
@@ -551,27 +537,13 @@ Only respond with the JSON object, no other text.
         )
 
     async def _evaluate_sql_golden_comparison(
-        self, evaluation: Evaluation, thread_files: list[UploadedFile]
+        self, evaluation: SQLGoldenComparisonEvaluation, thread_files: list[UploadedFile]
     ) -> TestResult:
-        """Compare generated SQL against golden (expected) SQL using an LLM.
-
-        Expected format:
-            {
-                "golden_sql": "SELECT ... FROM ...",
-            }
-        """
+        """Compare generated SQL against golden (expected) SQL using an LLM."""
         from agent_platform.quality.models import TestResult
 
         expected = evaluation.expected
-        golden_sql = expected.get("golden_sql", "")
-
-        if not golden_sql:
-            return TestResult(
-                evaluation=evaluation,
-                passed=False,
-                actual_value=None,
-                error="No golden_sql provided in evaluation expected",
-            )
+        golden_sql = expected.golden_sql
 
         # Find SQL generation output.json in thread files
         sql_gen_content = await self._find_sql_generation_output(thread_files)

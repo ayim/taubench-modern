@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from pydantic import BaseModel
+
 from agent_platform.core.utils import SecretString
 
 if TYPE_CHECKING:
@@ -140,13 +142,94 @@ class Thread:
     messages: list[Message]
 
 
-@dataclass
-class Evaluation:
-    """An evaluation to run on a completed thread."""
+# Pydantic models for evaluations
 
-    kind: str
-    expected: Any
-    description: str
+
+class SQLGenerationResultExpected(BaseModel):
+    """Expected structure for sql-generation-result evaluation.
+
+    Validates the structure of SQL generation subagent output.
+    """
+
+    status: Literal["success", "needs_info", "failed"] | None = None
+    has_sql: bool | None = None
+    sql_contains: list[str] | None = None
+    sql_not_contains: list[str] | None = None
+    has_assumptions: bool | None = None
+
+
+class SQLGoldenComparisonExpected(BaseModel):
+    """Expected structure for sql-golden-comparison evaluation.
+
+    Compares generated SQL against a golden (expected) SQL query.
+    """
+
+    golden_sql: str
+
+
+class ToolCallExpected(BaseModel):
+    """Expected structure for tool-call-evaluation."""
+
+    calls: list[dict[str, Any]]
+
+
+class CountMessagesEvaluation(BaseModel):
+    """Evaluation for counting messages in the last agent turn."""
+
+    kind: Literal["count-messages-in-last-agent-turn"]
+    expected: int
+    description: str = ""
+
+
+class LLMEvalEvaluation(BaseModel):
+    """Evaluation using LLM to evaluate agent responses."""
+
+    kind: Literal["llm-eval-of-last-agent-turn"]
+    expected: str  # The criteria as a string
+    description: str = ""
+
+
+class ToolCallEvaluation(BaseModel):
+    """Evaluation for tool call usage."""
+
+    kind: Literal["tool-call-evaluation"]
+    expected: ToolCallExpected
+    description: str = ""
+
+
+class SQLGenerationResultEvaluation(BaseModel):
+    """Evaluation for SQL generation subagent results."""
+
+    kind: Literal["sql-generation-result"]
+    expected: SQLGenerationResultExpected
+    description: str = ""
+
+
+class SQLGoldenComparisonEvaluation(BaseModel):
+    """Evaluation comparing generated SQL against golden SQL."""
+
+    kind: Literal["sql-golden-comparison"]
+    expected: SQLGoldenComparisonExpected
+    description: str = ""
+
+
+class WorkitemResultEvaluation(BaseModel):
+    """Evaluation for workitem results."""
+
+    kind: Literal["workitem-result-evaluation"]
+    expected: str  # The expected status
+    description: str = ""
+
+
+# Discriminated union of all evaluation types
+Evaluation = (
+    CountMessagesEvaluation
+    | LLMEvalEvaluation
+    | ToolCallEvaluation
+    | SQLGenerationResultEvaluation
+    | SQLGoldenComparisonEvaluation
+    | WorkitemResultEvaluation
+)
 
 
 @dataclass
@@ -308,13 +391,12 @@ class TestCase:
             )
         ]
 
-        # Parse evaluations
+        # Parse evaluations using Pydantic
+        from pydantic import TypeAdapter
+
+        evaluation_adapter = TypeAdapter(Evaluation)
         evaluations = [
-            Evaluation(
-                kind=eval_data["kind"],
-                expected=eval_data["expected"],
-                description=eval_data.get("description", ""),  # Use .get() with default
-            )
+            evaluation_adapter.validate_python(eval_data)
             for eval_data in data.get("evaluations", [])
         ]
 
