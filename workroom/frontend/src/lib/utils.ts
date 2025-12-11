@@ -119,6 +119,7 @@ export const beautifyLabel = (value: string): string => {
       .replace(/\blow\b/i, '(Low)')
       .replace(/\bminimal\b/i, '(Minimal)')
       .replace(/\bnone\b/i, '(None)')
+      .replace(/\bxhigh\b/i, '(Extra-High)')
       .replace(/\bopenai service\b/i, 'OpenAI Service')
       .replace(/\bamazon bedrock\b/i, 'Amazon Bedrock')
       .replace(/\bazure\b/i, 'Azure')

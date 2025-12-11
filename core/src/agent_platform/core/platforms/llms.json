@@ -294,6 +294,42 @@
       "median_time_to_first_answer_token": 0.894
     },
     {
+      "id": "285cccf9-a7fe-49b3-933f-f4880e7b1073",
+      "name": "GPT-5.2 (TODO: follow-up w/ AA results when available)",
+      "slug": "gpt-5-2",
+      "release_date": "2025-12-11",
+      "model_creator": {
+        "id": "e67e56e3-15cd-43db-b679-da4660a69f41",
+        "name": "OpenAI",
+        "slug": "openai"
+      },
+      "evaluations": {
+        "artificial_analysis_intelligence_index": 69.7,
+        "artificial_analysis_coding_index": 57.5,
+        "artificial_analysis_math_index": 94,
+        "mmlu_pro": 0.87,
+        "gpqa": 0.873,
+        "hle": 0.265,
+        "livecodebench": 0.868,
+        "scicode": 0.433,
+        "math_500": null,
+        "aime": null,
+        "aime_25": 0.94,
+        "ifbench": 0.729,
+        "lcr": 0.75,
+        "terminalbench_hard": 0.426,
+        "tau2": 0.819
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 3.438,
+        "price_1m_input_tokens": 1.25,
+        "price_1m_output_tokens": 10
+      },
+      "median_output_tokens_per_second": 109.784,
+      "median_time_to_first_token_seconds": 27.833,
+      "median_time_to_first_answer_token": 27.833
+    },
+    {
       "id": "4dc12a38-b18f-4c43-8e1b-678f8434b5b1",
       "name": "GPT-5.1 (high)",
       "slug": "gpt-5-1",

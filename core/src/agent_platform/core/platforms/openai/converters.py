@@ -417,7 +417,9 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             # No model ID, default to medium effort
             return "medium"
 
-        if model_id.endswith("-high"):
+        if model_id.endswith("-xhigh"):
+            return "xhigh"
+        elif model_id.endswith("-high"):
             return "high"
         elif model_id.endswith("-medium"):
             return "medium"
@@ -492,7 +494,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             summary="detailed",
         )
         if prompt.minimize_reasoning:
-            if model_id and model_id.startswith("gpt-5-1"):
+            if model_id and (model_id.startswith("gpt-5-1") or model_id.startswith("gpt-5-2")):
                 reasoning = Reasoning(
                     effort="none",
                     summary="concise",

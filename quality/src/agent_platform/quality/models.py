@@ -36,7 +36,7 @@ class Platform:
                     openai_api_key=SecretString(os.environ["OPENAI_API_KEY"]),
                     # TODO: read this from yaml configs, just trying to run on gpt-5 as a kind
                     # of integration test for now, but should be configurable
-                    models={"openai": ["gpt-5-1-low"]},
+                    models={"openai": ["gpt-5-2-low"]},
                 ).model_dump()
             case "azure":
                 from agent_platform.core.platforms.azure import AzureOpenAIPlatformParameters

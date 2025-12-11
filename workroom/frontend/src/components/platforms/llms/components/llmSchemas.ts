@@ -1,13 +1,17 @@
 import type { components } from '@sema4ai/agent-server-interface';
 import { z } from 'zod';
 export const OPENAI_MODEL_VALUES = [
-  'openai:gpt-5-1-high',
-  'openai:gpt-5-1-medium',
-  'openai:gpt-5-1-low',
-  'openai:gpt-5-1-none',
-  'openai:gpt-5-1-codex-high',
-  'openai:gpt-5-1-codex-medium',
-  'openai:gpt-5-1-codex-low',
+  'openai:gpt-5-2-xhigh',
+  'openai:gpt-5-2-high',
+  'openai:gpt-5-2-medium',
+  'openai:gpt-5-2-low',
+  'openai:gpt-5-2-none',
+  // We are _removing_ gpt 5.1 here, because we never deployed it e2e
+  // And we're flopping 5-1 codex to 5-1 codex max (because why use "non-max" version)
+  'openai:gpt-5-1-codex-max-xhigh',
+  'openai:gpt-5-1-codex-max-high',
+  'openai:gpt-5-1-codex-max-medium',
+  'openai:gpt-5-1-codex-max-low',
   'openai:gpt-5-high',
   'openai:gpt-5-medium',
   'openai:gpt-5-low',
