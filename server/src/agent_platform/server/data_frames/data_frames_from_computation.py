@@ -224,9 +224,12 @@ async def create_data_frame_from_sql_computation_api(  # noqa
     )
 
     # Update the data frame with the computed data frame now that it's materialized
+    # Note: We use sliced_data.columns for column info because resolved_df properties
+    # may not be populated correctly for all backend types (e.g., Redshift where ibis
+    # cannot infer schema from lazy SQL expressions until the query is executed)
     data_frame.num_rows = await resolved_df.num_rows()
-    data_frame.num_columns = resolved_df.num_columns
-    data_frame.column_headers = resolved_df.column_headers
+    data_frame.num_columns = len(sliced_data.columns)
+    data_frame.column_headers = list(sliced_data.columns)
     data_frame.patch_extra_data(sample_rows=sliced_data.rows[:DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT])
 
     # Save the data frame to storage

@@ -569,6 +569,169 @@ def test_agent_queries_semantic_data_model(
     assert len(result_str) > 0, f"Expected non-empty result from agent query, got: {result_str}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
+def test_data_frame_column_headers_populated(
+    agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
+    agent_and_thread_with_semantic_data_model: tuple[str, str],
+    created_semantic_data_model_id: str,
+    engine: str,
+    openai_api_key: str,
+):
+    """
+    Test that num_columns and column_headers are correctly populated after
+    creating a data frame from SQL computation.
+
+    This validates the fix for the lazy column resolution issue where some
+    backends (like Redshift) don't populate ibis expression columns until
+    query execution. The fix ensures column metadata is derived from the
+    materialized Table (sliced_data) rather than the lazy DataNodeResult.
+
+    Background:
+    - On some backends (e.g., Redshift), conn.sql().columns returns empty tuple
+      until the query is executed
+    - The fix ensures we use sliced_data.columns which is always populated
+      after materialization
+
+    Note: Snowflake uses uppercase edge case tables (CUSTOMERS_WITH_OBJECTS) due to
+    case sensitivity with quoted lowercase identifiers in the main schema.
+    """
+    import uuid
+    from dataclasses import asdict
+
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        DataConnectionInfo,
+        GenerateSemanticDataModelPayload,
+    )
+
+    client, data_connection = agent_server_client_with_data_connection
+
+    # For Snowflake, use edge case tables (uppercase) due to case sensitivity
+    if engine == "snowflake":
+        # Create separate agent and semantic model for Snowflake with edge case tables
+        agent_id = client.create_agent_and_return_agent_id(
+            name=f"Column Headers Test Agent {uuid.uuid4().hex[:8]}",
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4o"]},
+                }
+            ],
+            runbook=(
+                "You are an agent that creates data frames using data_frames_create_from_sql. "
+                "Use the semantic data model to answer questions."
+            ),
+        )
+
+        # Inspect Snowflake edge case table (uppercase, works with Snowflake)
+        assert data_connection.id is not None
+        inspect_response = client.inspect_data_connection(
+            connection_id=data_connection.id,
+            tables_to_inspect=[
+                {
+                    "name": "CUSTOMERS_WITH_OBJECTS",
+                    "database": None,
+                    "schema": None,
+                    "columns_to_inspect": None,
+                },
+            ],
+        )
+
+        # Generate and create semantic model
+        payload = GenerateSemanticDataModelPayload(
+            name=f"column_headers_snowflake_{uuid.uuid4().hex[:8]}",
+            description="Test model for column headers validation on Snowflake",
+            data_connections_info=[
+                DataConnectionInfo(
+                    data_connection_id=data_connection.id,
+                    tables_info=inspect_response["tables"],
+                ),
+            ],
+            files_info=[],
+            agent_id=agent_id,
+        )
+        generated_model = client.generate_semantic_data_model(asdict(payload))
+        created_model = client.create_semantic_data_model(generated_model)
+        model_id = created_model["semantic_data_model_id"]
+
+        # Assign model to agent and create thread
+        client.set_agent_semantic_data_models(agent_id, [model_id])
+        thread_id = client.create_thread_and_return_thread_id(agent_id)
+
+        query = "Show all customers with their addresses, limited to 5 rows."
+    else:
+        # Use the shared fixtures for other databases
+        agent_id, thread_id = agent_and_thread_with_semantic_data_model
+
+        # Verify the model was assigned to the agent
+        agent_models = client.get_agent_semantic_data_models(agent_id)
+        assert len(agent_models) == 1
+        assert created_semantic_data_model_id in agent_models[0]
+
+        query = "Show all customers, limited to 5 rows."
+
+    # Send a simple query that will create a data frame
+    result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
+
+    print(f"\nQuery: {query}")
+    print(f"Result: {result}")
+    print(f"Tool calls: {[tc.tool_name for tc in tool_calls]}")
+
+    # Find successful data_frames_create_from_sql tool calls
+    sql_tool_calls = [tc for tc in tool_calls if tc.tool_name == "data_frames_create_from_sql"]
+    assert len(sql_tool_calls) > 0, (
+        f"Expected data_frames_create_from_sql call. Got: {[tc.tool_name for tc in tool_calls]}"
+    )
+
+    # Get the last successful call
+    successful_sql_calls = [tc for tc in sql_tool_calls if tc.error is None]
+    assert len(successful_sql_calls) > 0, (
+        f"No successful SQL queries. Errors: {[tc.error for tc in sql_tool_calls]}"
+    )
+    sql_tool_call = successful_sql_calls[-1]
+
+    # Get data frame name from tool input
+    data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
+    assert data_frame_name, f"Tool input missing new_data_frame_name: {sql_tool_call.input_data}"
+
+    # Get the data frame and verify column metadata
+    data_frames = client.get_data_frames(thread_id)
+    matching_df = next((df for df in data_frames if df["name"] == data_frame_name), None)
+    assert matching_df is not None, f"Data frame {data_frame_name} not found in thread"
+
+    # Validate that column headers are populated
+    num_columns = matching_df.get("num_columns", 0)
+    column_headers = matching_df.get("column_headers", [])
+
+    # num_columns should be > 0
+    assert num_columns > 0, (
+        f"num_columns should be > 0 on {engine}, got {num_columns}. "
+        "This indicates the lazy column resolution bug."
+    )
+
+    # column_headers should not be empty
+    assert len(column_headers) > 0, (
+        f"column_headers should not be empty on {engine}, got {column_headers}. "
+        "This indicates the lazy column resolution bug."
+    )
+
+    # num_columns should match column_headers length
+    assert num_columns == len(column_headers), (
+        f"num_columns ({num_columns}) should match len(column_headers) ({len(column_headers)})"
+    )
+
+    # Verify we got reasonable column count
+    assert num_columns >= 2, f"Expected at least 2 columns, got {num_columns}"
+
+    # Verify we have column names (not empty strings)
+    for col in column_headers:
+        assert col, f"Column header should not be None/empty, got: {column_headers}"
+        assert len(col) > 0, f"Column header should not be empty string, got: {column_headers}"
+
+    print(f"\n✓ {engine}: num_columns={num_columns}, column_headers={column_headers}")
+
+
 # ============================================================================
 # Tests for SDM Enhancer Update Functionality
 # ============================================================================
