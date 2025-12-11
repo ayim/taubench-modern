@@ -226,6 +226,9 @@ endif
 test-docint: sync  ## Run only Spar DocInt tests
 	VCR_RECORD=none uv run pytest -v -m "spar and not semantic_data_models"
 
+test-sdm: sync  ## Run semantic data model tests in parallel by database engine
+	uv run pytest -v -m "semantic_data_models" -n 4 --dist loadscope --durations=50 --durations-min=1
+
 test-vcr-record-new:  check-env ## Run tests with pytest and record VCR cassettes for new requests
 	@NUM_EXISTING_CASSETTES=$$(find core/tests/fixtures/vcr_cassettes/ -type f | wc -l); \
 	echo "Found $$NUM_EXISTING_CASSETTES existing cassettes!"; \
