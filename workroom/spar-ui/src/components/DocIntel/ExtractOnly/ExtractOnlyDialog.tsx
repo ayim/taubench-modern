@@ -9,6 +9,7 @@ import { extractedDataToBlocks } from '../shared/utils';
 import type { ExtractSchemaResponse, ExtractResponse } from '../shared/types';
 import { usePdfAnnotations } from '../shared/hooks/usePdfAnnotations';
 import { useExtractDialogState } from './hooks/useExtractDialogState';
+import { RegenerateFileSchemaDialog } from '../shared/components/RegenerateFileSchemaDialog';
 
 /**
  * Dialog for extracting structured data from documents without saving to database.
@@ -40,6 +41,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   const [activeTab, setActiveTab] = useState<number>(0);
   const [openExitConfirmation, setOpenExitConfirmation] = useState(false);
   const { panelWidth, handleMouseDown, minPanelWidth } = useResizablePanel();
+  const [openRetryExtract, setOpenRetryExtract] = useState(false);
 
   // Annotation mode state
   const [isAnnotating, setIsAnnotating] = useState(false);
@@ -221,6 +223,18 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     };
   }, [isOpen]);
 
+  const handleGenerateSchemaAndExtract = useCallback(
+    async (...args: Parameters<typeof handleGenerateSchema>) =>
+      handleGenerateSchema(...args).then((schemaResponse) => {
+        if (schemaResponse) {
+          hasInitialized.current = true;
+          return handleExtract(schemaResponse);
+        }
+        return null;
+      }),
+    [handleGenerateSchema, handleExtract],
+  );
+
   // Initialize data once on mount: use provided initial data or generate fresh
   useEffect(() => {
     if (hasInitialized.current) {
@@ -234,12 +248,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     }
 
     if (file && !currentSchema && !isGeneratingSchema) {
-      handleGenerateSchema().then((schemaResponse) => {
-        if (schemaResponse) {
-          handleExtract(schemaResponse);
-          hasInitialized.current = true;
-        }
-      });
+      handleGenerateSchemaAndExtract();
     }
   }, [
     file,
@@ -247,11 +256,11 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     schema,
     extractResult,
     isGeneratingSchema,
-    handleGenerateSchema,
-    handleExtract,
+    handleGenerateSchemaAndExtract,
     initializeFromExisting,
   ]);
 
+  const shouldAllowRegenerating = !isGeneratingSchema && !isExtracting;
   return (
     <>
       <Dialog open={isOpen} onClose={handleClose} size="full-screen">
@@ -401,6 +410,11 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                         Re-Run Extract
                       </Button>
                     )}
+                    {shouldAllowRegenerating && (
+                      <Button variant="outline" onClick={() => setOpenRetryExtract(true)} round>
+                        Regenerate
+                      </Button>
+                    )}
                     <Button variant="secondary" onClick={handleClose} round>
                       Close
                     </Button>
@@ -411,6 +425,17 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
           </Box>
         </Dialog.Content>
       </Dialog>
+
+      <RegenerateFileSchemaDialog
+        open={openRetryExtract}
+        onClose={() => setOpenRetryExtract(false)}
+        fileName={file.name}
+        threadId={threadId}
+        agentId={agentId}
+        onGenerateSchema={handleGenerateSchemaAndExtract}
+        isGeneratingSchema={isGeneratingSchema}
+        isExtracting={isExtracting}
+      />
 
       <Dialog open={openExitConfirmation} onClose={() => setOpenExitConfirmation(false)} size="medium">
         <Dialog.Header>

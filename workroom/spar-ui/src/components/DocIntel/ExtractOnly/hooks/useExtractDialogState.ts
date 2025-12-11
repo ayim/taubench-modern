@@ -69,27 +69,32 @@ export const useExtractDialogState = ({
     };
   }, [extractResult, currentSchema, hasChanges]);
 
-  const handleGenerateSchema = useCallback(async () => {
-    try {
-      const result = await generateSchema({
-        agentId,
-        threadId,
-        formData: file,
-        instructions: '', // TODO: User needs to be able to provide a system prompt.
-      });
+  const handleGenerateSchema = useCallback(
+    async (generatePayload?: { instructions?: string; force: boolean }) => {
+      try {
+        const result = await generateSchema({
+          agentId,
+          threadId,
+          formData: file,
+          instructions: generatePayload?.instructions ?? '',
+          force: generatePayload?.force ?? false,
+        });
 
-      setCurrentSchema(result.schema as ExtractionSchemaPayload);
-      return result;
-    } catch (err) {
-      addSnackbar({ message: (err as Error).message, variant: 'danger' });
-      throw err;
-    }
-  }, [file, threadId, agentId, generateSchema, addSnackbar]);
+        setCurrentSchema(result.schema as ExtractionSchemaPayload);
+        return result;
+      } catch (err) {
+        addSnackbar({ message: (err as Error).message, variant: 'danger' });
+        return null;
+      }
+    },
+    [file, threadId, agentId, generateSchema, addSnackbar],
+  );
 
   const handleExtract = useCallback(
     async (schemaResponse: ExtractSchemaResponse) => {
       try {
-        const extractionSchema = schemaResponse.schema as ExtractionSchemaPayload;
+        const extractionSchema = (schemaResponse.schema.extract_schema ??
+          schemaResponse.schema) as ExtractionSchemaPayload;
 
         const documentLayout: Partial<components['schemas']['DocumentLayoutPayload']> = {
           extraction_schema: extractionSchema,

@@ -19,6 +19,14 @@ const getLayoutQueryKey = (layoutName: string, dataModelName: string) => [
   layoutName,
   dataModelName,
 ];
+const getSchemaQueryKey = (agentId: string, threadId: string, fileName: string) => [
+  'document-intelligence',
+  'documents',
+  'schema',
+  agentId,
+  threadId,
+  fileName,
+];
 
 type CreateDataModelRequest = components['schemas']['CreateDataModelRequest'];
 type UpdateDataModelRequest = components['schemas']['UpdateDataModelRequest'];
@@ -520,6 +528,7 @@ export const useGenerateExtractionSchemaMutation = createSparMutation<
     agentId: string;
     formData: DocumentIntelligenceFileUpload;
     instructions: string;
+    force: boolean;
   }
 >()(({ sparAPIClient }) => ({
   mutationFn: async ({
@@ -527,12 +536,13 @@ export const useGenerateExtractionSchemaMutation = createSparMutation<
     agentId,
     formData,
     instructions,
+    force,
   }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/generate-schema'>> => {
     const response = await sparAPIClient.queryAgentServer(
       'post',
       '/api/v2/document-intelligence/documents/generate-schema',
       {
-        params: { query: { thread_id: threadId, agent_id: agentId } },
+        params: { query: { thread_id: threadId, agent_id: agentId, force } },
         body: { file: formData as unknown as string, instructions },
         bodySerializer(body: { file: string; instructions?: string | null }) {
           const formDataSerializer = new FormData();
@@ -550,3 +560,20 @@ export const useGenerateExtractionSchemaMutation = createSparMutation<
     return response.data;
   },
 }));
+
+export const getSchemaQueryOptions = createSparQueryOptions<{ fileName: string; agentId: string; threadId: string }>()(
+  ({ sparAPIClient, fileName, agentId, threadId }) => ({
+    queryKey: getSchemaQueryKey(agentId, threadId, fileName),
+    queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/documents/schema'>> => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/document-intelligence/documents/schema', {
+        params: { query: { file_name: fileName, agent_id: agentId, thread_id: threadId } },
+      });
+      if (!response.success) {
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+      }
+      return response.data;
+    },
+  }),
+);
+
+export const useGetSchemaQuery = createSparQuery(getSchemaQueryOptions);
