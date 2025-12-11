@@ -34,9 +34,10 @@ import { ImportWithErrors } from './components/ImportWithErrors';
 type Props = {
   onClose: () => void;
   modelId?: string;
+  initialStep?: ConfigurationStep;
 };
 
-export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initialModelId }) => {
+export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initialModelId, initialStep }) => {
   const [modelId, setModelId] = useState<string | undefined>(initialModelId);
   const { agentId } = useParams('/thread/$agentId');
   const confirmCloseAction = useConfirmAction(
@@ -49,9 +50,16 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     [],
   );
 
-  const [activeStep, setActiveStep] = useState<ConfigurationStep>(
-    initialModelId ? ConfigurationStep.ModelEdition : ConfigurationStep.DataConnection,
-  );
+  const initialStepValue = (() => {
+    if (typeof initialStep === 'number') {
+      return initialStep;
+    }
+
+    return initialModelId ? ConfigurationStep.ModelEdition : ConfigurationStep.DataConnection;
+  })();
+
+  const [activeStep, setActiveStep] = useState<ConfigurationStep>(initialStepValue);
+
   const { addSnackbar } = useSnackbar();
   const [databaseInspectionState, setDatabaseInspectionState] = useState<DatabaseInspectionState>({
     isLoading: false,
@@ -171,7 +179,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         });
 
         await inspectDataConnection(
-          { dataConnectionId },
+          { dataConnectionId, semanticModel },
           {
             onError: (error) => {
               setDatabaseInspectionState({
@@ -184,12 +192,22 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
               }
             },
             onSuccess: (inspectionResult) => {
-              setDatabaseInspectionState({
-                isLoading: false,
-                error: undefined,
-                inspectionResult,
-              });
-              formMethods.setValue('dataSelection', tablesToDataSelection(inspectionResult, semanticModel));
+              if ('inspectionMismatches' in inspectionResult) {
+                setDatabaseInspectionState({
+                  isLoading: false,
+                  error: 'The selected database is missing the tables or columns mapped in the imported data model.',
+                  inspectionResult,
+                });
+              } else {
+                setDatabaseInspectionState({
+                  isLoading: false,
+                  error: undefined,
+                  inspectionResult,
+                });
+                if (!initialModelId) {
+                  formMethods.setValue('dataSelection', tablesToDataSelection(inspectionResult, semanticModel));
+                }
+              }
             },
           },
         );

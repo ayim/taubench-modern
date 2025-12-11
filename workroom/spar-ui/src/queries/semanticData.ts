@@ -1,15 +1,9 @@
 import { z } from 'zod';
 import { DataConnection } from '@sema4ai/data-interface';
 
-import {
-  createSparMutation,
-  createSparQuery,
-  createSparQueryOptions,
-  QueryError,
-  ResourceType,
-  ServerResponse,
-} from './shared';
+import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
+import { InspectedTableInfo } from './dataConnections';
 
 // TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel
 
@@ -99,8 +93,6 @@ export const SemanticModel = z.object({
   verified_queries: z.array(VerifiedQuery).optional(),
 });
 export type SemanticModel = z.infer<typeof SemanticModel>;
-
-export type InspectedTableInfo = ServerResponse<'post', '/api/v2/data-connections/{connection_id}/inspect'>;
 
 /**
  * List Agent Semantic data models

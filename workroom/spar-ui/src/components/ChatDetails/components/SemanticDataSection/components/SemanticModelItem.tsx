@@ -13,11 +13,13 @@ import {
   useExportSemanticDataModelQuery,
   useUpdateSemanticDataModelMutation,
 } from '../../../../../queries/semanticData';
-import { useMessageStream, useParams } from '../../../../../hooks';
+import { useFeatureFlag, useMessageStream, useParams } from '../../../../../hooks';
 import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { downloadFile } from '../../../../../lib/utils';
 import { parseSemanticModelErrors, requiresDataConnection } from '../../../../../lib/SemanticDataModels';
 import { ErrorPopover } from './ErrorPopover';
+import { ConfigurationStep } from '../../../../SemanticData/SemanticDataConfiguration/components/form';
+import { SparUIFeatureFlag } from '../../../../../api';
 
 type Props = {
   model: SemanticModel;
@@ -50,6 +52,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { mutateAsync: exportSemanticDataModel } = useExportSemanticDataModelQuery({});
   const { addSnackbar } = useSnackbar();
   const { sendMessage } = useMessageStream({ agentId, threadId });
+  const { enabled: canConfigureAgents } = useFeatureFlag(SparUIFeatureFlag.canConfigureAgents);
 
   const onAddFile = useCallback(
     async (files: File[]) => {
@@ -145,11 +148,13 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
         {errors.hasConnectionError && (
           <ErrorPopover
             title="Connection Failed"
-            description="Unable to connect to the data source. Please check your configuration settings."
+            description={`Unable to connect to the data source. ${canConfigureAgents ? 'Please check your configuration settings.' : 'Please contact someone with the appropriate permissions.'}`}
             action={
-              <Button flex={1} round onClick={onToggleEditModel}>
-                Configure Connection
-              </Button>
+              canConfigureAgents && (
+                <Button flex={1} round onClick={onToggleEditModel}>
+                  Configure Connection
+                </Button>
+              )
             }
             level="error"
           />
@@ -171,9 +176,11 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
             title="Data Unavailable"
             description="Some data could not be matched or processed. Please review your model configuration and ensure the dataset is compatible."
             action={
-              <Button flex={1} round onClick={onToggleEditModel}>
-                Review
-              </Button>
+              canConfigureAgents && (
+                <Button flex={1} round onClick={onToggleEditModel}>
+                  Review
+                </Button>
+              )
             }
             level="error"
           />
@@ -186,7 +193,13 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
         <Menu.Item onClick={onExportModel}>Export</Menu.Item>
         <Menu.Item onClick={onDelete}>Delete</Menu.Item>
       </Menu>
-      {isConfigurationOpen && <SemanticDataConfiguration onClose={onToggleEditModel} modelId={model.id} />}
+      {isConfigurationOpen && (
+        <SemanticDataConfiguration
+          initialStep={errors.hasConnectionError ? ConfigurationStep.DataConnection : undefined}
+          onClose={onToggleEditModel}
+          modelId={model.id}
+        />
+      )}
       {isRenameDialogOpen && (
         <RenameDialog
           onClose={onToggleRenameDialog}

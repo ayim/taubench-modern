@@ -1,6 +1,16 @@
 import { DataConnection as DataConnectionBase } from '@sema4ai/data-interface';
 
-import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
+import {
+  createSparQueryOptions,
+  createSparQuery,
+  createSparMutation,
+  QueryError,
+  ResourceType,
+  ServerResponse,
+} from './shared';
+
+import { SemanticModel } from './semanticData';
+import { getTableDimensions } from '../lib/SemanticDataModels';
 
 export type DataConnection = DataConnectionBase & {
   id: string;
@@ -13,6 +23,9 @@ export type DataConnection = DataConnectionBase & {
  * List Data Connections query
  */
 export const dataConnectionsQueryKey = () => ['dataConnections'];
+export type InspectedTableInfo = ServerResponse<'post', '/api/v2/data-connections/{connection_id}/inspect'> & {
+  inspectionMismatches?: { table: string; columns: string[] }[];
+};
 
 export const dataConnectionsQueryOptions = createSparQueryOptions<object>()(({ sparAPIClient }) => ({
   queryKey: dataConnectionsQueryKey(),
@@ -141,33 +154,64 @@ export const useDeleteDataConnectionMutation = createSparMutation<
 /**
  * Inspect a database type data Connection data model
  */
-export const useDataConnectionDatabaseInspectMutation = createSparMutation<object, { dataConnectionId: string }>()(
-  ({ sparAPIClient }) => ({
-    mutationFn: async ({ dataConnectionId }) => {
-      const response = await sparAPIClient.queryAgentServer(
-        'post',
-        '/api/v2/data-connections/{connection_id}/inspect',
-        {
-          params: { path: { connection_id: dataConnectionId } },
-          body: {
-            tables_to_inspect: [],
-            inspect_columns: true,
-            n_sample_rows: 10,
-          },
-        },
-      );
+export const useDataConnectionDatabaseInspectMutation = createSparMutation<
+  object,
+  { dataConnectionId: string; semanticModel?: SemanticModel }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ dataConnectionId, semanticModel }) => {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/data-connections/{connection_id}/inspect', {
+      params: { path: { connection_id: dataConnectionId } },
+      body: {
+        tables_to_inspect: [],
+        inspect_columns: true,
+        n_sample_rows: 10,
+      },
+    });
 
-      if (!response.success) {
-        throw new QueryError(response.message || 'Failed to inspect data connection', {
-          code: response.code,
-          resource: ResourceType.DataConnection,
-        });
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to inspect data connection', {
+        code: response.code,
+        resource: ResourceType.DataConnection,
+      });
+    }
+
+    if (!semanticModel) {
+      return response.data;
+    }
+
+    const inspectionMismatches = semanticModel.tables.flatMap((table) => {
+      const tableExists = response.data.tables.find((curr) => curr.name === table.base_table.table);
+      if (!tableExists) {
+        return [
+          { table: table.base_table.table, columns: getTableDimensions(table).map((dimension) => dimension.expr) },
+        ];
       }
 
-      return response.data;
-    },
-  }),
-);
+      const columnMismatches = getTableDimensions(table).flatMap((dimension) => {
+        const columnExists = tableExists.columns.find((curr) => curr.name === dimension.expr);
+        if (!columnExists) {
+          return [dimension.expr];
+        }
+        return [];
+      });
+
+      if (columnMismatches.length > 0) {
+        return { table: table.base_table.table, columns: columnMismatches };
+      }
+
+      return [];
+    });
+
+    if (inspectionMismatches.length > 0) {
+      return {
+        inspectionMismatches,
+        tables: [],
+      };
+    }
+
+    return response.data;
+  },
+}));
 
 export const useDataConnectionFileInspectMutation = createSparMutation<
   object,

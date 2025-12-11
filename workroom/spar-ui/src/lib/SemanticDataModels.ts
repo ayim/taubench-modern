@@ -13,6 +13,7 @@ export const parseSemanticModelErrors = (model: SemanticModel) => {
       [
         SemanticDataValidationErrorKind.data_connection_connection_failed,
         SemanticDataValidationErrorKind.data_connection_table_access_error,
+        SemanticDataValidationErrorKind.data_connection_not_found,
       ].includes(error.kind),
     ),
   );

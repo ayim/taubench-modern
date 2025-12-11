@@ -1,7 +1,7 @@
 import { createContext, FC } from 'react';
 import z from 'zod';
 
-import { SemanticModel, InspectedTableInfo } from '../../../../queries/semanticData';
+import { SemanticModel, InspectedTableInfo } from '../../../../queries';
 import { getTableDimensions } from '../../../../lib/SemanticDataModels';
 
 export enum DataSourceType {

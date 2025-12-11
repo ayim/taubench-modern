@@ -7,11 +7,7 @@ import { SelectControlled } from '../../../../../../common/form/SelectControlled
 import { DataConnectionIcon } from '../../../../../DataConnection/components/DataConnectionIcon';
 import { DataConnectionFormSchema } from '../../form';
 
-type Props = {
-  errorMessage?: string;
-};
-
-export const DataConnectionSelect: FC<Props> = ({ errorMessage }) => {
+export const DataConnectionSelect: FC = () => {
   const { data: dataConnections = [] } = useDataConnectionsQuery({});
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
   const { data: supportedSemanticDataEngines = [], isLoading: isLoadingSupportedSemanticDataEngines } =
@@ -46,7 +42,6 @@ export const DataConnectionSelect: FC<Props> = ({ errorMessage }) => {
         label: dataConnection.name,
         value: dataConnection.id,
       }))}
-      explicitError={errorMessage}
       renderItem={({ item }) => {
         const engine = dataConnections.find((dataConnection) => dataConnection.id === item.value)?.engine;
         return (
