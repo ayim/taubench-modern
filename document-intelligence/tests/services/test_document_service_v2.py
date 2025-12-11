@@ -280,11 +280,16 @@ class TestDocumentServiceV2:
         self, document_service_v2, sample_document: DocumentV2, persistence_service
     ):
         """Test that cached data can be deserialized back to ParseResponse."""
+        from sema4ai_docint.services.persistence import DocumentOperationType
+
         # Parse document to populate cache
         original_result = await document_service_v2.parse(sample_document)
 
-        # Load from cache directly
-        cached_bytes = await persistence_service.load(sample_document.file_name)
+        # Load from cache directly using the correct cache key
+        cache_key = persistence_service.cache_key_for(
+            sample_document.file_name, DocumentOperationType.PARSE
+        )
+        cached_bytes = await persistence_service.load(cache_key)
         assert cached_bytes is not None
 
         # Deserialize cached data

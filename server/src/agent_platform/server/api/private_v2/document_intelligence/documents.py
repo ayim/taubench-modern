@@ -18,7 +18,6 @@ from agent_platform.core.payloads.document_intelligence import (
     ParseJobResult,
 )
 from agent_platform.server.api.dependencies import (
-    AgentServerClientDependency,
     AsyncExtractionClientDependency,
     CachingDIServiceDependency,
     DIDependency,
@@ -197,22 +196,73 @@ def add_citation_docs(func):
     return func
 
 
+@router.get("/documents/schema")
+async def get_extraction_schema_for_document(  # noqa: PLR0913
+    user: AuthedUser,
+    file_name: Annotated[str, Query(description="The file name/reference to get the schema for")],
+    agent_id: str,
+    thread_id: str,
+    storage: StorageDependency,
+    di_service_with_persistence: CachingDIServiceDependency,
+) -> GenerateSchemaResponsePayload:
+    """Get a cached extraction schema for a document.
+
+    This endpoint retrieves a previously generated schema from the cache.
+    If no schema exists for the given file, returns 404.
+    """
+    from sema4ai_docint import DIService
+
+    # Get the thread
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+
+    # Verify the file exists in thread storage
+    file = await storage.get_file_by_ref(thread, file_name, user.user_id)
+    if not file:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"File {file_name} not found in thread {thread_id}",
+        )
+
+    di_service = cast(DIService, di_service_with_persistence)
+
+    # Get cached schema using DIService
+    doc = await di_service.document_v2.new_document(file.file_ref)
+    schema = await di_service.document_v2.get_schema(doc)
+
+    if schema is None:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=f"No cached schema found for file {file_name}",
+        )
+
+    # Return the schema to the caller
+    return GenerateSchemaResponsePayload(schema=schema)
+
+
 @router.post("/documents/generate-schema")
 async def generate_extraction_schema_from_document(  # noqa: PLR0913
-    file: UploadFile | str,
-    thread_id: str,
     user: AuthedUser,
+    file: UploadFile | str,
+    agent_id: str,
+    thread_id: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
-    agent_server_client: AgentServerClientDependency,
+    di_service_with_persistence: CachingDIServiceDependency,
     force: Annotated[bool, Query(description="Force re-generation of the schema.")] = False,
     instructions: Annotated[str, Form(...)] = "",
 ) -> GenerateSchemaResponsePayload:
-    """Generate an extraction schema from a document."""
+    """Generate an extraction schema from a document.
+
+    This endpoint uses DIService with automatic caching. Schemas are cached in thread
+    storage and reused unless force=True is specified.
+    """
+    from sema4ai_docint import DIService
+
+    # Get the thread
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
-    # Get the file we want to generate a schema for
-    uploaded_file, new_file = await _get_or_upload_file(
+    # Always put the file in Agent thread storage
+    uploaded_file, _ = await _get_or_upload_file(
         file,
         thread=thread,
         user_id=user.user_id,
@@ -220,44 +270,18 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
         file_manager=file_manager,
     )
 
-    # Set up cache for schema storage
-    schema_cache = ThreadFileCache[SchemaWithPrompt, ...](
-        storage=storage,
-        file_manager=file_manager,
-        key_strategy=SchemaCacheKeyStrategy(),
-    )
+    di_service = cast(DIService, di_service_with_persistence)
 
-    # Try to get cached schema if not forcing regeneration
-    if not force:
-        cached_schema = await schema_cache.get(
-            thread=thread,
-            user_id=user.user_id,
-            model_class=SchemaWithPrompt,
-            file_ref=uploaded_file.file_ref,
-            prompt=instructions,
-        )
-        if cached_schema:
-            return GenerateSchemaResponsePayload(schema=cached_schema.extract_schema)
-
-    # Generate a new schema
-    schema = await run_in_threadpool(
-        agent_server_client.generate_schema,
-        uploaded_file.file_ref,
+    # Generate schema using DIService with automatic caching
+    doc = await di_service.document_v2.new_document(uploaded_file.file_ref)
+    schema = await di_service.document_v2.generate_schema(
+        doc,
+        force_reload=force,
         user_prompt=instructions,
     )
 
-    # Save the schema to cache
-    await schema_cache.set(
-        thread=thread,
-        user_id=user.user_id,
-        data=SchemaWithPrompt(extract_schema=schema),
-        file_ref=uploaded_file.file_ref,
-    )
-
     # Return the schema to the caller
-    return GenerateSchemaResponsePayload(
-        schema=schema,
-    )
+    return GenerateSchemaResponsePayload(schema=schema)
 
 
 @router.post("/documents/parse")

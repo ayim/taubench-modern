@@ -1037,6 +1037,42 @@ class AgentServerClient:
 
         return GenerateSchemaResponsePayload(**response.json())
 
+    def get_extraction_schema(
+        self, file_ref: str, thread_id: str, agent_id: str
+    ) -> GenerateSchemaResponsePayload:
+        """Get a cached extraction schema for a document.
+
+        Args:
+            file_ref: Reference to the file
+            thread_id: ID of the thread containing the file
+            agent_id: ID of the agent
+
+        Returns:
+            The cached schema if it exists
+
+        Raises:
+            HTTPError: If the schema doesn't exist (404) or other errors
+        """
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/documents/schema?agent_id={agent_id}&thread_id={thread_id}&file_name={file_ref}",
+        )
+
+        headers = {
+            "Accept": "application/json",
+        }
+
+        response = requests.get(url, headers=headers)
+
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error getting extraction schema: {response.status_code} {response.text}",
+            ) from e
+
+        return GenerateSchemaResponsePayload(**response.json())
+
     def parse_document(self, file_ref: str, agent_id: str, thread_id: str) -> ParseJobResult:
         """Parse a document using Document Intelligence.
 

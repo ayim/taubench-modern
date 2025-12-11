@@ -249,6 +249,10 @@ class _DocumentTools:
                 "(e.g., 'invoice.pdf' or 'document.docx'), not a file ID or path."
             ),
         ],
+        force_reload: Annotated[
+            bool,
+            "If True, bypass cache and force re-parsing of the document.",
+        ] = False,
     ) -> dict[str, Any]:
         """Parse a document into a structured format using Reducto.
 
@@ -258,23 +262,30 @@ class _DocumentTools:
         - Figures and images with descriptions
         - Metadata about the document
 
+        The parsed result is automatically cached in thread storage. Subsequent calls
+        with the same file_ref will return the cached result unless force_reload is True.
+
         Args:
             file_ref: The filename of the document to parse
+            force_reload: If True, bypass cache and re-parse the document
 
         Returns:
             A dictionary containing the parsed document content and metadata
         """
         from agent_platform.core.errors.base import PlatformHTTPError
-        from agent_platform.core.platforms.reducto.client import ReductoClient
-        from agent_platform.core.platforms.reducto.parameters import (
-            ReductoPlatformParameters,
-        )
-        from agent_platform.core.platforms.reducto.prompts import ReductoPrompt
-        from agent_platform.core.utils import SecretString
+        from agent_platform.server.kernel.kernel import AgentServerKernel
         from agent_platform.server.storage.errors import IntegrationNotFoundError
 
         try:
-            # Get Reducto integration configuration
+            # Verify we have an AgentServerKernel
+            kernel = self._kernel
+            if not isinstance(kernel, AgentServerKernel):
+                return {
+                    "error_code": "invalid_kernel",
+                    "message": "Kernel must be an AgentServerKernel instance",
+                }
+
+            # Get Reducto integration configuration to extract API key
             try:
                 reducto_integration = await self._storage.get_integration_by_kind("reducto")
             except IntegrationNotFoundError:
@@ -285,7 +296,6 @@ class _DocumentTools:
                     ),
                 }
 
-            # Extract settings
             from agent_platform.core.integrations.settings.reducto import ReductoSettings
 
             if not isinstance(reducto_integration.settings, ReductoSettings):
@@ -296,6 +306,8 @@ class _DocumentTools:
 
             reducto_settings = reducto_integration.settings
 
+            from agent_platform.core.utils import SecretString
+
             # Extract API key
             api_key = (
                 reducto_settings.api_key.get_secret_value()
@@ -303,27 +315,39 @@ class _DocumentTools:
                 else str(reducto_settings.api_key)
             )
 
-            # Initialize Reducto client with kernel for telemetry
-            reducto_client = ReductoClient(
-                parameters=ReductoPlatformParameters(
-                    reducto_api_url=reducto_settings.endpoint,
-                    reducto_api_key=SecretString(api_key),
+            # Build transport for DIService
+            from sema4ai_docint.agent_server_client.transport.memory import MemoryTransport
+
+            base_url = str(kernel.ctx.http.request.base_url).rstrip("/")
+            base_url = base_url.replace("ws://", "http://").replace("wss://", "https://")
+
+            transport = MemoryTransport(
+                base_url=base_url,
+                agent_id=kernel.agent.agent_id,
+                thread_id=kernel.thread.thread_id,
+                app=kernel.ctx.http.request.app,
+            )
+
+            # Build DIService with file-based persistence (same as UI endpoint)
+            from sema4ai_docint import build_di_service
+            from sema4ai_docint.services.persistence import ChatFilePersistenceService
+            from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
+
+            di_service = build_di_service(
+                datasource=None,
+                sema4_api_key=api_key,
+                agent_server_transport=transport,
+                persistence_service=ChatFilePersistenceService(
+                    chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
                 ),
             )
-            # Attach the kernel after initialization
-            reducto_client.attach_kernel(self._kernel)
 
-            # Create prompt for parsing
-            prompt = ReductoPrompt(operation="parse", file_name=file_ref)
+            # Parse using DIService with automatic caching
+            doc = await di_service.document_v2.new_document(file_ref)
+            parse_response = await di_service.document_v2.parse(doc, force_reload=force_reload)
 
-            # Generate response using Reducto
-            response = await reducto_client.generate_response(
-                prompt=prompt,
-                model="default",  # Reducto doesn't use model selection
-            )
-
-            # Convert response to dictionary
-            return response.model_dump()
+            # Convert response to LLM-friendly dictionary
+            return parse_response.model_dump()
 
         except PlatformHTTPError as e:
             return {
@@ -358,11 +382,18 @@ class _DocumentTools:
             str | None,
             "Optional additional instructions to guide the schema generation process.",
         ] = None,
+        force_reload: Annotated[
+            bool,
+            "If True, bypass cache and force re-generation of the schema.",
+        ] = False,
     ) -> dict[str, Any]:
         """Generate a JSON Schema from a document by analyzing its structure and content.
 
         This tool analyzes a document (PDF, DOCX, Excel, images, etc.) and generates a JSON Schema
         that describes the document's data structure.
+
+        The generated schema is automatically cached in thread storage. Subsequent calls
+        with the same file_ref will return the cached result unless force_reload is True.
 
         Args:
             file_ref: The filename of the document to analyze
@@ -370,16 +401,49 @@ class _DocumentTools:
             start_page: Optional starting page for analysis (1-indexed, PDF/TIFF only)
             end_page: Optional ending page for analysis (1-indexed, PDF/TIFF only)
             user_prompt: Optional additional instructions for schema generation
+            force_reload: If True, bypass cache and re-generate the schema
 
         Returns:
             The generated JSON Schema.
         """
-        from fastapi.concurrency import run_in_threadpool
-        from sema4ai_docint.agent_server_client.client import AgentServerClient
-        from sema4ai_docint.agent_server_client.transport.memory import MemoryTransport
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.server.storage.errors import IntegrationNotFoundError
 
         try:
             kernel = self._kernel
+            # Get Reducto integration configuration to extract API key
+            try:
+                reducto_integration = await self._storage.get_integration_by_kind("reducto")
+            except IntegrationNotFoundError:
+                return {
+                    "error_code": "reducto_not_configured",
+                    "message": (
+                        "Reducto integration is not configured. Please configure it first."
+                    ),
+                }
+
+            from agent_platform.core.integrations.settings.reducto import ReductoSettings
+
+            if not isinstance(reducto_integration.settings, ReductoSettings):
+                return {
+                    "error_code": "invalid_reducto_config",
+                    "message": "Reducto integration has invalid settings",
+                }
+
+            reducto_settings = reducto_integration.settings
+
+            from agent_platform.core.utils import SecretString
+
+            # Extract API key
+            api_key = (
+                reducto_settings.api_key.get_secret_value()
+                if isinstance(reducto_settings.api_key, SecretString)
+                else str(reducto_settings.api_key)
+            )
+
+            # Build transport for DIService
+            from sema4ai_docint.agent_server_client.transport.memory import MemoryTransport
+
             base_url = str(kernel.ctx.http.request.base_url).rstrip("/")
             base_url = base_url.replace("ws://", "http://").replace("wss://", "https://")
 
@@ -390,11 +454,25 @@ class _DocumentTools:
                 app=kernel.ctx.http.request.app,
             )
 
-            agent_server_client = await run_in_threadpool(AgentServerClient, transport=transport)
+            # Build DIService with file-based persistence (same as parse_document)
+            from sema4ai_docint import build_di_service
+            from sema4ai_docint.services.persistence import ChatFilePersistenceService
+            from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
 
-            schema = await run_in_threadpool(
-                agent_server_client.generate_schema,
-                file_ref,
+            di_service = build_di_service(
+                datasource=None,
+                sema4_api_key=api_key,
+                agent_server_transport=transport,
+                persistence_service=ChatFilePersistenceService(
+                    chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
+                ),
+            )
+
+            # Generate schema using DIService with automatic caching
+            doc = await di_service.document_v2.new_document(file_ref)
+            schema = await di_service.document_v2.generate_schema(
+                doc,
+                force_reload=force_reload,
                 start_page=start_page,
                 end_page=end_page,
                 user_prompt=user_prompt,
@@ -402,6 +480,11 @@ class _DocumentTools:
 
             return schema
 
+        except PlatformHTTPError as e:
+            return {
+                "error_code": str(e.response.code),
+                "message": e.response.message,
+            }
         except Exception as e:
             logger.exception("Error generating schema", error=e, file_ref=file_ref)
             return {

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from sema4ai_docint.services.persistence import DocumentOperationType
 from sema4ai_docint.services.persistence.directory import DirectoryPersistenceService
 
 
@@ -30,31 +31,44 @@ class TestDirectoryPersistenceService:
         assert service._directory == cache_dir
 
     async def test_cache_key_for_generates_correct_format(self, tmp_path):
-        """Test that _cache_key_for generates correct cache key format."""
+        """Test that cache_key_for generates correct cache key format for different operations."""
         service = DirectoryPersistenceService(tmp_path)
 
-        cache_key = service._cache_key_for("document.pdf")
+        # Test PARSE operation
+        cache_key = service.cache_key_for("document.pdf", DocumentOperationType.PARSE)
         assert cache_key == "document.pdf.parse.json"
 
-        cache_key = service._cache_key_for("invoice_001")
-        assert cache_key == "invoice_001.parse.json"
+        # Test SCHEMA operation
+        cache_key = service.cache_key_for("invoice_001.pdf", DocumentOperationType.SCHEMA)
+        assert cache_key == "invoice_001.pdf.schema.json"
 
-    async def test_path_for_generates_correct_file_paths(self, tmp_path):
-        """Test that _path_for generates correct file paths from cache keys."""
+        # Test EXTRACT operation
+        cache_key = service.cache_key_for("data.xlsx", DocumentOperationType.EXTRACT)
+        assert cache_key == "data.xlsx.extract.json"
+
+    async def test_file_paths_generated_correctly(self, tmp_path):
+        """Test that cache files are saved in the correct directory location."""
         cache_dir = tmp_path / "cache"
         service = DirectoryPersistenceService(cache_dir)
 
-        path = service._path_for("document.pdf")
-        expected = cache_dir / "document.pdf.parse.json"
-        assert path == expected
+        # Generate cache key and save data
+        cache_key = service.cache_key_for("document.pdf", DocumentOperationType.PARSE)
+        test_data = b'{"test": "data"}'
+        await service.save(cache_key, test_data)
+
+        # Verify file exists at expected path
+        expected_path = cache_dir / "document.pdf.parse.json"
+        assert expected_path.exists()
+        assert expected_path.read_bytes() == test_data
 
     async def test_save_and_load_round_trip(self, tmp_path):
         """Test basic save and load round-trip with bytes data."""
         service = DirectoryPersistenceService(tmp_path)
         test_data = b'{"test": "data", "number": 42}'
 
-        await service.save("test_doc.pdf", test_data)
-        loaded_data = await service.load("test_doc.pdf")
+        cache_key = service.cache_key_for("test_doc.pdf", DocumentOperationType.PARSE)
+        await service.save(cache_key, test_data)
+        loaded_data = await service.load(cache_key)
 
         assert loaded_data == test_data
 
@@ -62,7 +76,8 @@ class TestDirectoryPersistenceService:
         """Test that load returns None for non-existent keys."""
         service = DirectoryPersistenceService(tmp_path)
 
-        result = await service.load("non_existent_doc.pdf")
+        cache_key = service.cache_key_for("non_existent_doc.pdf", DocumentOperationType.PARSE)
+        result = await service.load(cache_key)
 
         assert result is None
 
@@ -72,9 +87,10 @@ class TestDirectoryPersistenceService:
         first_data = b'{"version": 1}'
         second_data = b'{"version": 2}'
 
-        await service.save("doc.pdf", first_data)
-        await service.save("doc.pdf", second_data)
-        loaded_data = await service.load("doc.pdf")
+        cache_key = service.cache_key_for("doc.pdf", DocumentOperationType.PARSE)
+        await service.save(cache_key, first_data)
+        await service.save(cache_key, second_data)
+        loaded_data = await service.load(cache_key)
 
         assert loaded_data == second_data
         assert loaded_data != first_data
@@ -85,11 +101,14 @@ class TestDirectoryPersistenceService:
         doc1_data = b'{"doc": "first"}'
         doc2_data = b'{"doc": "second"}'
 
-        await service.save("doc1.pdf", doc1_data)
-        await service.save("doc2.pdf", doc2_data)
+        cache_key1 = service.cache_key_for("doc1.pdf", DocumentOperationType.PARSE)
+        cache_key2 = service.cache_key_for("doc2.pdf", DocumentOperationType.PARSE)
 
-        loaded1 = await service.load("doc1.pdf")
-        loaded2 = await service.load("doc2.pdf")
+        await service.save(cache_key1, doc1_data)
+        await service.save(cache_key2, doc2_data)
+
+        loaded1 = await service.load(cache_key1)
+        loaded2 = await service.load(cache_key2)
 
         assert loaded1 == doc1_data
         assert loaded2 == doc2_data
@@ -99,7 +118,8 @@ class TestDirectoryPersistenceService:
         service = DirectoryPersistenceService(tmp_path)
         empty_data = b""
 
-        await service.save("empty_doc.pdf", empty_data)
-        loaded_data = await service.load("empty_doc.pdf")
+        cache_key = service.cache_key_for("empty_doc.pdf", DocumentOperationType.PARSE)
+        await service.save(cache_key, empty_data)
+        loaded_data = await service.load(cache_key)
 
         assert loaded_data == empty_data

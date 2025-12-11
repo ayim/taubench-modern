@@ -1,6 +1,10 @@
 """Persistence layer abstractions for caching intermediate results."""
 
-from .base import ParsedDocumentPersistence
+from .base import (
+    DocumentOperationType,
+    DocumentPersistence,
+    ParsedDocumentPersistence,
+)
 from .file import (
     ActionsChatFileAccessor,
     ChatFileAccessor,
@@ -11,5 +15,7 @@ __all__ = [
     "ActionsChatFileAccessor",
     "ChatFileAccessor",
     "ChatFilePersistenceService",
+    "DocumentOperationType",
+    "DocumentPersistence",
     "ParsedDocumentPersistence",
 ]

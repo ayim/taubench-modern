@@ -5583,13 +5583,83 @@
         }
       }
     },
+    "/document-intelligence/documents/schema": {
+      "get": {
+        "tags": ["document-intelligence"],
+        "summary": "Get Extraction Schema For Document",
+        "description": "Get a cached extraction schema for a document.\n\nThis endpoint retrieves a previously generated schema from the cache.\nIf no schema exists for the given file, returns 404.",
+        "operationId": "get_extraction_schema_for_document_document_intelligence_documents_schema_get",
+        "parameters": [
+          {
+            "name": "file_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The file name/reference to get the schema for",
+              "title": "File Name"
+            },
+            "description": "The file name/reference to get the schema for"
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "thread_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Thread Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateSchemaResponsePayload"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/document-intelligence/documents/generate-schema": {
       "post": {
         "tags": ["document-intelligence"],
         "summary": "Generate Extraction Schema From Document",
-        "description": "Generate an extraction schema from a document.",
+        "description": "Generate an extraction schema from a document.\n\nThis endpoint uses DIService with automatic caching. Schemas are cached in thread\nstorage and reused unless force=True is specified.",
         "operationId": "generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post",
         "parameters": [
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          },
           {
             "name": "thread_id",
             "in": "query",
@@ -5610,22 +5680,6 @@
               "title": "Force"
             },
             "description": "Force re-generation of the schema."
-          },
-          {
-            "name": "agent_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Agent Id"
-            }
           }
         ],
         "requestBody": {

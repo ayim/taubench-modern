@@ -1790,6 +1790,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/documents/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Extraction Schema For Document
+     * @description Get a cached extraction schema for a document.
+     *
+     *     This endpoint retrieves a previously generated schema from the cache.
+     *     If no schema exists for the given file, returns 404.
+     */
+    get: operations['get_extraction_schema_for_document_document_intelligence_documents_schema_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/documents/generate-schema': {
     parameters: {
       query?: never;
@@ -1802,6 +1825,9 @@ export interface paths {
     /**
      * Generate Extraction Schema From Document
      * @description Generate an extraction schema from a document.
+     *
+     *     This endpoint uses DIService with automatic caching. Schemas are cached in thread
+     *     storage and reused unless force=True is specified.
      */
     post: operations['generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post'];
     delete?: never;
@@ -17876,13 +17902,47 @@ export interface operations {
       };
     };
   };
+  get_extraction_schema_for_document_document_intelligence_documents_schema_get: {
+    parameters: {
+      query: {
+        /** @description The file name/reference to get the schema for */
+        file_name: string;
+        agent_id: string;
+        thread_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GenerateSchemaResponsePayload'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
   generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
     parameters: {
       query: {
+        agent_id: string;
         thread_id: string;
         /** @description Force re-generation of the schema. */
         force?: boolean;
-        agent_id?: string | null;
       };
       header?: never;
       path?: never;

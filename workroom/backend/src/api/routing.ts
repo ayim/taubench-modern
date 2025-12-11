@@ -164,6 +164,7 @@ function getRouteMap(): {
     'delete /api/v2/data-sources/{data_source_name}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/quality-checks/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/quality-checks/execute': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/document-intelligence/documents/schema': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/generate-schema': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/data-models/generate-description': [
       ALLOWED,

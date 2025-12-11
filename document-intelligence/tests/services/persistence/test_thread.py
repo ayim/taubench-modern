@@ -29,26 +29,28 @@ class TestChatFilePersistenceService:
 
     @pytest.mark.asyncio
     async def test_load_and_save(self):
+        from sema4ai_docint.services.persistence import DocumentOperationType
+
         mock_accessor = AsyncMock(spec=ChatFileAccessor)
         service = ChatFilePersistenceService(chat_file_accessor=mock_accessor)
 
         file_name = "foo.txt"
-        cache_key = "foo.txt.parse.json"
+        cache_key = service.cache_key_for(file_name, DocumentOperationType.PARSE)
 
         # Cache miss
         mock_accessor.read_text.return_value = None
-        assert await service.load(file_name) is None, "Expected the content to be None"
+        assert await service.load(cache_key) is None, "Expected the content to be None"
         mock_accessor.read_text.assert_called_once_with(cache_key)
 
-        # Cache load
+        # Cache save
         expected_content = b"Hello, world!"
-        await service.save(file_name, expected_content)
+        await service.save(cache_key, expected_content)
         mock_accessor.write_text.assert_called_once_with(cache_key, expected_content)
 
         # Cache hit
         mock_accessor.reset_mock()
         mock_accessor.read_text.return_value = expected_content
-        assert await service.load(file_name) == expected_content, (
+        assert await service.load(cache_key) == expected_content, (
             "Expected the content to be the same"
         )
         mock_accessor.read_text.assert_called_once_with(cache_key)

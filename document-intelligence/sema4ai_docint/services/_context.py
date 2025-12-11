@@ -8,7 +8,7 @@ from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient
 from sema4ai_docint.extraction.reducto.sync import SyncExtractionClient
 from sema4ai_docint.models.initialize import initialize_database
 from sema4ai_docint.services.persistence import (
-    ParsedDocumentPersistence,
+    DocumentPersistence,
 )
 
 from ..agent_server_client import AgentServerClient
@@ -38,8 +38,8 @@ class _DIContext:
     # PGVector datasource (required for the knowledge base service creation)
     pg_vector: DataSource | None = None
 
-    # Optional persistence service for caching expensive extraction operations
-    persistence_service: ParsedDocumentPersistence | None = None
+    # Optional persistence service for caching expensive operations (parse, schema, extract)
+    persistence_service: DocumentPersistence | None = None
 
     @property
     def agent_client(self) -> AgentServerClient:
@@ -58,7 +58,7 @@ class _DIContext:
         agent_server_transport: TransportBase | None = None,
         pg_vector: DataSource | None = None,
         sema4_backend_url: str | None = None,
-        persistence_service: ParsedDocumentPersistence | None = None,
+        persistence_service: DocumentPersistence | None = None,
     ) -> "_DIContext":
         extraction_service = None
         extraction_service_async = None
