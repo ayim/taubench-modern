@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from agent_platform.core.utils import SecretString
+
+if TYPE_CHECKING:
+    from agent_platform.core.files.files import UploadedFile
 
 
 @dataclass
@@ -243,9 +248,10 @@ class TestCase:
     sf_auth_override: SFAuthorizationOverride | None = None
     trials: int = field(default=1)
     metrics: list[Metric] = field(default_factory=list)
+    timeout_seconds: float | None = None
 
     @classmethod
-    def from_file(cls, file_path: Path) -> "TestCase":  # noqa: C901
+    def from_file(cls, file_path: Path) -> TestCase:  # noqa: C901
         """Load a test case from a YAML file."""
         import yaml
 
@@ -341,6 +347,7 @@ class TestCase:
         )
 
         trials = data.get("trials", 1)
+        timeout_seconds = data.get("timeout_seconds") or data.get("timeout-seconds")
         metrics = [Metric(**m) for m in data.get("metrics", [])]
 
         sdms = [
@@ -396,6 +403,7 @@ class TestCase:
             description=data.get("description"),
             trials=trials,
             metrics=metrics,
+            timeout_seconds=timeout_seconds,
             thread=thread,
             target_platforms=target_platforms,
             evaluations=evaluations,
@@ -495,7 +503,7 @@ class ThreadResult:
     agent_id: str | None = None
     thread_id: str | None = None
     error: str | None = None
-    thread_raw: list[Any] | None = None
+    thread_files: list[UploadedFile] = field(default_factory=list)
 
 
 @dataclass

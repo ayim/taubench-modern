@@ -1,0 +1,47 @@
+name: energy-top-oil-producers-golden
+description: Top 5 wells by total oil production from the energy content Postgres SDM
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/energy_content_analytics
+    description: Multidomain energy and content analytics dataset
+
+thread:
+  - name: top-oil-producers-golden
+    description: Return top 5 wells by total oil production
+    messages:
+      - role: user
+        content: >
+          Generate SQL to list the top 5 wells by total oil production using the production_reports
+          table. Include the wellname, company, and the sum of oil as total_oil_bbl. Group by
+          wellname and company, order by total_oil_bbl in descending order, and limit to 5 rows.
+          Keep the query straightforward without joins or extra fields.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+    description: Verify SQL subagent generates a query for top oil producers
+
+  - kind: sql-golden-comparison
+    expected:
+      golden_sql: |
+        SELECT
+          well_name,
+          operating_company_name,
+          SUM(oil_produced_volume_bbl) AS total_oil_bbl
+        FROM well_production_reports
+        GROUP BY well_name, operating_company_name
+        ORDER BY total_oil_bbl DESC
+        LIMIT 5;
+    description: Validate generated SQL matches the golden top-oil-producers query

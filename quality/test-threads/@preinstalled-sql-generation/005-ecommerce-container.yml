@@ -1,0 +1,39 @@
+name: spar-ecommerce-container-smoke
+description: Ask for the top 5 products by revenue from the ecommerce container
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/spar_ecommerce_dataset
+    description: Postgres testcontainer dataset with e-commerce orders and invoice comparison data.
+
+thread:
+  - name: top-5-products-by-revenue
+    description: Identify the top 5 products by revenue from the ecommerce dataset
+    messages:
+      - role: user
+        content: >
+          What are the top 5 products by revenue from the ecommerce dataset?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+      sql_contains:
+        - 'product_catalog'
+        - 'LIMIT 5'
+    description: Verify SQL subagent successfully generated query for top 5 products by revenue
+
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should analyze the ecommerce dataset and return the five products with the
+      highest revenue, citing relevant signals (e.g., product_name, revenue) and provide a
+      concise ranked list with rationale.

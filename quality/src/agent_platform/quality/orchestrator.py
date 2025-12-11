@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import zipfile
 from http import HTTPStatus
@@ -259,6 +261,88 @@ class QualityOrchestrator:
                 )
 
         return agent_ids
+
+    async def create_test_case_agent_clone(
+        self,
+        base_agent_id: str,
+        platform: Platform,
+        test_case_name: str,
+    ) -> str:
+        """Create a unique agent clone for a specific test case.
+
+        This is used for preinstalled agents when a test case has SDMs to avoid
+        cross-talk between tests. Each test case gets its own agent clone so that
+        SDMs imported to one test don't bleed into another.
+
+        Args:
+            base_agent_id: The platform-variant agent ID to clone from
+            platform: The platform configuration
+            test_case_name: Name of the test case (used for unique naming)
+
+        Returns:
+            The new agent clone's ID
+        """
+        import uuid
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            # Fetch the base agent configuration
+            response = await client.get(f"{self.server_url}/api/v2/agents/{base_agent_id}/raw")
+            response.raise_for_status()
+            base_agent = response.json()
+
+            # Create a unique name for this test case clone
+            unique_suffix = str(uuid.uuid4())[:8]
+            clone_name = f"{base_agent.get('name', 'agent')}-{test_case_name}-{unique_suffix}"
+
+            # Clone the agent configuration
+            clone_payload = {
+                "name": clone_name,
+                "description": base_agent.get("description", ""),
+                "agent_architecture": base_agent.get("agent_architecture"),
+                "structured_runbook": base_agent.get("runbook_structured"),
+                "mode": base_agent.get("mode", "conversational"),
+                "extra": base_agent.get("extra", {}),
+                "action_packages": base_agent.get("action_packages", []),
+                "mcp_servers": base_agent.get("mcp_servers", []),
+                "mcp_server_ids": base_agent.get("mcp_server_ids", []),
+                "agent_settings": base_agent.get("agent_settings", {}),
+                "advanced_config": base_agent.get("advanced_config", {}),
+                "metadata": base_agent.get("metadata", {}),
+                "observability_configs": base_agent.get("observability_configs", []),
+                "question_groups": base_agent.get("question_groups", []),
+                "selected_tools": base_agent.get("selected_tools", {}),
+                "platform_configs": base_agent.get("platform_configs", []),
+                "version": base_agent.get("version"),
+            }
+
+            create_resp = await client.post(
+                f"{self.server_url}/api/v2/agents/",
+                json=clone_payload,
+            )
+            create_resp.raise_for_status()
+            clone_agent_id = create_resp.json()["agent_id"]
+
+            logger.info(
+                "Created test-case-specific agent clone",
+                test_case=test_case_name,
+                platform=platform.name,
+                clone_agent_id=clone_agent_id,
+                clone_name=clone_name,
+            )
+
+            return clone_agent_id
+
+    async def delete_agent(self, agent_id: str) -> None:
+        """Delete an agent by ID.
+
+        Used to clean up test-case-specific clones after test completion.
+        """
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            try:
+                await client.delete(f"{self.server_url}/api/v2/agents/{agent_id}")
+                logger.debug("Deleted agent clone", agent_id=agent_id)
+            except Exception as e:
+                logger.warning("Failed to delete agent clone", agent_id=agent_id, error=str(e))
 
     async def _upload_agent_with_platform(
         self,

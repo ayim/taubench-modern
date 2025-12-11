@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import base64
 import json
 import os
 import shutil
-import sys
 import traceback
 from collections import defaultdict
 from dataclasses import asdict, dataclass
@@ -13,6 +14,7 @@ from typing import Any
 
 import httpx
 import structlog
+import yaml
 
 from agent_platform.quality.agent_runner import AgentRunner
 from agent_platform.quality.evaluators import EvaluatorEngine
@@ -212,19 +214,35 @@ class QualityTestRunner:
 
         return preinstalled_packages
 
-    def discover_test_cases(self, agent_name: str | None = None) -> list[TestCase]:
-        """Discover test cases, optionally filtered by agent name."""
+    def discover_test_cases(
+        self, agent_name: str | None = None, tests_filter: list[str] | None = None
+    ) -> list[TestCase]:
+        """Discover test cases, optionally filtered by agent name and test names.
+
+        When tests_filter is provided, YAML files whose 'name' does not match are skipped
+        without full parsing to avoid loading unrelated auth config (e.g., Snowflake).
+        """
         logger.info(f"Discovering test cases in {self.test_threads_dir}")
 
         test_cases = []
 
         for test_dir in self.test_threads_dir.iterdir():
             if test_dir.is_dir():
-                # If agent_name is specified, only look in directories that match the agent name
                 if agent_name and test_dir.name != agent_name:
                     continue
 
                 for yml_path in test_dir.glob("*.yml"):
+                    if tests_filter:
+                        try:
+                            with open(yml_path, encoding="utf-8") as f:
+                                raw = yaml.safe_load(f)
+                            test_name = raw.get("name")
+                            if test_name not in tests_filter:
+                                continue
+                        except Exception:
+                            # If we can't read minimally, fall back to full parse
+                            pass
+
                     test_case = TestCase.from_file(yml_path)
                     test_cases.append(test_case)
 
@@ -236,6 +254,7 @@ class QualityTestRunner:
         selected_agents: list[str],
         max_concurrent_agents: int = 2,
         platform_filter: str | None = None,
+        tests_filter: list[str] | None = None,
     ) -> dict[str, list[ThreadResult]]:
         """Run tests for all agents with full parallelization (agents + platforms).
 
@@ -255,6 +274,26 @@ class QualityTestRunner:
             logger.warning("No agents found after filtering by selected_agents")
             self.results_manager.complete_run("No agents found after filtering by selected_agents")
             return {}
+
+        # If specific tests are requested, skip agents that have no matching test cases
+        if tests_filter:
+            filtered_agents: list[AgentPackage] = []
+            for agent in agents:
+                agent_tests = self.discover_test_cases(agent.name, tests_filter=tests_filter)
+                if any(test_case.name in tests_filter for test_case in agent_tests):
+                    filtered_agents.append(agent)
+                else:
+                    logger.info(
+                        "Skipping agent %s because no test cases matched the provided tests filter",
+                        agent.name,
+                    )
+
+            agents = filtered_agents
+
+            if not agents:
+                logger.warning("No agents found after applying tests filter")
+                self.results_manager.complete_run("No agents found after applying tests filter")
+                return {}
 
         logger.info(
             f"Starting fully parallel execution for {len(agents)} agents "
@@ -293,6 +332,7 @@ class QualityTestRunner:
                             agent,
                             action_server_url,
                             platform_filter,
+                            tests_filter,
                         )
                         logger.info(
                             f"Completed agent: {agent.name} with {len(agent_results)} results"
@@ -349,16 +389,20 @@ class QualityTestRunner:
         agent_package: AgentPackage,
         action_server_url: str,
         platform_filter: str | None,
+        tests_filter: list[str] | None,
     ) -> list[ThreadResult]:
         """Run all tests for a single agent with full parallelization."""
         logger.info(f"Running agent tests (fully parallel): {agent_package.name}")
 
         try:
             # Discover test cases for this agent
-            test_cases = self.discover_test_cases(agent_package.name)
+            test_cases = self.discover_test_cases(agent_package.name, tests_filter=tests_filter)
+
             if not test_cases:
-                logger.error(f"No test cases found for agent {agent_package.name}. Terminating...")
-                sys.exit(1)
+                logger.error(
+                    f"No test cases found for agent {agent_package.name} after applying filters."
+                )
+                return []
 
             agent_package_metadata = await agent_package.extract_package_metadata()
             target_platforms = self._collect_target_platforms(
@@ -522,7 +566,7 @@ class QualityTestRunner:
 
         return package_oauth_secrets
 
-    async def _run_test_case_with_platforms(
+    async def _run_test_case_with_platforms(  # noqa: C901
         self,
         agent_package: AgentPackage,
         test_case: TestCase,
@@ -534,21 +578,45 @@ class QualityTestRunner:
         all_results: list[ThreadResult] = []
         platform_tasks = []
 
-        for platform in platforms:
-            agent_id = run_context.platform_agent_ids[platform.name]
+        # For preinstalled agents with SDMs, create unique agent clones per test case
+        # to avoid SDM bleeding between tests (SDMs are agent-scoped, not thread-scoped)
+        # TODO: Remove this workaround once server import endpoint is updated to attach
+        # SDMs to threads instead of agents
+        test_case_agent_ids: dict[str, str] = {}
+        created_clones: list[str] = []
 
-            await self.update_action_secrets(
-                agent_id,
-                test_case.action_secrets + run_context.package_oauth_secrets,
-                run_context.action_server_url,
-            )
+        needs_unique_clones = (
+            agent_package.is_preinstalled and test_case.sdms and len(test_case.sdms) > 0
+        )
 
-            self.results_manager.start_test(agent_package.name, test_case, platform)
-
-            task = self._run_test_case_on_platform(agent_id, test_case, platform)
-            platform_tasks.append(task)
+        if needs_unique_clones:
+            for platform in platforms:
+                base_agent_id = run_context.platform_agent_ids[platform.name]
+                clone_id = await self.orchestrator.create_test_case_agent_clone(
+                    base_agent_id=base_agent_id,
+                    platform=platform,
+                    test_case_name=test_case.name,
+                )
+                test_case_agent_ids[platform.name] = clone_id
+                created_clones.append(clone_id)
+        else:
+            test_case_agent_ids = run_context.platform_agent_ids
 
         try:
+            for platform in platforms:
+                agent_id = test_case_agent_ids[platform.name]
+
+                await self.update_action_secrets(
+                    agent_id,
+                    test_case.action_secrets + run_context.package_oauth_secrets,
+                    run_context.action_server_url,
+                )
+
+                self.results_manager.start_test(agent_package.name, test_case, platform)
+
+                task = self._run_test_case_on_platform(agent_id, test_case, platform)
+                platform_tasks.append(task)
+
             test_results = await asyncio.gather(*platform_tasks, return_exceptions=True)
 
             for i, result in enumerate(test_results):
@@ -564,7 +632,7 @@ class QualityTestRunner:
                         agent_messages=[],
                         evaluation_results=[],
                         success=False,
-                        agent_id=run_context.platform_agent_ids.get(platform.name),
+                        agent_id=test_case_agent_ids.get(platform.name),
                         error=str(result),
                     )
                     all_results.append(error_result)
@@ -583,11 +651,16 @@ class QualityTestRunner:
                     agent_messages=[],
                     evaluation_results=[],
                     success=False,
-                    agent_id=run_context.platform_agent_ids.get(platform.name),
+                    agent_id=test_case_agent_ids.get(platform.name),
                     error=str(e),
                 )
                 all_results.append(error_result)
                 self.results_manager.complete_test(agent_package.name, error_result, 1)
+
+        finally:
+            # Clean up test-case-specific agent clones
+            for clone_id in created_clones:
+                await self.orchestrator.delete_agent(clone_id)
 
         return all_results
 
@@ -797,12 +870,22 @@ class QualityTestRunner:
                 on_thread_created=on_thread_created,
             )
 
+            # Fetch thread files before evaluations so evaluators can access file attachments
+            thread_files = (
+                await self.agent_runner.get_thread_files(thread_id=test_run.thread_id)
+                if test_run.thread_id is not None
+                else []
+            )
+
             # Run evaluations
             evaluation_results = []
             for evaluation in test_case.evaluations:
                 try:
                     result = await self.evaluator.evaluate(
-                        evaluation, test_run.agent_messages, test_run.workitem_result
+                        evaluation,
+                        test_run.agent_messages,
+                        test_run.workitem_result,
+                        thread_files,
                     )
                     evaluation_results.append(result)
                 except Exception as e:
@@ -812,12 +895,6 @@ class QualityTestRunner:
             # Determine overall success
             success = all(result.passed for result in evaluation_results)
 
-            thread_raw = (
-                await self.agent_runner.get_thread_raw(thread_id=test_run.thread_id)
-                if test_run.thread_id is not None
-                else None
-            )
-
             return ThreadResult(
                 test_case=test_case,
                 platform=platform,
@@ -826,7 +903,7 @@ class QualityTestRunner:
                 success=success,
                 agent_id=agent_id,
                 thread_id=test_run.thread_id,
-                thread_raw=thread_raw,
+                thread_files=thread_files,
             )
 
         except Exception as e:
@@ -854,7 +931,7 @@ class QualityTestRunner:
     class _SFAuthOverrideGuard:
         def __init__(
             self,
-            runner: "QualityTestRunner",
+            runner: QualityTestRunner,
             sf_auth_override: SFAuthorizationOverride | None,
         ) -> None:
             self._runner = runner
@@ -888,7 +965,7 @@ class QualityTestRunner:
 
     def _sf_auth_override(
         self, sf_auth_override: SFAuthorizationOverride | None
-    ) -> "QualityTestRunner._SFAuthOverrideGuard":
+    ) -> QualityTestRunner._SFAuthOverrideGuard:
         return QualityTestRunner._SFAuthOverrideGuard(self, sf_auth_override)
 
     def _update_sf_auth_json_locked(self, sf_auth_override: SFAuthorizationOverride) -> bool:

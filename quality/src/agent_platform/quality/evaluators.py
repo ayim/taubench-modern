@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from typing import TYPE_CHECKING
@@ -8,12 +10,15 @@ import structlog
 from agent_platform.quality.models import WorkitemResult
 
 if TYPE_CHECKING:
+    from agent_platform.core.files.files import UploadedFile
+    from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
     from agent_platform.quality.models import Evaluation, Message, TestResult
 
 logger = structlog.get_logger(__name__)
 
 # Constants
 CONTENT_PREVIEW_LENGTH = 500
+SQL_GENERATION_OUTPUT_FILENAME = "output.json"
 
 
 class EvaluatorEngine:
@@ -33,11 +38,19 @@ class EvaluatorEngine:
 
     async def evaluate(
         self,
-        evaluation: "Evaluation",
-        agent_messages: list["Message"],
+        evaluation: Evaluation,
+        agent_messages: list[Message],
         workitem: WorkitemResult | None,
-    ) -> "TestResult":
-        """Run a single evaluation against agent messages."""
+        thread_files: list[UploadedFile],
+    ) -> TestResult:
+        """Run a single evaluation against agent messages.
+
+        Args:
+            evaluation: The evaluation specification to run.
+            agent_messages: Messages from the agent.
+            workitem: Optional workitem result for workitem evaluations.
+            thread_files: Optional list of UploadedFile objects from the thread.
+        """
         from agent_platform.quality.models import TestResult
 
         logger.debug("Running evaluation", kind=evaluation.kind, num_messages=len(agent_messages))
@@ -50,7 +63,9 @@ class EvaluatorEngine:
             elif evaluation.kind == "tool-call-evaluation":
                 result = await self._evaluate_tool_calls(evaluation, agent_messages)
             elif evaluation.kind == "sql-generation-result":
-                result = await self._evaluate_sql_generation_result(evaluation, agent_messages)
+                result = await self._evaluate_sql_generation_result(evaluation, thread_files)
+            elif evaluation.kind == "sql-golden-comparison":
+                result = await self._evaluate_sql_golden_comparison(evaluation, thread_files)
             elif evaluation.kind == "workitem-result-evaluation":
                 if workitem is None:
                     raise ValueError("Workitem is missing, cannot be evaluated")
@@ -76,8 +91,8 @@ class EvaluatorEngine:
             return TestResult(evaluation=evaluation, passed=False, actual_value=None, error=str(e))
 
     async def _evaluate_message_count(
-        self, evaluation: "Evaluation", agent_messages: list["Message"]
-    ) -> "TestResult":
+        self, evaluation: Evaluation, agent_messages: list[Message]
+    ) -> TestResult:
         """Evaluate the count of messages in the last agent turn."""
         from agent_platform.quality.models import TestResult
 
@@ -89,8 +104,8 @@ class EvaluatorEngine:
         )
 
     async def _evaluate_with_llm(
-        self, evaluation: "Evaluation", agent_messages: list["Message"]
-    ) -> "TestResult":
+        self, evaluation: Evaluation, agent_messages: list[Message]
+    ) -> TestResult:
         """Evaluate using LLM via the server's /prompts/generate endpoint."""
         from agent_platform.quality.models import TestResult
 
@@ -103,7 +118,7 @@ class EvaluatorEngine:
 Please evaluate the following agent response(s) against the given criteria.
 Note that our agents have thoughts (visible to the user, but hidden by default; these
 can be more verbose in nature) and tool calls (to carry out tasks). In a given agent
-message the <test>...</text> is the agent's primary response.
+message the <text>...</text> is the agent's primary response.
 
 CRITERIA:
 {evaluation.expected}
@@ -201,8 +216,8 @@ Only respond with the JSON object, no other text.
             )
 
     async def _evaluate_tool_calls(  # noqa: PLR0912 C901
-        self, evaluation: "Evaluation", agent_messages: list["Message"]
-    ) -> "TestResult":
+        self, evaluation: Evaluation, agent_messages: list[Message]
+    ) -> TestResult:
         """Evaluate tool call usage in agent messages."""
         from agent_platform.quality.models import TestResult, ToolUse
 
@@ -342,8 +357,8 @@ Only respond with the JSON object, no other text.
         )
 
     async def _evaluate_workitem_result(
-        self, evaluation: "Evaluation", workitem: WorkitemResult
-    ) -> "TestResult":
+        self, evaluation: Evaluation, workitem: WorkitemResult
+    ) -> TestResult:
         from agent_platform.quality.models import TestResult
 
         expected = evaluation.expected
@@ -357,52 +372,115 @@ Only respond with the JSON object, no other text.
             error=error,
         )
 
-    async def _evaluate_sql_generation_result(  # noqa: C901, PLR0912, PLR0915
-        self, evaluation: "Evaluation", agent_messages: list["Message"]
-    ) -> "TestResult":
+    async def _find_sql_generation_output(
+        self, thread_files: list[UploadedFile]
+    ) -> SQLGenerationContent | None:
+        """Find and parse the SQL generation output.json from thread files.
+
+        The SQL subagent uploads a file named 'output.json' containing a
+        SQLGenerationContent model when it finalizes. This method searches
+        for that file in the thread files and fetches/parses its content.
+
+        Args:
+            thread_files: List of UploadedFile objects from the thread.
+
+        Returns:
+            Parsed SQLGenerationContent object, or None if not found.
+        """
+        if not thread_files:
+            return None
+
+        # Search for output.json file in thread files
+        for file in thread_files:
+            # Look for file with the expected filename
+            if file.file_ref != SQL_GENERATION_OUTPUT_FILENAME:
+                continue
+
+            if file.thread_id is None:
+                logger.warning(
+                    "File has no thread ID",
+                    file_ref=file.file_ref,
+                )
+                continue
+
+            # Found the output.json file - fetch its content
+            try:
+                return await self._fetch_and_parse_json_file(file.thread_id, file.file_ref)
+            except Exception as e:
+                logger.warning(
+                    "Failed to fetch SQL generation output",
+                    file_id=file.file_id,
+                    error=str(e),
+                )
+                return None
+
+        return None
+
+    async def _fetch_and_parse_json_file(
+        self, thread_id: str, file_ref: str
+    ) -> SQLGenerationContent | None:
+        """Fetch a JSON file by file_id and parse it.
+
+        Args:
+            thread_id: The thread ID to fetch the file from.
+            file_ref: The file reference to fetch.
+
+        Returns:
+            Parsed SQLGenerationContent object, or None on failure.
+        """
+        from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
+
+        # Fetch file content from agent server
+        download_url = (
+            f"{self.server_url}/api/v2/threads/{thread_id}/files/download/?file_ref={file_ref}"
+        )
+        response = await self.client.get(download_url)
+        response.raise_for_status()
+
+        return SQLGenerationContent.model_validate(response.json())
+
+    async def _evaluate_sql_generation_result(  # noqa: C901, PLR0912
+        self, evaluation: Evaluation, thread_files: list[UploadedFile]
+    ) -> TestResult:
         """Evaluate SQL generation subagent results.
+
+        The SQL subagent finalizes by uploading an output.json file to the thread
+        containing a SQLGenerationContent model. This evaluator fetches that file
+        and validates its contents against the expected criteria.
 
         Expected format:
             {
                 "status": "success" | "needs_info" | "failed",
-                "has_logical_sql": true | false,
-                "has_physical_sql": true | false,
-                "logical_sql_contains": ["pattern1", "pattern2"],
-                "logical_sql_not_contains": ["pattern1"],
-                "has_assumptions": true | false,
+                "has_sql": true | false,
+                "sql_contains": ["pattern1", "pattern2"],
+                "sql_not_contains": ["pattern1"],
+                "assumptions_used": true | false,
             }
         """
+        from agent_platform.core.thread.content.sql_generation import SQLGenerationStatus
         from agent_platform.quality.models import TestResult
 
         expected = evaluation.expected
 
-        # Find SQL generation content in thread
-        sql_gen_content = None
-        for message in agent_messages:
-            for content in message.content:
-                # Check if this is SQL generation content
-                if hasattr(content, "kind") and getattr(content, "kind", None) == "sql_generation":
-                    sql_gen_content = content
-                    break
-            if sql_gen_content:
-                break
+        # Find SQL generation output.json in thread files
+        sql_gen_content = await self._find_sql_generation_output(thread_files)
 
         if sql_gen_content is None:
             return TestResult(
                 evaluation=evaluation,
                 passed=False,
                 actual_value=None,
-                error="No SQL generation content found in agent messages",
+                error=f"No {SQL_GENERATION_OUTPUT_FILENAME} found in thread attachments",
             )
 
         # Perform checks based on expected criteria
-        checks = []
-        failures = []
+        checks: list[bool] = []
+        failures: list[str] = []
 
         # Check status
         if "status" in expected:
-            expected_status = expected["status"]
-            actual_status = getattr(sql_gen_content, "status", None)
+            expected_status = SQLGenerationStatus(expected["status"])
+            actual_status = sql_gen_content.status
             if actual_status == expected_status:
                 checks.append(True)
             else:
@@ -412,62 +490,49 @@ Only respond with the JSON object, no other text.
                 )
 
         # Check for logical SQL presence
-        if "has_logical_sql" in expected:
-            logical_sql = getattr(sql_gen_content, "logical_sql_query", None)
-            has_sql = logical_sql is not None
-            if has_sql == expected["has_logical_sql"]:
+        if "has_sql" in expected:
+            sql = sql_gen_content.sql_query
+            has_sql = sql is not None and sql != ""
+            if has_sql == expected["has_sql"]:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
-                    f"Logical SQL presence mismatch: expected={expected['has_logical_sql']}, "
-                    f"actual={has_sql}"
+                    f"Logical SQL presence mismatch: "
+                    f"expected={expected['has_sql']}, actual={has_sql}"
                 )
 
-        # Check for physical SQL presence
-        if "has_physical_sql" in expected:
-            physical_sql = getattr(sql_gen_content, "physical_sql_query", None)
-            has_sql = physical_sql is not None
-            if has_sql == expected["has_physical_sql"]:
-                checks.append(True)
-            else:
-                checks.append(False)
-                failures.append(
-                    f"Physical SQL presence mismatch: expected={expected['has_physical_sql']}, "
-                    f"actual={has_sql}"
-                )
-
-        # Check for patterns in logical SQL
-        if "logical_sql_contains" in expected:
-            logical_sql = (getattr(sql_gen_content, "logical_sql_query", None) or "").lower()
-            for pattern in expected["logical_sql_contains"]:
-                if pattern.lower() in logical_sql:
+        # Check for patterns in SQL
+        if "sql_contains" in expected:
+            sql = (sql_gen_content.sql_query or "").lower()
+            for pattern in expected["sql_contains"]:
+                if pattern.lower() in sql:
                     checks.append(True)
                 else:
                     checks.append(False)
-                    failures.append(f"Logical SQL missing expected pattern: '{pattern}'")
+                    failures.append(f"SQL missing expected pattern: '{pattern}'")
 
         # Check for absence of patterns in logical SQL
-        if "logical_sql_not_contains" in expected:
-            logical_sql = (getattr(sql_gen_content, "logical_sql_query", None) or "").lower()
-            for pattern in expected["logical_sql_not_contains"]:
-                if pattern.lower() not in logical_sql:
+        if "sql_not_contains" in expected:
+            sql = (sql_gen_content.sql_query or "").lower()
+            for pattern in expected["sql_not_contains"]:
+                if pattern.lower() not in sql:
                     checks.append(True)
                 else:
                     checks.append(False)
-                    failures.append(f"Logical SQL contains unexpected pattern: '{pattern}'")
+                    failures.append(f"SQL contains unexpected pattern: '{pattern}'")
 
         # Check for assumptions
         if "has_assumptions" in expected:
-            assumptions = getattr(sql_gen_content, "assumptions_used", None)
-            has_assumptions = assumptions is not None
+            assumptions = sql_gen_content.assumptions_used
+            has_assumptions = assumptions is not None and assumptions != ""
             if has_assumptions == expected["has_assumptions"]:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
-                    f"Assumptions presence mismatch: expected={expected['has_assumptions']}, "
-                    f"actual={has_assumptions}"
+                    f"Assumptions presence mismatch: "
+                    f"expected={expected['has_assumptions']}, actual={has_assumptions}"
                 )
 
         passed = all(checks) if checks else False
@@ -476,12 +541,161 @@ Only respond with the JSON object, no other text.
             evaluation=evaluation,
             passed=passed,
             actual_value={
-                "status": getattr(sql_gen_content, "status", None),
-                "logical_sql": getattr(sql_gen_content, "logical_sql_query", None),
-                "physical_sql": getattr(sql_gen_content, "physical_sql_query", None),
-                "assumptions": getattr(sql_gen_content, "assumptions_used", None),
-                "message_to_parent": getattr(sql_gen_content, "message_to_parent", None),
-                "error_message": getattr(sql_gen_content, "error_message", None),
+                "status": sql_gen_content.status,
+                "sql": sql_gen_content.sql_query,
+                "assumptions": sql_gen_content.assumptions_used,
+                "message_to_parent": sql_gen_content.message_to_parent,
+                "error_message": sql_gen_content.error_message,
             },
             error="; ".join(failures) if failures else None,
         )
+
+    async def _evaluate_sql_golden_comparison(
+        self, evaluation: Evaluation, thread_files: list[UploadedFile]
+    ) -> TestResult:
+        """Compare generated SQL against golden (expected) SQL using an LLM.
+
+        Expected format:
+            {
+                "golden_sql": "SELECT ... FROM ...",
+            }
+        """
+        from agent_platform.quality.models import TestResult
+
+        expected = evaluation.expected
+        golden_sql = expected.get("golden_sql", "")
+
+        if not golden_sql:
+            return TestResult(
+                evaluation=evaluation,
+                passed=False,
+                actual_value=None,
+                error="No golden_sql provided in evaluation expected",
+            )
+
+        # Find SQL generation output.json in thread files
+        sql_gen_content = await self._find_sql_generation_output(thread_files)
+
+        if sql_gen_content is None:
+            return TestResult(
+                evaluation=evaluation,
+                passed=False,
+                actual_value=None,
+                error=f"No {SQL_GENERATION_OUTPUT_FILENAME} found in thread attachments",
+            )
+
+        if not sql_gen_content.sql_query:
+            return TestResult(
+                evaluation=evaluation,
+                passed=False,
+                actual_value={"actual_sql": None, "golden_sql": golden_sql},
+                error="No SQL query found in output.json",
+            )
+
+        passed, explanation = await self._compare_sql_semantically(
+            sql_gen_content.sql_query, golden_sql
+        )
+
+        return TestResult(
+            evaluation=evaluation,
+            passed=passed,
+            actual_value={
+                "actual_sql": sql_gen_content.sql_query,
+                "golden_sql": golden_sql,
+                "explanation": explanation,
+            },
+            error=None if passed else explanation,
+        )
+
+    async def _compare_sql_semantically(self, actual_sql: str, golden_sql: str) -> tuple[bool, str]:
+        """Use LLM to compare two SQL queries for semantic equivalence.
+
+        Args:
+            actual_sql: The generated SQL query.
+            golden_sql: The expected golden SQL query.
+
+        Returns:
+            Tuple of (passed, explanation).
+        """
+        comparison_prompt = f"""
+Compare these two SQL queries for semantic equivalence.
+Two queries are semantically equivalent if they would produce the same result set
+(ignoring column order and aliases).
+
+ACTUAL SQL:
+```sql
+{actual_sql}
+```
+
+GOLDEN SQL:
+```sql
+{golden_sql}
+```
+
+Consider:
+- Do they query the same tables?
+- Do they apply the same filters/conditions?
+- Do they return the same columns (ignoring aliases)?
+- Do they have the same grouping, ordering, and limits?
+
+IMPORTANT: The ACTUAL SQL may include defensive additions that don't change the
+logical result. These should be considered EQUIVALENT:
+- Adding `WHERE column IS NOT NULL` before aggregations (SUM/AVG/COUNT ignore NULLs anyway)
+- Adding explicit NULL checks that match implicit SQL behavior
+- Using COALESCE or IFNULL with default values that match NULL handling
+- More explicit column qualifications (table.column vs just column)
+- Defensive type casts that don't change the result
+
+The ACTUAL query is considered equivalent if it produces the same meaningful result
+as the GOLDEN query, even if it's more defensive or explicit.
+
+Respond with a JSON object:
+{{
+    "equivalent": true/false,
+    "explanation": "Brief explanation of why they are or aren't equivalent"
+}}
+"""
+
+        prompt_data = {
+            "system_instruction": (
+                "You are an expert SQL analyst. Compare SQL queries for semantic equivalence. "
+                "Be precise and thorough in your analysis."
+            ),
+            "messages": [
+                {"role": "user", "content": [{"kind": "text", "text": comparison_prompt}]}
+            ],
+            "temperature": 0.1,
+            "max_output_tokens": 500,
+        }
+
+        platform_config = {
+            "kind": "openai",
+            "openai_api_key": os.environ.get("OPENAI_API_KEY", ""),
+        }
+
+        try:
+            response = await self.client.post(
+                f"{self.server_url}/api/v2/prompts/generate",
+                json={
+                    "prompt": prompt_data,
+                    "platform_config_raw": platform_config,
+                    "model": "gpt-5-low",
+                },
+                headers={"Content-Type": "application/json"},
+            )
+            response.raise_for_status()
+
+            llm_response = response.json()
+            content_text = ""
+            for content in llm_response.get("content", []):
+                if content.get("kind") == "text":
+                    content_text += content.get("text", "")
+
+            result = json.loads(content_text.strip())
+            passed = result.get("equivalent", False)
+            explanation = result.get("explanation", "No explanation provided")
+            return passed, explanation
+
+        except Exception as e:
+            logger.error("Semantic SQL comparison failed", error=str(e))
+            return False, f"Semantic comparison failed: {e!s}"

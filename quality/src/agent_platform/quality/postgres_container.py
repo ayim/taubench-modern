@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import structlog
+
 if TYPE_CHECKING:
     from testcontainers.postgres import PostgresContainer
 
@@ -32,6 +34,7 @@ class PostgresContainerManager:
     def __init__(self):
         self._containers: dict[str, _ContainerHandle] = {}
         self._lock = asyncio.Lock()
+        self._log: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
     async def get_or_start(self, sdm_folder: Path) -> PostgresConnectionInfo:
         """Start a Postgres container for the SDM folder if needed."""
@@ -39,6 +42,12 @@ class PostgresContainerManager:
         async with self._lock:
             cached = self._containers.get(folder_key)
             if cached is not None:
+                self._log.debug(
+                    "postgres_container.cache_hit",
+                    folder_key=folder_key,
+                    host=cached.connection_info.host,
+                    port=cached.connection_info.port,
+                )
                 return cached.connection_info
 
             schema_path = sdm_folder / "schema.sql"
@@ -50,34 +59,38 @@ class PostgresContainerManager:
 
             from testcontainers.postgres import PostgresContainer
 
-            container = (
-                PostgresContainer(
-                    image="postgres:16-alpine",
-                )
-                .with_env(
-                    "POSTGRES_USER",
-                    "postgres",
-                )
-                .with_env(
-                    "POSTGRES_PASSWORD",
-                    "postgres",
-                )
-                .with_env(
-                    "POSTGRES_DB",
-                    "test",
-                )
+            container = PostgresContainer(
+                image="postgres:16-alpine",
+                username="postgres",
+                password="postgres",
+                dbname="test",
             )
 
+            self._log.info(
+                "postgres_container.starting",
+                folder_key=folder_key,
+                image=container.image,
+                username=container.username,
+                dbname=container.dbname,
+            )
             await asyncio.to_thread(container.start)
 
             host = container.get_container_host_ip()
-            port = container.get_exposed_port(container.port)
+            port = int(container.get_exposed_port(container.port))
+            self._log.info(
+                "postgres_container.started",
+                folder_key=folder_key,
+                host=host,
+                port=port,
+                dbname=container.dbname,
+                username=container.username,
+            )
             connection_info = PostgresConnectionInfo(
                 host=host,
                 port=port,
-                database="test",
-                user="postgres",
-                password="postgres",
+                database=container.dbname,
+                user=container.username,
+                password=container.password,
                 schema="public",
             )
 
@@ -126,23 +139,36 @@ class PostgresContainerManager:
         import psycopg
         from psycopg import sql
 
-        with (
-            psycopg.connect(
+        log = structlog.get_logger(__name__)
+        try:
+            with (
+                psycopg.connect(
+                    host=connection_info.host,
+                    port=connection_info.port,
+                    dbname=connection_info.database,
+                    user=connection_info.user,
+                    password=connection_info.password,
+                    autocommit=True,
+                ) as conn,
+                conn.cursor() as cur,
+            ):
+                if connection_info.schema:
+                    cur.execute(
+                        sql.SQL("SET search_path TO {}").format(
+                            sql.Identifier(connection_info.schema)
+                        )
+                    )
+                for statement in _split_sql_statements(sql_text):
+                    cur.execute(statement)
+        except Exception:
+            log.exception(
+                "postgres_container.execute_sql_failed",
                 host=connection_info.host,
                 port=connection_info.port,
-                dbname=connection_info.database,
+                database=connection_info.database,
                 user=connection_info.user,
-                password=connection_info.password,
-                autocommit=True,
-            ) as conn,
-            conn.cursor() as cur,
-        ):
-            if connection_info.schema:
-                cur.execute(
-                    sql.SQL("SET search_path TO {}").format(sql.Identifier(connection_info.schema))
-                )
-            for statement in _split_sql_statements(sql_text):
-                cur.execute(statement)
+            )
+            raise
 
 
 def _split_sql_statements(sql_text: str) -> list[bytes]:

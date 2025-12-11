@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+import dataclasses
 import json
 import threading
 from datetime import datetime
 from pathlib import Path
 
 import structlog
+import yaml
 
 from agent_platform.quality.models import AgentPackage, Platform, TestCase, ThreadResult
 
@@ -268,15 +272,13 @@ class QualityResultsManager:
                 with open(run_test_file, "w") as f:
                     json.dump(result_data, f, indent=2, default=self._json_default)
 
-                if result.thread_raw is not None:
-                    import yaml
-
-                    thread_messages_raw_file = (
-                        self.current_run_dir / f"{agent_name}_{test_id}.raw.yml"
-                    )
-                    with open(thread_messages_raw_file, "w") as file:
+                if result.thread_files is not None:
+                    thread_files_file = self.current_run_dir / f"{agent_name}_{test_id}.files.yml"
+                    # Convert UploadedFile dataclasses to dicts for serialization
+                    thread_files_data = [dataclasses.asdict(f) for f in result.thread_files]
+                    with open(thread_files_file, "w") as file:
                         yaml.dump(
-                            result.thread_raw, file, default_flow_style=False, sort_keys=False
+                            thread_files_data, file, default_flow_style=False, sort_keys=False
                         )
 
             except Exception as e:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
@@ -320,6 +322,13 @@ def list_tests(ctx: Context, agent_name: str | None):
     type=str,
     help="Run tests only for this target platform (e.g. 'groq', 'azure').",
 )
+@click.option(
+    "--tests",
+    required=False,
+    default="",
+    type=str,
+    help="Comma-separated list of test thread names to run (matches YAML 'name').",
+)
 @click.pass_obj
 async def run(  # noqa: PLR0913
     ctx: Context,
@@ -330,6 +339,7 @@ async def run(  # noqa: PLR0913
     agent_server_version: str | None,
     agent_arch: str | None,
     platform: str | None,
+    tests: str,
 ):
     """Run quality tests for agents."""
     runner = QualityTestRunner(
@@ -350,12 +360,14 @@ async def run(  # noqa: PLR0913
             f"(fully parallel, max {max_agents} concurrent agents"
             f"{f', platform={platform}' if platform else ''})"
         )
+        tests_filter = [test.strip() for test in tests.split(",") if test.strip()]
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
             selected_agents=[
                 selected.strip() for selected in selected_agents.split(",") if selected.strip()
             ],
             max_concurrent_agents=max_agents,
             platform_filter=platform,
+            tests_filter=tests_filter if tests_filter else None,
         )
 
         # Report results

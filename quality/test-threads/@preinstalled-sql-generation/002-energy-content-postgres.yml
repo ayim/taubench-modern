@@ -1,0 +1,41 @@
+name: energy-content-top-producers
+description: Query top producing wells from energy and content analytics Postgres SDM
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/energy_content_analytics
+    description: Multidomain energy and content analytics dataset
+
+thread:
+  - name: top-oil-producers
+    description: Identify top oil producing wells
+    messages:
+      - role: user
+        content: >
+          What are the top 5 oil producing wells by total production volume? Include the
+          well name, operating company, and cumulative oil production.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+      sql_contains:
+        - 'production'
+        - 'LIMIT 5'
+        - 'ORDER BY'
+    description: Verify SQL subagent successfully generated query for top 5 oil producers
+
+  - kind: llm-eval-of-last-agent-turn
+    expected: |
+      The agent should query the well production data and return the five wells with the
+      highest cumulative oil production volumes. The response should include well names,
+      operating companies, and production volumes with appropriate units (BBL/barrels).

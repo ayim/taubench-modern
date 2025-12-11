@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 import structlog
@@ -18,6 +20,9 @@ from agent_platform.quality.models import (
     ToolUse,
     WorkitemResult,
 )
+
+if TYPE_CHECKING:
+    from agent_platform.core.files.files import UploadedFile
 
 logger = structlog.get_logger(__name__)
 
@@ -362,7 +367,10 @@ class AgentRunner:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{self.server_url}/api/v2/threads/",
-                    json={"agent_id": agent_id, "name": f"Quality Test Run on {platform_name}"},
+                    json={
+                        "agent_id": agent_id,
+                        "name": f"Quality Test: {test_case.name} ({platform_name})",
+                    },
                 )
                 response.raise_for_status()
 
@@ -452,7 +460,9 @@ class AgentRunner:
                 "thread_id": thread_id,
             }
 
-            async with httpx.AsyncClient(timeout=60.0 * 5) as client:
+            request_timeout = test_case.timeout_seconds or 60.0 * 5
+
+            async with httpx.AsyncClient(timeout=request_timeout) as client:
                 try:
                     response = await client.post(
                         f"{self.server_url}/api/v2/runs/{agent_id}/sync",
@@ -475,13 +485,26 @@ class AgentRunner:
 
         raise ValueError("Test case should contain either thread or workitem, found none")
 
-    async def get_thread_raw(self, thread_id: str):
+    async def get_thread_files(self, thread_id: str) -> list[UploadedFile]:
+        """Get all files attached to a thread.
+
+        Args:
+            thread_id: The thread ID to fetch files for.
+
+        Returns:
+            List of UploadedFile objects attached to the thread.
+        """
+        from agent_platform.core.files.files import UploadedFile
+
         async with httpx.AsyncClient(timeout=60.0 * 5) as client:
             response = await client.get(
-                f"{self.server_url}/api/v2/threads/{thread_id}/state",
+                f"{self.server_url}/api/v2/threads/{thread_id}/files",
             )
             response.raise_for_status()
 
-            thread_data = response.json()
+            files_data = response.json()
 
-        return thread_data
+            # Marshall response to UploadedFile objects
+            thread_files = [UploadedFile.model_validate(file_dict) for file_dict in files_data]
+
+        return thread_files

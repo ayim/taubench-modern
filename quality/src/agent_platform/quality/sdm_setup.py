@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http
 import os
 from dataclasses import asdict
 from enum import Enum
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import httpx
+import structlog
 import yaml
 
 from agent_platform.quality.models import SDMConfig
@@ -18,7 +20,7 @@ from agent_platform.quality.postgres_container import (
 if TYPE_CHECKING:
     from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
 
-SDM_FILE_NAME = "sdm.yaml"
+SDM_FILE_NAME = "sdm.yml"
 SCHEMA_FILE_NAME = "schema.sql"
 SEED_FILE_NAME = "seed.sql"
 
@@ -35,6 +37,7 @@ class SDMSetup:
         self._container_manager: PostgresContainerManager | None = None
         # Cache imported SDMs keyed by source path and agent to avoid re-importing.
         self._import_cache: dict[tuple[str, str | None], str] = {}
+        self._log: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
     async def ensure_sdms_for_thread(
         self,
@@ -91,13 +94,24 @@ class SDMSetup:
         semantic_model = self._load_sdm_yaml(sdm_folder)
         connection_names = self._collect_data_connection_names(semantic_model)
         if not connection_names:
-            raise ValueError(f"No data_connection_name entries found in {sdm_folder / 'sdm.yaml'}")
+            raise ValueError(
+                f"No data_connection_name entries found in {sdm_folder / SDM_FILE_NAME}"
+            )
 
         connection_description = cfg.description or "Quality SDM data connection"
         data_connection_payloads: list[tuple[str, PostgresDataConnectionConfiguration]] = []
         if self._has_local_sql_files(sdm_folder):
             # The local testcontainer case
             connection_info = await self._get_container_manager().get_or_start(sdm_folder)
+            self._log.info(
+                "sdm_setup.local_postgres_connection",
+                thread_id=thread_id,
+                sdm_folder=str(sdm_folder),
+                host=connection_info.host,
+                port=connection_info.port,
+                database=connection_info.database,
+                user=connection_info.user,
+            )
             for connection_name in sorted(connection_names):
                 data_connection_payloads.append(
                     (connection_name, self._configuration_from_connection_info(connection_info))
@@ -204,7 +218,7 @@ class SDMSetup:
             )
             response.raise_for_status()
 
-    async def _ensure_data_connection(
+    async def _ensure_data_connection(  # noqa: C901, PLR0912, PLR0915
         self,
         name: str,
         engine: str,
@@ -222,8 +236,21 @@ class SDMSetup:
             response.raise_for_status()
             existing_connections = response.json() or []
 
+        desired_config = asdict(configuration)
+        desired_config["sslmode"] = (
+            desired_config["sslmode"].value
+            if hasattr(desired_config.get("sslmode"), "value")
+            else desired_config.get("sslmode")
+        )
+
+        # Collect all matching connections - we'll delete stale ones and reuse exact matches
+        matching_connection_id: str | None = None
+        stale_connection_ids: list[str] = []
+
+        if not isinstance(existing_connections, list):
+            raise ValueError(f"Expected list of data connections, got {type(existing_connections)}")
+
         for connection in existing_connections:
-            # We skip marshalling all the connections as we only need the one that matches.
             connection_name = connection.get("name")
             if not connection_name or connection_name.lower() != name.lower():
                 continue
@@ -232,8 +259,53 @@ class SDMSetup:
                 continue
 
             connection_id = connection.get("id") or connection.get("data_connection_id")
-            if connection_id:
-                return str(connection_id)
+            if not connection_id:
+                continue
+
+            existing_config = dict(connection.get("configuration") or {})
+            # Normalize possible float ports to int for comparison
+            try:
+                if "port" in existing_config:
+                    existing_config["port"] = int(existing_config["port"])
+            except (TypeError, ValueError):
+                pass
+
+            if existing_config == desired_config:
+                # Exact match - we can reuse this one (but only keep first match)
+                if matching_connection_id is None:
+                    matching_connection_id = str(connection_id)
+                else:
+                    # Duplicate exact match - mark for deletion
+                    stale_connection_ids.append(str(connection_id))
+            else:
+                # Stale config (e.g., old port/host) - mark for deletion
+                stale_connection_ids.append(str(connection_id))
+
+        # Delete ALL stale/duplicate connections
+        if stale_connection_ids:
+            self._log.info(
+                "sdm_setup.deleting_stale_connections",
+                name=name,
+                connection_ids=stale_connection_ids,
+                desired_config=desired_config,
+            )
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                for stale_id in stale_connection_ids:
+                    try:
+                        await client.delete(f"{self.server_url}/api/v2/data-connections/{stale_id}")
+                    except httpx.HTTPStatusError as e:
+                        # Ignore 404 - connection may already be deleted
+                        if e.response.status_code != http.HTTPStatus.NOT_FOUND:
+                            raise
+
+        # If we found an exact match, return it
+        if matching_connection_id:
+            self._log.info(
+                "sdm_setup.reusing_connection",
+                name=name,
+                connection_id=matching_connection_id,
+            )
+            return matching_connection_id
 
         config_payload = asdict(configuration)
         ssl_value = config_payload.get("sslmode")
@@ -278,9 +350,7 @@ class SDMSetup:
 
         return semantic_model
 
-    def _interpolate_config_value(
-        self, key: str, value: Any, connection_name: str
-    ) -> int | float | str:
+    def _interpolate_config_value(self, key: str, value: Any, connection_name: str) -> int | str:
         """Interpolate $ENV_VAR_NAME patterns in config values.
 
         Args:
@@ -305,7 +375,7 @@ class SDMSetup:
                 )
             if key == "port":
                 try:
-                    return float(env_value)
+                    return int(env_value)
                 except ValueError as e:
                     raise ValueError(
                         f"Invalid port value from env '{env_var_name}': {env_value}"
@@ -313,9 +383,9 @@ class SDMSetup:
             return env_value
 
         # Handle literal values
-        if key == "port" and not isinstance(value, int | float):
+        if key == "port":
             try:
-                return float(value)
+                return int(value)
             except (ValueError, TypeError) as e:
                 raise ValueError(f"Invalid port value: {value}") from e
 
@@ -380,7 +450,7 @@ class SDMSetup:
         self,
         *,
         host: str,
-        port: int | float | str,
+        port: int | str,
         database: str,
         user: str,
         password: str,
@@ -392,11 +462,12 @@ class SDMSetup:
             Sslmode,
         )
 
+        port_value = int(port)
         sslmode_value = sslmode.lower() if isinstance(sslmode, str) else sslmode
         sslmode_enum = Sslmode(sslmode_value) if sslmode_value else None
         configuration = PostgresDataConnectionConfiguration(
             host=host,
-            port=float(port),
+            port=port_value,
             database=database,
             user=user,
             password=password,

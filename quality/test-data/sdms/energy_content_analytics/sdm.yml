@@ -1,0 +1,1472 @@
+name: Demo_Multidomain_Energy_and_Content_Analytics
+tables:
+  - name: customer_accounts
+    base_table:
+      table: demo_customers
+      schema: null
+      database: null
+      data_connection_name: 'Sema4.ai: Postgres Testing'
+    dimensions:
+      - expr: customer_id
+        name: customer_id
+        synonyms:
+          - customer_record_identifier_key
+          - b2b_account_id_code
+          - client_master_customer_id
+        data_type: '!int32'
+        description: Unique identifier for the customer in the demo customer master data.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+      - expr: company_name
+        name: customer_company_name
+        synonyms:
+          - client_organization_name_value
+          - business_customer_name_field
+          - b2b_account_company_label
+        data_type: '!string(100)'
+        description: Registered company name of the customer organization.
+        sample_values:
+          - TechVision GmbH
+          - LogiPro B.V.
+          - FastTrack Solutions
+          - Digital Dynamics SARL
+          - EuroTech Belgium
+          - InnoSys GmbH
+          - NetCorp Solutions
+          - AlphaTech SARL
+          - BeneluxTrade
+          - DataFlow Systems
+      - expr: country
+        name: customer_country_name
+        synonyms:
+          - client_country_location_value
+          - b2b_account_country_label
+          - customer_geography_country_field
+        data_type: '!string(50)'
+        description: Country where the customer company is located.
+        sample_values:
+          - Germany
+          - Netherlands
+          - France
+          - France
+          - Belgium
+          - Germany
+          - Netherlands
+          - France
+          - Belgium
+          - Germany
+      - expr: account_manager
+        name: account_manager_name
+        synonyms:
+          - customer_account_manager_person
+          - sales_owner_for_account
+          - client_relationship_manager_name
+        data_type: '!string(100)'
+        description: Full name of the internal account manager responsible for the customer
+          account.
+        sample_values:
+          - Sarah Weber
+          - Jan de Vries
+          - Marie Dubois
+          - Pierre Lambert
+          - Thomas Peeters
+          - Lisa Schmidt
+          - Erik van der Berg
+          - Marie Dubois
+          - Sophie Martens
+          - Sarah Weber
+    description: Business customer master data including company identity, responsible
+      account manager, and country for account-level analysis and reporting.
+  - name: well_production_reports
+    facts:
+      - expr: days
+        name: production_days_count
+        synonyms:
+          - number_of_operating_days_value
+          - well_runtime_days_metric
+          - monthly_producing_days_field
+        data_type: string
+        description: Number of producing days for the well during the reporting month.
+        sample_values:
+          - '31'
+          - '31'
+          - '31'
+          - '31'
+          - '30'
+          - '31'
+          - '31'
+          - '26'
+          - '31'
+          - '31'
+      - expr: flared
+        name: gas_flared_volume_mcf
+        synonyms:
+          - flared_gas_volume_measure
+          - gas_flaring_quantity_value
+          - reported_flared_mcf_field
+        data_type: string
+        description: Volume of gas flared during the reporting period, typically measured
+          in MCF.
+        sample_values:
+          - '103'
+          - '70'
+          - '467'
+          - '739'
+          - '519'
+          - '674'
+          - '3091'
+          - '117'
+          - '1162'
+          - '0'
+      - expr: gas
+        name: gas_produced_volume_mcf
+        synonyms:
+          - total_gas_output_volume
+          - produced_gas_mcf_value
+          - well_gas_production_quantity
+        data_type: int64
+        description: Total volume of gas produced by the well during the reporting period,
+          in MCF.
+        sample_values:
+          - 1624
+          - 1098
+          - 4353
+          - 6896
+          - 4844
+          - 6285
+          - 48811
+          - 2650
+          - 1856
+          - 28749
+      - expr: gassold
+        name: gas_sold_volume_mcf
+        synonyms:
+          - marketed_gas_volume_mcf
+          - sold_gas_quantity_value
+          - gas_sales_volume_metric
+        data_type: int64
+        description: Volume of produced gas that was sold during the reporting period,
+          in MCF.
+        sample_values:
+          - 1518
+          - 1026
+          - 3862
+          - 6119
+          - 4298
+          - 5576
+          - 45617
+          - 2531
+          - 572
+          - 28627
+      - expr: oil
+        name: oil_produced_volume_bbl
+        synonyms:
+          - total_oil_output_volume
+          - produced_oil_bbl_value
+          - well_oil_production_quantity
+        data_type: int64
+        description: Total volume of oil produced by the well during the reporting period,
+          in barrels (BBL).
+        sample_values:
+          - 580
+          - 868
+          - 486
+          - 863
+          - 595
+          - 2863
+          - 29050
+          - 1825
+          - 1012
+          - 5861
+      - expr: runs
+        name: oil_runs_volume_bbl
+        synonyms:
+          - oil_runs_quantity_value
+          - delivered_oil_volume_metric
+          - oil_sales_runs_bbl_field
+        data_type: int64
+        description: Volume of oil run or delivered during the reporting period, in barrels
+          (BBL).
+        sample_values:
+          - 584
+          - 868
+          - 489
+          - 889
+          - 581
+          - 2711
+          - 29008
+          - 1792
+          - 1035
+          - 5934
+      - expr: wtr
+        name: water_produced_volume_bbl
+        synonyms:
+          - total_water_output_volume
+          - produced_water_bbl_value
+          - well_water_production_quantity
+        data_type: int64
+        description: Total volume of water produced by the well during the reporting period,
+          in barrels (BBL).
+        sample_values:
+          - 671
+          - 2332
+          - 2038
+          - 4871
+          - 3928
+          - 3624
+          - 37428
+          - 5159
+          - 10297
+          - 12849
+    base_table:
+      table: production_reports
+      schema: null
+      database: null
+      data_connection_name: 'Sema4.ai: Postgres Testing'
+    dimensions:
+      - expr: api_wellno
+        name: api_well_number
+        synonyms:
+          - api_identifier_for_well
+          - regulatory_well_number_code
+          - well_api_key_value
+        data_type: int64
+        description: Numeric API identifier assigned to the well for regulatory and reporting
+          purposes.
+        sample_values:
+          - 33053039010000
+          - 33053038990000
+          - 33053048330000
+          - 33053050010000
+          - 33053048340000
+          - 33053050000000
+          - 33053101460000
+          - 33053076280000
+          - 33053042390000
+          - 33053042400000
+      - expr: fileno
+        name: file_number
+        synonyms:
+          - regulatory_file_number_code
+          - state_docket_reference_id
+          - well_file_no_identifier
+        data_type: int64
+        description: Regulatory file number associated with the well record.
+        sample_values:
+          - 22023
+          - 22021
+          - 25091
+          - 25645
+          - 25092
+          - 25644
+          - 40272
+          - 32709
+          - 23319
+          - 23320
+      - expr: company
+        name: operating_company_name
+        synonyms:
+          - well_operator_company_label
+          - production_company_name_value
+          - operating_business_entity_field
+        data_type: string
+        description: Name of the company operating the well.
+        sample_values:
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+          - GRAYSON MILL OPERATING, LLC
+      - expr: wellname
+        name: well_name
+        synonyms:
+          - reported_well_name_label
+          - state_well_name_text
+          - wellbore_name_value
+        data_type: string
+        description: Reported name of the well as used by the operator and regulator.
+        sample_values:
+          - BILL 14-23 1H
+          - BILL 14-23 2TFH
+          - BILL 14-23 3H
+          - BILL 14-23 4TFH
+          - BILL 14-23 5TFH
+          - BILL 14-23 6H
+          - BILL 14-23 XW 1H
+          - 'HEINZ 18-19 XW #1H'
+          - 'PORTER  35-26 #1TFH'
+          - 'PORTER  35-26 #2H'
+      - expr: quarter
+        name: quarter_section
+        synonyms:
+          - survey_quarter_description
+          - legal_land_quarter_code
+          - section_quarter_label_value
+        data_type: string
+        description: Quarter section descriptor used in the legal land description for
+          the well location.
+        sample_values:
+          - SWSW
+          - SWSW
+          - NWNE
+          - NWNE
+          - NWNE
+          - NWNE
+          - SWSW
+          - SESW
+          - SESW
+          - SESW
+      - expr: section
+        name: section_number
+        synonyms:
+          - survey_section_identifier
+          - legal_land_section_value
+          - plss_section_number_field
+        data_type: int32
+        description: Section number from the public land survey system for the well location.
+        sample_values:
+          - 11
+          - 11
+          - 14
+          - 14
+          - 14
+          - 14
+          - 11
+          - 7
+          - 35
+          - 35
+      - expr: township
+        name: township_number
+        synonyms:
+          - survey_township_identifier
+          - legal_land_township_value
+          - plss_township_number_field
+        data_type: int32
+        description: Township number from the public land survey system for the well location.
+        sample_values:
+          - 151
+          - 151
+          - 151
+          - 151
+          - 151
+          - 151
+          - 151
+          - 151
+          - 151
+          - 151
+      - expr: range
+        name: range_number
+        synonyms:
+          - survey_range_identifier
+          - township_range_code_value
+          - legal_range_number_field
+        data_type: int32
+        description: Range component of the public land survey system for the well location.
+        sample_values:
+          - 101
+          - 101
+          - 101
+          - 101
+          - 101
+          - 101
+          - 101
+          - 100
+          - 101
+          - 101
+      - expr: county
+        name: county_code
+        synonyms:
+          - producing_county_short_code
+          - county_abbreviation_field
+          - well_area_county_label
+        data_type: string
+        description: Abbreviated county code where the well is located.
+        sample_values:
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+          - MCK
+      - expr: fieldname
+        name: field_name
+        synonyms:
+          - oil_field_name_label
+          - producing_field_identifier_value
+          - reservoir_field_text
+        data_type: string
+        description: Name of the oil or gas field where the well is located.
+        sample_values:
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+          - ALEXANDER
+      - expr: pool
+        name: reservoir_pool_name
+        synonyms:
+          - production_pool_label
+          - reservoir_pool_identifier_value
+          - pool_zone_text_field
+        data_type: string
+        description: Name of the reservoir pool or producing zone associated with the
+          well.
+        sample_values:
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+          - BAKKEN
+      - expr: lat
+        name: well_latitude
+        synonyms:
+          - surface_latitude_coordinate
+          - well_location_lat_value
+          - geo_latitude_for_well
+        data_type: decimal(38, 8)
+        description: Latitude coordinate of the well surface location.
+        sample_values:
+          - '47.90750791'
+          - '47.90745029'
+          - '47.90458186'
+          - '47.90458198'
+          - '47.90458175'
+          - '47.90458209'
+          - '47.90769934'
+          - '47.90712441'
+          - '47.84920945'
+          - '47.84920951'
+      - expr: long
+        name: well_longitude
+        synonyms:
+          - surface_longitude_coordinate
+          - well_location_long_value
+          - geo_longitude_for_well
+        data_type: decimal(38, 8)
+        description: Longitude coordinate of the well surface location.
+        sample_values:
+          - '-103.58035374'
+          - '-103.58041127'
+          - '-103.56966358'
+          - '-103.56954117'
+          - '-103.56978599'
+          - '-103.56941876'
+          - '-103.58085035'
+          - '-103.53227391'
+          - '-103.57727413'
+          - '-103.57739643'
+    description: Monthly production records for oil and gas wells, including well identification,
+      location, production volumes, runtime, and reporting dates.
+    time_dimensions:
+      - expr: reportdate
+        name: production_report_date
+        synonyms:
+          - monthly_reporting_date_value
+          - production_period_end_date
+          - well_report_calendar_day
+        data_type: date
+        description: Reporting date for the production period, typically representing
+          the month of production.
+        sample_values:
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+          - '2024-05-01'
+  - name: product_catalog_items
+    base_table:
+      table: products
+      schema: null
+      database: null
+      data_connection_name: 'Sema4.ai: Postgres Testing'
+    dimensions:
+      - expr: id
+        name: product_id
+        synonyms:
+          - catalog_item_identifier_key
+          - sku_primary_id_value
+          - product_record_number_field
+        data_type: '!int32'
+        description: Unique identifier for the product in the catalog.
+        sample_values:
+          - 1
+          - 2
+      - expr: name
+        name: product_name
+        synonyms:
+          - catalog_product_name_label
+          - item_display_name_value
+          - sku_descriptive_title_field
+        data_type: string
+        description: Human-readable name of the product.
+        sample_values:
+          - Laptop Pro
+          - Gaming Mouse
+      - expr: tags
+        name: product_tags_array
+        synonyms:
+          - item_attribute_tags_list
+          - sku_keyword_tags_collection
+          - product_label_tags_metadata
+        data_type: array<string>
+        description: Array of descriptive tags associated with the product for categorization
+          and search.
+        sample_values:
+          - "['electronics', 'computers', 'laptops']"
+          - "['electronics', 'gaming', 'accessories']"
+    description: Demo product catalog containing product identifiers, names, and tag
+      metadata for analytical and search scenarios.
+  - name: well_research_notes
+    base_table:
+      table: research_notes
+      schema: null
+      database: null
+      data_connection_name: 'Sema4.ai: Postgres Testing'
+    dimensions:
+      - expr: id
+        name: research_note_id
+        synonyms:
+          - analysis_note_primary_key_value
+          - engineering_comment_id_code
+          - research_record_identifier_field
+        data_type: '!int32'
+        description: Unique identifier for the research note record.
+        sample_values:
+          - 103
+          - 41
+          - 67
+          - 100
+          - 101
+          - 102
+          - 104
+          - 105
+          - 106
+          - 107
+      - expr: wellname
+        name: research_well_name
+        synonyms:
+          - noted_well_name_text_value
+          - analysis_subject_well_label
+          - research_target_well_field
+        data_type: string(255)
+        description: Name of the well that is the subject of the research note.
+        sample_values:
+          - Harms East Federal 4-33H1
+          - Porter 26-35 4H
+          - Porter 26-35 3H
+          - TEDDY FEDERAL 12X-5F
+          - TEDDY FEDERAL 12X-5F
+          - Harms East Federal 4-33H1
+          - Harms East Federal 4-33H1
+          - Harms East Federal 4-33H1
+          - Harms East Federal 4-33H1
+          - Harms East Federal 4-33H1
+      - expr: fileno
+        name: file_number_text
+        synonyms:
+          - regulatory_file_number_text_value
+          - state_docket_string_identifier
+          - well_file_reference_char_field
+        data_type: string(255)
+        description: Text-formatted regulatory file number associated with the well in
+          the note.
+        sample_values:
+          - '40049'
+          - '39267'
+          - '39266'
+          - '35217'
+          - '35217'
+          - '40049'
+          - '40049'
+          - '40049'
+          - '40049'
+          - '40049'
+      - expr: api_wellno
+        name: api_well_number_text
+        synonyms:
+          - api_identifier_text_for_well
+          - well_api_code_string_value
+          - regulatory_api_char_field
+        data_type: string(255)
+        description: Text-formatted API identifier associated with the well discussed
+          in the research note.
+        sample_values:
+          - 33-053-09300
+          - '39267'
+          - 33-053-09266
+          - '33053063870000'
+          - '33025035530000'
+          - '33105018470000'
+          - 33-053-09049
+          - 33-053-09001
+          - 33-053-09001
+          - 33-053-09001
+      - expr: lat
+        name: note_latitude
+        synonyms:
+          - analysis_point_latitude_coordinate
+          - research_location_lat_value
+          - geo_latitude_for_note
+        data_type: decimal(38, 8)
+        description: Latitude coordinate referenced in the research note, typically corresponding
+          to a well or cluster.
+        sample_values:
+          - '48.01734932'
+          - '47.87861596'
+          - '47.87862772'
+          - '47.67098680'
+          - '47.67098680'
+          - '48.01734932'
+          - '48.01734932'
+          - '48.01734932'
+          - '48.01734932'
+          - '48.01734932'
+      - expr: long
+        name: note_longitude
+        synonyms:
+          - analysis_point_longitude_coordinate
+          - research_location_long_value
+          - geo_longitude_for_note
+        data_type: decimal(38, 8)
+        description: Longitude coordinate referenced in the research note, typically corresponding
+          to a well or area.
+        sample_values:
+          - '-102.65441825'
+          - '-103.56958801'
+          - '-103.56971039'
+          - '-103.07694095'
+          - '-103.07694095'
+          - '-102.65441825'
+          - '-102.65441825'
+          - '-102.65441825'
+          - '-102.65441825'
+          - '-102.65441825'
+      - expr: notes
+        name: research_notes_text
+        synonyms:
+          - engineering_commentary_longtext
+          - well_performance_analysis_narrative
+          - technical_research_observation_field
+        data_type: string
+        description: Free-form text containing research observations, decline-curve analysis,
+          and qualitative well performance commentary.
+        sample_values:
+          - 'Well Analysis Summary:
+
+
+            1. Production Performance:
+
+            - Top producing well for Continental Resources in the dataset
+
+            - Cumulative oil production: 299,241 bbls
+
+            - Strong gas production: Peak of 83,679 MCF (April 2024)
+
+            - Managed water production with typical water cuts
+
+
+            2. Decline Analysis (2020-2025):
+
+            - Initial Production Rate: 53,932 BBL/month
+
+            - Decline Rate: 0.5528% monthly (6.63% annual)
+
+            - Characteristic Time: 180.91 months
+
+            - R-squared: 0.9343 (excellent model fit)
+
+
+            3. Well Spacing:
+
+            - Part of dense well development
+
+            - 9 adjacent wells within 200m radius
+
+            - Part of Harms East Federal and Quale Federal development pattern
+
+
+            4. Recent Production (2024):
+
+            - Strong performance in March/April 2024 (~53,000 BBL/month)
+
+            - Stabilized production by October 2024 (~14,500 BBL/month)
+
+            - Consistent gas-to-oil ratios maintained
+
+
+            5. Development Context:
+
+            - One of 4 Harms East Federal wells in top 10 producers
+
+            - Shows excellent reservoir management practices
+
+            - Demonstrates successful horizontal well completion'
+          - 'Production Analysis Summary (2024):
+
+
+            1. Production Profile:
+
+            - Peak oil production in January 2024: 11,027 BBL
+
+            - Peak gas production in February 2024: 34,077 MCF
+
+            - Peak water production in January 2024: 22,646 BBL
+
+
+            2. Decline Analysis:
+
+            - Initial Production (qi): 9,215.82 BBL/month
+
+            - Decline Rate (D): 0.3159% per day
+
+            - Characteristic Time: 316.51 days
+
+            - R-squared: 0.7048
+
+
+            3. Operational Insights:
+
+            - Generally maintains good runtime (30-31 days/month)
+
+            - Notable production dip in August 2024 (22 operating days)
+
+            - Shows recovery capability after downtime (September recovery)
+
+
+            4. Performance Characteristics:
+
+            - Moderate decline rate indicates sustainable production
+
+            - Good water-oil ratio management
+
+            - Consistent gas production with some variability
+
+
+            Recommendations:
+
+            1. Monitor water-oil ratio trends
+
+            2. Consider optimization opportunities given moderate decline curve fit
+
+            3. Investigate August 2024 downtime causes for future prevention'
+          - "Analysis of Porter 26-35 3H production irregularities in 2024:\n1. Operational\
+            \ Inconsistencies:\n   - January: Only 5 operating days (2,070 BBL)\n   - February-March:\
+            \ Peak production (12,603 and 12,229 BBL)\n   - May: Limited to 11 operating\
+            \ days (2,221 BBL)\n   - June: Partial month with 19 days (3,204 BBL)\n   -\
+            \ December: Complete shutdown (0 production)\n2. Production Characteristics:\n\
+            \   - High variability in monthly production (0-12,603 BBL)\n   - Significant\
+            \ water production (water-oil ratio varies significantly)\n   - Variable gas\
+            \ production\n3. Poor exponential decline curve fit (R-squared: 0.1464) due\
+            \ to operational interruptions\nThese patterns suggest possible workover operations\
+            \ or mechanical issues affecting production."
+          - 'Well cluster analysis: Found 154 wells within 5-mile radius. Major operators:
+            XTO ENERGY (45 wells), BURLINGTON RESOURCES (41 wells), CONTINENTAL RESOURCES
+            (37 wells), GRAYSON MILL (15 wells), SLAWSON (3 wells). Dense development area
+            with multiple well series including TEDDY FEDERAL, GORDON FEDERAL, PALMER, BICE,
+            OLE, and TAILGUNNER series.'
+          - This well looks very interesting - Let's target it
+          - 'Decline Curve Analysis Summary (2024):
+
+
+            Harms East Federal Well Series Analysis:
+
+
+            1. Harms East Federal 5-33H
+
+            - Initial Production: 54,492 bbls
+
+            - Decline Rate: 0.74% per month
+
+            - Characteristic Time: 135.4 days
+
+            - Model Fit (R²): 0.866
+
+
+            2. Harms East Federal 4-33H1
+
+            - Initial Production: 53,932 bbls
+
+            - Decline Rate: 0.55% per month
+
+            - Characteristic Time: 180.9 days
+
+            - Model Fit (R²): 0.934
+
+
+            3. Harms East Federal 3-33H
+
+            - Initial Production: 49,967 bbls
+
+            - Decline Rate: 0.55% per month
+
+            - Characteristic Time: 182.2 days
+
+            - Model Fit (R²): 0.815
+
+
+            4. Harms East Federal 2-33H2
+
+            - Initial Production: 39,953 bbls
+
+            - Decline Rate: 0.39% per month
+
+            - Characteristic Time: 254.4 days
+
+            - Model Fit (R²): 0.698
+
+
+            Key Findings:
+
+            - Series shows consistent high initial production (40,000-54,500 bbls)
+
+            - Decline rates vary from 0.39% to 0.74% monthly
+
+            - Strong model fits across all wells (R² > 0.69)
+
+            - Well 4-33H1 shows best model reliability (R² = 0.934)
+
+            - Well 5-33H has highest IP but steepest decline
+
+            - Well 2-33H2 shows most gradual decline'
+          - 'CONTINENTAL RESOURCES, INC. - OPERATIONAL ANALYSIS (October 2024)
+
+
+            CORPORATE OVERVIEW:
+
+            - Recently transitioned to private ownership under Harold Hamm affiliates (Nov
+            2022)
+
+            - Strategic partnership with TotalEnergies: 49% farm-out of Anadarko basin assets
+
+            - Continues strong operational performance with new CEO leadership
+
+
+            WELL PERFORMANCE ANALYSIS:
+
+            Well: Harms East Federal 4-33H1
+
+            Location: 48.01734932, -102.65441825
+
+            File No: 40049
+
+
+            Production Metrics:
+
+            - Initial Production (q_i): 55,378 bbls/month
+
+            - Current Decline Rate: 0.584% monthly
+
+            - Characteristic Time: 171.22 months
+
+            - Model Fit (R-squared): 0.9014
+
+
+            Recent Production History (2024):
+
+            Peak Month (April): 53,700 bbls oil, 29,955 bbls water, 83,679 MCF gas
+
+            Latest Month (Oct): 14,466 bbls oil, 9,245 bbls water, 50,913 MCF gas
+
+
+            Well Portfolio Strength:
+
+            - Company operates multiple high-performing wells in the region
+
+            - Harms East Federal series (4 wells) among top 10 producers
+
+            - Quale Federal series showing strong performance
+
+
+            ANALYSIS & RECOMMENDATIONS:
+
+            1. Product'
+          - "Research Note - October 6, 2025
+
+
+            Well Analysis: Harms East Federal 4-33H1
+
+            Operator: CONTINENTAL RESOURCES, INC.
+
+
+            Production Performance:
+
+            - Top producing well in Continental's portfolio
+
+            - Current production: Oil: 299,241 bbls, Water: 177,652 bbls, Gas: 587,249 MCF
+
+
+            Decline Curve Analysis (2024):
+
+            - Initial Production (q_i): 53,932 bbls/day
+
+            - Decline Rate (D): 0.5528% daily
+
+            - Characteristic Time: 180.91 days
+
+            - R-squared: 0.9343 (excellent model fit)
+
+
+            Key Observations:
+
+            1. Well shows moderate decline rate, suggesting effective reservoir management
+
+            2. Strong production performance maintained through 2024
+
+            3. Located in prime acreage position (48.01734932, -102.65441825)
+
+            4. Part of successful Harms East Federal development (multiple high-performing
+            wells in series)
+
+
+            Recommendations:
+
+            - Monitor water cut trends
+
+            - Consider this well as a type curve for future development in the area
+
+            - Evaluate potential for similar well spacing in nearby acreage"
+          - "Research Note - Harms East Federal 4-33H1
+
+
+            Operator: CONTINENTAL RESOURCES, INC.
+
+            Location: Lat 48.01734932, Long -102.65441825
+
+            File Number: 40049
+
+
+            Production Analysis:
+
+            1. Top performing well in Continental's portfolio
+
+            - Current oil production: 299,241 bbls
+
+            - Water production: 177,652 bbls
+
+            - Gas production: 587,249 MCF
+
+
+            Decline Curve Analysis (2024):
+
+            - Initial Production Rate: 53,932 BBL/day
+
+            - Decline Rate: 0.5528% (relatively gentle decline)
+
+            - Characteristic Time: 180.91 days
+
+            - Model Fit: R-squared = 0.9343 (strong statistical fit)
+
+
+            Key Observations:
+
+            1. Well demonstrates excellent production performance
+
+            2. Gentle decline rate suggests sustainable production
+
+            3. Part of successful Harms East Federal development (multiple high-performing
+            wells)
+
+            4. Strong gas-oil ratio indicating good reservoir energy
+
+
+            Corporate Context:
+
+            - Well operated by Continental Resources, recently privatized (Nov 2022) under
+            Harold Hamm's ownership
+
+            - Part of Continental's core assets
+
+            - Demonstrates company's successful operational strategy"
+          - "Research Note - October 6, 2025
+
+
+            Well Analysis: Harms East Federal 4-33H1
+
+            Operator: CONTINENTAL RESOURCES, INC.
+
+
+            Production Performance:
+
+            - Top producing well in Continental's portfolio
+
+            - Current production: 299,241 bbls oil, 177,652 bbls water, 587,249 MCF gas
+
+
+            Decline Curve Analysis (2024):
+
+            - Initial Production Rate: 53,932 units
+
+            - Decline Rate: 0.5528% (relatively low decline rate)
+
+            - Model Fit Quality: R-squared = 0.9343 (excellent fit)
+
+            - Characteristic Time: 180.91 days
+
+
+            Key Observations:
+
+            1. Well demonstrates strong production stability with gradual decline
+
+            2. Excellent model fit suggests reliable future production predictions
+
+            3. Part of successful Harms East Federal well group (3 wells in top 5)
+
+            4. Strong gas-oil ratio indicates good reservoir energy
+
+
+            Corporate Context:
+
+            - Well is part of Continental Resources' core assets
+
+            - Company recently completed major deal with TotalEnergies (49% stake in Anadarko
+            assets)
+
+            - Company showing strong overall performance with recent earnings beats
+
+
+            Recommendations:
+
+            - Cont"
+    description: Research and analysis notes linked to wells, including narrative assessments,
+      decline-curve commentary, and spatial references for engineering review.
+  - name: wikipedia_biography_articles
+    base_table:
+      table: wikipedia
+      schema: null
+      database: null
+      data_connection_name: 'Sema4.ai: Postgres Testing'
+    dimensions:
+      - expr: title
+        name: article_title
+        synonyms:
+          - wiki_page_title_text
+          - biography_subject_name_value
+          - article_heading_label_field
+        data_type: '!string'
+        description: Title of the Wikipedia article, typically the name of the person.
+        sample_values:
+          - A. A. Milne
+          - Ada Lovelace
+          - A. E. van Vogt
+          - Agatha Christie
+          - Alain Connes
+          - Alan Garner
+          - Alan Kay
+          - Alan Turing
+          - Albert Schweitzer
+          - Aldous Huxley
+      - expr: wiki_id
+        name: article_wiki_id
+        synonyms:
+          - mediawiki_page_identifier_value
+          - numeric_wiki_id_primary_key
+          - article_internal_id_field
+        data_type: int32
+        description: Numeric internal Wikipedia page identifier for the article.
+        sample_values:
+          - 7436027
+          - 48150
+          - 5846
+          - 35707538
+          - 7903804
+          - 19813
+          - 67574
+          - 7903804
+          - 32677215
+          - 1263790227
+      - expr: infobox
+        name: article_infobox_type
+        synonyms:
+          - wiki_infobox_role_label
+          - biography_infobox_type_value
+          - article_template_role_field
+        data_type: string
+        description: High-level infobox type or role for the subject of the article, such
+          as writer or scientist.
+        sample_values:
+          - writer
+          - scientist
+          - writer
+          - writer
+          - scientist
+          - writer
+          - scientist
+          - scientist
+          - scientist
+          - writer
+      - expr: wikitext
+        name: article_wikitext_source
+        synonyms:
+          - raw_wiki_markup_text_value
+          - article_source_wikitext_field
+          - biography_full_content_markup
+        data_type: string
+        description: Raw wikitext source of the article, including templates, markup,
+          and full content.
+        sample_values:
+          - "{{Use British English|date=November 2023}}\r\n{{Short description|English writer\
+            \ (1882–1956)}}\r\n{{Use dmy dates|date=October 2021}}\r\n{{Infobox writer <!--\
+            \ for more information see [[:Template:Infobox writer/doc]] -->\r\n| image \
+            \           = Milne-Shadowland-1922.jpg\r\n| imagesize        =\r\n| caption\
+            \          = Milne in 1922\r\n| birth_name       = Alan Alexander Milne\r\n\
+            | birth_date       = {{birth date|1882|1|18|df=yes}}\r\n| birth_place      =\
+            \ [[Kilburn, London]], England\r\n| death_date       = {{death date and age|1956|1|31|1882|1|18|df=yes}}\r\
+            \n| death_place      = [[Hartfield]], Sussex, England\r\n| occupation      \
+            \ = {{hlist||Novelist|playwright|poet}}\r\n| years_active     = 1906–1956\r\n\
+            | period           = [[Interwar Britain]]\r\n| education        = [[Westminster\
+            \ School]]\r\n| alma_mater       = [[Trinity College, Cambridge]]\r\n| spouse\
+            \           = {{marriage|{{nowrap|Dorothy \"Daphne\" de Sélincourt}}|1913}}\r\
+            \n| children         = [[Christopher Robin Milne|Christopher Robin]]\r\n| relatives\
+            \        = [[Aubrey de Sélincourt]] (b"
+          - "{{Short description|English mathematician (1815–1852)}}\r\n{{For|the computer\
+            \ microarchitecture|Ada Lovelace (microarchitecture)}}\r\n{{Pp|small=yes}}\r\
+            \n{{Use British English|date=November 2019}}\r\n{{Use dmy dates|date=May 2024}}\r\
+            \n{{Infobox scientist\r\n| name              = The Countess of Lovelace\r\n\
+            | honorific_prefix  = [[The Right Honourable]]\r\n| image             = Ada\
+            \ Byron daguerreotype by Antoine Claudet 1843 or 1850 - cropped (cropped).png\r\
+            \n| caption           = [[Daguerreotype]] by [[Antoine Claudet]] ({{circa}}\
+            \ 1843)<ref name=blogbutfromboldian>\r\n{{Cite web|url=https://blogs.bodleian.ox.ac.uk/adalovelace/2015/10/14/only-known-photographs-of-ada-lovelace-in-bodleian-display/|title=Only\
+            \ known photographs of Ada Lovelace in Bodleian Display|year=2015|website=Bodleian|access-date=10\
+            \ October 2017}}</ref>\r\n| birth_name        = Hon. Augusta Ada Byron\r\n|\
+            \ birth_date        = {{birth date|df=y|1815|12|10}}\r\n| birth_place      \
+            \ = London, England\r\n| death_date        = {{death date and age|df=y|1852|11|27|1815|12|10}}"
+          - "{{Short description|Canadian-American science fiction writer (1912–2000)}}\r\
+            \n{{Use mdy dates|date=July 2014}}\r\n{{Infobox writer\r\n| image       = <noinclude>VanVogt1963.jpg</noinclude>\r\
+            \n| caption     = Van Vogt {{circa|1963}}\r\n| pseudonym   =\r\n| birth_name\
+            \  = Alfred Vogt\r\n| birth_date  = {{birth date|1912|4|26|mf=y}}\r\n| birth_place\
+            \ = Edenburg, near [[Gretna, Manitoba]], Canada\r\n| death_date  = {{death date\
+            \ and age|2000|1|26|1912|4|26|mf=y}}\r\n| death_place = Los Angeles, California,\
+            \ US\r\n| nationality = American\r\n| occupation  = Writer\r\n| period     \
+            \ = 1939–1986 (science fiction)\r\n| genre       = Science fiction\r\n| subject\
+            \     = <!--nonfiction-->\r\n| movement    = [[Golden Age of Science Fiction]]\r\
+            \n| spouse      = {{plainlist|\r\n* {{Marriage|[[Edna Mayne Hull]]|1939|1975|end=d}}\r\
+            \n* {{Marriage|Lydia Bereginsky|1979<!--Do not put \"his death\" per manual\
+            \ of style-->}}\r\n}}\r\n| signature   = A.E. van Vogt (signature).svg\r\n}}\r\
+            \n\r\n'''Alfred Elton van Vogt'''  ({{IPAc-en|v|æ|n|_|v|oʊ|t}} {{Respell|VAN|_|VOHT}};\
+            \ April 26, 1912"
+          - "{{Short description|English mystery and detective writer (1890–1976)}}\r\n\
+            {{About|the British author|other uses|Agatha Christie (disambiguation)}}\r\n\
+            {{Good article}}\r\n{{Use British English|date=January 2024}}\r\n{{Use dmy dates|date=May\
+            \ 2024}}\r\n<!-- This article uses spaced en dashes were appropriate, not em\
+            \ dashes (see MOS:ENDASH) -->\r\n{{Infobox writer <!-- for more information\
+            \ see [[:Template:Infobox writer/doc]] -->\r\n| honorific_prefix = [[Dame]]\r\
+            \n| name             = Agatha Christie\r\n| honorific_suffix = {{post-nominals|country=GBR|size=100%|DBE}}\r\
+            \n| image            = Agatha Christie.png\r\n| alt              = Black and\
+            \ white portrait photograph of Christie as a middle-aged woman\r\n| caption\
+            \          = Christie in 1958\r\n| pseudonym        = Mary Westmacott\r\n| birth_name\
+            \       = Agatha Mary Clarissa Miller\r\n| birth_date       = {{Birth date|df=y|1890|9|15}}\r\
+            \n| birth_place      = [[Torquay]], [[Devon]], England\r\n| death_date     \
+            \  = {{Death date and age|df=y|1976|1|12|1890|9|15}}\r\n| death_place      =\
+            \ [[Winterbro"
+          - "{{short description|French mathematician (born 1947)}}\r\n{{Use dmy dates|date=April\
+            \ 2020}}\r\n\r\n{{Infobox scientist\r\n| name              = Alain Connes\r\n\
+            | image             = Alain_Connes.jpg\r\n| alt               = Photo of the\
+            \ upper body of Alain Connes with vegetation, blue sky, and clouds in the background\r\
+            \n| caption           = Alain Connes in 2004\r\n| birth_date        = {{birth\
+            \ date and age|1947|04|01|df=y}}\r\n| birth_place       = [[Draguignan]], France\r\
+            \n| death_date        = \r\n| death_place       = \r\n| fields            =\
+            \ Mathematics <br/> [[Particle physics]]\r\n| workplaces        = [[Collège\
+            \ de France]] <br/> [[IHÉS]] <br/> [[Ohio State University]] <br/> [[Vanderbilt\
+            \ University]]\r\n| alma_mater        = [[École Normale Supérieure]] <br> [[Pierre\
+            \ and Marie Curie University]]\r\n| thesis_title      = A Classification of\
+            \ Factors of Type III\r\n| thesis_year       = 1973\r\n| doctoral_advisor  =\
+            \ [[Jacques Dixmier]]\r\n| doctoral_students = [[Jean-Benoît Bost]]<br>[[Georges\
+            \ Skandalis]]\r\n| known_for         = [[Baum–Co"
+          - "{{Short description|English novelist (born 1934)}}\r\n{{Other people||Alan\
+            \ Garner (disambiguation)}}\r\n{{Use British English|date=April 2014}}\r\n{{Use\
+            \ dmy dates|date=September 2020}}\r\n{{Infobox writer\r\n| honorific_suffix\
+            \ = {{postnominals|country=GBR|size=100%|OBE|FRSL}}\r\n| name             =\
+            \ Alan Garner\r\n| birth_name       = \r\n| image            = Alan Garner.JPG\r\
+            \n| imagesize        = 200px\r\n| caption          = Garner in 2011\r\n| birth_date\
+            \       = {{birth date and age|df=y|1934|10|17}}\r\n| birth_place      = [[Congleton]],\
+            \ [[Cheshire]], England\r\n| death_date       = \r\n| death_place      = \r\n\
+            | spouse           = Griselda Garner (m. 1972)\r\n| occupation       = Writer,\
+            \ [[folklore|folklorist]]\r\n| period           = 1960–present <!-- Weirdstone\
+            \ publication date -->\r\n| genre            = [[Children's literature|Children's]]\
+            \ [[fantasy]], [[low fantasy]], folklore\r\n| notableworks     = {{plainlist|\r\
+            \n* ''[[The Weirdstone of Brisingamen]]''\r\n* ''[[The Moon of Gomrath]]''\r\
+            \n* ''[[Elidor]]''\r\n* ''[[The Owl Service]]''\r\n* ''[["
+          - "{{Short description|American computer scientist (born 1940)}}\r\n{{Other people}}\r\
+            \n{{distinguish|Allan K.}}\r\n{{Use mdy dates|date=March 2022}}\r\n{{BLP sources|date=April\
+            \ 2023}}\r\n{{Infobox scientist\r\n| name              = Alan Kay\r\n| birth_name\
+            \        = Alan Curtis Kay\r\n| image             = Alan Kay and the prototype\
+            \ of the Dynabook (3009206205).jpg\r\n| caption           = Alan Kay holding\
+            \ the prototype of the [[Dynabook]]\r\n| birth_date        = {{birth date and\
+            \ age|1940|05|17}}\r\n| birth_place       = [[Springfield, Massachusetts]],\
+            \ U.S.\r\n| death_date        = <!--{{death date and age |202y|mm|dd |1940|05|17}}\
+            \ (death date then birth date)-->\r\n| death_place       = \r\n| fields    \
+            \        = [[Computer science]]\r\n| workplaces        = [[PARC (company)|Xerox\
+            \ PARC]]<br/>[[Stanford University]]<br/>[[Atari Inc.]]<br/>[[Apple Inc.]] [[Apple\
+            \ Advanced Technology Group|ATG]]<br/>[[Walt Disney Imagineering]]<br/>[[University\
+            \ of California, Los Angeles|UCLA]]<br/>[[Kyoto University]]<br/>[[Massachusetts\
+            \ Institute of Technolog"
+          - "{{Short description|English computer scientist (1912–1954)}}\r\n{{Redirect|Turing}}\r\
+            \n{{Pp-semi-indef}}\r\n{{Good article}}\r\n{{Use British English|date=June 2020}}\r\
+            \n{{Use dmy dates|date=June 2024}}\r\n{{Infobox scientist\r\n| name        \
+            \      = Alan Turing\r\n| honorific_suffix  = {{post-nominals|country=GBR|size=100%|OBE|FRS}}\r\
+            \n| image             = Alan Turing (1912-1954) in 1936 at Princeton University\
+            \ (cropped).jpg\r\n| caption           = Turing in 1936\r\n| birth_name    \
+            \    = Alan Mathison Turing\r\n| birth_date        = {{Birth date|df=y|1912|6|23}}\r\
+            \n| birth_place       = [[Maida Vale]], London, England\r\n| death_date    \
+            \    = {{Death date and age|df=y|1954|6|7|1912|6|23}}\r\n| death_place     \
+            \  = {{Nowrap|[[Wilmslow]], Cheshire, England}}\r\n| death_cause       = [[Cyanide\
+            \ poisoning]] as an act of [[suicide]]{{efn|group=note|Turing's death was officially\
+            \ determined as a suicide by an [[inquest]], but this has been disputed.}}\r\
+            \n| alma_mater        = {{Indented plainlist|\r\n* {{nowrap|[[University of\
+            \ Cambridge]] <!--[[King'"
+          - "{{Short description|German-French theologian and philosopher (1875–1965)}}\r\
+            \n{{For-multi|the film|Albert Schweitzer (film){{!}}''Albert Schweitzer'' (film)|the\
+            \ American artist|Albert Schweitzer (artist)}}\r\n{{Use dmy dates|date=October\
+            \ 2022}}\r\n{{use British English|date=March 2020}}\r\n{{Infobox scientist\r\
+            \n| honorific_prefix  = [[The Reverend]]\r\n| name              = Albert Schweitzer\r\
+            \n| honorific_suffix  = {{post-nominals|country=GBR|OM|size=100%}}\r\n| image\
+            \             = Bundesarchiv Bild 183-D0116-0041-019, Albert Schweitzer.jpg\r\
+            \n| caption           = Schweitzer in 1955\r\n| birth_date        = {{birth\
+            \ date|df=yes|1875|01|14}}\r\n| birth_place       = [[Kaysersberg]], [[Alsace–Lorraine]],\
+            \ German&nbsp;Empire\r\n| death_date        = {{death date and age|df=yes|1965|9|4|1875|1|14}}\r\
+            \n| death_place       = [[Lambaréné]], Gabon\r\n| citizenship       = {{unbulleted\
+            \ list | Germany (until 1919) | France (from 1919)}}\r\n| doctoral_advisor \
+            \ = {{unbulleted list | [[Theobald Ziegler]] | [[Heinrich Julius Holtzmann]]\
+            \ | {{Interlangu"
+          - "{{short description|English writer and philosopher (1894–1963)}}\r\n{{Use British\
+            \ English|date=May 2020}}\r\n{{Use dmy dates|date=December 2024}}\r\n{{Infobox\
+            \ writer\r\n| name             = Aldous Huxley\r\n| image            = Aldous\
+            \ Huxley psychical researcher.png\r\n| alt              = Monochrome portrait\
+            \ of Aldous Huxley sitting on a table, facing slightly downwards.\r\n| caption\
+            \          = Huxley in 1954\r\n| birth_name       = Aldous Leonard Huxley\r\n\
+            | birth_date       = {{Birth date|1894|07|26|df=y}}\r\n| birth_place      =\
+            \ [[Godalming]], [[Surrey]], England\r\n| death_date       = {{Death date and\
+            \ age|1963|11|22|1894|07|26|df=y}}\r\n| death_place      = [[Los Angeles County]],\
+            \ [[California]], U.S.\r\n| resting_place    = [[Compton, Guildford|Compton]],\
+            \ Surrey\r\n| occupation       = {{hlist|Writer|philosopher}}\r\n| education\
+            \        = [[Balliol College, Oxford|Balliol College]]\r\n| notable_works  \
+            \  = {{hlist|class=nowraplinks |''[[Brave New World]]'' |''[[Island (Huxley\
+            \ novel)|Island]]'' |''[[Point Counter Point]]'' |''[[The Door"
+      - expr: categories
+        name: article_categories_array
+        synonyms:
+          - wiki_page_category_list_values
+          - biography_topic_categories_collection
+          - encyclopedia_tags_array_field
+        data_type: '!array<string>'
+        description: Array of Wikipedia category labels associated with the article.
+        sample_values:
+          - '[''english autobiographers'', ''1956 deaths'', ''a. a. milne'', ''writers from
+            the london borough of camden'', ''20th-century english dramatists and playwrights'',
+            ''1882 births'', ''military personnel from the london borough of camden'', ''people
+            from hampstead'', ''military personnel from the london borough of brent'', "english
+            children''s writers", ''british home guard officers'', ''english male novelists'',
+            ''alumni of trinity college, cambridge'', ''punch (magazine) people'', ''writers
+            from the london borough of brent'', ''20th-century english novelists'', ''winnie-the-pooh'',
+            "british children''s poets", ''people educated at westminster school, london'',
+            ''members of the detection club'', ''english male poets'', ''english people
+            of scottish descent'', ''british army personnel of world war i'', ''20th-century
+            english poets'', ''royal warwickshire fusiliers officers'', ''people from kilburn,
+            london'', ''20th-century english short story writers'']'
+          - "['burials at the church of st mary magdalene, hucknall', '19th-century english
+            mathematicians', 'deaths from uterine cancer', 'daughters of barons', 'mathematicians
+            from london', '1815 births', 'british women computer scientists', 'deaths
+            from cancer in england', 'godwin family', 'women of the victorian era',
+            '19th-century english writers', '19th-century british inventors', 'ada
+            (programming language)', '19th-century english nobility', 'english computer
+            programmers', '19th-century english women writers', '1852 deaths', 'english
+            women poets', '19th-century british women mathematicians', 'english people
+            of scottish descent', 'byron family', 'lord byron', 'computer designers',
+            'british countesses', 'amateur mathematicians', 'burials in nottinghamshire',
+            'ada lovelace']"
+          - '[''canadian emigrants to the united states'', ''sfwa grand masters'', ''american
+            mennonites'', ''2000 deaths'', "deaths from alzheimer''s disease in california",
+            ''deaths from dementia in california'', ''american male novelists'', ''20th-century
+            american male writers'', ''analog science fiction and fact people'', ''science
+            fiction hall of fame inductees'', ''1912 births'', ''american male short story
+            writers'', ''hugo award–winning writers'', ''writers from winnipeg'', ''20th-century
+            american novelists'', ''pulp fiction writers'', ''american science fiction writers'',
+            ''20th-century american short story writers'', ''weird fiction writers'', ''mennonite
+            writers'']'
+          - '[''anthony award winners'', ''english autobiographers'', ''english mystery
+            writers'', ''people from sunningdale'', ''missing person cases in england'',
+            ''20th-century english dramatists and playwrights'', ''british women in world
+            war ii'', ''mythopoeic writers'', ''english women mystery writers'', ''agatha
+            christie'', ''20th-century english women writers'', ''wives of knights'', ''people
+            from cholsey'', ''fellows of the royal society of literature'', ''20th-century
+            english memoirists'', ''formerly missing people'', ''writers of historical mysteries'',
+            ''pseudonymous women writers'', ''english women historical novelists'', ''british
+            women in world war i'', ''writers from torquay'', "booker authors'' division",
+            ''english people of american descent'', ''writers of the golden age of detective
+            fiction'', ''english women dramatists and playwrights'', ''edgar award winners'',
+            ''english women short story writers'', ''burials in oxfordshire'', ''20th-century
+            english novelists'', ''english women memoirists'', ''members of the detection
+            club'', ''dames commander of the order of the british empire'', ''cozy mystery
+            writers'', ''british ghost story writers'', ''20th-century pseudonymous writers'',
+            ''1976 deaths'', ''british detective fiction writers'', ''voluntary aid detachment
+            nurses'', ''women mystery writers'', ''english crime fiction writers'', ''1890
+            births'', ''20th-century english short story writers'', ''english short story
+            writers'']'
+          - "['vanderbilt university faculty', 'members of the royal danish academy of
+            sciences and letters', 'academic staff of the collège de france', 'members
+            of the french academy of sciences', '21st-century french mathematicians',
+            'living people', 'école normale supérieure alumni', 'french mathematical
+            analysts', '20th-century french mathematicians', 'london mathematical society',
+            'people from draguignan', 'foreign members of the russian academy of sciences',
+            'fields medalists', 'institute for advanced study visiting scholars', 'clay
+            research award recipients', 'foreign associates of the national academy of
+            sciences', 'members of the norwegian academy of science and letters', 'differential
+            geometers', '1947 births']"
+          - '["guardian children''s fiction prize winners", ''english male novelists'',
+            ''officers of the order of the british empire'', ''1934 births'', ''carnegie
+            medal in literature winners'', ''fellows of the royal society of literature'',
+            ''world fantasy award–winning writers'', ''people educated at manchester grammar
+            school'', "english children''s writers", ''living people'', ''people from congleton'',
+            ''people from alderley edge'', ''english short story writers'', ''english fantasy
+            writers'', ''people with bipolar disorder'', ''alumni of magdalen college, oxford'']'
+          - "['apple inc. employees', 'fellows of the american association for the advancement
+            of science', 'scientists at parc (company)', 'university of colorado boulder
+            alumni', 'living people', 'scientists from springfield, massachusetts',
+            'atari people', '2008 fellows of the association for computing machinery',
+            'turing award laureates', 'massachusetts institute of technology faculty',
+            'hewlett-packard people', '1940 births', 'draper prize winners', 'open
+            source advocates', 'university of california, los angeles faculty', 'academic
+            staff of the berlin university of the arts', 'apple fellows', 'human–computer
+            interaction researchers', 'american computer programmers', 'programming
+            language designers', 'american computer scientists', 'american computer
+            science educators', 'kyoto laureates in advanced technology', 'university
+            of utah alumni']"
+          - '[''people convicted for homosexuality in the united kingdom'', ''british male
+            long-distance runners'', ''gay scientists'', ''people from maida vale'', ''officers
+            of the order of the british empire'', ''british artificial intelligence researchers'',
+            ''bletchley park people'', ''british people of world war ii'', ''english inventors'',
+            ''enigma machine'', ''lgbtq mathematicians'', ''academics of the university
+            of manchester institute of science and technology'', ''lgbtq track and field
+            athletes'', ''british cryptographers'', ''suicides by cyanide poisoning'', ''theoretical
+            biologists'', ''fellows of the royal society'', ''british anti-fascists'', ''english
+            gay sportsmen'', "fellows of king''s college, cambridge", ''lgbtq philosophers'',
+            ''english male long-distance runners'', ''lgbtq people who died by suicide'',
+            ''english lgbtq scientists'', ''english logicians'', ''bayesian statisticians'',
+            ''20th-century english lgbtq people'', ''people educated at sherborne school'',
+            ''gay academics'', ''20th-century english philosophers'', ''people who have
+            received posthumous pardons'', ''scientists of the national physical laboratory
+            (united kingdom)'', ''castrated people'', ''princeton university alumni'', ''history
+            of computing in the united kingdom'', ''1954 deaths'', ''former protestants'',
+            ''1912 births'', ''alan turing'', ''1954 suicides'', ''theoretical computer
+            scientists'', ''computer chess people'', ''english people of scottish descent'',
+            ''english people of irish descent'', "alumni of king''s college, cambridge",
+            ''english atheists'', ''suicides in england'', ''foreign office personnel of
+            world war ii'', ''20th-century english mathematicians'', ''computability theorists'',
+            ''computer designers'', ''recipients of british royal pardons'', ''people from
+            wilmslow'', ''academics of the university of manchester'', ''20th-century atheists'',
+            ''gchq people'', ''english computer scientists'']'
+          - "['celebrity doctors', '19th-century german male writers', 'french writers
+            in german', 'people from kaysersberg-vignoble', '19th-century german writers',
+            'french male organists', 'french classical organists', 'lutheran pacifists',
+            'german classical organists', 'german evangelicals', 'translators to german',
+            'christian medical missionaries', '1875 births', 'german unitarians',
+            'german medical writers', 'honorary members of the royal philharmonic society',
+            'environmental philosophers', 'german male non-fiction writers', '20th-century
+            french writers', 'male classical organists', 'german lutheran theologians',
+            'university of tübingen alumni', 'german male organists', 'recipients of
+            the pour le mérite (civil class)', 'protestant missionaries in gabon', 'french
+            medical writers', 'honorary members of the order of merit', '20th-century
+            german writers', 'animal rights scholars', 'bach scholars', 'lutheran
+            philosophers', 'german anti–nuclear weapons activists', 'missionary linguists',
+            '19th-century french male writers', 'tamil–german translators', 'french
+            unitarians', 'german music historians', 'pupils of isidor philipp', '19th-century
+            german lutheran clergy', 'french christian pacifists', '1965 deaths', 'french
+            tropical physicians', 'anti-imperialism in europe', 'french anti–nuclear
+            weapons activists', 'french nobel laureates', '20th-century german lutheran
+            clergy', 'healthcare in gabon', 'french lutheran missionaries', 'german
+            christian pacifists', 'german lutheran missionaries', 'people from alsace-lorraine',
+            'french evangelicals', '19th-century french physicians', 'lutheran missionaries
+            in africa', 'naturalized citizens of france', 'german writers in french',
+            'tirukkural translators', 'nobel peace prize laureates', '19th-century
+            french musicologists', '19th-century french philosophers', 'german nobel
+            laureates', '19th-century french writers', 'french biblical scholars',
+            '20th-century german protestant theologians', '19th-century french theologians',
+            'french lutherans', 'corresponding fellows of the british academy']"
+          - "['writers from los angeles', 'english emigrants to the united states',
+            'english satirists', 'british psychedelic drug advocates', 'lost generation
+            writers', 'male essayists', 'british satirical novelists', 'english agnostics',
+            'writers from taos, new mexico', 'british philosophers of culture', 'english
+            travel writers', 'futurologists', 'james tait black memorial prize recipients',
+            'perennial philosophy', 'burials in surrey', 'english pacifists', 'duke
+            university faculty', 'deaths from laryngeal cancer in the united states',
+            'anti-consumerists', 'bates method', '20th-century english philosophers',
+            'new age predecessors', 'alumni of balliol college, oxford', 'english male
+            short story writers', 'british philosophers of mind', 'english male novelists',
+            'philosophers of literature', 'huxley family', '20th-century english novelists',
+            'english people of cornish descent', '20th-century mystics', 'english male
+            poets', 'deaths from throat cancer in california', 'english science fiction
+            writers', '20th-century english essayists', 'people educated at eton college',
+            'english essayists', 'neo-vedanta', 'people from godalming', '1894 births',
+            'philosophers of technology', 'aldous huxley', '20th-century english short
+            story writers', 'english short story writers', '1963 deaths', 'human potential
+            movement']"
+      - expr: general
+        name: article_general_tags_array
+        synonyms:
+          - wiki_general_topic_terms_list
+          - biography_common_keywords_collection
+          - article_high_level_tags_array
+        data_type: '!array<string>'
+        description: Array of general high-level descriptive terms derived from the article's
+          categories.
+        sample_values:
+          - "['alumni', 'writers from the london borough', 'military personnel from
+            the london borough', 'members', 'british army personnel', 'english people']"
+          - "['daughters', 'burials', 'burials at the church', 'deaths from cancer',
+            'english people', 'women']"
+          - '[''deaths from dementia'', "deaths from alzheimer''s disease", ''science fiction
+            hall'']'
+          - "['dames commander', 'british women', 'missing person cases', 'burials',
+            'fellows', 'writers', 'members', 'wives', 'english people']"
+          - "['academic staff', 'members', 'foreign associates', 'foreign members']"
+          - "['alumni', 'fellows', 'officers', 'carnegie medal']"
+          - "['fellows', 'university', '2008 fellows', 'kyoto laureates', 'academic
+            staff', 'massachusetts institute']"
+          - "['history', 'alumni', 'people convicted for homosexuality', 'academics',
+            'fellows', 'suicides', 'officers', 'scientists', 'british people',
+            'recipients', 'lgbtq people who died', 'english people', 'foreign office
+            personnel']"
+          - "['protestant missionaries', 'healthcare', 'german writers', 'pupils',
+            'french writers', 'corresponding fellows', 'university', 'honorary members',
+            'recipients', 'lutheran missionaries', 'anti-imperialism', 'naturalized
+            citizens']"
+          - "['alumni', 'philosophers', 'burials', 'deaths from throat cancer',
+            'british philosophers', 'english people', 'deaths from laryngeal cancer']"
+    description: Subset of Wikipedia biography-style articles with metadata, categories,
+      and full wikitext content for knowledge and NLP analysis.
+description: Demo analytic model combining customer records, oil and gas well production,
+  research notes, product catalog data, and Wikipedia biography content for exploring
+  structured metrics alongside unstructured text.

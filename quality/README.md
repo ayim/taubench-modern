@@ -163,6 +163,51 @@ evaluations:
 1. **`llm-eval-of-last-agent-turn`**: Uses GPT-4.1 to evaluate response quality against criteria
 2. **`count-messages-in-last-agent-turn`**: Counts messages in the agent's response
 3. **`tool-call-evaluation`**: Validates tool usage and parameters
+4. **`sql-generation-result`**: Validates SQL generation subagent output.json file and it's schema. Specifically, it validates the status, has_sql, sql_contains, and sql_not_contains fields. It is not designed for complex SQL comparisons.
+5. **`sql-golden-comparison`**: Compares generated SQL against expected "golden" SQL using an LLM. This is a more powerful evaluator that can compare SQL queries for semantic equivalence.
+
+#### SQL Generation Evaluations
+
+For tests targeting the SQL generation subagent, two specialized evaluators are available:
+
+**`sql-generation-result`** - Validates the SQL subagent's output file (`output.json`):
+
+```yaml
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success # "success" | "needs_info" | "failed"
+      has_logical_sql: true
+      has_physical_sql: true
+      logical_sql_contains:
+        - 'SELECT'
+        - 'FROM wells'
+      logical_sql_not_contains:
+        - 'DROP TABLE'
+      has_assumptions: false
+```
+
+**`sql-golden-comparison`** - Compares generated SQL against golden/expected SQL:
+
+```yaml
+evaluations:
+  - kind: sql-golden-comparison
+    expected:
+      sql_type: logical # "logical" | "physical"
+      comparison_mode: normalized # "exact" | "normalized" | "semantic"
+      golden_sql: |
+        SELECT well_name, operating_company, SUM(oil_production) as total_oil
+        FROM wells
+        GROUP BY well_name, operating_company
+        ORDER BY total_oil DESC
+        LIMIT 5
+```
+
+Comparison modes:
+
+- **exact**: Direct string comparison (case-sensitive, whitespace-sensitive)
+- **normalized**: Strips comments, collapses whitespace, lowercases before comparing
+- **semantic**: Uses LLM to determine if queries are semantically equivalent
 
 ## 🔧 Command Reference
 
@@ -205,6 +250,9 @@ quality-test --verbose run
 
 # Limit concurrent agents
 quality-test run --max-agents 3
+
+# Run only specific test threads (comma-separated YAML 'name' fields)
+quality-test run --tests=churn-plan-tier-golden,energy-top-oil-producers-golden
 ```
 
 ### Global Options

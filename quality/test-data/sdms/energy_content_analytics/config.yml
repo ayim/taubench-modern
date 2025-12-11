@@ -1,0 +1,12 @@
+data_connection:
+  name: "Sema4.ai: Postgres Testing"
+  engine: postgres
+  description: Remote Postgres connection for energy and content analytics demo data
+  host: $POSTGRES_DEMO_HOST
+  port: $POSTGRES_DEMO_PORT
+  database: $POSTGRES_DEMO_DATABASE
+  user: $POSTGRES_DEMO_USER
+  password: $POSTGRES_DEMO_PASSWORD
+  schema: public
+  sslmode: require
+
