@@ -66,6 +66,36 @@ class ThreadQuickActionsContent(ThreadMessageContent):
     )
     """Whether the quick actions are completed"""
 
+    widget_id: str | None = field(
+        default=None,
+        metadata={"description": "Optional inline widget id used for rendering anchors"},
+    )
+    """Optional inline widget id used for rendering anchors"""
+
+    description: str | None = field(
+        default=None,
+        metadata={"description": "Optional description for the buttons group"},
+    )
+    """Optional description for the buttons group"""
+
+    status: str = field(
+        default="done",
+        metadata={"description": "Inline rendering status"},
+    )
+    """Inline rendering status"""
+
+    thinking: str = field(
+        default="",
+        metadata={"description": "Streaming reasoning/thinking for inline rendering"},
+    )
+    """Streaming reasoning/thinking for inline rendering"""
+
+    error: str | None = field(
+        default=None,
+        metadata={"description": "Error message if generation failed"},
+    )
+    """Error message if generation failed"""
+
     def __post_init__(self) -> None:
         """Validates the message content type and quick actions after initialization.
 
@@ -107,7 +137,26 @@ class ThreadQuickActionsContent(ThreadMessageContent):
         return {
             **super().model_dump(),
             "actions": [action.model_dump() for action in self.actions],
+            "widget_id": self.widget_id,
+            "description": self.description,
+            "status": self.status,
+            "thinking": self.thinking,
+            "error": self.error,
         }
+
+    def model_copy(self) -> "ThreadQuickActionsContent":
+        """
+        Deep copy that round-trips through model_validate so actions stay as
+        ThreadQuickActionContent objects (not plain dicts).
+        """
+        data = self.model_dump()
+        content_id = data.pop("content_id", self.content_id)
+        complete = data.pop("complete", self.complete)
+        data.pop("kind", None)
+        clone = type(self).model_validate(data)
+        clone.content_id = content_id
+        clone.complete = complete
+        return clone
 
     @classmethod
     def model_validate(cls, data: dict) -> "ThreadQuickActionsContent":

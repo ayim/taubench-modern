@@ -1,13 +1,13 @@
 import { FC, useEffect, useRef } from 'react';
 import MarkJS from 'mark.js';
-import { ThreadMessage } from '@sema4ai/agent-server-interface';
+import type { ThreadMessage, ThreadQuickActionsContent, ThreadVegaChartContent } from '@sema4ai/agent-server-interface';
 import { Box, Button, Chat, useClipboard } from '@sema4ai/components';
 import { IconBallotBox, IconCheck2, IconCopy } from '@sema4ai/icons';
 import { css, styled } from '@sema4ai/theme';
 
 import { Attachment } from '../Attachment';
 import { FeedbackDialog } from '../FeedbackDialog';
-import { markdownRules } from '../markdown';
+import { createMarkdownRules, type InlineWidget } from '../markdown';
 import { ToolCall } from '../ToolCall';
 import { useSparUIContext } from '../../../../../api/context';
 import { useToggle } from '../../../../../hooks/useToggle';
@@ -60,6 +60,8 @@ const MessageActions = styled(Box)<{ $isLastMessage?: boolean; $isLastContentIte
   }
 `;
 
+type ThreadContentItem = ThreadMessage['content'][number];
+
 const TOOL_CALLS_TO_IGNORE: Record<string, boolean> = {
   quick_reply: true,
   consider_runbook_adherence: true,
@@ -67,6 +69,19 @@ const TOOL_CALLS_TO_IGNORE: Record<string, boolean> = {
   unable_to_satisfy_request: true,
 };
 export const shouldIgnoreToolCall = (toolCallName: string) => TOOL_CALLS_TO_IGNORE[toolCallName] === true;
+
+const isKind = <K extends string>(
+  content: ThreadContentItem,
+  kind: K,
+): content is Extract<ThreadContentItem, { kind: K }> => {
+  return typeof content === 'object' && content !== null && 'kind' in content && content.kind === kind;
+};
+
+const isVegaChartContent = (content: ThreadContentItem): content is ThreadVegaChartContent =>
+  isKind(content, 'vega_chart');
+
+const isQuickActionsContent = (content: ThreadContentItem): content is ThreadQuickActionsContent =>
+  isKind(content, 'quick_actions');
 
 export const MessageContentItemRenderer: FC<Props> = ({
   message,
@@ -104,6 +119,41 @@ export const MessageContentItemRenderer: FC<Props> = ({
     });
   }, [query]);
 
+  const messageContents = (message.content || []) as ThreadMessage['content'];
+
+  const chartWidgetsFromContent: InlineWidget[] = messageContents.filter(isVegaChartContent).map((chartContent) => {
+    // eslint-disable-next-line no-underscore-dangle
+    const inlineSpec = chartContent._chart_spec;
+    const hydratedSpec = (chartContent as { chart_spec?: unknown }).chart_spec ?? inlineSpec ?? undefined;
+    return {
+      id: chartContent.widget_id || chartContent.content_id,
+      kind: 'chart',
+      description: chartContent.description,
+      status: chartContent.status ?? 'done',
+      error: chartContent.error,
+      thinking: chartContent.thinking,
+      result: {
+        spec: hydratedSpec,
+        chart_spec_raw: chartContent.chart_spec_raw,
+        sub_type: chartContent.sub_type,
+      },
+    };
+  });
+
+  const buttonWidgetsFromContent: InlineWidget[] = messageContents
+    .filter(isQuickActionsContent)
+    .map((buttonContent) => ({
+      id: buttonContent.widget_id || buttonContent.content_id,
+      kind: 'buttons',
+      description: buttonContent.description,
+      status: buttonContent.status ?? 'done',
+      error: buttonContent.error,
+      thinking: buttonContent.thinking,
+      actions: buttonContent.actions || [],
+    }));
+
+  const inlineWidgets: InlineWidget[] = [...chartWidgetsFromContent, ...buttonWidgetsFromContent];
+
   switch (content.kind) {
     case 'thought': {
       const isThinkingDone = content.complete;
@@ -128,7 +178,7 @@ export const MessageContentItemRenderer: FC<Props> = ({
             ref={containerRef}
             messageId={message.message_id}
             streaming={streaming}
-            parserRules={markdownRules}
+            parserRules={createMarkdownRules(inlineWidgets, message.message_id)}
           >
             {content.text}
           </Chat.Markdown>
@@ -158,6 +208,11 @@ export const MessageContentItemRenderer: FC<Props> = ({
       );
     case 'tool_call':
       return <ToolCall key={content.content_id} content={content} />;
+    case 'vega_chart':
+      return null;
+    case 'quick_actions':
+      // Inline buttons placeholder handles render
+      return null;
     case 'attachment':
       return <Attachment key={content.content_id ?? content.name} content={content} />;
     default:

@@ -37,18 +37,44 @@ class PipeSpec:
     pipe_fn: PipeFn
 
 
-async def _main_prompt_pipe(
+async def _main_prompt_pipe(  # noqa: PLR0913
     stream: ResponseStreamPipe,
     message: ThreadMessageWithThreadState,
     state: VioletState,
+    widget_manager=None,
+    widget_tasks=None,
+    buttons_tasks=None,
 ) -> None:
     """Pipe chunks for the main prompt into the appropriate sinks."""
+    widget_sinks = []
+    if widget_manager and widget_tasks:
+        from agent_platform.architectures.experimental.violet.widgets.detector import (
+            chart_detection_sink,
+        )
+
+        widget_sinks.append(
+            chart_detection_sink(
+                manager=widget_manager,
+                spawn_chart=lambda widget_id, description: widget_tasks.spawn_chart_task(
+                    widget_id, description
+                ),
+                spawn_buttons=(
+                    lambda widget_id, description: buttons_tasks.spawn_buttons_task(
+                        widget_id, description
+                    )
+                    if buttons_tasks
+                    else None
+                ),
+            )
+        )
+
     await stream.pipe_to(
         message.sinks.stop_reason_guard,
         message.sinks.reasoning,
         message.sinks.tool_calls(),
         message.sinks.usage,
         message.sinks.raw_content,
+        *widget_sinks,
         state.sinks.pending_tool_calls,
     )
 

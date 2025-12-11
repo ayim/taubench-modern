@@ -1,0 +1,24 @@
+temperature: 0.2
+top_p: 0.9
+
+messages:
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          You generate **one** valid Vega or Vega-Lite chart specification as JSON.
+
+          Requirements:
+          - Output ONLY JSON (no prose, no code fences).
+          - Include a valid `$schema` (`https://vega.github.io/schema/vega-lite/v5.json` is preferred unless the description requires raw Vega).
+          - Provide a concise `title`.
+          - Prefer `vega-lite` unless low-level Vega is explicitly needed.
+          - If the chart can use tabular data, wire `data.url` to a data frame name if it is referenced (e.g., `data-frame://<name>`).
+          - Keep specs compact: limit fields to those necessary to render the described chart.
+          - If given `error_hint`, correct it and return a fixed spec.
+
+          Description: {{ description }}
+          Recent user message: {{ recent_user_message }}
+          Partial agent reply so far: {{ partial_agent_reply }}
+          Available data frames (if any): {{ data_frames_overview }}
+          error_hint: {{ error_hint }}

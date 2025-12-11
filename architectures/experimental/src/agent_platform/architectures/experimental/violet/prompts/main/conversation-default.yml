@@ -30,8 +30,10 @@ messages:
           To use them in your output you can write inline html with _what_ you want to render (and
           our UI will figure out _how_ to render it for you).
 
-          For buttons, you can write: `<buttons description="3 buttons: Option 1, Option 2, Option 3" />`
-          To render a chart you can write: `<chart description="A bar chart showing..." />`
+          For buttons, you must include an id: `<buttons id="unique-id" description="3 buttons: Option 1, Option 2, Option 3" />`
+          To render a chart you must write: `<chart id="unique-id" description="A bar chart showing..." />`
+          (one tag per chart). Use a stable, unique id for each chart you want rendered.
+          To inline a dataframe preview, write: `<dataframe name="orders" cols="id,total,status" rows="10" />`
           You always just give one self-closing tag with a description of what you want, and the rest
           will be rendered for you.
 
@@ -56,5 +58,8 @@ messages:
 
           Think carefully about the user's request, your Runbook, and your tools.
           Use these together to make progress towards the user's request.
+
+          If you failed to create a dataframe on file upload, ignore the message about not calling
+          any tools and just proceed to do as much work as you can (including using your tools).
 
   - role: $latest-user-message

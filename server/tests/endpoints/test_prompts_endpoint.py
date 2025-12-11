@@ -129,6 +129,18 @@ _DUMMY_CTX.start_span.return_value.__enter__ = MagicMock(return_value=mock_span)
 _DUMMY_CTX.start_span.return_value.__exit__ = MagicMock(return_value=None)
 
 
+TEST_TRUNCATION_MODEL_ID = "unit-test-truncation-model"
+
+
+def _make_test_platform(max_tokens: int):
+    """Build a simple platform stub exposing the context window lookup."""
+    return SimpleNamespace(
+        client=SimpleNamespace(
+            model_map=SimpleNamespace(model_context_windows={TEST_TRUNCATION_MODEL_ID: max_tokens})
+        )
+    )
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Re-usable monkey-patches
 # ──────────────────────────────────────────────────────────────────────────────
@@ -374,6 +386,93 @@ async def test_truncation_finalizer_with_platform():
     truncated_text = prompt.messages[1].content[0].content[0].text  # type: ignore
     assert len(truncated_text) < len(original_text)
     assert "[Truncated...]" in truncated_text
+
+
+@pytest.mark.asyncio
+async def test_truncation_finalizer_preserves_first_user_message():
+    """Ensure the first user message is never truncated."""
+    first_user_text = "Critical instructions. " * 200
+    follow_up_text = "Secondary request content. " * 1200
+
+    prompt = Prompt(
+        messages=[  # type: ignore
+            PromptUserMessage([PromptTextContent(text=first_user_text)]),
+            PromptUserMessage([PromptTextContent(text=follow_up_text)]),
+        ],
+    )
+
+    finalizer = TruncationFinalizer(
+        token_budget_percentage=1.0,
+        truncation_token_floor=0,
+        text_truncation_token_floor=0,
+    )
+
+    total_tokens = prompt.count_tokens_approx()
+    second_tokens = prompt.messages[1].content[0].count_tokens_approx()  # type: ignore
+    reduction_target = max(1, min(second_tokens // 2, total_tokens - 1))
+    max_tokens = max(1, total_tokens - reduction_target)
+
+    platform = _make_test_platform(max_tokens)
+
+    await prompt.finalize_messages(
+        kernel=MagicMock(),
+        prompt_finalizers=[finalizer],
+        platform=platform,
+        model=TEST_TRUNCATION_MODEL_ID,
+    )
+
+    assert prompt.messages[0].content[0].text == first_user_text  # type: ignore
+    assert prompt.messages[1].content[0].text != follow_up_text  # type: ignore
+    assert prompt.messages[1].content[0].text.endswith("[Truncated...]")  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_truncation_finalizer_prioritizes_tool_content_over_text():
+    """Tool output should be truncated before older plain text."""
+    first_user_text = "Critical instructions. " * 100
+    user_context_text = "Background conversation. " * 300
+    tool_result_text = "Tool output data. " * 2000
+
+    prompt = Prompt(
+        messages=[  # type: ignore
+            PromptUserMessage([PromptTextContent(text=first_user_text)]),
+            PromptUserMessage([PromptTextContent(text=user_context_text)]),
+            PromptAgentMessage(
+                [
+                    PromptToolResultContent(  # type: ignore
+                        tool_call_id="call_456",
+                        tool_name="expensive_tool",
+                        content=[PromptTextContent(text=tool_result_text)],
+                    )
+                ]
+            ),
+        ],
+    )
+
+    finalizer = TruncationFinalizer(
+        token_budget_percentage=1.0,
+        truncation_token_floor=0,
+        text_truncation_token_floor=0,
+    )
+
+    total_tokens = prompt.count_tokens_approx()
+    tool_tokens = prompt.messages[2].content[0].content[0].count_tokens_approx()  # type: ignore
+    reduction_target = max(1, min(tool_tokens // 2, total_tokens - 1))
+    max_tokens = max(1, total_tokens - reduction_target)
+
+    platform = _make_test_platform(max_tokens)
+
+    await prompt.finalize_messages(
+        kernel=MagicMock(),
+        prompt_finalizers=[finalizer],
+        platform=platform,
+        model=TEST_TRUNCATION_MODEL_ID,
+    )
+
+    assert prompt.messages[1].content[0].text == user_context_text  # type: ignore
+    tool_text = prompt.messages[2].content[0].content[0].text  # type: ignore
+    assert tool_text != tool_result_text
+    assert tool_text.endswith("[Truncated...]")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

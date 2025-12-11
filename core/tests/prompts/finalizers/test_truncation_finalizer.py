@@ -283,7 +283,8 @@ async def test_large_tool_result_absorbs_most_truncation(mock_kernel, mock_platf
 @pytest.mark.asyncio
 async def test_long_user_message_truncated_under_budget(mock_kernel, mock_platform):
     """
-    Simple scenario where getting under budget is feasible.
+    Simple scenario where getting under budget is feasible, but the very first user
+    instructions must remain untouched.
     """
     finalizer = TruncationFinalizer(
         token_budget_percentage=0.30,
@@ -291,9 +292,11 @@ async def test_long_user_message_truncated_under_budget(mock_kernel, mock_platfo
         truncation_token_floor=1000,
     )
 
+    instructions = "Keep these instructions intact."
     long_user = words(4000)  # large top-level text
     prompt = Prompt(
         messages=[
+            PromptUserMessage([PromptTextContent(text=instructions)]),
             PromptUserMessage([PromptTextContent(text=long_user)]),
             PromptAgentMessage([PromptTextContent(text="ack")]),
         ]
@@ -311,9 +314,11 @@ async def test_long_user_message_truncated_under_budget(mock_kernel, mock_platfo
         finalizer.token_budget_percentage,
     )
 
-    assert isinstance(result[0], PromptUserMessage)
-    assert isinstance(result[0].content[0], PromptTextContent)
-    assert TRUNC_MARKER in result[0].content[0].text  # user content truncated
+    # First user turn is preserved verbatim, but the second user message should be truncated.
+    assert result[0].content[0].text == instructions  # type: ignore
+    assert isinstance(result[1], PromptUserMessage)
+    assert isinstance(result[1].content[0], PromptTextContent)
+    assert TRUNC_MARKER in result[1].content[0].text
 
 
 @pytest.mark.asyncio
@@ -355,8 +360,9 @@ async def test_long_agent_message_truncated_under_budget(mock_kernel, mock_platf
 @pytest.mark.asyncio
 async def test_oldest_first_preference_for_plain_text(mock_kernel, mock_platform):
     """
-    Two plain-text messages: an older huge one and a newer small one (< text floor),
-    with budget such that trimming the older is sufficient. Newer should remain unchanged.
+    Two truncatable plain-text messages (after the preserved user instructions):
+    an older huge one and a newer small one (< text floor). Budget should trim the
+    older agent message and leave the newer user message untouched.
     """
     finalizer = TruncationFinalizer(
         token_budget_percentage=0.30,
@@ -364,19 +370,21 @@ async def test_oldest_first_preference_for_plain_text(mock_kernel, mock_platform
         truncation_token_floor=1000,
     )
 
+    preserved_instructions = "Always follow these instructions."
     older_huge = words(18000)  # huge
     newer_small = words(50)  # << text floor
 
     prompt = Prompt(
         messages=[
-            PromptUserMessage([PromptTextContent(text=older_huge)]),
-            PromptAgentMessage([PromptTextContent(text=newer_small)]),
+            PromptUserMessage([PromptTextContent(text=preserved_instructions)]),
+            PromptAgentMessage([PromptTextContent(text=older_huge)]),
+            PromptUserMessage([PromptTextContent(text=newer_small)]),
         ]
     )
 
-    assert isinstance(prompt.messages[1], PromptAgentMessage)
-    assert isinstance(prompt.messages[1].content[0], PromptTextContent)
-    newer_before = prompt.messages[1].content[0].text
+    assert isinstance(prompt.messages[2], PromptUserMessage)
+    assert isinstance(prompt.messages[2].content[0], PromptTextContent)
+    newer_before = prompt.messages[2].content[0].text
 
     result = await finalizer(
         prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
@@ -390,15 +398,18 @@ async def test_oldest_first_preference_for_plain_text(mock_kernel, mock_platform
         finalizer.token_budget_percentage,
     )
 
-    # Older huge should be truncated
-    assert isinstance(result[0], PromptUserMessage)
-    assert isinstance(result[0].content[0], PromptTextContent)
-    assert TRUNC_MARKER in result[0].content[0].text
+    # First user message is preserved.
+    assert result[0].content[0].text == preserved_instructions  # type: ignore
 
-    # Newer small should remain untouched (below floor)
+    # Older huge agent text should be truncated
     assert isinstance(result[1], PromptAgentMessage)
     assert isinstance(result[1].content[0], PromptTextContent)
-    assert result[1].content[0].text == newer_before
+    assert TRUNC_MARKER in result[1].content[0].text
+
+    # Newer small user message should remain untouched (below floor)
+    assert isinstance(result[2], PromptUserMessage)
+    assert isinstance(result[2].content[0], PromptTextContent)
+    assert result[2].content[0].text == newer_before
 
 
 @pytest.mark.asyncio
@@ -489,11 +500,11 @@ async def test_oldest_first_preference_for_tool_results(mock_kernel, mock_platfo
 
 
 @pytest.mark.asyncio
-async def test_mixed_plain_text_vs_tool_oldest_first(mock_kernel, mock_platform):
+async def test_mixed_plain_text_vs_tool_prefers_tool_first(mock_kernel, mock_platform):
     """
-    Older plain text (huge) then newer tool result (large).
-    Budget requires a reduction but should prefer trimming the older plain text first.
-    Set budget so under-budget is realistically achievable.
+    Older plain text (huge) followed by a newer tool result (large). Even though the plain
+    text is older, the finalizer should prefer trimming the tool result first. The older
+    agent text should remain untouched if truncating the tool is sufficient.
     """
     finalizer = TruncationFinalizer(
         token_budget_percentage=0.80,
@@ -501,12 +512,14 @@ async def test_mixed_plain_text_vs_tool_oldest_first(mock_kernel, mock_platform)
         truncation_token_floor=1000,
     )
 
-    older_huge_text = words(25000)
+    preserved_instructions = "Preserve these instructions."
+    older_huge_text = words(8000)
     newer_tool_text = words(5000)
 
     prompt = Prompt(
         messages=[
-            PromptUserMessage([PromptTextContent(text=older_huge_text)]),
+            PromptUserMessage([PromptTextContent(text=preserved_instructions)]),
+            PromptAgentMessage([PromptTextContent(text=older_huge_text)]),
             PromptAgentMessage(
                 [
                     PromptToolUseContent(
@@ -528,10 +541,14 @@ async def test_mixed_plain_text_vs_tool_oldest_first(mock_kernel, mock_platform)
         ]
     )
 
-    assert isinstance(prompt.messages[2], PromptUserMessage)
-    assert isinstance(prompt.messages[2].content[0], PromptToolResultContent)
-    assert isinstance(prompt.messages[2].content[0].content[0], PromptTextContent)
-    newer_tool_before = prompt.messages[2].content[0].content[0].text
+    assert isinstance(prompt.messages[3], PromptUserMessage)
+    assert isinstance(prompt.messages[3].content[0], PromptToolResultContent)
+    assert isinstance(prompt.messages[3].content[0].content[0], PromptTextContent)
+    newer_tool_before = prompt.messages[3].content[0].content[0].text
+
+    assert isinstance(prompt.messages[1], PromptAgentMessage)
+    assert isinstance(prompt.messages[1].content[0], PromptTextContent)
+    older_plain_before = prompt.messages[1].content[0].text
 
     result = await finalizer(
         prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
@@ -545,16 +562,18 @@ async def test_mixed_plain_text_vs_tool_oldest_first(mock_kernel, mock_platform)
         finalizer.token_budget_percentage,
     )
 
-    # Older plain text should be truncated
-    assert isinstance(result[0], PromptUserMessage)
-    assert isinstance(result[0].content[0], PromptTextContent)
-    assert TRUNC_MARKER in result[0].content[0].text
+    # Instructions remain intact and the older agent text is untouched.
+    assert result[0].content[0].text == preserved_instructions  # type: ignore
+    assert isinstance(result[1], PromptAgentMessage)
+    assert isinstance(result[1].content[0], PromptTextContent)
+    assert result[1].content[0].text == older_plain_before
 
-    # Newer tool result likely remains intact because the older huge text suffices
-    assert isinstance(result[2], PromptUserMessage)
-    assert isinstance(result[2].content[0], PromptToolResultContent)
-    assert isinstance(result[2].content[0].content[0], PromptTextContent)
-    assert result[2].content[0].content[0].text == newer_tool_before
+    # Tool result is prioritized for truncation
+    assert isinstance(result[3], PromptUserMessage)
+    assert isinstance(result[3].content[0], PromptToolResultContent)
+    assert isinstance(result[3].content[0].content[0], PromptTextContent)
+    assert result[3].content[0].content[0].text != newer_tool_before
+    assert TRUNC_MARKER in result[3].content[0].content[0].text
 
 
 def test_collect_truncatable_content_includes_plain_text_and_tool(mock_platform):
@@ -570,7 +589,8 @@ def test_collect_truncatable_content_includes_plain_text_and_tool(mock_platform)
 
     prompt = Prompt(
         messages=[
-            PromptUserMessage([PromptTextContent(text=words(1000))]),  # plain text
+            PromptUserMessage([PromptTextContent(text="Preserve me")]),
+            PromptAgentMessage([PromptTextContent(text=words(1000))]),  # plain text
             PromptAgentMessage(
                 [
                     PromptToolUseContent(

@@ -41,6 +41,36 @@ class ThreadVegaChartContent(ThreadMessageContent):
     )
     """Whether the chart is completed"""
 
+    widget_id: str | None = field(
+        default=None,
+        metadata={"description": "Optional inline widget id used for rendering anchors"},
+    )
+    """Optional inline widget id used for rendering anchors"""
+
+    description: str | None = field(
+        default=None,
+        metadata={"description": "Optional chart description used for inline rendering"},
+    )
+    """Optional chart description used for inline rendering"""
+
+    status: Literal["detected", "generating", "done", "error"] = field(
+        default="done",
+        metadata={"description": "Inline rendering status"},
+    )
+    """Inline rendering status"""
+
+    thinking: str = field(
+        default="",
+        metadata={"description": "Streaming reasoning/thinking for inline rendering"},
+    )
+    """Streaming reasoning/thinking for inline rendering"""
+
+    error: str | None = field(
+        default=None,
+        metadata={"description": "Error message if generation failed"},
+    )
+    """Error message if generation failed"""
+
     _chart_spec: dict | None = field(default=None, init=False)
 
     @property
@@ -111,6 +141,11 @@ class ThreadVegaChartContent(ThreadMessageContent):
             "chart_spec_raw": self.chart_spec_raw,
             "sub_type": self.sub_type,
             "completed": self.completed,
+            "widget_id": self.widget_id,
+            "description": self.description,
+            "status": self.status,
+            "thinking": self.thinking,
+            "error": self.error,
         }
 
     def model_dump_json(self) -> str:

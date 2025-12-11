@@ -266,9 +266,17 @@ class TruncationFinalizer(BaseFinalizer):
             List of dictionaries containing truncation info
         """
         truncatable_content: list[TruncationItem] = []
+        first_user_message_index = next(
+            (idx for idx, msg in enumerate(messages) if getattr(msg, "role", None) == "user"),
+            None,
+        )
 
         for msg_idx, message in enumerate(messages):
             if isinstance(message, SpecialPromptMessage):
+                continue
+
+            if first_user_message_index is not None and msg_idx == first_user_message_index:
+                # Preserve the very first user instructions entirely.
                 continue
 
             for content in message.content:
@@ -323,11 +331,13 @@ class TruncationFinalizer(BaseFinalizer):
         if not truncatable_content or tokens_to_reduce <= 0:
             return tokens_to_reduce
 
-        # oldest (lower message_index) first; for equal age, larger first
-        ordered = sorted(
-            truncatable_content,
-            key=lambda x: (x["message_index"], -x["tokens"]),
-        )
+        # Prioritize tool content before user text so we don't drop early
+        # conversational context just because it happened earlier.
+        def sort_key(item: TruncationItem) -> tuple[int, int, int]:
+            item_priority = 0 if item["item_type"] == "tool" else 1
+            return (item_priority, item["message_index"], -item["tokens"])
+
+        ordered = sorted(truncatable_content, key=sort_key)
 
         remaining = tokens_to_reduce
         for item in ordered:

@@ -184,6 +184,31 @@ def test_litellm_single_provider_prefers_direct_model():
 
 
 @pytest.mark.unit
+def test_litellm_multi_models_honors_direct_model_name():
+    """When multiple LiteLLM models are available, a direct_model_name picks a matching slug."""
+    selector = DefaultModelSelector()
+    platform = _DummyClient(name="litellm", params=_DummyParams({"custom": ["mistral", "sonnet"]}))
+
+    selected = selector.select_model(
+        platform=cast(PlatformClient, platform),
+        request=ModelSelectionRequest(direct_model_name="sonnet"),
+    )
+
+    assert selected == "litellm/custom/sonnet"
+
+
+@pytest.mark.unit
+def test_litellm_multi_models_without_direct_name_falls_back():
+    """Without a direct override, multiple LiteLLM models fall back to the platform default."""
+    selector = DefaultModelSelector()
+    platform = _DummyClient(name="litellm", params=_DummyParams({"custom": ["mistral", "sonnet"]}))
+
+    selected = selector.select_model(platform=cast(PlatformClient, platform))
+
+    assert selected == "litellm/openai/gpt-5-low"
+
+
+@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_get_platform_and_model_uses_override_when_set():
     """When `override_model_id` is set, the selector returns that ID."""

@@ -16,6 +16,7 @@ class PromptsInterface(ABC):
         prompt: Prompt,
         *,
         state: "StateBase | None" = None,
+        **kwargs,
     ) -> Prompt:
         """
         Format a prompt using the kernel and state.
@@ -23,6 +24,7 @@ class PromptsInterface(ABC):
         Arguments:
             prompt: The prompt to format.
             state:   The agent architecture's state to use in formatting. (Optional.)
+            **kwargs: Additional values to pass into prompt templating.
 
         Returns:
             A fully formatted Prompt.

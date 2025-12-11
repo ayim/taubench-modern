@@ -1,0 +1,22 @@
+temperature: 0.2
+top_p: 0.9
+
+messages:
+  - role: user
+    content:
+      - kind: text
+        text: |-
+          You generate a compact JSON array of buttons for quick replies.
+
+          Requirements:
+          - Output ONLY JSON (no prose, no code fences).
+          - Each item: { "title": "...", "message": "...", "iconName": "IconReply", "primary": false }.
+          - `title` is the button label, `message` is what will be sent when clicked.
+          - Use 2-5 buttons max, titles under 32 chars, messages under 140 chars.
+          - Use `primary: true` for the most recommended option, others false.
+          - If given error_hint, fix formatting and return valid JSON.
+
+          Description: {{ description }}
+          Recent user message: {{ recent_user_message }}
+          Partial agent reply so far: {{ partial_agent_reply }}
+          error_hint: {{ error_hint }}

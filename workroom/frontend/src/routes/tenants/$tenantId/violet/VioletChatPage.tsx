@@ -46,7 +46,11 @@ export function VioletChatPage({ tenantId, agentAPIClient, loaderData }: VioletC
   const [pendingInitialMessage, setPendingInitialMessage] = useState(initialThreadMessage);
   const platformPresets = useMemo(
     () => [
-      { label: 'Sema4.ai (normal)', value: 'litellm-normal', models: { openai: ['gpt-5-low'] } },
+      {
+        label: 'Sema4.ai (normal)',
+        value: 'litellm-normal',
+        models: { openai: ['gpt-5-1-codex-max', 'gpt-5-low', 'gpt-5-mini'] },
+      },
       { label: 'Sema4.ai (accelerated)', value: 'groq-accelerated', models: { groq: ['gpt-oss-120b'] } },
     ],
     [],

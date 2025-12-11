@@ -313,7 +313,7 @@ class SDMSetup:
             return env_value
 
         # Handle literal values
-        if key == "port" and not isinstance(value, (int, float)):
+        if key == "port" and not isinstance(value, (int | float)):
             try:
                 return float(value)
             except (ValueError, TypeError) as e:

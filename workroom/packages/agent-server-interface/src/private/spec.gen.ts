@@ -21604,6 +21604,54 @@ export const spec = {
             description: 'Whether the quick actions are completed',
             default: false,
           },
+          widget_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Widget Id',
+            description: 'Optional inline widget id used for rendering anchors',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'Optional description for the buttons group',
+          },
+          status: {
+            type: 'string',
+            title: 'Status',
+            description: 'Inline rendering status',
+            default: 'done',
+          },
+          thinking: {
+            type: 'string',
+            title: 'Thinking',
+            description: 'Streaming reasoning/thinking for inline rendering',
+            default: '',
+          },
+          error: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Error',
+            description: 'Error message if generation failed',
+          },
         },
         type: 'object',
         required: ['actions'],
@@ -21881,6 +21929,55 @@ export const spec = {
             title: 'Completed',
             description: 'Whether the chart is completed',
             default: false,
+          },
+          widget_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Widget Id',
+            description: 'Optional inline widget id used for rendering anchors',
+          },
+          description: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Description',
+            description: 'Optional chart description used for inline rendering',
+          },
+          status: {
+            type: 'string',
+            enum: ['detected', 'generating', 'done', 'error'],
+            title: 'Status',
+            description: 'Inline rendering status',
+            default: 'done',
+          },
+          thinking: {
+            type: 'string',
+            title: 'Thinking',
+            description: 'Streaming reasoning/thinking for inline rendering',
+            default: '',
+          },
+          error: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Error',
+            description: 'Error message if generation failed',
           },
           _chart_spec: {
             anyOf: [

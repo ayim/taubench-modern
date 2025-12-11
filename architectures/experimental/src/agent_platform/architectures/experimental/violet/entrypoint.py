@@ -72,10 +72,20 @@ async def _process_conversation_step(kernel: Kernel, state: VioletState) -> Viol
     from agent_platform.architectures.experimental.violet.docintel.manager import DocIntelManager
     from agent_platform.architectures.experimental.violet.prompts import build_prompt
     from agent_platform.architectures.experimental.violet.streaming import (
-        PIPE_MAIN_PROMPT,
+        PipeSpec,
+        _main_prompt_pipe,
         stream_with_retry,
     )
     from agent_platform.architectures.experimental.violet.tools_registry import ToolsRegistry
+    from agent_platform.architectures.experimental.violet.widgets.buttons_tasks import (
+        ButtonTaskRunner,
+    )
+    from agent_platform.architectures.experimental.violet.widgets.charts_tasks import (
+        WidgetTaskRunner,
+    )
+    from agent_platform.architectures.experimental.violet.widgets.manager import (
+        InlineWidgetManager,
+    )
 
     # 1. Setup
     kernel.converters.set_thread_message_conversion_function(
@@ -91,6 +101,11 @@ async def _process_conversation_step(kernel: Kernel, state: VioletState) -> Viol
 
     # 4. Initialize Doc Intel Manager
     doc_mgr = DocIntelManager(kernel, state)
+
+    # 5. Inline Widgets (charts)
+    widget_manager = InlineWidgetManager(message)
+    widget_tasks = WidgetTaskRunner(kernel, state, message, widget_manager)
+    buttons_tasks = ButtonTaskRunner(kernel, state, message, widget_manager)
 
     # 5. Run Doc Intel Lifecycle (Hydrate -> Scan -> Sample -> Check Lock)
     #    This returns True if we need to stop for User Input (Markup)
@@ -130,7 +145,15 @@ async def _process_conversation_step(kernel: Kernel, state: VioletState) -> Viol
             prompt=conversation_prompt,
             message=message,
             state=state,
-            spec=PIPE_MAIN_PROMPT,
+            spec=PipeSpec(
+                call_type="main-prompt",
+                pipe_fn=partial(
+                    _main_prompt_pipe,
+                    widget_manager=widget_manager,
+                    widget_tasks=widget_tasks,
+                    buttons_tasks=buttons_tasks,
+                ),
+            ),
         )
 
         pending = list(state.pending_tool_calls)
@@ -142,6 +165,8 @@ async def _process_conversation_step(kernel: Kernel, state: VioletState) -> Viol
         await _execute_pending_tools(kernel, state, message)
         state.pending_tool_calls.clear()
 
+    await widget_tasks.wait_for_all()
+    await buttons_tasks.wait_for_all()
     await message.commit()
     return state
 
@@ -150,7 +175,11 @@ async def _resolve_platform_and_model(
     kernel: Kernel, state: VioletState
 ) -> tuple[PlatformInterface, str]:
     """Resolves the platform and model, and updates the state with the details."""
-    platform, model_str = await kernel.get_platform_and_model(model_type="llm")
+    platform, model_str = await kernel.get_platform_and_model(
+        model_type="llm",
+        # We're going to prefer codex max to drive the main loop
+        direct_model_name="gpt-5-1-codex-max",
+    )
     logger.info("Using model: %s", model_str)
 
     # Expected format: "platform/provider/model_name"

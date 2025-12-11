@@ -113,7 +113,10 @@ class SchemaGenerator:
             # Always clear the payload so it doesn't leak into other prompts
             self.state.doc_int.prompt_payload = ""
 
-        platform, model = await self.kernel.get_platform_and_model(model_type="llm")
+        platform, model = await self.kernel.get_platform_and_model(
+            model_type="llm",
+            direct_model_name="gpt-5-1-codex-max",
+        )
 
         # Stream response
         full_response = None

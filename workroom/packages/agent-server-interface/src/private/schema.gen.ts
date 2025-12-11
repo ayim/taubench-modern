@@ -9132,6 +9132,33 @@ export interface components {
        * @default false
        */
       completed: boolean;
+      /**
+       * Widget Id
+       * @description Optional inline widget id used for rendering anchors
+       */
+      widget_id?: string | null;
+      /**
+       * Description
+       * @description Optional description for the buttons group
+       */
+      description?: string | null;
+      /**
+       * Status
+       * @description Inline rendering status
+       * @default done
+       */
+      status: string;
+      /**
+       * Thinking
+       * @description Streaming reasoning/thinking for inline rendering
+       * @default
+       */
+      thinking: string;
+      /**
+       * Error
+       * @description Error message if generation failed
+       */
+      error?: string | null;
     };
     /** ThreadTextContent */
     ThreadTextContent: {
@@ -9331,6 +9358,34 @@ export interface components {
        * @default false
        */
       completed: boolean;
+      /**
+       * Widget Id
+       * @description Optional inline widget id used for rendering anchors
+       */
+      widget_id?: string | null;
+      /**
+       * Description
+       * @description Optional chart description used for inline rendering
+       */
+      description?: string | null;
+      /**
+       * Status
+       * @description Inline rendering status
+       * @default done
+       * @enum {string}
+       */
+      status: 'detected' | 'generating' | 'done' | 'error';
+      /**
+       * Thinking
+       * @description Streaming reasoning/thinking for inline rendering
+       * @default
+       */
+      thinking: string;
+      /**
+       * Error
+       * @description Error message if generation failed
+       */
+      error?: string | null;
       /** Chart Spec */
       _chart_spec?: {
         [key: string]: unknown;

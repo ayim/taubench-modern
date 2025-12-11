@@ -106,7 +106,7 @@ class DefaultModelSelector(ModelSelector):
         """
         self._override_model_id = model_id
 
-    def _handle_litellm_special_case(
+    def _handle_litellm_special_case(  # noqa: PLR0911
         self, platform: "PlatformClient", request: ModelSelectionRequest
     ) -> str | None:
         """Handle the special case of LiteLLM."""
@@ -124,6 +124,10 @@ class DefaultModelSelector(ModelSelector):
         if not models:
             return self._fallback_to_default(platform, request)
         elif len(models) > 1:
+            # Allow for direct override of the model selection
+            # in the case where we have options to pick from
+            if request.direct_model_name and request.direct_model_name in models:
+                return f"litellm/{only_provider}/{request.direct_model_name}"
             return self._fallback_to_default(platform, request)
 
         only_model = models[0]

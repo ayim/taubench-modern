@@ -12,9 +12,11 @@ from agent_platform.core.prompts.content.tool_result import PromptToolResultCont
 from agent_platform.core.prompts.content.tool_use import PromptToolUseContent
 from agent_platform.core.prompts.messages import AnyPromptMessage
 from agent_platform.core.thread.base import AnyThreadMessageContent, ThreadMessage
+from agent_platform.core.thread.content.quick_actions import ThreadQuickActionsContent
 from agent_platform.core.thread.content.text import ThreadTextContent
 from agent_platform.core.thread.content.thought import ThreadThoughtContent
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
+from agent_platform.core.thread.content.vega_chart import ThreadVegaChartContent
 from agent_platform.core.thread.messages import ThreadAgentMessage
 
 
@@ -40,6 +42,13 @@ async def _agent_thread_contents_to_prompt_contents(
                     prompt_agent_contents.append(
                         PromptTextContent(text=text_content.text),
                     )
+            case ThreadVegaChartContent():
+                # We are generating charts out-of-band, so it doesn't make sense to pollute
+                # context with the chart spec.
+                continue
+            case ThreadQuickActionsContent():
+                # Buttons are rendered inline; they should not affect prompt context.
+                continue
             case ThreadToolUsageContent() as tool_usage_content:
                 tool_output = tool_usage_content.result or ""
                 if tool_usage_content.error:

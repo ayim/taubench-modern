@@ -357,7 +357,7 @@ Only respond with the JSON object, no other text.
             error=error,
         )
 
-    async def _evaluate_sql_generation_result(
+    async def _evaluate_sql_generation_result(  # noqa: C901, PLR0912, PLR0915
         self, evaluation: "Evaluation", agent_messages: list["Message"]
     ) -> "TestResult":
         """Evaluate SQL generation subagent results.
@@ -381,7 +381,7 @@ Only respond with the JSON object, no other text.
         for message in agent_messages:
             for content in message.content:
                 # Check if this is SQL generation content
-                if hasattr(content, 'kind') and getattr(content, 'kind', None) == 'sql_generation':
+                if hasattr(content, "kind") and getattr(content, "kind", None) == "sql_generation":
                     sql_gen_content = content
                     break
             if sql_gen_content:
@@ -392,7 +392,7 @@ Only respond with the JSON object, no other text.
                 evaluation=evaluation,
                 passed=False,
                 actual_value=None,
-                error="No SQL generation content found in agent messages"
+                error="No SQL generation content found in agent messages",
             )
 
         # Perform checks based on expected criteria
@@ -402,7 +402,7 @@ Only respond with the JSON object, no other text.
         # Check status
         if "status" in expected:
             expected_status = expected["status"]
-            actual_status = getattr(sql_gen_content, 'status', None)
+            actual_status = getattr(sql_gen_content, "status", None)
             if actual_status == expected_status:
                 checks.append(True)
             else:
@@ -413,62 +413,61 @@ Only respond with the JSON object, no other text.
 
         # Check for logical SQL presence
         if "has_logical_sql" in expected:
-            logical_sql = getattr(sql_gen_content, 'logical_sql_query', None)
+            logical_sql = getattr(sql_gen_content, "logical_sql_query", None)
             has_sql = logical_sql is not None
             if has_sql == expected["has_logical_sql"]:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
-                    f"Logical SQL presence mismatch: expected={expected['has_logical_sql']}, actual={has_sql}"
+                    f"Logical SQL presence mismatch: expected={expected['has_logical_sql']}, "
+                    f"actual={has_sql}"
                 )
 
         # Check for physical SQL presence
         if "has_physical_sql" in expected:
-            physical_sql = getattr(sql_gen_content, 'physical_sql_query', None)
+            physical_sql = getattr(sql_gen_content, "physical_sql_query", None)
             has_sql = physical_sql is not None
             if has_sql == expected["has_physical_sql"]:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
-                    f"Physical SQL presence mismatch: expected={expected['has_physical_sql']}, actual={has_sql}"
+                    f"Physical SQL presence mismatch: expected={expected['has_physical_sql']}, "
+                    f"actual={has_sql}"
                 )
 
         # Check for patterns in logical SQL
         if "logical_sql_contains" in expected:
-            logical_sql = (getattr(sql_gen_content, 'logical_sql_query', None) or "").lower()
+            logical_sql = (getattr(sql_gen_content, "logical_sql_query", None) or "").lower()
             for pattern in expected["logical_sql_contains"]:
                 if pattern.lower() in logical_sql:
                     checks.append(True)
                 else:
                     checks.append(False)
-                    failures.append(
-                        f"Logical SQL missing expected pattern: '{pattern}'"
-                    )
+                    failures.append(f"Logical SQL missing expected pattern: '{pattern}'")
 
         # Check for absence of patterns in logical SQL
         if "logical_sql_not_contains" in expected:
-            logical_sql = (getattr(sql_gen_content, 'logical_sql_query', None) or "").lower()
+            logical_sql = (getattr(sql_gen_content, "logical_sql_query", None) or "").lower()
             for pattern in expected["logical_sql_not_contains"]:
                 if pattern.lower() not in logical_sql:
                     checks.append(True)
                 else:
                     checks.append(False)
-                    failures.append(
-                        f"Logical SQL contains unexpected pattern: '{pattern}'"
-                    )
+                    failures.append(f"Logical SQL contains unexpected pattern: '{pattern}'")
 
         # Check for assumptions
         if "has_assumptions" in expected:
-            assumptions = getattr(sql_gen_content, 'assumptions_used', None)
+            assumptions = getattr(sql_gen_content, "assumptions_used", None)
             has_assumptions = assumptions is not None
             if has_assumptions == expected["has_assumptions"]:
                 checks.append(True)
             else:
                 checks.append(False)
                 failures.append(
-                    f"Assumptions presence mismatch: expected={expected['has_assumptions']}, actual={has_assumptions}"
+                    f"Assumptions presence mismatch: expected={expected['has_assumptions']}, "
+                    f"actual={has_assumptions}"
                 )
 
         passed = all(checks) if checks else False
@@ -477,12 +476,12 @@ Only respond with the JSON object, no other text.
             evaluation=evaluation,
             passed=passed,
             actual_value={
-                "status": getattr(sql_gen_content, 'status', None),
-                "logical_sql": getattr(sql_gen_content, 'logical_sql_query', None),
-                "physical_sql": getattr(sql_gen_content, 'physical_sql_query', None),
-                "assumptions": getattr(sql_gen_content, 'assumptions_used', None),
-                "message_to_parent": getattr(sql_gen_content, 'message_to_parent', None),
-                "error_message": getattr(sql_gen_content, 'error_message', None),
+                "status": getattr(sql_gen_content, "status", None),
+                "logical_sql": getattr(sql_gen_content, "logical_sql_query", None),
+                "physical_sql": getattr(sql_gen_content, "physical_sql_query", None),
+                "assumptions": getattr(sql_gen_content, "assumptions_used", None),
+                "message_to_parent": getattr(sql_gen_content, "message_to_parent", None),
+                "error_message": getattr(sql_gen_content, "error_message", None),
             },
             error="; ".join(failures) if failures else None,
         )
