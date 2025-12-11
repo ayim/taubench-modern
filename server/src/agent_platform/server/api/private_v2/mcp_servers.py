@@ -9,6 +9,8 @@ import httpx
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 from structlog import get_logger
 
+from agent_platform.core.errors import PlatformHTTPError
+from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.mcp.mcp_types import deserialize_mcp_variables
 from agent_platform.core.payloads import MCPServerResponse
@@ -371,6 +373,7 @@ async def create_hosted_mcp_server(
     storage: StorageDependency,
     _: MCPQuotaCheck,
     headers: Annotated[str | None, Form()] = None,
+    mcp_server_metadata: Annotated[str | None, Form()] = None,
 ) -> MCPServerResponse:
     """Create a hosted MCP server by uploading a package file.
 
@@ -381,6 +384,7 @@ async def create_hosted_mcp_server(
         file: The .zip package file (max 50MB)
         name: Name of the MCP server
         headers: Optional JSON string of headers for the MCP server
+        mcp_server_metadata: Optional JSON string of agent package inspection metadata
         storage: Storage dependency
         _: Quota check dependency
 
@@ -388,6 +392,22 @@ async def create_hosted_mcp_server(
         MCPServerResponse with the created server details
     """
     parsed_headers = parse_mcp_headers_from_form(headers)
+
+    # Parse mcp_server_metadata if provided
+    parsed_metadata: dict | None = None
+    if mcp_server_metadata:
+        try:
+            parsed_metadata = json.loads(mcp_server_metadata)
+            if not isinstance(parsed_metadata, dict):
+                raise PlatformHTTPError(
+                    ErrorCode.BAD_REQUEST,
+                    message="mcp_server_metadata must be a JSON object",
+                )
+        except json.JSONDecodeError as e:
+            raise PlatformHTTPError(
+                ErrorCode.BAD_REQUEST,
+                message=f"Invalid JSON in mcp_server_metadata field: {e}",
+            ) from e
 
     deployment_id = str(uuid4())
     deployment_url = await deploy_mcp_server(file, deployment_id)
@@ -397,6 +417,7 @@ async def create_hosted_mcp_server(
         type="sema4ai_action_server",
         url=deployment_url,
         headers=deserialize_mcp_variables(parsed_headers),
+        mcp_server_metadata=parsed_metadata,
     )
 
     try:
@@ -409,7 +430,9 @@ async def create_hosted_mcp_server(
             detail=f"MCP server with name '{name}' and source 'API' already exists",
         ) from e
 
-    return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, mcp_server)
+    return MCPServerResponse.from_mcp_server(
+        mcp_server_id, MCPServerSource.API, mcp_server, is_hosted=True
+    )
 
 
 @router.get("/", response_model=dict[str, MCPServerResponse])
@@ -426,8 +449,10 @@ async def list_mcp_servers(
     try:
         servers_with_metadata = await storage.list_mcp_servers_with_metadata()
         return {
-            server_id: MCPServerResponse.from_mcp_server(server_id, source, mcp_server)
-            for server_id, (mcp_server, source) in servers_with_metadata.items()
+            server_id: MCPServerResponse.from_mcp_server(
+                server_id, meta.source, meta.server, is_hosted=meta.deployment_id is not None
+            )
+            for server_id, meta in servers_with_metadata.items()
         }
     except Exception as e:
         # Log unexpected errors during listing
@@ -448,8 +473,10 @@ async def get_mcp_server(
         except Exception as e:
             logger.error(f"Failed to sync file-based MCP servers in get endpoint: {e}")
 
-        mcp_server, source = await storage.get_mcp_server_with_metadata(mcp_server_id)
-        return MCPServerResponse.from_mcp_server(mcp_server_id, source, mcp_server)
+        meta = await storage.get_mcp_server_with_metadata(mcp_server_id)
+        return MCPServerResponse.from_mcp_server(
+            mcp_server_id, meta.source, meta.server, is_hosted=meta.deployment_id is not None
+        )
     except MCPServerNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

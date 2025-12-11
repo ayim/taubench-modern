@@ -355,9 +355,10 @@ async def test_get_mcp_server_with_metadata_decryption_error(
     server_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
 
     # Verify server exists normally
-    server, source = await storage.get_mcp_server_with_metadata(server_id)
-    assert server.name == sample_mcp_server_http.name
-    assert source == MCPServerSource.API
+    meta = await storage.get_mcp_server_with_metadata(server_id)
+    assert meta.server.name == sample_mcp_server_http.name
+    assert meta.source == MCPServerSource.API
+    assert meta.deployment_id is None
 
     # Mock _decrypt_config to fail
     with patch.object(storage, "_decrypt_config") as mock_decrypt:
@@ -442,16 +443,18 @@ async def test_list_mcp_servers_with_metadata(
     assert server2_id in servers_with_metadata
 
     # Check server 1 (API source)
-    server1_data, server1_source = servers_with_metadata[server1_id]
-    assert server1_data.name == sample_mcp_server_http.name
-    assert server1_data.transport == sample_mcp_server_http.transport
-    assert server1_source == MCPServerSource.API
+    server1_meta = servers_with_metadata[server1_id]
+    assert server1_meta.server.name == sample_mcp_server_http.name
+    assert server1_meta.server.transport == sample_mcp_server_http.transport
+    assert server1_meta.source == MCPServerSource.API
+    assert server1_meta.deployment_id is None
 
     # Check server 2 (FILE source)
-    server2_data, server2_source = servers_with_metadata[server2_id]
-    assert server2_data.name == sample_mcp_server_stdio.name
-    assert server2_data.transport == sample_mcp_server_stdio.transport
-    assert server2_source == MCPServerSource.FILE
+    server2_meta = servers_with_metadata[server2_id]
+    assert server2_meta.server.name == sample_mcp_server_stdio.name
+    assert server2_meta.server.transport == sample_mcp_server_stdio.transport
+    assert server2_meta.source == MCPServerSource.FILE
+    assert server2_meta.deployment_id is None
 
 
 async def test_get_mcp_server_with_metadata(
@@ -463,16 +466,17 @@ async def test_get_mcp_server_with_metadata(
     server_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
 
     # Get server with metadata
-    server_data, source = await storage.get_mcp_server_with_metadata(server_id)
+    meta = await storage.get_mcp_server_with_metadata(server_id)
 
     # Verify server data
-    assert server_data.name == sample_mcp_server_http.name
-    assert server_data.transport == sample_mcp_server_http.transport
-    assert server_data.url == sample_mcp_server_http.url
-    assert server_data.headers == sample_mcp_server_http.headers
+    assert meta.server.name == sample_mcp_server_http.name
+    assert meta.server.transport == sample_mcp_server_http.transport
+    assert meta.server.url == sample_mcp_server_http.url
+    assert meta.server.headers == sample_mcp_server_http.headers
+    assert meta.deployment_id is None
 
     # Verify source
-    assert source == MCPServerSource.API
+    assert meta.source == MCPServerSource.API
 
 
 async def test_get_mcp_server_with_metadata_not_found(

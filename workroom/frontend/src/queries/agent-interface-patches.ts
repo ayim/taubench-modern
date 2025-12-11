@@ -3,13 +3,9 @@ import type { GetPlatformResponse } from './platforms';
 import { PLATFORMS, type Platform } from '../components/platforms/llms/components/llmSchemas';
 
 /**
- * @deprecated Use proper typing from agent-server-interface instead of manual validation
- * Type guard for MCP server headers validation
+ * @deprecated MCPServer now has strict types - this alias is no longer needed
  */
-export type MCPServerForEditing = MCPServer & {
-  type: 'generic_mcp' | 'sema4ai_action_server';
-  transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
-};
+export type MCPServerForEditing = MCPServer;
 
 /**
  * @deprecated Use proper typing from agent-server-interface instead of manual validation
@@ -22,37 +18,10 @@ export const isValidHeaders = (
 };
 
 /**
- * @deprecated Use proper typing from agent-server-interface instead of manual validation
- * Type guard for MCP server type validation
- */
-const isValidMcpServerType = (type: string): type is 'generic_mcp' | 'sema4ai_action_server' => {
-  return type === 'generic_mcp' || type === 'sema4ai_action_server';
-};
-
-/**
- * @deprecated Use proper typing from agent-server-interface instead of manual validation
- * Type guard for MCP transport validation
- */
-const isValidMcpTransport = (transport: string): transport is 'auto' | 'streamable-http' | 'sse' | 'stdio' => {
-  return transport === 'auto' || transport === 'streamable-http' || transport === 'sse' || transport === 'stdio';
-};
-
-/**
- * @deprecated Use proper typing from agent-server-interface instead of manual validation
- * Type guard for MCP server response validation
- */
-const isMcpServerReadyForEditing = (server: MCPServer): server is MCPServerForEditing => {
-  return isValidMcpServerType(server.type ?? '') && isValidMcpTransport(server.transport ?? '');
-};
-
-/**
- * @deprecated Use proper typing from agent-server-interface instead of manual transformation
- * Data transformation function for MCP server responses
+ * @deprecated MCPServer now has strict types - this transform is a no-op
+ * Kept for backwards compatibility with existing call sites
  */
 export const transformMcpServerForEditing = (server: MCPServer): MCPServerForEditing => {
-  if (!isMcpServerReadyForEditing(server)) {
-    throw new Error(`MCP server ${server.mcp_server_id ?? 'unknown'} has invalid type or transport values`);
-  }
   return server;
 };
 

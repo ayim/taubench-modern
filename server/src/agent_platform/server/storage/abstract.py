@@ -28,6 +28,7 @@ from agent_platform.server.storage.types import JSONValue, StaleThreadsResult
 
 if TYPE_CHECKING:
     from agent_platform.core import MCPServer, MCPServerSource
+    from agent_platform.core.mcp.mcp_server import MCPServerWithMetadata
     from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
@@ -535,10 +536,8 @@ class AbstractStorage(ABC):
         """Get an MCP server by ID."""
 
     @abstractmethod
-    async def get_mcp_server_with_metadata(
-        self, mcp_server_id: str
-    ) -> tuple["MCPServer", "MCPServerSource"]:
-        """Get an MCP server by ID with its source information."""
+    async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> "MCPServerWithMetadata":
+        """Get an MCP server by ID with its source and deployment info."""
 
     @abstractmethod
     async def list_mcp_servers(self) -> dict[str, "MCPServer"]:
@@ -547,8 +546,8 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def list_mcp_servers_with_metadata(
         self,
-    ) -> dict[str, tuple["MCPServer", "MCPServerSource"]]:
-        """List all MCP servers with their source information."""
+    ) -> dict[str, "MCPServerWithMetadata"]:
+        """List all MCP servers with their source and deployment info."""
 
     @abstractmethod
     async def get_mcp_server_by_name(

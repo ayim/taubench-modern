@@ -4,7 +4,7 @@ from sqlite3 import IntegrityError
 
 from structlog import get_logger
 
-from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithMetadata
 from agent_platform.server.storage.common import CommonMixin
 from agent_platform.server.storage.errors import (
     ConfigDecryptionError,
@@ -111,18 +111,16 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                     f"Failed to decrypt MCP server configuration for {mcp_server_id}"
                 ) from e
 
-    async def get_mcp_server_with_metadata(
-        self, mcp_server_id: str
-    ) -> tuple[MCPServer, MCPServerSource]:
-        """Get an MCP server by ID with its source information."""
+    async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> MCPServerWithMetadata:
+        """Get an MCP server by ID with its source and deployment info."""
         # 1. Validate the uuid
         self._validate_uuid(mcp_server_id)
 
         async with self._cursor() as cur:
-            # 2. Get the MCP server with source
+            # 2. Get the MCP server
             await cur.execute(
                 """
-                SELECT enc_config, source FROM v2_mcp_server
+                SELECT enc_config, source, mcp_runtime_deployment_id FROM v2_mcp_server
                 WHERE mcp_server_id = ?
                 """,
                 (mcp_server_id,),
@@ -132,13 +130,18 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
             if not (row := await cur.fetchone()):
                 raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
 
-            # 4. Decrypt and return the MCP server and source
+            # 4. Decrypt and return the MCP server with metadata
             encrypted_config = row[0]
             try:
                 config_dict = self._decrypt_config(encrypted_config)
                 mcp_server = MCPServer.model_validate(config_dict)
                 source = MCPServerSource(row[1])
-                return mcp_server, source
+                deployment_id = row[2]
+                return MCPServerWithMetadata(
+                    server=mcp_server,
+                    source=source,
+                    deployment_id=deployment_id,
+                )
             except Exception as e:
                 raise ConfigDecryptionError(
                     f"Failed to decrypt MCP server configuration for {mcp_server_id}"
@@ -176,14 +179,17 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                     continue
             return result
 
-    async def list_mcp_servers_with_metadata(self) -> dict[str, tuple[MCPServer, MCPServerSource]]:
-        """List all MCP servers with their source information."""
+    async def list_mcp_servers_with_metadata(
+        self,
+    ) -> dict[str, MCPServerWithMetadata]:
+        """List all MCP servers with their source and deployment info."""
 
         async with self._cursor() as cur:
-            # 2. Get all MCP servers with source information
+            # 2. Get all MCP servers with source and deployment_id
             await cur.execute(
                 """
-                SELECT mcp_server_id, enc_config, source FROM v2_mcp_server
+                SELECT mcp_server_id, enc_config, source, mcp_runtime_deployment_id
+                FROM v2_mcp_server
                 ORDER BY created_at DESC
                 """,
             )
@@ -192,8 +198,8 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
             if not (rows := await cur.fetchall()):
                 return {}
 
-            # 4. Decrypt and return the MCP servers as a dict of id -> (MCPServer, MCPServerSource)
-            result = {}
+            # 4. Decrypt and return MCP servers as dict of id -> MCPServerWithMetadata
+            result: dict[str, MCPServerWithMetadata] = {}
             for row in rows:
                 server_id = row[0]
                 encrypted_config = row[1]
@@ -201,7 +207,12 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                     config_dict = self._decrypt_config(encrypted_config)
                     mcp_server = MCPServer.model_validate(config_dict)
                     source = MCPServerSource(row[2])
-                    result[server_id] = (mcp_server, source)
+                    deployment_id = row[3]
+                    result[server_id] = MCPServerWithMetadata(
+                        server=mcp_server,
+                        source=source,
+                        deployment_id=deployment_id,
+                    )
                 except Exception as e:
                     # Skip corrupted entries but log for monitoring
                     self._logger.warning(

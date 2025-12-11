@@ -17,6 +17,73 @@ MCPTransport = Literal["auto", "streamable-http", "sse", "stdio"]
 
 
 @dataclass(frozen=True)
+class ActionSecretDefinition:
+    """Definition of a secret required by an action."""
+
+    type: str = field(metadata={"description": "The type of the secret."})
+    """The type of the secret."""
+
+    description: str = field(default="", metadata={"description": "Description of the secret."})
+    """Description of the secret."""
+
+    def model_dump(self) -> dict[str, Any]:
+        """Serialize to dictionary."""
+        return {"type": self.type, "description": self.description}
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any] | None) -> "ActionSecretDefinition":
+        """Create from dictionary."""
+        if data is None:
+            return cls(type="", description="")
+        return cls(
+            type=data.get("type", ""),
+            description=data.get("description", ""),
+        )
+
+
+@dataclass(frozen=True)
+class ActionSecretsConfig:
+    """Configuration of secrets for a specific action."""
+
+    action: str = field(metadata={"description": "The name of the action."})
+    """The name of the action."""
+
+    action_package: str = field(
+        default="", metadata={"description": "The name of the action package."}
+    )
+    """The name of the action package."""
+
+    secrets: dict[str, ActionSecretDefinition] = field(
+        default_factory=dict,
+        metadata={"description": "Map of secret name to secret definition."},
+    )
+    """Map of secret name to secret definition."""
+
+    def model_dump(self) -> dict[str, Any]:
+        """Serialize to dictionary."""
+        return {
+            "action": self.action,
+            "action_package": self.action_package,
+            "secrets": {k: v.model_dump() for k, v in self.secrets.items()},
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any] | None) -> "ActionSecretsConfig":
+        """Create from dictionary."""
+        if data is None:
+            return cls(action="", action_package="", secrets={})
+
+        secrets_data = data.get("secrets", {})
+        secrets = {k: ActionSecretDefinition.model_validate(v) for k, v in secrets_data.items()}
+
+        return cls(
+            action=data.get("action", ""),
+            action_package=data.get("actionPackage", data.get("action_package", "")),
+            secrets=secrets,
+        )
+
+
+@dataclass(frozen=True)
 class SpecAgentModel:
     """Agent model specification matching SpecAgentModel from Go."""
 
@@ -532,10 +599,11 @@ class ActionPackageMetadata:
     version: str = field(metadata={"description": "Version of the action package."})
     """Version of the action package."""
 
-    secrets: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Secrets configuration."}
+    secrets: dict[str, ActionSecretsConfig] = field(
+        default_factory=dict,
+        metadata={"description": "Secrets configuration per action."},
     )
-    """Secrets configuration."""
+    """Secrets configuration per action."""
 
     actions: list[ActionPackageMetadataAction] = field(
         default_factory=list, metadata={"description": "Actions in the package."}
@@ -552,7 +620,7 @@ class ActionPackageMetadata:
         return {
             "name": self.name,
             "description": self.description,
-            "secrets": self.secrets,
+            "secrets": {k: v.model_dump() for k, v in self.secrets.items()},
             "action_package_version": self.version,
             "actions": [action.model_dump() for action in self.actions],
             "external-endpoints": [endpoint.model_dump() for endpoint in self.external_endpoints],
@@ -588,11 +656,15 @@ class ActionPackageMetadata:
             ]
             data["actions"] = actions
 
+        # Handle secrets
+        secrets_data = data.get("secrets", {})
+        secrets = {k: ActionSecretsConfig.model_validate(v) for k, v in secrets_data.items()}
+
         return cls(
             name=data.get("name", ""),
             description=data.get("description", ""),
             version=data.get("version", ""),
-            secrets=data.get("secrets", {}),
+            secrets=secrets,
             actions=data.get("actions", []),
             external_endpoints=data.get("external-endpoints", []),
         )
@@ -612,10 +684,11 @@ class AgentPackageActionPackageMetadata:
     version: str = field(metadata={"description": "Version of the action package."})
     """Version of the action package."""
 
-    secrets: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Secrets configuration."}
+    secrets: dict[str, ActionSecretsConfig] = field(
+        default_factory=dict,
+        metadata={"description": "Secrets configuration per action."},
     )
-    """Secrets configuration."""
+    """Secrets configuration per action."""
 
     actions: list[ActionPackageMetadataAction] = field(
         default_factory=list, metadata={"description": "Actions in the package."}
@@ -642,7 +715,7 @@ class AgentPackageActionPackageMetadata:
         return {
             "name": self.name,
             "description": self.description,
-            "secrets": self.secrets,
+            "secrets": {k: v.model_dump() for k, v in self.secrets.items()},
             "action_package_version": self.version,
             "actions": [action.model_dump() for action in self.actions],
             "external-endpoints": [endpoint.model_dump() for endpoint in self.external_endpoints],
@@ -681,13 +754,20 @@ class AgentPackageActionPackageMetadata:
             ]
             data["actions"] = actions
 
+        # Handle secrets
+        secrets_data = data.get("secrets", {})
+        secrets = {k: ActionSecretsConfig.model_validate(v) for k, v in secrets_data.items()}
+
         return cls(
             name=data.get("name", ""),
             description=data.get("description", ""),
             version=data.get("version", ""),
-            secrets=data.get("secrets", {}),
+            secrets=secrets,
             actions=data.get("actions", []),
             external_endpoints=data.get("external-endpoints", []),
+            whitelist=data.get("whitelist", ""),
+            icon=data.get("icon", ""),
+            path=data.get("path", ""),
         )
 
 

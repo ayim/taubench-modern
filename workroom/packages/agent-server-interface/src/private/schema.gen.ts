@@ -1210,6 +1210,7 @@ export interface paths {
      *         file: The .zip package file (max 50MB)
      *         name: Name of the MCP server
      *         headers: Optional JSON string of headers for the MCP server
+     *         mcp_server_metadata: Optional JSON string of agent package inspection metadata
      *         storage: Storage dependency
      *         _: Quota check dependency
      *
@@ -3403,6 +3404,29 @@ export interface components {
        */
       status: 'online' | 'offline';
     };
+    /** ActionPackageMetadataAction */
+    ActionPackageMetadataAction: {
+      /**
+       * Description
+       * @description Description of the action.
+       */
+      description: string;
+      /**
+       * Name
+       * @description Name of the action.
+       */
+      name: string;
+      /**
+       * Summary
+       * @description Summary of the action.
+       */
+      summary: string;
+      /**
+       * Operation Kind
+       * @description Operation kind of the action.
+       */
+      operation_kind: string;
+    };
     /** ActionPackagePayload */
     ActionPackagePayload: {
       /**
@@ -3425,6 +3449,41 @@ export interface components {
        * @description The base64 encoded action package.
        */
       action_package_base64?: string | null;
+    };
+    /** ActionSecretDefinition */
+    ActionSecretDefinition: {
+      /**
+       * Type
+       * @description The type of the secret.
+       */
+      type: string;
+      /**
+       * Description
+       * @description Description of the secret.
+       * @default
+       */
+      description: string;
+    };
+    /** ActionSecretsConfig */
+    ActionSecretsConfig: {
+      /**
+       * Action
+       * @description The name of the action.
+       */
+      action: string;
+      /**
+       * Action Package
+       * @description The name of the action package.
+       * @default
+       */
+      action_package: string;
+      /**
+       * Secrets
+       * @description Map of secret name to secret definition.
+       */
+      secrets?: {
+        [key: string]: components['schemas']['ActionSecretDefinition'];
+      };
     };
     /** ActionServerConfigPayload */
     ActionServerConfigPayload: {
@@ -3633,6 +3692,421 @@ export interface components {
       action_packages: components['schemas']['ActionPackageDetail'][];
       /** Mcp Servers */
       mcp_servers: components['schemas']['MCPServerDetail'][];
+    };
+    /** AgentPackageActionPackageMetadata */
+    AgentPackageActionPackageMetadata: {
+      /**
+       * Name
+       * @description Name of the action package.
+       */
+      name: string;
+      /**
+       * Description
+       * @description Description of the action package.
+       */
+      description: string;
+      /**
+       * Version
+       * @description Version of the action package.
+       */
+      version: string;
+      /**
+       * Secrets
+       * @description Secrets configuration per action.
+       */
+      secrets?: {
+        [key: string]: components['schemas']['ActionSecretsConfig'];
+      };
+      /**
+       * Actions
+       * @description Actions in the package.
+       */
+      actions?: components['schemas']['ActionPackageMetadataAction'][];
+      /**
+       * External Endpoints
+       * @description External endpoints.
+       */
+      external_endpoints?: components['schemas']['ExternalEndpoint'][];
+      /**
+       * Whitelist
+       * @description Whitelist of allowed actions.
+       * @default
+       */
+      whitelist: string;
+      /**
+       * Icon
+       * @description Icon for the action package.
+       * @default
+       */
+      icon: string;
+      /**
+       * Path
+       * @description Path to the action package.
+       * @default
+       */
+      path: string;
+    };
+    /** AgentPackageDatasource */
+    AgentPackageDatasource: {
+      /**
+       * Customer Facing Name
+       * @description Customer-facing name of the datasource.
+       */
+      customer_facing_name: string;
+      /**
+       * Engine
+       * @description The engine of the datasource.
+       */
+      engine: string;
+      /**
+       * Description
+       * @description Description of the datasource.
+       */
+      description: string;
+      /**
+       * Configuration
+       * @description Configuration of the datasource.
+       */
+      configuration?: {
+        [key: string]: unknown;
+      };
+    };
+    /** AgentPackageDockerMcpGateway */
+    AgentPackageDockerMcpGateway: {
+      /**
+       * Catalog
+       * @description Path to the catalog file.
+       */
+      catalog?: string | null;
+      /** @description Server configurations. */
+      servers?: components['schemas']['DockerCatalogRegistryEntries'];
+    };
+    /** AgentPackageInspectionResponse */
+    AgentPackageInspectionResponse: {
+      /**
+       * Release Note
+       * @description Release notes for the agent package.
+       */
+      release_note: string;
+      /**
+       * Version
+       * @description Version of the agent package.
+       */
+      version: string;
+      /**
+       * Icon
+       * @description Icon for the agent package.
+       */
+      icon: string;
+      /**
+       * Name
+       * @description Name of the agent package.
+       */
+      name: string;
+      /**
+       * Description
+       * @description Description of the agent package.
+       */
+      description: string;
+      /** @description Model configuration for the agent. */
+      model: components['schemas']['SpecAgentModel'];
+      /**
+       * Architecture
+       * @description Architecture type of the agent.
+       * @enum {string}
+       */
+      architecture: 'agent' | 'plan_execute';
+      /**
+       * Reasoning
+       * @description Reasoning level of the agent.
+       * @enum {string}
+       */
+      reasoning: 'disabled' | 'enabled' | 'verbose';
+      /**
+       * Knowledge
+       * @description Knowledge configurations.
+       */
+      knowledge?: components['schemas']['AgentPackageMetadataKnowledge'][];
+      /**
+       * Datasources
+       * @description Datasource configurations.
+       */
+      datasources?: components['schemas']['AgentPackageDatasource'][];
+      /**
+       * Question Groups
+       * @description Question groups for the agent.
+       */
+      question_groups?: components['schemas']['QuestionGroup'][];
+      /**
+       * Conversation Starter
+       * @description Conversation starter message.
+       * @default
+       */
+      conversation_starter: string;
+      /**
+       * Welcome Message
+       * @description Welcome message for users.
+       * @default
+       */
+      welcome_message: string;
+      /**
+       * Metadata
+       * @description Agent metadata configuration.
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Action Packages
+       * @description Action packages used by the agent.
+       */
+      action_packages?: components['schemas']['AgentPackageActionPackageMetadata'][];
+      /**
+       * Mcp Servers
+       * @description MCP servers used by the agent.
+       */
+      mcp_servers?: components['schemas']['AgentPackageMcpServer'][];
+      /** @description Docker MCP Gateway configuration. */
+      docker_mcp_gateway?:
+        | components['schemas']['AgentPackageDockerMcpGateway']
+        | null;
+      /** @description Changes to Docker MCP Gateway. */
+      docker_mcp_gateway_changes?: components['schemas']['DockerMcpGatewayChanges'];
+      /**
+       * Agent Settings
+       * @description Agent settings.
+       */
+      agent_settings?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Document Intelligence
+       * @description The document intelligence version to use.
+       */
+      document_intelligence?: 'v2' | null;
+      /** @description Configuration for tools selected for this agent. */
+      selected_tools?: components['schemas']['SelectedTools'];
+      /** @description Information about the uploaded package file, if applicable. */
+      uploaded_package?: components['schemas']['UploadedPackageInfo'] | null;
+    };
+    /** AgentPackageMcpServer */
+    AgentPackageMcpServer: {
+      /**
+       * Name
+       * @description The name of the MCP server.
+       */
+      name: string;
+      /**
+       * Transport
+       * @description Transport protocol for the MCP server.
+       * @default auto
+       * @enum {string}
+       */
+      transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
+      /**
+       * Description
+       * @description Description of the MCP server.
+       * @default
+       */
+      description: string;
+      /**
+       * Url
+       * @description URL of the MCP server.
+       * @default
+       */
+      url: string;
+      /**
+       * Headers
+       * @description Headers for the MCP server.
+       */
+      headers?: {
+        [key: string]: components['schemas']['AgentPackageMcpServerVariable'];
+      };
+      /**
+       * Command
+       * @description Command to run the MCP server.
+       * @default
+       */
+      command: string;
+      /**
+       * Arguments
+       * @description Arguments for the MCP server command.
+       */
+      arguments?: string[];
+      /**
+       * Env
+       * @description Environment variables for the MCP server.
+       */
+      env?: {
+        [key: string]: components['schemas']['AgentPackageMcpServerVariable'];
+      };
+      /**
+       * Cwd
+       * @description Working directory for the MCP server.
+       * @default
+       */
+      cwd: string;
+      /**
+       * Force Serial Tool Calls
+       * @description Whether to force serial tool calls.
+       * @default false
+       */
+      force_serial_tool_calls: boolean;
+    };
+    /** AgentPackageMcpServerVariable */
+    AgentPackageMcpServerVariable: {
+      /**
+       * Value
+       * @description Simple string value for the variable.
+       */
+      value?: string | null;
+      /**
+       * Type
+       * @description The type of the variable.
+       * @default
+       */
+      type: string;
+      /**
+       * Description
+       * @description Description of the variable.
+       * @default
+       */
+      description: string;
+      /**
+       * Provider
+       * @description OAuth2 provider name.
+       * @default
+       */
+      provider: string;
+      /**
+       * Scopes
+       * @description OAuth2 scopes.
+       */
+      scopes?: string[];
+    };
+    /** AgentPackageMetadata */
+    AgentPackageMetadata: {
+      /**
+       * Release Note
+       * @description Release notes for the agent package.
+       */
+      release_note: string;
+      /**
+       * Version
+       * @description Version of the agent package.
+       */
+      version: string;
+      /**
+       * Icon
+       * @description Icon for the agent package.
+       */
+      icon: string;
+      /**
+       * Name
+       * @description Name of the agent package.
+       */
+      name: string;
+      /**
+       * Description
+       * @description Description of the agent package.
+       */
+      description: string;
+      /** @description Model configuration for the agent. */
+      model: components['schemas']['SpecAgentModel'];
+      /**
+       * Architecture
+       * @description Architecture type of the agent.
+       * @enum {string}
+       */
+      architecture: 'agent' | 'plan_execute';
+      /**
+       * Reasoning
+       * @description Reasoning level of the agent.
+       * @enum {string}
+       */
+      reasoning: 'disabled' | 'enabled' | 'verbose';
+      /**
+       * Knowledge
+       * @description Knowledge configurations.
+       */
+      knowledge?: components['schemas']['AgentPackageMetadataKnowledge'][];
+      /**
+       * Datasources
+       * @description Datasource configurations.
+       */
+      datasources?: components['schemas']['AgentPackageDatasource'][];
+      /**
+       * Question Groups
+       * @description Question groups for the agent.
+       */
+      question_groups?: components['schemas']['QuestionGroup'][];
+      /**
+       * Conversation Starter
+       * @description Conversation starter message.
+       * @default
+       */
+      conversation_starter: string;
+      /**
+       * Welcome Message
+       * @description Welcome message for users.
+       * @default
+       */
+      welcome_message: string;
+      /**
+       * Metadata
+       * @description Agent metadata configuration.
+       */
+      metadata?: {
+        [key: string]: unknown;
+      };
+      /**
+       * Action Packages
+       * @description Action packages used by the agent.
+       */
+      action_packages?: components['schemas']['AgentPackageActionPackageMetadata'][];
+      /**
+       * Mcp Servers
+       * @description MCP servers used by the agent.
+       */
+      mcp_servers?: components['schemas']['AgentPackageMcpServer'][];
+      /** @description Docker MCP Gateway configuration. */
+      docker_mcp_gateway?:
+        | components['schemas']['AgentPackageDockerMcpGateway']
+        | null;
+      /** @description Changes to Docker MCP Gateway. */
+      docker_mcp_gateway_changes?: components['schemas']['DockerMcpGatewayChanges'];
+      /**
+       * Agent Settings
+       * @description Agent settings.
+       */
+      agent_settings?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Document Intelligence
+       * @description The document intelligence version to use.
+       */
+      document_intelligence?: 'v2' | null;
+      /** @description Configuration for tools selected for this agent. */
+      selected_tools?: components['schemas']['SelectedTools'];
+    };
+    /** AgentPackageMetadataKnowledge */
+    AgentPackageMetadataKnowledge: {
+      /**
+       * Embedded
+       * @description Whether the knowledge is embedded.
+       */
+      embedded: boolean;
+      /**
+       * Name
+       * @description The name of the knowledge.
+       */
+      name: string;
+      /**
+       * Digest
+       * @description The digest of the knowledge.
+       */
+      digest: string;
     };
     /** AgentPackagePayload */
     AgentPackagePayload: {
@@ -4044,6 +4518,8 @@ export interface components {
       name: string;
       /** Headers */
       headers?: string | null;
+      /** Mcp Server Metadata */
+      mcp_server_metadata?: string | null;
     };
     /** Body_generate_data_model_from_document_document_intelligence_data_models_generate_post */
     Body_generate_data_model_from_document_document_intelligence_data_models_generate_post: {
@@ -4785,6 +5261,24 @@ export interface components {
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][] | null;
     };
+    /** DockerCatalogRegistryEntries */
+    DockerCatalogRegistryEntries: {
+      /**
+       * Tools
+       * @description List of tools.
+       */
+      tools?: string[];
+    };
+    /** DockerMcpGatewayChanges */
+    DockerMcpGatewayChanges: {
+      /**
+       * Changes
+       * @description Changes to the Docker MCP Gateway.
+       */
+      changes?: {
+        [key: string]: unknown;
+      };
+    };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {
       data_server: components['schemas']['DataServerConfig'];
@@ -4997,6 +5491,42 @@ export interface components {
       filename: string;
       /** Format */
       format: string;
+    };
+    /** ExternalEndpoint */
+    ExternalEndpoint: {
+      /**
+       * Name
+       * @description The name of the endpoint.
+       */
+      name: string;
+      /**
+       * Description
+       * @description Description of the endpoint.
+       */
+      description: string;
+      /**
+       * Additional Info Link
+       * @description Additional information link.
+       */
+      additional_info_link: string;
+      /**
+       * Rules
+       * @description Rules for the endpoint.
+       */
+      rules?: components['schemas']['ExternalEndpointRule'][];
+    };
+    /** ExternalEndpointRule */
+    ExternalEndpointRule: {
+      /**
+       * Host
+       * @description The host for the rule.
+       */
+      host: string;
+      /**
+       * Port
+       * @description The port for the rule.
+       */
+      port: number;
     };
     /** ExtractDocumentPayload */
     ExtractDocumentPayload: {
@@ -5769,6 +6299,13 @@ export interface components {
        * @enum {string}
        */
       type: 'generic_mcp' | 'sema4ai_action_server';
+      /**
+       * Mcp Server Metadata
+       * @description Metadata of this MCP server. For `sema4ai_action_server` MCP types, we store the metadata of the action-server (action packages, secrets, whitelist, icons...)
+       */
+      mcp_server_metadata?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** MCPServerCompat */
     MCPServerCompat: {
@@ -5827,8 +6364,9 @@ export interface components {
       /**
        * Transport
        * @description Transport protocol to use when connecting to the MCP server.
+       * @enum {string}
        */
-      transport: string;
+      transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
       /**
        * Url
        * @description The URL of the MCP server.
@@ -5839,7 +6377,14 @@ export interface components {
        * @description Headers used for configuring requests & connections to the MCP server.
        */
       headers?: {
-        [key: string]: unknown;
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
       } | null;
       /**
        * Command
@@ -5856,7 +6401,14 @@ export interface components {
        * @description Environment variables to merge with agent-server's env vars.
        */
       env?: {
-        [key: string]: unknown;
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
       } | null;
       /**
        * Cwd
@@ -5866,14 +6418,26 @@ export interface components {
       /**
        * Type
        * @description The type of MCP server.
+       * @default generic_mcp
+       * @enum {string}
        */
-      type?: string | null;
+      type: 'generic_mcp' | 'sema4ai_action_server';
       /**
        * Force Serial Tool Calls
        * @description If true, all tool calls are executed under a lock.
        * @default false
        */
       force_serial_tool_calls: boolean;
+      /**
+       * Is Hosted
+       * @description Whether this MCP server is hosted on our MCP Runtime. True for servers deployed via agent package upload.
+       * @default false
+       */
+      is_hosted: boolean;
+      /** @description Metadata from agent package inspection for hosted MCP servers. Contains action packages, secrets, and other package information. */
+      mcp_server_metadata?:
+        | components['schemas']['AgentPackageMetadata']
+        | null;
     };
     /**
      * MCPServerSource
@@ -8152,6 +8716,21 @@ export interface components {
        */
       credential_type: string;
     };
+    /** SpecAgentModel */
+    SpecAgentModel: {
+      /**
+       * Provider
+       * @description The LLM provider.
+       */
+      provider?:
+        | ('OpenAI' | 'Azure' | 'Anthropic' | 'Google' | 'Amazon' | 'Ollama')
+        | null;
+      /**
+       * Name
+       * @description The LLM model name.
+       */
+      name?: string | null;
+    };
     /** SplitJobResult */
     SplitJobResult: {
       result: components['schemas']['Result'];
@@ -8192,6 +8771,22 @@ export interface components {
        * @description Unique error identifier for tracking
        */
       error_id?: string | null;
+    };
+    /** StatusResponse[AgentPackageInspectionResponse] */
+    StatusResponse_AgentPackageInspectionResponse_: {
+      /**
+       * Status
+       * @description Indicates whether the operation was successful
+       * @enum {string}
+       */
+      status: 'success' | 'failure';
+      /** @description The result data when successful, null when failed */
+      data?: components['schemas']['AgentPackageInspectionResponse'] | null;
+      /**
+       * Errors
+       * @description List of errors when the operation fails
+       */
+      errors?: (components['schemas']['StatusError'] | string)[];
     };
     /** StatusResponse[dict] */
     StatusResponse_dict_: {
@@ -9000,6 +9595,24 @@ export interface components {
       work_item_id?: string | null;
       /** Scenario Id */
       scenario_id?: string | null;
+    };
+    /** UploadedPackageInfo */
+    UploadedPackageInfo: {
+      /**
+       * Content Type
+       * @description MIME type of the uploaded file.
+       */
+      content_type: string;
+      /**
+       * Size
+       * @description Size of the file in bytes.
+       */
+      size: number;
+      /**
+       * Format
+       * @description Format of the package (e.g., 'zip').
+       */
+      format: string;
     };
     /** UpsertAgentPayload */
     UpsertAgentPayload: {
@@ -17643,7 +18256,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['StatusResponse_dict_'];
+          'application/json': components['schemas']['StatusResponse_AgentPackageInspectionResponse_'];
         };
       };
     };

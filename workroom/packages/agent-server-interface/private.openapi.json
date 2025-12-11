@@ -3709,7 +3709,7 @@
       "post": {
         "tags": ["mcp-servers"],
         "summary": "Create Hosted Mcp Server",
-        "description": "Create a hosted MCP server by uploading a package file.\n\nThis endpoint accepts multipart/form-data for deploying sema4ai_action_server\ntype MCP servers that require a package file.\n\nArgs:\n    file: The .zip package file (max 50MB)\n    name: Name of the MCP server\n    headers: Optional JSON string of headers for the MCP server\n    storage: Storage dependency\n    _: Quota check dependency\n\nReturns:\n    MCPServerResponse with the created server details",
+        "description": "Create a hosted MCP server by uploading a package file.\n\nThis endpoint accepts multipart/form-data for deploying sema4ai_action_server\ntype MCP servers that require a package file.\n\nArgs:\n    file: The .zip package file (max 50MB)\n    name: Name of the MCP server\n    headers: Optional JSON string of headers for the MCP server\n    mcp_server_metadata: Optional JSON string of agent package inspection metadata\n    storage: Storage dependency\n    _: Quota check dependency\n\nReturns:\n    MCPServerResponse with the created server details",
         "operationId": "create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post",
         "requestBody": {
           "content": {
@@ -6350,7 +6350,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StatusResponse_dict_"
+                  "$ref": "#/components/schemas/StatusResponse_AgentPackageInspectionResponse_"
                 }
               }
             }
@@ -9743,6 +9743,33 @@
         "required": ["name", "actions", "version", "status"],
         "title": "ActionPackageDetail"
       },
+      "ActionPackageMetadataAction": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the action."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the action."
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "Summary of the action."
+          },
+          "operation_kind": {
+            "type": "string",
+            "title": "Operation Kind",
+            "description": "Operation kind of the action."
+          }
+        },
+        "type": "object",
+        "required": ["description", "name", "summary", "operation_kind"],
+        "title": "ActionPackageMetadataAction"
+      },
       "ActionPackagePayload": {
         "properties": {
           "name": {
@@ -9790,6 +9817,50 @@
         "type": "object",
         "required": ["name"],
         "title": "ActionPackagePayload"
+      },
+      "ActionSecretDefinition": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "The type of the secret."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the secret.",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": ["type"],
+        "title": "ActionSecretDefinition"
+      },
+      "ActionSecretsConfig": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "The name of the action."
+          },
+          "action_package": {
+            "type": "string",
+            "title": "Action Package",
+            "description": "The name of the action package.",
+            "default": ""
+          },
+          "secrets": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ActionSecretDefinition"
+            },
+            "type": "object",
+            "title": "Secrets",
+            "description": "Map of secret name to secret definition."
+          }
+        },
+        "type": "object",
+        "required": ["action"],
+        "title": "ActionSecretsConfig"
       },
       "ActionServerConfigPayload": {
         "properties": {
@@ -10123,6 +10194,590 @@
         "type": "object",
         "required": ["runbook", "action_packages", "mcp_servers"],
         "title": "AgentDetails"
+      },
+      "AgentPackageActionPackageMetadata": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the action package."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the action package."
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Version of the action package."
+          },
+          "secrets": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ActionSecretsConfig"
+            },
+            "type": "object",
+            "title": "Secrets",
+            "description": "Secrets configuration per action."
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionPackageMetadataAction"
+            },
+            "type": "array",
+            "title": "Actions",
+            "description": "Actions in the package."
+          },
+          "external_endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalEndpoint"
+            },
+            "type": "array",
+            "title": "External Endpoints",
+            "description": "External endpoints."
+          },
+          "whitelist": {
+            "type": "string",
+            "title": "Whitelist",
+            "description": "Whitelist of allowed actions.",
+            "default": ""
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "description": "Icon for the action package.",
+            "default": ""
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Path to the action package.",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": ["name", "description", "version"],
+        "title": "AgentPackageActionPackageMetadata"
+      },
+      "AgentPackageDatasource": {
+        "properties": {
+          "customer_facing_name": {
+            "type": "string",
+            "title": "Customer Facing Name",
+            "description": "Customer-facing name of the datasource."
+          },
+          "engine": {
+            "type": "string",
+            "title": "Engine",
+            "description": "The engine of the datasource."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the datasource."
+          },
+          "configuration": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Configuration",
+            "description": "Configuration of the datasource."
+          }
+        },
+        "type": "object",
+        "required": ["customer_facing_name", "engine", "description"],
+        "title": "AgentPackageDatasource"
+      },
+      "AgentPackageDockerMcpGateway": {
+        "properties": {
+          "catalog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog",
+            "description": "Path to the catalog file."
+          },
+          "servers": {
+            "$ref": "#/components/schemas/DockerCatalogRegistryEntries",
+            "description": "Server configurations."
+          }
+        },
+        "type": "object",
+        "title": "AgentPackageDockerMcpGateway"
+      },
+      "AgentPackageInspectionResponse": {
+        "properties": {
+          "release_note": {
+            "type": "string",
+            "title": "Release Note",
+            "description": "Release notes for the agent package."
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Version of the agent package."
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "description": "Icon for the agent package."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the agent package."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the agent package."
+          },
+          "model": {
+            "$ref": "#/components/schemas/SpecAgentModel",
+            "description": "Model configuration for the agent."
+          },
+          "architecture": {
+            "type": "string",
+            "enum": ["agent", "plan_execute"],
+            "title": "Architecture",
+            "description": "Architecture type of the agent."
+          },
+          "reasoning": {
+            "type": "string",
+            "enum": ["disabled", "enabled", "verbose"],
+            "title": "Reasoning",
+            "description": "Reasoning level of the agent."
+          },
+          "knowledge": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageMetadataKnowledge"
+            },
+            "type": "array",
+            "title": "Knowledge",
+            "description": "Knowledge configurations."
+          },
+          "datasources": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageDatasource"
+            },
+            "type": "array",
+            "title": "Datasources",
+            "description": "Datasource configurations."
+          },
+          "question_groups": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionGroup"
+            },
+            "type": "array",
+            "title": "Question Groups",
+            "description": "Question groups for the agent."
+          },
+          "conversation_starter": {
+            "type": "string",
+            "title": "Conversation Starter",
+            "description": "Conversation starter message.",
+            "default": ""
+          },
+          "welcome_message": {
+            "type": "string",
+            "title": "Welcome Message",
+            "description": "Welcome message for users.",
+            "default": ""
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Agent metadata configuration."
+          },
+          "action_packages": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageActionPackageMetadata"
+            },
+            "type": "array",
+            "title": "Action Packages",
+            "description": "Action packages used by the agent."
+          },
+          "mcp_servers": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageMcpServer"
+            },
+            "type": "array",
+            "title": "Mcp Servers",
+            "description": "MCP servers used by the agent."
+          },
+          "docker_mcp_gateway": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentPackageDockerMcpGateway"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Docker MCP Gateway configuration."
+          },
+          "docker_mcp_gateway_changes": {
+            "$ref": "#/components/schemas/DockerMcpGatewayChanges",
+            "description": "Changes to Docker MCP Gateway."
+          },
+          "agent_settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Settings",
+            "description": "Agent settings."
+          },
+          "document_intelligence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "v2"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Intelligence",
+            "description": "The document intelligence version to use."
+          },
+          "selected_tools": {
+            "$ref": "#/components/schemas/SelectedTools",
+            "description": "Configuration for tools selected for this agent."
+          },
+          "uploaded_package": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploadedPackageInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Information about the uploaded package file, if applicable."
+          }
+        },
+        "type": "object",
+        "required": [
+          "release_note",
+          "version",
+          "icon",
+          "name",
+          "description",
+          "model",
+          "architecture",
+          "reasoning"
+        ],
+        "title": "AgentPackageInspectionResponse"
+      },
+      "AgentPackageMcpServer": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the MCP server."
+          },
+          "transport": {
+            "type": "string",
+            "enum": ["auto", "streamable-http", "sse", "stdio"],
+            "title": "Transport",
+            "description": "Transport protocol for the MCP server.",
+            "default": "auto"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the MCP server.",
+            "default": ""
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "URL of the MCP server.",
+            "default": ""
+          },
+          "headers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AgentPackageMcpServerVariable"
+            },
+            "type": "object",
+            "title": "Headers",
+            "description": "Headers for the MCP server."
+          },
+          "command": {
+            "type": "string",
+            "title": "Command",
+            "description": "Command to run the MCP server.",
+            "default": ""
+          },
+          "arguments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Arguments",
+            "description": "Arguments for the MCP server command."
+          },
+          "env": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AgentPackageMcpServerVariable"
+            },
+            "type": "object",
+            "title": "Env",
+            "description": "Environment variables for the MCP server."
+          },
+          "cwd": {
+            "type": "string",
+            "title": "Cwd",
+            "description": "Working directory for the MCP server.",
+            "default": ""
+          },
+          "force_serial_tool_calls": {
+            "type": "boolean",
+            "title": "Force Serial Tool Calls",
+            "description": "Whether to force serial tool calls.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "AgentPackageMcpServer"
+      },
+      "AgentPackageMcpServerVariable": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Simple string value for the variable."
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "The type of the variable.",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the variable.",
+            "default": ""
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "description": "OAuth2 provider name.",
+            "default": ""
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes",
+            "description": "OAuth2 scopes."
+          }
+        },
+        "type": "object",
+        "title": "AgentPackageMcpServerVariable"
+      },
+      "AgentPackageMetadata": {
+        "properties": {
+          "release_note": {
+            "type": "string",
+            "title": "Release Note",
+            "description": "Release notes for the agent package."
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Version of the agent package."
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "description": "Icon for the agent package."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the agent package."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the agent package."
+          },
+          "model": {
+            "$ref": "#/components/schemas/SpecAgentModel",
+            "description": "Model configuration for the agent."
+          },
+          "architecture": {
+            "type": "string",
+            "enum": ["agent", "plan_execute"],
+            "title": "Architecture",
+            "description": "Architecture type of the agent."
+          },
+          "reasoning": {
+            "type": "string",
+            "enum": ["disabled", "enabled", "verbose"],
+            "title": "Reasoning",
+            "description": "Reasoning level of the agent."
+          },
+          "knowledge": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageMetadataKnowledge"
+            },
+            "type": "array",
+            "title": "Knowledge",
+            "description": "Knowledge configurations."
+          },
+          "datasources": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageDatasource"
+            },
+            "type": "array",
+            "title": "Datasources",
+            "description": "Datasource configurations."
+          },
+          "question_groups": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionGroup"
+            },
+            "type": "array",
+            "title": "Question Groups",
+            "description": "Question groups for the agent."
+          },
+          "conversation_starter": {
+            "type": "string",
+            "title": "Conversation Starter",
+            "description": "Conversation starter message.",
+            "default": ""
+          },
+          "welcome_message": {
+            "type": "string",
+            "title": "Welcome Message",
+            "description": "Welcome message for users.",
+            "default": ""
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Agent metadata configuration."
+          },
+          "action_packages": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageActionPackageMetadata"
+            },
+            "type": "array",
+            "title": "Action Packages",
+            "description": "Action packages used by the agent."
+          },
+          "mcp_servers": {
+            "items": {
+              "$ref": "#/components/schemas/AgentPackageMcpServer"
+            },
+            "type": "array",
+            "title": "Mcp Servers",
+            "description": "MCP servers used by the agent."
+          },
+          "docker_mcp_gateway": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentPackageDockerMcpGateway"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Docker MCP Gateway configuration."
+          },
+          "docker_mcp_gateway_changes": {
+            "$ref": "#/components/schemas/DockerMcpGatewayChanges",
+            "description": "Changes to Docker MCP Gateway."
+          },
+          "agent_settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Settings",
+            "description": "Agent settings."
+          },
+          "document_intelligence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "v2"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Intelligence",
+            "description": "The document intelligence version to use."
+          },
+          "selected_tools": {
+            "$ref": "#/components/schemas/SelectedTools",
+            "description": "Configuration for tools selected for this agent."
+          }
+        },
+        "type": "object",
+        "required": [
+          "release_note",
+          "version",
+          "icon",
+          "name",
+          "description",
+          "model",
+          "architecture",
+          "reasoning"
+        ],
+        "title": "AgentPackageMetadata"
+      },
+      "AgentPackageMetadataKnowledge": {
+        "properties": {
+          "embedded": {
+            "type": "boolean",
+            "title": "Embedded",
+            "description": "Whether the knowledge is embedded."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the knowledge."
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest",
+            "description": "The digest of the knowledge."
+          }
+        },
+        "type": "object",
+        "required": ["embedded", "name", "digest"],
+        "title": "AgentPackageMetadataKnowledge"
       },
       "AgentPackagePayload": {
         "properties": {
@@ -10914,6 +11569,17 @@
               }
             ],
             "title": "Headers"
+          },
+          "mcp_server_metadata": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Server Metadata"
           }
         },
         "type": "object",
@@ -12728,6 +13394,32 @@
         "title": "Dimension",
         "description": "A dimension describes categorical values such as state, user_type, platform, etc.\n\nUse when it's categorical/descriptive context you'll group or filter by\n(e.g., product_name, customer_id, region).\nDimensions answer who/what/where/how and provide labels for facts."
       },
+      "DockerCatalogRegistryEntries": {
+        "properties": {
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tools",
+            "description": "List of tools."
+          }
+        },
+        "type": "object",
+        "title": "DockerCatalogRegistryEntries"
+      },
+      "DockerMcpGatewayChanges": {
+        "properties": {
+          "changes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Changes",
+            "description": "Changes to the Docker MCP Gateway."
+          }
+        },
+        "type": "object",
+        "title": "DockerMcpGatewayChanges"
+      },
       "DocumentIntelligenceConfigPayload": {
         "properties": {
           "data_server": {
@@ -13265,6 +13957,53 @@
         "required": ["content", "filename", "format"],
         "title": "ExportSemanticDataModelResponse",
         "description": "Response for exporting a semantic data model."
+      },
+      "ExternalEndpoint": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the endpoint."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of the endpoint."
+          },
+          "additional_info_link": {
+            "type": "string",
+            "title": "Additional Info Link",
+            "description": "Additional information link."
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalEndpointRule"
+            },
+            "type": "array",
+            "title": "Rules",
+            "description": "Rules for the endpoint."
+          }
+        },
+        "type": "object",
+        "required": ["name", "description", "additional_info_link"],
+        "title": "ExternalEndpoint"
+      },
+      "ExternalEndpointRule": {
+        "properties": {
+          "host": {
+            "type": "string",
+            "title": "Host",
+            "description": "The host for the rule."
+          },
+          "port": {
+            "type": "integer",
+            "title": "Port",
+            "description": "The port for the rule."
+          }
+        },
+        "type": "object",
+        "required": ["host", "port"],
+        "title": "ExternalEndpointRule"
       },
       "ExtractDocumentPayload": {
         "properties": {
@@ -14936,6 +15675,19 @@
             "title": "Type",
             "description": "The type of MCP server. If 'sema4ai_action_server', X-Action-Context headers will be added for secret handling.",
             "default": "generic_mcp"
+          },
+          "mcp_server_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Server Metadata",
+            "description": "Metadata of this MCP server. For `sema4ai_action_server` MCP types, we store the metadata of the action-server (action packages, secrets, whitelist, icons...)"
           }
         },
         "type": "object",
@@ -15092,6 +15844,7 @@
           },
           "transport": {
             "type": "string",
+            "enum": ["auto", "streamable-http", "sse", "stdio"],
             "title": "Transport",
             "description": "Transport protocol to use when connecting to the MCP server."
           },
@@ -15110,7 +15863,38 @@
           "headers": {
             "anyOf": [
               {
-                "additionalProperties": true,
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
                 "type": "object"
               },
               {
@@ -15150,7 +15934,38 @@
           "env": {
             "anyOf": [
               {
-                "additionalProperties": true,
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
                 "type": "object"
               },
               {
@@ -15173,22 +15988,34 @@
             "description": "Working directory to run the MCP server command in."
           },
           "type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "enum": ["generic_mcp", "sema4ai_action_server"],
             "title": "Type",
-            "description": "The type of MCP server."
+            "description": "The type of MCP server.",
+            "default": "generic_mcp"
           },
           "force_serial_tool_calls": {
             "type": "boolean",
             "title": "Force Serial Tool Calls",
             "description": "If true, all tool calls are executed under a lock.",
             "default": false
+          },
+          "is_hosted": {
+            "type": "boolean",
+            "title": "Is Hosted",
+            "description": "Whether this MCP server is hosted on our MCP Runtime. True for servers deployed via agent package upload.",
+            "default": false
+          },
+          "mcp_server_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentPackageMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metadata from agent package inspection for hosted MCP servers. Contains action packages, secrets, and other package information."
           }
         },
         "type": "object",
@@ -19987,6 +20814,44 @@
         "required": ["warehouse", "database", "schema"],
         "title": "SnowflakeLinkedConfiguration"
       },
+      "SpecAgentModel": {
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "OpenAI",
+                  "Azure",
+                  "Anthropic",
+                  "Google",
+                  "Amazon",
+                  "Ollama"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "The LLM provider."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The LLM model name."
+          }
+        },
+        "type": "object",
+        "title": "SpecAgentModel"
+      },
       "SplitJobResult": {
         "properties": {
           "result": {
@@ -20041,6 +20906,45 @@
         "required": ["code", "message"],
         "title": "StatusError",
         "description": "A client-safe error representation that can be included in StatusResponse.\n\nThis model extracts safe information from PlatformError objects while\nexcluding sensitive internal details."
+      },
+      "StatusResponse_AgentPackageInspectionResponse_": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["success", "failure"],
+            "title": "Status",
+            "description": "Indicates whether the operation was successful"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentPackageInspectionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The result data when successful, null when failed"
+          },
+          "errors": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StatusError"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Errors",
+            "description": "List of errors when the operation fails"
+          }
+        },
+        "type": "object",
+        "required": ["status"],
+        "title": "StatusResponse[AgentPackageInspectionResponse]"
       },
       "StatusResponse_dict_": {
         "properties": {
@@ -21457,6 +22361,28 @@
           "created_at"
         ],
         "title": "UploadedFile"
+      },
+      "UploadedPackageInfo": {
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "MIME type of the uploaded file."
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Size of the file in bytes."
+          },
+          "format": {
+            "type": "string",
+            "title": "Format",
+            "description": "Format of the package (e.g., 'zip')."
+          }
+        },
+        "type": "object",
+        "required": ["content_type", "size", "format"],
+        "title": "UploadedPackageInfo"
       },
       "UpsertAgentPayload": {
         "properties": {

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.mcp.mcp_client import MCPClient
@@ -15,6 +15,20 @@ from agent_platform.core.tools.tool_definition import ToolDefinition
 class MCPServerSource(str, Enum):
     FILE = "FILE"
     API = "API"
+
+
+@dataclass(frozen=True)
+class MCPServerWithMetadata:
+    """MCP server with its source and deployment information."""
+
+    server: "MCPServer"
+    """The MCP server configuration."""
+
+    source: MCPServerSource
+    """The source of the MCP server (FILE or API)."""
+
+    deployment_id: str | None = None
+    """The MCP runtime deployment ID, if hosted."""
 
 
 @dataclass(frozen=True)
@@ -108,6 +122,17 @@ class MCPServer:
     """The type of MCP server. If 'sema4ai_action_server', X-Action-Context
     headers will be added for secret handling."""
 
+    mcp_server_metadata: dict[str, Any] | None = field(
+        default=None,
+        metadata={
+            "description": "Metadata of this MCP server. For `sema4ai_action_server` MCP types, "
+            "we store the metadata of the action-server "
+            "(action packages, secrets, whitelist, icons...)"
+        },
+    )
+    """Metadata from agent package inspection for MCP server of type `sema4ai_action_server`.
+    Structure matches AgentPackageMetadata.model_dump() output."""
+
     def _validate_url_command(self) -> None:
         """Validate url and command configuration."""
         if not self.url and not self.command:
@@ -182,6 +207,7 @@ class MCPServer:
             force_serial_tool_calls=self.force_serial_tool_calls,
             transport=self.transport,
             type=self.type,
+            mcp_server_metadata=self.mcp_server_metadata,
         )
 
     def model_dump(self) -> dict:
@@ -201,6 +227,8 @@ class MCPServer:
             # generic
             "force_serial_tool_calls": self.force_serial_tool_calls,
             "type": self.type,
+            # hosted MCP metadata
+            "mcp_server_metadata": self.mcp_server_metadata,
         }
 
     async def to_tool_definitions(

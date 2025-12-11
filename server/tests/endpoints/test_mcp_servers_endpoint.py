@@ -610,7 +610,7 @@ def test_list_mcp_servers_with_partial_decryption_failure(
 
     # Mock the storage method to return partial results (simulate some entries skipped due to
     # decryption errors)
-    from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+    from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithMetadata
 
     # Simulate that only one server is returned (others were skipped due to decryption errors)
     mock_server = MCPServer.model_validate(
@@ -622,7 +622,11 @@ def test_list_mcp_servers_with_partial_decryption_failure(
     )
 
     with patch.object(storage, "list_mcp_servers_with_metadata") as mock_list_metadata:
-        mock_list_metadata.return_value = {"working-server-id": (mock_server, MCPServerSource.API)}
+        mock_list_metadata.return_value = {
+            "working-server-id": MCPServerWithMetadata(
+                server=mock_server, source=MCPServerSource.API
+            )
+        }
 
         # Mock the sync function to avoid side effects
         with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):

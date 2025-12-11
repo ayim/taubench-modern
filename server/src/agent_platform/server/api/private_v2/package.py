@@ -26,6 +26,10 @@ from agent_platform.core.payloads.agent_package import (
     AgentPackagePayloadActionServer,
     AgentPackagePayloadLangsmith,
 )
+from agent_platform.core.payloads.agent_package_inspection import (
+    AgentPackageInspectionResponse,
+    UploadedPackageInfo,
+)
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import AgentQuotaCheck, StorageDependency
 from agent_platform.server.api.package_content_handler import (
@@ -224,7 +228,7 @@ async def calculate_agent_package_environment_hash(
 )
 async def inspect_agent_from_package(
     request: Request,
-) -> StatusResponse[dict]:
+) -> StatusResponse[AgentPackageInspectionResponse]:
     try:
         # Handle both JSON and binary ZIP content types
         validated_payload, zip_content = await handle_json_or_binary_zip(
@@ -246,14 +250,19 @@ async def inspect_agent_from_package(
         with await AgentPackageHandler.from_bytes(package_bytes) as handler:
             metadata = await handler.read_metadata()
 
-        result = metadata.model_dump()
-
-        # If binary ZIP was uploaded, add file metadata to the response
+        # Build uploaded package info if binary ZIP was uploaded
+        uploaded_package = None
         if zip_content:
             file_metadata = create_binary_zip_metadata(zip_content)
-            result["uploaded_package"] = file_metadata["binary_package"]
+            pkg_info = file_metadata["binary_package"]
+            uploaded_package = UploadedPackageInfo(
+                content_type=pkg_info.get("content_type", "application/zip"),
+                size=pkg_info.get("size", 0),
+                format=pkg_info.get("format", "zip"),
+            )
 
-        return StatusResponse.success(result)
+        response = AgentPackageInspectionResponse.from_metadata(metadata, uploaded_package)
+        return StatusResponse.success(response)
     except PlatformError as e:
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:
