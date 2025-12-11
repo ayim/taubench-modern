@@ -1,6 +1,6 @@
 import { FC, useMemo, useCallback } from 'react';
 import { Box, Button, Tooltip, useClipboard, useSnackbar } from '@sema4ai/components';
-import { IconDownload, IconCopy, IconCheck2 } from '@sema4ai/icons';
+import { IconDownload } from '@sema4ai/icons';
 import { Code } from '../../../../common/code';
 import { EXTRACTION_FILE_NAMES, EXTRACTION_ARIA_LABELS } from '../constants/extractionFiles';
 
@@ -72,28 +72,16 @@ export const FormattedJsonData: FC<FormattedJsonDataProps> = ({ data, variant, d
   // Create custom toolbar with copy and download buttons
   const customToolbar = useMemo(() => {
     return (
-      <Box display="flex" justifyContent="flex-end" gap="$4" marginBottom="$4" marginTop="$4" marginRight="$8">
-        <Tooltip text="Download JSON">
-          <Button
-            aria-label="Download JSON"
-            variant="inverted"
-            round
-            icon={IconDownload}
-            onClick={handleDownload}
-            size="small"
-          />
-        </Tooltip>
-        <Tooltip text="Copy JSON to clipboard">
-          <Button
-            aria-label="Copy JSON to clipboard"
-            variant="inverted"
-            round
-            icon={copiedToClipboard ? IconCheck2 : IconCopy}
-            onClick={handleCopy}
-            size="small"
-          />
-        </Tooltip>
-      </Box>
+      <Tooltip text="Download JSON">
+        <Button
+          aria-label="Download JSON"
+          variant="inverted"
+          round
+          icon={IconDownload}
+          onClick={handleDownload}
+          size="small"
+        />
+      </Tooltip>
     );
   }, [copiedToClipboard, handleCopy, handleDownload]);
 
