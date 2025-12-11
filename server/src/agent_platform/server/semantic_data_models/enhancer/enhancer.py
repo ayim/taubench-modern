@@ -19,7 +19,10 @@ if TYPE_CHECKING:
 
     from tenacity import RetryCallState
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        LogicalTable,
+        SemanticDataModel,
+    )
     from agent_platform.core.prompts.prompt import Prompt
     from agent_platform.core.responses.response import ResponseMessage
     from agent_platform.core.user import User
@@ -449,3 +452,66 @@ class SemanticDataModelEnhancer:
 
         # If we can't check quality, assume it's okay
         return None
+
+
+def reset_logical_names_to_physical_for_data_connections(
+    semantic_model: SemanticDataModel,
+) -> None:
+    """
+    Post-process an enhanced semantic data model to reset logical names to physical names
+    for tables that are backed by data connections.
+
+    For data connection-backed tables:
+    - The logical table name is set to match the physical table name (base_table.table)
+    - The logical column names are set to match the physical column expression (expr)
+
+    This is useful when you want to preserve the original database naming convention
+    instead of the LLM-generated friendly names for data connection sources.
+
+    Args:
+        semantic_model: The semantic data model to post-process. Modified in-place.
+    """
+    tables = semantic_model.get("tables") or []
+
+    for table in tables:
+        base_table = table.get("base_table")
+        if not base_table:
+            continue
+
+        # Only process tables backed by data connections
+        data_connection_id = base_table.get("data_connection_id")
+        if not data_connection_id:
+            continue
+
+        # Reset table name to physical table name
+        physical_table_name = base_table.get("table")
+        if physical_table_name:
+            table["name"] = physical_table_name
+
+        # Reset column names to physical column expressions
+        _reset_column_names_to_physical(table)
+
+
+def _reset_column_names_to_physical(table: LogicalTable) -> None:
+    """
+    Reset column names to match their physical expressions for a single table.
+
+    Only resets names for dimensions, time_dimensions, and facts - NOT metrics.
+    Metrics often have complex SQL expressions (e.g., SUM(oil) + SUM(gas) / 6.0)
+    that are not valid column names, so their logical names should be preserved.
+
+    Args:
+        table: The logical table dict to process.
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import CATEGORIES
+
+    # Skip metrics since their expr can be complex SQL expressions
+    # that are not valid as column names
+    categories_to_reset = [c for c in CATEGORIES if c != "metrics"]
+
+    for category in categories_to_reset:
+        columns = table.get(category) or []
+        for column in columns:
+            expr = column.get("expr")
+            if expr:
+                column["name"] = expr

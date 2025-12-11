@@ -413,3 +413,472 @@ async def test_enhance_semantic_data_model_with_tool_call():
         assert synonyms is not None
         assert "ai_name" in synonyms, "Expected 'ai_name' synonym from valid response"
         assert "model_name" in synonyms, "Expected 'model_name' synonym from valid response"
+
+
+class TestGetDataConnectionTableNames:
+    """Tests for _get_data_connection_table_names function."""
+
+    @pytest.mark.asyncio
+    async def test_identifies_data_connection_tables(self):
+        """Should identify tables with data_connection_id."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            DataConnectionInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.prompts import (
+            _get_data_connection_table_names,
+        )
+
+        generator = SemanticDataModelGenerator()
+        column_info = ColumnInfo(name="col1", data_type="TEXT", sample_values=["a", "b"])
+        table_info = TableInfo(
+            name="dc_table",
+            database="test_db",
+            schema="public",
+            columns=[column_info],
+        )
+        data_connection_info = DataConnectionInfo(
+            data_connection_id="dc-123",
+            tables_info=[table_info],
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info],
+            files_info=[],
+        )
+        result = _get_data_connection_table_names(semantic_model)
+        assert result == {"dc_table"}
+
+    @pytest.mark.asyncio
+    async def test_excludes_file_reference_tables(self):
+        """Should not include tables with file_reference but no data_connection_id."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            FileInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.prompts import (
+            _get_data_connection_table_names,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Physical column from Excel header (whitespace/special chars)
+        column_info = ColumnInfo(name="Revenue ($)", data_type="TEXT", sample_values=["100", "200"])
+        # Physical table name from Excel sheet (whitespace/special chars)
+        table_info = TableInfo(
+            name="Q1 Sales Report!",
+            database="test_db",
+            schema="public",
+            columns=[column_info],
+        )
+        file_info = FileInfo(
+            thread_id="t-123",
+            file_ref="quarterly_report.xlsx",
+            tables_info=[table_info],
+            sheet_name="Q1 Sales Report!",
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[],
+            files_info=[file_info],
+        )
+        result = _get_data_connection_table_names(semantic_model)
+        assert result == set()
+
+    @pytest.mark.asyncio
+    async def test_mixed_tables(self):
+        """Should only return data connection table names in mixed model."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            DataConnectionInfo,
+            FileInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.prompts import (
+            _get_data_connection_table_names,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Physical column for DC tables (abbreviated)
+        dc_col = ColumnInfo(name="cust_id", data_type="TEXT", sample_values=["1"])
+        # Physical column for file table (from header with whitespace)
+        file_col = ColumnInfo(name="Order Total ($)", data_type="TEXT", sample_values=["100"])
+
+        # Data connection tables with abbreviated physical names
+        dc_table_1 = TableInfo(name="cust_tbl", database="db", schema="public", columns=[dc_col])
+        dc_table_2 = TableInfo(name="ord_tbl", database="db", schema="public", columns=[dc_col])
+        data_connection_info_1 = DataConnectionInfo(
+            data_connection_id="dc-1", tables_info=[dc_table_1]
+        )
+        data_connection_info_2 = DataConnectionInfo(
+            data_connection_id="dc-2", tables_info=[dc_table_2]
+        )
+
+        # File table with sheet name (whitespace/special chars)
+        file_table = TableInfo(
+            name="Orders & Returns 2024", database="db", schema="public", columns=[file_col]
+        )
+        file_info = FileInfo(
+            thread_id="t-123",
+            file_ref="orders.xlsx",
+            tables_info=[file_table],
+            sheet_name="Orders & Returns 2024",
+        )
+
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info_1, data_connection_info_2],
+            files_info=[file_info],
+        )
+        result = _get_data_connection_table_names(semantic_model)
+        assert result == {"cust_tbl", "ord_tbl"}
+
+    @pytest.mark.asyncio
+    async def test_empty_tables(self):
+        """Should return empty set for model with no tables."""
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.prompts import (
+            _get_data_connection_table_names,
+        )
+
+        generator = SemanticDataModelGenerator()
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[],
+            files_info=[],
+        )
+        result = _get_data_connection_table_names(semantic_model)
+        assert result == set()
+
+
+class TestResetLogicalNamesToPhysicalForDataConnections:
+    """Tests for reset_logical_names_to_physical_for_data_connections function."""
+
+    @pytest.mark.asyncio
+    async def test_resets_table_name_to_physical_for_data_connection(self):
+        """Table name should be reset to base_table.table for data connection tables."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            DataConnectionInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+            reset_logical_names_to_physical_for_data_connections,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Physical column name (abbreviated, as typically found in databases)
+        column_info = ColumnInfo(name="col1", data_type="TEXT", sample_values=["a", "b"])
+        # Physical table name (abbreviated) - this becomes base_table.table
+        table_info = TableInfo(
+            name="sd_raw_tbl",  # Physical table name
+            database="test_db",
+            schema="public",
+            columns=[column_info],
+        )
+        data_connection_info = DataConnectionInfo(
+            data_connection_id="dc-123",
+            tables_info=[table_info],
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info],
+            files_info=[],
+        )
+        # After generation: LogicalTable.name = base_table.table = "sd_raw_tbl"
+        # Simulate LLM changing the logical name to a friendly name
+        semantic_model["tables"][0]["name"] = "sales_data_table"  # type: ignore[index]
+
+        # Reset should restore logical name to match physical name (base_table.table)
+        reset_logical_names_to_physical_for_data_connections(semantic_model)
+        assert semantic_model["tables"][0]["name"] == "sd_raw_tbl"  # type: ignore[index]
+
+    @pytest.mark.asyncio
+    async def test_resets_column_names_for_dimensions_facts_time_dimensions(self):
+        """Column names should be reset to expr for dimensions, facts, time_dimensions."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            DataConnectionInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+            reset_logical_names_to_physical_for_data_connections,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Physical column names (abbreviated, as in real databases)
+        # These become both Dimension.name and Dimension.expr after generation
+        # Dimension: name containing "name" or ending with "_id" -> becomes dimension
+        dim_col = ColumnInfo(name="cust_id", data_type="TEXT", sample_values=["C001", "C002"])
+        # Fact: numeric type (DECIMAL is in numeric_types) -> becomes fact
+        fact_col = ColumnInfo(name="rev_amt", data_type="DECIMAL", sample_values=["100.50"])
+        # Time dimension: timestamp type -> becomes time_dimension
+        time_col = ColumnInfo(name="ord_dt", data_type="TIMESTAMP", sample_values=["2024-01-01"])
+        table_info = TableInfo(
+            name="sales_tbl",
+            database="test_db",
+            schema="public",
+            columns=[dim_col, fact_col, time_col],
+        )
+        data_connection_info = DataConnectionInfo(
+            data_connection_id="dc-123",
+            tables_info=[table_info],
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info],
+            files_info=[],
+        )
+
+        # After generation: column.name = column.expr = physical name
+        # Simulate LLM changing logical column names to friendly names
+        table = semantic_model["tables"][0]  # type: ignore[index]
+        dimensions = table.get("dimensions")
+        facts = table.get("facts")
+        time_dims = table.get("time_dimensions")
+        assert dimensions is not None
+        assert facts is not None
+        assert time_dims is not None
+        dimensions[0]["name"] = "customer_name"  # Friendly logical name
+        facts[0]["name"] = "revenue_amount"  # Friendly logical name
+        time_dims[0]["name"] = "order_date"  # Friendly logical name
+
+        # Reset should restore logical names to match expr (physical column names)
+        reset_logical_names_to_physical_for_data_connections(semantic_model)
+
+        assert dimensions[0]["name"] == "cust_id"  # Back to physical
+        assert facts[0]["name"] == "rev_amt"  # Back to physical
+        assert time_dims[0]["name"] == "ord_dt"  # Back to physical
+
+    @pytest.mark.asyncio
+    async def test_preserves_metric_names(self):
+        """Metric names should NOT be reset since expr can be complex SQL expressions."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            DataConnectionInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+            reset_logical_names_to_physical_for_data_connections,
+        )
+
+        generator = SemanticDataModelGenerator()
+        column_info = ColumnInfo(name="col1", data_type="TEXT", sample_values=["a"])
+        table_info = TableInfo(
+            name="phys_table",
+            database="test_db",
+            schema="public",
+            columns=[column_info],
+        )
+        data_connection_info = DataConnectionInfo(
+            data_connection_id="dc-123",
+            tables_info=[table_info],
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info],
+            files_info=[],
+        )
+
+        # Manually add a metric (generator doesn't create metrics automatically)
+        table = semantic_model["tables"][0]  # type: ignore[index]
+        table["metrics"] = [
+            {
+                "name": "Total_Energy",  # LLM-generated friendly name
+                "expr": "SUM(oil) + (SUM(gas) / 6.0)",  # Complex expression
+            }
+        ]
+
+        reset_logical_names_to_physical_for_data_connections(semantic_model)
+
+        # Metric name should be preserved (not reset to expr)
+        assert table["metrics"][0]["name"] == "Total_Energy"
+
+    @pytest.mark.asyncio
+    async def test_skips_tables_without_data_connection_id(self):
+        """Tables without data_connection_id should not be modified."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            FileInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+            reset_logical_names_to_physical_for_data_connections,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Physical column name from Excel header row (has whitespace/special chars)
+        column_info = ColumnInfo(
+            name="Customer Name (Primary)", data_type="TEXT", sample_values=["Alice"]
+        )
+        # Physical table name from Excel sheet name (has whitespace/special chars)
+        table_info = TableInfo(
+            name="Sales Data Q1 2024!",
+            database="test_db",
+            schema="public",
+            columns=[column_info],
+        )
+        file_info = FileInfo(
+            thread_id="t-123",
+            file_ref="sales_report.xlsx",
+            tables_info=[table_info],
+            sheet_name="Sales Data Q1 2024!",
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[],
+            files_info=[file_info],
+        )
+
+        # LLM generates clean database-style logical names
+        table = semantic_model["tables"][0]  # type: ignore[index]
+        table["name"] = "sales_data_q1_2024"  # Clean logical table name
+        dimensions = table.get("dimensions")
+        assert dimensions is not None
+        dimensions[0]["name"] = "customer_name"  # Clean logical column name
+
+        reset_logical_names_to_physical_for_data_connections(semantic_model)
+
+        # File table should NOT be modified - clean logical names should persist
+        assert table["name"] == "sales_data_q1_2024"
+        assert dimensions[0]["name"] == "customer_name"
+
+    @pytest.mark.asyncio
+    async def test_only_modifies_data_connection_tables_in_mixed_model(self):
+        """Only tables with data_connection_id should be modified."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            ColumnInfo,
+            DataConnectionInfo,
+            FileInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+            reset_logical_names_to_physical_for_data_connections,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Physical column name (abbreviated) for data connection table
+        dc_col = ColumnInfo(name="cust_nm", data_type="TEXT", sample_values=["Alice"])
+        # Physical column name from Excel header (has whitespace/special chars)
+        file_col = ColumnInfo(name="Product Name ($)", data_type="TEXT", sample_values=["Widget"])
+
+        # Data connection table with abbreviated physical name
+        dc_table = TableInfo(name="dc_raw_tbl", database="db", schema="public", columns=[dc_col])
+        data_connection_info = DataConnectionInfo(
+            data_connection_id="dc-123", tables_info=[dc_table]
+        )
+
+        # File table with sheet name as physical name (whitespace/special chars)
+        file_table = TableInfo(
+            name="Products & Inventory!", database="db", schema="public", columns=[file_col]
+        )
+        file_info = FileInfo(
+            thread_id="t-123",
+            file_ref="inventory.xlsx",
+            tables_info=[file_table],
+            sheet_name="Products & Inventory!",
+        )
+
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info],
+            files_info=[file_info],
+        )
+
+        # LLM generates friendly names for DC table, clean DB-style for file table
+        dc_tbl = semantic_model["tables"][0]  # type: ignore[index]
+        dc_tbl["name"] = "CustomerData"  # Friendly logical name
+        dc_dims = dc_tbl.get("dimensions")
+        assert dc_dims is not None
+        dc_dims[0]["name"] = "CustomerName"  # Friendly logical name
+
+        file_tbl = semantic_model["tables"][1]  # type: ignore[index]
+        file_tbl["name"] = "products_inventory"  # Clean DB-style logical name
+        file_dims = file_tbl.get("dimensions")
+        assert file_dims is not None
+        file_dims[0]["name"] = "product_name"  # Clean DB-style logical name
+
+        reset_logical_names_to_physical_for_data_connections(semantic_model)
+
+        # Data connection table should be reset to physical names
+        assert dc_tbl["name"] == "dc_raw_tbl"
+        assert dc_dims[0]["name"] == "cust_nm"
+        # File table should NOT be modified - keeps clean logical names
+        assert file_tbl["name"] == "products_inventory"
+        assert file_dims[0]["name"] == "product_name"
+
+    @pytest.mark.asyncio
+    async def test_handles_missing_column_categories(self):
+        """Should handle tables with missing column categories."""
+        from agent_platform.core.payloads.semantic_data_model_payloads import (
+            DataConnectionInfo,
+            TableInfo,
+        )
+        from agent_platform.server.kernel.semantic_data_model_generator import (
+            SemanticDataModelGenerator,
+        )
+        from agent_platform.server.semantic_data_models.enhancer.enhancer import (
+            reset_logical_names_to_physical_for_data_connections,
+        )
+
+        generator = SemanticDataModelGenerator()
+        # Table with no columns (physical name is abbreviated)
+        table_info = TableInfo(
+            name="empty_tbl",  # Physical table name
+            database="test_db",
+            schema="public",
+            columns=[],
+        )
+        data_connection_info = DataConnectionInfo(
+            data_connection_id="dc-123",
+            tables_info=[table_info],
+        )
+        semantic_model = await generator.generate_semantic_data_model(
+            name="Test Model",
+            description="Test",
+            data_connections_info=[data_connection_info],
+            files_info=[],
+        )
+
+        # Simulate LLM-generated friendly table name
+        semantic_model["tables"][0]["name"] = "Empty Data Table"  # type: ignore[index]
+
+        reset_logical_names_to_physical_for_data_connections(semantic_model)
+        # Should reset to physical name
+        assert semantic_model["tables"][0]["name"] == "empty_tbl"  # type: ignore[index]

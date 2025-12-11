@@ -88,6 +88,19 @@ class PromptThread(Prompt):
         return deepcopy(self)
 
 
+def _get_data_connection_table_names(semantic_model: SemanticDataModel) -> set[str]:
+    """Extract names of tables that are backed by data connections."""
+    data_connection_tables: set[str] = set()
+    tables = semantic_model.get("tables") or []
+    for table in tables:
+        base_table = table.get("base_table")
+        if base_table and base_table.get("data_connection_id"):
+            table_name = table.get("name")
+            if table_name:
+                data_connection_tables.add(table_name)
+    return data_connection_tables
+
+
 def create_enhancement_prompt(  # noqa: PLR0913
     semantic_model: SemanticDataModel,
     mode: EnhancementMode,
@@ -114,6 +127,9 @@ def create_enhancement_prompt(  # noqa: PLR0913
         semantic_model,
     )
 
+    # Get tables backed by data connections (their names should not be changed)
+    data_connection_tables = _get_data_connection_table_names(semantic_model)
+
     # Get the enhancement tool for this mode
     enhancement_tool = get_enhancement_tool(mode)
 
@@ -121,12 +137,14 @@ def create_enhancement_prompt(  # noqa: PLR0913
         mode=mode,
         tables_to_enhance=tables_to_enhance,
         table_to_columns_to_enhance=table_to_columns_to_enhance,
+        data_connection_tables=data_connection_tables,
     )
     user_message = render_user_prompt(
         mode=mode,
         current_semantic_model=model_for_llm,
         tables_to_enhance=tables_to_enhance,
         table_to_columns_to_enhance=table_to_columns_to_enhance,
+        data_connection_tables=data_connection_tables,
     )
 
     messages = [PromptUserMessage(content=[PromptTextContent(text=user_message)])]

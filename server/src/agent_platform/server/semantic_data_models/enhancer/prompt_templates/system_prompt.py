@@ -7,6 +7,7 @@ def render_system_prompt(  # noqa
     mode: EnhancementMode,
     tables_to_enhance: set[str] | None = None,
     table_to_columns_to_enhance: dict[str, list[str]] | None = None,
+    data_connection_tables: set[str] | None = None,
 ) -> str:
     # Note that the tables_to_enhance and table_to_columns_to_enhance must be used to
     # determine whether there will be a selection of tables or columns to enhance
@@ -66,7 +67,12 @@ def render_system_prompt(  # noqa
         parts.append("\n**Table Information:**\n")
         if mode == "full":
             parts.append("For each table:\n")
-        parts.append("   - Better logical name for the table\n")
+        if data_connection_tables:
+            parts.append(
+                "   - Better logical name for the table (EXCEPT for data connection tables - keep their names unchanged)\n"
+            )
+        else:
+            parts.append("   - Better logical name for the table\n")
         parts.append("   - Improved description that explains the purpose of the table\n")
         parts.append("   - Synonyms that users might use to refer to this table\n")
 
@@ -76,12 +82,22 @@ def render_system_prompt(  # noqa
         if mode == "full" or is_multiple_columns:
             parts.append("For each column:\n")
         parts.append("\n")
-        parts.append("   - Better logical name for the column\n")
+        if data_connection_tables:
+            parts.append(
+                "   - Better logical name for the column (EXCEPT for data connection tables - keep their names unchanged)\n"
+            )
+        else:
+            parts.append("   - Better logical name for the column\n")
         parts.append("   - Improved description that explains what the data represents\n")
         parts.append("   - Synonyms that users might use to refer to this column\n")
         parts.append(
             '   - Proper categorization into "dimension", "fact", "metric", or "time_dimension"\n'
         )
+
+    # List data connection tables if any exist
+    if data_connection_tables and mode in {"full", "tables", "columns"}:
+        tables_list = ", ".join(sorted(data_connection_tables))
+        parts.append(f"\n**Data Connection Tables:** {tables_list}\n")
 
     # Add categorization guidelines section
     if mode in {"full", "columns"}:

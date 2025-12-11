@@ -368,6 +368,7 @@ async def generate_semantic_data_model(
     )
     from agent_platform.server.semantic_data_models.enhancer.enhancer import (
         SemanticDataModelEnhancer,
+        reset_logical_names_to_physical_for_data_connections,
     )
     from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
         KeyForBaseTable,
@@ -477,6 +478,10 @@ async def generate_semantic_data_model(
                         )
                 else:  # no missing keys means we have to enhance the full model.
                     await enhancer.enhance_semantic_data_model(semantic_model)
+
+                # Post-process: For data connection-backed tables, reset logical names
+                # to match physical names (database naming convention takes precedence)
+                reset_logical_names_to_physical_for_data_connections(semantic_model)
 
                 # After enhancement, restore the existing model's name and description
                 # The enhancer may have modified these, but we want to preserve the original

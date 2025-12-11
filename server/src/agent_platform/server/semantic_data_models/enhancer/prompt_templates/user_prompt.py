@@ -17,6 +17,7 @@ def render_user_prompt(  # noqa
     current_semantic_model: SemanticDataModelForLLM,
     tables_to_enhance: set[str] | None = None,
     table_to_columns_to_enhance: dict[str, list[str]] | None = None,
+    data_connection_tables: set[str] | None = None,
 ) -> str:
     """Render the user prompt template with the given parameters."""
     semantic_model_json = json.dumps(current_semantic_model.model_dump(), indent=2)
@@ -131,16 +132,25 @@ def render_user_prompt(  # noqa
     if mode in {"full", "tables"}:
         table_text = "each table" if mode == "full" else "the specified table(s)"
         requirements += f"**For {table_text}:**\n"
-        requirements += "   - Improve the logical name\n"
+        if data_connection_tables:
+            requirements += "   - Improve the logical name (EXCEPT for data connection tables - keep their names unchanged)\n"
+        else:
+            requirements += "   - Improve the logical name\n"
         requirements += "   - Add/improve the description explaining the table's purpose\n"
         requirements += (
             "   - Add/change relevant synonyms that users might use to improve discoverability\n"
         )
+        if data_connection_tables:
+            tables_list = ", ".join(sorted(data_connection_tables))
+            requirements += f"   - Data connection tables: {tables_list}\n"
 
     if mode in {"full", "columns"}:
         column_text = "each column" if mode == "full" else "the specified column(s)"
         requirements += f"\n**For {column_text}:**\n"
-        requirements += "   - Improve the logical name\n"
+        if data_connection_tables:
+            requirements += "   - Improve the logical name (EXCEPT for data connection tables - keep their names unchanged)\n"
+        else:
+            requirements += "   - Improve the logical name\n"
         requirements += "   - Add/improve the description explaining what the data represents\n"
         requirements += (
             "   - Add/change relevant synonyms that users might use to improve discoverability\n"
