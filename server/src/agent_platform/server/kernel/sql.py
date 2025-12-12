@@ -8,10 +8,17 @@ from agent_platform.core.actions.action_utils import InternalToolResponse
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.thread.content.sql_generation import SQLGenerationDetails
 from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.server.file_manager.option import FileManagerService
 from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
 if TYPE_CHECKING:
+    from agent_platform.core.files.files import UploadedFile
+    from agent_platform.core.kernel import Kernel
     from agent_platform.core.thread import Thread
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelCollector,
+    )
+    from agent_platform.server.file_manager.base import BaseFileManager
     from agent_platform.server.kernel.data_frames import _DataFrameTools
     from agent_platform.server.storage import BaseStorage
 
@@ -577,6 +584,9 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
 
         from agent_platform.core.payloads import InitiateStreamPayload
         from agent_platform.core.thread import Thread, ThreadTextContent, ThreadUserMessage
+        from agent_platform.server.data_frames.semantic_data_model_collector import (
+            SemanticDataModelCollector,
+        )
         from agent_platform.server.runs.sync import invoke_agent_sync
         from agent_platform.server.storage.option import StorageService
 
@@ -586,16 +596,19 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
 
         kernel = self._data_frame_tools._thread_state.kernel
         storage = StorageService.get_instance()
+        file_manager = FileManagerService.get_instance(storage=storage)
 
         # Find the SDM ID that matches the requested name
-        target_sdm_id = await _find_sdm_id_by_name(
+        sdm_result = await _find_sdm_by_name(
             storage, kernel.agent.agent_id, semantic_data_model_name
         )
 
-        if not target_sdm_id:
+        if not sdm_result:
             raise ValueError(
                 f"Semantic data model '{semantic_data_model_name}' not found on the user's agent"
             )
+
+        sdm_id, target_sdm = sdm_result
 
         # Get or create SQL generation agent with well-known name
         # sql_agent = await _get_or_create_sql_agent(kernel, storage)
@@ -625,7 +638,29 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             # Associate the specific SDM with just this thread
             await storage.set_thread_semantic_data_models(
                 thread_id,
-                [target_sdm_id],
+                [sdm_id],
+            )
+
+            # Use the collector to identify files in the user's thread which are referenced by this SDM.
+            collector = SemanticDataModelCollector(
+                agent_id=kernel.thread.agent_id,
+                thread_id=kernel.thread.thread_id,
+                user=kernel.user,
+                state=None,
+            )
+            files_to_copy = await _collect_sdm_files(
+                storage=storage,
+                kernel=kernel,
+                semantic_data_model=target_sdm,
+                collector=collector,
+            )
+
+            # Then, upload all of those files to the SQL generation agent's thread.
+            _ = await _upload_sdm_files(
+                kernel=kernel,
+                sql_thread=sql_thread,
+                file_manager=file_manager,
+                files_to_upload=files_to_copy,
             )
 
             initial_message = ThreadUserMessage(
@@ -654,7 +689,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             )
 
             # Extract result and create response with delegated thread metadata
-            return await _create_internal_tool_response_from_sql_thread(  # type: ignore[return-value]
+            return await _create_internal_tool_response_from_sql_thread(
                 thread=thread,
                 storage=storage,
                 user_id=kernel.user.user_id,
@@ -663,6 +698,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
                     semantic_data_model_name=semantic_data_model_name,
                     agent_messages=agent_messages,
                 ),
+                file_manager=file_manager,
             )
 
         except Exception as e:
@@ -683,6 +719,7 @@ async def _create_internal_tool_response_from_sql_thread(
     storage: "BaseStorage",
     user_id: str,
     details: SQLGenerationDetails,
+    file_manager: "BaseFileManager",
 ) -> "InternalToolResponse":
     """Extract SQL generation result and create InternalToolResponse with delegated thread metadata.
 
@@ -702,7 +739,6 @@ async def _create_internal_tool_response_from_sql_thread(
 
     from agent_platform.core.actions.action_utils import InternalToolResponse
     from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
-    from agent_platform.server.file_manager.option import FileManagerService
 
     # Retrieve output.json
     thread_files = await storage.get_thread_files(thread.thread_id, user_id)
@@ -713,10 +749,13 @@ async def _create_internal_tool_response_from_sql_thread(
     )
 
     if not output_file:
+        logger.error(
+            "SQL generation agent did not produce output.json",
+            messages=[m.model_dump() for m in details.agent_messages],
+        )
         raise ValueError("SQL generation agent did not produce output.json")
 
     # Read file contents
-    file_manager = FileManagerService.get_instance(storage=storage)
     file_bytes = await file_manager.read_file_contents(
         file_id=output_file.file_id,
         user_id=user_id,
@@ -735,11 +774,11 @@ async def _create_internal_tool_response_from_sql_thread(
     )
 
 
-async def _find_sdm_id_by_name(
+async def _find_sdm_by_name(
     storage: "BaseStorage",
     agent_id: str,
     semantic_data_model_name: str,
-) -> str | None:
+) -> tuple[str, SemanticDataModel] | None:
     """Find the SDM ID for a given SDM name on an agent.
 
     Args:
@@ -748,8 +787,10 @@ async def _find_sdm_id_by_name(
         semantic_data_model_name: Name of the semantic data model to find
 
     Returns:
-        The SDM ID if found, None otherwise
+        A tuple of (SDM ID, SemanticDataModel) if found, or None otherwise.
     """
+    import typing
+
     # Get parent agent's SDMs
     agent_sdm_ids = await storage.get_agent_semantic_data_model_ids(agent_id)
 
@@ -757,6 +798,97 @@ async def _find_sdm_id_by_name(
     for sdm_id in agent_sdm_ids:
         sdm = await storage.get_semantic_data_model(sdm_id)
         if sdm.get("name") == semantic_data_model_name:
-            return sdm_id
+            return sdm_id, typing.cast(SemanticDataModel, sdm)
 
     return None
+
+
+async def _collect_sdm_files(
+    storage: "BaseStorage",
+    kernel: "Kernel",
+    semantic_data_model: "SemanticDataModel",
+    collector: "SemanticDataModelCollector",
+) -> "list[UploadedFile]":
+    thread_files = await storage.get_thread_files(kernel.thread.thread_id, kernel.user.user_id)
+
+    # Single API for extraction + (best-effort) file-ref resolution.
+    (
+        _resolved_sdm,
+        references,
+    ) = await collector.resolve_file_references_for_semantic_data_model(
+        storage=storage,
+        semantic_data_model=semantic_data_model,
+    )
+
+    # If we have no file references, no extra files to copy.
+    if not references.file_references:
+        return []
+
+    # If the SDM has structural/reference errors, we can't reliably narrow files.
+    if references.errors:
+        raise RuntimeError(f"Semantic data model has reference errors: {references.errors!r}")
+
+    # The name of thread files that are referenced by the SDM.
+    sdm_referenced_file_names = {
+        ref.file_ref
+        for ref in references.file_references
+        if ref.thread_id == kernel.thread.thread_id
+    }
+
+    return [f for f in thread_files if f.file_ref in sdm_referenced_file_names]
+
+
+async def _upload_sdm_files(
+    kernel: "Kernel",
+    sql_thread: "Thread",
+    file_manager: "BaseFileManager",
+    files_to_upload: "list[UploadedFile]",
+) -> "list[UploadedFile]":
+    """Uploads the given threads that are referenced by an SDM to the SQL generation agent's thread."""
+
+    if not files_to_upload:
+        return []
+
+    from tempfile import SpooledTemporaryFile
+    from typing import BinaryIO, cast
+
+    from fastapi import UploadFile
+    from starlette.datastructures import Headers
+
+    from agent_platform.core.payloads import UploadFilePayload
+
+    # TODO this is wasteful as we duplicate N files every time we call generate_sql. Ideally, we would
+    # want to reference the same blob in the FileService but our file_owners table doesn't allow us to
+    # do that currently.
+    uploads: list[UploadFilePayload] = []
+    temp_files: list[SpooledTemporaryFile] = []
+    try:
+        for uploaded_file in files_to_upload:
+            file_bytes = await file_manager.read_file_contents(
+                file_id=uploaded_file.file_id,
+                user_id=kernel.user.user_id,
+            )
+            temp_file = SpooledTemporaryFile()
+            temp_file.write(file_bytes)
+            temp_file.seek(0)
+            temp_files.append(temp_file)
+
+            file_obj = cast(BinaryIO, temp_file)
+            upload = UploadFile(
+                filename=uploaded_file.file_ref,
+                file=file_obj,
+                headers=Headers(
+                    {
+                        "content-type": uploaded_file.mime_type or "application/octet-stream",
+                    }
+                ),
+            )
+            uploads.append(UploadFilePayload(file=upload))
+
+        return await file_manager.upload(uploads, sql_thread, kernel.user.user_id)
+    finally:
+        for temp_file in temp_files:
+            try:
+                temp_file.close()
+            except Exception:
+                logger.warning("Failed to close temporary file", exc_info=True)

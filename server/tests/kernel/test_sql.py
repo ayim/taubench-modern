@@ -1,15 +1,33 @@
 """Tests for SQL generation helper functions in server/kernel/sql.py."""
 
-from typing import Any, cast
+from datetime import UTC, datetime
+from tempfile import SpooledTemporaryFile
+from typing import Any, BinaryIO, cast
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
+from fastapi import UploadFile
+from starlette.datastructures import Headers
 
+from agent_platform.core.agent import Agent, AgentArchitecture
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.data_frames.semantic_data_model_validation import (
+    References,
+    _FileReference,
+)
+from agent_platform.core.files import UploadedFile
+from agent_platform.core.payloads import UploadFilePayload
+from agent_platform.core.runbook import Runbook
+from agent_platform.core.thread import Thread
+from agent_platform.server.file_manager.option import FileManagerService
 from agent_platform.server.kernel.sql import (
     AgenticSqlStrategy,
     LegacySqlStrategy,
-    _find_sdm_id_by_name,
+    _collect_sdm_files,
+    _create_internal_tool_response_from_sql_thread,
+    _find_sdm_by_name,
+    _upload_sdm_files,
 )
 
 pytest_plugins = ["server.tests.storage_fixtures"]
@@ -123,150 +141,150 @@ def snowflake_sdm_with_variant() -> tuple[SemanticDataModel, str]:
     )
 
 
-# ============================================================================
-# Tests: _find_sdm_id_by_name
-# ============================================================================
+@pytest.mark.asyncio
+async def test_finds_sdm_by_exact_name_match(mock_storage, sample_sdms):
+    """Should successfully find SDM when name matches exactly."""
+    # Arrange
+    agent_id = "agent-123"
+    sdm_name = "customer_data"
+
+    # Mock storage to return SDM IDs and then the SDM data
+    mock_storage.get_agent_semantic_data_model_ids.return_value = [
+        "sdm-001",
+        "sdm-002",
+        "sdm-003",
+    ]
+    mock_storage.get_semantic_data_model.side_effect = sample_sdms
+
+    # Act
+    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
+
+    # Assert
+    assert result is not None
+    sdm_id, target_sdm = result
+    assert sdm_id == "sdm-002"
+    mock_storage.get_agent_semantic_data_model_ids.assert_called_once_with(agent_id)
+    assert mock_storage.get_semantic_data_model.call_count == 2
 
 
-class TestFindSdmIdByName:
-    """Tests for _find_sdm_id_by_name function."""
+@pytest.mark.asyncio
+async def test_returns_none_when_sdm_name_not_found(mock_storage, sample_sdms):
+    """Should return None when no SDM matches the requested name."""
+    # Arrange
+    agent_id = "agent-123"
+    sdm_name = "nonexistent_model"
 
-    @pytest.mark.asyncio
-    async def test_finds_sdm_by_exact_name_match(self, mock_storage, sample_sdms):
-        """Should successfully find SDM when name matches exactly."""
-        # Arrange
-        agent_id = "agent-123"
-        sdm_name = "customer_data"
+    mock_storage.get_agent_semantic_data_model_ids.return_value = [
+        "sdm-001",
+        "sdm-002",
+        "sdm-003",
+    ]
+    mock_storage.get_semantic_data_model.side_effect = sample_sdms
 
-        # Mock storage to return SDM IDs and then the SDM data
-        mock_storage.get_agent_semantic_data_model_ids.return_value = [
-            "sdm-001",
-            "sdm-002",
-            "sdm-003",
-        ]
-        mock_storage.get_semantic_data_model.side_effect = sample_sdms
+    # Act
+    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
 
-        # Act
-        result = await _find_sdm_id_by_name(mock_storage, agent_id, sdm_name)
-
-        # Assert
-        assert result == "sdm-002"
-        mock_storage.get_agent_semantic_data_model_ids.assert_called_once_with(agent_id)
-        assert mock_storage.get_semantic_data_model.call_count == 2
-
-    @pytest.mark.asyncio
-    async def test_returns_none_when_sdm_name_not_found(self, mock_storage, sample_sdms):
-        """Should return None when no SDM matches the requested name."""
-        # Arrange
-        agent_id = "agent-123"
-        sdm_name = "nonexistent_model"
-
-        mock_storage.get_agent_semantic_data_model_ids.return_value = [
-            "sdm-001",
-            "sdm-002",
-            "sdm-003",
-        ]
-        mock_storage.get_semantic_data_model.side_effect = sample_sdms
-
-        # Act
-        result = await _find_sdm_id_by_name(mock_storage, agent_id, sdm_name)
-
-        # Assert
-        assert result is None
-        assert mock_storage.get_semantic_data_model.call_count == 3
-
-    @pytest.mark.asyncio
-    async def test_returns_correct_sdm_when_multiple_exist(self, mock_storage, sample_sdms):
-        """Should return the correct SDM ID when multiple SDMs exist."""
-        # Arrange
-        agent_id = "agent-123"
-        sdm_name = "sales_data"
-
-        mock_storage.get_agent_semantic_data_model_ids.return_value = [
-            "sdm-001",
-            "sdm-002",
-            "sdm-003",
-        ]
-        mock_storage.get_semantic_data_model.side_effect = sample_sdms
-
-        # Act
-        result = await _find_sdm_id_by_name(mock_storage, agent_id, sdm_name)
-
-        # Assert
-        assert result == "sdm-001"
-        mock_storage.get_semantic_data_model.assert_called_once_with("sdm-001")
-
-    @pytest.mark.asyncio
-    async def test_handles_empty_sdm_list(self, mock_storage):
-        """Should return None when agent has no SDMs."""
-        # Arrange
-        agent_id = "agent-123"
-        sdm_name = "any_model"
-
-        mock_storage.get_agent_semantic_data_model_ids.return_value = []
-
-        # Act
-        result = await _find_sdm_id_by_name(mock_storage, agent_id, sdm_name)
-
-        # Assert
-        assert result is None
-        mock_storage.get_agent_semantic_data_model_ids.assert_called_once_with(agent_id)
-        mock_storage.get_semantic_data_model.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_handles_sdm_with_missing_name_field(self, mock_storage):
-        """Should handle SDMs that don't have a 'name' field."""
-        # Arrange
-        agent_id = "agent-123"
-        sdm_name = "test_model"
-
-        mock_storage.get_agent_semantic_data_model_ids.return_value = [
-            "sdm-001",
-            "sdm-002",
-            "sdm-003",
-        ]
-
-        # Some SDMs missing the 'name' field, last one has it
-        mock_storage.get_semantic_data_model.side_effect = [
-            {"id": "sdm-001", "description": "No name field"},
-            {"id": "sdm-002"},  # No name field
-            {"id": "sdm-003", "name": "test_model"},
-        ]
-
-        # Act
-        result = await _find_sdm_id_by_name(mock_storage, agent_id, sdm_name)
-
-        # Assert
-        assert result == "sdm-003"
-        assert mock_storage.get_semantic_data_model.call_count == 3
-
-    @pytest.mark.asyncio
-    async def test_handles_sdm_with_none_name(self, mock_storage):
-        """Should handle SDMs where 'name' field is None."""
-        # Arrange
-        agent_id = "agent-123"
-        sdm_name = "valid_model"
-
-        mock_storage.get_agent_semantic_data_model_ids.return_value = [
-            "sdm-001",
-            "sdm-002",
-        ]
-
-        mock_storage.get_semantic_data_model.side_effect = [
-            {"id": "sdm-001", "name": None},  # None name
-            {"id": "sdm-002", "name": "valid_model"},
-        ]
-
-        # Act
-        result = await _find_sdm_id_by_name(mock_storage, agent_id, sdm_name)
-
-        # Assert
-        assert result == "sdm-002"
+    # Assert
+    assert result is None
+    assert mock_storage.get_semantic_data_model.call_count == 3
 
 
-# ============================================================================
-# Tests: LegacySqlStrategy.get_context_additions
-# ============================================================================
+@pytest.mark.asyncio
+async def test_returns_correct_sdm_when_multiple_exist(mock_storage, sample_sdms):
+    """Should return the correct SDM ID when multiple SDMs exist."""
+    # Arrange
+    agent_id = "agent-123"
+    sdm_name = "sales_data"
+
+    mock_storage.get_agent_semantic_data_model_ids.return_value = [
+        "sdm-001",
+        "sdm-002",
+        "sdm-003",
+    ]
+    mock_storage.get_semantic_data_model.side_effect = sample_sdms
+
+    # Act
+    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
+
+    # Assert
+    assert result is not None
+    sdm_id, target_sdm = result
+    assert sdm_id == "sdm-001"
+    mock_storage.get_semantic_data_model.assert_called_once_with("sdm-001")
+
+
+@pytest.mark.asyncio
+async def test_handles_empty_sdm_list(mock_storage):
+    """Should return None when agent has no SDMs."""
+    # Arrange
+    agent_id = "agent-123"
+    sdm_name = "any_model"
+
+    mock_storage.get_agent_semantic_data_model_ids.return_value = []
+
+    # Act
+    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
+
+    # Assert
+    assert result is None
+    mock_storage.get_agent_semantic_data_model_ids.assert_called_once_with(agent_id)
+    mock_storage.get_semantic_data_model.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handles_sdm_with_missing_name_field(mock_storage):
+    """Should handle SDMs that don't have a 'name' field."""
+    # Arrange
+    agent_id = "agent-123"
+    sdm_name = "test_model"
+
+    mock_storage.get_agent_semantic_data_model_ids.return_value = [
+        "sdm-001",
+        "sdm-002",
+        "sdm-003",
+    ]
+
+    # Some SDMs missing the 'name' field, last one has it
+    mock_storage.get_semantic_data_model.side_effect = [
+        {"id": "sdm-001", "description": "No name field"},
+        {"id": "sdm-002"},  # No name field
+        {"id": "sdm-003", "name": "test_model"},
+    ]
+
+    # Act
+    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
+
+    # Assert
+    assert result is not None
+    sdm_id, target_sdm = result
+    assert sdm_id == "sdm-003"
+    assert mock_storage.get_semantic_data_model.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_handles_sdm_with_none_name(mock_storage):
+    """Should handle SDMs where 'name' field is None."""
+    # Arrange
+    agent_id = "agent-123"
+    sdm_name = "valid_model"
+
+    mock_storage.get_agent_semantic_data_model_ids.return_value = [
+        "sdm-001",
+        "sdm-002",
+    ]
+
+    mock_storage.get_semantic_data_model.side_effect = [
+        {"id": "sdm-001", "name": None},  # None name
+        {"id": "sdm-002", "name": "valid_model"},
+    ]
+
+    # Act
+    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
+
+    # Assert
+    assert result is not None
+    sdm_id, target_sdm = result
+    assert sdm_id == "sdm-002"
 
 
 class TestLegacySqlStrategy:
@@ -329,11 +347,6 @@ class TestLegacySqlStrategy:
         # Should contain both model names
         assert "test_model" in result
         assert "snowflake_products" in result
-
-
-# ============================================================================
-# Tests: AgenticSqlStrategy.get_context_additions
-# ============================================================================
 
 
 class TestAgenticSqlStrategy:
@@ -424,7 +437,6 @@ class TestAgenticSqlStrategy:
 async def test_create_internal_tool_response_from_sql_thread(sqlite_storage, tmp_path):
     """Test that helper function creates InternalToolResponse with correct metadata structure."""
     import hashlib
-    from uuid import uuid4
 
     from agent_platform.core.thread import Thread, ThreadAgentMessage, ThreadTextContent
     from agent_platform.core.thread.content.sql_generation import (
@@ -432,7 +444,6 @@ async def test_create_internal_tool_response_from_sql_thread(sqlite_storage, tmp
         SQLGenerationDetails,
         SQLGenerationStatus,
     )
-    from agent_platform.server.kernel.sql import _create_internal_tool_response_from_sql_thread
 
     # Get user
     user, _ = await sqlite_storage.get_or_create_user(sub="test-user")
@@ -516,6 +527,7 @@ async def test_create_internal_tool_response_from_sql_thread(sqlite_storage, tmp
         storage=sqlite_storage,
         user_id=user.user_id,
         details=sql_details,
+        file_manager=FileManagerService.get_instance(storage=sqlite_storage, manager_type="local"),
     )
 
     # Assert
@@ -532,3 +544,145 @@ async def test_create_internal_tool_response_from_sql_thread(sqlite_storage, tmp
     assert len(details_dict["agent_messages"]) == 2
     assert details_dict["agent_messages"][0]["content"][0]["text"] == "Analyzing the schema..."
     assert details_dict["agent_messages"][1]["content"][0]["text"] == "Generated SQL successfully"
+
+
+@pytest.mark.asyncio
+async def test_collect_thread_files_for_sdm():
+    storage = AsyncMock()
+    kernel = MagicMock()
+    kernel.thread.thread_id = "t1"
+    kernel.thread.agent_id = "a1"
+    kernel.user.user_id = "u1"
+
+    now = datetime.now(UTC)
+    file_a = UploadedFile(
+        file_id="1",
+        file_path=None,
+        file_ref="a.csv",
+        file_hash="",
+        file_size_raw=0,
+        mime_type="text/csv",
+        created_at=now,
+    )
+    file_b = UploadedFile(
+        file_id="2",
+        file_path=None,
+        file_ref="b.csv",
+        file_hash="",
+        file_size_raw=0,
+        mime_type="text/csv",
+        created_at=now,
+    )
+    storage.get_thread_files.return_value = [file_a, file_b]
+
+    references = References(
+        data_connection_ids=set(),
+        data_frame_names=set(),
+        file_references={_FileReference(thread_id="t1", file_ref="b.csv", sheet_name=None)},
+        data_connection_id_to_logical_table_names={},
+        file_reference_to_logical_table_names={},
+        logical_table_name_to_connection_info={},
+        errors=[],
+        _structured_errors=[],
+        tables_with_unresolved_file_references=set(),
+        semantic_data_model_with_errors=None,
+    )
+
+    collector = MagicMock(
+        resolve_file_references_for_semantic_data_model=AsyncMock(return_value=({}, references))
+    )
+    sdm = {"name": "sdm", "tables": []}
+
+    selected = await _collect_sdm_files(
+        storage=storage,
+        kernel=kernel,
+        semantic_data_model=sdm,  # type: ignore[arg-type]
+        collector=collector,
+    )
+
+    assert selected == [file_b]
+
+
+@pytest.mark.asyncio
+async def test_upload_sdm_files(tmp_path, sqlite_storage):
+    kernel = MagicMock()
+
+    # Create a user
+    user, _created = await sqlite_storage.get_or_create_user("user")
+    user_id = user.user_id
+    kernel.user.user_id = user_id
+
+    # Create an agent
+    agent = Agent(
+        user_id=user_id,
+        agent_id=str(uuid4()),
+        name="Test Agent",
+        description="Test Description",
+        runbook_structured=Runbook(
+            raw_text="# Objective\nYou are a helpful assistant.", content=[]
+        ),
+        version="1.0.0",
+        platform_configs=[],
+        agent_architecture=AgentArchitecture(
+            name="agent_platform.architectures.default", version="1.0.0"
+        ),
+    )
+    await sqlite_storage.upsert_agent(user_id, agent)
+
+    # Create a "user" thread
+    source_thread = Thread(
+        user_id=user_id,
+        agent_id=agent.agent_id,
+        name="Source Thread",
+        thread_id=str(uuid4()),
+    )
+    # Create a "sql agent" thread (We're avoiding creating the pre-installed agent)
+    sql_thread = Thread(
+        user_id=user_id,
+        agent_id=agent.agent_id,
+        name="SQL Thread",
+        thread_id=str(uuid4()),
+    )
+    await sqlite_storage.upsert_thread(user_id, source_thread)
+    await sqlite_storage.upsert_thread(user_id, sql_thread)
+
+    FileManagerService.reset()
+    file_manager = FileManagerService.get_instance(storage=sqlite_storage, manager_type="local")
+
+    # Upload a file to the user thread.
+    temp_file = SpooledTemporaryFile()
+    temp_file.write(b"col\n1\n")
+    temp_file.seek(0)
+    upload = UploadFile(
+        filename="a.csv",
+        file=cast(BinaryIO, temp_file),
+        headers=Headers({"content-type": "text/csv"}),
+    )
+
+    uploaded_to_source = await file_manager.upload(
+        files=[UploadFilePayload(file=upload)],
+        owner=source_thread,
+        user_id=user_id,
+    )
+    assert len(uploaded_to_source) == 1
+    source_uploaded = uploaded_to_source[0]
+
+    # Fake that we have identified this file as being referenced by the SDM.
+    source_files = await sqlite_storage.get_thread_files(source_thread.thread_id, user_id)
+    assert any(f.file_id == source_uploaded.file_id and f.file_ref == "a.csv" for f in source_files)
+
+    # Upload the file to the sql thread.
+    copied = await _upload_sdm_files(
+        kernel=kernel,
+        sql_thread=sql_thread,
+        file_manager=file_manager,
+        files_to_upload=[source_uploaded],
+    )
+
+    # Verify it got to the correct place.
+    sql_files = await sqlite_storage.get_thread_files(sql_thread.thread_id, user_id)
+
+    assert len(copied) == 1
+    assert copied[0].file_ref == source_uploaded.file_ref
+    assert copied[0].mime_type == source_uploaded.mime_type
+    assert any(f.file_ref == "a.csv" and f.file_id != source_uploaded.file_id for f in sql_files)
