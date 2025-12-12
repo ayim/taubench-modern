@@ -18,12 +18,23 @@ export const getDocIntelLabel = (interfaceType: string): string => {
   return DOC_INTEL_INTERFACE_LABELS[interfaceType] || interfaceType;
 };
 
+const docIntelDefaultCapabilities = ['di-extract-only', 'di-parse-only'];
+
+/**
+ * This enabled doc intel parse and extract for all agents
+ * - by merging existing interfaces with default capabilities
+ */
+const mergeInterfacesWithDefaultCapabilities = (userInterfaces: string[] | undefined = []): string[] => [
+  ...new Set([...docIntelDefaultCapabilities, ...userInterfaces]),
+];
+
 /**
  * Get all Document Intelligence interfaces from a list of user interfaces
  * @param userInterfaces - Array of interface strings from useAgentUserInterfacesQuery
  * @returns Filtered array containing only known DocIntel interfaces
  */
 export const getDocIntelInterfaces = (userInterfaces: string[] | undefined): string[] => {
-  const knownDocIntelInterfaces = Object.keys(DOC_INTEL_INTERFACE_LABELS);
-  return (userInterfaces || []).filter((ui) => knownDocIntelInterfaces.includes(ui));
+  return mergeInterfacesWithDefaultCapabilities(userInterfaces).filter(
+    (ui) => typeof DOC_INTEL_INTERFACE_LABELS[ui] === 'string',
+  );
 };

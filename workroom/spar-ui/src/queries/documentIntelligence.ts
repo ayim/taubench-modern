@@ -46,6 +46,28 @@ type DocumentIntelligenceFileUpload = File;
 // Layout data type from agent-server-interface
 type DocumentLayoutPayload = components['schemas']['DocumentLayoutPayload'];
 
+export const documentIntelligenceConfigQueryKey = () => ['document-intelligence', 'config'];
+
+export const documentIntelligenceConfigQueryOptions = createSparQueryOptions<object>()(({ sparAPIClient }) => ({
+  queryKey: documentIntelligenceConfigQueryKey(),
+  queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence'>> => {
+    const response = await sparAPIClient.queryAgentServer('get', '/api/v2/document-intelligence', {
+      params: {},
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch document intelligence config', {
+        code: response.code,
+        resource: ResourceType.DocumentIntelligence,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const useDocumentIntelligenceConfigQuery = createSparQuery(documentIntelligenceConfigQueryOptions);
+
 export const listModelsQueryOptions = ({ sparAPIClient }: { sparAPIClient: SparAPIClient }) => ({
   queryKey: getListModelsQueryKey(),
   queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/data-models'>> => {

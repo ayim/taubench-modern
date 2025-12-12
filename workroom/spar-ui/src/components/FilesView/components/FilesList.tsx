@@ -1,54 +1,36 @@
-import { Box, Button, FileItem, Menu, Typography, useSnackbar } from '@sema4ai/components';
+import { Box, Button, FileItem, Menu, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import { IconDocumentIntelligence, IconLoading } from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { FC, useCallback } from 'react';
 
 import { getFileSize, getFileTypeIcon } from '../../../common/helpers';
 import { ThreadFiles, useThreadFilesQuery, useDownloadThreadFileMutation } from '../../../queries/threads';
+import { useDocumentIntelligenceConfigQuery } from '../../../queries/documentIntelligence';
 import { getSnackbarContent } from '../../../queries/shared';
 import { useFeatureFlag } from '../../../hooks/useFeatureFlag';
 import { SparUIFeatureFlag } from '../../../api';
 import { useAgentDocIntelCapabilities, useDocIntelDialogManager } from '../../DocIntel/shared/hooks';
 import { getDocIntelLabel } from '../../DocIntel/shared/constants/interfaceLabels';
 
-type props = {
-  agentId: string;
-  threadId: string;
-};
-
-const FileListItem = ({
-  file,
-  agentId,
-  threadId,
-  onDocumentIntelligenceClick,
-}: {
+interface ItemProps {
   file: ThreadFiles[number];
   agentId: string;
   threadId: string;
   onDocumentIntelligenceClick: (params: { interfaceType: string; file: File; agentId: string }) => void;
-}) => {
-  const { enabled: docIntelFeatureEnabled } = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
+}
+
+const DocumentIntelligenceItem: FC<ItemProps> = ({ file, agentId, threadId, onDocumentIntelligenceClick }) => {
+  const { data: docIntelConfig } = useDocumentIntelligenceConfigQuery({});
   const { docIntelInterfaces } = useAgentDocIntelCapabilities(agentId);
 
-  const { mutateAsync: downloadThreadFile, isPending: isDownloadingThreadFile } = useDownloadThreadFileMutation({
-    type: 'download',
-  });
   const { mutateAsync: getFileForDocumentIntelligence } = useDownloadThreadFileMutation({ type: 'inline' });
   const { addSnackbar } = useSnackbar();
 
-  const isPdfFile = file.mime_type === 'application/pdf' || file.file_ref.toLowerCase().endsWith('.pdf');
-  const shouldDisplayDocIntelButton = docIntelFeatureEnabled && docIntelInterfaces.length > 0 && isPdfFile;
-
-  const onDownload = async () => {
-    await downloadThreadFile(
-      { threadId, name: file.file_ref },
-      {
-        onError: (error) => {
-          addSnackbar(getSnackbarContent(error));
-        },
-      },
-    );
-  };
+  /**
+   * TODO: this check will fail when we start enforcing permissions on SPAR backend
+   * The endpoint currently allows knowledge works to see the config: https://github.com/Sema4AI/agent-platform/blob/72482fff003fc98496e9d4d7b1941a6f3307f7f2/workroom/backend/src/api/routing.ts#L135
+   */
+  const isDocIntelConfigured = (docIntelConfig?.configuration?.integrations?.length ?? 0) > 0;
 
   const handleDocIntelClick = useCallback(
     async (interfaceType: string) => {
@@ -73,6 +55,104 @@ const FileListItem = ({
     [threadId, file.file_ref, agentId, getFileForDocumentIntelligence, onDocumentIntelligenceClick, addSnackbar],
   );
 
+  if (isDocIntelConfigured) {
+    return (
+      <Tooltip text="Use document intelligence to analyze this file" placement="top">
+        <Menu
+          trigger={<Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} />}
+        >
+          {docIntelInterfaces.map((interfaceType) => (
+            <Menu.Item key={interfaceType} onClick={() => handleDocIntelClick(interfaceType)}>
+              {getDocIntelLabel(interfaceType)}
+            </Menu.Item>
+          ))}
+        </Menu>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip
+      text="Configure Document Intelligence in settings before it can be used to analyze this file"
+      placement="top"
+    >
+      <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
+    </Tooltip>
+  );
+};
+
+const ItemAction: FC<ItemProps> = ({ file, agentId, threadId, onDocumentIntelligenceClick }) => {
+  const { enabled: docIntelFeatureEnabled } = useFeatureFlag(SparUIFeatureFlag.documentIntelligence);
+
+  const fileName = file.file_ref.toLowerCase();
+  const fileExtension = fileName.split('.').pop();
+  const mimeType = file.mime_type.toLowerCase();
+
+  const isPdfFile = mimeType === 'application/pdf' || fileExtension === 'pdf';
+  const isJsonFile = mimeType === 'application/json' || fileExtension === 'json';
+
+  if (!docIntelFeatureEnabled || isJsonFile) {
+    return null;
+  }
+
+  return (
+    <Box
+      pl="32px"
+      height="46px"
+      minHeight="46px"
+      marginLeft="-32px"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
+      {isPdfFile ? (
+        <DocumentIntelligenceItem
+          file={file}
+          agentId={agentId}
+          threadId={threadId}
+          onDocumentIntelligenceClick={onDocumentIntelligenceClick}
+        />
+      ) : (
+        <Tooltip text="Currently unsupported by Document Intelligence" placement="top">
+          <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
+        </Tooltip>
+      )}
+    </Box>
+  );
+};
+
+type props = {
+  agentId: string;
+  threadId: string;
+};
+
+const FileListItem = ({
+  file,
+  agentId,
+  threadId,
+  onDocumentIntelligenceClick,
+}: {
+  file: ThreadFiles[number];
+  agentId: string;
+  threadId: string;
+  onDocumentIntelligenceClick: (params: { interfaceType: string; file: File; agentId: string }) => void;
+}) => {
+  const { mutateAsync: downloadThreadFile, isPending: isDownloadingThreadFile } = useDownloadThreadFileMutation({
+    type: 'download',
+  });
+  const { addSnackbar } = useSnackbar();
+
+  const onDownload = async () => {
+    await downloadThreadFile(
+      { threadId, name: file.file_ref },
+      {
+        onError: (error) => {
+          addSnackbar(getSnackbarContent(error));
+        },
+      },
+    );
+  };
+
   return (
     <Box display="flex" alignItems="center">
       <FileItem
@@ -83,29 +163,13 @@ const FileListItem = ({
         downloading={isDownloadingThreadFile}
         onDownloadClick={onDownload}
       />
-      {shouldDisplayDocIntelButton && (
-        <Box
-          pl="32px"
-          height="46px"
-          minHeight="46px"
-          marginLeft="-32px"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Menu
-            trigger={
-              <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} />
-            }
-          >
-            {docIntelInterfaces.map((interfaceType) => (
-              <Menu.Item key={interfaceType} onClick={() => handleDocIntelClick(interfaceType)}>
-                {getDocIntelLabel(interfaceType)}
-              </Menu.Item>
-            ))}
-          </Menu>
-        </Box>
-      )}
+
+      <ItemAction
+        file={file}
+        agentId={agentId}
+        threadId={threadId}
+        onDocumentIntelligenceClick={onDocumentIntelligenceClick}
+      />
     </Box>
   );
 };
