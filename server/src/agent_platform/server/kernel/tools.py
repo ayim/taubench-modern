@@ -8,7 +8,7 @@ from uuid import uuid4
 import structlog
 
 from agent_platform.core.actions import ActionPackage
-from agent_platform.core.actions.action_utils import ActionResponse
+from agent_platform.core.actions.action_utils import ActionResponse, InternalToolResponse
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.kernel import ToolsInterface
 from agent_platform.core.kernel_interfaces.thread_state import (
@@ -93,6 +93,15 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     # Store the action_run_id directly in the result
                     if result.action_server_run_id:
                         tool_result_args["action_server_run_id"] = result.action_server_run_id
+
+                elif isinstance(result, InternalToolResponse):
+                    # Handle internal tool responses with execution metadata
+                    logger.info("Result is an InternalToolResponse.", category=tool_def.category)
+                    result_output = result.result
+                    error_message = result.error
+                    # Merge the execution metadata
+                    if result.execution_metadata:
+                        tool_result_args["execution_metadata"].update(result.execution_metadata)
 
                 # Below here we handle the result from non sema4ai.actions/mcp tools
                 # (internal-tools, etc.)

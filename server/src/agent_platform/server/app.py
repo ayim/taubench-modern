@@ -197,6 +197,34 @@ class _CustomFastAPI(FastAPI):
         return self._custom_openapi_schema
 
 
+class _PrivateAgentServerApp(_CustomFastAPI):
+    """Private API app with additional schemas for internal types."""
+
+    def openapi(self) -> dict[str, Any]:
+        should_update = not bool(self._custom_openapi_schema)
+        result = super().openapi()
+
+        if should_update:
+            # Add SQL-related schemas for metadata documentation (private API only)
+            from agent_platform.server.api.private_v2.sql import SQLGenerationDetailsResponse
+
+            components: dict = result.get("components", {})
+            schemas: dict = components.get("schemas", {})
+            _ref_template = REF_PREFIX + "{model}"
+
+            if "SQLGenerationDetailsResponse" not in schemas:
+                sql_gen_schema = SQLGenerationDetailsResponse.model_json_schema(
+                    ref_template=_ref_template
+                )
+                # Remove internal $defs if present
+                sql_gen_schema.pop("$defs", None)
+                schemas["SQLGenerationDetailsResponse"] = sql_gen_schema
+
+            self._custom_openapi_schema = result
+
+        return result
+
+
 class _PublicAgentServerApp(_CustomFastAPI):
     def openapi(self) -> dict[str, Any]:
         should_update = not bool(self._custom_openapi_schema)
@@ -213,7 +241,7 @@ def create_app() -> FastAPI:
     app = _agent_server_app()
 
     # /api/v2
-    app_private_v2 = _CustomFastAPI(
+    app_private_v2 = _PrivateAgentServerApp(
         title="Sema4.ai Agent Server Private API Version 2",
     )
     app_private_v2.include_router(private_v2_router)

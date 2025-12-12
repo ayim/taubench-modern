@@ -3,6 +3,8 @@ from typing import TypedDict
 
 from pydantic import BaseModel, Field, model_validator
 
+from agent_platform.core.thread.messages import ThreadAgentMessage
+
 
 class SQLGenerationStatus(StrEnum):
     """The status of a SQL generation."""
@@ -167,3 +169,19 @@ class SQLGenerationContent(BaseModel):
                 lines.append(self.error_message)
 
         return "\n".join(lines)
+
+
+class SQLGenerationDetails(BaseModel):
+    """Details about the SQL Agent's output."""
+
+    agent_messages: list[ThreadAgentMessage] = Field(
+        description="The messages from the SQL generation agent's thread.",
+    )
+
+    intent: str = Field(
+        description="The intent of the SQL to generate.",
+    )
+
+    semantic_data_model_name: str = Field(
+        description="The name of the semantic data model.",
+    )

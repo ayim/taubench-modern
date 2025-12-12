@@ -193,6 +193,24 @@ class ActionResponse:
         return ErrorAndResult(error=error, result=result)
 
 
+@dataclass
+class InternalToolResponse:
+    """Response from internal tool execution with optional metadata.
+
+    Similar to ActionResponse but specifically for internal tools that need
+    to pass execution metadata (e.g., delegated sub-agent execution details).
+    """
+
+    result: "JSONValue | None"
+    """The tool result to be returned to the LLM"""
+
+    error: str | None = None
+    """Error message if the tool execution failed"""
+
+    execution_metadata: dict[str, Any] = field(default_factory=dict)
+    """Metadata about the tool execution (not shown to LLM, stored in thread)"""
+
+
 def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
     """Recursively traverses a schema structure and
     resolves all $refs using jsonpointer."""

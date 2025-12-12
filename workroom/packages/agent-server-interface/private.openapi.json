@@ -28499,6 +28499,32 @@
         "required": ["error"],
         "title": "ErrorEnvelope",
         "type": "object"
+      },
+      "SQLGenerationDetailsResponse": {
+        "description": "Details about the SQL generation process, including the sub-agent's messages, intent, and semantic data model used. This is stored in the metadata.execution.sql_generation_details field of SQL generation tool calls.",
+        "properties": {
+          "agent_messages": {
+            "description": "The messages from the SQL generation agent's thread. ",
+            "items": {
+              "$ref": "#/components/schemas/ThreadAgentMessage"
+            },
+            "title": "Agent Messages",
+            "type": "array"
+          },
+          "intent": {
+            "description": "The intent of the SQL to generate.",
+            "title": "Intent",
+            "type": "string"
+          },
+          "semantic_data_model_name": {
+            "description": "The name of the semantic data model.",
+            "title": "Semantic Data Model Name",
+            "type": "string"
+          }
+        },
+        "required": ["agent_messages", "intent", "semantic_data_model_name"],
+        "title": "SQLGenerationDetailsResponse",
+        "type": "object"
       }
     },
     "examples": {

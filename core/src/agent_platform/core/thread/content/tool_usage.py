@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
@@ -159,7 +160,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
                 self.ended_at.isoformat() if isinstance(self.ended_at, datetime) else None
             ),
             "action_server_run_id": self.action_server_run_id,
-            "metadata": self.metadata,
+            "metadata": deepcopy(self.metadata),
         }
 
     def model_dump_json(self) -> str:

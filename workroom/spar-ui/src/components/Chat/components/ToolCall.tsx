@@ -11,6 +11,7 @@ import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
 import { DataFramesQueryOutput } from '../../DataFrame/DataFramesQueryOutput';
 import { useShowActionLogsMutation } from '../../../queries';
 import { formatThoughtTitle } from './renderer/Thinking';
+import { DelegatedThreadMessages } from './DelegatedThreadMessages';
 
 type ActionState = 'in_progress' | 'done' | 'failed';
 type Props = {
@@ -248,6 +249,7 @@ export const ToolCall: FC<Props> = ({ content }) => {
       >
         <DataFramesQueryOutput content={content} isDone={state === 'done'} />
         {result ? <Code title="Tool call" value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
+        <DelegatedThreadMessages content={content} />
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (
             <Button

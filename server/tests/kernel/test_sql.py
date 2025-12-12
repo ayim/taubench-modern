@@ -12,6 +12,8 @@ from agent_platform.server.kernel.sql import (
     _find_sdm_id_by_name,
 )
 
+pytest_plugins = ["server.tests.storage_fixtures"]
+
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -416,3 +418,117 @@ class TestAgenticSqlStrategy:
         assert "success" in result.lower()
         assert "needs_info" in result.lower() or "clarification" in result.lower()
         assert "failure" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_create_internal_tool_response_from_sql_thread(sqlite_storage, tmp_path):
+    """Test that helper function creates InternalToolResponse with correct metadata structure."""
+    import hashlib
+    from uuid import uuid4
+
+    from agent_platform.core.thread import Thread, ThreadAgentMessage, ThreadTextContent
+    from agent_platform.core.thread.content.sql_generation import (
+        SQLGenerationContent,
+        SQLGenerationDetails,
+        SQLGenerationStatus,
+    )
+    from agent_platform.server.kernel.sql import _create_internal_tool_response_from_sql_thread
+
+    # Get user
+    user, _ = await sqlite_storage.get_or_create_user(sub="test-user")
+
+    # Create an agent
+    from agent_platform.core.agent import Agent
+    from agent_platform.core.agent.agent_architecture import AgentArchitecture
+    from agent_platform.core.runbook import Runbook
+
+    agent = Agent(
+        name="Test Agent",
+        description="Test agent for SQL generation",
+        user_id=user.user_id,
+        runbook_structured=Runbook(raw_text="test", content=[]),
+        version="1.0.0",
+        platform_configs=[],
+        agent_architecture=AgentArchitecture(name="default", version="1.0.0"),
+    )
+    await sqlite_storage.upsert_agent(user.user_id, agent)
+
+    # Create a thread with messages
+    thread_id = str(uuid4())
+    thread = Thread(
+        thread_id=thread_id,
+        user_id=user.user_id,
+        agent_id=agent.agent_id,
+        name="SQL Generation",
+        messages=[],
+    )
+    await sqlite_storage.upsert_thread(user.user_id, thread)
+
+    agent_messages = [
+        ThreadAgentMessage(
+            role="agent",
+            content=[ThreadTextContent(text="Analyzing the schema...")],
+        ),
+        ThreadAgentMessage(
+            role="agent",
+            content=[ThreadTextContent(text="Generated SQL successfully")],
+        ),
+    ]
+
+    # Create actual SQL content and save it as a file
+    sql_content = SQLGenerationContent(
+        status=SQLGenerationStatus.SUCCESS, sql_query="SELECT * FROM test_table"
+    )
+
+    # Write file to temp filesystem and register in database
+    file_id = str(uuid4())
+    file_content = sql_content.model_dump_json().encode("utf-8")
+    file_hash = hashlib.sha256(file_content).hexdigest()
+
+    file_path = tmp_path / file_id
+    file_path.write_bytes(file_content)
+
+    # Register file in database
+    await sqlite_storage.put_file_owner(
+        file_id=file_id,
+        file_path=file_path.as_uri(),
+        file_ref="output.json",
+        file_hash=file_hash,
+        file_size_raw=len(file_content),
+        mime_type="application/json",
+        user_id=user.user_id,
+        embedded=False,
+        embedding_status=None,
+        owner=thread,
+        file_path_expiration=None,
+    )
+
+    # Create SQL generation details
+    sql_details = SQLGenerationDetails(
+        agent_messages=agent_messages,
+        intent="Get all records from test table",
+        semantic_data_model_name="test_sdm",
+    )
+
+    # Act
+    result = await _create_internal_tool_response_from_sql_thread(
+        thread=thread,
+        storage=sqlite_storage,
+        user_id=user.user_id,
+        details=sql_details,
+    )
+
+    # Assert
+    assert result.result is not None
+    assert result.error is None
+
+    # Verify execution_metadata structure
+    assert "sql_generation_details" in result.execution_metadata
+    details_dict = result.execution_metadata["sql_generation_details"]
+    assert details_dict["intent"] == "Get all records from test table"
+    assert details_dict["semantic_data_model_name"] == "test_sdm"
+    assert "agent_messages" in details_dict
+    assert isinstance(details_dict["agent_messages"], list)
+    assert len(details_dict["agent_messages"]) == 2
+    assert details_dict["agent_messages"][0]["content"][0]["text"] == "Analyzing the schema..."
+    assert details_dict["agent_messages"][1]["content"][0]["text"] == "Generated SQL successfully"

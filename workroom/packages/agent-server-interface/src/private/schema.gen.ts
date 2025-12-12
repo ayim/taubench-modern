@@ -14399,6 +14399,27 @@ export interface components {
     ErrorEnvelope: {
       error: components['schemas']['ErrorDetail'];
     };
+    /**
+     * SQLGenerationDetailsResponse
+     * @description Details about the SQL generation process, including the sub-agent's messages, intent, and semantic data model used. This is stored in the metadata.execution.sql_generation_details field of SQL generation tool calls.
+     */
+    SQLGenerationDetailsResponse: {
+      /**
+       * Agent Messages
+       * @description The messages from the SQL generation agent's thread.
+       */
+      agent_messages: components['schemas']['ThreadAgentMessage'][];
+      /**
+       * Intent
+       * @description The intent of the SQL to generate.
+       */
+      intent: string;
+      /**
+       * Semantic Data Model Name
+       * @description The name of the semantic data model.
+       */
+      semantic_data_model_name: string;
+    };
   };
   responses: never;
   parameters: never;

@@ -4,11 +4,14 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 import structlog
 
+from agent_platform.core.actions.action_utils import InternalToolResponse
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.thread.content.sql_generation import SQLGenerationDetails
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
 if TYPE_CHECKING:
+    from agent_platform.core.thread import Thread
     from agent_platform.server.kernel.data_frames import _DataFrameTools
     from agent_platform.server.storage import BaseStorage
 
@@ -560,7 +563,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         semantic_data_model_name: Annotated[
             str, "The name of the semantic data model to generate SQL for."
         ],
-    ) -> str:
+    ) -> InternalToolResponse:
         """Generate SQL from a natural language query for the specified semantic data model.
         This tool may return a status of success, needs_info, or failure.
 
@@ -570,13 +573,10 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         If the status indicates needs_info, you should use the included information
         in the response to determine how to generate a more specific intent.
         """
-        import json
         from uuid import uuid4
 
         from agent_platform.core.payloads import InitiateStreamPayload
         from agent_platform.core.thread import Thread, ThreadTextContent, ThreadUserMessage
-        from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
-        from agent_platform.server.file_manager.option import FileManagerService
         from agent_platform.server.runs.sync import invoke_agent_sync
         from agent_platform.server.storage.option import StorageService
 
@@ -645,7 +645,7 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
             )
 
             # Invoke agent to completion
-            thread, _agent_messages = await invoke_agent_sync(
+            thread, agent_messages = await invoke_agent_sync(
                 agent=sql_agent,
                 user=kernel.user,
                 storage=storage,
@@ -653,41 +653,86 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
                 initial_payload=payload,
             )
 
-            # Retrieve output.json
-            thread_files = await storage.get_thread_files(thread.thread_id, kernel.user.user_id)
-
-            output_file = next(
-                (f for f in thread_files if f.file_ref == "output.json"),
-                None,
-            )
-
-            if not output_file:
-                raise ValueError("SQL generation agent did not produce output.json")
-
-            # Read file contents
-            file_manager = FileManagerService.get_instance(storage=storage)
-            file_bytes = await file_manager.read_file_contents(
-                file_id=output_file.file_id,
+            # Extract result and create response with delegated thread metadata
+            return await _create_internal_tool_response_from_sql_thread(  # type: ignore[return-value]
+                thread=thread,
+                storage=storage,
                 user_id=kernel.user.user_id,
+                details=SQLGenerationDetails(
+                    intent=query_intent,
+                    semantic_data_model_name=semantic_data_model_name,
+                    agent_messages=agent_messages,
+                ),
             )
-
-            # Parse JSON to SQLGenerationContent
-            file_json = json.loads(file_bytes.decode("utf-8"))
-            sql_content = SQLGenerationContent.model_validate(file_json)
-
-            # Return JSON representation (as string for tool result)
-            return sql_content.model_dump_json()
 
         except Exception as e:
             logger.error(
-                "Invocation of the preinstalled SQL generation agent failed",
+                "Invocation of the SQL generation agent failed",
                 user_id=kernel.user.user_id,
                 user_thread_id=kernel.thread.thread_id,
                 sql_agent_id=sql_agent.agent_id,
                 sql_thread_id=thread_id,
                 error=str(e),
+                exc_info=True,
             )
             raise e
+
+
+async def _create_internal_tool_response_from_sql_thread(
+    thread: "Thread",
+    storage: "BaseStorage",
+    user_id: str,
+    details: SQLGenerationDetails,
+) -> "InternalToolResponse":
+    """Extract SQL generation result and create InternalToolResponse with delegated thread metadata.
+
+    Args:
+        thread: The SQL generation agent's completed thread
+        agent_messages: Messages from the SQL generation agent's thread
+        storage: Storage instance for file retrieval
+        user_id: User ID for file access
+
+    Returns:
+        InternalToolResponse containing the SQL result and thread messages metadata
+
+    Raises:
+        ValueError: If output.json is not found in the thread
+    """
+    import json
+
+    from agent_platform.core.actions.action_utils import InternalToolResponse
+    from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
+    from agent_platform.server.file_manager.option import FileManagerService
+
+    # Retrieve output.json
+    thread_files = await storage.get_thread_files(thread.thread_id, user_id)
+
+    output_file = next(
+        (f for f in thread_files if f.file_ref == "output.json"),
+        None,
+    )
+
+    if not output_file:
+        raise ValueError("SQL generation agent did not produce output.json")
+
+    # Read file contents
+    file_manager = FileManagerService.get_instance(storage=storage)
+    file_bytes = await file_manager.read_file_contents(
+        file_id=output_file.file_id,
+        user_id=user_id,
+    )
+
+    # Parse JSON to SQLGenerationContent
+    file_json = json.loads(file_bytes.decode("utf-8"))
+    sql_content = SQLGenerationContent.model_validate(file_json)
+
+    # Return InternalToolResponse with execution metadata including sub-agent messages
+    return InternalToolResponse(
+        result=sql_content.model_dump_json(),
+        execution_metadata={
+            "sql_generation_details": details.model_dump(mode="json"),
+        },
+    )
 
 
 async def _find_sdm_id_by_name(

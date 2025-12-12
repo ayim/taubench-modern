@@ -252,6 +252,59 @@ async def test_safe_execute_tool_runtime_error(
     assert "kaboom" in result.error
 
 
+@pytest.mark.asyncio
+async def test_safe_execute_tool_handles_internal_tool_response(
+    iface: AgentServerToolsInterface,
+) -> None:
+    """Test that InternalToolResponse with execution_metadata is handled correctly."""
+    from agent_platform.core.actions.action_utils import InternalToolResponse
+
+    async def delegated_tool(query: str, extra_headers=None):
+        # Simulate a tool that delegates to another agent
+        return InternalToolResponse(
+            result={"sql": "SELECT * FROM users", "status": "success"},
+            execution_metadata={
+                "delegated_execution": {
+                    "agent_id": "sql-agent-123",
+                    "agent_name": "SQL Generation Agent",
+                    "thread_id": "thread-456",
+                    "messages": [
+                        {"role": "user", "content": "Generate SQL"},
+                        {"role": "agent", "content": "Here is the SQL..."},
+                    ],
+                }
+            },
+        )
+
+    tool_def = ToolDefinition(
+        name="DelegatedTool",
+        description="A tool that delegates work to a sub-agent",
+        input_schema={"type": "object", "properties": {"query": {"type": "string"}}},
+        function=delegated_tool,
+        category="internal-tool",
+    )
+
+    tool_use = _stub_tool_use("call-delegated", json.dumps({"query": "test"}))
+
+    result = await iface._safe_execute_tool(tool_def, tool_use)
+
+    # Verify the result is extracted correctly
+    assert result.error is None
+    assert result.output_raw is not None
+    assert result.output_raw["sql"] == "SELECT * FROM users"
+    assert result.output_raw["status"] == "success"
+
+    # Verify execution_metadata is preserved
+    assert "delegated_execution" in result.execution_metadata
+    delegated = result.execution_metadata["delegated_execution"]
+    assert delegated["agent_id"] == "sql-agent-123"
+    assert delegated["agent_name"] == "SQL Generation Agent"
+    assert delegated["thread_id"] == "thread-456"
+    assert len(delegated["messages"]) == 2
+    assert delegated["messages"][0]["role"] == "user"
+    assert delegated["messages"][1]["role"] == "agent"
+
+
 # ---------------------------------------------------------------------------
 # 3.  B A T C H   /   A S Y N C   T O O L   E X E C U T I O N
 # ---------------------------------------------------------------------------
