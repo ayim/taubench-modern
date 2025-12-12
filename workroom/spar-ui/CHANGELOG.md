@@ -1,5 +1,34 @@
 # @sema4ai/spar-ui
 
+## 0.10.0
+
+### Minor Changes
+
+- 3695eaf: Show warning when Semantic Data Model has missing/unconfigured data connection
+- 67859e0: Add schema-aware recursive path resolution to schema-lib
+- fb3ef1b: Add button to delete all scenarios for an agent
+- 9a72bdf: Update Document Intelligence UI Button validation and user feedback
+- ad19967: Implement soft delete with restore and strikethrough UI for schema fields
+- 4c087f8: fix: array fields not showing nested properties in schema editor
+
+### Patch Changes
+
+- bf96bbe: Fix Semantic Data Model re-generation bug with disappearing values after model edition
+- d431db9: Fix DIv2 file list tooltips
+- 2d09af6: Update rules on allowed work item restart
+- 72482ff: [Non-prod] Violet agent components/hidden page update for new UI widgets
+- eebf909: Duped component subtrees for Violet agent, non-prod. New metadata-update endpoint, not intended for wider use.
+- d506ee6: Autoexpand error panel in case of system errors for eval trials
+- 5b71156: Add inner-thread view for SQL generation via agent
+- 04217a4: it allows more concurrent scenario runs
+- a80ebf6: Fix Semantic Data Model missing Data Connection status report
+- a12fc8f: Allow to regenerate DIv2 generated schema with instructions
+- 97546ba: more fine grained analytics events
+- c10c3c5: Added gpt-5-2 and gpt-5-1-codex-max (removed gpt-5-1 and regular gpt-5-1-codex)
+- 5ff57ca: Fix DI dialog double copy actions
+- acddb2f: Allow to send extracted DIv2 results to conversation
+- d5fb684: Changed the main navigation sorting, icons and labels.
+
 ## 0.9.1
 
 ### Patch Changes
