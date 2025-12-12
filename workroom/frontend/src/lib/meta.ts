@@ -19,6 +19,7 @@ export type Meta =
   | {
       auth?: 'session';
       deploymentType: 'spar';
+      version: string;
       workroomTenantListUrl: string;
       branding?: {
         logoUrl: string;

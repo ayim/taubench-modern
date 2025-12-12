@@ -23,6 +23,7 @@ export const createGetMeta =
 
     const meta: Record<string, string> = {
       deploymentType: 'spar',
+      version: configuration.sparVersion,
       workroomTenantListUrl: `/tenants/${configuration.tenant.tenantId}/tenants-list`,
     };
 

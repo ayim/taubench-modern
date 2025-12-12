@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { ThemeProvider } from '@sema4ai/theme';
 import { Box, Button, EmptyState, Snackbar, useLocalStorage, ViewportProvider } from '@sema4ai/components';
 import { ConfirmationDialogProvider } from '@sema4ai/layouts';
@@ -7,16 +7,11 @@ import { QueryClientProvider } from './components/providers/QueryClient';
 import { AuthProvider } from './components/providers/AuthProvider';
 import { UIStateContext } from './components/providers/Theme';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { SPAR_VERSION } from './version';
 import { resolveWorkroomURL } from './lib/utils';
 import errorIllustration from '~/assets/error.svg';
 import { TRPCProvider } from './components/TRPCProvider';
 
 export const App = () => {
-  useEffect(() => {
-    console.log(`Version ${SPAR_VERSION}`);
-  }, []);
-
   const { storageValue: currentTheme, setStorageValue: setTheme } = useLocalStorage<'dark' | 'light'>({
     key: 'theme',
     defaultValue: 'light',

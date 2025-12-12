@@ -15,6 +15,7 @@ const TEST_PRIVATE_KEY_BASE64 =
 
 const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternalUrl: string }): Configuration => ({
   agentServerInternalUrl,
+  sparVersion: 'test',
   allowInsecureRequests: true,
   auth: {
     autoPromoteEmails: [],
@@ -219,6 +220,7 @@ describe('application', () => {
     it('returns expected meta', async () => {
       await request(service.appPublic).get('/tenants/spar-test/meta').expect(200).expect({
         deploymentType: 'spar',
+        version: 'test',
         workroomTenantListUrl: '/tenants/spar-test/tenants-list',
       });
     });

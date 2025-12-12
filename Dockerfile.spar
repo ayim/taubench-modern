@@ -127,14 +127,10 @@ COPY --from=workroom-builder --chown=appuser:appuser /app/backend/node_modules .
 # Copy frontend bundle + assets
 COPY --from=workroom-builder --chown=appuser:appuser /app/frontend/dist ./workroom/frontend/dist
 
-# Bake the version inside the client bundle
-# With the SPAR backend this could be moved to /meta for example
-ARG SPAR_VERSION
-RUN sed -i -e "s/SPAR_VERSION_PLACEHOLDER/${SPAR_VERSION}/g" ./workroom/frontend/dist/assets/index-*.js
-
 ARG AGENT_SERVER_PORT=8000
 ARG SEMA4AI_WORKROOM_PORT=8001
 ARG SEMA4AI_WORKROOM_PORT_INTERNAL=8002
+ARG SPAR_VERSION
 
 ENV AGENT_SERVER_PORT=${AGENT_SERVER_PORT}
 ENV SEMA4AI_WORKROOM_PORT=${SEMA4AI_WORKROOM_PORT}
@@ -142,6 +138,7 @@ ENV SEMA4AI_WORKROOM_PORT_INTERNAL=${SEMA4AI_WORKROOM_PORT_INTERNAL}
 ENV SEMA4AI_AGENT_SERVER_OTEL_ENABLED=true
 ENV SEMA4AI_OPTIMIZE_FOR_CONTAINER=1
 ENV SEMA4AI_AGENT_SERVER_ENABLE_DATA_FRAMES=1
+ENV SPAR_VERSION=${SPAR_VERSION}
 
 USER appuser
 EXPOSE ${AGENT_SERVER_PORT} ${SEMA4AI_WORKROOM_PORT} ${SEMA4AI_WORKROOM_PORT_INTERNAL}

@@ -12,6 +12,7 @@ export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['co
 
 export interface Configuration {
   agentServerInternalUrl: string;
+  sparVersion: string;
   allowInsecureRequests: boolean;
   auth: {
     autoPromoteEmails: Array<string>;
@@ -336,8 +337,11 @@ export const getConfiguration = (): Configuration => {
 
   const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE ?? 'http://localhost';
 
+  const sparVersion = process.env.SPAR_VERSION ?? 'dev';
+
   return {
     agentServerInternalUrl,
+    sparVersion,
     allowInsecureRequests,
     auth,
     database,
