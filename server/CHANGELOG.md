@@ -1,3 +1,11 @@
+# Sema4.ai Agent Server 2.2.7 (2025-12-11)
+
+* SDM-234 Embed the sql generation agent's thread in the tool response (#1911)
+* GPT-1611 Allow work item restart when marked as EXECUTING (#1917)
+* [GPT-1627] Add migrations for previously created integrations to have global scope (#1908)
+* GPT-1548 Automatically mark stuck EXECUTING work items as ERROR (#1864)
+* SDM-233 Use the pre-installed SQL generation agent in the `generate_s… (#1901)
+
 # Sema4.ai Agent Server 2.2.6 (2025-12-11)
 
 * [PRD-1179] Create human readable verified query name (#1847)
