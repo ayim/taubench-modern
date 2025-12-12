@@ -1434,6 +1434,9 @@ export interface paths {
     /**
      * Create Observability Integration
      * @description Create a new observability integration.
+     *
+     *     If the integration is enabled, it is automatically assigned global scope
+     *     so it starts receiving spans immediately.
      */
     post: operations['create_observability_integration_observability_integrations_post'];
     delete?: never;

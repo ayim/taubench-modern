@@ -701,7 +701,11 @@ class AbstractStorage(ABC):
     # -------------------------
     @abstractmethod
     async def upsert_integration(self, integration: Integration) -> None:
-        """Update (or insert) an integration."""
+        """Update (or insert) an integration.
+
+        For observability integrations, automatically assigns global scope
+        if no scopes exist. This ensures the integration works out of the box.
+        """
 
     @abstractmethod
     async def get_integration(self, integration_id: str) -> Integration:

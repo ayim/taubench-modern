@@ -2071,7 +2071,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # Methods for Integrations
     # -------------------------------------------------------------------------
     async def upsert_integration(self, integration: Integration) -> None:
-        """Update (or insert) an integration."""
+        """Update (or insert) an integration.
+
+        For observability integrations, automatically assigns global scope
+        if no scopes exist. This ensures the integration works out of the box.
+        """
         integrations = self._get_table("integration")
         integration_dict = integration.model_dump()
 
@@ -2114,6 +2118,16 @@ class BaseStorage(AbstractStorage, CommonMixin):
                         "error": str(exc),
                     },
                 ) from exc
+
+        # Auto-assign global scope for observability integrations without scopes
+        if integration.kind == "observability":
+            existing_scopes = await self.list_integration_scopes(integration.id)
+            if not existing_scopes:
+                await self.set_integration_scope(
+                    integration_id=integration.id,
+                    scope="global",
+                    agent_id=None,
+                )
 
     def _row_to_integration(self, row: RowMapping) -> Integration:
         row_dict = dict(row)

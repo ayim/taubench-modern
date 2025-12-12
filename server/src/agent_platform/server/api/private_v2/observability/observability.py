@@ -142,7 +142,11 @@ async def create_observability_integration(
     storage: StorageDependency,
     payload: ObservabilityIntegrationUpsertRequest,
 ) -> ObservabilityIntegrationResponse:
-    """Create a new observability integration."""
+    """Create a new observability integration.
+
+    If the integration is enabled, it is automatically assigned global scope
+    so it starts receiving spans immediately.
+    """
     if not payload.settings or not payload.version:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -160,13 +164,12 @@ async def create_observability_integration(
         version=payload.version,
         settings=settings,
     )
+    # Storage layer auto-assigns global scope if no scopes exist
     await storage.upsert_integration(integration)
 
     created = await storage.get_integration(integration.id)
 
     # Reload orchestrator from storage
-    # Note: Integration won't route spans
-    # until a scope is explicitly assigned via the scopes endpoint
     orchestrator = OtelOrchestrator.get_instance()
     await orchestrator.reload_from_storage(storage)
     logger.info(f"Reloaded orchestrator after creating integration {created.id}")
@@ -223,6 +226,7 @@ async def update_observability_integration(
         created_at=integration.created_at,
     )
 
+    # Storage layer auto-assigns global scope if no scopes exist
     await storage.upsert_integration(updated_integration)
     refreshed = await storage.get_integration(integration_id)
 

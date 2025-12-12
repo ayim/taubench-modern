@@ -4146,7 +4146,8 @@ export const spec = {
       post: {
         tags: ['observability-integrations', 'observability-integrations'],
         summary: 'Create Observability Integration',
-        description: 'Create a new observability integration.',
+        description:
+          'Create a new observability integration.\n\nIf the integration is enabled, it is automatically assigned global scope\nso it starts receiving spans immediately.',
         operationId:
           'create_observability_integration_observability_integrations_post',
         requestBody: {

@@ -303,43 +303,29 @@ async def test_cascade_delete_integration_removes_scopes(storage, sample_integra
 async def test_get_observability_integrations_for_agent_basic_scopes(
     storage, sample_integration, sample_langsmith_integration, sample_agent
 ):
-    """Test getting integrations with various basic scope configurations."""
-    # Case 1: No scopes - empty list
-    integrations = await storage.get_observability_integrations_for_agent(sample_agent.agent_id)
-    assert len(integrations) == 0
+    """Test getting integrations with various basic scope configurations.
 
-    # Case 2: Single global scope
-    await storage.set_integration_scope(
-        integration_id=sample_integration.id,
-        scope="global",
-        agent_id=None,
-    )
-    integrations = await storage.get_observability_integrations_for_agent(sample_agent.agent_id)
-    assert len(integrations) == 1
-    assert integrations[0].id == sample_integration.id
-
-    # Case 3: Multiple global scopes (different providers)
-    await storage.set_integration_scope(
-        integration_id=sample_langsmith_integration.id,
-        scope="global",
-        agent_id=None,
-    )
+    Note: Fixtures have global scope auto-assigned by upsert_integration.
+    """
+    # Case 1: Both fixtures have global scope (auto-assigned by upsert_integration)
     integrations = await storage.get_observability_integrations_for_agent(sample_agent.agent_id)
     assert len(integrations) == 2
     integration_ids = {i.id for i in integrations}
     assert sample_integration.id in integration_ids
     assert sample_langsmith_integration.id in integration_ids
 
-    # Case 4: Global + agent-specific (additive across levels)
-    grafana_third = _create_grafana_integration(
+    # Case 2: Add agent-specific scope (additive across levels)
+    grafana_agent = _create_grafana_integration(
         url="https://agent.example.com/otlp/v1/traces",
         api_token="agent-token",
         grafana_instance_id="agent",
         description="Agent-specific Grafana",
     )
-    await storage.upsert_integration(grafana_third)
+    await storage.upsert_integration(grafana_agent)
+    # Delete auto-assigned global scope and set agent scope instead
+    await storage.delete_integration_scope(grafana_agent.id, "global", None)
     await storage.set_integration_scope(
-        integration_id=grafana_third.id,
+        integration_id=grafana_agent.id,
         scope="agent",
         agent_id=sample_agent.agent_id,
     )
@@ -349,14 +335,26 @@ async def test_get_observability_integrations_for_agent_basic_scopes(
     integration_ids = {i.id for i in integrations}
     assert sample_integration.id in integration_ids
     assert sample_langsmith_integration.id in integration_ids
-    assert grafana_third.id in integration_ids
+    assert grafana_agent.id in integration_ids
+
+    # Case 3: Delete all scopes and verify empty result
+    await storage.delete_integration_scope(sample_integration.id, "global", None)
+    await storage.delete_integration_scope(sample_langsmith_integration.id, "global", None)
+    await storage.delete_integration_scope(grafana_agent.id, "agent", sample_agent.agent_id)
+
+    # Now sample_agent should not see any integrations
+    integrations = await storage.get_observability_integrations_for_agent(sample_agent.agent_id)
+    assert len(integrations) == 0
 
 
 @pytest.mark.asyncio
 async def test_get_observability_integrations_additive_no_deduplication_by_provider(
     storage, sample_agent
 ):
-    """Test additive model with no de-duplication: same provider at multiple levels/scopes."""
+    """Test additive model with no de-duplication: same provider at multiple levels/scopes.
+
+    Note: upsert_integration auto-assigns global scope to new integrations.
+    """
     # Create three Grafana integrations (same provider, different instances)
     grafana_global = _create_grafana_integration(
         url="https://global.example.com/otlp/v1/traces",
@@ -379,29 +377,21 @@ async def test_get_observability_integrations_additive_no_deduplication_by_provi
         description="Grafana Agent",
     )
 
+    # All three get global scope auto-assigned by upsert_integration
     await storage.upsert_integration(grafana_global)
     await storage.upsert_integration(grafana_global_2)
     await storage.upsert_integration(grafana_agent)
 
-    # Test 1: Two global Grafanas (same provider, both global - NO de-duplication)
-    await storage.set_integration_scope(
-        integration_id=grafana_global.id,
-        scope="global",
-        agent_id=None,
-    )
-    await storage.set_integration_scope(
-        integration_id=grafana_global_2.id,
-        scope="global",
-        agent_id=None,
-    )
-
+    # Test 1: All three Grafanas have global scope (auto-assigned, no de-duplication)
     integrations = await storage.get_observability_integrations_for_agent(sample_agent.agent_id)
-    assert len(integrations) == 2  # Both Grafanas returned
+    assert len(integrations) == 3  # All three Grafanas returned
     integration_ids = {i.id for i in integrations}
     assert grafana_global.id in integration_ids
     assert grafana_global_2.id in integration_ids
+    assert grafana_agent.id in integration_ids
 
-    # Test 2: Global + agent-specific Grafana (same provider, different levels - NO override!)
+    # Test 2: Change grafana_agent to agent-specific only (remove global, add agent scope)
+    await storage.delete_integration_scope(grafana_agent.id, "global", None)
     await storage.set_integration_scope(
         integration_id=grafana_agent.id,
         scope="agent",
@@ -409,7 +399,7 @@ async def test_get_observability_integrations_additive_no_deduplication_by_provi
     )
 
     integrations = await storage.get_observability_integrations_for_agent(sample_agent.agent_id)
-    # Should get ALL 3 Grafanas (additive, agent-specific does NOT override global)
+    # Should still get ALL 3 Grafanas (2 global + 1 agent-specific)
     assert len(integrations) == 3
     integration_ids = {i.id for i in integrations}
     assert grafana_global.id in integration_ids
