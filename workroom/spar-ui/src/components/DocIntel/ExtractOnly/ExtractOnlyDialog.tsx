@@ -10,6 +10,44 @@ import type { ExtractSchemaResponse, ExtractResponse } from '../shared/types';
 import { usePdfAnnotations } from '../shared/hooks/usePdfAnnotations';
 import { useExtractDialogState } from './hooks/useExtractDialogState';
 import { RegenerateFileSchemaDialog } from '../shared/components/RegenerateFileSchemaDialog';
+import { useMessageStream } from '../../../hooks/useMessageStream';
+
+type ValidJSON = unknown;
+interface SendResultsToThreadProps {
+  results: ValidJSON;
+  agentId: string;
+  threadId: string;
+  fileName: string;
+}
+
+const getStringResults = (results: ValidJSON) => {
+  try {
+    return JSON.stringify(results);
+  } catch (error) {
+    return String(results);
+  }
+};
+
+const useSendResultsToThread = ({ results, agentId, threadId, fileName }: SendResultsToThreadProps) => {
+  const { sendMessage } = useMessageStream({
+    agentId,
+    threadId,
+  });
+
+  const sendResultsToThread = useCallback(async () => {
+    return sendMessage(
+      `The following results were extracted from ${fileName}:
+      \`\`\`${getStringResults(results)}\`\`\`
+      `,
+      [],
+    );
+  }, [results, fileName, sendMessage]);
+
+  return useMemo(() => {
+    if (!results) return { sendResultsToThread: () => Promise.resolve(), enabled: false };
+    return { sendResultsToThread, enabled: true };
+  }, [sendResultsToThread, results]);
+};
 
 /**
  * Dialog for extracting structured data from documents without saving to database.
@@ -260,7 +298,21 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     initializeFromExisting,
   ]);
 
-  const shouldAllowRegenerating = !isGeneratingSchema && !isExtracting;
+  const { sendResultsToThread, enabled: sendingResultsEnabled } = useSendResultsToThread({
+    results: extractResultData?.result,
+    agentId,
+    threadId,
+    fileName: file.name,
+  });
+  const shouldAllowRegenerating = activeTab === 0 && !isGeneratingSchema && !isExtracting;
+  const shouldAllowSendingToThread = activeTab === 1 && !isExtracting && sendingResultsEnabled;
+
+  const onShowResultsInThread = useCallback(() => {
+    if (sendingResultsEnabled) {
+      sendResultsToThread().then(onClose);
+    }
+  }, [sendResultsToThread]);
+
   return (
     <>
       <Dialog open={isOpen} onClose={handleClose} size="full-screen">
@@ -413,6 +465,11 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                     {shouldAllowRegenerating && (
                       <Button variant="outline" onClick={() => setOpenRetryExtract(true)} round>
                         Regenerate
+                      </Button>
+                    )}
+                    {shouldAllowSendingToThread && (
+                      <Button variant="primary" onClick={onShowResultsInThread} round>
+                        Use in Conversation
                       </Button>
                     )}
                     <Button variant="secondary" onClick={handleClose} round>
