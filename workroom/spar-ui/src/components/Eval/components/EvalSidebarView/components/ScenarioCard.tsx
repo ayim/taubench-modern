@@ -59,8 +59,8 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
   const runStatus = isRunning ? 'EXECUTING' : currentRun?.trials && getRunStatus(currentRun.trials);
 
   const handleResultsToggle = () => {
-    if (!expandedResults) {
-      track('evals_execution.view_results');
+    if (!expandedResults && currentRun) {
+      track(`scenario_${currentRun.scenario_id}.run_${currentRun.scenario_run_id}.view_results`);
     }
     onToggleResults();
   };

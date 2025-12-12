@@ -44,7 +44,7 @@ export interface TrialResultsProps {
   expandedEvaluations: Set<string>;
   onToggleTrialDetails: (trialKey: string) => void;
   onToggleEvaluationDetails: (evaluationKey: string) => void;
-  onViewResults: (trial: { threadId: string }) => void;
+  onViewResults: (trial: { threadId: string; scenarioId: string; scenarioRunId: string }) => void;
 }
 
 export const TrialResults: FC<TrialResultsProps> = ({
@@ -138,7 +138,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
 
   const handleToggleTrialDetails = () => {
     if (!isTrialExpanded && hasExpandableContent) {
-      track(`evals_execution.view_trial_details`);
+      track(`scenario_${scenarioId}.run_${scenarioRunId}.view_trial_details`);
     }
     onToggleTrialDetails(trialKey);
   };
@@ -167,7 +167,13 @@ export const TrialResults: FC<TrialResultsProps> = ({
             round
             size="small"
             icon={IconShare}
-            onClick={() => onViewResults({ threadId: trial.thread_id! })}
+            onClick={() =>
+              onViewResults({
+                threadId: trial.thread_id!,
+                scenarioId: trial.scenario_id,
+                scenarioRunId: trial.scenario_run_id,
+              })
+            }
             aria-label="Navigate to thread"
           />
         )}
@@ -201,7 +207,7 @@ export const TrialResults: FC<TrialResultsProps> = ({
                   ('issues' in result && result.issues && result.issues.length > 0);
                 const handleToggleEvaluation = () => {
                   if (!isExpanded && hasDetails) {
-                    track(`evals_execution.view_evaluation`);
+                    track(`scenario_${scenarioId}.run_${scenarioRunId}.view_evaluation`);
                   }
                   onToggleEvaluationDetails(evaluationKey);
                 };

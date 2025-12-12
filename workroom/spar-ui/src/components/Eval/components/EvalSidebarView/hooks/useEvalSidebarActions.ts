@@ -95,7 +95,7 @@ export const useEvalSidebarActions = ({
       await handleUpdateEvaluation(editingScenario.scenario_id, data);
     } else {
       await handleCreateEvaluation(data);
-      track('evals_creation.saved');
+      track('scenario_creation.saved');
     }
     resetCreateDialogState();
   };
@@ -109,9 +109,9 @@ export const useEvalSidebarActions = ({
     setDeleteTarget(null);
   };
 
-  const handleViewResults = (trial: { threadId: string }) => {
+  const handleViewResults = (trial: { threadId: string; scenarioId: string; scenarioRunId: string }) => {
     if (trial.threadId) {
-      track(`evals_execution.view_execution_thread`);
+      track(`scenario_${trial.scenarioId}.run_${trial.scenarioRunId}.view_execution_thread`);
       // Navigate to evaluations route to keep eval sidebar open
       navigate({
         to: '/thread/$agentId/$threadId/evaluations',

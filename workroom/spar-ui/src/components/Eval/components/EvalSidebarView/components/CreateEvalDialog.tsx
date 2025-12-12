@@ -144,7 +144,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
   useEffect(() => {
     if (open && !isEditMode && !creationStartedRef.current) {
       creationStartedRef.current = true;
-      track('evals_creation.started');
+      track('scenario_creation.started');
     }
     if (!open) {
       creationStartedRef.current = false;
@@ -166,7 +166,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
       return;
     }
     metricsSentRef.current.name = true;
-    track('evals_creation.name_modified');
+    track('scenario_creation.name_modified');
   }, [dirtyName, nameValue, open, isEditMode, initialValues?.name]);
 
   useEffect(() => {
@@ -177,7 +177,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
       return;
     }
     metricsSentRef.current.description = true;
-    track('evals_creation.description_modified');
+    track('scenario_creation.description_modified');
   }, [dirtyDescription, descriptionValue, open, isEditMode, initialValues?.description]);
 
   useEffect(() => {
@@ -188,7 +188,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
       return;
     }
     metricsSentRef.current.expectation = true;
-    track('evals_creation.expectation_modified');
+    track('scenario_creation.expectation_modified');
   }, [
     dirtyExpectation,
     expectationValue,
@@ -217,7 +217,7 @@ export const CreateEvalDialog: FC<CreateEvalDialogProps> = ({
 
   const handleClose = () => {
     if (!isEditMode) {
-      track('evals_creation.canceled');
+      track('scenario_creation.canceled');
     }
     reset({
       name: '',

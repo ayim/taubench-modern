@@ -25,23 +25,23 @@ export type NavigationArgs = {
 }[keyof SparUIRoutes];
 
 export type AnalyticsEvent =
-  | `evals_execution.started`
-  | `evals_execution.duration`
-  | `evals_execution.select_run`
-  | `evals_execution.view_results`
-  | `evals_execution.view_trial_details`
-  | `evals_execution.view_evaluation`
-  | `evals_execution.view_execution_thread`
+  | `scenario_${string}.run_${string}.started`
+  | `scenario_${string}.run_${string}.duration`
+  | `scenario_${string}.run_${string}.selected`
+  | `scenario_${string}.run_${string}.view_results`
+  | `scenario_${string}.run_${string}.view_trial_details`
+  | `scenario_${string}.run_${string}.view_evaluation`
+  | `scenario_${string}.run_${string}.view_execution_thread`
+  | `scenario_${string}.run_${string}.canceled`
   | `evals_panel.navigate_to_view`
-  | `evals_creation.started`
-  | `evals_creation.name_modified`
-  | 'evals_creation.description_modified'
-  | 'evals_creation.expectation_modified'
-  | 'evals_creation.saved'
-  | 'evals_creation.canceled'
-  | `evals_batch_execution.started`
-  | `evals_execution.canceled`
-  | `evals_batch_execution.canceled`;
+  | `scenario_creation.started`
+  | `scenario_creation.name_modified`
+  | 'scenario_creation.description_modified'
+  | 'scenario_creation.expectation_modified'
+  | 'scenario_creation.saved'
+  | 'scenario_creation.canceled'
+  | `scenario_batch_run_${string}.started`
+  | `scenario_batch_run_${string}.canceled`;
 
 export interface SparAPIClient {
   /**

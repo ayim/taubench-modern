@@ -64,7 +64,7 @@ export interface ScenarioResultsProps {
   onSelectRun: (runIndex: number) => void;
   onToggleTrialDetails: (trialKey: string) => void;
   onToggleEvaluationDetails: (evaluationKey: string) => void;
-  onViewResults: (trial: { threadId: string }) => void;
+  onViewResults: (trial: { threadId: string; scenarioId: string; scenarioRunId: string }) => void;
 }
 
 export const ScenarioResults: FC<ScenarioResultsProps> = ({
@@ -100,7 +100,7 @@ export const ScenarioResults: FC<ScenarioResultsProps> = ({
   }
 
   const handleSelectRun = (runIndex: number) => {
-    track(`evals_execution.select_run`);
+    track(`scenario_${scenarioId}.run_${scenarioRunId}.selected`);
     onSelectRun(runIndex);
   };
 
