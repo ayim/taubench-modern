@@ -91,7 +91,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       const values = semanticModelToFormSchema(semanticModel);
       formMethods.reset(values);
 
-      if (values.dataConnectionId) {
+      if (values.dataConnectionId || values.dataConnectionName) {
         setDataSourceType(DataSourceType.Database);
       } else {
         setDataSourceType(DataSourceType.File);

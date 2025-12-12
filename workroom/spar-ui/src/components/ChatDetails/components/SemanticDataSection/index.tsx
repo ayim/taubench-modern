@@ -22,6 +22,7 @@ export const SemanticDataSection = ({ titleBadge }: Props) => {
   const { data: semanticDataModelsWithValidation } = useAgentSemanticDataValidationQuery({ agentId, threadId });
   const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(SparUIFeatureFlag.semanticDataModels);
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
+  const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
 
   const semanticDataModels = semanticDataModelsWithValidation || semanticDataModelsWithoutValidation;
 
@@ -42,15 +43,17 @@ export const SemanticDataSection = ({ titleBadge }: Props) => {
           </Typography>
           {titleBadge || null}
         </Box>
-        <Button
-          disabled={!isChatInteractive}
-          onClick={onToggleEditModel}
-          variant="outline"
-          size="small"
-          aria-label="Configure Data Models"
-          icon={IconPlusSmall}
-          round
-        />
+        {canCreateAgents && (
+          <Button
+            disabled={!isChatInteractive}
+            onClick={onToggleEditModel}
+            variant="outline"
+            size="small"
+            aria-label="Configure Data Models"
+            icon={IconPlusSmall}
+            round
+          />
+        )}
       </Box>
       {semanticDataModels?.length ? (
         semanticDataModels.map((model) => <SemanticModelItem key={model.id} model={model} />)

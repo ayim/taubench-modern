@@ -53,6 +53,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { addSnackbar } = useSnackbar();
   const { sendMessage } = useMessageStream({ agentId, threadId });
   const { enabled: canConfigureAgents } = useFeatureFlag(SparUIFeatureFlag.canConfigureAgents);
+  const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
 
   const onAddFile = useCallback(
     async (files: File[]) => {
@@ -186,13 +187,15 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
           />
         )}
       </Box>
-      <Menu trigger={<Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />}>
-        <Menu.Item onClick={onToggleEditModel}>View</Menu.Item>
-        <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>
-        <Menu.Item onClick={onToggleRenameDialog}>Rename</Menu.Item>
-        <Menu.Item onClick={onExportModel}>Export</Menu.Item>
-        <Menu.Item onClick={onDelete}>Delete</Menu.Item>
-      </Menu>
+      {canCreateAgents && (
+        <Menu trigger={<Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />}>
+          <Menu.Item onClick={onToggleEditModel}>View</Menu.Item>
+          <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>
+          <Menu.Item onClick={onToggleRenameDialog}>Rename</Menu.Item>
+          <Menu.Item onClick={onExportModel}>Export</Menu.Item>
+          <Menu.Item onClick={onDelete}>Delete</Menu.Item>
+        </Menu>
+      )}
       {isConfigurationOpen && (
         <SemanticDataConfiguration
           initialStep={errors.hasConnectionError ? ConfigurationStep.DataConnection : undefined}

@@ -8,15 +8,27 @@ export const getTableDimensions = (table: SemanticModel['tables'][number]) => {
 };
 
 export const parseSemanticModelErrors = (model: SemanticModel) => {
-  const hasConnectionError = model.tables.some((table) =>
+  const hasModelConnectionError = model.errors?.some((error) =>
+    [
+      SemanticDataValidationErrorKind.data_connection_connection_failed,
+      SemanticDataValidationErrorKind.data_connection_table_access_error,
+      SemanticDataValidationErrorKind.data_connection_not_found,
+      SemanticDataValidationErrorKind.missing_data_connection,
+    ].includes(error.kind),
+  );
+
+  const hasTableConnectionError = model.tables.some((table) =>
     table.errors?.some((error) =>
       [
         SemanticDataValidationErrorKind.data_connection_connection_failed,
         SemanticDataValidationErrorKind.data_connection_table_access_error,
         SemanticDataValidationErrorKind.data_connection_not_found,
+        SemanticDataValidationErrorKind.missing_data_connection,
       ].includes(error.kind),
     ),
   );
+
+  const hasConnectionError = hasModelConnectionError || hasTableConnectionError;
 
   const hasFileReferenceWarning = model.tables.some((table) =>
     table.errors?.some((error) =>

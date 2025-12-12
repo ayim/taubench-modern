@@ -13,6 +13,7 @@ export enum SemanticDataValidationErrorKind {
   'data_connection_not_found' = 'data_connection_not_found',
   'data_connection_connection_failed' = 'data_connection_connection_failed',
   'data_connection_table_not_found' = 'data_connection_table_not_found',
+  'missing_data_connection' = 'missing_data_connection',
   'data_connection_table_access_error' = 'data_connection_table_access_error',
   'data_connection_column_invalid_expression' = 'data_connection_column_invalid_expression',
   'file_reference_unresolved' = 'file_reference_unresolved',
@@ -91,6 +92,7 @@ export const SemanticModel = z.object({
     }),
   ),
   verified_queries: z.array(VerifiedQuery).optional(),
+  errors: z.array(ValidationMessage).optional(),
 });
 export type SemanticModel = z.infer<typeof SemanticModel>;
 
@@ -184,17 +186,22 @@ const agentSemanticDataValidationQueryOptions = createSparQueryOptions<{ agentId
       }
 
       const semanticModels = (
-        response.data.results as { semantic_data_model_id: string; semantic_data_model: SemanticModel }[]
+        response.data.results as {
+          semantic_data_model_id: string;
+          semantic_data_model: SemanticModel;
+          errors?: (typeof ValidationMessage)[];
+        }[]
       ).map((curr) => {
         return {
           id: curr.semantic_data_model_id,
           name: curr.semantic_data_model.name,
           description: curr.semantic_data_model.description,
           tables: curr.semantic_data_model.tables,
+          errors: curr.errors,
         };
       });
 
-      return semanticModels;
+      return semanticModels as SemanticModel[];
     },
   }),
 );

@@ -39,6 +39,8 @@ export const createSparAPIClient = (
         return { enabled: tenantMeta.features.developerMode.enabled };
       case SparUIFeatureFlag.deploymentWizard:
         return { enabled: tenantMeta.features.deploymentWizard.enabled };
+      case SparUIFeatureFlag.canCreateAgents:
+        return { enabled: tenantMeta.features.agentAuthoring.enabled };
       case SparUIFeatureFlag.canConfigureAgents:
         return { enabled: tenantMeta.features.agentConfiguration.enabled };
       case SparUIFeatureFlag.agentDetails:

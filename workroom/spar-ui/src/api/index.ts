@@ -10,6 +10,7 @@ type ApiResponse<Success> = { data: Success; success: true } | { success: false;
 
 export enum SparUIFeatureFlag {
   showActionLogs = 'showActionLogs',
+  canCreateAgents = 'canCreateAgents',
   canConfigureAgents = 'canConfigureAgents',
   deploymentWizard = 'deploymentWizard',
   agentDetails = 'agentDetails',
