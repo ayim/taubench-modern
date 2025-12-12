@@ -58,15 +58,27 @@ const DocumentIntelligenceItem: FC<ItemProps> = ({ file, agentId, threadId, onDo
   if (isDocIntelConfigured) {
     return (
       <Tooltip text="Use document intelligence to analyze this file" placement="top">
-        <Menu
-          trigger={<Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} />}
+        <Box
+          pl="32px"
+          height="46px"
+          minHeight="46px"
+          marginLeft="-32px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
         >
-          {docIntelInterfaces.map((interfaceType) => (
-            <Menu.Item key={interfaceType} onClick={() => handleDocIntelClick(interfaceType)}>
-              {getDocIntelLabel(interfaceType)}
-            </Menu.Item>
-          ))}
-        </Menu>
+          <Menu
+            trigger={
+              <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} />
+            }
+          >
+            {docIntelInterfaces.map((interfaceType) => (
+              <Menu.Item key={interfaceType} onClick={() => handleDocIntelClick(interfaceType)}>
+                {getDocIntelLabel(interfaceType)}
+              </Menu.Item>
+            ))}
+          </Menu>
+        </Box>
       </Tooltip>
     );
   }
@@ -76,7 +88,17 @@ const DocumentIntelligenceItem: FC<ItemProps> = ({ file, agentId, threadId, onDo
       text="Configure Document Intelligence in settings before it can be used to analyze this file"
       placement="top"
     >
-      <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
+      <Box
+        pl="32px"
+        height="46px"
+        minHeight="46px"
+        marginLeft="-32px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
+      </Box>
     </Tooltip>
   );
 };
@@ -95,29 +117,21 @@ const ItemAction: FC<ItemProps> = ({ file, agentId, threadId, onDocumentIntellig
     return null;
   }
 
+  if (isPdfFile) {
+    return (
+      <DocumentIntelligenceItem
+        file={file}
+        agentId={agentId}
+        threadId={threadId}
+        onDocumentIntelligenceClick={onDocumentIntelligenceClick}
+      />
+    );
+  }
+
   return (
-    <Box
-      pl="32px"
-      height="46px"
-      minHeight="46px"
-      marginLeft="-32px"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-    >
-      {isPdfFile ? (
-        <DocumentIntelligenceItem
-          file={file}
-          agentId={agentId}
-          threadId={threadId}
-          onDocumentIntelligenceClick={onDocumentIntelligenceClick}
-        />
-      ) : (
-        <Tooltip text="Currently unsupported by Document Intelligence" placement="top">
-          <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
-        </Tooltip>
-      )}
-    </Box>
+    <Tooltip text="Currently unsupported by Document Intelligence" placement="top">
+      <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
+    </Tooltip>
   );
 };
 
