@@ -121,6 +121,47 @@ class TestRestartWorkItem:
         assert "error" in error_data
         assert "Cannot restart work item from status" in error_data["error"]["message"]
 
+    @pytest.mark.parametrize("actually_cancelled", [True, False])
+    async def test_restart_work_item_executing_with_slot_cancellation(  # noqa: PLR0913
+        self,
+        client: TestClient,
+        storage: MockStorage,
+        test_user: User,
+        system_user: User,
+        monkeypatch: pytest.MonkeyPatch,
+        actually_cancelled: bool,
+    ):
+        """Restart should cancel executing work items before resetting their state."""
+
+        class StubWorkItemsService:
+            def __init__(self) -> None:
+                self.cancelled: list[str] = []
+
+            async def cancel_work_item_execution(self, work_item_id: str) -> bool:
+                self.cancelled.append(work_item_id)
+                return actually_cancelled
+
+        stub_service = StubWorkItemsService()
+        monkeypatch.setattr(
+            "agent_platform.server.work_items.service.WorkItemsService.get_instance",
+            classmethod(lambda cls: stub_service),
+        )
+
+        work_item = WorkItem(
+            work_item_id="executing-item",
+            user_id=system_user.user_id,
+            created_by=test_user.user_id,
+            agent_id="agent-123",
+            status=WorkItemStatus.EXECUTING,
+        )
+        await storage.create_work_item(work_item)
+
+        response = client.post(f"/work-items/{work_item.work_item_id}/restart")
+
+        assert response.status_code == 200
+        assert response.json()["status"] == WorkItemStatus.PENDING.value
+        assert stub_service.cancelled == [work_item.work_item_id]
+
     async def test_restart_other_users_work_item(
         self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
     ):

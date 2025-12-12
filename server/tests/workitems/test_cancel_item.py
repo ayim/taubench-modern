@@ -48,7 +48,6 @@ class TestCancelItem:
             WorkItemStatus.PRECREATED,
             WorkItemStatus.DRAFT,
             WorkItemStatus.PENDING,
-            WorkItemStatus.EXECUTING,
         ],
     )
     async def test_cancel_success(self, status, mock_user, mock_storage, sample_work_item):
@@ -65,9 +64,85 @@ class TestCancelItem:
             storage=mock_storage,
         )
 
-        assert result == {"status": "ok"}
+        assert result == {"status": "ok", "cancelled": False}
 
         # Verify the work item status was updated
+        updated_item = await mock_storage.get_work_item(sample_work_item.work_item_id)
+        assert updated_item.status == WorkItemStatus.CANCELLED
+
+    async def test_cancel_executing_waits_for_executor(
+        self,
+        mock_user,
+        mock_storage,
+        sample_work_item,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Cancellation should attempt to cancel in-flight executor work and report if found."""
+
+        class StubWorkItemsService:
+            def __init__(self) -> None:
+                self.cancel_called_with: list[str] = []
+
+            async def cancel_work_item_execution(self, work_item_id: str) -> bool:
+                self.cancel_called_with.append(work_item_id)
+                return True
+
+        stub_service = StubWorkItemsService()
+        monkeypatch.setattr(
+            "agent_platform.server.work_items.service.WorkItemsService.get_instance",
+            classmethod(lambda cls: stub_service),
+        )
+
+        sample_work_item.status = WorkItemStatus.EXECUTING
+        await mock_storage.create_work_item(sample_work_item)
+
+        result = await cancel_item(
+            work_item_id=sample_work_item.work_item_id,
+            user=mock_user,
+            storage=mock_storage,
+        )
+
+        assert result == {"status": "ok", "cancelled": True}
+        assert stub_service.cancel_called_with == [sample_work_item.work_item_id]
+
+        updated_item = await mock_storage.get_work_item(sample_work_item.work_item_id)
+        assert updated_item.status == WorkItemStatus.CANCELLED
+
+    async def test_cancel_executing_not_found_in_executor(
+        self,
+        mock_user,
+        mock_storage,
+        sample_work_item,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Cancellation should not error when executor has no matching work item."""
+
+        class StubWorkItemsService:
+            def __init__(self) -> None:
+                self.cancel_called_with: list[str] = []
+
+            async def cancel_work_item_execution(self, work_item_id: str) -> bool:
+                self.cancel_called_with.append(work_item_id)
+                return False
+
+        stub_service = StubWorkItemsService()
+        monkeypatch.setattr(
+            "agent_platform.server.work_items.service.WorkItemsService.get_instance",
+            classmethod(lambda cls: stub_service),
+        )
+
+        sample_work_item.status = WorkItemStatus.EXECUTING
+        await mock_storage.create_work_item(sample_work_item)
+
+        result = await cancel_item(
+            work_item_id=sample_work_item.work_item_id,
+            user=mock_user,
+            storage=mock_storage,
+        )
+
+        assert result == {"status": "ok", "cancelled": False}
+        assert stub_service.cancel_called_with == [sample_work_item.work_item_id]
+
         updated_item = await mock_storage.get_work_item(sample_work_item.work_item_id)
         assert updated_item.status == WorkItemStatus.CANCELLED
 

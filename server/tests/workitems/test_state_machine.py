@@ -101,9 +101,6 @@ class TestWorkItemStateMachine:
     def test_invalid_transitions_from_executing(self):
         """Test invalid transitions from EXECUTING state."""
         assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.EXECUTING, WorkItemStatus.PENDING
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.EXECUTING, WorkItemStatus.PRECREATED
         )
         assert not WorkItemStateMachine.is_valid_transition(
@@ -179,8 +176,37 @@ class TestWorkItemStateMachine:
             WorkItemStatus.ERROR, WorkItemStatus.PRECREATED
         )
 
+    def test_valid_transitions_from_cancelled(self):
+        """Test valid transitions from CANCELLED state."""
+        # CANCELLED can be restarted back to PENDING
+        assert WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.PENDING
+        )
+        # CANCELLED can be marked as COMPLETED
+        assert WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.COMPLETED
+        )
+
+    def test_invalid_transitions_from_cancelled(self):
+        """Test invalid transitions from CANCELLED state."""
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.EXECUTING
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.ERROR
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.NEEDS_REVIEW
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.PRECREATED
+        )
+        assert not WorkItemStateMachine.is_valid_transition(
+            WorkItemStatus.CANCELLED, WorkItemStatus.DRAFT
+        )
+
     def test_terminal_states(self):
-        """Test that terminal states have no valid transitions."""
+        """Test that terminal states have limited valid transitions."""
         # COMPLETED can only move back to PENDING
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.COMPLETED, WorkItemStatus.EXECUTING
@@ -199,27 +225,4 @@ class TestWorkItemStateMachine:
         )
         assert not WorkItemStateMachine.is_valid_transition(
             WorkItemStatus.COMPLETED, WorkItemStatus.DRAFT
-        )
-
-        # CANCELLED is terminal
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.PENDING
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.EXECUTING
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.ERROR
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.NEEDS_REVIEW
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.COMPLETED
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.PRECREATED
-        )
-        assert not WorkItemStateMachine.is_valid_transition(
-            WorkItemStatus.CANCELLED, WorkItemStatus.DRAFT
         )

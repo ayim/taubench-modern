@@ -1,3 +1,4 @@
+import asyncio
 import itertools
 from collections import defaultdict
 from unittest.mock import AsyncMock, patch
@@ -1018,3 +1019,84 @@ class TestWorkItemsService:
         # Verify the work item status in the database is NEEDS_REVIEW
         updated_item = await configured_storage.get_work_item(item.work_item_id)
         assert updated_item.status == WorkItemStatus.NEEDS_REVIEW
+
+    @pytest.mark.asyncio
+    async def test_execute_work_item_skips_final_update_when_status_changed_after_judge(  # noqa: PLR0913
+        self,
+        configured_storage,
+        stub_user,
+        system_user,
+        seed_agents,
+        mocker,
+        work_items_service,
+    ):
+        """Test that the final status update is skipped when work item status changes after judge
+        completes.
+
+        This test verifies the second re-read behavior (after judge) in execute_work_item.
+        If the status changes from EXECUTING to something else between when the judge completes
+        and when we try to apply the final status update, we should skip the update to avoid
+        overwriting a status that was set by another process (e.g., user action or runbook step).
+        """
+
+        item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
+        await configured_storage.create_work_item(item)
+
+        # Mark the work item as EXECUTING to simulate the normal worker flow
+        await configured_storage.update_work_item_status(
+            system_user.user_id,
+            item.work_item_id,
+            WorkItemStatus.EXECUTING,
+            WorkItemStatusUpdatedBy.SYSTEM,
+        )
+
+        # Create latches for synchronization
+        judge_started = asyncio.Event()
+        judge_can_complete = asyncio.Event()
+
+        async def mock_validate_success(wi: WorkItem):
+            """Mock judge that waits for external signal before completing."""
+            # Signal that judge has started
+            judge_started.set()
+            # Wait for external signal to complete
+            await judge_can_complete.wait()
+            # Return COMPLETED as the judge's decision
+            return WorkItemStatus.COMPLETED
+
+        # Mock the judge
+        mocker.patch(
+            "agent_platform.server.work_items.judge._validate_success",
+            side_effect=mock_validate_success,
+        )
+
+        async def mock_agent_func(wi: WorkItem) -> bool:
+            return True
+
+        work_items_service.run_agent = mock_agent_func
+
+        # Run execute_work_item in the background
+        execute_task = asyncio.create_task(work_items_service.execute_work_item(item))
+
+        # Wait for judge to start
+        await asyncio.wait_for(judge_started.wait(), timeout=5.0)
+
+        # While judge is running, change the work item status to CANCELLED
+        await configured_storage.update_work_item_status(
+            system_user.user_id,
+            item.work_item_id,
+            WorkItemStatus.CANCELLED,
+            WorkItemStatusUpdatedBy.HUMAN,
+        )
+
+        # Let the judge complete
+        judge_can_complete.set()
+
+        # Wait for execute_work_item to complete
+        result = await asyncio.wait_for(execute_task, timeout=5.0)
+        assert result is True
+
+        # Verify the work item status in the database is CANCELLED (not COMPLETED)
+        # This proves that the final status update was skipped
+        updated_item = await configured_storage.get_work_item(item.work_item_id)
+        assert updated_item.status == WorkItemStatus.CANCELLED
+        assert updated_item.status_updated_by == WorkItemStatusUpdatedBy.HUMAN

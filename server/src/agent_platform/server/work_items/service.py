@@ -87,6 +87,21 @@ class WorkItemsService:
             return None
         return self._executor.get_slot_status()
 
+    async def cancel_work_item_execution(self, work_item_id: str) -> bool:
+        """Attempt to cancel a work item that is currently executing.
+
+        Returns True if the executor confirmed the work item was found and cancellation was
+        initiated. Returns False if the executor is not slot-based or the work item was not
+        associated with any active slot.
+        """
+        if self._executor is None or not isinstance(self._executor, SlotExecutor):
+            logger.warning(
+                "Work item %s is executing but no slot-based executor is available", work_item_id
+            )
+            return False
+
+        return await self._executor.cancel_work_item(work_item_id)
+
     async def run(
         self,
     ) -> None:
@@ -308,6 +323,17 @@ class WorkItemsService:
                     judge_result=new_status.value,
                 )
 
+                # Judge could have taken some time, check again.
+                # TODO needs a test
+                item = await storage.get_work_item(item.work_item_id)
+                current_status = item.status
+                if current_status != WorkItemStatus.EXECUTING:
+                    logger.warning(
+                        "Work item %s is no longer EXECUTING, skipping final status update",
+                        item.work_item_id,
+                    )
+                    return result
+
                 if new_status == WorkItemStatus.COMPLETED:
                     await storage.complete_work_item(
                         system_user_id, item.work_item_id, WorkItemCompletedBy.AGENT
@@ -354,6 +380,10 @@ class WorkItemsService:
             )
 
             return result
+        except asyncio.CancelledError:
+            logger.info("Execution of work item %s was cancelled", item.work_item_id)
+            # Propagate cancellation so the slot executor can clean up gracefully
+            raise
         except Exception as e:
             logger.error(f"Error executing work item {item.work_item_id}: {e}", exc_info=e)
 

@@ -223,8 +223,6 @@ class TestContinueWorkItem:
         "invalid_status",
         [
             WorkItemStatus.PENDING,  # PENDING -> PENDING not allowed
-            WorkItemStatus.EXECUTING,  # EXECUTING -> PENDING not allowed
-            WorkItemStatus.CANCELLED,  # CANCELLED -> anything not allowed (terminal)
         ],
     )
     async def test_continue_invalid_transitions_comprehensive(

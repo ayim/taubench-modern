@@ -139,6 +139,45 @@ class SlotExecutor:
         self._resize_cancelled_tasks: set[asyncio.Task] = set()
         self._task_update_event: asyncio.Event | None = None
 
+    async def cancel_work_item(self, work_item_id: str) -> bool:
+        """Attempt to cancel an in-flight work item by ID.
+
+        Returns True if the work item was found in any slot (cancellation is best-effort),
+        otherwise False.
+        """
+        cancelled = False
+
+        for slot_state in self.slot_manager.slots.values():
+            if slot_state.work_item_id != work_item_id:
+                continue
+
+            cancelled = True
+            work_item_task = slot_state.work_item_task
+            if work_item_task and not work_item_task.done():
+                logger.info(
+                    "Cancelling execution of work item %s in slot %s",
+                    work_item_id,
+                    slot_state.slot_id,
+                )
+                work_item_task.cancel()
+                try:
+                    await asyncio.wait_for(work_item_task, timeout=5)
+                except TimeoutError:
+                    logger.warning(
+                        "Timed out waiting for work item %s in slot %s to cancel",
+                        work_item_id,
+                        slot_state.slot_id,
+                    )
+                except asyncio.CancelledError:
+                    # Expected when cancellation succeeds
+                    logger.info(
+                        "Work item %s in slot %s cancelled successfully",
+                        work_item_id,
+                        slot_state.slot_id,
+                    )
+
+        return cancelled
+
     async def quotas(self) -> QuotasService:
         """Get the QuotasService instance."""
         if self._quotas is None:
@@ -586,6 +625,15 @@ class SlotExecutor:
             await asyncio.wait_for(slot_state.work_item_task, timeout=work_item_timeout)
 
             logger.info(f"Slot {slot_id} completed work item {item.work_item_id} normally")
+
+        except asyncio.CancelledError:
+            logger.info(
+                "Slot %s cancelled work item %s during execution", slot_id, item.work_item_id
+            )
+            # Ensure cooperative cancellation completes before continuing
+            if slot_state.work_item_task and not slot_state.work_item_task.done():
+                with suppress(asyncio.CancelledError):
+                    await slot_state.work_item_task
 
         except TimeoutError:
             # Work item timed out

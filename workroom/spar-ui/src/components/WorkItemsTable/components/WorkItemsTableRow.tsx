@@ -91,7 +91,7 @@ const ActionsCell: FC<RowProps> = ({ rowData }) => {
     );
   }, [completeWorkItem, addSnackbar]);
 
-  const canRestart = status !== 'PENDING' && status !== 'EXECUTING';
+  const canRestart = status !== 'PENDING';
   const canComplete = status !== 'COMPLETED' && status !== 'CANCELLED';
 
   return (

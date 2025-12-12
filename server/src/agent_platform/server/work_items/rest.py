@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any, Literal
@@ -424,7 +425,27 @@ async def restart_work_item(
     if not work_item:
         raise PlatformHTTPError(ErrorCode.NOT_FOUND, "Work item not found")
 
-    if not WorkItemStateMachine.is_valid_transition(work_item.status, WorkItemStatus.PENDING):
+    if work_item.status == WorkItemStatus.EXECUTING:
+        from agent_platform.server.work_items.service import WorkItemsService
+
+        # If the WorkItemsService is currently working on this work-item, request
+        # a cancellation but don't require it to be cancellable.
+        work_items_service = WorkItemsService.get_instance()
+        cancelled = await work_items_service.cancel_work_item_execution(work_item.work_item_id)
+        if not cancelled:
+            logger.warning(
+                "Proceeding with restart after best-effort cancellation attempt",
+                work_item_id=work_item.work_item_id,
+            )
+
+    # We ignore the state machine here because restart is an abnormal (degenerate?) case
+    # of transitions. Because we effectively kill the existing thread, we can allow a broader
+    # range of transition changes than normal.
+    if work_item.status in (
+        WorkItemStatus.DRAFT,
+        WorkItemStatus.PRECREATED,
+        WorkItemStatus.PENDING,
+    ):
         raise PlatformHTTPError(
             ErrorCode.PRECONDITION_FAILED,
             f"Cannot restart work item from status {work_item.status.value}.",
@@ -456,6 +477,23 @@ async def cancel_item(
             f"Cannot cancel work item from status {work_item.status.value}.",
         )
 
+    cancelled_in_executor = False
+    if work_item.status == WorkItemStatus.EXECUTING:
+        from agent_platform.server.work_items.service import WorkItemsService
+
+        work_items_service = WorkItemsService.get_instance()
+        try:
+            cancelled_in_executor = await asyncio.wait_for(
+                work_items_service.cancel_work_item_execution(work_item.work_item_id),
+                timeout=3,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Work item cancellation attempt timed out; continuing to update status",
+                work_item_id=work_item.work_item_id,
+                exc_info=True,
+            )
+
     # Use the system user for lookups to avoid permission issues.
     system_user, _ = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
     await storage.update_work_item_status(
@@ -464,7 +502,7 @@ async def cancel_item(
         WorkItemStatus.CANCELLED,
         WorkItemStatusUpdatedBy.HUMAN,
     )
-    return {"status": "ok"}
+    return {"status": "ok", "cancelled": cancelled_in_executor}
 
 
 async def complete_work_item(

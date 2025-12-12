@@ -15,6 +15,7 @@ class WorkItemStateMachine:
     - INDETERMINATE -> PENDING, COMPLETED
     - COMPLETED -> PENDING
     - ERROR -> PENDING, COMPLETED
+    - CANCELLED -> PENDING, COMPLETED
     """
 
     # Define allowed transitions from each state
@@ -32,6 +33,7 @@ class WorkItemStateMachine:
             WorkItemStatus.CANCELLED,
         },
         WorkItemStatus.EXECUTING: {
+            # restart can move an EXECUTING to PENDING, but this is an exceptional case.
             WorkItemStatus.NEEDS_REVIEW,
             WorkItemStatus.COMPLETED,
             WorkItemStatus.ERROR,
@@ -53,7 +55,10 @@ class WorkItemStateMachine:
             WorkItemStatus.PENDING,
             WorkItemStatus.COMPLETED,
         },
-        WorkItemStatus.CANCELLED: set(),  # Terminal state
+        WorkItemStatus.CANCELLED: {  # /restart or /complete
+            WorkItemStatus.PENDING,
+            WorkItemStatus.COMPLETED,
+        },
     }
 
     @classmethod
