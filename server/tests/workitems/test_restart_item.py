@@ -122,7 +122,7 @@ class TestRestartWorkItem:
         assert "Cannot restart work item from status" in error_data["error"]["message"]
 
     @pytest.mark.parametrize("actually_cancelled", [True, False])
-    async def test_restart_work_item_executing_with_slot_cancellation(  # noqa: PLR0913
+    async def test_restart_work_item_executing_with_slot_cancellation(
         self,
         client: TestClient,
         storage: MockStorage,
@@ -205,9 +205,7 @@ class TestRestartWorkItem:
         """Test successful restart from NEEDS_REVIEW state."""
         now = datetime.now(UTC)
 
-        initial_msg = ThreadMessage(
-            content=[ThreadTextContent(text="Initial request")], role="user"
-        )
+        initial_msg = ThreadMessage(content=[ThreadTextContent(text="Initial request")], role="user")
         agent_msg = ThreadMessage(content=[ThreadTextContent(text="Agent response")], role="agent")
         work_item = WorkItem(
             work_item_id=str(uuid4()),
@@ -233,10 +231,7 @@ class TestRestartWorkItem:
         assert returned_work_item["status_updated_by"] == WorkItemStatusUpdatedBy.HUMAN.value
         assert returned_work_item["status_updated_at"] >= now.isoformat()
         assert len(returned_work_item["messages"]) == 1
-        assert (
-            returned_work_item["messages"][0]["content"][0]["text"]
-            == initial_msg.content[0].as_text_content()
-        )
+        assert returned_work_item["messages"][0]["content"][0]["text"] == initial_msg.content[0].as_text_content()
 
         updated_item = await storage.get_work_item(work_item.work_item_id)
         assert updated_item.status == WorkItemStatus.PENDING

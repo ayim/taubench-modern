@@ -99,11 +99,7 @@ class ArchitectureInfo:
 
         return ArchitectureInfo(
             name=data["name"],
-            built_in=(
-                data["built_in"].lower() == "true"
-                if isinstance(data["built_in"], str)
-                else data["built_in"]
-            ),
+            built_in=(data["built_in"].lower() == "true" if isinstance(data["built_in"], str) else data["built_in"]),
             version=data["version"],
             description=data.get("description", "No description available."),
             author=data.get("author", "No author available."),

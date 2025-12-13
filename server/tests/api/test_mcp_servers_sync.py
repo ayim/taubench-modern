@@ -199,9 +199,7 @@ class TestSyncFileBasedMcpServers:
     @pytest.mark.asyncio
     async def test_sync_with_empty_config(self, mock_storage):
         """Test sync behavior when config file is empty."""
-        mock_storage.list_mcp_servers_by_source.return_value = {
-            "existing-file-server": "server-id-1"
-        }
+        mock_storage.list_mcp_servers_by_source.return_value = {"existing-file-server": "server-id-1"}
 
         with patch(
             "agent_platform.server.api.private_v2.mcp_servers._read_mcp_servers_config_file",
@@ -261,9 +259,7 @@ class TestSyncFileBasedMcpServers:
             await _sync_file_based_mcp_servers(mock_storage)
 
         # Should update the existing server and change source to FILE
-        mock_storage.update_mcp_server.assert_called_once_with(
-            "server-id-1", updated_server, MCPServerSource.FILE
-        )
+        mock_storage.update_mcp_server.assert_called_once_with("server-id-1", updated_server, MCPServerSource.FILE)
 
     @pytest.mark.asyncio
     async def test_sync_removes_obsolete_file_servers(self, mock_storage):
@@ -301,9 +297,7 @@ class TestSyncFileBasedMcpServers:
         # Mock get_mcp_server_by_name responses
         def get_server_by_name_side_effect(name, source):
             if name == "keep-and-update":
-                existing_server = MCPServer(
-                    name="keep-and-update", transport="stdio", command="old"
-                )
+                existing_server = MCPServer(name="keep-and-update", transport="stdio", command="old")
                 return ("server-id-1", existing_server, MCPServerSource.FILE)
             elif name == "create-new":
                 return None
@@ -331,9 +325,7 @@ class TestSyncFileBasedMcpServers:
         )
 
         # Should create the new server
-        mock_storage.create_mcp_server.assert_called_once_with(
-            servers_from_file[1], MCPServerSource.FILE
-        )
+        mock_storage.create_mcp_server.assert_called_once_with(servers_from_file[1], MCPServerSource.FILE)
 
     @pytest.mark.asyncio
     async def test_sync_handles_storage_errors_gracefully(self, mock_storage):

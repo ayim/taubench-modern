@@ -70,11 +70,9 @@ class LangSmithContext:
         # operations are performed.
         # In this case, the LangSmithContext is initialized with
         # no config and this debug statement will be printed.
-        logger.debug(
-            f"LangSmithContext initialized with config: {config.type if config else 'None'}"
-        )
+        logger.debug(f"LangSmithContext initialized with config: {config.type if config else 'None'}")
 
-    def format_response_for_langsmith(self, response) -> list[dict]:  # noqa: C901, PLR0912
+    def format_response_for_langsmith(self, response) -> list[dict]:
         """Formats a response for LangSmith.
 
         Args:
@@ -157,7 +155,7 @@ class LangSmithContext:
         return messages
 
     @asynccontextmanager
-    async def trace_llm(  # noqa: C901, PLR0912, PLR0915
+    async def trace_llm(
         self,
         name: str,
         inputs: dict[str, Any],
@@ -240,16 +238,12 @@ class LangSmithContext:
                         if isinstance(message, dict):
                             # Set role attribute if available
                             if "role" in message:
-                                span.set_attribute(
-                                    f"gen_ai.prompt.{attr_index}.role", str(message["role"])
-                                )
+                                span.set_attribute(f"gen_ai.prompt.{attr_index}.role", str(message["role"]))
 
                             # Set content attribute if available
                             if "content" in message:
                                 content_value = message["content"]
-                                span.set_attribute(
-                                    f"gen_ai.prompt.{attr_index}.content", str(content_value)
-                                )
+                                span.set_attribute(f"gen_ai.prompt.{attr_index}.content", str(content_value))
 
                             # Handle tool calls - create separate messages for each tool call
                             if "tool_calls" in message and message["role"] == "assistant":
@@ -267,9 +261,7 @@ class LangSmithContext:
                                         attr_index += 1
 
                                         # Set role as tool for each tool call message
-                                        span.set_attribute(
-                                            f"gen_ai.prompt.{attr_index}.role", "tool"
-                                        )
+                                        span.set_attribute(f"gen_ai.prompt.{attr_index}.role", "tool")
 
                                         # Format the tool call using the extracted function
                                         tool_call_content = self._format_tool_call(tool_call)
@@ -307,9 +299,7 @@ class LangSmithContext:
                     for idx, message in enumerate(output):
                         if isinstance(message, dict):
                             if "content" in message:
-                                span.set_attribute(
-                                    f"gen_ai.completion.{idx}.content", str(message["content"])
-                                )
+                                span.set_attribute(f"gen_ai.completion.{idx}.content", str(message["content"]))
                             if "role" in message:
                                 span.set_attribute(f"gen_ai.completion.{idx}.role", message["role"])
 
@@ -362,8 +352,7 @@ class LangSmithContext:
                         formatted_function["arguments"] = json.loads(args_str)
                     except json.JSONDecodeError as e:
                         logger.warning(
-                            "Failed to parse tool call arguments as JSON for tool %s: %s. "
-                            "Keeping arguments as string.",
+                            "Failed to parse tool call arguments as JSON for tool %s: %s. Keeping arguments as string.",
                             function_data.get("name", "unknown"),
                             str(e),
                         )
@@ -505,7 +494,7 @@ class AgentServerContext:
     context manager protocol for automatic resource cleanup.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         http: HttpContext,
         user_context: UserContext,
@@ -596,7 +585,7 @@ class AgentServerContext:
         logger.info(msg) if success else logger.warning(msg)
 
     @classmethod
-    def from_request(  # noqa: PLR0913
+    def from_request(
         cls,
         request: Request | WebSocket,
         user: User,

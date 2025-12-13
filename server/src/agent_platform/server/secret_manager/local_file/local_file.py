@@ -25,9 +25,7 @@ class LocalFileSecretManager(BaseSecretManager):
         key = self._load_key_from_file()
 
         # Always create fallback envelope encryption instance
-        self._fallback_envelope_encryption = StaticKeyEnvelopeEncryption(
-            self.FALLBACK_KEY, key_id="fallback"
-        )
+        self._fallback_envelope_encryption = StaticKeyEnvelopeEncryption(self.FALLBACK_KEY, key_id="fallback")
 
         # Use fallback only if file is not present or empty
         if key is None or key.strip() == "":
@@ -51,17 +49,14 @@ class LocalFileSecretManager(BaseSecretManager):
             return len(decoded) == AESGCM2.VALID_KEY_SIZE
         except ValueError:
             raise ValueError(
-                f"Key file contains invalid hex data. Expected 64 hex characters (32 bytes), "
-                f"got: {key[:20]}..."
+                f"Key file contains invalid hex data. Expected 64 hex characters (32 bytes), got: {key[:20]}..."
             ) from None
 
     def _convert_key_to_bytes(self, key: str) -> bytes:
         """Convert hex-encoded string key to bytes."""
         decoded = bytes.fromhex(key)
         if len(decoded) != AESGCM2.VALID_KEY_SIZE:
-            raise ValueError(
-                f"Key must be exactly {AESGCM2.VALID_KEY_SIZE} bytes, got {len(decoded)} bytes"
-            )
+            raise ValueError(f"Key must be exactly {AESGCM2.VALID_KEY_SIZE} bytes, got {len(decoded)} bytes")
         return decoded
 
     def _load_key_from_file(self) -> str | None:

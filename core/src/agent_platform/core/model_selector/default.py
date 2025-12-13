@@ -106,9 +106,7 @@ class DefaultModelSelector(ModelSelector):
         """
         self._override_model_id = model_id
 
-    def _handle_litellm_special_case(  # noqa: PLR0911
-        self, platform: "PlatformClient", request: ModelSelectionRequest
-    ) -> str | None:
+    def _handle_litellm_special_case(self, platform: "PlatformClient", request: ModelSelectionRequest) -> str | None:
         """Handle the special case of LiteLLM."""
         if platform.name != "litellm":
             return None
@@ -164,7 +162,7 @@ class DefaultModelSelector(ModelSelector):
         # Step 1.5... if we have an override model id, use it
         if self._override_model_id:
             logger.info(f"Using override model id: {self._override_model_id}")
-            if self._override_model_id.count("/") != 2:  # noqa: PLR2004 (platform/provider/model)
+            if self._override_model_id.count("/") != 2:
                 raise ValueError(
                     f"Invalid override model id: {self._override_model_id};"
                     "must be in the format platform/provider/model"
@@ -189,10 +187,7 @@ class DefaultModelSelector(ModelSelector):
         # Step 3: Apply request-based filters
         candidates = self._apply_request_filters(request, candidates)
         remaining_models = [c.generic_id for c in candidates]
-        logger.info(
-            f"After request filtering: {len(candidates)} candidates "
-            f"remain - models: {remaining_models}"
-        )
+        logger.info(f"After request filtering: {len(candidates)} candidates remain - models: {remaining_models}")
 
         # Early exit if no candidates after filtering
         if not candidates:
@@ -239,7 +234,7 @@ class DefaultModelSelector(ModelSelector):
 
             # Extract provider from generic_id (platform/provider/model)
             parts = generic_id.split("/")
-            if len(parts) != 3:  # noqa: PLR2004 (platform/provider/model --> 3 parts)
+            if len(parts) != 3:
                 continue
 
             provider = parts[1]
@@ -305,16 +300,12 @@ class DefaultModelSelector(ModelSelector):
                 if c.generic_id == target_name or c.generic_id.endswith(f"/{target_name}")
             ]
             if not filtered_candidates:
-                logger.warning(
-                    f"Direct model name {request.direct_model_name} not found in candidates"
-                )
+                logger.warning(f"Direct model name {request.direct_model_name} not found in candidates")
 
         # Filter by model type if specified
         if request.model_type:
             logger.debug(f"Filtering by model type: {request.model_type}")
-            filtered_candidates = [
-                c for c in filtered_candidates if c.model_type == request.model_type
-            ]
+            filtered_candidates = [c for c in filtered_candidates if c.model_type == request.model_type]
             if not filtered_candidates:
                 logger.warning(f"No models found with type {request.model_type}")
 
@@ -362,9 +353,7 @@ class DefaultModelSelector(ModelSelector):
 
         return sorted_candidates
 
-    def _fallback_to_default(
-        self, platform: "PlatformClient", request: ModelSelectionRequest
-    ) -> str:
+    def _fallback_to_default(self, platform: "PlatformClient", request: ModelSelectionRequest) -> str:
         """Fallback to default model when no candidates are available."""
         # Try direct model name first if provided
         if request.direct_model_name:
@@ -378,8 +367,5 @@ class DefaultModelSelector(ModelSelector):
         if not default_model:
             raise ValueError(f"No default model configured for platform {platform.name}")
 
-        logger.info(
-            f"Using platform default model as fallback: {default_model} "
-            f"for platform: {platform.name}"
-        )
+        logger.info(f"Using platform default model as fallback: {default_model} for platform: {platform.name}")
         return default_model

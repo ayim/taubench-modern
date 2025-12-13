@@ -206,9 +206,7 @@ def test_create_all_types_and_fetch(client: TestClient):
                 "project_id": "my-gcp-project",
                 "dataset": "analytics_dataset",
                 "service_account_keys": "path/to/service-account-key.json",
-                "service_account_json": (
-                    '{"type": "service_account", "project_id": "my-gcp-project"}'
-                ),
+                "service_account_json": ('{"type": "service_account", "project_id": "my-gcp-project"}'),
             },
         },
         {

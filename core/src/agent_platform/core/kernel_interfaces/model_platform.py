@@ -19,13 +19,11 @@ class PlatformInterface(ABC):
     @abstractmethod
     def name(self) -> str:
         """The name of the platform."""
-        pass
 
     @property
     @abstractmethod
     def client(self) -> "PlatformClient":
         """The client for the platform."""
-        pass
 
     @abstractmethod
     async def generate_response(
@@ -42,7 +40,6 @@ class PlatformInterface(ABC):
         Returns:
             The generated model response.
         """
-        pass
 
     @abstractmethod
     def stream_response(
@@ -60,7 +57,6 @@ class PlatformInterface(ABC):
             An async context manager that yields a ResponseStreamPipe
             object managing the response stream.
         """
-        pass
 
     @abstractmethod
     async def stream_raw_response(
@@ -81,4 +77,3 @@ class PlatformInterface(ABC):
         Returns:
             An async generator yielding GenericDelta objects.
         """
-        pass

@@ -99,9 +99,7 @@ class QualityOrchestrator:
 
         # Start action server and import action packages if any exist
         if action_packages:
-            self.action_server_url = await self._start_action_server_with_packages(
-                agent_zip_path, action_packages
-            )
+            self.action_server_url = await self._start_action_server_with_packages(agent_zip_path, action_packages)
         else:
             logger.info("No action packages found in agent spec")
             self.action_server_url = None
@@ -142,10 +140,7 @@ class QualityOrchestrator:
             )
 
         # Existing zip-based upload logic
-        logger.info(
-            f"Uploading agent variants for {len(platforms)} platforms: "
-            f"{[p.name for p in platforms]}"
-        )
+        logger.info(f"Uploading agent variants for {len(platforms)} platforms: {[p.name for p in platforms]}")
 
         if agent_package.zip_path is None:
             raise ValueError("No zip path provided for packaged agent.")
@@ -188,9 +183,7 @@ class QualityOrchestrator:
         base_agent_id = agent_package.agent_id
 
         if not base_agent_id:
-            raise ValueError(
-                f"Preinstalled agent {agent_package.preinstalled_key} missing agent_id"
-            )
+            raise ValueError(f"Preinstalled agent {agent_package.preinstalled_key} missing agent_id")
 
         async with httpx.AsyncClient(follow_redirects=True) as client:
             # Fetch the base agent configuration we want to clone
@@ -214,9 +207,7 @@ class QualityOrchestrator:
                     try:
                         await client.delete(f"{self.server_url}/api/v2/agents/{existing_id}")
                     except Exception as e:
-                        logger.error(
-                            f"Error deleting existing preinstalled clone {platform_agent_name}: {e}"
-                        )
+                        logger.error(f"Error deleting existing preinstalled clone {platform_agent_name}: {e}")
 
                 # Create a new agent by cloning the base agent configuration
                 # and overriding the name; platform config will be set next.
@@ -515,9 +506,7 @@ class QualityOrchestrator:
         self._started = False
         logger.info("Infrastructure stopped")
 
-    async def _extract_action_packages_from_agent(
-        self, agent_zip_path: Path
-    ) -> list[SpecActionPackage]:
+    async def _extract_action_packages_from_agent(self, agent_zip_path: Path) -> list[SpecActionPackage]:
         """Extract action package information from the agent spec."""
         logger.info("Extracting action packages from agent spec")
 
@@ -525,9 +514,7 @@ class QualityOrchestrator:
             # @TODO:
             #  Remove the read_package_bytes dependency, and use data stream to create
             # AgentPackageHandler.
-            package_bytes = await read_package_bytes(
-                path=agent_zip_path, url=None, package_base64=None
-            )
+            package_bytes = await read_package_bytes(path=agent_zip_path, url=None, package_base64=None)
 
             with await AgentPackageHandler.from_bytes(package_bytes) as handler:
                 spec_agent = await handler.get_spec_agent()
@@ -583,9 +570,7 @@ class QualityOrchestrator:
                     zip_ref.extractall(file.parent)
                 file.unlink()
                 # Import the extracted action package
-                self._action_server_process.import_action_package(
-                    file.parent, logs_dir=self.logs_dir
-                )
+                self._action_server_process.import_action_package(file.parent, logs_dir=self.logs_dir)
 
         # Start the action server
         self._action_server_process.start(
@@ -599,9 +584,7 @@ class QualityOrchestrator:
             additional_args=["--api-key", TEST_API_KEY],
             port=0,  # Let it choose an available port
         )
-        actions_url = (
-            f"http://{self._action_server_process.host}:{self._action_server_process.port}"
-        )
+        actions_url = f"http://{self._action_server_process.host}:{self._action_server_process.port}"
 
         logger.info(f"Action server started on {actions_url}")
         return actions_url
@@ -631,13 +614,9 @@ class QualityOrchestrator:
 
         executable_path = None
         if self.agent_server_version is not None:
-            executable_path = get_agent_server_executable_path(
-                version=self.agent_server_version, download=True
-            )
+            executable_path = get_agent_server_executable_path(version=self.agent_server_version, download=True)
 
-        self._agent_server_process = AgentServerProcess(
-            datadir=agent_server_data_dir, executable_path=executable_path
-        )
+        self._agent_server_process = AgentServerProcess(datadir=agent_server_data_dir, executable_path=executable_path)
 
         # Parse port from server_url
         from urllib.parse import urlparse

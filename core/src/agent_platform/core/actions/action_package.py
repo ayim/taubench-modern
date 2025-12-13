@@ -99,9 +99,7 @@ class ActionPackage:
             organization=self.organization,
             version=self.version,
             url=self.url,
-            api_key=(
-                SecretString(self.api_key.get_secret_value()) if self.api_key is not None else None
-            ),
+            api_key=(SecretString(self.api_key.get_secret_value()) if self.api_key is not None else None),
             # DO NOT copy legacy whitelist field, on post init
             # it was upgraded to allowed_actions
             allowed_actions=self.allowed_actions,
@@ -121,9 +119,7 @@ class ActionPackage:
             "allowed_actions": self.allowed_actions,
         }
 
-    async def to_tool_definitions(
-        self, additional_headers: dict | None = None
-    ) -> list[ToolDefinition]:
+    async def to_tool_definitions(self, additional_headers: dict | None = None) -> list[ToolDefinition]:
         """Converts the action package to a list of tool definitions."""
         return await get_spec_and_build_tool_definitions(
             self.url or "",

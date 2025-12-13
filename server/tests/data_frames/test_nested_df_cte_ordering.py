@@ -16,9 +16,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
 
 
-def create_sql_data_frame(
-    name: str, sql: str, sql_dialect: str = "postgres"
-) -> "PlatformDataFrame":
+def create_sql_data_frame(name: str, sql: str, sql_dialect: str = "postgres") -> "PlatformDataFrame":
     """Create a minimal SQL computation data frame for testing."""
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
 

@@ -16,19 +16,13 @@ class ActionPackageMetadataInfo:
     description: str = field(metadata={"description": "Description of the action package."})
     """Description of the action package."""
 
-    secrets: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Secrets configuration."}
-    )
+    secrets: dict[str, Any] = field(default_factory=dict, metadata={"description": "Secrets configuration."})
     """Secrets configuration."""
 
-    action_package_version: str = field(
-        default="0.0.1", metadata={"description": "Version of the action package."}
-    )
+    action_package_version: str = field(default="0.0.1", metadata={"description": "Version of the action package."})
     """Version of the action package."""
 
-    metadata_version: int = field(
-        default=2, metadata={"description": "Version of the metadata format."}
-    )
+    metadata_version: int = field(default=2, metadata={"description": "Version of the metadata format."})
     """Version of the metadata format."""
 
     external_endpoints: list[ExternalEndpoint] = field(
@@ -69,9 +63,7 @@ class ActionPackageMetadataInfo:
             secrets=data.get("secrets", {}),
             action_package_version=data.get("action_package_version", "0.0.1"),
             metadata_version=data.get("metadata_version", 2),
-            external_endpoints=[
-                ExternalEndpoint.model_validate(ep) for ep in data.get("external-endpoints", [])
-            ],
+            external_endpoints=[ExternalEndpoint.model_validate(ep) for ep in data.get("external-endpoints", [])],
         )
 
 
@@ -149,19 +141,13 @@ class OpenAPISpecification:
     info: OpenAPIInfo = field(metadata={"description": "API information."})
     """API information."""
 
-    servers: list[OpenAPIServer] = field(
-        default_factory=list, metadata={"description": "Server configurations."}
-    )
+    servers: list[OpenAPIServer] = field(default_factory=list, metadata={"description": "Server configurations."})
     """Server configurations."""
 
-    paths: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "API paths and operations."}
-    )
+    paths: dict[str, Any] = field(default_factory=dict, metadata={"description": "API paths and operations."})
     """API paths and operations."""
 
-    components: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Reusable components."}
-    )
+    components: dict[str, Any] = field(default_factory=dict, metadata={"description": "Reusable components."})
     """Reusable components."""
 
     def model_dump(self) -> dict[str, Any]:
@@ -213,9 +199,7 @@ class ActionPackageMetadata:
     }
     """
 
-    metadata: ActionPackageMetadataInfo = field(
-        metadata={"description": "Package metadata information."}
-    )
+    metadata: ActionPackageMetadataInfo = field(metadata={"description": "Package metadata information."})
     """Package metadata information."""
 
     openapi_json: OpenAPISpecification = field(
@@ -235,9 +219,7 @@ class ActionPackageMetadata:
         """Create from dictionary."""
         if data is None:
             return cls(
-                metadata=ActionPackageMetadataInfo(
-                    name="", description="", action_package_version="0.0.1"
-                ),
+                metadata=ActionPackageMetadataInfo(name="", description="", action_package_version="0.0.1"),
                 openapi_json=OpenAPISpecification(
                     openapi="3.1.0", info=OpenAPIInfo(title="Action Server", version="1.0.0")
                 ),

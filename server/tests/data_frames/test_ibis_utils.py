@@ -184,9 +184,7 @@ async def test_snowflake_keypair_wrong_passphrase(tmp_path: Path):
     )
 
     # Generate a valid encrypted private key
-    private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=2048, backend=default_backend()
-    )
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
     encrypted_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,

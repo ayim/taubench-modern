@@ -166,12 +166,7 @@ class ExcelDataReaderSheet(DataReaderSheet):
     @property
     def column_headers(self) -> list[str]:
         if self.__loaded_sheet is None:
-            return [
-                c.name
-                for c in self._excel_reader.load_sheet(
-                    self._sheet_name, n_rows=0
-                ).available_columns()
-            ]
+            return [c.name for c in self._excel_reader.load_sheet(self._sheet_name, n_rows=0).available_columns()]
         return [c.name for c in self._loaded_sheet().available_columns()]
 
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
@@ -329,17 +324,13 @@ async def get_file_metadata(
     if file_id:
         ret = await storage.get_file_by_id(file_id, user_id)
         if ret is None:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND, message=f"File with id {file_id} not found"
-            )
+            raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=f"File with id {file_id} not found")
         return ret
     elif file_ref:
         thread = await storage.get_thread(user_id, thread_id)
         ret = await storage.get_file_by_ref(thread, file_ref, user_id)
         if ret is None:
-            raise PlatformHTTPError(
-                error_code=ErrorCode.NOT_FOUND, message=f"File with ref {file_ref} not found"
-            )
+            raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=f"File with ref {file_ref} not found")
         return ret
     else:
         raise PlatformHTTPError(
@@ -398,13 +389,9 @@ def create_file_data_reader_from_contents(
             data_reader = ExcelDataReader(file_contents, sheet_name=sheet_name)
     except Exception as e:
         if mime_type not in TABULAR_DATA_MIME_TYPES:
-            message = (
-                f"File {file_name} is not a valid table file (unexpected mime type: {mime_type!r})"
-            )
+            message = f"File {file_name} is not a valid table file (unexpected mime type: {mime_type!r})"
         else:
-            message = (
-                f"Unable to read file {file_name} as a data frame (found mime type {mime_type!r})"
-            )
+            message = f"Unable to read file {file_name} as a data frame (found mime type {mime_type!r})"
 
             logger.exception(message)
         raise PlatformHTTPError(

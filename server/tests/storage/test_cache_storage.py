@@ -75,9 +75,7 @@ async def test_cache_storage_date_eviction(
 
     # We need to manually set the last_accessed_at to simulate an old entry
     old_date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=35)
-    await storage.set_cache_entry(
-        old_cache_key, old_cache_data, old_time_to_compute, last_accessed_at=old_date
-    )
+    await storage.set_cache_entry(old_cache_key, old_cache_data, old_time_to_compute, last_accessed_at=old_date)
 
     # Entry 2: Recent (1 day ago) - we'll simulate this by creating it normally
     recent_cache_key = "recent_cache_key"

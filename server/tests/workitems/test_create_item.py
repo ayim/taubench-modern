@@ -83,7 +83,6 @@ def fastapi_app(storage: MockStorage, test_user: User, test_agent: Agent) -> Fas
     # calls StorageService.get_instance() directly (bypassing our dependency override)
     async def mock_payload_size_check() -> None:
         """Mock payload size check that always passes for testing."""
-        pass
 
     app.dependency_overrides[check_work_item_payload_size] = mock_payload_size_check
     app.add_exception_handler(PlatformHTTPError, platform_http_error_handler)  # type: ignore[arg-type]

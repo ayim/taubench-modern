@@ -170,9 +170,7 @@ class PlanExecutor:
             if self.state.rework_requested_for_step_id:
                 rework_id = self.state.rework_requested_for_step_id
                 try:
-                    _ = next(
-                        i for i, s in enumerate(self.state.plan_steps) if s.step_id == rework_id
-                    )
+                    _ = next(i for i, s in enumerate(self.state.plan_steps) if s.step_id == rework_id)
                 except StopIteration:
                     logger.error("Rework requested for unknown step_id: %s", rework_id)
                     self.state.rework_requested_for_step_id = None
@@ -201,9 +199,7 @@ class PlanExecutor:
                 )
                 if self.state.plan_status != "failed":
                     self.state.plan_status = "failed"
-                    self.state.plan_failure_reason = (
-                        resolution.get("note", "Plan blocked without detail.") or ""
-                    )
+                    self.state.plan_failure_reason = resolution.get("note", "Plan blocked without detail.") or ""
                     self.state.plan_failure_level = resolution.get("level", "warning") or "warning"
                 break
 
@@ -221,9 +217,7 @@ class PlanExecutor:
         )
         await sync_consistency_metadata(self.state, self.message)
 
-    async def _execute_single_step(  # noqa: C901, PLR0915
-        self, index: int
-    ) -> tuple[dict[str, Any], list[ToolExecutionResult]]:
+    async def _execute_single_step(self, index: int) -> tuple[dict[str, Any], list[ToolExecutionResult]]:
         step = self.state.plan_steps[index]
         self.state.current_plan_step_index = index
         self.state.current_plan_step_id = step.step_id
@@ -249,9 +243,7 @@ class PlanExecutor:
             loop_attempts += 1
             self.state.current_iteration = loop_attempts
 
-            tools_bundle, issues = await self.registry.gather(
-                self.message, refresh=(loop_attempts == 1)
-            )
+            tools_bundle, issues = await self.registry.gather(self.message, refresh=(loop_attempts == 1))
             self.state.configuration_issues = issues
             _update_elapsed_time(self.state)
 
@@ -269,9 +261,7 @@ class PlanExecutor:
                 kernel=self.kernel,
                 state=self.state,
                 prompt_path="prompts/tool-loop",
-                tools=_execution_tool_list(
-                    tools_bundle, (*self.state.consistency_tools, *support_tools)
-                ),
+                tools=_execution_tool_list(tools_bundle, (*self.state.consistency_tools, *support_tools)),
             )
 
             # Stream and collect any pending tool calls
@@ -313,9 +303,7 @@ class PlanExecutor:
                 self.state.current_step_resolution = resolution
                 self.state.controller_feedback = ""
                 await sync_consistency_metadata(self.state, self.message)
-                logger.warning(
-                    "Plan step %s blocked due to repeated lack of tool calls.", step.step_id
-                )
+                logger.warning("Plan step %s blocked due to repeated lack of tool calls.", step.step_id)
                 break
 
             self.state.no_toolcall_retry_count = 0
@@ -346,9 +334,7 @@ class PlanExecutor:
                     "index": index,
                 }
                 await sync_consistency_metadata(self.state, self.message)
-                logger.warning(
-                    "Plan step %s halted because the plan was declared failed.", step.step_id
-                )
+                logger.warning("Plan step %s halted because the plan was declared failed.", step.step_id)
                 break
 
             if not recent_results:
@@ -435,15 +421,11 @@ class PlanExecutor:
             content: Annotated[str, "The content of the artifact to be staged."],
             description: Annotated[str, "The description of the artifact to be staged."],
         ) -> dict[str, str]:
-            self.state.staged_for_final_reply.append(
-                {"content": content, "description": description}
-            )
+            self.state.staged_for_final_reply.append({"content": content, "description": description})
             logger.info("Staged artifact for final reply: %s", description)
             return {"result": f"Successfully staged artifact: {description}"}
 
-        return ToolDefinition.from_callable(
-            _stage_for_final_reply_internal, name="stage_for_final_reply"
-        )
+        return ToolDefinition.from_callable(_stage_for_final_reply_internal, name="stage_for_final_reply")
 
     async def _final_reply(self) -> None:
         # Prepare staged artifacts as markdown for the final prompt
@@ -469,9 +451,7 @@ class PlanExecutor:
                 prompt_path="prompts/final-reply",
                 minimize_reasoning=True,
             )
-            logger.info(
-                "Producing final reply (attempt %s)", self.state.no_final_reply_retry_count + 1
-            )
+            logger.info("Producing final reply (attempt %s)", self.state.no_final_reply_retry_count + 1)
             stream = await stream_with_retry(
                 platform=self.platform,
                 model=self.model,
@@ -576,9 +556,7 @@ def _merge_monitor_feedback(state: ConsistencyArchState) -> None:
         state.monitor_feedback_pending.clear()
         return
     combined = "\n".join(lines)
-    state.controller_feedback = (
-        f"{combined}\n\n{state.controller_feedback}" if state.controller_feedback else combined
-    )
+    state.controller_feedback = f"{combined}\n\n{state.controller_feedback}" if state.controller_feedback else combined
     state.monitor_feedback_pending.clear()
 
 
@@ -618,9 +596,7 @@ def _now_iso() -> str:
 
 
 def _update_elapsed_time(state: ConsistencyArchState) -> None:
-    elapsed_seconds = (
-        datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)
-    ).total_seconds()
+    elapsed_seconds = (datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)).total_seconds()
     state.processing_elapsed_time = f"{elapsed_seconds:.2f} seconds"
 
 
@@ -635,9 +611,7 @@ async def _execute_consistency_tool_calls(
         if isinstance(content, ResponseToolUseContent):
             tool_def = tool_index.get(content.tool_name)
             if not tool_def:
-                logger.warning(
-                    "Consistency prompt emitted unknown tool '%s'; ignoring.", content.tool_name
-                )
+                logger.warning("Consistency prompt emitted unknown tool '%s'; ignoring.", content.tool_name)
                 continue
             pending_calls.append((tool_def, content))
 
@@ -695,9 +669,7 @@ def _has_text_content(stream: ResponseStreamPipe | None) -> bool:
     return any(isinstance(c, ResponseTextContent) and c.text.strip() for c in content)
 
 
-async def _handle_no_final_reply(
-    state: ConsistencyArchState, message: ThreadMessageWithThreadState
-) -> bool:
+async def _handle_no_final_reply(state: ConsistencyArchState, message: ThreadMessageWithThreadState) -> bool:
     state.no_final_reply_retry_count += 1
     if state.no_final_reply_retry_count <= NO_FINAL_REPLY_RETRY_LIMIT:
         state.controller_feedback = (

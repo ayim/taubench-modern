@@ -77,9 +77,7 @@ async def test_parse_set_json_and_string_values():
 
 
 @pytest.mark.asyncio
-async def test_handle_toggle_memory_on_off_mutates_and_persists(
-    sqlite_storage, sqlite_model_creator
-):
+async def test_handle_toggle_memory_on_off_mutates_and_persists(sqlite_storage, sqlite_model_creator):
     kernel = await sqlite_model_creator.create_agent_server_kernel()
 
     # Turn on

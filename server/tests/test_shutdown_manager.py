@@ -180,9 +180,7 @@ class TestShutdownManager:
             ShutdownManager.register_drainable_background_worker("worker2", worker)
 
             # Multiple concurrent drain calls should be idempotent and not leak
-            drain_tasks = [
-                asyncio.create_task(ShutdownManager.drain_background_workers()) for _ in range(3)
-            ]
+            drain_tasks = [asyncio.create_task(ShutdownManager.drain_background_workers()) for _ in range(3)]
             await asyncio.gather(*drain_tasks)
 
     @pytest.mark.asyncio

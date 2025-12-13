@@ -148,9 +148,7 @@ class InProcessAgentRunner(BaseAgentRunner):
                     arch_info["description"] = "No description available."
 
                 # Extract other metadata from module if available
-                other_metadata_fields = (
-                    ArchitectureInfo.PACKAGE_ATTRIBUTES_TO_ARCHITECTURE_INFO.keys()
-                )
+                other_metadata_fields = ArchitectureInfo.PACKAGE_ATTRIBUTES_TO_ARCHITECTURE_INFO.keys()
                 for meta_attr in other_metadata_fields:
                     if hasattr(module, meta_attr):
                         # Convert attribute name from "__attr__" to "attr"

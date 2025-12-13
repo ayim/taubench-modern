@@ -74,27 +74,19 @@ class TokenStorageAdapter(TokenStorage):
 
     async def clear(self) -> None:
         await self._storage.delete_mcp_oauth_token(user_id=self._user_id, mcp_url=self._mcp_url)
-        await self._storage.delete_mcp_oauth_client_info(
-            user_id=self._user_id, mcp_url=self._mcp_url
-        )
+        await self._storage.delete_mcp_oauth_client_info(user_id=self._user_id, mcp_url=self._mcp_url)
 
     @override
     async def get_tokens(self) -> OAuthToken | None:
-        return await self._storage.get_mcp_oauth_token(
-            user_id=self._user_id, mcp_url=self._mcp_url, decrypt=True
-        )
+        return await self._storage.get_mcp_oauth_token(user_id=self._user_id, mcp_url=self._mcp_url, decrypt=True)
 
     @override
     async def set_tokens(self, tokens: OAuthToken) -> None:
-        await self._storage.set_mcp_oauth_token(
-            user_id=self._user_id, mcp_url=self._mcp_url, token=tokens
-        )
+        await self._storage.set_mcp_oauth_token(user_id=self._user_id, mcp_url=self._mcp_url, token=tokens)
 
     @override
     async def get_client_info(self) -> OAuthClientInformationFull | None:
-        return await self._storage.get_mcp_oauth_client_info(
-            user_id=self._user_id, mcp_url=self._mcp_url, decrypt=True
-        )
+        return await self._storage.get_mcp_oauth_client_info(user_id=self._user_id, mcp_url=self._mcp_url, decrypt=True)
 
     @override
     async def set_client_info(self, client_info: OAuthClientInformationFull) -> None:
@@ -117,7 +109,7 @@ class OAuth(OAuthClientProvider):
     a browser for user authorization and running a local callback server.
     """
 
-    def __init__(  # noqa PLR0913
+    def __init__(
         self,
         mcp_url: str,
         token_storage_adapter: TokenStorageAdapter,
@@ -207,9 +199,7 @@ class OAuth(OAuthClientProvider):
             # Check for client not found error (400 typically means bad client_id)
             bad_client_id = 400
             if response.status_code == bad_client_id:
-                raise ClientNotFoundError(
-                    "OAuth client not found - cached credentials may be stale"
-                )
+                raise ClientNotFoundError("OAuth client not found - cached credentials may be stale")
 
             # OAuth typically returns redirects, but some providers return 200 with HTML login pages
             if response.status_code not in (200, 302, 303, 307, 308):
@@ -278,9 +268,7 @@ class OAuth(OAuthClientProvider):
 
         raise RuntimeError("OAuth callback handler could not be started")
 
-    async def async_auth_flow(
-        self, request: httpx.Request
-    ) -> AsyncGenerator[httpx.Request, httpx.Response]:
+    async def async_auth_flow(self, request: httpx.Request) -> AsyncGenerator[httpx.Request, httpx.Response]:
         """HTTPX auth flow with automatic retry on stale cached credentials.
 
         If the OAuth flow fails due to invalid/stale client credentials,

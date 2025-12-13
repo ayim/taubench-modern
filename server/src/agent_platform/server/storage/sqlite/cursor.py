@@ -12,7 +12,6 @@ class CursorMixin(AbstractStorage):
         self,
     ) -> AbstractAsyncContextManager[Cursor]:
         """Get a cursor for reading from the database."""
-        pass
 
     @abstractmethod
     def _transaction(
@@ -20,4 +19,3 @@ class CursorMixin(AbstractStorage):
     ) -> AbstractAsyncContextManager[Cursor]:
         """Get a cursor for writing to the database, implementations will ensure safe
         locking for concurrent operations."""
-        pass

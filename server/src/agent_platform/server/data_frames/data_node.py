@@ -59,9 +59,7 @@ def make_data_connection_backend(data_connection_id: str) -> SupportedIbisBacken
 SliceOutputFormat = Literal["json", "parquet", "table"]
 
 
-def _find_columns_case_insensitive(
-    requested_columns: list[str], available_columns: list[str]
-) -> list[str]:
+def _find_columns_case_insensitive(requested_columns: list[str], available_columns: list[str]) -> list[str]:
     """
     Find column names in a case-insensitive manner.
 
@@ -96,15 +94,13 @@ def _find_columns_case_insensitive(
     if missing_columns:
         raise PlatformError(
             error_code=ErrorCode.BAD_REQUEST,
-            message=(
-                f"Columns not found: {missing_columns}. Available columns: {available_columns}"
-            ),
+            message=(f"Columns not found: {missing_columns}. Available columns: {available_columns}"),
         )
 
     return selected_columns
 
 
-def _convert_pyarrow_slice_to_format(  # noqa: PLR0913
+def _convert_pyarrow_slice_to_format(
     result: "pyarrow.Table",
     offset: int | None,
     limit: int | None,
@@ -136,7 +132,7 @@ def _convert_pyarrow_slice_to_format(  # noqa: PLR0913
     return _convert_arrow_to_format(result, output_format)
 
 
-def convert_pyarrow_slice_to_table_json_or_parquet(  # noqa: PLR0913
+def convert_pyarrow_slice_to_table_json_or_parquet(
     result: "pyarrow.Table",
     offset: int | None,
     limit: int | None,
@@ -148,9 +144,7 @@ def convert_pyarrow_slice_to_table_json_or_parquet(  # noqa: PLR0913
 
     return typing.cast(
         bytes | Table,
-        _convert_pyarrow_slice_to_format(
-            result, offset, limit, column_names, output_format, order_by
-        ),
+        _convert_pyarrow_slice_to_format(result, offset, limit, column_names, output_format, order_by),
     )
 
 
@@ -193,13 +187,11 @@ def convert_pyarrow_slice_to_list_of_rows(
 
     return typing.cast(
         list[Row],
-        _convert_pyarrow_slice_to_format(
-            result, offset, limit, column_names, "list[Row]", order_by
-        ),
+        _convert_pyarrow_slice_to_format(result, offset, limit, column_names, "list[Row]", order_by),
     )
 
 
-async def _convert_ibis_slice_to_format(  # noqa: PLR0913
+async def _convert_ibis_slice_to_format(
     result: "AsyncIbisTable",
     offset: int,
     limit: int | None,
@@ -309,7 +301,7 @@ def _convert_arrow_to_format(
 _VALID_PY_TYPES = int | float | bool | str | None
 
 
-def convert_to_valid_json_types(  # noqa: PLR0911
+def convert_to_valid_json_types(
     as_py: Any,
 ) -> str | int | float | bool | list | dict | None:
     if isinstance(as_py, _VALID_PY_TYPES):
@@ -327,9 +319,7 @@ def convert_to_valid_json_types(  # noqa: PLR0911
     elif isinstance(as_py, list | tuple):
         return [convert_to_valid_json_types(v) for v in as_py]
     elif isinstance(as_py, dict):
-        return {
-            convert_to_valid_json_types(k): convert_to_valid_json_types(v) for k, v in as_py.items()
-        }
+        return {convert_to_valid_json_types(k): convert_to_valid_json_types(v) for k, v in as_py.items()}
     else:
         # Fallback to string (uuid, etc.)
         return str(as_py)
@@ -347,7 +337,6 @@ class DataNodeResult(Protocol):
     @abstractmethod
     async def num_rows(self) -> int:
         """Get the number of rows. This may do blocking I/O for some implementations."""
-        pass
 
     @property
     @abstractmethod
@@ -606,9 +595,7 @@ class DataNodeFromIbisResult(DataNodeResult):
         initial_time = time.monotonic()
 
         result = self._ibis_result
-        ret = await _convert_ibis_slice_to_format(
-            result, offset, limit, column_names, output_format, order_by
-        )
+        ret = await _convert_ibis_slice_to_format(result, offset, limit, column_names, output_format, order_by)
 
         logger.info(f"Sliced ibis result in {time.monotonic() - initial_time:.2f} seconds")
 

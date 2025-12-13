@@ -58,11 +58,7 @@ async def test_convert_prompt_drops_reasoning_before_last_user_message() -> None
         ResponseReasoningItemParam,
     )
 
-    reasoning_items = [
-        cast(ResponseReasoningItemParam, item)
-        for item in converted.input
-        if _is_reasoning_item(item)
-    ]
+    reasoning_items = [cast(ResponseReasoningItemParam, item) for item in converted.input if _is_reasoning_item(item)]
     assert len(reasoning_items) == 1
 
     kept_reasoning = reasoning_items[0]

@@ -108,7 +108,7 @@ filterwarnings = [
 
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 show-fixes = true
 respect-gitignore = true
 exclude = [
@@ -140,7 +140,16 @@ select = [
 ]
 fixable = ["ALL"]
 unfixable = []
-ignore = ["COM812"]
+ignore = [
+    "COM812",
+    "C901",
+    "PLR0913",
+    "PLR0912",
+    "PLR0915",
+    "PLR2004",
+    "PLR0911",
+    "PLC0415",
+]
 exclude = ["scripts/*.py"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -151,7 +160,6 @@ exclude = ["scripts/*.py"]
 "server/tests/**/*.py" = ["PLR2004", "N802"]
 "quality/tests/**/*.py" = ["PLR2004"]
 "server/tests/endpoints/test_doc_int_endpoints.py" = ["TID253"]
-"document-intelligence/**/*.py" = ["PLC0415"]
 "document-intelligence/tests/**/*.py" = ["N802"]
 
 [tool.ruff.lint.isort]

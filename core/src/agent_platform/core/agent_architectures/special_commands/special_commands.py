@@ -24,10 +24,7 @@ from typing import TYPE_CHECKING, Any, Final, Literal, cast
 if TYPE_CHECKING:
     from agent_platform.architectures.default.state import ArchState
     from agent_platform.core import Kernel
-    from agent_platform.core.kernel_interfaces.data_frames import (
-        DataFrameArchState,
-        DataFramesInterface,
-    )
+    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState, DataFramesInterface
     from agent_platform.core.tools.tool_definition import ToolDefinition
 
 # ---- Constants ----------------------------------------------------------------
@@ -35,9 +32,7 @@ if TYPE_CHECKING:
 TOGGLE_TARGETS: Final[frozenset[str]] = frozenset({"memory", "data-frames"})
 
 # Precompiled regexes for command parsing (whitespace tolerant)
-_RE_TOGGLE: Final[re.Pattern[str]] = re.compile(
-    r"^/toggle\s+(?P<target>\S+)\s+(?P<switch>on|off)\s*$", re.IGNORECASE
-)
+_RE_TOGGLE: Final[re.Pattern[str]] = re.compile(r"^/toggle\s+(?P<target>\S+)\s+(?P<switch>on|off)\s*$", re.IGNORECASE)
 _RE_SET: Final[re.Pattern[str]] = re.compile(r"^/set\s+(?P<path>\S+)\s+(?P<value>.+)$")
 _RE_UNSET: Final[re.Pattern[str]] = re.compile(r"^/unset\s+(?P<path>\S+)\s*$", re.IGNORECASE)
 
@@ -50,21 +45,15 @@ logger = logging.getLogger(__name__)
 class DebugCommand:
     """Emit a detailed diagnostic dump into the thread (no model call)."""
 
-    pass
-
 
 @dataclass(frozen=True, slots=True)
 class HelpCommand:
     """Render short help for available special commands."""
 
-    pass
-
 
 @dataclass(frozen=True, slots=True)
 class DataCommand:
     """Dump data frame and semantic model context (no model call)."""
-
-    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,9 +79,7 @@ class UnsetCommand:
     path: str  # must begin with agent_settings.
 
 
-SpecialCommand = (
-    DebugCommand | HelpCommand | DataCommand | ToggleCommand | SetCommand | UnsetCommand
-)
+SpecialCommand = DebugCommand | HelpCommand | DataCommand | ToggleCommand | SetCommand | UnsetCommand
 
 __all__ = [
     "DataCommand",
@@ -109,7 +96,7 @@ __all__ = [
 # ---- Parsing ------------------------------------------------------------------
 
 
-def parse_special_command(  # noqa: C901, PLR0911
+def parse_special_command(
     text: str,
 ) -> SpecialCommand | None:
     """
@@ -166,7 +153,7 @@ def parse_special_command(  # noqa: C901, PLR0911
 # ---- Dispatcher ---------------------------------------------------------------
 
 
-async def handle_special_command(  # noqa: PLR0911
+async def handle_special_command(
     command: SpecialCommand,
     kernel: Kernel,
     *,
@@ -205,7 +192,7 @@ async def handle_special_command(  # noqa: PLR0911
 # ---- Debug --------------------------------------------------------------------
 
 
-async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but structured)
+async def _handle_debug(
     kernel: Kernel,
     state: ArchState | None,
     internal_tools_provider: Callable[[], Sequence[ToolDefinition]] | None,
@@ -308,9 +295,7 @@ async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but
             await kernel.sql_generation.step_initialize()
             sql_generation_tools = list(kernel.sql_generation.get_sql_generation_tools())
             sql_generation_names = [f"`{t.name}`" for t in sql_generation_tools]
-            _append_tool_group(
-                message, "sql_generation", sql_generation_names, len(sql_generation_tools)
-            )
+            _append_tool_group(message, "sql_generation", sql_generation_names, len(sql_generation_tools))
             await message.stream_delta()
             all_tools_dump.extend([t.model_dump() for t in sql_generation_tools])
         except Exception as e:
@@ -348,9 +333,7 @@ async def _handle_debug(  # noqa: C901, PLR0912, PLR0915  (complex by design but
 
     # Action tool defs
     try:
-        action_tools, action_issues = await kernel.tools.from_action_packages(
-            kernel.agent.action_packages
-        )
+        action_tools, action_issues = await kernel.tools.from_action_packages(kernel.agent.action_packages)
         names = [f"`{t.name}`" for t in action_tools]
         _append_tool_group(message, "action", names, len(action_tools))
         await message.stream_delta()
@@ -579,9 +562,7 @@ async def _initialize_data_frames(
 async def _append_data_frames_section(message, df_interface: DataFramesInterface) -> None:
     await _append(message, "### Data Frames\n")
 
-    summary = _optional_text_attr(
-        df_interface, "data_frames_summary", "/data: data frame summary failed"
-    )
+    summary = _optional_text_attr(df_interface, "data_frames_summary", "/data: data frame summary failed")
     if summary:
         await _append(message, _with_trailing_newline(summary))
     else:
@@ -633,9 +614,7 @@ async def _append_semantic_models_section(message, df_interface: DataFramesInter
 async def _append_system_prompt_section(message, df_interface: DataFramesInterface) -> None:
     await _append(message, "\n### Data Frames System Prompt\n")
 
-    prompt = _optional_text_attr(
-        df_interface, "data_frames_system_prompt", "/data: system prompt retrieval failed"
-    )
+    prompt = _optional_text_attr(df_interface, "data_frames_system_prompt", "/data: system prompt retrieval failed")
     if prompt:
         await _append(message, f"```\n{prompt}\n```\n")
     else:
@@ -704,7 +683,7 @@ def _with_trailing_newline(text: str) -> str:
     return text if text.endswith("\n") else text + "\n"
 
 
-def _format_semantic_models(payload: list[dict[str, Any]]) -> str:  # noqa: C901, PLR0912
+def _format_semantic_models(payload: list[dict[str, Any]]) -> str:
     lines: list[str] = []
 
     for model in payload:
@@ -750,9 +729,7 @@ def _format_semantic_models(payload: list[dict[str, Any]]) -> str:  # noqa: C901
                 ("Time Dimensions", "time_dimensions"),
                 ("Facts", "facts"),
             ):
-                formatted_columns = _format_semantic_columns_table(
-                    columns=table.get(column_key), heading=heading
-                )
+                formatted_columns = _format_semantic_columns_table(columns=table.get(column_key), heading=heading)
                 if formatted_columns:
                     lines.append(formatted_columns)
                     section_added = True
@@ -813,7 +790,7 @@ def _escape_table_cell(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", "<br>")
 
 
-def _strip_sample_values_from_semantic_models(payload: list[dict[str, Any]]) -> list[dict]:  # noqa: C901
+def _strip_sample_values_from_semantic_models(payload: list[dict[str, Any]]) -> list[dict]:
     from copy import deepcopy
 
     sanitized = deepcopy(payload)
@@ -839,9 +816,7 @@ def _strip_sample_values_from_semantic_models(payload: list[dict[str, Any]]) -> 
     return sanitized
 
 
-async def _handle_toggle(
-    kernel: Kernel, state: DataFrameArchState | None, cmd: ToggleCommand
-) -> None:
+async def _handle_toggle(kernel: Kernel, state: DataFrameArchState | None, cmd: ToggleCommand) -> None:
     """Handle /toggle by mapping the logical key to its settings path."""
     mapping: dict[Literal["memory", "data-frames"], str] = {
         "memory": "agent_settings.enable_memory",
@@ -856,9 +831,7 @@ async def _handle_set(kernel: Kernel, state: DataFrameArchState | None, cmd: Set
     await _apply_setting_update(kernel, op="set", path=cmd.path, value=cmd.value)
 
 
-async def _handle_unset(
-    kernel: Kernel, state: DataFrameArchState | None, cmd: UnsetCommand
-) -> None:
+async def _handle_unset(kernel: Kernel, state: DataFrameArchState | None, cmd: UnsetCommand) -> None:
     """Handle /unset by removing the requested path."""
     await _apply_setting_update(kernel, op="unset", path=cmd.path)
 

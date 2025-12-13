@@ -50,7 +50,7 @@ class AgentRunContext:
 class QualityTestRunner:
     """Orchestrates quality testing with automatic infrastructure management."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         test_threads_dir: Path,
         test_agents_dir: Path,
@@ -65,9 +65,7 @@ class QualityTestRunner:
         self.test_agents_dir = test_agents_dir
         self.server_url = server_url
         self.test_data_dir = (
-            Path(test_data_dir)
-            if test_data_dir is not None
-            else (test_threads_dir.parent / "test-data")
+            Path(test_data_dir) if test_data_dir is not None else (test_threads_dir.parent / "test-data")
         )
 
         # Initialize components
@@ -90,9 +88,7 @@ class QualityTestRunner:
         self.discovered_agents = self.discover_agents()
 
         # Initialize results manager with the same datadir as orchestrator and discovered agents
-        self.results_manager = QualityResultsManager(
-            self.orchestrator.data_dir, self.discovered_agents
-        )
+        self.results_manager = QualityResultsManager(self.orchestrator.data_dir, self.discovered_agents)
 
     def discover_agents(self) -> list[AgentPackage]:
         """Discover available agent packages including preinstalled test agents."""
@@ -123,7 +119,7 @@ class QualityTestRunner:
         logger.info(f"Found {len(agents)} total agent packages")
         return agents
 
-    def _discover_preinstalled_agents(self) -> list[AgentPackage]:  # noqa: C901
+    def _discover_preinstalled_agents(self) -> list[AgentPackage]:
         """Discover preinstalled agents based on test directories and server metadata.
 
         We infer which preinstalled agents are needed from directories under
@@ -173,14 +169,12 @@ class QualityTestRunner:
 
             if not agents_data:
                 logger.warning(
-                    f"No preinstalled agent found for logical name '{logical_name}' using metadata "
-                    f"{params}",
+                    f"No preinstalled agent found for logical name '{logical_name}' using metadata {params}",
                 )
                 continue
             if not isinstance(agents_data, list):
                 logger.warning(
-                    f"Preinstalled agent search result is not a list for '{logical_name}': "
-                    f"{agents_data}",
+                    f"Preinstalled agent search result is not a list for '{logical_name}': {agents_data}",
                 )
                 continue
 
@@ -188,16 +182,14 @@ class QualityTestRunner:
 
             if not isinstance(agent_data, dict):
                 logger.warning(
-                    f"Preinstalled agent search result is not a dict for '{logical_name}': "
-                    f"{agent_data}",
+                    f"Preinstalled agent search result is not a dict for '{logical_name}': {agent_data}",
                 )
                 continue
 
             agent_id = agent_data.get("id")
             if not agent_id:
                 logger.warning(
-                    f"Preinstalled agent search result missing agent_id for '{logical_name}': "
-                    f"{agent_data}",
+                    f"Preinstalled agent search result missing agent_id for '{logical_name}': {agent_data}",
                 )
                 continue
 
@@ -249,7 +241,7 @@ class QualityTestRunner:
         logger.info(f"Found {len(test_cases)} test cases")
         return test_cases
 
-    async def run_tests_for_all_agents_fully_parallel(  # noqa: C901, PLR0912, PLR0915
+    async def run_tests_for_all_agents_fully_parallel(
         self,
         selected_agents: list[str],
         max_concurrent_agents: int = 2,
@@ -296,8 +288,7 @@ class QualityTestRunner:
                 return {}
 
         logger.info(
-            f"Starting fully parallel execution for {len(agents)} agents "
-            f"(max {max_concurrent_agents} concurrent)"
+            f"Starting fully parallel execution for {len(agents)} agents (max {max_concurrent_agents} concurrent)"
         )
 
         results = {}
@@ -334,9 +325,7 @@ class QualityTestRunner:
                             platform_filter,
                             tests_filter,
                         )
-                        logger.info(
-                            f"Completed agent: {agent.name} with {len(agent_results)} results"
-                        )
+                        logger.info(f"Completed agent: {agent.name} with {len(agent_results)} results")
                         return agent.name, agent_results
 
                     except Exception as e:
@@ -353,7 +342,7 @@ class QualityTestRunner:
                     logger.error(f"Agent execution failed with exception: {result}")
                     if overall_error is None:
                         overall_error = f"Agent execution failed: {result}"
-                elif isinstance(result, tuple) and len(result) == 2:  # noqa: PLR2004
+                elif isinstance(result, tuple) and len(result) == 2:
                     agent_name, test_results = result
                     results[agent_name] = test_results
                 else:
@@ -399,15 +388,11 @@ class QualityTestRunner:
             test_cases = self.discover_test_cases(agent_package.name, tests_filter=tests_filter)
 
             if not test_cases:
-                logger.error(
-                    f"No test cases found for agent {agent_package.name} after applying filters."
-                )
+                logger.error(f"No test cases found for agent {agent_package.name} after applying filters.")
                 return []
 
             agent_package_metadata = await agent_package.extract_package_metadata()
-            target_platforms = self._collect_target_platforms(
-                test_cases, platform_filter, agent_package.name
-            )
+            target_platforms = self._collect_target_platforms(test_cases, platform_filter, agent_package.name)
             package_oauth_secrets = await self._build_package_oauth_secrets(agent_package_metadata)
 
             logger.info(
@@ -429,9 +414,7 @@ class QualityTestRunner:
             )
 
             # Initialize agent testing in results manager
-            self.results_manager.start_agent_testing(
-                agent_package, test_cases, platform_filter=platform_filter
-            )
+            self.results_manager.start_agent_testing(agent_package, test_cases, platform_filter=platform_filter)
 
             # Run each test case with all its platforms in parallel
             # (But we are _sequential_ at the level of a test case!!)
@@ -465,9 +448,7 @@ class QualityTestRunner:
             self.results_manager.complete_agent_testing(agent_package.name, str(e))
             raise
 
-    def _get_platforms_for_test_case(
-        self, test_case: TestCase, platform_filter: str | None
-    ) -> list[Platform]:
+    def _get_platforms_for_test_case(self, test_case: TestCase, platform_filter: str | None) -> list[Platform]:
         """Return the list of platforms to run for a test case given the filter."""
         if platform_filter is None:
             return list(test_case.target_platforms)
@@ -486,14 +467,10 @@ class QualityTestRunner:
             all_platforms.update(self._get_platforms_for_test_case(test_case, platform_filter))
 
         if platform_filter and not all_platforms:
-            raise ValueError(
-                f"No test targets found for platform '{platform_filter}' in agent '{agent_name}'."
-            )
+            raise ValueError(f"No test targets found for platform '{platform_filter}' in agent '{agent_name}'.")
 
         if not all_platforms:
-            raise ValueError(
-                f"No target platforms defined for tests associated with agent '{agent_name}'."
-            )
+            raise ValueError(f"No target platforms defined for tests associated with agent '{agent_name}'.")
 
         return list(all_platforms)
 
@@ -556,9 +533,7 @@ class QualityTestRunner:
                         )
                         oauth_secrets.append(ActionSecret(name=secret_name, value=access_token))
 
-                    package_action_oauth_secrets.append(
-                        ActionSecrets(name=action_name, secrets=oauth_secrets)
-                    )
+                    package_action_oauth_secrets.append(ActionSecrets(name=action_name, secrets=oauth_secrets))
 
                 package_oauth_secrets.append(
                     ActionPackageSecret(name=pkg.get("name"), actions=package_action_oauth_secrets)
@@ -566,7 +541,7 @@ class QualityTestRunner:
 
         return package_oauth_secrets
 
-    async def _run_test_case_with_platforms(  # noqa: C901
+    async def _run_test_case_with_platforms(
         self,
         agent_package: AgentPackage,
         test_case: TestCase,
@@ -585,9 +560,7 @@ class QualityTestRunner:
         test_case_agent_ids: dict[str, str] = {}
         created_clones: list[str] = []
 
-        needs_unique_clones = (
-            agent_package.is_preinstalled and test_case.sdms and len(test_case.sdms) > 0
-        )
+        needs_unique_clones = agent_package.is_preinstalled and test_case.sdms and len(test_case.sdms) > 0
 
         if needs_unique_clones:
             for platform in platforms:
@@ -690,7 +663,7 @@ class QualityTestRunner:
 
         return scopes_by_provider
 
-    async def update_action_secrets(  # noqa: C901 PLR0912 PLR0915
+    async def update_action_secrets(
         self,
         agent_id: str,
         action_secrets: list[ActionPackageSecret],
@@ -708,16 +681,11 @@ class QualityTestRunner:
             logger.info(f"Processing secrets for package: {package_name} on agent {agent_id}")
 
             action_server_base_url = (
-                action_server_base_url
-                if action_server_base_url
-                else self.orchestrator.action_server_url
+                action_server_base_url if action_server_base_url else self.orchestrator.action_server_url
             )
 
             if not action_server_base_url:
-                logger.warning(
-                    f"No action server base URL found for agent {agent_id}. "
-                    "Skipping secrets update."
-                )
+                logger.warning(f"No action server base URL found for agent {agent_id}. Skipping secrets update.")
                 continue
 
             secrets_endpoint = f"{action_server_base_url.rstrip('/')}/api/secrets"
@@ -746,17 +714,11 @@ class QualityTestRunner:
                             value if isinstance(value, str) else asdict(value)
                         )
             except ValueError as e:  # Catches the missing env var error
-                logger.error(
-                    f"Failed to prepare secrets for package '{package_name}' on "
-                    f"agent {agent_id}: {e}"
-                )
+                logger.error(f"Failed to prepare secrets for package '{package_name}' on agent {agent_id}: {e}")
                 continue  # to the next package_secret_config
 
             if not secrets_to_set_for_package:
-                logger.info(
-                    f"No secrets to set for package '{package_name}' on "
-                    f"agent {agent_id} after processing."
-                )
+                logger.info(f"No secrets to set for package '{package_name}' on agent {agent_id} after processing.")
                 continue
 
             payload_data_dict = {
@@ -804,22 +766,17 @@ class QualityTestRunner:
                     )
                     continue
 
-                logger.info(
-                    f"Successfully set secrets for Action Package: '{package_name}' "
-                    f"at {secrets_endpoint}"
-                )
+                logger.info(f"Successfully set secrets for Action Package: '{package_name}' at {secrets_endpoint}")
 
             except httpx.RequestError as e:
                 logger.error(
-                    f"Request error during POST to {secrets_endpoint} for package "
-                    f"'{package_name}': {e}",
+                    f"Request error during POST to {secrets_endpoint} for package '{package_name}': {e}",
                     exc_info=True,
                 )
                 continue
             except Exception as e:
                 logger.error(
-                    f"Unexpected error during POST to {secrets_endpoint} for package "
-                    f"'{package_name}': {e}",
+                    f"Unexpected error during POST to {secrets_endpoint} for package '{package_name}': {e}",
                     exc_info=True,
                 )
                 continue
@@ -833,16 +790,12 @@ class QualityTestRunner:
         """Run a single test case on a specific platform with all setup."""
 
         # TODO we could average over the evaluations
-        tasks = [
-            self._run_single_test(agent_id, test_case, platform) for _ in range(test_case.trials)
-        ]
+        tasks = [self._run_single_test(agent_id, test_case, platform) for _ in range(test_case.trials)]
         results = await asyncio.gather(*tasks)
 
         return TestResultGroup(thread_results=results)
 
-    async def _run_single_test(
-        self, agent_id: str, test_case: TestCase, platform: Platform
-    ) -> ThreadResult:
+    async def _run_single_test(self, agent_id: str, test_case: TestCase, platform: Platform) -> ThreadResult:
         """Run a single test case on a specific platform."""
         logger.info(f"Running test on platform: {platform.name}")
 

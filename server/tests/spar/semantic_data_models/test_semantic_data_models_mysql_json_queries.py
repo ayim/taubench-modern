@@ -55,9 +55,7 @@ def mysql_json_agent(
                 "models": {"openai": ["gpt-4o"]},
             }
         ],
-        runbook=(
-            "You are a helpful assistant for testing MySQL semantic data models with JSON columns."
-        ),
+        runbook=("You are a helpful assistant for testing MySQL semantic data models with JSON columns."),
     )
     return agent_id
 
@@ -330,9 +328,7 @@ def test_mysql_json_product_brand_extraction(
     assert len(contents) >= 3, f"Expected at least 3 products, got {len(contents)}"
 
     # Convert to dict by product name for easier assertions
-    products_by_name = {
-        row[next(k for k in row.keys() if "name" in k.lower())]: row for row in contents
-    }
+    products_by_name = {row[next(k for k in row.keys() if "name" in k.lower())]: row for row in contents}
 
     # Verify specific brands - fail if not found to help debug LLM query issues
     assert 'Laptop Pro 15"' in products_by_name, (
@@ -374,8 +370,7 @@ def test_mysql_json_nested_field_extraction(
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
     query = (
-        "Show me the product name and CPU from the specifications JSON column "
-        "for products in products_with_json table."
+        "Show me the product name and CPU from the specifications JSON column for products in products_with_json table."
     )
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
@@ -414,9 +409,7 @@ def test_mysql_json_nested_field_extraction(
     else:
         # Query succeeded but didn't extract nested value
         # Still counts as success for JSON syntax
-        print(
-            "⚠️ Query succeeded but CPU not extracted from nested JSON (LLM may need more context)"
-        )
+        print("⚠️ Query succeeded but CPU not extracted from nested JSON (LLM may need more context)")
 
 
 @pytest.mark.flaky(max_runs=3, min_passes=1)
@@ -435,8 +428,7 @@ def test_mysql_json_array_contains_check(
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
     query = (
-        "Show me products from products_with_json where the tags array contains 'electronics'. "
-        "Show the product name."
+        "Show me products from products_with_json where the tags array contains 'electronics'. Show the product name."
     )
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
@@ -453,9 +445,7 @@ def test_mysql_json_array_contains_check(
     print(f"Data frame contents: {contents}")
 
     # Should have at least 2 products with 'electronics' tag
-    assert len(contents) >= 2, (
-        f"Expected at least 2 products with electronics tag, got {len(contents)}"
-    )
+    assert len(contents) >= 2, f"Expected at least 2 products with electronics tag, got {len(contents)}"
 
     # Verify Laptop and Mouse are in results
     product_names = [str(next(iter(row.values()))) for row in contents]
@@ -643,14 +633,10 @@ def test_mysql_invoice_total_extraction(
         f"SQL: {sql_tool_call.input_data.get('sql_query', 'N/A')}"
     )
     invoice = invoices_by_id["doc-001"]
-    total_value = next(
-        (v for k, v in invoice.items() if "total" in k.lower() or "invoice" in k.lower()), None
-    )
+    total_value = next((v for k, v in invoice.items() if "total" in k.lower() or "invoice" in k.lower()), None)
     # Convert to int if it's a float
     if total_value is not None:
-        total_value = (
-            int(float(total_value)) if isinstance(total_value, int | float | str) else total_value
-        )
+        total_value = int(float(total_value)) if isinstance(total_value, int | float | str) else total_value
     assert total_value == 150000, f"Expected doc-001 total=150000, got {total_value}"
     print("✅ Doc-001 invoice total correctly extracted: 150000")
 
@@ -661,13 +647,9 @@ def test_mysql_invoice_total_extraction(
         f"SQL: {sql_tool_call.input_data.get('sql_query', 'N/A')}"
     )
     invoice = invoices_by_id["doc-002"]
-    total_value = next(
-        (v for k, v in invoice.items() if "total" in k.lower() or "invoice" in k.lower()), None
-    )
+    total_value = next((v for k, v in invoice.items() if "total" in k.lower() or "invoice" in k.lower()), None)
     if total_value is not None:
-        total_value = (
-            int(float(total_value)) if isinstance(total_value, int | float | str) else total_value
-        )
+        total_value = int(float(total_value)) if isinstance(total_value, int | float | str) else total_value
     assert total_value == 100000, f"Expected doc-002 total=100000, got {total_value}"
     print("✅ Doc-002 invoice total correctly extracted: 100000")
 
@@ -704,10 +686,7 @@ def test_mysql_invoice_sum_vs_total(
     agent_id = agent_with_mysql_json_model
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
-    query = (
-        "For each invoice document, check if the sum of line items amounts "
-        "matches the invoice total"
-    )
+    query = "For each invoice document, check if the sum of line items amounts matches the invoice total"
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
 

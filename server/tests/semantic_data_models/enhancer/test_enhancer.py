@@ -85,9 +85,7 @@ def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regres
         "tables": tables_example,
     }
 
-    semantic_data_model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(
-        semantic_model_example
-    )
+    semantic_data_model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(semantic_model_example)
 
     data_regression.check(semantic_data_model_for_llm.model_dump())
 
@@ -113,20 +111,14 @@ def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regres
     ]
     data_regression.check(semantic_data_model_for_llm.model_dump(), basename="changed_for_llm")
 
-    update_semantic_data_model_with_semantic_data_model_from_llm(
-        semantic_model_example, semantic_data_model_for_llm
-    )
+    update_semantic_data_model_with_semantic_data_model_from_llm(semantic_model_example, semantic_data_model_for_llm)
     data_regression.check(semantic_model_example, basename="updated_from_llm")
 
     # Recreating it for the LLM should give the same result
-    semantic_data_model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(
-        semantic_model_example
-    )
+    semantic_data_model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(semantic_model_example)
     data_regression.check(semantic_data_model_for_llm.model_dump(), basename="changed_for_llm")
 
-    update_semantic_data_model_with_semantic_data_model_from_llm(
-        semantic_model_example, semantic_data_model_for_llm
-    )
+    update_semantic_data_model_with_semantic_data_model_from_llm(semantic_model_example, semantic_data_model_for_llm)
     data_regression.check(semantic_model_example, basename="updated_from_llm")
 
 
@@ -184,9 +176,7 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
     )
 
     # Response without tool call - text response that should be rejected
-    text_response = (
-        """Here is the enhanced semantic data model with improved names and descriptions."""
-    )
+    text_response = """Here is the enhanced semantic data model with improved names and descriptions."""
 
     # Create async mock
     mock_prompt_generate = AsyncMock()
@@ -405,9 +395,7 @@ async def test_enhance_semantic_data_model_with_tool_call():
         enhanced_column = dimensions[0]
 
         description = enhanced_column.get("description")
-        assert description == "Name of the AI system", (
-            f"Expected description from valid response, got: {description}"
-        )
+        assert description == "Name of the AI system", f"Expected description from valid response, got: {description}"
 
         synonyms = enhanced_column.get("synonyms", [])
         assert synonyms is not None
@@ -519,17 +507,11 @@ class TestGetDataConnectionTableNames:
         # Data connection tables with abbreviated physical names
         dc_table_1 = TableInfo(name="cust_tbl", database="db", schema="public", columns=[dc_col])
         dc_table_2 = TableInfo(name="ord_tbl", database="db", schema="public", columns=[dc_col])
-        data_connection_info_1 = DataConnectionInfo(
-            data_connection_id="dc-1", tables_info=[dc_table_1]
-        )
-        data_connection_info_2 = DataConnectionInfo(
-            data_connection_id="dc-2", tables_info=[dc_table_2]
-        )
+        data_connection_info_1 = DataConnectionInfo(data_connection_id="dc-1", tables_info=[dc_table_1])
+        data_connection_info_2 = DataConnectionInfo(data_connection_id="dc-2", tables_info=[dc_table_2])
 
         # File table with sheet name (whitespace/special chars)
-        file_table = TableInfo(
-            name="Orders & Returns 2024", database="db", schema="public", columns=[file_col]
-        )
+        file_table = TableInfo(name="Orders & Returns 2024", database="db", schema="public", columns=[file_col])
         file_info = FileInfo(
             thread_id="t-123",
             file_ref="orders.xlsx",
@@ -739,9 +721,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
 
         generator = SemanticDataModelGenerator()
         # Physical column name from Excel header row (has whitespace/special chars)
-        column_info = ColumnInfo(
-            name="Customer Name (Primary)", data_type="TEXT", sample_values=["Alice"]
-        )
+        column_info = ColumnInfo(name="Customer Name (Primary)", data_type="TEXT", sample_values=["Alice"])
         # Physical table name from Excel sheet name (has whitespace/special chars)
         table_info = TableInfo(
             name="Sales Data Q1 2024!",
@@ -799,14 +779,10 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
 
         # Data connection table with abbreviated physical name
         dc_table = TableInfo(name="dc_raw_tbl", database="db", schema="public", columns=[dc_col])
-        data_connection_info = DataConnectionInfo(
-            data_connection_id="dc-123", tables_info=[dc_table]
-        )
+        data_connection_info = DataConnectionInfo(data_connection_id="dc-123", tables_info=[dc_table])
 
         # File table with sheet name as physical name (whitespace/special chars)
-        file_table = TableInfo(
-            name="Products & Inventory!", database="db", schema="public", columns=[file_col]
-        )
+        file_table = TableInfo(name="Products & Inventory!", database="db", schema="public", columns=[file_col])
         file_info = FileInfo(
             thread_id="t-123",
             file_ref="inventory.xlsx",

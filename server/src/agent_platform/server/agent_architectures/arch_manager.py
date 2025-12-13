@@ -2,9 +2,7 @@ from pathlib import Path
 
 from agent_platform.core.agent_architectures.architecture_info import ArchitectureInfo
 from agent_platform.server.agent_architectures.base_runner import BaseAgentRunner
-from agent_platform.server.agent_architectures.in_process_runner import (
-    InProcessAgentRunner,
-)
+from agent_platform.server.agent_architectures.in_process_runner import InProcessAgentRunner
 
 
 class AgentArchManager:
@@ -91,4 +89,3 @@ class AgentArchManager:
         each runner or store them in a dict. Then kill them if
         they've been inactive too long.
         """
-        pass

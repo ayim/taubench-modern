@@ -72,9 +72,7 @@ class AgentClient:
         self._finished: asyncio.Future[None] = asyncio.get_event_loop().create_future()
         self.agent_server_base_url = agent_server_base_url
 
-        ws_url = safe_join_url(agent_server_base_url, f"/api/v2/runs/{agent_id}/stream").replace(
-            "http", "ws", 1
-        )
+        ws_url = safe_join_url(agent_server_base_url, f"/api/v2/runs/{agent_id}/stream").replace("http", "ws", 1)
         self._client = WebSocketClient(url=ws_url, on_message=self._handle_event)
 
         self._handlers: dict[str, Callable[[dict[str, Any]], Awaitable[None]]] = {

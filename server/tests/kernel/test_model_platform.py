@@ -35,9 +35,7 @@ def mock_platform_client():
 def mock_kernel():
     """Create a mock kernel for testing."""
     kernel = MagicMock()
-    kernel.ctx.start_span = MagicMock(
-        return_value=MagicMock(__enter__=MagicMock(), __exit__=MagicMock())
-    )
+    kernel.ctx.start_span = MagicMock(return_value=MagicMock(__enter__=MagicMock(), __exit__=MagicMock()))
     kernel.agent.agent_id = "test-agent-id"
     kernel.thread.thread_id = "test-thread-id"
     kernel.agent.name = "test-agent"
@@ -234,9 +232,7 @@ async def test_stream_raw_response_truncates_tool_results(mock_platform_client, 
                 raise StopAsyncIteration from e
 
     mock_platform_client.generate_stream_response = MagicMock(
-        return_value=MockAsyncIterator(
-            [GenericDelta(op="add", path="/stop_reason", value="end_turn")]
-        )
+        return_value=MockAsyncIterator([GenericDelta(op="add", path="/stop_reason", value="end_turn")])
     )
 
     # Create a large tool result (enough to trigger truncation)
@@ -282,9 +278,7 @@ async def test_stream_raw_response_truncates_tool_results(mock_platform_client, 
 
 
 @pytest.mark.asyncio
-async def test_stream_raw_response_handles_error_before_streaming(
-    mock_platform_client, mock_kernel
-):
+async def test_stream_raw_response_handles_error_before_streaming(mock_platform_client, mock_kernel):
     """Test that stream_raw_response handles errors before streaming starts."""
     # Create the platform interface
     platform_interface = AgentServerPlatformInterface(mock_platform_client)
@@ -308,9 +302,7 @@ async def test_stream_raw_response_handles_error_before_streaming(
                 raise StopAsyncIteration from e
 
     mock_platform_client.generate_stream_response = MagicMock(
-        return_value=MockAsyncIterator(
-            [GenericDelta(op="add", path="/content/0/text", value="fallback")]
-        )
+        return_value=MockAsyncIterator([GenericDelta(op="add", path="/content/0/text", value="fallback")])
     )
 
     # Create a simple prompt
@@ -338,9 +330,7 @@ async def test_stream_raw_response_handles_error_after_streaming(mock_platform_c
         yield GenericDelta(op="add", path="/content/0/text", value="Hello")
         raise Exception("Streaming error")
 
-    mock_platform_client.generate_stream_response = MagicMock(
-        side_effect=lambda *args, **kwargs: error_stream()
-    )
+    mock_platform_client.generate_stream_response = MagicMock(side_effect=lambda *args, **kwargs: error_stream())
 
     # Create a simple prompt
     prompt = Prompt(messages=[PromptUserMessage([PromptTextContent(text="Hello")])])
@@ -383,9 +373,7 @@ async def test_stream_raw_response_records_tools_in_trace(mock_platform_client, 
                 raise StopAsyncIteration from e
 
     mock_platform_client.generate_stream_response = MagicMock(
-        return_value=MockAsyncIterator(
-            [GenericDelta(op="add", path="/stop_reason", value="end_turn")]
-        )
+        return_value=MockAsyncIterator([GenericDelta(op="add", path="/stop_reason", value="end_turn")])
     )
 
     # Create a simple prompt

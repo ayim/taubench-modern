@@ -8,7 +8,7 @@ from agent_platform.core.responses.streaming import TextResponseStreamSink
 from .manager import InlineWidgetManager
 
 
-def chart_detection_sink(  # noqa: C901
+def chart_detection_sink(
     *,
     manager: InlineWidgetManager,
     spawn_chart: Callable[[str, str], None],

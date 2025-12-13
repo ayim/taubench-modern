@@ -90,9 +90,7 @@ class ThreadAttachmentContent(ThreadMessageContent):
         """Converts the attachment content to a text content component."""
         import html
 
-        description_attr = (
-            f'description="{html.escape(self.description)}"' if self.description else ""
-        )
+        description_attr = f'description="{html.escape(self.description)}"' if self.description else ""
         uri_attr = f'uri="{html.escape(self.uri)}"' if self.uri else ""
 
         return (

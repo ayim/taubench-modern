@@ -205,9 +205,7 @@ class PlatformHTTPError(PlatformError):
             headers: Optional HTTP headers.
         """
         # Create response with status code override if provided
-        self.response = ErrorResponse(
-            error_code, message_override=message, status_code_override=status_code
-        )
+        self.response = ErrorResponse(error_code, message_override=message, status_code_override=status_code)
         self.data = data or {}
 
         # HTTP-specific attributes that FastAPI can use

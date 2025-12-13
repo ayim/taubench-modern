@@ -66,9 +66,7 @@ class Prompt:
     tools: list[ToolDefinition] = field(
         default_factory=list,
         metadata={
-            "description": (
-                "Definitions of the tools provided to the model for use when generating responses"
-            ),
+            "description": ("Definitions of the tools provided to the model for use when generating responses"),
         },
     )
     """Definitions of the tools provided to the model for use
@@ -109,9 +107,7 @@ class Prompt:
     seed: int | None = field(
         default=None,
         metadata={
-            "description": (
-                "Seed used in decoding. If not set, the request uses a randomly generated seed."
-            ),
+            "description": ("Seed used in decoding. If not set, the request uses a randomly generated seed."),
         },
     )
     """Seed used in decoding. If not set, the request uses a randomly generated seed."""
@@ -133,9 +129,7 @@ class Prompt:
     top_p: float | None = field(
         default=None,
         metadata={
-            "description": (
-                "The maximum cumulative probability of tokens to consider when sampling. Optional."
-            ),
+            "description": ("The maximum cumulative probability of tokens to consider when sampling. Optional."),
         },
     )
     """The maximum cumulative probability of tokens to consider
@@ -158,8 +152,7 @@ class Prompt:
         init=False,
         metadata={
             "description": (
-                "Whether the prompt has been finalized. This is set to True after "
-                "the prompt is finalized."
+                "Whether the prompt has been finalized. This is set to True after the prompt is finalized."
             ),
         },
     )
@@ -337,11 +330,7 @@ class Prompt:
         if not self._finalized:
             raise ValueError("Prompt has not been finalized")
 
-        return [
-            message
-            for message in self.messages
-            if isinstance(message, PromptUserMessage | PromptAgentMessage)
-        ]
+        return [message for message in self.messages if isinstance(message, PromptUserMessage | PromptAgentMessage)]
 
     def extend_messages(
         self,

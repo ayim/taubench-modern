@@ -62,9 +62,7 @@ class ObservabilityIntegrationResponse:
     updated_at: datetime = field(
         metadata={"description": "Timestamp when the integration was last updated."},
     )
-    description: str | None = field(
-        default=None, metadata={"description": "Optional description for the integration."}
-    )
+    description: str | None = field(default=None, metadata={"description": "Optional description for the integration."})
     version: str | None = field(
         default=None,
         metadata={"description": "Optional version of the integration."},
@@ -79,16 +77,12 @@ class ObservabilityIntegrationResponse:
 class ObservabilityIntegrationUpsertRequest:
     """Payload for creating/updating an observability integration."""
 
-    settings: ObservabilitySettingsREST | None = field(
-        default=None, metadata={"description": "Provider settings."}
-    )
+    settings: ObservabilitySettingsREST | None = field(default=None, metadata={"description": "Provider settings."})
     version: str | None = field(
         default=None,
         metadata={"description": "Optional version of the integration."},
     )
-    description: str | None = field(
-        default=None, metadata={"description": "Optional description for the integration."}
-    )
+    description: str | None = field(default=None, metadata={"description": "Optional description for the integration."})
 
 
 @dataclass(frozen=True)
@@ -143,9 +137,7 @@ class IntegrationScopeResponse(BaseModel):
     model_config = {"frozen": True}
 
     integration_id: str = Field(description="ID of the integration")
-    agent_id: str | None = Field(
-        default=None, description="Agent ID if scope='agent', None if scope='global'"
-    )
+    agent_id: str | None = Field(default=None, description="Agent ID if scope='agent', None if scope='global'")
     scope: Literal["global", "agent"] = Field(description="Scope type")
     created_at: datetime = Field(description="Timestamp when scope was created")
 

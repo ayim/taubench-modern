@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     )
 
 
-def render_user_prompt(  # noqa
+def render_user_prompt(
     mode: EnhancementMode,
     current_semantic_model: SemanticDataModelForLLM,
     tables_to_enhance: set[str] | None = None,
@@ -83,9 +83,7 @@ def render_user_prompt(  # noqa
         if tables_to_enhance or table_to_columns_to_enhance:
             target_section = "**Target Items to Enhance:**\n"
             # Track which tables have columns to avoid duplication
-            tables_with_columns = set(
-                table_to_columns_to_enhance.keys() if table_to_columns_to_enhance else []
-            )
+            tables_with_columns = set(table_to_columns_to_enhance.keys() if table_to_columns_to_enhance else [])
 
             # First, list tables that don't have columns (standalone tables)
             if tables_to_enhance:
@@ -120,12 +118,8 @@ def render_user_prompt(  # noqa
     requirements = "**Enhancement Requirements:**\n\n"
     if mode == "full":
         requirements += "**For the semantic model:**\n"
-        requirements += (
-            "   - Choose a domain-specific name that reflects what the data represents\n"
-        )
-        requirements += (
-            "     (e.g., 'Product Catalog', 'Sales Transactions', 'Customer Database')\n"
-        )
+        requirements += "   - Choose a domain-specific name that reflects what the data represents\n"
+        requirements += "     (e.g., 'Product Catalog', 'Sales Transactions', 'Customer Database')\n"
         requirements += "   - Do NOT use generic names like 'Semantic Data Model' or 'Data Model'\n"
         requirements += "   - Add/improve the description explaining the business purpose and analytical use cases\n"
         requirements += "\n"
@@ -133,13 +127,13 @@ def render_user_prompt(  # noqa
         table_text = "each table" if mode == "full" else "the specified table(s)"
         requirements += f"**For {table_text}:**\n"
         if data_connection_tables:
-            requirements += "   - Improve the logical name (EXCEPT for data connection tables - keep their names unchanged)\n"
+            requirements += (
+                "   - Improve the logical name (EXCEPT for data connection tables - keep their names unchanged)\n"
+            )
         else:
             requirements += "   - Improve the logical name\n"
         requirements += "   - Add/improve the description explaining the table's purpose\n"
-        requirements += (
-            "   - Add/change relevant synonyms that users might use to improve discoverability\n"
-        )
+        requirements += "   - Add/change relevant synonyms that users might use to improve discoverability\n"
         if data_connection_tables:
             tables_list = ", ".join(sorted(data_connection_tables))
             requirements += f"   - Data connection tables: {tables_list}\n"
@@ -148,16 +142,14 @@ def render_user_prompt(  # noqa
         column_text = "each column" if mode == "full" else "the specified column(s)"
         requirements += f"\n**For {column_text}:**\n"
         if data_connection_tables:
-            requirements += "   - Improve the logical name (EXCEPT for data connection tables - keep their names unchanged)\n"
+            requirements += (
+                "   - Improve the logical name (EXCEPT for data connection tables - keep their names unchanged)\n"
+            )
         else:
             requirements += "   - Improve the logical name\n"
         requirements += "   - Add/improve the description explaining what the data represents\n"
-        requirements += (
-            "   - Add/change relevant synonyms that users might use to improve discoverability\n"
-        )
-        requirements += (
-            "   - Ensure proper categorization (dimension, fact, metric, time_dimension)\n"
-        )
+        requirements += "   - Add/change relevant synonyms that users might use to improve discoverability\n"
+        requirements += "   - Ensure proper categorization (dimension, fact, metric, time_dimension)\n"
         requirements += "     (the initial categorization should be treated as a hint)\n"
 
     # Build output format section

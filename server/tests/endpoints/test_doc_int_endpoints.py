@@ -164,9 +164,7 @@ def create_mock_integration_with_data_server_settings(
     )
 
 
-def create_mock_get_integration_by_kind(
-    data_server_details: DataServerDetails, reducto_api_key: str = "test-api-key"
-):
+def create_mock_get_integration_by_kind(data_server_details: DataServerDetails, reducto_api_key: str = "test-api-key"):
     """Create a mock for get_integration_by_kind that returns appropriate Integration objects."""
 
     def mock_get_integration_by_kind(kind: str):
@@ -348,14 +346,9 @@ class TestDocumentIntelligenceEndpoints:
         error_data = response.json()
         assert "error" in error_data
         assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
-        assert (
-            error_data["error"]["message"]
-            == "Document Intelligence Data Server connection details not found"
-        )
+        assert error_data["error"]["message"] == "Document Intelligence Data Server connection details not found"
 
-    def test_ok_endpoint_succeeds_when_configured(
-        self, client: TestClient, mock_docint_service: Mock
-    ):
+    def test_ok_endpoint_succeeds_when_configured(self, client: TestClient, mock_docint_service: Mock):
         """When DIDS details are present and valid, the endpoint should succeed."""
         # Prepare valid connection details
         valid_details = DataServerDetails(
@@ -386,9 +379,7 @@ class TestDocumentIntelligenceEndpoints:
         assert response.status_code == 200
         assert response.json() == {"ok": True}
 
-    def test_ok_endpoint_fails_when_data_server_offline(
-        self, client: TestClient, mock_docint_service: Mock
-    ):
+    def test_ok_endpoint_fails_when_data_server_offline(self, client: TestClient, mock_docint_service: Mock):
         """When DIDS details are valid but data server is unreachable, should return 412."""
         DataServerDetails(
             username="testuser",
@@ -415,9 +406,7 @@ class TestDocumentIntelligenceEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -437,9 +426,7 @@ class TestDocumentIntelligenceEndpoints:
         expected_msg = "Failed to login to Document Intelligence data source: Connection refused"
         assert expected_msg in error_data["error"]["message"]
 
-    def test_ok_endpoint_fails_when_connection_not_setup(
-        self, client: TestClient, mock_docint_service: Mock
-    ):
+    def test_ok_endpoint_fails_when_connection_not_setup(self, client: TestClient, mock_docint_service: Mock):
         """When datasource connection is not properly setup, should return 412."""
         DataServerDetails(
             username="testuser",
@@ -465,9 +452,7 @@ class TestDocumentIntelligenceEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -707,9 +692,7 @@ class TestDocumentIntelligenceEndpoints:
 
         add_data_connection_tag.assert_not_awaited()
 
-    def test_upsert_document_intelligence_accepts_single_data_connection_id(
-        self, client: TestClient
-    ):
+    def test_upsert_document_intelligence_accepts_single_data_connection_id(self, client: TestClient):
         """POST /document-intelligence should accept single data_connection_id."""
         payload = {
             "data_server": {
@@ -939,9 +922,7 @@ class TestDocumentIntelligenceEndpoints:
 
         clear_data_connection_tag.assert_awaited_once_with(DataConnectionTag.DOCUMENT_INTELLIGENCE)
 
-        add_data_connection_tag.assert_awaited_once_with(
-            "conn-1", DataConnectionTag.DOCUMENT_INTELLIGENCE
-        )
+        add_data_connection_tag.assert_awaited_once_with("conn-1", DataConnectionTag.DOCUMENT_INTELLIGENCE)
 
         assert list_integrations.await_count >= 1
 
@@ -981,9 +962,7 @@ class TestDocumentIntelligenceEndpoints:
         assert response_data["configuration"] is None
         assert response_data["error"] is not None
         assert response_data["error"]["code"] == ErrorCode.UNEXPECTED.value.code
-        assert (
-            response_data["error"]["message"] == "Document Intelligence DataServer is not available"
-        )
+        assert response_data["error"]["message"] == "Document Intelligence DataServer is not available"
 
     def test_get_document_intelligence_config_success(self, client: TestClient):
         """GET /document-intelligence should return the current configuration."""
@@ -1016,9 +995,7 @@ class TestDocumentIntelligenceEndpoints:
         ]
 
         # Create mock integrations
-        data_server_integration = create_mock_integration_with_data_server_settings(
-            data_server_details
-        )
+        data_server_integration = create_mock_integration_with_data_server_settings(data_server_details)
         reducto_integration = create_mock_integration_with_reducto_settings("secret-key")
         all_integrations = [data_server_integration, reducto_integration]
 
@@ -1087,9 +1064,7 @@ class TestDocumentIntelligenceEndpoints:
         )
 
         # Create mock integrations - only data server, no other integrations
-        data_server_integration = create_mock_integration_with_data_server_settings(
-            data_server_details
-        )
+        data_server_integration = create_mock_integration_with_data_server_settings(data_server_details)
         all_integrations = [data_server_integration]
 
         storage_instance = StorageService.get_instance()
@@ -1187,9 +1162,7 @@ class TestDocumentIntelligenceEndpoints:
                     username=None,
                     password=SecretString("testpass"),
                     data_server_endpoints=[
-                        DataServerEndpoint(
-                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                        ),
+                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
                     ],
                 ),
                 "missing username",
@@ -1199,9 +1172,7 @@ class TestDocumentIntelligenceEndpoints:
                     username="   ",
                     password=SecretString("testpass"),
                     data_server_endpoints=[
-                        DataServerEndpoint(
-                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                        ),
+                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
                     ],
                 ),
                 "missing username",
@@ -1211,9 +1182,7 @@ class TestDocumentIntelligenceEndpoints:
                     username="user",
                     password=None,
                     data_server_endpoints=[
-                        DataServerEndpoint(
-                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                        ),
+                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
                     ],
                 ),
                 "missing password",
@@ -1223,9 +1192,7 @@ class TestDocumentIntelligenceEndpoints:
                     username="user",
                     password=SecretString("   "),
                     data_server_endpoints=[
-                        DataServerEndpoint(
-                            host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                        ),
+                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
                     ],
                 ),
                 "missing password",
@@ -1248,9 +1215,7 @@ class TestDocumentIntelligenceEndpoints:
         with patch.object(
             storage_instance,
             "get_integration_by_kind",
-            new=AsyncMock(
-                return_value=Mock(settings=Mock(model_dump=lambda: details.model_dump()))
-            ),
+            new=AsyncMock(return_value=Mock(settings=Mock(model_dump=lambda: details.model_dump()))),
         ):
             response = client.get("/api/v2/document-intelligence/ok")
 
@@ -1297,9 +1262,7 @@ class TestDocumentIntelligenceEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1355,9 +1318,7 @@ class TestDocumentIntelligenceEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1397,12 +1358,8 @@ class TestBuildDatasource:
                 username="testuser",
                 password=SecretString("testpass"),
                 data_server_endpoints=[
-                    DataServerEndpoint(
-                        host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                    ),
-                    DataServerEndpoint(
-                        host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL
-                    ),
+                    DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
+                    DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
                 ],
             ),
             data_sources={
@@ -1423,16 +1380,10 @@ class TestBuildDatasource:
             },
         )
 
-    @patch(
-        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source"
-    )
+    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source")
     @patch("agent_platform.server.data_server.data_source.DataSource")
-    @patch(
-        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database"
-    )
-    @patch(
-        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource"
-    )
+    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database")
+    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource")
     async def test_build_datasource_success(
         self,
         mock_datasource,
@@ -1462,9 +1413,7 @@ class TestBuildDatasource:
         # Verify initialize_database was called
         mock_initialize_database.assert_called_once_with("postgres", mock_docint_ds)
 
-    @patch(
-        "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source"
-    )
+    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source")
     @patch("agent_platform.server.data_server.data_source.DataSource")
     async def test_build_datasource_connection_error(
         self, mock_server_datasource, mock_initialize_data_source, sample_data_sources
@@ -1508,9 +1457,7 @@ class TestDataModelEndpoints:
                         "columns": [{"name": "id", "type": "string"}],
                     }
                 ],
-                "quality_checks": [
-                    {"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}
-                ],
+                "quality_checks": [{"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}],
                 "prompt": "extract invoices",
                 "summary": "Invoices model",
             }
@@ -1528,9 +1475,7 @@ class TestDataModelEndpoints:
                     "columns": [{"name": "id", "type": "string"}],
                 }
             ],
-            "quality_checks": [
-                {"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}
-            ],
+            "quality_checks": [{"name": "non_empty_id", "query": "SELECT ...", "description": "no empty id"}],
             "prompt": "extract invoices",
             "summary": "Invoices model",
         }
@@ -1543,9 +1488,7 @@ class TestDataModelEndpoints:
         fake_service.get_docint_datasource.return_value = Mock()
 
         sample_models = [
-            SimpleNamespace(
-                name="invoices", description="Invoice data model", model_schema={"type": "object"}
-            ),
+            SimpleNamespace(name="invoices", description="Invoice data model", model_schema={"type": "object"}),
             SimpleNamespace(name="receipts", description="Receipts", model_schema={}),
         ]
 
@@ -1558,9 +1501,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1609,9 +1550,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1640,9 +1579,7 @@ class TestDataModelEndpoints:
         mocked_find_by_name.assert_called()
         fake_di_service.data_model.create_from_schema.assert_called_once()
 
-    def test_create_data_model_failure_when_not_found_after_insert(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_create_data_model_failure_when_not_found_after_insert(self, client: TestClient, fastapi_app: FastAPI):
         storage_instance = StorageService.get_instance()
         self._valid_details()
         fake_service = Mock()
@@ -1664,9 +1601,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1706,9 +1641,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1744,9 +1677,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1785,9 +1716,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1826,9 +1755,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -1951,9 +1878,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -2010,9 +1935,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -2055,9 +1978,7 @@ class TestDataModelEndpoints:
         existing_model["quality_checks"] = []
         existing_instance = SimpleNamespace(**existing_model, update=Mock())
 
-        inserted_quality_checks = [
-            {"name": "no_empty_id", "query": "SELECT ...", "description": "no empty id"}
-        ]
+        inserted_quality_checks = [{"name": "no_empty_id", "query": "SELECT ...", "description": "no empty id"}]
 
         # Only provide quality_checks in the payload
         payload = {"data_model": {"quality_checks": inserted_quality_checks}}
@@ -2071,9 +1992,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -2121,9 +2040,7 @@ class TestDataModelEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -2193,16 +2110,12 @@ class TestUpsertLayout:
                     "test-api-key",
                 ),
             ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance"
-            ) as get_service,
+            patch("agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance") as get_service,
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 return_value=None,
             ) as find_by_name,
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.insert"
-            ) as insert,
+            patch("agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.insert") as insert,
         ):
             fake_service = Mock()
             fake_ds = Mock()
@@ -2227,9 +2140,7 @@ class TestUpsertLayout:
             "prompt": "You are a helpful layout model.",
         }
 
-        expected_wrapped = {
-            "rules": [{"mode": "rename", "source": "total", "target": "grand_total"}]
-        }
+        expected_wrapped = {"rules": [{"mode": "rename", "source": "total", "target": "grand_total"}]}
 
         storage_instance = StorageService.get_instance()
         existing_layout = Mock()
@@ -2457,9 +2368,7 @@ class TestUpsertLayout:
                     "test-api-key",
                 ),
             ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance"
-            ) as get_service,
+            patch("agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance") as get_service,
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_by_name",
                 side_effect=platform_error,
@@ -2761,9 +2670,7 @@ class TestUpdateLayout:
             "prompt": "Updated prompt",
         }
 
-        expected_wrapped = {
-            "rules": [{"mode": "rename", "source": "total", "target": "grand_total"}]
-        }
+        expected_wrapped = {"rules": [{"mode": "rename", "source": "total", "target": "grand_total"}]}
 
         storage_instance = StorageService.get_instance()
         existing_layout = Mock()
@@ -3017,9 +2924,7 @@ class TestDeleteLayout:
             fake_service.get_docint_datasource.return_value = fake_ds
             get_service.return_value = fake_service
 
-            response = client.delete(
-                "/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice"
-            )
+            response = client.delete("/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice")
 
         assert response.status_code == 200
         assert response.json() == {"ok": True}
@@ -3067,9 +2972,7 @@ class TestDeleteLayout:
             fake_service.get_docint_datasource.return_value = fake_ds
             get_service.return_value = fake_service
 
-            response = client.delete(
-                "/api/v2/document-intelligence/layouts/nonexistent?data_model_name=invoice"
-            )
+            response = client.delete("/api/v2/document-intelligence/layouts/nonexistent?data_model_name=invoice")
 
         assert response.status_code == 404
         error_data = response.json()
@@ -3120,9 +3023,7 @@ class TestDeleteLayout:
             fake_service.get_docint_datasource.return_value = fake_ds
             get_service.return_value = fake_service
 
-            response = client.delete(
-                "/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice"
-            )
+            response = client.delete("/api/v2/document-intelligence/layouts/invoice_v1?data_model_name=invoice")
 
         assert response.status_code == 500
         error_data = response.json()
@@ -3180,13 +3081,9 @@ class TestGenerateLayoutFromFile:
 
     def _override_dependencies(self, app: FastAPI, fake_file_manager, fake_client) -> None:
         app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
-        app.dependency_overrides[get_agent_server_client] = (
-            lambda agent_id, request=None, thread_id=None: fake_client
-        )
+        app.dependency_overrides[get_agent_server_client] = lambda agent_id, request=None, thread_id=None: fake_client
 
-    def test_generate_layout_from_file_direct_upload(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_layout_from_file_direct_upload(self, client: TestClient, fastapi_app: FastAPI):
         """Uploading a file directly should upload via file manager and return uploaded_file."""
         storage_instance = StorageService.get_instance()
 
@@ -3239,9 +3136,7 @@ class TestGenerateLayoutFromFile:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -3302,13 +3197,9 @@ class TestGenerateDataModelFromDocument:
 
     def _override_dependencies(self, app: FastAPI, fake_file_manager, fake_client) -> None:
         app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
-        app.dependency_overrides[get_agent_server_client] = (
-            lambda agent_id, request=None, thread_id=None: fake_client
-        )
+        app.dependency_overrides[get_agent_server_client] = lambda agent_id, request=None, thread_id=None: fake_client
 
-    def test_generate_data_model_from_file_direct_upload(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_data_model_from_file_direct_upload(self, client: TestClient, fastapi_app: FastAPI):
         """Uploading a file directly should upload via file manager and return uploaded_file."""
         storage_instance = StorageService.get_instance()
 
@@ -3355,9 +3246,7 @@ class TestGenerateDataModelFromDocument:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -3394,9 +3283,7 @@ class TestGenerateDataModelFromDocument:
         fake_file_manager.upload.assert_awaited()
         fake_client.generate_schema.assert_called_once()
 
-    def test_generate_data_model_from_file_with_file_ref(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_data_model_from_file_with_file_ref(self, client: TestClient, fastapi_app: FastAPI):
         """Providing a file ref should resolve from storage and not return
         uploaded_file in response.
         """
@@ -3441,9 +3328,7 @@ class TestGenerateDataModelFromDocument:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -3485,9 +3370,7 @@ class TestGenerateDataModelFromDocument:
 class TestGenerateExtractionSchemaFromDocument:
     """Tests for the generate_schema endpoint."""
 
-    def _override_dependencies(
-        self, app: FastAPI, fake_file_manager, fake_client, expected_schema=None
-    ):
+    def _override_dependencies(self, app: FastAPI, fake_file_manager, fake_client, expected_schema=None):
         """Override FastAPI dependencies with mocks.
 
         Returns the fake_di_service for verification.
@@ -3505,18 +3388,12 @@ class TestGenerateExtractionSchemaFromDocument:
         fake_di_service.document_v2 = fake_doc_v2
 
         app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
-        app.dependency_overrides[get_agent_server_client] = (
-            lambda agent_id, request=None, thread_id=None: fake_client
-        )
+        app.dependency_overrides[get_agent_server_client] = lambda agent_id, request=None, thread_id=None: fake_client
 
         # Override the di_service_with_persistence dependency
         # Return the mock directly - FastAPI will use it without calling the original function
         app.dependency_overrides[di_service_with_persistence] = (
-            lambda user=None,
-            agent_id=None,
-            thread_id=None,
-            storage=None,
-            transport=None: fake_di_service
+            lambda user=None, agent_id=None, thread_id=None, storage=None, transport=None: fake_di_service
         )
 
         return fake_di_service
@@ -3639,9 +3516,7 @@ class TestGenerateExtractionSchemaFromDocument:
             ) as mock_get_file_by_ref,
             patch.object(storage_instance, "_validate_agent_exists", new=AsyncMock()),
         ):
-            self._override_dependencies(
-                fastapi_app, fake_file_manager, fake_client, expected_schema
-            )
+            self._override_dependencies(fastapi_app, fake_file_manager, fake_client, expected_schema)
 
             response = client.post(
                 "/api/v2/document-intelligence/documents/generate-schema",
@@ -3712,9 +3587,7 @@ class TestGenerateExtractionSchemaFromDocument:
             new=AsyncMock(return_value=fake_uploaded),
         ):
             # Override dependencies and capture the DIService mock to verify caching
-            self._override_dependencies(
-                fastapi_app, fake_file_manager, mock_client, expected_schema
-            )
+            self._override_dependencies(fastapi_app, fake_file_manager, mock_client, expected_schema)
 
             # First call: should call document_v2.generate_schema
             response1 = client.post(
@@ -3791,16 +3664,12 @@ class TestDataQualityChecksEndpoints:
         data_server_details = DataServerDetails(
             username="user",
             password=SecretString("pass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
-            ],
+            data_server_endpoints=[DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)],
         )
         return create_mock_integration_with_data_server_settings(data_server_details)
 
     def _override_client_dependency(self, app: FastAPI, fake_client) -> None:
-        app.dependency_overrides[get_agent_server_client] = (
-            lambda agent_id, request=None, thread_id=None: fake_client
-        )
+        app.dependency_overrides[get_agent_server_client] = lambda agent_id, request=None, thread_id=None: fake_client
 
     def test_generate_quality_checks_success(self, client: TestClient, fastapi_app: FastAPI):
         storage_instance = StorageService.get_instance()
@@ -3967,9 +3836,7 @@ class TestDataQualityChecksEndpoints:
         assert err["code"] == ErrorCode.BAD_REQUEST.value.code
         assert "If a description is provided, limit count must be 1" in err["message"]
 
-    def test_generate_quality_checks_data_model_not_found(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_quality_checks_data_model_not_found(self, client: TestClient, fastapi_app: FastAPI):
         storage_instance = StorageService.get_instance()
 
         fake_service = Mock()
@@ -4082,9 +3949,7 @@ class TestDataQualityChecksEndpoints:
         assert err["code"] == ErrorCode.NOT_FOUND.value.code
         assert "no views have been defined for the data model" in err["message"].lower()
 
-    def test_generate_quality_checks_missing_views_empty_list(
-        self, client: TestClient, fastapi_app: FastAPI
-    ):
+    def test_generate_quality_checks_missing_views_empty_list(self, client: TestClient, fastapi_app: FastAPI):
         storage_instance = StorageService.get_instance()
 
         fake_service = Mock()
@@ -4417,9 +4282,7 @@ class TestAsyncDocumentEndpoints:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -4555,9 +4418,7 @@ class TestAsyncDocumentEndpoints:
                 new=create_mock_async_extraction_client_class(fake_async_extraction_client),
             ),
             # Mock the Job class and its result method
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.jobs.Job"
-            ) as mock_job_class,
+            patch("agent_platform.server.api.private_v2.document_intelligence.jobs.Job") as mock_job_class,
             # Mock the _create_job_result function to return what we expect
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.jobs._create_job_result"
@@ -4616,9 +4477,7 @@ class TestAsyncDocumentEndpoints:
         # Mock extract result
         mock_extract_result = {"extracted_data": {"invoice_id": "INV-123"}}
         mock_extract_citations = {
-            "citations": {
-                "invoice_id": {"bbox": {"left": 0.1, "top": 0.2, "width": 0.3, "height": 0.4}}
-            }
+            "citations": {"invoice_id": {"bbox": {"left": 0.1, "top": 0.2, "width": 0.3, "height": 0.4}}}
         }
 
         # Create a mock ExtractResponse object
@@ -4658,9 +4517,7 @@ class TestAsyncDocumentEndpoints:
                 new=create_mock_async_extraction_client_class(fake_async_extraction_client),
             ),
             # Mock the Job class and its result method
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.jobs.Job"
-            ) as mock_job_class,
+            patch("agent_platform.server.api.private_v2.document_intelligence.jobs.Job") as mock_job_class,
             # Mock the _create_job_result function to return what we expect
             patch(
                 "agent_platform.server.api.private_v2.document_intelligence.jobs._create_job_result"
@@ -4797,9 +4654,7 @@ class TestAsyncDocumentEndpoints:
                 new=create_mock_async_extraction_client_class(fake_async_extraction_client),
             ),
             # Mock the Job class to return FAILED status
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.jobs.Job"
-            ) as mock_job_class,
+            patch("agent_platform.server.api.private_v2.document_intelligence.jobs.Job") as mock_job_class,
         ):
             # Configure the Job mock to return FAILED status
             mock_job_instance = Mock()
@@ -5073,9 +4928,7 @@ class TestExtractDocumentEndpoints:
         async def fake_extraction_client_dependency():
             yield fake_extraction_client
 
-        fastapi_app.dependency_overrides[get_async_extraction_client] = (
-            fake_extraction_client_dependency
-        )
+        fastapi_app.dependency_overrides[get_async_extraction_client] = fake_extraction_client_dependency
         fastapi_app.dependency_overrides[get_docint_datasource] = lambda: Mock()
 
         # First extraction - should call the extraction client
@@ -5209,9 +5062,7 @@ class TestExtractDocumentEndpoints:
             ),  # extraction_schema with document_layout - custom validation
         ],
     )
-    def test_extract_validation_errors(
-        self, client: TestClient, payload: dict, expected_status: int
-    ):
+    def test_extract_validation_errors(self, client: TestClient, payload: dict, expected_status: int):
         storage_instance = StorageService.get_instance()
         # Minimal service wiring so dependency resolves; validation should trigger before usage
         fake_service = Mock()
@@ -5387,9 +5238,7 @@ class TestExtractDocumentEndpoints:
         cache_uploaded = Mock(file_id="cache-fid", file_ref="cache-ref", file_path=None)
 
         fake_file_manager = Mock()
-        fake_file_manager.refresh_file_paths = AsyncMock(
-            return_value=[SimpleNamespace(file_id="f")]
-        )
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[SimpleNamespace(file_id="f")])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"x")
         fake_file_manager.upload = AsyncMock(return_value=[cache_uploaded])
 
@@ -5832,9 +5681,7 @@ class TestIngestDocument:
 
         layout = SimpleNamespace(
             extraction_schema={"type": "object"},
-            translation_schema={
-                "rules": [{"mode": "rename", "source": "field1", "target": "field_one"}]
-            },
+            translation_schema={"rules": [{"mode": "rename", "source": "field1", "target": "field_one"}]},
         )
 
         with (
@@ -5846,9 +5693,7 @@ class TestIngestDocument:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -5925,9 +5770,7 @@ class TestIngestDocument:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -5991,9 +5834,7 @@ class TestIngestDocument:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",
@@ -6064,9 +5905,7 @@ class TestIngestDocument:
                         username="test",
                         password=SecretString("test"),
                         data_server_endpoints=[
-                            DataServerEndpoint(
-                                host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP
-                            )
+                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
                         ],
                     ),
                     "test-api-key",

@@ -27,7 +27,6 @@ class BaseAgentRunner(ABC):
         or process initialization required by the specific agent architecture
         implementation.
         """
-        pass
 
     @abstractmethod
     async def invoke(self, kernel: Kernel) -> None:
@@ -37,7 +36,6 @@ class BaseAgentRunner(ABC):
             kernel: A Kernel instance that provides the interface for the agent
                     architecture to interact with its environment.
         """
-        pass
 
     @abstractmethod
     def get_event_stream(self) -> AsyncIterator[StreamingDelta]:
@@ -46,7 +44,6 @@ class BaseAgentRunner(ABC):
         Returns:
             An async iterator yielding StreamingDelta objects.
         """
-        pass
 
     @abstractmethod
     async def dispatch_event(self, event: Any) -> None:
@@ -55,7 +52,6 @@ class BaseAgentRunner(ABC):
         Arguments:
             event: The event to dispatch to the Agent Architecture.
         """
-        pass
 
     @abstractmethod
     async def stop(self) -> None:
@@ -67,4 +63,3 @@ class BaseAgentRunner(ABC):
         - Closing open connections
         - Saving any necessary state
         """
-        pass

@@ -189,14 +189,8 @@ class DocumentIntelligenceConfigPayload(TolerantDataclass):
     def to_integrations(self) -> list[DocumentIntelligenceIntegration]:
         results: list[DocumentIntelligenceIntegration] = []
         for item in self.integrations:
-            kind = (
-                item.type if isinstance(item.type, IntegrationKind) else IntegrationKind(item.type)
-            )
-            api_key_value = (
-                item.api_key
-                if isinstance(item.api_key, SecretString)
-                else SecretString(item.api_key)
-            )
+            kind = item.type if isinstance(item.type, IntegrationKind) else IntegrationKind(item.type)
+            api_key_value = item.api_key if isinstance(item.api_key, SecretString) else SecretString(item.api_key)
             results.append(
                 DocumentIntelligenceIntegration(
                     external_id=item.external_id or str(uuid4()),
@@ -208,9 +202,7 @@ class DocumentIntelligenceConfigPayload(TolerantDataclass):
         return results
 
     @classmethod
-    def _create_data_server_config_from_integration(
-        cls, data_server_integration: Integration
-    ) -> DataServerConfig:
+    def _create_data_server_config_from_integration(cls, data_server_integration: Integration) -> DataServerConfig:
         """Create DataServerConfig from Integration object."""
         from agent_platform.core.integrations.settings.data_server import DataServerSettings
 
@@ -343,9 +335,7 @@ class DocumentIntelligenceConfigPayload(TolerantDataclass):
             A DocumentIntelligenceConfigPayload instance
         """
         # Extract data connection ID from the data connections (take the first one)
-        data_connection_id = (
-            data_connections[0].id if data_connections and data_connections[0].id else None
-        )
+        data_connection_id = data_connections[0].id if data_connections and data_connections[0].id else None
 
         # Handle new format (v2_integration table)
         if data_server_integration is not None:

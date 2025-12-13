@@ -65,10 +65,7 @@ class ConversationHistorySpecialMessage(SpecialPromptMessage):
         if number_of_turns_to_keep:
             logger.debug(f"Will keep {number_of_turns_to_keep} turns of context (agent settings)")
         else:
-            logger.debug(
-                f"Will keep {self.params.maximum_number_of_turns} default number of "
-                "turns of context (params)"
-            )
+            logger.debug(f"Will keep {self.params.maximum_number_of_turns} default number of turns of context (params)")
 
         # Get the last N message turns
         historical_messages = kernel.thread.get_last_n_message_turns(

@@ -72,9 +72,7 @@ class CortexPrompt(PlatformPrompt):
 
         results_dict: dict[str, Any] = {
             "model": model,
-            "messages": [message.model_dump() for message in self.messages]
-            if self.messages
-            else [],
+            "messages": [message.model_dump() for message in self.messages] if self.messages else [],
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
             "temperature": self.temperature,

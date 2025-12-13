@@ -70,9 +70,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            self.kernel.prompts.record_tools_in_trace(
-                finalized_prompt, span_name="generate_response_tools"
-            )
+            self.kernel.prompts.record_tools_in_trace(finalized_prompt, span_name="generate_response_tools")
 
             # Convert prompt for the specific platform
             converted_prompt = await self._internal_client.converters.convert_prompt(
@@ -97,9 +95,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                         model,
                     )
                     if langsmith_span:
-                        langsmith_span["output"] = (
-                            self.kernel.ctx.langsmith.format_response_for_langsmith(response)
-                        )
+                        langsmith_span["output"] = self.kernel.ctx.langsmith.format_response_for_langsmith(response)
 
                         # Add usage information if available
                         if response.metadata:
@@ -143,9 +139,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            self.kernel.prompts.record_tools_in_trace(
-                finalized_prompt, span_name="stream_response_tools"
-            )
+            self.kernel.prompts.record_tools_in_trace(finalized_prompt, span_name="stream_response_tools")
 
             # Convert the prompt for the platform
             converted_prompt = await self._internal_client.converters.convert_prompt(
@@ -192,10 +186,8 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
                         # Record the response in LangSmith if available
                         if stream_pipe.reassembled_response:
-                            formatted_messages = (
-                                self.kernel.ctx.langsmith.format_response_for_langsmith(
-                                    stream_pipe.reassembled_response
-                                )
+                            formatted_messages = self.kernel.ctx.langsmith.format_response_for_langsmith(
+                                stream_pipe.reassembled_response
                             )
                             if langsmith_span:
                                 langsmith_span["output"] = formatted_messages
@@ -266,9 +258,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
             )
 
             # Record tools in trace directly from the finalized_prompt
-            self.kernel.prompts.record_tools_in_trace(
-                finalized_prompt, span_name="stream_raw_response_tools"
-            )
+            self.kernel.prompts.record_tools_in_trace(finalized_prompt, span_name="stream_raw_response_tools")
 
             # Convert the prompt for the platform
             converted_prompt = await self._internal_client.converters.convert_prompt(
@@ -310,9 +300,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
                         final_response = ResponseMessage.model_validate(final_response_dict)
 
                         # Record the response in LangSmith if available
-                        formatted_messages = (
-                            self.kernel.ctx.langsmith.format_response_for_langsmith(final_response)
-                        )
+                        formatted_messages = self.kernel.ctx.langsmith.format_response_for_langsmith(final_response)
                         if langsmith_span:
                             langsmith_span["output"] = formatted_messages
 
@@ -410,9 +398,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
         return inputs
 
-    def _process_messages(
-        self, finalized_prompt: Prompt, messages: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def _process_messages(self, finalized_prompt: Prompt, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Process all messages in the prompt and extract tool calls and results."""
         # Process each message in sequence
         for i, msg in enumerate(finalized_prompt.finalized_messages):
@@ -463,9 +449,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
         """Extract tool call information from a PromptToolUseContent item."""
         try:
             # Create tool call entry
-            tool_input_str = (
-                str(content_item.tool_input_raw) if content_item.tool_input_raw else "{}"
-            )
+            tool_input_str = str(content_item.tool_input_raw) if content_item.tool_input_raw else "{}"
 
             return {
                 "id": content_item.tool_call_id,
@@ -496,10 +480,7 @@ class AgentServerPlatformInterface(PlatformInterface, UsesKernelMixin):
 
             # Check each content item for tool results
             for content_item in next_msg.content:
-                if (
-                    isinstance(content_item, PromptToolResultContent)
-                    and content_item.tool_call_id in tool_call_ids
-                ):
+                if isinstance(content_item, PromptToolResultContent) and content_item.tool_call_id in tool_call_ids:
                     tool_message = self._create_tool_result_message(content_item)
                     messages.append(tool_message)
 

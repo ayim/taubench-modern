@@ -322,9 +322,7 @@ class TestLegacySqlStrategy:
         assert "test_model" in result
         assert "users" in result
 
-    def test_includes_snowflake_variant_guidance_for_snowflake_models(
-        self, strategy, snowflake_sdm_with_variant
-    ):
+    def test_includes_snowflake_variant_guidance_for_snowflake_models(self, strategy, snowflake_sdm_with_variant):
         """Should include Snowflake VARIANT guidance for Snowflake databases."""
         # Act
         result = strategy.get_context_additions([snowflake_sdm_with_variant])
@@ -334,14 +332,10 @@ class TestLegacySqlStrategy:
         assert "SNOWFLAKE" in result or "VARIANT" in result
         assert "bracket notation" in result.lower() or "col['field']" in result
 
-    def test_handles_multiple_models(
-        self, strategy, simple_sdm_with_engine, snowflake_sdm_with_variant
-    ):
+    def test_handles_multiple_models(self, strategy, simple_sdm_with_engine, snowflake_sdm_with_variant):
         """Should handle multiple semantic data models."""
         # Act
-        result = strategy.get_context_additions(
-            [simple_sdm_with_engine, snowflake_sdm_with_variant]
-        )
+        result = strategy.get_context_additions([simple_sdm_with_engine, snowflake_sdm_with_variant])
 
         # Assert
         # Should contain both model names
@@ -389,9 +383,7 @@ class TestAgenticSqlStrategy:
         # Should mention choosing semantic data model
         assert "Choose Semantic Data Model" in result or "Semantic Data Model" in result
 
-    def test_includes_coaching_on_create_data_frame_from_sql_usage(
-        self, strategy, simple_sdm_with_engine
-    ):
+    def test_includes_coaching_on_create_data_frame_from_sql_usage(self, strategy, simple_sdm_with_engine):
         """Should include coaching on when to use create_data_frame_from_sql."""
         # Act
         result = strategy.get_context_additions([simple_sdm_with_engine])
@@ -409,9 +401,7 @@ class TestAgenticSqlStrategy:
         # Should NOT have SQL syntax rules (those go to the sub-agent)
         assert "SQL SYNTAX RULES" not in result
 
-    def test_does_not_include_snowflake_variant_guidance(
-        self, strategy, snowflake_sdm_with_variant
-    ):
+    def test_does_not_include_snowflake_variant_guidance(self, strategy, snowflake_sdm_with_variant):
         """Should NOT include Snowflake VARIANT guidance (delegated to sub-agent)."""
         # Act
         result = strategy.get_context_additions([snowflake_sdm_with_variant])
@@ -487,9 +477,7 @@ async def test_create_internal_tool_response_from_sql_thread(sqlite_storage, tmp
     ]
 
     # Create actual SQL content and save it as a file
-    sql_content = SQLGenerationContent(
-        status=SQLGenerationStatus.SUCCESS, sql_query="SELECT * FROM test_table"
-    )
+    sql_content = SQLGenerationContent(status=SQLGenerationStatus.SUCCESS, sql_query="SELECT * FROM test_table")
 
     # Write file to temp filesystem and register in database
     file_id = str(uuid4())
@@ -588,9 +576,7 @@ async def test_collect_thread_files_for_sdm():
         semantic_data_model_with_errors=None,
     )
 
-    collector = MagicMock(
-        resolve_file_references_for_semantic_data_model=AsyncMock(return_value=({}, references))
-    )
+    collector = MagicMock(resolve_file_references_for_semantic_data_model=AsyncMock(return_value=({}, references)))
     sdm = {"name": "sdm", "tables": []}
 
     selected = await _collect_sdm_files(
@@ -618,14 +604,10 @@ async def test_upload_sdm_files(tmp_path, sqlite_storage):
         agent_id=str(uuid4()),
         name="Test Agent",
         description="Test Description",
-        runbook_structured=Runbook(
-            raw_text="# Objective\nYou are a helpful assistant.", content=[]
-        ),
+        runbook_structured=Runbook(raw_text="# Objective\nYou are a helpful assistant.", content=[]),
         version="1.0.0",
         platform_configs=[],
-        agent_architecture=AgentArchitecture(
-            name="agent_platform.architectures.default", version="1.0.0"
-        ),
+        agent_architecture=AgentArchitecture(name="agent_platform.architectures.default", version="1.0.0"),
     )
     await sqlite_storage.upsert_agent(user_id, agent)
 

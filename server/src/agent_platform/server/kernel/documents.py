@@ -90,9 +90,7 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         logger.info("Documents enabled check result", has_reducto=has_reducto)
         return has_reducto
 
-    async def step_initialize(
-        self, *, state: DocumentArchState, storage: BaseStorage | None = None
-    ) -> None:
+    async def step_initialize(self, *, state: DocumentArchState, storage: BaseStorage | None = None) -> None:
         """Initialize documents for the current step.
 
         Args:
@@ -291,9 +289,7 @@ class _DocumentTools:
             except IntegrationNotFoundError:
                 return {
                     "error_code": "reducto_not_configured",
-                    "message": (
-                        "Reducto integration is not configured. Please configure it first."
-                    ),
+                    "message": ("Reducto integration is not configured. Please configure it first."),
                 }
 
             from agent_platform.core.integrations.settings.reducto import ReductoSettings
@@ -417,9 +413,7 @@ class _DocumentTools:
             except IntegrationNotFoundError:
                 return {
                     "error_code": "reducto_not_configured",
-                    "message": (
-                        "Reducto integration is not configured. Please configure it first."
-                    ),
+                    "message": ("Reducto integration is not configured. Please configure it first."),
                 }
 
             from agent_platform.core.integrations.settings.reducto import ReductoSettings

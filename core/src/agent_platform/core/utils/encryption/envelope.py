@@ -124,7 +124,6 @@ class EnvelopeEncryption(ABC):
         :return: JSON stringified data structure containing everything needed to decrypt,
                 except the master key
         """
-        pass
 
     @abstractmethod
     def decrypt(self, result_of_encryption: str) -> str:
@@ -134,7 +133,6 @@ class EnvelopeEncryption(ABC):
         :param result_of_encryption: The JSON stringified data structure from encrypt()
         :return: The original plaintext string
         """
-        pass
 
 
 class StaticKeyEnvelopeEncryption(EnvelopeEncryption):
@@ -214,14 +212,11 @@ class StaticKeyEnvelopeEncryption(EnvelopeEncryption):
 
         if envelope_result.metadata.scheme != self.SCHEME:
             raise ValueError(
-                f"Unsupported encryption scheme: {envelope_result.metadata.scheme}, expected: {self.SCHEME}"  # noqa: E501
+                f"Unsupported encryption scheme: {envelope_result.metadata.scheme}, expected: {self.SCHEME}"
             )
 
         if envelope_result.metadata.kek_type != self.KEK_TYPE:
-            raise ValueError(
-                f"Unsupported key type: {envelope_result.metadata.kek_type}, "
-                f"expected: {self.KEK_TYPE}"
-            )
+            raise ValueError(f"Unsupported key type: {envelope_result.metadata.kek_type}, expected: {self.KEK_TYPE}")
 
         data_encryption_key = self._xor_encrypt_key(envelope_result.encrypted_data_key)
         data_cipher = AESGCM2(data_encryption_key)

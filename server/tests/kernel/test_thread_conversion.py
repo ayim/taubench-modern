@@ -82,9 +82,7 @@ async def test_thread_conversion_preserves_tool_error_in_prompt(conversion_func:
     prompt_tool_result = tool_result_contents[0]
     assert prompt_tool_result.is_error is True
 
-    text_contents = [
-        item for item in prompt_tool_result.content if isinstance(item, PromptTextContent)
-    ]
+    text_contents = [item for item in prompt_tool_result.content if isinstance(item, PromptTextContent)]
     assert text_contents, "Tool result should include textual content"
     # Error surfaces in the prompt we build
     assert "ReadTimeout" in text_contents[0].text

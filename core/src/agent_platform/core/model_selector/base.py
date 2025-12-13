@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from agent_platform.core.model_selector.selection_request import (
-    ModelSelectionRequest,
-)
+from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
 
 if TYPE_CHECKING:
     from agent_platform.core.platforms import PlatformClient
@@ -17,7 +15,6 @@ class ModelSelector(ABC):
     @abstractmethod
     def override_model(self, model_id: str) -> None:
         """Override the model selection process to use a specific model."""
-        pass
 
     @abstractmethod
     def select_model(
@@ -39,4 +36,3 @@ class ModelSelector(ABC):
         Raises:
             ValueError: If no suitable model can be selected.
         """
-        pass

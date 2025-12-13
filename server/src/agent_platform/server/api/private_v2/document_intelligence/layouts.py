@@ -65,15 +65,12 @@ async def get_layout(
         normalized_data_model_name = normalize_name(data_model_name)
 
         # Find the layout in the database
-        document_layout = DocumentLayout.find_by_name(
-            docint_ds, normalized_data_model_name, normalized_layout_name
-        )
+        document_layout = DocumentLayout.find_by_name(docint_ds, normalized_data_model_name, normalized_layout_name)
 
         if not document_layout:
             raise PlatformHTTPError(
                 error_code=ErrorCode.NOT_FOUND,
-                message=f"Layout '{normalized_layout_name}' not found for data "
-                f"model '{normalized_data_model_name}'",
+                message=f"Layout '{normalized_layout_name}' not found for data model '{normalized_data_model_name}'",
             )
 
         # Convert DocumentLayout to DocumentLayoutPayload
@@ -118,9 +115,7 @@ async def upsert_layout(
                 message="name is required for document layout creation",
             )
 
-        existing = DocumentLayout.find_by_name(
-            docint_ds, normalized.data_model_name, normalized.name
-        )
+        existing = DocumentLayout.find_by_name(docint_ds, normalized.data_model_name, normalized.name)
         if existing:
             existing.extraction_schema = (
                 normalized.extraction_schema.model_dump(mode="json", exclude_none=True)
@@ -212,9 +207,7 @@ async def delete_layout(
         normalized_data_model_name = normalize_name(data_model_name)
 
         # Find the layout
-        layout = DocumentLayout.find_by_name(
-            docint_ds, normalized_data_model_name, normalized_layout_name
-        )
+        layout = DocumentLayout.find_by_name(docint_ds, normalized_data_model_name, normalized_layout_name)
         if layout is None:
             raise PlatformHTTPError(
                 error_code=ErrorCode.NOT_FOUND,
@@ -287,7 +280,7 @@ async def _generate_layout_name(
 
 
 @router.post("/layouts/generate")
-async def generate_layout_from_file(  # noqa: PLR0913
+async def generate_layout_from_file(
     file: UploadFile | str,  # a direct upload or a file ref
     data_model_name: str,
     thread_id: str,

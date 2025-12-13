@@ -54,10 +54,7 @@ class TestPromptImageContent:
 
     def test_init_with_base64(self):
         """Test initialization with valid base64 data."""
-        base64_value = (
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lE"
-            "QVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-        )
+        base64_value = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
         content = PromptImageContent(
             mime_type="image/png",
             value=base64_value,

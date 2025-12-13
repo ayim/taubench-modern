@@ -11,9 +11,7 @@ import httpx
 import sema4ai_http
 from pydantic import BaseModel, Field
 
-from sema4ai_docint.agent_server_client.transport.errors import (
-    TransportResponseConversionError,
-)
+from sema4ai_docint.agent_server_client.transport.errors import TransportResponseConversionError
 
 
 class TransportResponseWrapper:
@@ -142,7 +140,6 @@ class TransportBase(ABC):
         Raises:
             TransportConnectionError: If the transport cannot be initialized or connected
         """
-        pass
 
     @abstractmethod
     def is_connected(self) -> bool:
@@ -154,7 +151,6 @@ class TransportBase(ABC):
         Raises:
             TransportConnectionError: If the transport is not connected
         """
-        pass
 
     @abstractmethod
     def close(self) -> None:
@@ -162,7 +158,6 @@ class TransportBase(ABC):
 
         This method should be called when the transport is no longer needed.
         """
-        pass
 
     @property
     def api_url(self) -> str:
@@ -224,7 +219,6 @@ class TransportBase(ABC):
         Raises:
             TransportConnectionError: If the request fails
         """
-        pass
 
     def prompts_generate(self, payload: dict[str, Any]) -> ResponseMessage:
         """Generate a prompt response using the in-memory agent server.
@@ -288,4 +282,3 @@ class TransportBase(ABC):
         Raises:
             TransportConnectionError: If the file cannot be retrieved
         """
-        pass

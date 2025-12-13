@@ -204,9 +204,7 @@ class TestGoogleConverters:
         with patch.object(converters, "_convert_messages", return_value=mock_messages):
             converters.attach_kernel(kernel)
             finalized_prompt = await prompt.finalize_messages(kernel)
-            result = await converters.convert_prompt(
-                finalized_prompt, model_id="gemini-2.5-pro-high"
-            )
+            result = await converters.convert_prompt(finalized_prompt, model_id="gemini-2.5-pro-high")
 
         assert result.thinking_budget == 24576
         assert result.thinking_level is None

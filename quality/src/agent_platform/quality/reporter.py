@@ -31,10 +31,7 @@ class QualityReporter:
         # Overall summary
         total_agents = len(results)
         total_tests = sum(len(agent_results) for agent_results in results.values())
-        total_passed = sum(
-            sum(1 for result in agent_results if result.success)
-            for agent_results in results.values()
-        )
+        total_passed = sum(sum(1 for result in agent_results if result.success) for agent_results in results.values())
 
         summary = Table(title="Test Summary", show_header=False)
         summary.add_column("Metric", style="bold")
@@ -106,8 +103,7 @@ class QualityReporter:
         # Details
         if result.error:
             error_preview = (
-                f"{result.error[:ERROR_PREVIEW_LENGTH]}"
-                f"{'...' if len(result.error) > ERROR_PREVIEW_LENGTH else ''}"
+                f"{result.error[:ERROR_PREVIEW_LENGTH]}{'...' if len(result.error) > ERROR_PREVIEW_LENGTH else ''}"
             )
             return f"[red]Error: {error_preview}[/red]"
         elif result.evaluation_results:
@@ -151,9 +147,7 @@ class QualityReporter:
 
         # Agent messages summary
         if result.agent_messages:
-            content.append(
-                f"\n[bold]Agent Response ({len(result.agent_messages)} messages):[/bold]"
-            )
+            content.append(f"\n[bold]Agent Response ({len(result.agent_messages)} messages):[/bold]")
             for i, msg in enumerate(result.agent_messages):
                 preview_length = 100
                 preview = messages_to_str([msg])[:preview_length] + "..."
@@ -169,16 +163,11 @@ class QualityReporter:
             for eval_result in result.evaluation_results:
                 status_icon = "✓" if eval_result.passed else "✗"
                 status_color = "green" if eval_result.passed else "red"
-                content.append(
-                    f"  [{status_color}]{status_icon} "
-                    f"{eval_result.evaluation.kind}[/{status_color}]"
-                )
+                content.append(f"  [{status_color}]{status_icon} {eval_result.evaluation.kind}[/{status_color}]")
 
                 if eval_result.error:
                     content.append(f"    [red]Error: {eval_result.error}[/red]")
-                elif hasattr(eval_result.actual_value, "get") and eval_result.actual_value.get(
-                    "explanation"
-                ):
+                elif hasattr(eval_result.actual_value, "get") and eval_result.actual_value.get("explanation"):
                     content.append(f"    [dim]{eval_result.actual_value['explanation']}[/dim]")
 
         # Create panel
@@ -243,9 +232,7 @@ class QualityReporter:
 
         for platform_name, stats in platform_stats.items():
             success_rate = (stats["passed"] / stats["total"] * 100) if stats["total"] > 0 else 0
-            success_rate_style = (
-                "green" if success_rate == 100 else "red" if success_rate == 0 else "yellow"  # noqa: PLR2004
-            )
+            success_rate_style = "green" if success_rate == 100 else "red" if success_rate == 0 else "yellow"
 
             platform_table.add_row(
                 platform_name,

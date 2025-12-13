@@ -5,9 +5,7 @@ if TYPE_CHECKING:
     from agent_platform.core.prompts.prompt import Prompt
 
 
-def _to_debug_dict_for_prompt(
-    prompt: "Prompt", width: int = 100, include: list[str] | None = None
-) -> dict:
+def _to_debug_dict_for_prompt(prompt: "Prompt", width: int = 100, include: list[str] | None = None) -> dict:
     """
     Convert the Prompt into a dictionary structure suitable for YAML dumping.
 

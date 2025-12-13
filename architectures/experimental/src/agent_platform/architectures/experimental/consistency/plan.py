@@ -50,18 +50,10 @@ class PlanStepInput:
     immutable properties of a plan step as provided by the planning agent.
     """
 
-    step_id: Annotated[
-        str, "Unique, machine-readable identifier for the step (e.g., 'fetch-user-data')."
-    ]
-    title: Annotated[
-        str, "A brief, human-readable summary of the step's goal (e.g., 'Fetch User Data')."
-    ]
-    description: Annotated[
-        str, "Clear, operational instructions for the execution agent, derived from the Runbook."
-    ]
-    success_criteria: Annotated[
-        str, "An objective, evidence-based definition of done for the step."
-    ]
+    step_id: Annotated[str, "Unique, machine-readable identifier for the step (e.g., 'fetch-user-data')."]
+    title: Annotated[str, "A brief, human-readable summary of the step's goal (e.g., 'Fetch User Data')."]
+    description: Annotated[str, "Clear, operational instructions for the execution agent, derived from the Runbook."]
+    success_criteria: Annotated[str, "An objective, evidence-based definition of done for the step."]
 
 
 @dataclass(slots=True)
@@ -81,9 +73,7 @@ class PlanStep:
     # -- Execution State (Mutable) --
     status: PlanStatus = "pending"
     notes: list[NoteEntry] = field(default_factory=list)
-    last_updated: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds")
-    )
+    last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
 
     @classmethod
     def from_input(cls, data: PlanStepInput) -> "PlanStep":

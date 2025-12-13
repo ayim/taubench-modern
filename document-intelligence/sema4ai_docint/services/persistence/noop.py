@@ -28,4 +28,3 @@ class NoOpPersistenceService(DocumentPersistence):
 
     async def save(self, cache_key: str, data: bytes) -> None:
         """Does nothing (no caching)."""
-        pass

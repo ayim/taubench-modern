@@ -51,9 +51,7 @@ class TestGroqConverters:
             messages=[PromptUserMessage([PromptTextContent(text="Hi")])],
         )
         finalized_prompt = await prompt.finalize_messages(kernel)
-        groq_prompt = await converters.convert_prompt(
-            finalized_prompt, model_id="openai/gpt-oss-20b"
-        )
+        groq_prompt = await converters.convert_prompt(finalized_prompt, model_id="openai/gpt-oss-20b")
 
         assert isinstance(groq_prompt, GroqPrompt)
         request = groq_prompt.as_platform_request("openai/gpt-oss-20b")

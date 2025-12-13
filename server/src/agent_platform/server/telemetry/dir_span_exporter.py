@@ -236,9 +236,7 @@ class DirSpanExporter(SpanExporter):
 
         if span.attributes:
             contents.append("==== Attributes ====")
-            attr_name_to_format_func = (
-                self._span_name_to_attr_name_to_format_func.get(span.name) or {}
-            )
+            attr_name_to_format_func = self._span_name_to_attr_name_to_format_func.get(span.name) or {}
 
             for key, value in span.attributes.items():
                 func = attr_name_to_format_func.get(key)

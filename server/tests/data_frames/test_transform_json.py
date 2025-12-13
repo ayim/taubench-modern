@@ -80,9 +80,7 @@ class TestTransformJson:
             thread_state=None,
         )
 
-        json_input = json.dumps(
-            {"products": [{"name": "A", "price": 10}, {"name": "B", "price": 25}]}
-        )
+        json_input = json.dumps({"products": [{"name": "A", "price": 10}, {"name": "B", "price": 25}]})
         result = await tools._transform_json(json_input, ".products[] | select(.price > 15)")
 
         assert "result" in result
@@ -162,9 +160,7 @@ class TestTransformJson:
         # Mock the get_tool_result_by_ref function
         mock_data = {"items": [{"name": "Product A"}, {"name": "Product B"}]}
 
-        with patch(
-            "agent_platform.server.kernel.thread_utils.get_tool_result_by_ref"
-        ) as mock_get_result:
+        with patch("agent_platform.server.kernel.thread_utils.get_tool_result_by_ref") as mock_get_result:
             mock_get_result.return_value = mock_data
 
             result = await tools._transform_json("out.extract_document[1]", ".items[]")
@@ -206,18 +202,14 @@ class TestTransformJson:
         # Mock the get_tool_result_by_ref function
         mock_data = {"items": [{"name": "Product A"}, {"name": "Product B"}]}
 
-        with patch(
-            "agent_platform.server.kernel.thread_utils.get_tool_result_by_ref"
-        ) as mock_get_result:
+        with patch("agent_platform.server.kernel.thread_utils.get_tool_result_by_ref") as mock_get_result:
             mock_get_result.return_value = mock_data
 
             # Use the .functions prefix format that LLMs often generate
             result = await tools._transform_json("out.functions.extract_document[1]", ".items[]")
 
             # Verify the function was called with the same reference (normalization happens inside)
-            mock_get_result.assert_called_once_with(
-                mock_thread_state, "out.functions.extract_document[1]"
-            )
+            mock_get_result.assert_called_once_with(mock_thread_state, "out.functions.extract_document[1]")
 
             # Verify the result
             assert "result" in result
@@ -244,9 +236,7 @@ class TestTransformJson:
         )
 
         # Mock get_tool_result_by_ref to return an error
-        with patch(
-            "agent_platform.server.kernel.thread_utils.get_tool_result_by_ref"
-        ) as mock_get_result:
+        with patch("agent_platform.server.kernel.thread_utils.get_tool_result_by_ref") as mock_get_result:
             mock_get_result.return_value = {
                 "error_code": "tool_not_found",
                 "message": "No completed tool results found for tool 'nonexistent'",
@@ -311,10 +301,7 @@ class TestTransformJson:
         )
 
         # Navigate deep and include parent data
-        jq_expr = (
-            ". as $root | .invoice.line_items[] | "
-            "{product, qty, invoice_number: $root.invoice.number}"
-        )
+        jq_expr = ". as $root | .invoice.line_items[] | {product, qty, invoice_number: $root.invoice.number}"
         result = await tools._transform_json(json_input, jq_expr)
 
         assert "result" in result

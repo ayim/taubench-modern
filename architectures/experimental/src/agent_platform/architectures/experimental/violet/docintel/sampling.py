@@ -69,9 +69,7 @@ class DocSampler:
         if updated_any:
             await asyncio.gather(*tasks)
 
-    async def _sample_single_card(
-        self, card: DocCard, message: ThreadMessageWithThreadState
-    ) -> None:
+    async def _sample_single_card(self, card: DocCard, message: ThreadMessageWithThreadState) -> None:
         """
         Orchestrates sampling for one file:
         1. Fetch content
@@ -96,9 +94,7 @@ class DocSampler:
                 file_metadata=file_metadata,
             )
         except Exception as exc:
-            logger.exception(
-                f"Failed to load file for sampling file_ref={card.file_ref} error={exc!s}"
-            )
+            logger.exception(f"Failed to load file for sampling file_ref={card.file_ref} error={exc!s}")
             await self._mark_card_error(card, message)
             return
 
@@ -110,15 +106,12 @@ class DocSampler:
             return
 
         # 3. Determine Pages to Sample
-        page_count = self._get_pdf_page_count(
-            file_contents, getattr(file_metadata, "file_path", None)
-        )
+        page_count = self._get_pdf_page_count(file_contents, getattr(file_metadata, "file_path", None))
         pages_to_sample = self._pick_sample_pages(page_count or 0)
 
         # 4. Set Placeholders & Stream (User sees "Loading..." bubbles)
         card.sampled_pages = [
-            DocSampledPage(page=page_no, status="pending", summary=None, parse_data=None)
-            for page_no in pages_to_sample
+            DocSampledPage(page=page_no, status="pending", summary=None, parse_data=None) for page_no in pages_to_sample
         ]
         card.status = "in_progress"
         self._touch_revision(card)
@@ -131,9 +124,7 @@ class DocSampler:
             # 6. Parse Pages Concurrently
             parse_tasks = []
             for page_no in pages_to_sample:
-                parse_tasks.append(
-                    self._parse_page_task(client, uploaded_doc, card, page_no, message)
-                )
+                parse_tasks.append(self._parse_page_task(client, uploaded_doc, card, page_no, message))
 
             results = await asyncio.gather(*parse_tasks)
 
@@ -192,9 +183,7 @@ class DocSampler:
                 return True
 
             except Exception as exc:
-                logger.exception(
-                    f"Page parse failed page={page_no} file_ref={card.file_ref} error={exc!s}"
-                )
+                logger.exception(f"Page parse failed page={page_no} file_ref={card.file_ref} error={exc!s}")
                 self._update_page_status(card, page_no, "error")
                 await self._stream_update(message)
                 return False
@@ -290,7 +279,5 @@ class DocSampler:
         message.agent_metadata["doc_cards"] = payload["cards"]
         message.agent_metadata["doc_int_revision"] = payload["revision"]
         # If any card is not done, input is locked
-        message.agent_metadata["doc_int_input_locked"] = any(
-            c.status != "done" for c in self.state.doc_int.cards
-        )
+        message.agent_metadata["doc_int_input_locked"] = any(c.status != "done" for c in self.state.doc_int.cards)
         await message.stream_delta()

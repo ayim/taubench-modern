@@ -2,10 +2,7 @@ from base64 import b64decode
 from dataclasses import dataclass, field
 from enum import Enum
 
-from agent_platform.core.configurations import (
-    Configuration,
-    FieldMetadata,
-)
+from agent_platform.core.configurations import Configuration, FieldMetadata
 
 
 class AuthType(Enum):
@@ -77,8 +74,6 @@ class JWTSettingsOIDC(JWTSettingsBase):
 class JWTSettingsNoop:
     """A dummy class for the NOOP auth type."""
 
-    pass
-
 
 @dataclass(frozen=True)
 class AuthConfig(Configuration):
@@ -87,8 +82,7 @@ class AuthConfig(Configuration):
     auth_type: AuthType = field(
         default=AuthType.NOOP,
         metadata=FieldMetadata(
-            description="The type of authentication to use, must be one of: "
-            "'noop', 'jwt_local', 'jwt_oidc'.",
+            description="The type of authentication to use, must be one of: 'noop', 'jwt_local', 'jwt_oidc'.",
             env_vars=["SEMA4AI_AGENT_SERVER_AUTH_TYPE", "AUTH_TYPE"],
         ),
     )

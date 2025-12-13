@@ -44,9 +44,7 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
                 row_dict["config_value"] = json.dumps(row_dict["config_value"])
             return Config.model_validate(row_dict)
 
-    async def set_config(
-        self, config_type: ConfigType, current_value: JSONValue, *, namespace: str = "global"
-    ):
+    async def set_config(self, config_type: ConfigType, current_value: JSONValue, *, namespace: str = "global"):
         validate_config_type(config_type)
         config_value = json.dumps(current_value)
 

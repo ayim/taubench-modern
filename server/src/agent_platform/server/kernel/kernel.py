@@ -38,7 +38,7 @@ if typing.TYPE_CHECKING:
 
 
 class AgentServerKernel(Kernel):
-    def __init__(  # noqa: PLR0915
+    def __init__(
         self,
         ctx: AgentServerContext,
         thread: Thread,
@@ -87,9 +87,7 @@ class AgentServerKernel(Kernel):
             self._user = ctx.user_context.user
             span.add_event("attached user to kernel", {"user_id": self._user.user_id})
             self._agent = agent
-            span.add_event(
-                "attached agent to kernel", {"agent_id": agent.agent_id, "agent_name": agent.name}
-            )
+            span.add_event("attached agent to kernel", {"agent_id": agent.agent_id, "agent_name": agent.name})
             self._thread = thread
             span.add_event("attached thread to kernel", {"thread_id": thread.thread_id})
             self._run = run

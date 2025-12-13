@@ -7,6 +7,4 @@ if TYPE_CHECKING:
 def filter_hidden_agents(agents: list["Agent"]) -> list["Agent"]:
     """Filter out agents marked as hidden in metadata."""
 
-    return [
-        agent for agent in agents if agent.extra.get("metadata", {}).get("visibility") != "hidden"
-    ]
+    return [agent for agent in agents if agent.extra.get("metadata", {}).get("visibility") != "hidden"]

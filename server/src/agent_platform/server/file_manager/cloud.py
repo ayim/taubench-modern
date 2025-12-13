@@ -204,9 +204,7 @@ class CloudFileManager(BaseFileManager):
             headers={"Content-Type": "application/json"},
             data=json.dumps({"fileId": file_id}),
         )
-        if response.status_code != status.HTTP_200_OK or (
-            response.json().get("deleted") is not True
-        ):
+        if response.status_code != status.HTTP_200_OK or (response.json().get("deleted") is not True):
             logger.error(
                 f"Failed to delete file {file_id}",
                 status_code=response.status_code,

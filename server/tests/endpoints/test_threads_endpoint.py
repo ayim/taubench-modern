@@ -61,9 +61,7 @@ class MockStorage:
         if thread_id in self.threads:
             del self.threads[thread_id]
 
-    async def add_message_to_thread(
-        self, user_id: str, thread_id: str, message: ThreadMessage
-    ) -> None:
+    async def add_message_to_thread(self, user_id: str, thread_id: str, message: ThreadMessage) -> None:
         self.call_count["add_message_to_thread"] += 1
         if thread_id in self.threads:
             self.threads[thread_id].messages.append(message)
@@ -75,9 +73,7 @@ class MockStorage:
             return None
         return {"agent_id": agent_id}
 
-    async def delete_threads_for_agent(
-        self, user_id: str, agent_id: str, thread_ids: list[str] | None = None
-    ) -> None:
+    async def delete_threads_for_agent(self, user_id: str, agent_id: str, thread_ids: list[str] | None = None) -> None:
         self.call_count["delete_threads_for_agent"] += 1
         if thread_ids:
             # Delete specific threads for agent
@@ -88,9 +84,7 @@ class MockStorage:
             }
         else:
             # Delete all threads for agent
-            self.threads = {
-                tid: thread for tid, thread in self.threads.items() if thread.agent_id != agent_id
-            }
+            self.threads = {tid: thread for tid, thread in self.threads.items() if thread.agent_id != agent_id}
 
     async def get_or_create_user(self, sub: str) -> tuple[User, bool]:
         """Get an existing user or create a new one."""
@@ -453,9 +447,7 @@ def test_update_thread(client: TestClient, mock_storage: MockStorage):
     assert mock_storage.call_count["upsert_thread"] == 1
 
 
-def test_update_thread_marks_user_named_on_name_change(
-    client: TestClient, mock_storage: MockStorage
-):
+def test_update_thread_marks_user_named_on_name_change(client: TestClient, mock_storage: MockStorage):
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
     existing_thread = Thread(
@@ -468,18 +460,14 @@ def test_update_thread_marks_user_named_on_name_change(
     )
     mock_storage.threads[thread_id] = existing_thread
 
-    resp = client.put(
-        f"/threads/{thread_id}", json={"name": "Renamed Thread", "agent_id": agent_id}
-    )
+    resp = client.put(f"/threads/{thread_id}", json={"name": "Renamed Thread", "agent_id": agent_id})
     assert resp.status_code == status.HTTP_200_OK
     data = resp.json()
     assert data["name"] == "Renamed Thread"
     assert data["metadata"]["thread_name"]["user_named"] is True
 
 
-def test_patch_thread_marks_user_named_on_name_change(
-    client: TestClient, mock_storage: MockStorage
-):
+def test_patch_thread_marks_user_named_on_name_change(client: TestClient, mock_storage: MockStorage):
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
     existing_thread = Thread(
@@ -499,9 +487,7 @@ def test_patch_thread_marks_user_named_on_name_change(
     assert data["metadata"]["thread_name"]["user_named"] is True
 
 
-def test_update_thread_metadata_only_preserves_user_named(
-    client: TestClient, mock_storage: MockStorage
-):
+def test_update_thread_metadata_only_preserves_user_named(client: TestClient, mock_storage: MockStorage):
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
     existing_thread = Thread(
@@ -524,9 +510,7 @@ def test_update_thread_metadata_only_preserves_user_named(
     assert data["metadata"]["extra"] == "value"
 
 
-def test_patch_thread_metadata_only_preserves_user_named(
-    client: TestClient, mock_storage: MockStorage
-):
+def test_patch_thread_metadata_only_preserves_user_named(client: TestClient, mock_storage: MockStorage):
     thread_id = str(uuid.uuid4())
     agent_id = str(uuid.uuid4())
     existing_thread = Thread(
@@ -754,9 +738,7 @@ def test_add_message_to_thread(client: TestClient, mock_storage: MockStorage):
     assert mock_storage.call_count["add_message_to_thread"] == 1
 
 
-def test_list_threads_with_case_insensitive_name_filter(
-    client: TestClient, mock_storage: MockStorage
-):
+def test_list_threads_with_case_insensitive_name_filter(client: TestClient, mock_storage: MockStorage):
     """Test listing threads with case-insensitive name filtering."""
     agent_id = str(uuid.uuid4())
 
@@ -1193,15 +1175,9 @@ def test_put_thread_fewer_messages(mock_context, client: TestClient, mock_storag
 
     # Create thread with 3 existing messages
     existing_messages = [
-        ThreadMessage(
-            message_id=str(uuid.uuid4()), role="user", content=[ThreadTextContent(text="Msg 1")]
-        ),
-        ThreadMessage(
-            message_id=str(uuid.uuid4()), role="agent", content=[ThreadTextContent(text="Msg 2")]
-        ),
-        ThreadMessage(
-            message_id=str(uuid.uuid4()), role="user", content=[ThreadTextContent(text="Msg 3")]
-        ),
+        ThreadMessage(message_id=str(uuid.uuid4()), role="user", content=[ThreadTextContent(text="Msg 1")]),
+        ThreadMessage(message_id=str(uuid.uuid4()), role="agent", content=[ThreadTextContent(text="Msg 2")]),
+        ThreadMessage(message_id=str(uuid.uuid4()), role="user", content=[ThreadTextContent(text="Msg 3")]),
     ]
     existing_thread = Thread(
         thread_id=thread_id,
@@ -1241,9 +1217,7 @@ def test_put_thread_fewer_messages(mock_context, client: TestClient, mock_storag
     for call in mock_server_context.increment_counter.call_args_list:
         args, kwargs = call
         if args[0] == "sema4ai.agent_server.messages":
-            pytest.fail(
-                "increment_counter should not be called for messages when reducing message count"
-            )
+            pytest.fail("increment_counter should not be called for messages when reducing message count")
 
 
 def test_patch_thread_empty_payload(client: TestClient, mock_storage: MockStorage):

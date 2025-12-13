@@ -18,9 +18,7 @@ class MCPServerResponse:
     mcp_server_id: str = field(metadata={"description": "The unique identifier of the MCP server."})
     """The unique identifier of the MCP server."""
 
-    source: MCPServerSource = field(
-        metadata={"description": "The source of the MCP server (FILE or API)."}
-    )
+    source: MCPServerSource = field(metadata={"description": "The source of the MCP server (FILE or API)."})
     """The source of the MCP server (FILE or API)."""
 
     # MCP Server fields
@@ -37,15 +35,11 @@ class MCPServerResponse:
 
     headers: MCPVariables | None = field(
         default=None,
-        metadata={
-            "description": "Headers used for configuring requests & connections to the MCP server."
-        },
+        metadata={"description": "Headers used for configuring requests & connections to the MCP server."},
     )
     """Headers used for configuring requests & connections to the MCP server."""
 
-    command: str | None = field(
-        default=None, metadata={"description": "The command to run the MCP server."}
-    )
+    command: str | None = field(default=None, metadata={"description": "The command to run the MCP server."})
     """The command to run the MCP server."""
 
     args: list[str] | None = field(

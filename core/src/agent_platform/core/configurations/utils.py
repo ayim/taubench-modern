@@ -14,11 +14,7 @@ def _get_union_args(t: type | Any) -> tuple[type, ...]:
 
 def is_union_of_dataclasses_type(t: type | Any) -> bool:
     """Check if a type is a Union type."""
-    is_union = (
-        getattr(t, "__origin__", None) is Union
-        or isinstance(t, UnionType)
-        or isinstance(t, type(Union))
-    )
+    is_union = getattr(t, "__origin__", None) is Union or isinstance(t, UnionType) or isinstance(t, type(Union))
     if not is_union:
         return False
 

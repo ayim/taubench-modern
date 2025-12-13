@@ -60,9 +60,7 @@ def patch_worker_settings(monkeypatch):
     """Shrink worker settings so tests run quickly (small sleeps, small batches)."""
     test_settings = WorkerSettings(worker_interval=0)
     # Patch settings where they are imported
-    monkeypatch.setattr(
-        "agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings
-    )
+    monkeypatch.setattr("agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings)
 
     # Mock the quotas service
     async def mock_get_instance():
@@ -90,9 +88,7 @@ def batch_executor(configured_storage, system_user) -> BatchExecutor:
         from agent_platform.core.work_items import WorkItemCompletedBy
 
         # Mark the work item as completed
-        await configured_storage.complete_work_item(
-            system_user.user_id, item.work_item_id, WorkItemCompletedBy.AGENT
-        )
+        await configured_storage.complete_work_item(system_user.user_id, item.work_item_id, WorkItemCompletedBy.AGENT)
         return True
 
     return BatchExecutor(execute_work_item=work_func)
@@ -174,31 +170,22 @@ class TestBatchExecutor:
                 await asyncio.sleep(5)  # exceeds timeout
 
             # Mark the work item as completed
-            await configured_storage.complete_work_item(
-                system_user.user_id, wi.work_item_id, WorkItemCompletedBy.AGENT
-            )
+            await configured_storage.complete_work_item(system_user.user_id, wi.work_item_id, WorkItemCompletedBy.AGENT)
             return True
 
         batch_executor.execute_work_item = slow_agent
 
         # Two work-items: first will timeout, second succeeds
         items = [
-            _make_work_item(
-                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-1"
-            ),
-            _make_work_item(
-                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-2"
-            ),
+            _make_work_item(stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-1"),
+            _make_work_item(stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, "timeout-2"),
         ]
         for wi in items:
             await configured_storage.create_work_item(wi)
 
         await batch_executor._worker_iteration()
 
-        statuses = {
-            wi.work_item_id: (await configured_storage.get_work_item(wi.work_item_id)).status
-            for wi in items
-        }
+        statuses = {wi.work_item_id: (await configured_storage.get_work_item(wi.work_item_id)).status for wi in items}
         status_counts: defaultdict[WorkItemStatus, int] = defaultdict(int)
         for st in statuses.values():
             status_counts[st] += 1
@@ -236,9 +223,7 @@ class TestBatchExecutor:
 
         # Create 10 work-items
         work_items = [
-            _make_work_item(
-                stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, f"msg-{i}"
-            )
+            _make_work_item(stub_user.user_id, stub_user.user_id, seed_agents[0].agent_id, f"msg-{i}")
             for i in range(10)
         ]
         for wi in work_items:

@@ -58,9 +58,7 @@ from agent_platform.server.storage.option import StorageService
 logger = logging.getLogger(__name__)
 
 
-def _list_scenario_next_user_messages(
-    scenario: Scenario, start_index: int
-) -> tuple[list[ThreadMessage], int | None]:
+def _list_scenario_next_user_messages(scenario: Scenario, start_index: int) -> tuple[list[ThreadMessage], int | None]:
     messages = scenario.messages
     n = len(messages)
     if not (0 <= start_index < n):
@@ -83,9 +81,7 @@ def _list_scenario_next_user_messages(
     return [message.copy_with_new_ids() for message in users_block], next_user_index
 
 
-def _list_scenario_next_agent_messages(
-    scenario: Scenario, start_index: int
-) -> tuple[list[ThreadMessage], int | None]:
+def _list_scenario_next_agent_messages(scenario: Scenario, start_index: int) -> tuple[list[ThreadMessage], int | None]:
     messages = scenario.messages
     n = len(messages)
     if not (0 <= start_index < n):
@@ -203,15 +199,11 @@ def _resolve_scenario_evaluation_preferences(scenario: Scenario) -> ScenarioEval
     evaluations_metadata = metadata.get("evaluations")
 
     if isinstance(evaluations_metadata, dict):
-        action_calling_enabled, _ = _extract_enabled_flag(
-            evaluations_metadata.get("action_calling"), False
-        )
+        action_calling_enabled, _ = _extract_enabled_flag(evaluations_metadata.get("action_calling"), False)
         if not action_calling_enabled:
             legacy_flag, _ = _extract_enabled_flag(evaluations_metadata.get("live_actions"), False)
             action_calling_enabled = action_calling_enabled or legacy_flag
-        flow_adherence_enabled, _ = _extract_enabled_flag(
-            evaluations_metadata.get("flow_adherence"), False
-        )
+        flow_adherence_enabled, _ = _extract_enabled_flag(evaluations_metadata.get("flow_adherence"), False)
         response_accuracy_enabled, response_accuracy_config = _extract_enabled_flag(
             evaluations_metadata.get("response_accuracy"), False
         )
@@ -284,10 +276,7 @@ async def _copy_scenario_files_to_run_thread(
                 )
             except Exception as exc:
                 logger.warning(
-                    "Failed to read file"
-                    f"file_id={uploaded_file.file_id}"
-                    f"scenario=_id={scenario.scenario_id}"
-                    f"error={exc}",
+                    f"Failed to read filefile_id={uploaded_file.file_id}scenario=_id={scenario.scenario_id}error={exc}",
                 )
                 continue
 
@@ -316,9 +305,7 @@ async def _copy_scenario_files_to_run_thread(
             return {}
 
         payloads = [UploadFilePayload(file=upload) for upload, _ in uploads]
-        destination_files = await file_manager.upload(
-            payloads, destination_thread, destination_user_id
-        )
+        destination_files = await file_manager.upload(payloads, destination_thread, destination_user_id)
         logger.info(
             f"Copied {len(uploads)} scenario files "
             f"from {source_context or f'scenario {scenario.scenario_id}'} to run thread",
@@ -372,7 +359,7 @@ async def _terminate_and_return_not_ok(
     return False
 
 
-async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
+async def run_scenario(task: Trial) -> bool:
     if task.status != TrialStatus.EXECUTING:
         raise RuntimeError(f"Trial {task.trial_id} is not being executing.")
 
@@ -448,8 +435,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     agent_tools = await _gather_agent_tools(agent, server_context)
     if agent_tools.issues:
         logger.warning(
-            f"One or more agent tools failed to initialize; "
-            f"continuing anyway: {'; '.join(agent_tools.issues)}",
+            f"One or more agent tools failed to initialize; continuing anyway: {'; '.join(agent_tools.issues)}",
         )
 
     agent_tool_names = [tool.name for tool in agent_tools.all]
@@ -463,9 +449,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
     )
 
     start_with_agent = len(scenario.messages) > 0 and scenario.messages[0].role == "agent"
-    initial_agent_messages, _ = (
-        _list_scenario_next_agent_messages(scenario, 0) if start_with_agent else ([], None)
-    )
+    initial_agent_messages, _ = _list_scenario_next_agent_messages(scenario, 0) if start_with_agent else ([], None)
 
     thread_metadata = {
         "scenario_id": scenario.scenario_id,
@@ -521,10 +505,8 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 return True
 
             offset = current_user_message_index
-            user_messages_from_scenario, next_user_message_index = (
-                _list_scenario_next_user_messages(
-                    scenario=scenario, start_index=current_user_message_index
-                )
+            user_messages_from_scenario, next_user_message_index = _list_scenario_next_user_messages(
+                scenario=scenario, start_index=current_user_message_index
             )
             agent_messages_from_scenario, _ = _list_scenario_next_agent_messages(
                 scenario=scenario, start_index=len(user_messages_from_scenario) + offset
@@ -546,9 +528,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                     agent_messages_from_scenario,
                     policy_overrides=drift_policy_overrides,
                 )
-                missing_tools_in_agent = [
-                    tool for tool in tool_executor.tools if not agent_tools.has_tool(tool)
-                ]
+                missing_tools_in_agent = [tool for tool in tool_executor.tools if not agent_tools.has_tool(tool)]
 
                 if len(missing_tools_in_agent) > 0:
                     message = (
@@ -558,18 +538,13 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                         f"{', '.join([tool.name for tool in missing_tools_in_agent])}"
                     )
                     if agent_tools.issues:
-                        message = (
-                            f"{message}. We had some issues in gathering tools: "
-                            f"{'; '.join(agent_tools.issues)}"
-                        )
+                        message = f"{message}. We had some issues in gathering tools: {'; '.join(agent_tools.issues)}"
                     logger.info(f"Agent tools don't match the conversation: {message}")
                     state.termination = "AGENT_TOOL_MISMATCH"
                     state.status = "ERROR"
                     state.error_message = message
                     additional_drifts = (
-                        _collect_tool_executor_drifts(tool_executor)
-                        if tool_executor is not None
-                        else []
+                        _collect_tool_executor_drifts(tool_executor) if tool_executor is not None else []
                     )
                     state.drift_events = [*drifts, *additional_drifts]
                     state.finished_at = datetime.now()
@@ -579,9 +554,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 raise RuntimeError(f"Unknown execution mode {execution_mode}")
 
             for user_message in user_messages_from_scenario:
-                await storage.add_message_to_thread(
-                    system_user.user_id, new_thread.thread_id, user_message
-                )
+                await storage.add_message_to_thread(system_user.user_id, new_thread.thread_id, user_message)
             new_thread = await storage.get_thread(system_user.user_id, new_thread.thread_id)
 
             run = Run(
@@ -608,9 +581,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
             )
             tool_executor.attach_kernel(kernel)
 
-            agent_client = AgentClient(
-                session=Session(runner=runner, kernel=kernel), tool_executor=tool_executor
-            )
+            agent_client = AgentClient(session=Session(runner=runner, kernel=kernel), tool_executor=tool_executor)
             logger.info(f"[turn={current_turn}] Waiting for agent response")
 
             try:
@@ -633,20 +604,10 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
                 state.termination = _get_termination_reason(e)
                 state.status = "ERROR"
                 state.error_message = log_and_format_error(
-                    log_message=(
-                        f"Unexpected error during scenario turn {current_turn} "
-                        f"for trial {task.trial_id}"
-                    ),
-                    user_message=(
-                        f"An unexpected error occurred while executing turn {current_turn} "
-                        "of the scenario."
-                    ),
+                    log_message=(f"Unexpected error during scenario turn {current_turn} for trial {task.trial_id}"),
+                    user_message=(f"An unexpected error occurred while executing turn {current_turn} of the scenario."),
                 )
-                additional_drifts = (
-                    _collect_tool_executor_drifts(tool_executor)
-                    if tool_executor is not None
-                    else []
-                )
+                additional_drifts = _collect_tool_executor_drifts(tool_executor) if tool_executor is not None else []
                 state.drift_events = [*drifts, *additional_drifts]
                 state.finished_at = datetime.now()
 
@@ -662,9 +623,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
         logger.error(f"Unexpected error when processing evals: {e}.")
         state.termination = _get_termination_reason(e)
         state.error_message = log_and_format_error(
-            log_message=(
-                f"Unexpected error when processing scenario run for trial {task.trial_id}"
-            ),
+            log_message=(f"Unexpected error when processing scenario run for trial {task.trial_id}"),
             user_message="An unexpected error occurred while running the evaluation scenario.",
         )
         state.drift_events = drifts
@@ -689,10 +648,7 @@ async def run_scenario(task: Trial) -> bool:  # noqa: PLR0915, C901, PLR0912
 async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:
     storage = StorageService.get_instance()
 
-    if (
-        task.execution_state.status == "ERROR"
-        and task.execution_state.termination != "REPLAY_DRIFT_ERROR"
-    ):
+    if task.execution_state.status == "ERROR" and task.execution_state.termination != "REPLAY_DRIFT_ERROR":
         return TrialStatus.ERROR.value, task.execution_state.error_message
 
     system_user, _ = await storage.get_or_create_user(EVALS_SYSTEM_USER_SUB)
@@ -746,10 +702,6 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
 
     await storage.update_trial_evaluation_results(task.trial_id, evaluations)
 
-    status = (
-        TrialStatus.COMPLETED.value
-        if all(e.passed for e in evaluations)
-        else TrialStatus.ERROR.value
-    )
+    status = TrialStatus.COMPLETED.value if all(e.passed for e in evaluations) else TrialStatus.ERROR.value
 
     return status, None

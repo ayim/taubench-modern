@@ -124,9 +124,7 @@ class UniqueFileRefError(PlatformHTTPError):
         file_ref: str,
         message: str = "A file with the given file_ref already exists",
     ):
-        super().__init__(
-            error_code=ErrorCode.CONFLICT, message=message, data={"file_ref": file_ref}
-        )
+        super().__init__(error_code=ErrorCode.CONFLICT, message=message, data={"file_ref": file_ref})
 
 
 class ThreadFileNotFoundError(PlatformHTTPError):
@@ -175,9 +173,7 @@ class WorkItemNotFoundError(PlatformHTTPError):
         work_item_id: str,
         message: str = "A work item with the given ID was not found",
     ):
-        super().__init__(
-            error_code=ErrorCode.NOT_FOUND, message=message, data={"work_item_id": work_item_id}
-        )
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={"work_item_id": work_item_id})
 
 
 class MCPServerNotFoundError(PlatformHTTPError):
@@ -204,9 +200,7 @@ class PlatformConfigNotFoundError(PlatformHTTPError):
 class PlatformConfigWithNameAlreadyExistsError(PlatformHTTPError):
     """A platform configuration with the given name already exists."""
 
-    def __init__(
-        self, message: str = "A platform configuration with the given name already exists"
-    ):
+    def __init__(self, message: str = "A platform configuration with the given name already exists"):
         super().__init__(error_code=ErrorCode.CONFLICT, message=message)
 
 
@@ -227,28 +221,18 @@ class ConfigDecryptionError(PlatformHTTPError):
 class DataConnectionNotFoundError(PlatformHTTPError):
     """A data connection with the given ID was not found."""
 
-    def __init__(
-        self, connection_id: str, message: str = "A data connection with the given ID was not found"
-    ):
-        super().__init__(
-            error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id}
-        )
+    def __init__(self, connection_id: str, message: str = "A data connection with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id})
 
 
 class TrialAlreadyCanceledError(PlatformHTTPError):
     def __init__(self, connection_id: str, message: str = "Trial was already canceled"):
-        super().__init__(
-            error_code=ErrorCode.PRECONDITION_FAILED, message=message, data={"id": connection_id}
-        )
+        super().__init__(error_code=ErrorCode.PRECONDITION_FAILED, message=message, data={"id": connection_id})
 
 
 class TrialNotFoundError(PlatformHTTPError):
-    def __init__(
-        self, connection_id: str, message: str = "A trial with the given ID was not found"
-    ):
-        super().__init__(
-            error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id}
-        )
+    def __init__(self, connection_id: str, message: str = "A trial with the given ID was not found"):
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={"id": connection_id})
 
 
 class IntegrationNotFoundError(PlatformHTTPError):
@@ -278,9 +262,7 @@ class IntegrationScopeNotFoundError(PlatformHTTPError):
         scope_id: str,
         message: str = "An integration scope with the given ID was not found",
     ):
-        super().__init__(
-            error_code=ErrorCode.NOT_FOUND, message=message, data={"scope_id": scope_id}
-        )
+        super().__init__(error_code=ErrorCode.NOT_FOUND, message=message, data={"scope_id": scope_id})
 
 
 class InvalidScopeError(PlatformHTTPError):

@@ -104,9 +104,7 @@ async def list_data_sources_from_data_server(
     return []
 
 
-async def delete_data_source_from_data_server(
-    data_source_name: str, data_server: DataServerDetails
-):
+async def delete_data_source_from_data_server(data_source_name: str, data_server: DataServerDetails):
     """
     Delete a data source from the Data Server.
     """

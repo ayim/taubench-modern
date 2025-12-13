@@ -420,12 +420,8 @@ class TestMCPServerPayload:
             transport="streamable-http",
             headers={
                 "X-Raw": "raw-value",
-                "X-String": MCPVariableTypeString(
-                    description="A string header", value="string-value"
-                ),
-                "X-Secret": MCPVariableTypeSecret(
-                    description="A secret header", value="secret-value"
-                ),
+                "X-String": MCPVariableTypeString(description="A string header", value="string-value"),
+                "X-Secret": MCPVariableTypeSecret(description="A secret header", value="secret-value"),
                 "X-OAuth2": MCPVariableTypeOAuth2Secret(
                     provider="google",
                     scopes=["scope1", "scope2"],
@@ -464,12 +460,8 @@ class TestMCPServerPayload:
             transport="stdio",
             env={
                 "ENV_RAW": "raw-value",
-                "ENV_STRING": MCPVariableTypeString(
-                    description="A string env", value="env-string-value"
-                ),
-                "ENV_SECRET": MCPVariableTypeSecret(
-                    description="A secret env", value="env-secret-value"
-                ),
+                "ENV_STRING": MCPVariableTypeString(description="A string env", value="env-string-value"),
+                "ENV_SECRET": MCPVariableTypeSecret(description="A secret env", value="env-secret-value"),
                 "ENV_OAUTH2": MCPVariableTypeOAuth2Secret(
                     provider="github",
                     scopes=["repo", "user"],
@@ -766,9 +758,7 @@ class TestSelectedTools:
         dumped = selected_tools_obj.model_dump()
         assert dumped == {"tool_names": [{"tool_name": "tool1"}, {"tool_name": "tool2"}]}
 
-        validated_obj = SelectedTools.model_validate(
-            {"tool_names": [{"tool_name": "tool3"}, {"tool_name": "tool4"}]}
-        )
+        validated_obj = SelectedTools.model_validate({"tool_names": [{"tool_name": "tool3"}, {"tool_name": "tool4"}]})
         assert len(validated_obj.tool_names) == 2
         assert validated_obj.tool_names[0].tool_name == "tool3"
         assert validated_obj.tool_names[1].tool_name == "tool4"
@@ -892,9 +882,7 @@ class TestArchitectureCompatibility:
 
 
 class TestArchitectureSolverResolution:
-    def _patch_configs(
-        self, monkeypatch, mapping_models: dict[str, str], mapping_reqs: dict[str, list[str]]
-    ):
+    def _patch_configs(self, monkeypatch, mapping_models: dict[str, str], mapping_reqs: dict[str, list[str]]):
         # Patch the symbol used inside upsert_agent to a dummy object that
         # behaves both as a class (for attribute access) and as a callable
         # returning itself (for constructor calls).
@@ -1012,9 +1000,7 @@ class TestArchitectureSolverResolution:
                 description="d",
                 version="1.0.0",
                 runbook="hi",
-                agent_architecture=AgentArchitecture(
-                    name="agent_platform.architectures.default", version="1.0.0"
-                ),
+                agent_architecture=AgentArchitecture(name="agent_platform.architectures.default", version="1.0.0"),
                 platform_configs=[{"kind": "openai", "name": "t", "openai_api_key": "k"}],
             )
             agent = UpsertAgentPayload.to_agent(payload, user_id="u1")

@@ -35,7 +35,7 @@ class Scenario:
     updated_at: datetime = field(default_factory=datetime.now)
 
     @classmethod
-    def model_validate(cls, data: dict) -> "Scenario":  # noqa: C901
+    def model_validate(cls, data: dict) -> "Scenario":
         """Create a scenario from a dictionary."""
         data = data.copy()
 
@@ -53,9 +53,7 @@ class Scenario:
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         if "messages" in data and isinstance(data["messages"], list):
-            data["messages"] = [
-                ThreadMessage.model_validate(message) for message in data["messages"]
-            ]
+            data["messages"] = [ThreadMessage.model_validate(message) for message in data["messages"]]
 
         metadata = data.get("metadata", {})
         if isinstance(metadata, str):
@@ -135,9 +133,7 @@ class ScenarioBatchRunStatistics:
             "total_trials": self.total_trials,
             "completed_trials": self.completed_trials,
             "failed_trials": self.failed_trials,
-            "evaluation_totals": {
-                key: value.model_dump() for key, value in self.evaluation_totals.items()
-            },
+            "evaluation_totals": {key: value.model_dump() for key, value in self.evaluation_totals.items()},
         }
 
     @classmethod
@@ -145,10 +141,7 @@ class ScenarioBatchRunStatistics:
         if not data:
             return cls()
         evaluation_totals = data.get("evaluation_totals") or {}
-        parsed_totals = {
-            key: EvaluationAggregate.model_validate(value)
-            for key, value in evaluation_totals.items()
-        }
+        parsed_totals = {key: EvaluationAggregate.model_validate(value) for key, value in evaluation_totals.items()}
         return cls(
             total_scenarios=int(data.get("total_scenarios", 0)),
             completed_scenarios=int(data.get("completed_scenarios", 0)),
@@ -322,7 +315,7 @@ class Trial:
         return self.reschedule_attempts
 
     @classmethod
-    def model_validate(cls, data: dict) -> "Trial":  # noqa: C901, PLR0912
+    def model_validate(cls, data: dict) -> "Trial":
         """Create a trial from a dictionary."""
         data = data.copy()
 
@@ -345,13 +338,9 @@ class Trial:
             data["retry_after_at"] = datetime.fromisoformat(data["retry_after_at"])
 
         if "messages" in data and isinstance(data["messages"], list):
-            data["messages"] = [
-                ThreadMessage.model_validate(message) for message in data["messages"]
-            ]
+            data["messages"] = [ThreadMessage.model_validate(message) for message in data["messages"]]
         if "evaluation_results" in data and isinstance(data["evaluation_results"], list):
-            data["evaluation_results"] = [
-                parse_evaluation_result(result) for result in data["evaluation_results"]
-            ]
+            data["evaluation_results"] = [parse_evaluation_result(result) for result in data["evaluation_results"]]
         if "execution_state" in data and isinstance(data["execution_state"], dict):
             data["execution_state"] = parse_execution_state(data["execution_state"])
         metadata = data.get("metadata")
@@ -480,9 +469,7 @@ class ScenarioBatchRunTrialStatusEntry:
         if "execution_started_at" in parsed and isinstance(parsed["execution_started_at"], str):
             parsed["execution_started_at"] = datetime.fromisoformat(parsed["execution_started_at"])
         if "execution_finished_at" in parsed and isinstance(parsed["execution_finished_at"], str):
-            parsed["execution_finished_at"] = datetime.fromisoformat(
-                parsed["execution_finished_at"]
-            )
+            parsed["execution_finished_at"] = datetime.fromisoformat(parsed["execution_finished_at"])
         status = parsed.get("status")
         if isinstance(status, str):
             parsed["status"] = TrialStatus(status)
@@ -515,9 +502,7 @@ class ScenarioBatchRunTrialStatus:
         parsed["scenario_id"] = str(parsed.get("scenario_id", ""))
         parsed["scenario_run_id"] = str(parsed.get("scenario_run_id", ""))
         trials = parsed.get("trials") or []
-        parsed["trials"] = [
-            ScenarioBatchRunTrialStatusEntry.model_validate(trial) for trial in trials
-        ]
+        parsed["trials"] = [ScenarioBatchRunTrialStatusEntry.model_validate(trial) for trial in trials]
         return cls(**parsed)
 
 
@@ -536,7 +521,7 @@ class ScenarioBatchRun:
     completed_at: datetime | None = None
 
     @classmethod
-    def model_validate(cls, data: dict) -> "ScenarioBatchRun":  # noqa: C901, PLR0912
+    def model_validate(cls, data: dict) -> "ScenarioBatchRun":
         data = data.copy()
 
         if "batch_run_id" in data and isinstance(data["batch_run_id"], UUID):
@@ -577,9 +562,7 @@ class ScenarioBatchRun:
                 trial_statuses = []
         if trial_statuses is None:
             trial_statuses = []
-        data["trial_statuses"] = [
-            ScenarioBatchRunTrialStatus.model_validate(status) for status in trial_statuses
-        ]
+        data["trial_statuses"] = [ScenarioBatchRunTrialStatus.model_validate(status) for status in trial_statuses]
         metadata = data.get("metadata")
         if isinstance(metadata, str):
             try:

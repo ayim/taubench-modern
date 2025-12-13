@@ -236,7 +236,7 @@ class GoogleClient(
         if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
             return ErrorCode.BAD_REQUEST, default_message.format(model=model)
 
-        if status.HTTP_500_INTERNAL_SERVER_ERROR <= status_code < 600:  # noqa: PLR2004
+        if status.HTTP_500_INTERNAL_SERVER_ERROR <= status_code < 600:
             return ErrorCode.UNEXPECTED, default_message.format(model=model)
 
         return ErrorCode.UNEXPECTED, default_message.format(model=model)
@@ -296,8 +296,7 @@ class GoogleClient(
                 total_tokens = prompt_tokens + completion_tokens
 
             logger.info(
-                f"Token usage: prompt={prompt_tokens}, completion={completion_tokens}, "
-                f"total={total_tokens}",
+                f"Token usage: prompt={prompt_tokens}, completion={completion_tokens}, total={total_tokens}",
             )
             if usage_metadata.thoughts_token_count is not None:
                 logger.info(
@@ -705,9 +704,7 @@ class GoogleClient(
 
             slug = model.rsplit("/", 1)[-1]
             generic_id = f"google/google/{slug}"
-            provider_specific = platform_configs.models_to_platform_specific_model_ids.get(
-                generic_id
-            )
+            provider_specific = platform_configs.models_to_platform_specific_model_ids.get(generic_id)
             _add(provider_specific)
 
         return normalized

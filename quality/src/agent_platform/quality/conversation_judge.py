@@ -20,13 +20,9 @@ class ConversationJudge:
         self.agent_server_url = agent_server_url
 
     async def evaluate(self, benchmark: list[Message], target: list[Message]):
-        target_conversation = "\n\n".join(
-            [f"Message {i + 1}: {msg.content}" for i, msg in enumerate(target)]
-        )
+        target_conversation = "\n\n".join([f"Message {i + 1}: {msg.content}" for i, msg in enumerate(target)])
 
-        benchmark_conversation = "\n\n".join(
-            [f"Message {i + 1}: {msg.content}" for i, msg in enumerate(benchmark)]
-        )
+        benchmark_conversation = "\n\n".join([f"Message {i + 1}: {msg.content}" for i, msg in enumerate(benchmark)])
 
         evaluation_prompt = (
             f"Please evaluate if the following conversation is CONSISTENT with the "
@@ -57,9 +53,7 @@ class ConversationJudge:
                 "You are an impartial evaluator of conversation quality and consistency. "
                 "Provide accurate, objective evaluations."
             ),
-            "messages": [
-                {"role": "user", "content": [{"kind": "text", "text": evaluation_prompt}]}
-            ],
+            "messages": [{"role": "user", "content": [{"kind": "text", "text": evaluation_prompt}]}],
             "temperature": 0.1,
             "max_output_tokens": 500,
         }

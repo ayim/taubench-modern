@@ -136,9 +136,7 @@ async def check_work_item_payload_size(request: Request) -> None:
 
     # Check if payload exceeds the limit
     if size_kb > max_payload_size_kb:
-        raise WorkItemPayloadTooLargeError(
-            payload_size=int(size_kb), allowed_payload_size=max_payload_size_kb
-        )
+        raise WorkItemPayloadTooLargeError(payload_size=int(size_kb), allowed_payload_size=max_payload_size_kb)
 
 
 WorkItemPayloadSizeCheck = Annotated[None, Depends(check_work_item_payload_size)]
@@ -243,14 +241,10 @@ async def get_dids_connection_details(storage: StorageDependency) -> DataServerD
 
     # Inline validation mirroring _require_document_intelligence_data_server
     if not details.username or not details.username.strip():
-        raise DIDSConnectionDetailsNotFoundError(
-            "Document Intelligence Data Server configuration is missing username"
-        )
+        raise DIDSConnectionDetailsNotFoundError("Document Intelligence Data Server configuration is missing username")
 
     if not details.password_str or not details.password_str.strip():
-        raise DIDSConnectionDetailsNotFoundError(
-            "Document Intelligence Data Server configuration is missing password"
-        )
+        raise DIDSConnectionDetailsNotFoundError("Document Intelligence Data Server configuration is missing password")
 
     if not details.data_server_endpoints:
         raise DIDSConnectionDetailsNotFoundError(
@@ -376,9 +370,7 @@ async def get_async_extraction_client(
         yield client
 
 
-AsyncExtractionClientDependency = Annotated[
-    AsyncExtractionClient, Depends(get_async_extraction_client)
-]
+AsyncExtractionClientDependency = Annotated[AsyncExtractionClient, Depends(get_async_extraction_client)]
 
 
 async def _reducto_api_key(storage: StorageDependency) -> str:
@@ -432,9 +424,7 @@ def _is_docint_rag_agent(agent: Agent) -> bool:
     Returns True if the agent has one of the "canonical" Document Intelligence action packages
     that have historically required a Postgres database.
     """
-    return any(
-        ap.name in ("Document Intelligence", "Document Insights") for ap in agent.action_packages
-    )
+    return any(ap.name in ("Document Intelligence", "Document Insights") for ap in agent.action_packages)
 
 
 async def _persistence_mode(agent: Agent) -> PersistenceMode:

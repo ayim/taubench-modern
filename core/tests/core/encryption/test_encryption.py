@@ -81,9 +81,7 @@ class TestAESGCM:
         aesgcm_encrypt = AESGCM2(key)
 
         data = b"The most secret message"
-        aad = json.dumps(
-            {"scheme": "test-scheme", "kek_type": "test-key", "enc_ts": "2024-03-20T10:00:00Z"}
-        ).encode()
+        aad = json.dumps({"scheme": "test-scheme", "kek_type": "test-key", "enc_ts": "2024-03-20T10:00:00Z"}).encode()
 
         encrypted_data = aesgcm_encrypt.encrypt(data, aad)
 

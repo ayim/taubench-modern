@@ -43,7 +43,6 @@ class PlatformPrompt(ABC):
         Returns:
             A platform-specific request.
         """
-        pass
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -74,9 +73,7 @@ class PlatformParameters(ABC):
     models: dict[str, list[str]] | None = field(
         default=None,
         metadata={
-            "description": (
-                "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})"
-            ),
+            "description": ("Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})"),
         },
     )
     """Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
@@ -242,7 +239,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         content: PromptTextContent,
     ) -> Any:
         """Converts a text content to a platform-specific text content."""
-        pass
 
     @abstractmethod
     async def convert_image_content(
@@ -250,7 +246,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         content: PromptImageContent,
     ) -> Any:
         """Converts an image content to a platform-specific image content."""
-        pass
 
     @abstractmethod
     async def convert_audio_content(
@@ -258,7 +253,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         content: PromptAudioContent,
     ) -> Any:
         """Converts an audio content to a platform-specific audio content."""
-        pass
 
     @abstractmethod
     async def convert_tool_use_content(
@@ -266,7 +260,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         content: PromptToolUseContent,
     ) -> Any:
         """Converts a tool use content to a platform-specific tool use content."""
-        pass
 
     @abstractmethod
     async def convert_tool_result_content(
@@ -274,7 +267,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         content: PromptToolResultContent,
     ) -> Any:
         """Converts a tool result content to a platform-specific tool result content."""
-        pass
 
     @abstractmethod
     async def convert_document_content(
@@ -282,7 +274,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         content: PromptDocumentContent,
     ) -> Any:
         """Converts a document content to a platform-specific document content."""
-        pass
 
     async def convert_content_item_to_platform_part(
         self,
@@ -345,7 +336,6 @@ class PlatformConverters(ABC, UsesKernelMixin):
         Sometimes, there may be model-specific changes for certain
         providers, so we allow a model_id to be provided.
         """
-        pass
 
 
 class PlatformParsers(ABC):
@@ -359,7 +349,6 @@ class PlatformParsers(ABC):
     @abstractmethod
     def parse_response(self, response: Any) -> ResponseMessage:
         """Parses a platform-specific response to an agent-server model response."""
-        pass
 
 
 class PlatformModelMap(Configuration):
@@ -388,19 +377,13 @@ class PlatformModelMap(Configuration):
     models_to_input_modalities: dict[str, list[str]] = field(
         default_factory=dict,
         metadata=FieldMetadata(
-            description=(
-                "A mapping between agent server model names and input modalities "
-                "supported by the model."
-            ),
+            description=("A mapping between agent server model names and input modalities supported by the model."),
         ),
     )
     models_to_output_modalities: dict[str, list[str]] = field(
         default_factory=dict,
         metadata=FieldMetadata(
-            description=(
-                "A mapping between agent server model names and output modalities "
-                "supported by the model."
-            ),
+            description=("A mapping between agent server model names and output modalities supported by the model."),
         ),
     )
     model_families: dict[str, str] = field(
@@ -427,9 +410,7 @@ class PlatformModelMap(Configuration):
     def distinct_llm_model_ids(cls) -> list[str]:
         """Get list of distinct Large Language Model names."""
         return list(
-            set(
-                model for model in cls.supported_models() if cls.models_to_type.get(model) == "llm"
-            ),
+            set(model for model in cls.supported_models() if cls.models_to_type.get(model) == "llm"),
         )
 
     @classmethod
@@ -438,9 +419,7 @@ class PlatformModelMap(Configuration):
         return [
             model
             for model in cls.distinct_llm_model_ids()
-            if all(
-                modality in cls.models_to_input_modalities.get(model, []) for modality in modalities
-            )
+            if all(modality in cls.models_to_input_modalities.get(model, []) for modality in modalities)
         ]
 
     @classmethod
@@ -457,11 +436,7 @@ class PlatformModelMap(Configuration):
     def distinct_embedding_model_ids(cls) -> list[str]:
         """Get list of distinct embedding model IDs."""
         return list(
-            set(
-                model
-                for model in cls.supported_models()
-                if cls.models_to_type[model] == "embedding"
-            ),
+            set(model for model in cls.supported_models() if cls.models_to_type[model] == "embedding"),
         )
 
 
@@ -571,7 +546,6 @@ class PlatformClient(
     @abstractmethod
     def _init_converters(self, kernel: "Kernel | None" = None) -> TConverters:
         """Initializes the platform-specific converters."""
-        pass
 
     @abstractmethod
     def _init_parameters(
@@ -587,12 +561,10 @@ class PlatformClient(
             **kwargs: Additional keyword arguments will be passed to the parameters
                 constructor.
         """
-        pass
 
     @abstractmethod
     def _init_parsers(self) -> TParsers:
         """Initializes the platform-specific parsers."""
-        pass
 
     @abstractmethod
     async def generate_response(
@@ -610,7 +582,6 @@ class PlatformClient(
         Returns:
             The model's response.
         """
-        pass
 
     @abstractmethod
     def generate_stream_response(
@@ -628,7 +599,6 @@ class PlatformClient(
         Yields:
             GenericDelta objects that update the response.
         """
-        pass
 
     def _generate_platform_metadata(self) -> dict[str, Any]:
         """Generate platform metadata from the response.
@@ -659,7 +629,6 @@ class PlatformClient(
             A dictionary containing the embeddings and any additional
             model-specific information.
         """
-        pass
 
     async def get_available_models(self) -> dict[str, list[str]]:
         """Get a map from providers to a list of their models for the platform."""

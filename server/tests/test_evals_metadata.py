@@ -35,9 +35,7 @@ def _make_thread(thread_id: str = "thread-1") -> Thread:
     )
 
 
-def _make_scenario_stub(
-    *, metadata: dict | None = None, description: str = "Default description"
-) -> SimpleNamespace:
+def _make_scenario_stub(*, metadata: dict | None = None, description: str = "Default description") -> SimpleNamespace:
     return SimpleNamespace(
         description=description,
         metadata=metadata or {},

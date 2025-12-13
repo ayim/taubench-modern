@@ -53,9 +53,7 @@ class ToolsRegistry:
     Resolves, caches, and formats tool definitions that are available to the agent.
     """
 
-    def __init__(
-        self, kernel: Kernel, state: VioletState, message: ThreadMessageWithThreadState
-    ) -> None:
+    def __init__(self, kernel: Kernel, state: VioletState, message: ThreadMessageWithThreadState) -> None:
         self.kernel = kernel
         self.state = state
         self.message = message

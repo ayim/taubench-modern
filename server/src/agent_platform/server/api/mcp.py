@@ -48,9 +48,7 @@ class MCPAuthenticationMiddleware(BaseHTTPMiddleware):
         super().__init__(app, dispatch)
         self._auth_handler = get_auth_handler(StorageService.get_instance())
 
-    async def dispatch(
-        self, request: Request, call_next: StarletteRequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: StarletteRequestResponseEndpoint) -> Response:
         # Exceptions from sub-apps are not raised properly.
         # https://github.com/fastapi/fastapi/discussions/9098
 

@@ -121,9 +121,7 @@ class TestPromptSelector:
         """Test getting the resource root with an error."""
         mock_files.side_effect = AttributeError("Test error")
 
-        with pytest.raises(
-            ValueError, match="Failed to locate resource files in package test-package"
-        ):
+        with pytest.raises(ValueError, match="Failed to locate resource files in package test-package"):
             selector._get_resource_root("test-package")
 
     def test_collect_prompt_files(self, selector: PromptSelector) -> None:
@@ -750,9 +748,7 @@ class TestIntegrationPromptSelector:
         # Mock DefaultPromptSelector.select_prompt to return prompts based on request
         with (
             patch.object(DefaultPromptConfig, "default_prompt", "test-default.yml"),
-            patch.object(
-                DefaultPromptSelector, "prompts", new_callable=PropertyMock
-            ) as mock_prompts,
+            patch.object(DefaultPromptSelector, "prompts", new_callable=PropertyMock) as mock_prompts,
             patch.object(Prompt, "load_yaml") as mock_load_yaml,
         ):
             mock_prompts.return_value = prompts

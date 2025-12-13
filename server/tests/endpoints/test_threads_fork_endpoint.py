@@ -36,11 +36,7 @@ class MockStorage:
 
     async def list_threads_for_agent(self, user_id: str, agent_id: str) -> list[Thread]:
         """List all threads for a specific agent."""
-        return [
-            thread
-            for thread in self.threads.values()
-            if thread.agent_id == agent_id and thread.user_id == user_id
-        ]
+        return [thread for thread in self.threads.values() if thread.agent_id == agent_id and thread.user_id == user_id]
 
 
 @pytest.fixture
@@ -104,11 +100,7 @@ def sample_thread(mock_storage, test_user):
             ThreadMessage(
                 message_id="msg-4",
                 role="agent",
-                content=[
-                    ThreadTextContent(
-                        text="Decorators are functions that modify other functions..."
-                    )
-                ],
+                content=[ThreadTextContent(text="Decorators are functions that modify other functions...")],
             ),
             ThreadMessage(
                 message_id="msg-5",
@@ -159,10 +151,7 @@ def test_fork_thread_at_first_message(client: TestClient, sample_thread: Thread)
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert (
-        response.json()["detail"]
-        == "Cannot fork at the first message - no previous messages to include"
-    )
+    assert response.json()["detail"] == "Cannot fork at the first message - no previous messages to include"
 
 
 def test_fork_thread_at_last_user_message(client: TestClient, sample_thread: Thread):
@@ -214,9 +203,7 @@ def test_fork_thread_not_found(client: TestClient):
     assert response.json()["detail"] == "Thread not found"
 
 
-def test_fork_thread_creates_new_thread_id(
-    client: TestClient, sample_thread: Thread, mock_storage: MockStorage
-):
+def test_fork_thread_creates_new_thread_id(client: TestClient, sample_thread: Thread, mock_storage: MockStorage):
     """Test that forking creates a new thread with a different ID."""
     response = client.post(
         f"/threads/{sample_thread.thread_id}/fork",
@@ -237,9 +224,7 @@ def test_fork_thread_creates_new_thread_id(
     assert len(saved_thread.messages) == 2
 
 
-def test_fork_thread_increments_number(
-    client: TestClient, sample_thread: Thread, mock_storage: MockStorage
-):
+def test_fork_thread_increments_number(client: TestClient, sample_thread: Thread, mock_storage: MockStorage):
     """Test that forking increments the number when multiple forks exist."""
     # Create first fork
     response1 = client.post(
@@ -269,9 +254,7 @@ def test_fork_thread_increments_number(
     assert forked_thread3["name"] == "Test Thread (3)"
 
 
-def test_fork_thread_with_existing_numbered_name(
-    client: TestClient, mock_storage: MockStorage, test_user
-):
+def test_fork_thread_with_existing_numbered_name(client: TestClient, mock_storage: MockStorage, test_user):
     """Test forking a thread that already has a numbered suffix."""
     # Create a thread with a numbered name
     numbered_thread = Thread(
@@ -373,9 +356,7 @@ def test_fork_thread_custom_name_with_multiple_forks(client: TestClient, sample_
     assert response4.json()["name"] == "Test Thread (2)"
 
 
-def test_fork_thread_creates_new_message_ids(
-    client: TestClient, sample_thread: Thread, mock_storage: MockStorage
-):
+def test_fork_thread_creates_new_message_ids(client: TestClient, sample_thread: Thread, mock_storage: MockStorage):
     """Test that forked threads have new message IDs, not the original ones."""
     # Get original message IDs
     original_message_ids = [msg.message_id for msg in sample_thread.messages[:2]]

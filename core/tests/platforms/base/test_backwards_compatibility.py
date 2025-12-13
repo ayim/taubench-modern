@@ -186,9 +186,7 @@ class TestPlatformParametersBackwardsCompatibility:
         assert loaded.description == original.description
         assert loaded.openai_api_key is not None
         assert original.openai_api_key is not None
-        assert (
-            loaded.openai_api_key.get_secret_value() == original.openai_api_key.get_secret_value()
-        )
+        assert loaded.openai_api_key.get_secret_value() == original.openai_api_key.get_secret_value()
         assert loaded.platform_id == original.platform_id
 
         # Note: timestamps might be slightly different due to serialization/deserialization,
@@ -238,9 +236,7 @@ class TestPlatformParametersBackwardsCompatibility:
         import pytest
 
         # Test invalid created_at format
-        with pytest.raises(
-            ValueError, match=r"Invalid datetime string for created_at.*Expected ISO format"
-        ):
+        with pytest.raises(ValueError, match=r"Invalid datetime string for created_at.*Expected ISO format"):
             OpenAIPlatformParameters(
                 openai_api_key=SecretString("sk-test-key"),
                 created_at="not-a-valid-datetime",  # type: ignore
@@ -248,9 +244,7 @@ class TestPlatformParametersBackwardsCompatibility:
             )
 
         # Test invalid updated_at format
-        with pytest.raises(
-            ValueError, match=r"Invalid datetime string for updated_at.*Expected ISO format"
-        ):
+        with pytest.raises(ValueError, match=r"Invalid datetime string for updated_at.*Expected ISO format"):
             OpenAIPlatformParameters(
                 openai_api_key=SecretString("sk-test-key"),
                 updated_at="2023-13-40T25:70:80",  # type: ignore  # Invalid date/time components

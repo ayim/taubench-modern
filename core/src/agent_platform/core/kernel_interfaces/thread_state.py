@@ -14,17 +14,9 @@ from agent_platform.core.streaming import (
     StreamingError,
     compute_message_delta,
 )
-from agent_platform.core.thread import (
-    ThreadAgentMessage,
-    ThreadMessage,
-    ThreadUserMessage,
-)
+from agent_platform.core.thread import ThreadAgentMessage, ThreadMessage, ThreadUserMessage
 from agent_platform.core.thread.base import AnyThreadMessageContent
-from agent_platform.core.thread.content import (
-    ThreadTextContent,
-    ThreadThoughtContent,
-    ThreadToolUsageContent,
-)
+from agent_platform.core.thread.content import ThreadTextContent, ThreadThoughtContent, ThreadToolUsageContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.tools.tool_execution_result import ToolExecutionResult
 
@@ -181,9 +173,7 @@ class ThreadMessageWithThreadState:
             # Normal behavior - websocket errors will propagate
             await self.stream_delta()
 
-        await self._thread_state.commit_message(
-            self._message, ignore_websocket_errors=ignore_websocket_errors
-        )
+        await self._thread_state.commit_message(self._message, ignore_websocket_errors=ignore_websocket_errors)
 
         kernel = self._thread_state.kernel
         kernel.ctx.increment_counter(
@@ -288,10 +278,7 @@ class ThreadMessageWithThreadState:
                     index_of_last_text_content = i
                     break
 
-            if (
-                index_of_last_text_content is None
-                or self._message.content[index_of_last_text_content].complete
-            ):
+            if index_of_last_text_content is None or self._message.content[index_of_last_text_content].complete:
                 self._message.content.append(ThreadTextContent(text=text_piece))
                 self._message.content[-1].complete = complete
             else:
@@ -332,10 +319,7 @@ class ThreadMessageWithThreadState:
                 index_of_last_thought_content = i
                 break
 
-        if (
-            index_of_last_thought_content is None
-            or self._message.content[index_of_last_thought_content].complete
-        ):
+        if index_of_last_thought_content is None or self._message.content[index_of_last_thought_content].complete:
             self._message.content.append(ThreadThoughtContent(thought=thought))
         else:
             # Directly mutate the thought content instead of creating a new object
@@ -429,10 +413,7 @@ class ThreadMessageWithThreadState:
             (
                 idx
                 for idx, content in enumerate(self._message.content)
-                if (
-                    isinstance(content, ThreadToolUsageContent)
-                    and content.tool_call_id == result.tool_call_id
-                )
+                if (isinstance(content, ThreadToolUsageContent) and content.tool_call_id == result.tool_call_id)
             ),
             None,
         )
@@ -616,9 +597,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
             StreamingError: If we fail to send the delta to downstream
                 consumers.
         """
-        unwrapped_message = (
-            message._message if isinstance(message, ThreadMessageWithThreadState) else message
-        )
+        unwrapped_message = message._message if isinstance(message, ThreadMessageWithThreadState) else message
 
         # Update the active message content
         self._active_message_content = unwrapped_message.content.copy()
@@ -653,9 +632,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
                 # over-the-wire we get from just timestamp updates
                 unwrapped_message.with_normalized_timestamps()
             )
-            self._previous_message_sequence_numbers[unwrapped_message.message_id] += len(
-                delta_objects
-            )
+            self._previous_message_sequence_numbers[unwrapped_message.message_id] += len(delta_objects)
         except Exception as e:
             # If we failed to send the delta, we'll raise an error.
             raise StreamingError(
@@ -668,9 +645,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         ignore_websocket_errors: bool = False,
     ) -> None:
         """Commits a message to the thread state."""
-        unwrapped_message = (
-            message._message if isinstance(message, ThreadMessageWithThreadState) else message
-        )
+        unwrapped_message = message._message if isinstance(message, ThreadMessageWithThreadState) else message
 
         websocket_error = None
         storage_error = None
@@ -678,9 +653,7 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         try:
             sequence_number = 0
             if unwrapped_message.message_id in self._previous_message_sequence_numbers:
-                sequence_number = self._previous_message_sequence_numbers[
-                    unwrapped_message.message_id
-                ]
+                sequence_number = self._previous_message_sequence_numbers[unwrapped_message.message_id]
 
             try:
                 await self._send_delta_event(
@@ -732,7 +705,6 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         Raises:
             StreamingError: If the delta cannot be sent to the UI.
         """
-        pass
 
     @abstractmethod
     async def _commit_message_to_storage(self, message: ThreadMessage) -> None:
@@ -744,4 +716,3 @@ class ThreadStateInterface(ABC, UsesKernelMixin):
         Raises:
             Exception: If the message cannot be committed to storage.
         """
-        pass

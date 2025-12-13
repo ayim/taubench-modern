@@ -171,9 +171,7 @@ async def _process_conversation_step(kernel: Kernel, state: VioletState) -> Viol
     return state
 
 
-async def _resolve_platform_and_model(
-    kernel: Kernel, state: VioletState
-) -> tuple[PlatformInterface, str]:
+async def _resolve_platform_and_model(kernel: Kernel, state: VioletState) -> tuple[PlatformInterface, str]:
     """Resolves the platform and model, and updates the state with the details."""
     platform, model_str = await kernel.get_platform_and_model(
         model_type="llm",
@@ -184,7 +182,7 @@ async def _resolve_platform_and_model(
 
     # Expected format: "platform/provider/model_name"
     parts = model_str.split("/")
-    if len(parts) == 3:  # noqa: PLR2004
+    if len(parts) == 3:
         state.selected_platform, state.selected_model_provider, state.selected_model = parts
     else:
         state.selected_platform = platform.name
@@ -197,9 +195,7 @@ async def _resolve_platform_and_model(
 def _update_elapsed_time(state: VioletState) -> None:
     from datetime import UTC, datetime
 
-    elapsed_seconds = (
-        datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)
-    ).total_seconds()
+    elapsed_seconds = (datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)).total_seconds()
     state.processing_elapsed_time = f"{elapsed_seconds:.2f} seconds"
 
 

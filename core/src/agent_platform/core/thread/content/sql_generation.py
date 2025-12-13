@@ -57,9 +57,7 @@ class SQLGenerationContent(BaseModel):
 
     assumptions_used: str | None = Field(
         default=None,
-        description=(
-            "Any assumptions used by the SQL generation subagent when generating the SQL query."
-        ),
+        description=("Any assumptions used by the SQL generation subagent when generating the SQL query."),
     )
     """Any assumptions used by the SQL generation subagent when generating the SQL query."""
 

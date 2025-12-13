@@ -157,9 +157,7 @@ def test_work_item_restart():
     assert work_item.status == WorkItemStatus.PENDING
     assert work_item.thread_id is None
     assert len(work_item.messages) == 1
-    assert (
-        work_item.messages[0].content[0].as_text_content() == user_msg.content[0].as_text_content()
-    )
+    assert work_item.messages[0].content[0].as_text_content() == user_msg.content[0].as_text_content()
     assert work_item.completed_by is None
     assert work_item.status_updated_at is not None
     assert work_item.status_updated_by == WorkItemStatusUpdatedBy.HUMAN

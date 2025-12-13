@@ -66,9 +66,7 @@ def patch_worker_settings(monkeypatch):
     """Shrink worker settings so tests run quickly (small sleeps, small batches)."""
     test_settings = WorkerSettings(worker_interval=0)
     # Patch settings where they are imported
-    monkeypatch.setattr(
-        "agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings
-    )
+    monkeypatch.setattr("agent_platform.server.work_items.settings.WORK_ITEMS_SETTINGS", test_settings)
 
     # Mock the quotas service
     async def mock_get_instance():
@@ -279,7 +277,7 @@ class TestWorkItemsService:
         assert len(rows_by_status[WorkItemStatus.COMPLETED]) == 3
 
     @pytest.mark.asyncio
-    async def test_work_item_validate_success_needs_review(  # noqa: PLR0913
+    async def test_work_item_validate_success_needs_review(
         self,
         configured_storage,
         stub_user,
@@ -329,18 +327,12 @@ class TestWorkItemsService:
         item.messages = [
             ThreadUserMessage(content=[ThreadTextContent(text="Please calculate 2+2")]),
             ThreadAgentMessage(
-                content=[
-                    ThreadTextContent(
-                        text="The answer is 4. I have successfully completed the calculation."
-                    )
-                ]
+                content=[ThreadTextContent(text="The answer is 4. I have successfully completed the calculation.")]
             ),
         ]
 
         # Mock prompt_generate to return a COMPLETED validation response
-        mock_response = ResponseMessage(
-            content=[ResponseTextContent(text="COMPLETED")], role="agent"
-        )
+        mock_response = ResponseMessage(content=[ResponseTextContent(text="COMPLETED")], role="agent")
 
         with patch(
             "agent_platform.server.work_items.judge.prompt_generate",
@@ -360,16 +352,12 @@ class TestWorkItemsService:
         item.messages = [
             ThreadUserMessage(content=[ThreadTextContent(text="Debug this complex system")]),
             ThreadAgentMessage(
-                content=[
-                    ThreadTextContent(text="I encountered errors and could not complete the task.")
-                ]
+                content=[ThreadTextContent(text="I encountered errors and could not complete the task.")]
             ),
         ]
 
         # Mock prompt_generate to return a NEEDS_REVIEW validation response
-        mock_response = ResponseMessage(
-            content=[ResponseTextContent(text="NEEDS_REVIEW")], role="agent"
-        )
+        mock_response = ResponseMessage(content=[ResponseTextContent(text="NEEDS_REVIEW")], role="agent")
 
         with patch(
             "agent_platform.server.work_items.judge.prompt_generate",
@@ -387,9 +375,7 @@ class TestWorkItemsService:
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock prompt_generate to return an invalid response that isn't COMPLETED or NEEDS_REVIEW
-        mock_response = ResponseMessage(
-            content=[ResponseTextContent(text="INVALID_STATUS")], role="agent"
-        )
+        mock_response = ResponseMessage(content=[ResponseTextContent(text="INVALID_STATUS")], role="agent")
 
         with patch(
             "agent_platform.server.work_items.judge.prompt_generate",
@@ -400,9 +386,7 @@ class TestWorkItemsService:
             assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
-    async def test_validate_success_with_empty_content(
-        self, configured_storage, stub_user, system_user, seed_agents
-    ):
+    async def test_validate_success_with_empty_content(self, configured_storage, stub_user, system_user, seed_agents):
         """Test that _validate_success defaults to INDETERMINATE when LLM returns empty content."""
 
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
@@ -428,11 +412,7 @@ class TestWorkItemsService:
 
         # Mock prompt_generate to return only tool use content (no text)
         mock_response = ResponseMessage(
-            content=[
-                ResponseToolUseContent(
-                    tool_call_id="test", tool_name="test_tool", tool_input_raw="{}"
-                )
-            ],
+            content=[ResponseToolUseContent(tool_call_id="test", tool_name="test_tool", tool_input_raw="{}")],
             role="agent",
         )
 
@@ -444,17 +424,13 @@ class TestWorkItemsService:
             assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
-    async def test_response_text_content_is_parsed(
-        self, configured_storage, stub_user, system_user, seed_agents
-    ):
+    async def test_response_text_content_is_parsed(self, configured_storage, stub_user, system_user, seed_agents):
         """Test that ResponseTextContent is correctly parsed by the validation logic."""
 
         item = _make_work_item(system_user.user_id, stub_user.user_id, seed_agents[0].agent_id)
 
         # Mock prompt_generate to return ResponseTextContent with COMPLETED
-        mock_response = ResponseMessage(
-            content=[ResponseTextContent(text="COMPLETED")], role="agent"
-        )
+        mock_response = ResponseMessage(content=[ResponseTextContent(text="COMPLETED")], role="agent")
 
         with patch(
             "agent_platform.server.work_items.judge.prompt_generate",
@@ -464,9 +440,7 @@ class TestWorkItemsService:
             assert result == WorkItemStatus.COMPLETED
 
     @pytest.mark.asyncio
-    async def test_thread_text_content_is_not_parsed(
-        self, configured_storage, stub_user, system_user, seed_agents
-    ):
+    async def test_thread_text_content_is_not_parsed(self, configured_storage, stub_user, system_user, seed_agents):
         """Test that ThreadTextContent is not parsed by the validation logic.
 
         This test verifies that the validation logic correctly distinguishes between
@@ -491,9 +465,7 @@ class TestWorkItemsService:
             assert result == WorkItemStatus.INDETERMINATE
 
     @pytest.mark.asyncio
-    async def test_mixed_content_types(
-        self, configured_storage, stub_user, system_user, seed_agents
-    ):
+    async def test_mixed_content_types(self, configured_storage, stub_user, system_user, seed_agents):
         """Test validation logic with mixed content types in the LLM response.
 
         Verifies that when multiple content types are present, the validation
@@ -546,9 +518,7 @@ class TestWorkItemsService:
         ]
 
         for invalid_text in invalid_responses:
-            mock_response = ResponseMessage(
-                content=[ResponseTextContent(text=invalid_text)], role="agent"
-            )
+            mock_response = ResponseMessage(content=[ResponseTextContent(text=invalid_text)], role="agent")
 
             with patch(
                 "agent_platform.server.work_items.judge.prompt_generate",
@@ -591,9 +561,7 @@ class TestWorkItemsService:
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Also need to mock the file retrieval to return empty list
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
@@ -684,9 +652,7 @@ class TestWorkItemsService:
             patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Mock file retrieval to return our test files
             configured_storage.get_workitem_files = AsyncMock(return_value=mock_files)
@@ -747,9 +713,7 @@ class TestWorkItemsService:
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Mock file operations
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
@@ -804,9 +768,7 @@ class TestWorkItemsService:
             patch("agent_platform.server.api.private_v2.runs.get_run_status") as mock_get_status,
         ):
             # Mock successful agent execution
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Mock file operations
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
@@ -850,9 +812,7 @@ class TestWorkItemsService:
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Also need to mock the file retrieval to return empty list
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
@@ -896,9 +856,7 @@ class TestWorkItemsService:
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Mock file operations
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
@@ -913,9 +871,7 @@ class TestWorkItemsService:
             assert created_thread.work_item_id == item.work_item_id
 
             # Verify the thread can be retrieved from storage with the work_item_id intact
-            retrieved_thread = await configured_storage.get_thread(
-                created_thread.user_id, created_thread.thread_id
-            )
+            retrieved_thread = await configured_storage.get_thread(created_thread.user_id, created_thread.thread_id)
             assert retrieved_thread.work_item_id == item.work_item_id
             assert retrieved_thread.thread_id == created_thread.thread_id
 
@@ -949,9 +905,7 @@ class TestWorkItemsService:
         ):
             # Mock successful agent execution
             mock_async_run.return_value = AsyncMock(run_id="test-run-123")
-            mock_get_status.return_value = AsyncMock(
-                is_success=True, is_failure=False, thread_id="test-thread-123"
-            )
+            mock_get_status.return_value = AsyncMock(is_success=True, is_failure=False, thread_id="test-thread-123")
 
             # Mock file operations
             configured_storage.get_workitem_files = AsyncMock(return_value=[])
@@ -966,7 +920,7 @@ class TestWorkItemsService:
             assert created_thread.work_item_id == item.work_item_id
 
     @pytest.mark.asyncio
-    async def test_execute_work_item_skips_validation_when_status_changed_during_execution(  # noqa: PLR0913
+    async def test_execute_work_item_skips_validation_when_status_changed_during_execution(
         self,
         configured_storage,
         stub_user,
@@ -988,9 +942,7 @@ class TestWorkItemsService:
         )
 
         # Mock execute_callbacks to track what status it's called with
-        execute_callbacks_mock = mocker.patch(
-            "agent_platform.server.work_items.callbacks.execute_callbacks"
-        )
+        execute_callbacks_mock = mocker.patch("agent_platform.server.work_items.callbacks.execute_callbacks")
 
         async def agent_func_that_changes_status(wi: WorkItem) -> bool:
             # Simulate the work item status changing to NEEDS_REVIEW during execution
@@ -1021,7 +973,7 @@ class TestWorkItemsService:
         assert updated_item.status == WorkItemStatus.NEEDS_REVIEW
 
     @pytest.mark.asyncio
-    async def test_execute_work_item_skips_final_update_when_status_changed_after_judge(  # noqa: PLR0913
+    async def test_execute_work_item_skips_final_update_when_status_changed_after_judge(
         self,
         configured_storage,
         stub_user,

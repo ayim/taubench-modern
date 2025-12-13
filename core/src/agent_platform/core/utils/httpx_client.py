@@ -8,7 +8,7 @@ from structlog.stdlib import get_logger
 logger = get_logger(__name__)
 
 
-def build_httpx_client_options() -> dict[str, Any]:  # noqa: C901
+def build_httpx_client_options() -> dict[str, Any]:
     """Return base keyword arguments for httpx clients with sema4 network settings.
 
     The helper inspects the optional sema4 network profile and, when available,

@@ -51,9 +51,7 @@ class _RecordingStreamContextManager:
         assert self._response is not None, "Stream context manager failed to return a response."
 
         # Monkey-patch the response's line iterator with our recording wrapper
-        self._response.aiter_lines = functools.partial(
-            self._wrap_aiter_lines, self._response.aiter_lines
-        )
+        self._response.aiter_lines = functools.partial(self._wrap_aiter_lines, self._response.aiter_lines)
         return self._response
 
     async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> Any:

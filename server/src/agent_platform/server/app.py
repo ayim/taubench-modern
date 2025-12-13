@@ -213,9 +213,7 @@ class _PrivateAgentServerApp(_CustomFastAPI):
             _ref_template = REF_PREFIX + "{model}"
 
             if "SQLGenerationDetailsResponse" not in schemas:
-                sql_gen_schema = SQLGenerationDetailsResponse.model_json_schema(
-                    ref_template=_ref_template
-                )
+                sql_gen_schema = SQLGenerationDetailsResponse.model_json_schema(ref_template=_ref_template)
                 # Remove internal $defs if present
                 sql_gen_schema.pop("$defs", None)
                 schemas["SQLGenerationDetailsResponse"] = sql_gen_schema

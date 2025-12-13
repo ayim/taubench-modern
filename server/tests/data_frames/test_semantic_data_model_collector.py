@@ -164,9 +164,7 @@ async def test_semantic_data_model_collector(sqlite_storage: "SQLiteStorage", tm
     assert not cache_hits, "No cache hits should be registered"
 
 
-async def test_semantic_data_model_collector_with_state_dict_access(
-    sqlite_storage: "SQLiteStorage", tmpdir: Path
-):
+async def test_semantic_data_model_collector_with_state_dict_access(sqlite_storage: "SQLiteStorage", tmpdir: Path):
     """
     Regression test for bug where empty_file_cache_key_to_matching_info was a FieldInfo
     descriptor instead of a dict, causing AttributeError when calling .get().
@@ -230,9 +228,7 @@ async def test_semantic_data_model_collector_with_state_dict_access(
     assert state.empty_file_cache_key_to_matching_info == {}, "Cache should remain empty dict"
 
 
-async def test_resolve_file_references_for_unsaved_semantic_data_model(
-    sqlite_storage: "SQLiteStorage", tmpdir: Path
-):
+async def test_resolve_file_references_for_unsaved_semantic_data_model(sqlite_storage: "SQLiteStorage", tmpdir: Path):
     """
     Test that the collector can resolve file references for an unsaved semantic data model.
     This tests the new resolve_file_references_for_semantic_data_model method.

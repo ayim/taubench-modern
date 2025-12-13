@@ -13,9 +13,7 @@ if TYPE_CHECKING:
     )
 
     PromptMessageType = PromptUserMessage | PromptAgentMessage
-    SpecialMessageType = (
-        ConversationHistorySpecialMessage | DocumentsSpecialMessage | MemoriesSpecialMessage
-    )
+    SpecialMessageType = ConversationHistorySpecialMessage | DocumentsSpecialMessage | MemoriesSpecialMessage
     MessageType = PromptMessageType | SpecialMessageType
 
 
@@ -50,4 +48,3 @@ class BaseFinalizer(ABC):
         Returns:
             The finalized list of messages.
         """
-        pass

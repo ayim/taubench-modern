@@ -48,9 +48,7 @@ class ActionSecretsConfig:
     action: str = field(metadata={"description": "The name of the action."})
     """The name of the action."""
 
-    action_package: str = field(
-        default="", metadata={"description": "The name of the action package."}
-    )
+    action_package: str = field(default="", metadata={"description": "The name of the action package."})
     """The name of the action package."""
 
     secrets: dict[str, ActionSecretDefinition] = field(
@@ -87,9 +85,7 @@ class ActionSecretsConfig:
 class SpecAgentModel:
     """Agent model specification matching SpecAgentModel from Go."""
 
-    provider: AgentModelProvider | None = field(
-        default=None, metadata={"description": "The LLM provider."}
-    )
+    provider: AgentModelProvider | None = field(default=None, metadata={"description": "The LLM provider."})
     """The LLM provider."""
 
     name: str | None = field(default=None, metadata={"description": "The LLM model name."})
@@ -161,9 +157,7 @@ class AgentPackageMetadataKnowledge:
 class AgentPackageDatasource:
     """Datasource configuration for agent packages."""
 
-    customer_facing_name: str = field(
-        metadata={"description": "Customer-facing name of the datasource."}
-    )
+    customer_facing_name: str = field(metadata={"description": "Customer-facing name of the datasource."})
     """Customer-facing name of the datasource."""
 
     engine: str = field(metadata={"description": "The engine of the datasource."})
@@ -208,9 +202,7 @@ class AgentPackageMcpServerVariable:
     """MCP server variable that can be either a simple value or object with metadata."""
 
     # Simple string value (when it's just a scalar)
-    value: str | None = field(
-        default=None, metadata={"description": "Simple string value for the variable."}
-    )
+    value: str | None = field(default=None, metadata={"description": "Simple string value for the variable."})
     """Simple string value for the variable."""
 
     # Object form fields
@@ -272,9 +264,7 @@ class AgentPackageMcpServer:
     name: str = field(metadata={"description": "The name of the MCP server."})
     """The name of the MCP server."""
 
-    transport: MCPTransport = field(
-        default="auto", metadata={"description": "Transport protocol for the MCP server."}
-    )
+    transport: MCPTransport = field(default="auto", metadata={"description": "Transport protocol for the MCP server."})
     """Transport protocol for the MCP server."""
 
     description: str = field(default="", metadata={"description": "Description of the MCP server."})
@@ -506,9 +496,7 @@ class ExternalEndpoint:
     additional_info_link: str = field(metadata={"description": "Additional information link."})
     """Additional information link."""
 
-    rules: list[ExternalEndpointRule] = field(
-        default_factory=list, metadata={"description": "Rules for the endpoint."}
-    )
+    rules: list[ExternalEndpointRule] = field(default_factory=list, metadata={"description": "Rules for the endpoint."})
     """Rules for the endpoint."""
 
     def model_dump(self) -> dict[str, Any]:
@@ -630,9 +618,7 @@ class ActionPackageMetadata:
     def model_validate(cls, data: dict[str, Any] | None) -> "ActionPackageMetadata":
         """Create from dictionary."""
         if data is None:
-            return cls(
-                name="", description="", version="", secrets={}, actions=[], external_endpoints=[]
-            )
+            return cls(name="", description="", version="", secrets={}, actions=[], external_endpoints=[])
 
         if isinstance(data, cls):
             return data
@@ -651,9 +637,7 @@ class ActionPackageMetadata:
 
         # Handle actions
         if "actions" in data:
-            actions = [
-                ActionPackageMetadataAction.model_validate(action) for action in data["actions"]
-            ]
+            actions = [ActionPackageMetadataAction.model_validate(action) for action in data["actions"]]
             data["actions"] = actions
 
         # Handle secrets
@@ -728,9 +712,7 @@ class AgentPackageActionPackageMetadata:
     def model_validate(cls, data: dict[str, Any] | None) -> "AgentPackageActionPackageMetadata":
         """Create from dictionary."""
         if data is None:
-            return cls(
-                name="", description="", version="", secrets={}, actions=[], external_endpoints=[]
-            )
+            return cls(name="", description="", version="", secrets={}, actions=[], external_endpoints=[])
 
         if isinstance(data, cls):
             return data
@@ -749,9 +731,7 @@ class AgentPackageActionPackageMetadata:
 
         # Handle actions
         if "actions" in data:
-            actions = [
-                ActionPackageMetadataAction.model_validate(action) for action in data["actions"]
-            ]
+            actions = [ActionPackageMetadataAction.model_validate(action) for action in data["actions"]]
             data["actions"] = actions
 
         # Handle secrets
@@ -793,9 +773,7 @@ class AgentPackageMetadata:
     model: SpecAgentModel = field(metadata={"description": "Model configuration for the agent."})
     """Model configuration for the agent."""
 
-    architecture: AgentArchitecture = field(
-        metadata={"description": "Architecture type of the agent."}
-    )
+    architecture: AgentArchitecture = field(metadata={"description": "Architecture type of the agent."})
     """Architecture type of the agent."""
 
     reasoning: AgentReasoning = field(metadata={"description": "Reasoning level of the agent."})
@@ -816,17 +794,13 @@ class AgentPackageMetadata:
     )
     """Question groups for the agent."""
 
-    conversation_starter: str = field(
-        default="", metadata={"description": "Conversation starter message."}
-    )
+    conversation_starter: str = field(default="", metadata={"description": "Conversation starter message."})
     """Conversation starter message."""
 
     welcome_message: str = field(default="", metadata={"description": "Welcome message for users."})
     """Welcome message for users."""
 
-    metadata: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Agent metadata configuration."}
-    )
+    metadata: dict[str, Any] = field(default_factory=dict, metadata={"description": "Agent metadata configuration."})
     """Agent metadata configuration."""
 
     action_packages: list[AgentPackageActionPackageMetadata] = field(
@@ -850,9 +824,7 @@ class AgentPackageMetadata:
     )
     """Changes to Docker MCP Gateway."""
 
-    agent_settings: dict[str, Any] | None = field(
-        default_factory=dict, metadata={"description": "Agent settings."}
-    )
+    agent_settings: dict[str, Any] | None = field(default_factory=dict, metadata={"description": "Agent settings."})
     """Agent settings."""
 
     document_intelligence: Literal["v2"] | None = field(
@@ -881,9 +853,7 @@ class AgentPackageMetadata:
             "datasources": [d.model_dump() for d in self.datasources],
             "metadata": self.metadata,
             "action_packages": [ap.model_dump() for ap in self.action_packages],
-            "docker_mcp_gateway": self.docker_mcp_gateway.model_dump()
-            if self.docker_mcp_gateway
-            else None,
+            "docker_mcp_gateway": self.docker_mcp_gateway.model_dump() if self.docker_mcp_gateway else None,
             "docker_mcp_gateway_changes": self.docker_mcp_gateway_changes.model_dump(),
             "agent_settings": self.agent_settings,
             "document_intelligence": self.document_intelligence,
@@ -915,35 +885,24 @@ class AgentPackageMetadata:
             data["model"] = SpecAgentModel.model_validate(data["model"])
 
         if "knowledge" in data:
-            data["knowledge"] = [
-                AgentPackageMetadataKnowledge.model_validate(k) for k in data["knowledge"]
-            ]
+            data["knowledge"] = [AgentPackageMetadataKnowledge.model_validate(k) for k in data["knowledge"]]
 
         if "datasources" in data:
-            data["datasources"] = [
-                AgentPackageDatasource.model_validate(d) for d in data["datasources"]
-            ]
+            data["datasources"] = [AgentPackageDatasource.model_validate(d) for d in data["datasources"]]
 
         if "question_groups" in data:
-            data["question_groups"] = [
-                QuestionGroup.model_validate(qg) for qg in data["question_groups"]
-            ]
+            data["question_groups"] = [QuestionGroup.model_validate(qg) for qg in data["question_groups"]]
 
         if "action_packages" in data:
             data["action_packages"] = [
-                AgentPackageActionPackageMetadata.model_validate(ap)
-                for ap in data["action_packages"]
+                AgentPackageActionPackageMetadata.model_validate(ap) for ap in data["action_packages"]
             ]
 
         if "mcp_servers" in data:
-            data["mcp_servers"] = [
-                AgentPackageMcpServer.model_validate(mcp) for mcp in data["mcp_servers"]
-            ]
+            data["mcp_servers"] = [AgentPackageMcpServer.model_validate(mcp) for mcp in data["mcp_servers"]]
 
         if "docker_mcp_gateway" in data and data["docker_mcp_gateway"] is not None:
-            data["docker_mcp_gateway"] = AgentPackageDockerMcpGateway.model_validate(
-                data["docker_mcp_gateway"]
-            )
+            data["docker_mcp_gateway"] = AgentPackageDockerMcpGateway.model_validate(data["docker_mcp_gateway"])
 
         if "docker_mcp_gateway_changes" in data:
             data["docker_mcp_gateway_changes"] = DockerMcpGatewayChanges.model_validate(
@@ -1002,9 +961,7 @@ class AgentPackageMetadata:
             action_packages=data.get("action_packages", []),
             mcp_servers=data.get("mcp_servers", []),
             docker_mcp_gateway=data.get("docker_mcp_gateway", None),
-            docker_mcp_gateway_changes=data.get(
-                "docker_mcp_gateway_changes", DockerMcpGatewayChanges()
-            ),
+            docker_mcp_gateway_changes=data.get("docker_mcp_gateway_changes", DockerMcpGatewayChanges()),
             agent_settings=data.get("agent_settings", None),
             document_intelligence=data.get("document_intelligence", None),
             selected_tools=SelectedTools.model_validate(data.get("selected_tools", {})),

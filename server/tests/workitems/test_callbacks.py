@@ -58,9 +58,7 @@ class TestWorkItemsCallbacks:
         mock_agent.name = "Test Agent"
         mock_storage.get_agent = AsyncMock(return_value=mock_agent)
 
-        with patch(
-            "agent_platform.server.storage.StorageService.get_instance", return_value=mock_storage
-        ):
+        with patch("agent_platform.server.storage.StorageService.get_instance", return_value=mock_storage):
             yield mock_storage
 
     async def test_build_legacy_work_item_url(self, monkeypatch):
@@ -82,9 +80,7 @@ class TestWorkItemsCallbacks:
         # With settings (WORKSPACE_ID="no-workspace-id",
         # SEMA4AI_AGENT_SERVER_WORKROOM_URL="http://localhost:8000/")
         # The function includes workspace_id in the URL path
-        expected_url = (
-            f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
-        )
+        expected_url = f"http://localhost:8000/no-workspace-id/{work_item.agent_id}/{work_item.thread_id}"
         assert url == expected_url
 
         # Test with None agent_id (should raise InvalidWorkItemError)
@@ -118,7 +114,9 @@ class TestWorkItemsCallbacks:
         url = _build_work_item_url(work_item)
         # With settings (SEMA4AI_AGENT_SERVER_WORK_ITEM_URL="http://localhost:9000/workspace-id/{agent_id}/{work_item_id}/{thread_id}")
         # The function includes workspace_id in the URL path
-        expected_url = f"http://localhost:9000/workspace-id/{work_item.agent_id}/{work_item.work_item_id}/{work_item.thread_id}"
+        expected_url = (
+            f"http://localhost:9000/workspace-id/{work_item.agent_id}/{work_item.work_item_id}/{work_item.thread_id}"
+        )
         assert url == expected_url
 
         # Test with None agent_id (should raise InvalidWorkItemError)
@@ -180,9 +178,7 @@ class TestWorkItemsCallbacks:
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
         )
-        with pytest.raises(
-            PlatformHTTPError, match="Failed to format work item URL from template."
-        ):
+        with pytest.raises(PlatformHTTPError, match="Failed to format work item URL from template."):
             _build_work_item_url(work_item)
 
     async def test_build_work_item_url_missing_placeholder_raises_error(self, monkeypatch):
@@ -199,9 +195,7 @@ class TestWorkItemsCallbacks:
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
         )
-        with pytest.raises(
-            PlatformHTTPError, match="Failed to format work item URL from template."
-        ):
+        with pytest.raises(PlatformHTTPError, match="Failed to format work item URL from template."):
             _build_work_item_url(work_item)
 
     async def test_build_work_item_url_no_placeholder_raises_error(self, monkeypatch):
@@ -218,9 +212,7 @@ class TestWorkItemsCallbacks:
             thread_id="thread_012",
             status=WorkItemStatus.COMPLETED,
         )
-        with pytest.raises(
-            PlatformHTTPError, match="Failed to format work item URL from template."
-        ):
+        with pytest.raises(PlatformHTTPError, match="Failed to format work item URL from template."):
             _build_work_item_url(work_item)
 
     async def test_workroom_url_no_envs_set(self, monkeypatch):
@@ -351,9 +343,7 @@ class TestWorkItemsCallbacks:
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
-                received_requests.append(
-                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
-                )
+                received_requests.append({"path": self.path, "headers": dict(self.headers), "body": json.loads(body)})
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -465,9 +455,7 @@ class TestWorkItemsCallbacks:
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
-                received_requests.append(
-                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
-                )
+                received_requests.append({"path": self.path, "headers": dict(self.headers), "body": json.loads(body)})
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -584,9 +572,7 @@ class TestWorkItemsCallbacks:
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
-                received_requests.append(
-                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
-                )
+                received_requests.append({"path": self.path, "headers": dict(self.headers), "body": json.loads(body)})
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -640,9 +626,7 @@ class TestWorkItemsCallbacks:
 
             # Verify agent_name in both requests
             for request in received_requests:
-                assert (
-                    request["body"]["agent_name"] == "Test Agent"
-                )  # Verify agent name from our mock
+                assert request["body"]["agent_name"] == "Test Agent"  # Verify agent name from our mock
 
         finally:
             server.shutdown()
@@ -766,9 +750,7 @@ class TestWorkItemsCallbacks:
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
-                received_requests.append(
-                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
-                )
+                received_requests.append({"path": self.path, "headers": dict(self.headers), "body": json.loads(body)})
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -829,9 +811,7 @@ class TestWorkItemsCallbacks:
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length).decode("utf-8")
 
-                received_requests.append(
-                    {"path": self.path, "headers": dict(self.headers), "body": json.loads(body)}
-                )
+                received_requests.append({"path": self.path, "headers": dict(self.headers), "body": json.loads(body)})
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -867,10 +847,7 @@ class TestWorkItemsCallbacks:
 
             assert len(received_requests) == 1
             body = received_requests[0]["body"]
-            assert (
-                body["work_item_url"]
-                == "http://localhost:9000/workspace-id/agent_789/test_work_item_123/thread_012"
-            )
+            assert body["work_item_url"] == "http://localhost:9000/workspace-id/agent_789/test_work_item_123/thread_012"
         finally:
             server.shutdown()
             server_thread.join(timeout=1)

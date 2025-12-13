@@ -80,7 +80,7 @@ WAIT_STRATEGY = wait_random_exponential(
 logger = logging.getLogger(__name__)
 
 
-async def stream_with_retry(  # noqa: PLR0913
+async def stream_with_retry(
     platform: PlatformInterface,
     model: str,
     prompt: Prompt,
@@ -137,10 +137,7 @@ async def stream_with_retry(  # noqa: PLR0913
                     raise
 
                 # If Tenacity won't retry, this is terminal; add stack trace and end timing.
-                should_retry = (
-                    is_transient_stream_error(exc)
-                    and attempt.retry_state.attempt_number < RETRY_ATTEMPTS
-                )
+                should_retry = is_transient_stream_error(exc) and attempt.retry_state.attempt_number < RETRY_ATTEMPTS
                 if not should_retry:
                     logger.error(
                         "%s stream failed on %s/%s: %s",

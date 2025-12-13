@@ -57,17 +57,13 @@ async def generate_quality_checks(
         # we only return the first `limit` rules,
         # so we need to log a warning if we didn't generate enough
         if len(validation_rules) < payload.limit:
-            logger.warning(
-                f"Generated {len(validation_rules)} data quality checks, expected {payload.limit}"
-            )
+            logger.warning(f"Generated {len(validation_rules)} data quality checks, expected {payload.limit}")
         final_validation_rules = [ValidationRule.model_validate(rule) for rule in validation_rules]
         return GenerateDataQualityChecksResponse(quality_checks=final_validation_rules)
     except PlatformHTTPError:
         raise
     except Exception as e:
-        raise PlatformHTTPError(
-            ErrorCode.UNEXPECTED, f"Failed to generate data quality checks: {e!s}"
-        ) from e
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Failed to generate data quality checks: {e!s}") from e
 
 
 @router.post("/quality-checks/execute")
@@ -76,11 +72,7 @@ async def execute_quality_checks(
     docint_ds: DocIntDatasourceDependency,
 ) -> ValidationSummary:
     try:
-        validation_summary = validate_document_extraction(
-            payload.document_id, docint_ds, payload.quality_checks
-        )
+        validation_summary = validate_document_extraction(payload.document_id, docint_ds, payload.quality_checks)
         return validation_summary
     except Exception as e:
-        raise PlatformHTTPError(
-            ErrorCode.UNEXPECTED, f"Failed to execute data quality checks: {e!s}"
-        ) from e
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Failed to execute data quality checks: {e!s}") from e

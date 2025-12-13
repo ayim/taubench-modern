@@ -351,7 +351,7 @@ def _handle_empty_line(
     return result
 
 
-def _process_line(  # noqa: PLR0913
+def _process_line(
     line: str,
     prev_line: str,
     result: list[str],
@@ -434,9 +434,7 @@ def _is_mid_sentence_continuation(
         True if the line is a mid-sentence continuation
     """
     return bool(
-        prev_line.strip()
-        and not prev_line.strip().endswith((".", ":", "?", "!"))
-        and not current_paragraph,
+        prev_line.strip() and not prev_line.strip().endswith((".", ":", "?", "!")) and not current_paragraph,
     )
 
 

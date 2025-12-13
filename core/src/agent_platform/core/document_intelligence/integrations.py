@@ -66,15 +66,11 @@ class DocumentIntelligenceIntegration:
                 )
             if parsed.scheme not in ("http", "https"):
                 raise ValueError(
-                    f"Invalid endpoint URL scheme: '{parsed.scheme}'. "
-                    "Only 'http' and 'https' schemes are supported."
+                    f"Invalid endpoint URL scheme: '{parsed.scheme}'. Only 'http' and 'https' schemes are supported."
                 )
             # Ensure there's actually a hostname (not just port)
             if not parsed.hostname:
-                raise ValueError(
-                    f"Invalid endpoint URL: '{self.endpoint}'. "
-                    "URL must include a valid hostname/domain."
-                )
+                raise ValueError(f"Invalid endpoint URL: '{self.endpoint}'. URL must include a valid hostname/domain.")
         except Exception as e:
             if isinstance(e, ValueError):
                 raise

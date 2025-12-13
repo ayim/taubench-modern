@@ -7,9 +7,7 @@ from agent_platform.core.platforms.base import PlatformPrompt
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_EXTRACT_SYSTEM_PROMPT = (
-    "Be precise and thorough. Mark required, missing fields as null. Omit optional fields."
-)
+DEFAULT_EXTRACT_SYSTEM_PROMPT = "Be precise and thorough. Mark required, missing fields as null. Omit optional fields."
 
 
 @dataclass(frozen=True)
@@ -17,11 +15,7 @@ class ExtractOptions:
     """Options for the extract operation."""
 
     extraction_schema: str | dict[str, Any] = field(
-        metadata={
-            "description": (
-                "The JSONSchema which describes the desired extracted output from the file."
-            )
-        }
+        metadata={"description": ("The JSONSchema which describes the desired extracted output from the file.")}
     )
     """The schema to use for the extract operation."""
 

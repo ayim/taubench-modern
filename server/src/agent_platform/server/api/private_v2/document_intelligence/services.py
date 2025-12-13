@@ -151,9 +151,7 @@ async def _upload_and_start_parse(
     """
     try:
         file_contents = await file_manager.read_file_contents(uploaded_file.file_id, user_id)
-        reducto_uploaded_file_url = await extraction_client.upload(
-            file_contents, content_length=len(file_contents)
-        )
+        reducto_uploaded_file_url = await extraction_client.upload(file_contents, content_length=len(file_contents))
 
         return await extraction_client.start_parse(reducto_uploaded_file_url)
     except PlatformHTTPError:
@@ -192,9 +190,7 @@ async def _get_data_model_prompt_and_document_layout(
             )
         data_model_prompt = data_model.prompt or ""
 
-        document_layout = DocumentLayout.find_by_name(
-            docint_ds, data_model.name, payload.layout_name
-        )
+        document_layout = DocumentLayout.find_by_name(docint_ds, data_model.name, payload.layout_name)
         if not document_layout:
             raise PlatformHTTPError(
                 error_code=ErrorCode.NOT_FOUND,
@@ -268,9 +264,7 @@ async def _resolve_extract_request(
         file = None
 
     # Get the data model prompt and document layout (handles both new and legacy approaches)
-    data_model_prompt, document_layout = await _get_data_model_prompt_and_document_layout(
-        valid_payload, docint_ds
-    )
+    data_model_prompt, document_layout = await _get_data_model_prompt_and_document_layout(valid_payload, docint_ds)
 
     # Extract the fields from the document layout
     extraction_schema = document_layout.extraction_schema
@@ -280,8 +274,7 @@ async def _resolve_extract_request(
     if extraction_schema is None:
         raise PlatformHTTPError(
             error_code=ErrorCode.BAD_REQUEST,
-            message="extraction_schema could not be resolved from the payload or "
-            "the document layout",
+            message="extraction_schema could not be resolved from the payload or the document layout",
         )
 
     return ResolvedExtractRequest(
@@ -293,9 +286,7 @@ async def _resolve_extract_request(
         extraction_system_prompt=extraction_system_prompt,
         extraction_config=extraction_config,
         data_model_prompt=data_model_prompt,
-        generate_citations=payload.generate_citations
-        if payload.generate_citations is not None
-        else True,
+        generate_citations=payload.generate_citations if payload.generate_citations is not None else True,
     )
 
 
@@ -328,10 +319,7 @@ async def _upload_and_start_extract(
         if request.extraction_system_prompt:
             prompt = f"{prompt}\n\n{request.extraction_system_prompt}"
 
-        logger.info(
-            f"Extracting document {reducto_doc_id} with schema {request.extraction_schema} "
-            f"and prompt {prompt}"
-        )
+        logger.info(f"Extracting document {reducto_doc_id} with schema {request.extraction_schema} and prompt {prompt}")
 
         # Merge in the generate_citations option with extraction_config
         extraction_config = request.extraction_config or {}
@@ -373,9 +361,7 @@ async def _resolve_reducto_doc_id_for_extract(
         return request.job_id
     elif request.uploaded_file:
         logger.info(f"Uploading file {request.uploaded_file.file_id} for extract")
-        file_contents = await file_manager.read_file_contents(
-            request.uploaded_file.file_id, user_id
-        )
+        file_contents = await file_manager.read_file_contents(request.uploaded_file.file_id, user_id)
         return await extraction_client.upload(file_contents, content_length=len(file_contents))
 
     raise PlatformHTTPError(
@@ -412,9 +398,7 @@ def _create_job_result(result: Any, job_id: str) -> JobResult:
             #
             # We expect that we only get single results because we haven't enabled chunking.
             citations = (
-                extract_resp.citations[0]
-                if (extract_resp.citations and len(extract_resp.citations) > 0)
-                else None
+                extract_resp.citations[0] if (extract_resp.citations and len(extract_resp.citations) > 0) else None
             )
             return ExtractJobResult(
                 result=extract_resp.result[0],  # type: ignore

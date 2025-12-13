@@ -37,9 +37,7 @@ class TestPlatformModelConfigs:
 
         # Get all the default models, but skip the litellm platform, as it's
         # an "any model goes" proxy
-        default_models = {
-            v for (k, v) in config.platforms_to_default_model.items() if k != "litellm"
-        }
+        default_models = {v for (k, v) in config.platforms_to_default_model.items() if k != "litellm"}
 
         # Get all the relevant collections
         capable_models = set(config.models_capable_of_driving_agents)
@@ -56,8 +54,7 @@ class TestPlatformModelConfigs:
         # Test 2: All models capable of driving agents should have family mappings
         missing_family = capable_models - family_keys
         assert not missing_family, (
-            f"Models in models_capable_of_driving_agents missing from "
-            f"models_to_families: {missing_family}"
+            f"Models in models_capable_of_driving_agents missing from models_to_families: {missing_family}"
         )
 
         # Test 3: All default models should have platform-specific mappings
@@ -70,8 +67,7 @@ class TestPlatformModelConfigs:
         # Test 4: All default models should have family mappings
         missing_default_family = default_models - family_keys
         assert not missing_default_family, (
-            f"Default models in platforms_to_default_model missing from "
-            f"models_to_families: {missing_default_family}"
+            f"Default models in platforms_to_default_model missing from models_to_families: {missing_default_family}"
         )
 
         # Test 5: Keys in models_to_platform_specific_model_ids and models_to_families
@@ -80,13 +76,11 @@ class TestPlatformModelConfigs:
         family_only = family_keys - platform_specific_keys
 
         assert not platform_specific_only, (
-            f"Models in models_to_platform_specific_model_ids but not in models_to_families: "
-            f"{platform_specific_only}"
+            f"Models in models_to_platform_specific_model_ids but not in models_to_families: {platform_specific_only}"
         )
 
         assert not family_only, (
-            f"Models in models_to_families but not in models_to_platform_specific_model_ids: "
-            f"{family_only}"
+            f"Models in models_to_families but not in models_to_platform_specific_model_ids: {family_only}"
         )
 
     def test_architecture_requirements_are_valid(self):
@@ -122,8 +116,7 @@ class TestPlatformModelConfigs:
             _,
         ) in config.models_to_architecture_overrides.items():
             assert model_id in config.models_to_platform_specific_model_ids, (
-                f"Model {model_id} in models_to_architecture_overrides but not "
-                "in models_to_platform_specific_model_ids"
+                f"Model {model_id} in models_to_architecture_overrides but not in models_to_platform_specific_model_ids"
             )
 
         # Every requirement should be a valid requirement string with name matching an
@@ -139,8 +132,7 @@ class TestPlatformModelConfigs:
                 req = Requirement(requirement)
                 name = req.name
                 assert name in architecture_names, (
-                    f"Architecture {name} in requirement {requirement} but not in loaded "
-                    "architectures"
+                    f"Architecture {name} in requirement {requirement} but not in loaded architectures"
                 )
                 # If we know the installed version for this architecture, check the spec
                 installed_version = arch_name_to_version.get(name)
@@ -160,9 +152,7 @@ class TestPlatformModelConfigs:
 
         # Get all the default models, but skip the litellm platform, as it's
         # an "any model goes" proxy
-        default_models = {
-            v for (k, v) in config.platforms_to_default_model.items() if k != "litellm"
-        }
+        default_models = {v for (k, v) in config.platforms_to_default_model.items() if k != "litellm"}
 
         # Collect all unique model IDs from all configuration dictionaries
         all_configured_models = set()

@@ -37,7 +37,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
     # ------------------------------------------------------ tool execution methods
 
-    async def _safe_execute_tool(  # noqa: C901, PLR0912
+    async def _safe_execute_tool(
         self,
         tool_def: ToolDefinition,
         tool_use: ResponseToolUseContent,
@@ -125,14 +125,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 error_message = str(e).strip()
                 if not error_message:
                     error_message = (
-                        "An error occurred while executing the tool: "
-                        f"{repr(e).strip() or e.__class__.__name__}"
+                        f"An error occurred while executing the tool: {repr(e).strip() or e.__class__.__name__}"
                     )
 
         if isinstance(result_output, dict):
-            result_output = await self.kernel.data_frames.auto_create_data_frame(
-                tool_def, result_output
-            )
+            result_output = await self.kernel.data_frames.auto_create_data_frame(tool_def, result_output)
 
         return ToolExecutionResult(
             **tool_result_args,
@@ -345,8 +342,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
             base_headers = (extra_headers or {}) | {
                 "x-invoked_by_assistant_id": self.kernel.agent.agent_id,
-                "x-invoked_on_behalf_of_user_id": self.kernel.user.cr_user_id
-                or self.kernel.user.cr_system_id,
+                "x-invoked_on_behalf_of_user_id": self.kernel.user.cr_user_id or self.kernel.user.cr_system_id,
                 "x-invoked_for_thread_id": self.kernel.thread.thread_id,
             }
 
@@ -410,9 +406,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                             "input.value": json.dumps(
                                 {
                                     "name": result.definition.name,
-                                    "args": json.loads(result.input_raw)
-                                    if result.input_raw
-                                    else {},
+                                    "args": json.loads(result.input_raw) if result.input_raw else {},
                                     "id": result.tool_call_id,
                                     "type": "tool_call",
                                 }
@@ -424,9 +418,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     tool_span.set_attribute("tool.success", result.error is None)
 
                     # Format the result for tracing
-                    formatted_result = AgentServerToolsInterface._format_tool_result_for_trace(
-                        result
-                    )
+                    formatted_result = AgentServerToolsInterface._format_tool_result_for_trace(result)
                     tool_span.set_attribute("output.value", json.dumps(formatted_result))
 
                     # Set error info if applicable
@@ -505,9 +497,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         try:
             if hasattr(self, "kernel") and self.kernel and hasattr(self.kernel, "storage"):
                 # Use new integration table instead of old dids_connection_details table
-                data_server_integration = await self.kernel.storage.get_integration_by_kind(
-                    "data_server"
-                )
+                data_server_integration = await self.kernel.storage.get_integration_by_kind("data_server")
                 settings_dict = data_server_integration.settings.model_dump()
                 data_server_details = DataServerDetails.model_validate(settings_dict)
         except Exception as e:

@@ -37,9 +37,7 @@ async def test_concurrent_sqlite_operations(base_url_agent_server):
             json={
                 "agent_id": agent_id,
                 "name": "base-thread-for-updates",
-                "messages": [
-                    {"role": "user", "content": [{"type": "input_text", "text": "initial message"}]}
-                ],
+                "messages": [{"role": "user", "content": [{"type": "input_text", "text": "initial message"}]}],
             },
             timeout=15,
         )
@@ -81,9 +79,7 @@ async def test_concurrent_sqlite_operations(base_url_agent_server):
     await _analyze_results(len(work), results)
 
 
-async def _analyze_results(
-    num_operations: int, results: list[tuple[str, int, str] | BaseException]
-):
+async def _analyze_results(num_operations: int, results: list[tuple[str, int, str] | BaseException]):
     # Analyze results
     successful_operations = 0
     failed_operations = 0
@@ -120,9 +116,7 @@ async def _analyze_results(
     )
 
 
-async def _create_work(
-    base_url: str, agent_id: str, base_thread_id: str
-) -> list[tuple[str, tuple[Any, ...]]]:
+async def _create_work(base_url: str, agent_id: str, base_thread_id: str) -> list[tuple[str, tuple[Any, ...]]]:
     n_updates = 100
     n_creates = 100
     n_lists = 100

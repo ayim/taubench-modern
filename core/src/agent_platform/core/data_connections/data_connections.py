@@ -190,9 +190,7 @@ class DataConnection:
         )
 
     @classmethod
-    def _parse_configuration(
-        cls, engine: str, config_data: dict[str, Any]
-    ) -> DataConnectionConfiguration:
+    def _parse_configuration(cls, engine: str, config_data: dict[str, Any]) -> DataConnectionConfiguration:
         """Parse configuration data into the appropriate configuration type based on engine."""
         return cls._get_engine_parser(engine)(config_data)
 
@@ -226,30 +224,22 @@ class DataConnection:
         return SQLiteDataConnectionConfiguration(**config_data)
 
     @classmethod
-    def _parse_postgres_config(
-        cls, config_data: dict[str, Any]
-    ) -> PostgresDataConnectionConfiguration:
+    def _parse_postgres_config(cls, config_data: dict[str, Any]) -> PostgresDataConnectionConfiguration:
         """Parse PostgreSQL configuration."""
         return cls._parse_ssl_config(config_data, PostgresDataConnectionConfiguration)
 
     @classmethod
-    def _parse_redshift_config(
-        cls, config_data: dict[str, Any]
-    ) -> RedshiftDataConnectionConfiguration:
+    def _parse_redshift_config(cls, config_data: dict[str, Any]) -> RedshiftDataConnectionConfiguration:
         """Parse Redshift configuration."""
         return cls._parse_ssl_config(config_data, RedshiftDataConnectionConfiguration)
 
     @classmethod
-    def _parse_databricks_config(
-        cls, config_data: dict[str, Any]
-    ) -> DatabricksDataConnectionConfiguration:
+    def _parse_databricks_config(cls, config_data: dict[str, Any]) -> DatabricksDataConnectionConfiguration:
         """Parse Databricks configuration."""
         return cls._parse_ssl_config(config_data, DatabricksDataConnectionConfiguration)
 
     @classmethod
-    def _parse_pgvector_config(
-        cls, config_data: dict[str, Any]
-    ) -> PgvectorDataConnectionConfiguration:
+    def _parse_pgvector_config(cls, config_data: dict[str, Any]) -> PgvectorDataConnectionConfiguration:
         """Parse Pgvector configuration."""
         return cls._parse_ssl_config(config_data, PgvectorDataConnectionConfiguration)
 
@@ -284,9 +274,7 @@ class DataConnection:
         return SnowflakeLinkedConfiguration(**config_data)
 
     @classmethod
-    def _parse_confluence_config(
-        cls, config_data: dict[str, Any]
-    ) -> ConfluenceDataConnectionConfiguration:
+    def _parse_confluence_config(cls, config_data: dict[str, Any]) -> ConfluenceDataConnectionConfiguration:
         """Parse Confluence configuration."""
         return ConfluenceDataConnectionConfiguration(**config_data)
 
@@ -311,23 +299,17 @@ class DataConnection:
         return SlackDataConnectionConfiguration(**config_data)
 
     @classmethod
-    def _parse_salesforce_config(
-        cls, config_data: dict[str, Any]
-    ) -> SalesforceDataConnectionConfiguration:
+    def _parse_salesforce_config(cls, config_data: dict[str, Any]) -> SalesforceDataConnectionConfiguration:
         """Parse Salesforce configuration."""
         return SalesforceDataConnectionConfiguration(**config_data)
 
     @classmethod
-    def _parse_timescaledb_config(
-        cls, config_data: dict[str, Any]
-    ) -> TimescaledbDataConnectionConfiguration:
+    def _parse_timescaledb_config(cls, config_data: dict[str, Any]) -> TimescaledbDataConnectionConfiguration:
         """Parse TimescaleDB configuration."""
         return TimescaledbDataConnectionConfiguration(**config_data)
 
     @classmethod
-    def _parse_bigquery_config(
-        cls, config_data: dict[str, Any]
-    ) -> BigqueryDataConnectionConfiguration:
+    def _parse_bigquery_config(cls, config_data: dict[str, Any]) -> BigqueryDataConnectionConfiguration:
         """Parse BigQuery configuration."""
         return BigqueryDataConnectionConfiguration(**config_data)
 

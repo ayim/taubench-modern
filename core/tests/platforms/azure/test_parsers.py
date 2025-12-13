@@ -289,6 +289,4 @@ class TestAzureOpenAIParsers:
             deltas.append(delta)
 
         assert len(deltas) > 0
-        assert any(
-            isinstance(item, dict) and item.get("kind") == "tool_use" for item in message["content"]
-        )
+        assert any(isinstance(item, dict) and item.get("kind") == "tool_use" for item in message["content"])

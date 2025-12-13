@@ -29,7 +29,6 @@ class PromptsInterface(ABC):
         Returns:
             A fully formatted Prompt.
         """
-        pass
 
     @abstractmethod
     def record_tools_in_trace(self, prompt: Prompt, span_name: str = "prompt_tools") -> None:
@@ -42,4 +41,3 @@ class PromptsInterface(ABC):
             prompt: The prompt containing tools
             span_name: Optional name for the span
         """
-        pass

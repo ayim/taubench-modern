@@ -72,8 +72,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 ) from e
             elif "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
                 raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' and source "
-                    f"'{source.value}' already exists",
+                    f"MCP server with name '{mcp_server.name}' and source '{source.value}' already exists",
                 ) from e
             raise
 
@@ -107,9 +106,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 config_dict = self._decrypt_config(encrypted_config)
                 return MCPServer.model_validate(config_dict)
             except Exception as e:
-                raise ConfigDecryptionError(
-                    f"Failed to decrypt MCP server configuration for {mcp_server_id}"
-                ) from e
+                raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {mcp_server_id}") from e
 
     async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> MCPServerWithMetadata:
         """Get an MCP server by ID with its source and deployment info."""
@@ -143,9 +140,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                     deployment_id=deployment_id,
                 )
             except Exception as e:
-                raise ConfigDecryptionError(
-                    f"Failed to decrypt MCP server configuration for {mcp_server_id}"
-                ) from e
+                raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {mcp_server_id}") from e
 
     async def list_mcp_servers(self) -> dict[str, MCPServer]:
         """List all MCP servers."""
@@ -173,9 +168,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                     result[server_id] = MCPServer.model_validate(config_dict)
                 except Exception as e:
                     # Skip corrupted entries but log for monitoring
-                    self._logger.warning(
-                        f"Skipping MCP server {server_id} due to decryption failure: {e}"
-                    )
+                    self._logger.warning(f"Skipping MCP server {server_id} due to decryption failure: {e}")
                     continue
             return result
 
@@ -215,9 +208,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                     )
                 except Exception as e:
                     # Skip corrupted entries but log for monitoring
-                    self._logger.warning(
-                        f"Skipping MCP server {server_id} due to decryption failure: {e}"
-                    )
+                    self._logger.warning(f"Skipping MCP server {server_id} due to decryption failure: {e}")
                     continue
             return result
 
@@ -247,8 +238,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 return row[0], mcp_server, MCPServerSource(row[2])
             except Exception as e:
                 raise ConfigDecryptionError(
-                    f"Failed to decrypt MCP server configuration for '{name}' with source "
-                    f"'{source.value}'"
+                    f"Failed to decrypt MCP server configuration for '{name}' with source '{source.value}'"
                 ) from e
 
     async def list_mcp_servers_by_source(self, source: MCPServerSource) -> dict[str, str]:
@@ -345,8 +335,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
             error_msg = str(e).lower()
             if "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
                 raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' and source "
-                    f"'{mcp_server_source.value}' already exists",
+                    f"MCP server with name '{mcp_server.name}' and source '{mcp_server_source.value}' already exists",
                 ) from e
             raise
 
@@ -382,9 +371,7 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 raise MCPServerNotFoundError(f"MCP servers not found: {', '.join(missing_ids)}")
 
             # 3. Extract deployment IDs from deleted servers
-            deleted_servers = [
-                (row["mcp_server_id"], row["mcp_runtime_deployment_id"]) for row in rows
-            ]
+            deleted_servers = [(row["mcp_server_id"], row["mcp_runtime_deployment_id"]) for row in rows]
 
             # 4. Delete the MCP servers
             await cur.execute(

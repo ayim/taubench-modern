@@ -61,9 +61,7 @@ class TestAgentServerWorkItemInterface:
         assert work_item_interface.is_enabled() is True
 
     @pytest.mark.asyncio
-    async def test_step_initialize_with_work_item(
-        self, work_item_interface, mock_work_item, mock_storage
-    ):
+    async def test_step_initialize_with_work_item(self, work_item_interface, mock_work_item, mock_storage):
         """Test step_initialize when a work item exists."""
         work_item_interface.kernel.thread.work_item_id = "test-work-item-id"
         mock_storage.get_work_item.return_value = mock_work_item
@@ -196,9 +194,7 @@ class TestWorkItemTools:
         }
 
     @pytest.mark.asyncio
-    async def test_work_item_update_status_success(
-        self, work_item_tools, mock_work_item, mock_storage
-    ):
+    async def test_work_item_update_status_success(self, work_item_tools, mock_work_item, mock_storage):
         """Test successful work item status update."""
         result = await work_item_tools.work_item_update_status(WorkItemStatus.COMPLETED)
 

@@ -36,7 +36,7 @@ def convert_thread_to_v2_format(v1_thread: dict) -> dict:
     }
 
 
-async def migrate_threads(storage):  # noqa: PLR0915, PLR0912, C901
+async def migrate_threads(storage):
     """
     Migrate threads using the provided storage connection
     Args:
@@ -50,18 +50,13 @@ async def migrate_threads(storage):  # noqa: PLR0915, PLR0912, C901
             try:
                 thread_dict = convert_thread_to_v2_format(v1_thread)
             except Exception as e:
-                logger.error(
-                    f"Skipping thread: {v1_thread.get('name', 'unknown')} - "
-                    f"error converting format: {e}"
-                )
+                logger.error(f"Skipping thread: {v1_thread.get('name', 'unknown')} - error converting format: {e}")
                 continue
 
             try:
                 await storage.insert_thread(thread_dict)
                 logger.info(f"Successfully migrated thread: {v1_thread['name']}")
-                latest_checkpoint_record = await storage.get_latest_checkpoint(
-                    v1_thread["thread_id"]
-                )
+                latest_checkpoint_record = await storage.get_latest_checkpoint(v1_thread["thread_id"])
                 latest_checkpoint = latest_checkpoint_record["checkpoint"].decode("utf-8")
 
                 latest_checkpoint = json.loads(latest_checkpoint)
@@ -76,13 +71,7 @@ async def migrate_threads(storage):  # noqa: PLR0915, PLR0912, C901
                     current_message_sequence_id = sequence_id
                     current_thread_id = v1_thread["thread_id"]
                     parent_run_id = None
-                    role = (
-                        "agent"
-                        if message_type == "ai"
-                        else "user"
-                        if message_type == "human"
-                        else "tool"
-                    )
+                    role = "agent" if message_type == "ai" else "user" if message_type == "human" else "tool"
                     agent_metadata = {}
                     server_metadata = {}
 
@@ -124,9 +113,7 @@ async def migrate_threads(storage):  # noqa: PLR0915, PLR0912, C901
                             and "tool_calls" in message["kwargs"]["additional_kwargs"]
                             and len(message["kwargs"]["additional_kwargs"]["tool_calls"]) > 0
                         ):
-                            for each_tool_call in message["kwargs"]["additional_kwargs"][
-                                "tool_calls"
-                            ]:
+                            for each_tool_call in message["kwargs"]["additional_kwargs"]["tool_calls"]:
                                 v2_thread_message_content.append(
                                     {
                                         "content_id": str(uuid.uuid4()),

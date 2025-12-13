@@ -133,9 +133,7 @@ class TestGooglePlatformParameters:
         assert dumped["google_use_vertex_ai"] is True
         assert dumped["google_cloud_project_id"] == "project-123"
         assert dumped["google_cloud_location"] == "us-central1"
-        assert (
-            dumped["google_vertex_service_account_json"] == SERVICE_ACCOUNT_JSON.get_secret_value()
-        )
+        assert dumped["google_vertex_service_account_json"] == SERVICE_ACCOUNT_JSON.get_secret_value()
 
     def test_vertex_ai_allows_missing_service_account_json_for_legacy_configs(self) -> None:
         """Allow pre-existing configs without service account JSON."""

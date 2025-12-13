@@ -119,9 +119,7 @@ async def test_preinstalled_agent_created_when_name_taken(sqlite_storage):
     await ensure_preinstalled_agents()
 
     system_agents = [
-        agent
-        for agent in await sqlite_storage.list_agents(system_user_id)
-        if agent.user_id == system_user_id
+        agent for agent in await sqlite_storage.list_agents(system_user_id) if agent.user_id == system_user_id
     ]
     assert len(system_agents) == 2
 
@@ -151,20 +149,13 @@ async def test_preinstalled_agent_does_not_touch_other_users(sqlite_storage):
     await ensure_preinstalled_agents()
 
     system_agents = [
-        agent
-        for agent in await sqlite_storage.list_agents(system_user_id)
-        if agent.user_id == system_user_id
+        agent for agent in await sqlite_storage.list_agents(system_user_id) if agent.user_id == system_user_id
     ]
     assert len(system_agents) == 1
-    assert (
-        PREINSTALLED_AGENT_METADATA.items()
-        <= (system_agents[0].extra.get("metadata") or {}).items()
-    )
+    assert PREINSTALLED_AGENT_METADATA.items() <= (system_agents[0].extra.get("metadata") or {}).items()
 
     user_agents = [
-        agent
-        for agent in await sqlite_storage.list_agents(other_user.user_id)
-        if agent.user_id == other_user.user_id
+        agent for agent in await sqlite_storage.list_agents(other_user.user_id) if agent.user_id == other_user.user_id
     ]
     assert len(user_agents) == 1
     assert user_agents[0].agent_id == other_agent.agent_id
@@ -188,9 +179,7 @@ async def test_preinstalled_agent_allows_additional_metadata(sqlite_storage):
     updated_agent = await _get_preinstalled_agent(sqlite_storage, system_user_id)
 
     assert updated_agent.agent_id == preinstalled_agent.agent_id
-    assert (
-        PREINSTALLED_AGENT_METADATA.items() <= (updated_agent.extra.get("metadata") or {}).items()
-    )
+    assert PREINSTALLED_AGENT_METADATA.items() <= (updated_agent.extra.get("metadata") or {}).items()
     assert (updated_agent.extra.get("metadata") or {}).get("extra") == "keep"
 
 

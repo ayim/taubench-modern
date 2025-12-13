@@ -113,9 +113,7 @@ def _file_uploads_with_existing_thread(
     total_files = 1 + 2
     thread_file_refs = agent_client.list_files(thread_id)
     assert thread_file_refs is not None, "Thread file refs not found"
-    assert len(thread_file_refs) == total_files, (
-        f"Expected {total_files} files, got {len(thread_file_refs)}"
-    )
+    assert len(thread_file_refs) == total_files, f"Expected {total_files} files, got {len(thread_file_refs)}"
     print_success(f"Successfully listed {len(thread_file_refs)} files")
 
     # Get file by ref
@@ -123,9 +121,7 @@ def _file_uploads_with_existing_thread(
     file_ref = thread_file_refs[file_id]
     file_info = agent_client.get_file_info_by_ref(thread_id, file_ref)
     assert file_info is not None, "File info not found"
-    assert file_info["file_id"] == file_id, (
-        f"Expected file ID {file_id}, got {file_info['file_id']}"
-    )
+    assert file_info["file_id"] == file_id, f"Expected file ID {file_id}, got {file_info['file_id']}"
     assert file_info["file_path"] is not None, "File path not found"
     assert file_info["file_url"] is not None, "File URL not found"
     assert file_info["file_path"] == file_info["file_url"], "File path and URL should be the same"
@@ -135,14 +131,12 @@ def _file_uploads_with_existing_thread(
     assert "file_url" in file_info, "File URL not found in file info"
     assert file_info["file_url"] is not None, "File URL is None"
     assert file_info["file_url"] == file_info["file_path"], (
-        f"Expected file URL to be the same as file path: "
-        f"{file_info['file_url']} != {file_info['file_path']}"
+        f"Expected file URL to be the same as file path: {file_info['file_url']} != {file_info['file_path']}"
     )
     file_path = file_info.get("file_path")
     assert file_path is not None, "File path not found in file info"
     assert file_path.startswith("http://localhost:8001/download/"), (
-        f"Expected file path to be a presigned URL starting with "
-        f"'http://localhost:8001/download/', got '{file_path}'"
+        f"Expected file path to be a presigned URL starting with 'http://localhost:8001/download/', got '{file_path}'"
     )
     assert "token=" in file_path, "File path should contain a token parameter for presigned URL"
     assert file_id in file_path, f"File path should contain the file_id '{file_id}'"
@@ -158,9 +152,7 @@ def _file_uploads_with_existing_thread(
     agent_client.delete_file_by_ref(thread_id, file_id)
     thread_files = agent_client.list_files(thread_id)
     assert thread_files is not None, "Thread files not found"
-    assert len(thread_files) == total_files - 1, (
-        f"Expected {total_files - 1} files, got {len(thread_files)}"
-    )
+    assert len(thread_files) == total_files - 1, f"Expected {total_files - 1} files, got {len(thread_files)}"
     print_success(f"Successfully deleted file {file_id} from thread")
 
     # Delete all files from thread

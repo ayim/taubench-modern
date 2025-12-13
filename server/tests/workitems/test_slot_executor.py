@@ -200,9 +200,7 @@ class TestFetchAndQueueWorkItems:
         storage.get_pending_work_item_ids.assert_called_once_with(2)
         storage.get_work_items_by_ids.assert_called_once_with(work_item_ids)
 
-        assert executor._work_queue.qsize() == 3, (
-            f"Expected 3 items in queue, got {executor._work_queue.qsize()}"
-        )
+        assert executor._work_queue.qsize() == 3, f"Expected 3 items in queue, got {executor._work_queue.qsize()}"
 
     async def test_skips_fetch_when_no_slots_free(self):
         """Does not fetch when all slots are busy."""
@@ -557,12 +555,8 @@ class TestSlotExecutorIntegration:
         shutdown_event = asyncio.Event()
 
         # Start reader and multiple slot tasks
-        reader_task = asyncio.create_task(
-            executor._database_reader(shutdown_event, worker_interval=0.01)
-        )
-        slot_tasks = [
-            asyncio.create_task(executor._slot_executor_task(i, shutdown_event)) for i in range(3)
-        ]
+        reader_task = asyncio.create_task(executor._database_reader(shutdown_event, worker_interval=0.01))
+        slot_tasks = [asyncio.create_task(executor._slot_executor_task(i, shutdown_event)) for i in range(3)]
 
         # Let the system run
         await asyncio.sleep(0.3)
@@ -592,9 +586,7 @@ class TestSlotExecutorIntegration:
         shutdown_event = asyncio.Event()
 
         # Start tasks
-        reader_task = asyncio.create_task(
-            executor._database_reader(shutdown_event, worker_interval=0.1)
-        )
+        reader_task = asyncio.create_task(executor._database_reader(shutdown_event, worker_interval=0.1))
         slot_task = asyncio.create_task(executor._slot_executor_task(0, shutdown_event))
 
         # Let them run briefly
@@ -996,9 +988,7 @@ class TestEdgeCases:
                 cancel_checked.set()
             await original_cancel(tasks, timeout)
 
-        monkeypatch.setattr(
-            slot_executor_module, "_cancel_tasks_with_timeout", observing_cancel, raising=False
-        )
+        monkeypatch.setattr(slot_executor_module, "_cancel_tasks_with_timeout", observing_cancel, raising=False)
 
         slot_task = asyncio.create_task(executor._slot_executor_task(slot_id, shutdown_event))
 
@@ -1007,9 +997,7 @@ class TestEdgeCases:
         with suppress(asyncio.CancelledError):
             await slot_task
 
-        storage.mark_incomplete_work_items_as_error.assert_awaited_once_with(
-            [work_item.work_item_id]
-        )
+        storage.mark_incomplete_work_items_as_error.assert_awaited_once_with([work_item.work_item_id])
 
     async def test_resize_scale_down(self):
         """Scaling down should only remove idle slots, busy slots remain."""
@@ -1022,9 +1010,7 @@ class TestEdgeCases:
         for i in range(5):
             status = "idle" if i < 3 else "executing"
             work_item_id = None if i < 3 else f"item-{i}"
-            executor.slot_manager.slots[i] = SlotState(
-                slot_id=i, status=status, work_item_id=work_item_id
-            )
+            executor.slot_manager.slots[i] = SlotState(slot_id=i, status=status, work_item_id=work_item_id)
             executor._create_slot_task(i, shutdown_event)
 
         # Give tasks time to start

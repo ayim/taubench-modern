@@ -29,7 +29,6 @@ class SimpleUploadHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format_str, *args):
         """Suppress HTTP server logs."""
-        pass
 
     def do_POST(self):
         """Handle POST to /upload."""

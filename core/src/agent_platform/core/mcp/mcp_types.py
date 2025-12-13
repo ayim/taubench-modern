@@ -36,10 +36,7 @@ class MCPVariableTypeDataServerInfo(MCPVariableBase):
 
 # Discriminated union for MCP variable types (excluding plain str)
 MCPDiscriminatedUnion = Annotated[
-    MCPVariableTypeString
-    | MCPVariableTypeSecret
-    | MCPVariableTypeOAuth2Secret
-    | MCPVariableTypeDataServerInfo,
+    MCPVariableTypeString | MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret | MCPVariableTypeDataServerInfo,
     Discriminator("type"),
 ]
 

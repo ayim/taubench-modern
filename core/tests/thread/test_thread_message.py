@@ -395,9 +395,7 @@ class TestThreadMessageSoftCommit:
 
         await msg_with_state.soft_commit()
 
-        mock_thread_state.commit_message.assert_called_once_with(
-            message, ignore_websocket_errors=True
-        )
+        mock_thread_state.commit_message.assert_called_once_with(message, ignore_websocket_errors=True)
 
         assert message.complete is False
         assert message.commited is False
@@ -409,9 +407,7 @@ class TestThreadMessageSoftCommit:
         assert message.commited is True
         assert message.complete is True
 
-        text_content = next(
-            content for content in message.content if isinstance(content, ThreadTextContent)
-        )
+        text_content = next(content for content in message.content if isinstance(content, ThreadTextContent))
         assert text_content.text.endswith("Tool completed!")
 
     async def test_commit_ignoring_websocket_errors(self):
@@ -421,9 +417,7 @@ class TestThreadMessageSoftCommit:
         mock_thread_state.kernel = MagicMock()
         mock_thread_state.kernel.ctx.increment_counter = MagicMock()
 
-        mock_thread_state.stream_message_delta = AsyncMock(
-            side_effect=StreamingError("WebSocket connection lost")
-        )
+        mock_thread_state.stream_message_delta = AsyncMock(side_effect=StreamingError("WebSocket connection lost"))
 
         message = ThreadAgentMessage(
             content=[ThreadTextContent(text="Long running tool result")],
@@ -435,9 +429,7 @@ class TestThreadMessageSoftCommit:
 
         await msg_with_state.commit(ignore_websocket_errors=True)
 
-        mock_thread_state.commit_message.assert_called_once_with(
-            message, ignore_websocket_errors=True
-        )
+        mock_thread_state.commit_message.assert_called_once_with(message, ignore_websocket_errors=True)
 
         assert message.commited is True
         assert message.complete is True

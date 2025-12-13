@@ -35,13 +35,9 @@ async def calculate_agent_package_hash(handler: AgentPackageHandler) -> dict[str
             # The action_package.path is a path to a zip file within the main agent package
             # We need to read the action package zip from the main zip
             # then read package.yaml from it
-            action_packages_zip_bytes = await handler.read_action_package_zip_raw(
-                action_package.path
-            )
+            action_packages_zip_bytes = await handler.read_action_package_zip_raw(action_package.path)
 
-            with await ActionPackageHandler.from_bytes(
-                action_packages_zip_bytes
-            ) as action_package_handler:
+            with await ActionPackageHandler.from_bytes(action_packages_zip_bytes) as action_package_handler:
                 try:
                     yaml_raw = await action_package_handler.read_package_spec_raw()
 

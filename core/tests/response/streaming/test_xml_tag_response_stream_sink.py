@@ -284,9 +284,7 @@ async def test_real_world_troublesome_cases_2() -> None:
     ]
 
     for chunk_size in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-        finer_chunks = [
-            chunk[i : i + chunk_size] for chunk in chunks for i in range(0, len(chunk), chunk_size)
-        ]
+        finer_chunks = [chunk[i : i + chunk_size] for chunk in chunks for i in range(0, len(chunk), chunk_size)]
         sink = XmlTagResponseStreamSink("thinking", expected_next_tag="response")
         rec = await _drive(sink, finer_chunks)
         assert rec.full_text() == (
@@ -335,9 +333,7 @@ async def test_real_world_troublesome_cases_3() -> None:
     ]
 
     for chunk_size in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-        finer_chunks = [
-            chunk[i : i + chunk_size] for chunk in chunks for i in range(0, len(chunk), chunk_size)
-        ]
+        finer_chunks = [chunk[i : i + chunk_size] for chunk in chunks for i in range(0, len(chunk), chunk_size)]
         sink = XmlTagResponseStreamSink("thinking", expected_next_tag="response")
         rec = await _drive(sink, finer_chunks)
         assert rec.full_text() == (

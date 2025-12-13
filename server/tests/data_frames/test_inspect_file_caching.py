@@ -6,9 +6,7 @@ from server.tests.storage_fixtures import *  # noqa
 
 
 @pytest.mark.asyncio
-async def test_inspect_file_caching_metadata_only(  # noqa: PLR0915
-    sqlite_storage, tmpdir, monkeypatch, data_regression
-) -> None:
+async def test_inspect_file_caching_metadata_only(sqlite_storage, tmpdir, monkeypatch, data_regression) -> None:
     """Test caching of metadata-only inspection results."""
     from agent_platform.core.user import User
     from agent_platform.server.api.private_v2.threads_data_frames import (
@@ -90,18 +88,12 @@ Jack,90
         assert len(await storage.list_cached_entries()) == 1
         assert len(found_events) == 1
 
-        assert (
-            ", ".join(str(event) for event in found_events)
-            == "cache_hit: single_sheet - 1 data frame"
-        )
+        assert ", ".join(str(event) for event in found_events) == "cache_hit: single_sheet - 1 data frame"
 
         del found_events[:]
         # Now we should have a cache hit of the metadata again and store the samples in the cache
         await make_inspect(num_samples=1)
-        assert (
-            ", ".join(str(event) for event in found_events)
-            == "cache_hit: single_sheet - 1 data frame"
-        )
+        assert ", ".join(str(event) for event in found_events) == "cache_hit: single_sheet - 1 data frame"
 
         del found_events[:]
         await make_inspect(num_samples=1)
@@ -112,10 +104,7 @@ Jack,90
 
         del found_events[:]
         await make_inspect(num_samples=11)  # Populate the full data cache
-        assert (
-            ", ".join(str(event) for event in found_events)
-            == "cache_hit: single_sheet - 1 data frame"
-        )
+        assert ", ".join(str(event) for event in found_events) == "cache_hit: single_sheet - 1 data frame"
 
         del found_events[:]
         await make_inspect(num_samples=11)  # Must use the full data cache

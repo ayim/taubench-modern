@@ -77,9 +77,7 @@ def test_update_does_not_duplicate_scope(client):
         },
         "version": "2.0.0",
     }
-    response = client.put(
-        f"/api/v2/observability/integrations/{integration_id}", json=update_payload
-    )
+    response = client.put(f"/api/v2/observability/integrations/{integration_id}", json=update_payload)
     assert response.status_code == 200
 
     # Verify still only one scope (no duplicate added)

@@ -514,9 +514,7 @@ class ConfigurationManager:
 
         # Log a summary of changes if any were applied
         if changes_applied:
-            changes_applied_str = ", ".join(
-                f"{cls}({', '.join(fields)})" for cls, fields in changes_applied.items()
-            )
+            changes_applied_str = ", ".join(f"{cls}({', '.join(fields)})" for cls, fields in changes_applied.items())
             logger.info(
                 f"Applied command line overrides to: {changes_applied_str}",
             )
@@ -606,8 +604,7 @@ class ConfigurationManager:
                 # Set the instance as the singleton
                 config_class.set_instance(instance)
                 logger.debug(
-                    f"Using default configuration (no entry in file): "
-                    f"{config_class.__name__} at {config_path}",
+                    f"Using default configuration (no entry in file): {config_class.__name__} at {config_path}",
                 )
         except Exception as e:
             logger.error(
@@ -656,8 +653,7 @@ class ConfigurationManager:
             self._apply_overrides()
         except Exception as e:
             logger.warning(
-                f"Configuration loading error: {e!s}. Using defaults. "
-                "Please refer to documentation.",
+                f"Configuration loading error: {e!s}. Using defaults. Please refer to documentation.",
             )
 
     def update_configuration(self, config_class: type[T], new_instance: T) -> None:
@@ -708,9 +704,7 @@ class ConfigurationManager:
             # Return the raw value as fallback
             return env_var_value, True
 
-    def _parse_field_env_vars(
-        self, field: Field, parent_config: type[Configuration] | Configuration | None
-    ) -> Any:
+    def _parse_field_env_vars(self, field: Field, parent_config: type[Configuration] | Configuration | None) -> Any:
         """Parse environment variables for a field.
 
         This method recursively parses environment variables for nested dataclass
@@ -770,9 +764,7 @@ class ConfigurationManager:
         return return_value
 
     # ruff: noqa: C901
-    def _apply_discriminator_env_vars(
-        self, changes_applied: dict[str, list[str]]
-    ) -> list[tuple[str, str]]:
+    def _apply_discriminator_env_vars(self, changes_applied: dict[str, list[str]]) -> list[tuple[str, str]]:
         """Process and apply environment variables for discriminator fields.
 
         This is the first pass of environment variable processing, which specifically
@@ -887,10 +879,7 @@ class ConfigurationManager:
             # Check each field for env_vars metadata
             for field in class_fields:
                 # Skip discriminator fields that were already processed first
-                if any(
-                    config_path == d_path and field.name == d_field
-                    for d_path, d_field in discriminator_fields
-                ):
+                if any(config_path == d_path and field.name == d_field for d_path, d_field in discriminator_fields):
                     continue
 
                 parsed_value = self._parse_field_env_vars(field, config_class)
@@ -899,15 +888,11 @@ class ConfigurationManager:
 
             # Apply the overrides if we have any
             if env_overrides:
-                self._apply_config_overrides(
-                    config_path, config_class, env_overrides, changes_applied
-                )
+                self._apply_config_overrides(config_path, config_class, env_overrides, changes_applied)
 
         # Log a summary of changes if any were applied
         if changes_applied:
-            changes_applied_str = ", ".join(
-                f"{cls}({', '.join(fields)})" for cls, fields in changes_applied.items()
-            )
+            changes_applied_str = ", ".join(f"{cls}({', '.join(fields)})" for cls, fields in changes_applied.items())
             logger.info(
                 f"Applied environment variable overrides to: {changes_applied_str}",
             )
@@ -949,8 +934,7 @@ class ConfigurationManager:
                 )
         except Exception as e:
             logger.error(
-                f"Failed to apply {field_type} environment variable overrides to "
-                f"{config_class.__name__}: {e}",
+                f"Failed to apply {field_type} environment variable overrides to {config_class.__name__}: {e}",
             )
 
     def _identify_discriminator_fields(self) -> list[tuple[str, str]]:
@@ -1100,10 +1084,7 @@ class ConfigurationService:
                 config_modules,
                 overrides,
             )
-        elif any(
-            param is not None
-            for param in [config_path, packages_to_scan, config_modules, overrides]
-        ):
+        elif any(param is not None for param in [config_path, packages_to_scan, config_modules, overrides]):
             # Manager already exists and parameters were provided,
             # update its configuration
             logger.info(

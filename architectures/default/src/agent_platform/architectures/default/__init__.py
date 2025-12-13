@@ -50,9 +50,7 @@ OUTPUT_FORMAT_REGEX = re.compile(
 message = None
 
 
-def _add_model_usage_to_metadata(
-    message, platform_name: str, model: str, usage_info=None, call_type: str = "main"
-):
+def _add_model_usage_to_metadata(message, platform_name: str, model: str, usage_info=None, call_type: str = "main"):
     """Add model usage information to the message metadata.
 
     Args:
@@ -103,9 +101,7 @@ async def entrypoint(kernel: Kernel, state: ArchState) -> ArchState:
     state.processing_start_time = datetime.now(UTC).isoformat(
         timespec="milliseconds",
     )
-    message = (
-        await kernel.thread_state.new_agent_message()
-    )  # Create a new message for this entrypoint
+    message = await kernel.thread_state.new_agent_message()  # Create a new message for this entrypoint
 
     while True:
         state.current_iteration += 1
@@ -141,9 +137,7 @@ async def _commit_message(message: ThreadMessageWithThreadState, state: ArchStat
         await message.commit()
 
 
-async def _handle_max_iterations(
-    state: ArchState, message: ThreadMessageWithThreadState
-) -> ArchState:
+async def _handle_max_iterations(state: ArchState, message: ThreadMessageWithThreadState) -> ArchState:
     """Append iteration-limit notice to the current turn message and commit it."""
 
     # Add the user-facing content with a quick-option to continue
@@ -203,7 +197,7 @@ async def _handle_state_parse_failure(kernel: Kernel, state: ArchState) -> ArchS
 
 
 @aa.step
-async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
+async def _process_conversation_step(
     kernel: Kernel, state: ArchState, message: ThreadMessageWithThreadState
 ) -> ArchState:
     from functools import partial
@@ -223,9 +217,7 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
             return state
 
     # Update the elapsed time
-    elapsed_seconds = (
-        datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)
-    ).total_seconds()
+    elapsed_seconds = (datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)).total_seconds()
     state.processing_elapsed_time = f"{elapsed_seconds:.2f} seconds"
 
     # First, let's attempt to get any relevant tools from
@@ -387,8 +379,7 @@ async def _process_conversation_step(  # noqa: C901, PLR0912, PLR0915
 
                 # Check for any non-empty text in the reassembled response
                 has_reassembled_text = any(
-                    getattr(part, "kind", "") == "text" and getattr(part, "text", "").strip()
-                    for part in content
+                    getattr(part, "kind", "") == "text" and getattr(part, "text", "").strip() for part in content
                 )
 
                 # If no text found in the reassembled response, append a default reply

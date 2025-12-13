@@ -84,11 +84,7 @@ def parse_platform_configs(model: str) -> list:
 
         if provider == "openai" and config.get("openai_api_key"):
             platform_configs.append({"kind": "openai", "openai_api_key": config["openai_api_key"]})
-        elif (
-            provider == "amazon"
-            and config.get("aws_access_key_id")
-            and config.get("aws_secret_access_key")
-        ):
+        elif provider == "amazon" and config.get("aws_access_key_id") and config.get("aws_secret_access_key"):
             platform_configs.append(
                 {
                     "kind": "bedrock",
@@ -113,7 +109,7 @@ def parse_platform_configs(model: str) -> list:
     return platform_configs
 
 
-def convert_agent_to_v2_format(v1_agent: dict) -> dict:  # noqa: C901
+def convert_agent_to_v2_format(v1_agent: dict) -> dict:
     def require(key: str) -> str:
         val = v1_agent.get(key)
         if not val:

@@ -32,11 +32,7 @@ from starlette.responses import Response
 from agent_platform.core import User
 from agent_platform.core.agent import Agent
 from agent_platform.core.payloads import InitiateStreamPayload
-from agent_platform.core.thread import (
-    ThreadAttachmentContent,
-    ThreadTextContent,
-    ThreadToolUsageContent,
-)
+from agent_platform.core.thread import ThreadAttachmentContent, ThreadTextContent, ThreadToolUsageContent
 from agent_platform.server.api.private_v2.runs import sync_run
 from agent_platform.server.auth.handlers import AuthHandler, get_auth_handler
 from agent_platform.server.error_handlers import add_exception_handlers
@@ -177,8 +173,7 @@ AGENT_MCP_OPENAPI_SCHEMA_PATHS = {
             "responses": {
                 "202": {
                     "description": (
-                        "Accepted (notifications-only input)\n"
-                        "Server returns no body when input is purely notifications"
+                        "Accepted (notifications-only input)\nServer returns no body when input is purely notifications"
                     )
                 },
                 "200": {
@@ -375,8 +370,6 @@ class ListThreadsInputSchema(BaseModel):
     """The MCP Server implementation list_tools requires
     that a tool call has a schema, even if it's an empty one."""
 
-    pass
-
 
 class ListThreadMessagesInputSchema(BaseModel):
     thread_id: Annotated[UUID, Field(description="The ID of the thread to list messages for.")]
@@ -439,9 +432,7 @@ async def _chat_with_agent(data: ChatWithAgentInputSchema) -> list[mcp_types.Tex
 
     # Retrieve all threads for this agent and user
     # TODO: Maybe add BaseStorage.get_thread_by_name() method
-    agent_threads = await StorageService.get_instance().list_threads_for_agent(
-        ctx.user.user_id, ctx.agent.agent_id
-    )
+    agent_threads = await StorageService.get_instance().list_threads_for_agent(ctx.user.user_id, ctx.agent.agent_id)
 
     # Find an existing thread with the given identifier, if any
     thread = next((t for t in agent_threads if t.name == data.thread_identifier), None)
@@ -490,9 +481,7 @@ async def _chat_with_agent(data: ChatWithAgentInputSchema) -> list[mcp_types.Tex
 
 async def _list_threads() -> list[mcp_types.TextContent]:
     ctx = _ctx.get()
-    threads = await StorageService.get_instance().list_threads_for_agent(
-        ctx.user.user_id, ctx.agent.agent_id
-    )
+    threads = await StorageService.get_instance().list_threads_for_agent(ctx.user.user_id, ctx.agent.agent_id)
 
     data = {"threads": [{"thread_identifier": t.name, "thread_id": t.thread_id} for t in threads]}
 
@@ -540,9 +529,7 @@ async def _get_thread_messages(data: ListThreadMessagesInputSchema) -> list[mcp_
                     elif content.base64_data:
                         attachment_data["base64_data"] = content.base64_data
                     else:
-                        logger.warning(
-                            f"No URI or base64 data found for attachment {content.content_id}"
-                        )
+                        logger.warning(f"No URI or base64 data found for attachment {content.content_id}")
                         # Exclude attachment without base64 or uri
                         continue
 

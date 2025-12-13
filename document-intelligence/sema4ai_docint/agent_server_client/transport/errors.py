@@ -1,8 +1,6 @@
 class TransportError(Exception):
     """Base class for transport errors."""
 
-    pass
-
 
 class TransportMissingBaseUrlError(TransportError):
     """Error raised when a transport cannot be initialized because the base URL is missing."""

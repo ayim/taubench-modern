@@ -31,16 +31,12 @@ async def metadata_app(storage, metadata_user):
 
 @pytest.fixture
 async def metadata_client(metadata_app):
-    async with AsyncClient(
-        transport=ASGITransport(app=metadata_app), base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=metadata_app), base_url="http://testserver") as client:
         yield client
 
 
 @pytest.mark.asyncio
-async def test_get_agents_by_metadata_returns_hidden_agents(
-    metadata_client, metadata_user, storage
-):
+async def test_get_agents_by_metadata_returns_hidden_agents(metadata_client, metadata_user, storage):
     from agent_platform.core.agent import Agent
     from agent_platform.core.agent.agent_architecture import AgentArchitecture
     from agent_platform.core.runbook import Runbook

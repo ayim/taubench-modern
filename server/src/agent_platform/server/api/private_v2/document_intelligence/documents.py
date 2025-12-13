@@ -197,7 +197,7 @@ def add_citation_docs(func):
 
 
 @router.get("/documents/schema")
-async def get_extraction_schema_for_document(  # noqa: PLR0913
+async def get_extraction_schema_for_document(
     user: AuthedUser,
     file_name: Annotated[str, Query(description="The file name/reference to get the schema for")],
     agent_id: str,
@@ -240,7 +240,7 @@ async def get_extraction_schema_for_document(  # noqa: PLR0913
 
 
 @router.post("/documents/generate-schema")
-async def generate_extraction_schema_from_document(  # noqa: PLR0913
+async def generate_extraction_schema_from_document(
     user: AuthedUser,
     file: UploadFile | str,
     agent_id: str,
@@ -285,7 +285,7 @@ async def generate_extraction_schema_from_document(  # noqa: PLR0913
 
 
 @router.post("/documents/parse")
-async def parse_document(  # noqa: PLR0913
+async def parse_document(
     user: AuthedUser,
     file: UploadFile | str,  # a direct upload or a file ref
     agent_id: str,
@@ -330,7 +330,7 @@ async def parse_document(  # noqa: PLR0913
 
 
 @router.post("/documents/parse/async")
-async def parse_document_async(  # noqa: PLR0913
+async def parse_document_async(
     user: AuthedUser,
     file: UploadFile | str,  # a direct upload or a file ref
     thread_id: str,
@@ -380,7 +380,7 @@ async def parse_document_async(  # noqa: PLR0913
 
 @router.post("/documents/extract")
 @add_citation_docs
-async def extract_document(  # noqa: PLR0913
+async def extract_document(
     user: AuthedUser,
     payload: ExtractDocumentPayload,
     storage: StorageDependency,
@@ -495,7 +495,7 @@ async def extract_document(  # noqa: PLR0913
 
 @router.post("/documents/extract/async")
 @add_citation_docs
-async def extract_document_async(  # noqa: PLR0913
+async def extract_document_async(
     user: AuthedUser,
     payload: ExtractDocumentPayload,
     storage: StorageDependency,
@@ -538,7 +538,7 @@ async def extract_document_async(  # noqa: PLR0913
 
 
 @router.post("/documents/ingest")
-async def ingest_document(  # noqa: PLR0913
+async def ingest_document(
     user: AuthedUser,
     file: str | UploadFile,
     thread_id: str,

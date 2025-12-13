@@ -13,7 +13,6 @@ class MemoryInterface(ABC):
         Arguments:
             memory: The memory object to store.
         """
-        pass
 
     @abstractmethod
     async def get_memory_by_id(self, memory_id: str) -> Memory:
@@ -25,7 +24,6 @@ class MemoryInterface(ABC):
         Returns:
             The retrieved memory object.
         """
-        pass
 
     @abstractmethod
     async def retrieve_relevant_memories(
@@ -44,7 +42,6 @@ class MemoryInterface(ABC):
         Returns:
             A list of relevant memories.
         """
-        pass
 
     @abstractmethod
     async def retrieve_relevant_memories_by_text(
@@ -64,7 +61,6 @@ class MemoryInterface(ABC):
         Returns:
             A list of relevant memories.
         """
-        pass
 
     @abstractmethod
     async def delete_memory(self, memory_id: str) -> None:
@@ -73,4 +69,3 @@ class MemoryInterface(ABC):
         Arguments:
             memory_id: The ID of the memory to delete.
         """
-        pass

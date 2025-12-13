@@ -43,9 +43,7 @@ class AgentServerWorkItemInterface(WorkItemInterface, UsesKernelMixin):
             logger.exception("Error getting work item")
             self._work_item = None
 
-        work_item_tools = WorkItemTools(
-            self.kernel.user, self.kernel.thread.thread_id, self._work_item, storage
-        )
+        work_item_tools = WorkItemTools(self.kernel.user, self.kernel.thread.thread_id, self._work_item, storage)
 
         if self._work_item:
             # Only create tools if there's a work item
@@ -153,9 +151,7 @@ class WorkItemTools:
 
             return {"result": f"Work item renamed to '{new_work_item_name}'"}
         except Exception as e:
-            logger.exception(
-                f"Error renaming work item {self._work_item.work_item_id} to {new_work_item_name}"
-            )
+            logger.exception(f"Error renaming work item {self._work_item.work_item_id} to {new_work_item_name}")
             return {
                 "error_code": "rename_failed",
                 "error": f"Failed to rename work item: {e!r}",
@@ -203,8 +199,7 @@ class WorkItemTools:
             return {"result": f"Work item status updated to '{work_item_status.value}'"}
         except Exception as e:
             logger.exception(
-                f"Error updating work item {self._work_item.work_item_id} status to "
-                f"{work_item_status.value}"
+                f"Error updating work item {self._work_item.work_item_id} status to {work_item_status.value}"
             )
             return {
                 "error_code": "status_update_failed",

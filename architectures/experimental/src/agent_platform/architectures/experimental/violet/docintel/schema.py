@@ -81,9 +81,7 @@ class SchemaGenerator:
         # Summarize pages to avoid blowing up context window
         pages_payload = []
         for page in card.sampled_pages:
-            parsed_summary = (
-                self._summarize_parse_response(page.parse_data) if page.parse_data else None
-            )
+            parsed_summary = self._summarize_parse_response(page.parse_data) if page.parse_data else None
             pages_payload.append(
                 {
                     "page": page.page,
@@ -136,9 +134,7 @@ class SchemaGenerator:
 
         # Mark any reasoning generated in this process as "ignored" so we don't
         # slice it back into the context during our tool loop
-        reasoning_ids = [
-            c.response_id for c in full_response.content if c.kind == "reasoning" and c.response_id
-        ]
+        reasoning_ids = [c.response_id for c in full_response.content if c.kind == "reasoning" and c.response_id]
         if reasoning_ids:
             self.state.ignored_reasoning_ids.extend(reasoning_ids)
 
@@ -196,7 +192,7 @@ class SchemaGenerator:
         if "```" not in text:
             return text
         parts = text.split("```")
-        if len(parts) < 2:  # noqa: PLR2004
+        if len(parts) < 2:
             return text
         candidate = parts[1]
         if candidate.strip().startswith("json"):
@@ -241,9 +237,7 @@ class SchemaGenerator:
                             "content": block.get("content"),
                             # Keep page number for citation logic
                             "page": (
-                                block.get("bbox", {}).get("page")
-                                if isinstance(block.get("bbox"), dict)
-                                else None
+                                block.get("bbox", {}).get("page") if isinstance(block.get("bbox"), dict) else None
                             ),
                         }
                     )

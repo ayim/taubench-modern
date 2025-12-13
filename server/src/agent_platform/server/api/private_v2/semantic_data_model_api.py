@@ -175,14 +175,10 @@ async def _replace_data_connection_name_with_id(
                                 resolved_connections[dc_name] = dc.id
                                 base_table["data_connection_id"] = dc.id
                                 del base_table["data_connection_name"]
-                                logger.info(
-                                    f"Resolved data connection name to ID: {dc_name} -> {dc.id}"
-                                )
+                                logger.info(f"Resolved data connection name to ID: {dc_name} -> {dc.id}")
                             else:
                                 unresolved_connections.append(dc_name)
-                                logger.warning(
-                                    f"Data connection not found during import: {dc_name}"
-                                )
+                                logger.warning(f"Data connection not found during import: {dc_name}")
                         except Exception as e:
                             unresolved_connections.append(dc_name)
                             logger.error(f"Error resolving data connection name '{dc_name}': {e}")
@@ -191,9 +187,7 @@ async def _replace_data_connection_name_with_id(
                 # Consider it a data frame reference (but it still must have a table name)
                 elif "file_reference" not in base_table and not table.get("name"):
                     table_name = table.get("name", "unknown")
-                    unresolved_connections.append(
-                        f"<missing table name in base_table: {base_table}>"
-                    )
+                    unresolved_connections.append(f"<missing table name in base_table: {base_table}>")
                     logger.error(f"Missing table name in base_table: {base_table}")
 
     return modified_model, resolved_connections, unresolved_connections
@@ -252,8 +246,7 @@ async def set_semantic_data_model(
             semantic_data_model_id=model_id,
             data_connection_ids=list(references.data_connection_ids),
             file_references=list(
-                {"thread_id": ref.thread_id, "file_ref": ref.file_ref}
-                for ref in references.file_references
+                {"thread_id": ref.thread_id, "file_ref": ref.file_ref} for ref in references.file_references
             ),
         )
     except PlatformHTTPError as e:
@@ -262,9 +255,7 @@ async def set_semantic_data_model(
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
     except Exception as e:
         logger.error("Error setting semantic data model", error=str(e))
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error setting semantic data model"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error setting semantic data model") from e
 
 
 @router.post("/")
@@ -307,17 +298,14 @@ async def create_semantic_data_model(
             semantic_data_model_id=model_id,
             data_connection_ids=list(references.data_connection_ids),
             file_references=list(
-                {"thread_id": ref.thread_id, "file_ref": ref.file_ref}
-                for ref in references.file_references
+                {"thread_id": ref.thread_id, "file_ref": ref.file_ref} for ref in references.file_references
             ),
         )
     except PlatformHTTPError as e:
         raise e
     except Exception as e:
         logger.error("Error creating semantic data model", error=str(e))
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error creating semantic data model"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error creating semantic data model") from e
 
 
 @router.get("/{semantic_data_model_id}")
@@ -333,9 +321,7 @@ async def get_semantic_data_model(
         raise e
     except Exception as e:
         logger.error(f"Error getting semantic data model: {e}")
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error getting semantic data model"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error getting semantic data model") from e
 
 
 @router.delete("/{semantic_data_model_id}")
@@ -351,9 +337,7 @@ async def delete_semantic_data_model(
         raise e
     except Exception as e:
         logger.error("Error deleting semantic data model", error=str(e))
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error deleting semantic data model"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error deleting semantic data model") from e
 
 
 @router.post("/generate")
@@ -393,15 +377,13 @@ async def generate_semantic_data_model(
         existing_model_description: str | None = None
 
         if payload.existing_semantic_data_model:
-            from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (  # noqa: E501
+            from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
                 SemanticDataModelIndex,
                 copy_synonyms_and_descriptions_from_existing_semantic_model,
             )
 
             if isinstance(payload.existing_semantic_data_model, str):
-                existing_semantic_model = await storage.get_semantic_data_model(
-                    payload.existing_semantic_data_model
-                )
+                existing_semantic_model = await storage.get_semantic_data_model(payload.existing_semantic_data_model)
             else:
                 existing_semantic_model = payload.existing_semantic_data_model
 
@@ -420,9 +402,7 @@ async def generate_semantic_data_model(
             # Note that it's important to match the models based on the base_table information
             # (because the logical table name may have changed).
             new_index = SemanticDataModelIndex(typing.cast(SemanticDataModel, semantic_model))
-            existing_index = SemanticDataModelIndex(
-                typing.cast(SemanticDataModel, existing_semantic_model)
-            )
+            existing_index = SemanticDataModelIndex(typing.cast(SemanticDataModel, existing_semantic_model))
             missing_keys = copy_synonyms_and_descriptions_from_existing_semantic_model(
                 index_from=existing_index, index_to=new_index
             )
@@ -452,13 +432,9 @@ async def generate_semantic_data_model(
                                 # because LLM can change the logical name during enhancement
                                 column_expr = value.dimension.get("expr")
                                 if column_expr:
-                                    table_to_columns_to_enhance.setdefault(table_name, []).append(
-                                        column_expr
-                                    )
+                                    table_to_columns_to_enhance.setdefault(table_name, []).append(column_expr)
                         elif isinstance(key, KeyForBaseTable):
-                            value_for_base_table: ValueForBaseTable = (
-                                new_index.base_table_to_logical_table[key]
-                            )
+                            value_for_base_table: ValueForBaseTable = new_index.base_table_to_logical_table[key]
                             table_name = value_for_base_table.table.get("name")
                             if table_name:
                                 tables_to_enhance.add(table_name)
@@ -505,9 +481,7 @@ async def generate_semantic_data_model(
         return GenerateSemanticDataModelResponse(semantic_model=semantic_model)
     except Exception as e:
         logger.error("Error generating semantic data model", error=str(e))
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error generating semantic data model"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error generating semantic data model") from e
 
 
 @router.get("/", response_model=list[SemanticDataModelWithAssociations])
@@ -524,9 +498,7 @@ async def list_semantic_data_models(
     from agent_platform.server.storage.base import BaseStorage
 
     try:
-        semantic_data_models_info = await storage.list_semantic_data_models(
-            agent_id=agent_id, thread_id=thread_id
-        )
+        semantic_data_models_info = await storage.list_semantic_data_models(agent_id=agent_id, thread_id=thread_id)
 
         # Convert the results to SemanticDataModelWithAssociations objects
         semantic_data_models_with_associations = []
@@ -538,9 +510,7 @@ async def list_semantic_data_models(
             # Note: lots of 'str' to convert UUIDs to strings
 
             semantic_data_model_id = str(semantic_data_model_info["semantic_data_model_id"])
-            semantic_data_model = typing.cast(
-                SemanticDataModel, semantic_data_model_info["semantic_data_model"]
-            )
+            semantic_data_model = typing.cast(SemanticDataModel, semantic_data_model_info["semantic_data_model"])
 
             references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
             file_references = [
@@ -565,15 +535,10 @@ async def list_semantic_data_models(
                 SemanticDataModelWithAssociations(
                     semantic_data_model_id=semantic_data_model_id,
                     semantic_data_model=semantic_data_model,
-                    agent_ids=list(
-                        str(agent_id) for agent_id in semantic_data_model_info["agent_ids"]
-                    ),
-                    thread_ids=list(
-                        str(thread_id) for thread_id in semantic_data_model_info["thread_ids"]
-                    ),
+                    agent_ids=list(str(agent_id) for agent_id in semantic_data_model_info["agent_ids"]),
+                    thread_ids=list(str(thread_id) for thread_id in semantic_data_model_info["thread_ids"]),
                     data_connection_ids=list(
-                        str(data_connection_id)
-                        for data_connection_id in references.data_connection_ids
+                        str(data_connection_id) for data_connection_id in references.data_connection_ids
                     ),
                     file_references=file_references,
                     errors_in_semantic_data_model=references.errors,
@@ -584,9 +549,7 @@ async def list_semantic_data_models(
         return semantic_data_models_with_associations
     except Exception as e:
         logger.error(f"Error listing semantic data models: {e}")
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error listing semantic data models"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error listing semantic data models") from e
 
 
 class ExportSemanticDataModelResponse(TypedDict):
@@ -636,9 +599,7 @@ async def export_semantic_data_model(
             sort_keys=False,
         )
 
-        logger.info(
-            f"Exported semantic data model {semantic_data_model_id} for user {user.user_id}"
-        )
+        logger.info(f"Exported semantic data model {semantic_data_model_id} for user {user.user_id}")
 
         # Return JSON response with YAML content as string
         # Use the model name for the filename if available, slugify for safety
@@ -655,9 +616,7 @@ async def export_semantic_data_model(
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message=str(e)) from e
     except Exception as e:
         logger.error(f"Error exporting semantic data model {semantic_data_model_id}: {e}")
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED, message="Error exporting semantic data model"
-        ) from e
+        raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error exporting semantic data model") from e
 
 
 def _normalize_sdm_for_comparison(sdm: SemanticDataModel) -> SemanticDataModel:
@@ -718,15 +677,11 @@ def _find_matching_sdm(
 
             # Check name match
             if new_name == existing_name:
-                existing_normalized = _normalize_sdm_for_comparison(
-                    typing.cast(SemanticDataModel, existing_sdm)
-                )
+                existing_normalized = _normalize_sdm_for_comparison(typing.cast(SemanticDataModel, existing_sdm))
 
                 # Check content match
                 if new_normalized == existing_normalized:
-                    logger.info(
-                        f"Found matching SDM for deduplication: {sdm_id} (name: {new_name})"
-                    )
+                    logger.info(f"Found matching SDM for deduplication: {sdm_id} (name: {new_name})")
                     return sdm_id  # Perfect match - reuse this SDM
 
     return None  # No match found - need to create new
@@ -835,9 +790,7 @@ async def import_semantic_data_model(
 
     # Validate the resolved semantic model (cast to SemanticDataModel for validation)
     # This must also happen BEFORE deduplication to ensure the imported SDM is valid
-    references = validate_semantic_model_payload_and_extract_references(
-        typing.cast(SemanticDataModel, resolved_model)
-    )
+    references = validate_semantic_model_payload_and_extract_references(typing.cast(SemanticDataModel, resolved_model))
     if references.errors:
         raise PlatformHTTPError(
             error_code=ErrorCode.BAD_REQUEST,
@@ -946,9 +899,7 @@ async def _collect_list_of_sdms(
         for sdm_id, semantic_data_model in sdm_dict.items():
             sdm = typing.cast(SemanticDataModel, semantic_data_model)
             if collector:
-                sdm, _ = await collector.resolve_file_references_for_semantic_data_model(
-                    storage, sdm
-                )
+                sdm, _ = await collector.resolve_file_references_for_semantic_data_model(storage, sdm)
             sdms_to_validate.append((sdm_id, sdm))
 
     return sdms_to_validate
@@ -1270,9 +1221,7 @@ async def verify_verified_query(
                     if table:
                         base_table = table.get("base_table")
                         if base_table:
-                            if not base_table.get("data_connection_id") and not base_table.get(
-                                "file_reference"
-                            ):
+                            if not base_table.get("data_connection_id") and not base_table.get("file_reference"):
                                 sql_errors.append(
                                     ValidationMessage(
                                         message=(

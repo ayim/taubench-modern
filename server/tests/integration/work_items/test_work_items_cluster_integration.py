@@ -94,9 +94,7 @@ async def _wait_for_terminal_status(
     last_status = WorkItemStatus.PENDING
 
     while time.monotonic() < deadline:
-        response = await client.get(
-            f"{query_base_url}/api/v2/work-items/{work_item_id}?results=true"
-        )
+        response = await client.get(f"{query_base_url}/api/v2/work-items/{work_item_id}?results=true")
         response.raise_for_status()
         payload = response.json()
         last_status = WorkItemStatus(payload["status"])
@@ -106,9 +104,7 @@ async def _wait_for_terminal_status(
 
         await asyncio.sleep(poll_interval)
 
-    raise AssertionError(
-        f"Work item {work_item_id} did not reach a terminal status. Last status: {last_status}"
-    )
+    raise AssertionError(f"Work item {work_item_id} did not reach a terminal status. Last status: {last_status}")
 
 
 async def _fetch_work_item_details(
@@ -186,7 +182,7 @@ def choose_url() -> str:
 @pytest.mark.parallel_work_items
 @pytest.mark.postgresql
 @pytest.mark.asyncio
-async def test_work_items_complete_across_multiple_servers(  # noqa
+async def test_work_items_complete_across_multiple_servers(
     tmp_path_factory: pytest.TempPathFactory,
     base_logs_directory,
     action_server_executable_path: Path,
@@ -200,9 +196,7 @@ async def test_work_items_complete_across_multiple_servers(  # noqa
 
     # Skip this test unless explicitly requested with -m parallel_work_items
     if "parallel_work_items" not in request.config.option.markexpr:
-        pytest.skip(
-            "Skipping parallel_work_items test. Run with '-m parallel_work_items' to execute."
-        )
+        pytest.skip("Skipping parallel_work_items test. Run with '-m parallel_work_items' to execute.")
 
     if openai_api_key is None:
         pytest.fail("OPENAI_API_KEY is not set")
@@ -359,8 +353,7 @@ You are a worker that receives work as work items. Follow this process for each 
 
                 # Check that all work items reached a terminal status.
                 status_by_id = {
-                    work_item_id: status
-                    for work_item_id, status in zip(work_item_ids, terminal_statuses, strict=False)
+                    work_item_id: status for work_item_id, status in zip(work_item_ids, terminal_statuses, strict=False)
                 }
                 assert all(status in TERMINAL_STATUSES for status in status_by_id.values())
 
@@ -386,8 +379,7 @@ You are a worker that receives work as work items. Follow this process for each 
                 )
 
                 assert not not_completed_ids, (
-                    "Expected all work items to complete, but some had other terminal statuses."
-                    f"{details}"
+                    f"Expected all work items to complete, but some had other terminal statuses.{details}"
                 )
 
                 # Ensure list endpoint can retrieve the created work items from a random server.

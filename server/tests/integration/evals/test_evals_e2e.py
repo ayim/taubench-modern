@@ -12,7 +12,7 @@ TERMINAL_STATUSES = [TrialStatus.CANCELED, TrialStatus.COMPLETED, TrialStatus.ER
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
 @pytest.mark.flaky(max_runs=2, min_passes=1)
-async def test_evals_e2e(  # noqa: PLR0915, C901
+async def test_evals_e2e(
     base_url_agent_server_evals_matrix: str,
     openai_api_key: str,
 ):

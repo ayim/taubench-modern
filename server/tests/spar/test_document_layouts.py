@@ -48,9 +48,7 @@ class TestDocumentLayouts:
         layout_cleanup: Callable[[str, str], None],
     ):
         payload = asdict(layout)
-        payload["extraction_schema"] = payload["extraction_schema"].model_dump(
-            mode="json", exclude_none=True
-        )
+        payload["extraction_schema"] = payload["extraction_schema"].model_dump(mode="json", exclude_none=True)
         response = requests.post(
             f"{base_url}/document-intelligence/layouts",
             json=payload,
@@ -111,7 +109,7 @@ class TestDocumentLayouts:
     @pytest.mark.parametrize(
         ("first_file_name", "second_file_name"), [("sample_invoice_1.pdf", "sample_invoice_2.pdf")]
     )
-    def test_generate_layout(  # noqa: PLR0913
+    def test_generate_layout(
         self,
         spar_agent_server_base_url: str,
         agent_server_client_with_doc_int: AgentServerClient,
@@ -137,9 +135,7 @@ class TestDocumentLayouts:
         agent_id = agent_factory()
         thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
 
-        first_file_upload_result = upload_file_to_thread(
-            agent_server_client_with_doc_int, thread_id, first_file
-        )
+        first_file_upload_result = upload_file_to_thread(agent_server_client_with_doc_int, thread_id, first_file)
 
         # Generate a data model from the first file
         response = requests.post(
@@ -169,9 +165,7 @@ class TestDocumentLayouts:
         data_model_cleanup(data_model_name, agent_id)
 
         # Generate a layout for the second file
-        second_file_upload_result = upload_file_to_thread(
-            agent_server_client_with_doc_int, thread_id, second_file
-        )
+        second_file_upload_result = upload_file_to_thread(agent_server_client_with_doc_int, thread_id, second_file)
         layout = self._generate_document_layout(
             data_model_name,
             second_file_upload_result.file_ref,
@@ -196,15 +190,11 @@ class TestDocumentLayouts:
             data_model_name,
             spar_agent_server_base_url,
         )
-        updated_layout = self._get_document_layout(
-            layout.name, data_model_name, spar_agent_server_base_url
-        )
+        updated_layout = self._get_document_layout(layout.name, data_model_name, spar_agent_server_base_url)
         assert updated_layout.prompt is not None
         assert updated_layout.prompt == "This is a test prompt"
 
         self._assert_layout_is_in_db(
-            DocumentLayoutPayload.model_validate(
-                {**asdict(layout), "prompt": "This is a test prompt"}
-            ),
+            DocumentLayoutPayload.model_validate({**asdict(layout), "prompt": "This is a test prompt"}),
             spar_postgres_url,
         )

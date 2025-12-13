@@ -85,7 +85,7 @@ class PostgresStorageArtifactsMixin(CursorMixin, CommonMixin):
             rows = await cur.fetchall()
             return [OTelArtifact.model_validate(row) for row in rows]
 
-    async def search_otel_artifacts(  # noqa: PLR0913
+    async def search_otel_artifacts(
         self,
         trace_id: str | None = None,
         user_id: str | None = None,

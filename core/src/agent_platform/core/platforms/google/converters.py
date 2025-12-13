@@ -804,8 +804,7 @@ class GoogleConverters(PlatformConverters, UsesKernelMixin):
         if "-pro" in model_id:
             minimum_budget = 1024
             logger.info(
-                f"Model {model_id} is a Gemini Pro model, "
-                f"setting minimum thinking budget to {minimum_budget}",
+                f"Model {model_id} is a Gemini Pro model, setting minimum thinking budget to {minimum_budget}",
             )
             return minimum_budget
 

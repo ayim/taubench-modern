@@ -198,9 +198,7 @@ async def test_get_platform_params_not_found_error(
 
     non_existent_id = str(uuid4())
 
-    with pytest.raises(
-        PlatformConfigNotFoundError, match=f"Platform params {non_existent_id} not found"
-    ):
+    with pytest.raises(PlatformConfigNotFoundError, match=f"Platform params {non_existent_id} not found"):
         await storage.get_platform_params(non_existent_id)
 
 
@@ -214,9 +212,7 @@ async def test_update_platform_params_not_found_error(
 
     non_existent_id = str(uuid4())
 
-    with pytest.raises(
-        PlatformConfigNotFoundError, match=f"Platform params {non_existent_id} not found"
-    ):
+    with pytest.raises(PlatformConfigNotFoundError, match=f"Platform params {non_existent_id} not found"):
         await storage.update_platform_params(non_existent_id, sample_openai_platform_params)
 
 
@@ -234,17 +230,13 @@ async def test_update_platform_params_name_conflict_error(
     await storage.create_platform_params(sample_azure_platform_params)
 
     # Try to update azure config to have the same name as openai config
-    updated_azure = sample_azure_platform_params.model_copy(
-        update={"name": sample_openai_platform_params.name}
-    )
+    updated_azure = sample_azure_platform_params.model_copy(update={"name": sample_openai_platform_params.name})
 
     with pytest.raises(
         PlatformConfigWithNameAlreadyExistsError,
         match=f"Platform params with name '{sample_openai_platform_params.name}' already exists",
     ):
-        await storage.update_platform_params(
-            sample_azure_platform_params.platform_id, updated_azure
-        )
+        await storage.update_platform_params(sample_azure_platform_params.platform_id, updated_azure)
 
 
 @pytest.mark.asyncio
@@ -282,9 +274,7 @@ async def test_delete_platform_params_not_found_error(
 
     non_existent_id = str(uuid4())
 
-    with pytest.raises(
-        PlatformConfigNotFoundError, match=f"Platform params {non_existent_id} not found"
-    ):
+    with pytest.raises(PlatformConfigNotFoundError, match=f"Platform params {non_existent_id} not found"):
         await storage.delete_platform_params(non_existent_id)
 
 

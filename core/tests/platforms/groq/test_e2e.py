@@ -33,9 +33,7 @@ def _build_models_allowlist(models: list[str]) -> dict[str, list[str]]:
 
 _ENV_MODELS = _parse_models_env(os.getenv("GROQ_E2E_MODELS"))
 _CONFIGURED_MODELS = [
-    model
-    for model in PlatformModelConfigs.models_capable_of_driving_agents
-    if model.startswith("groq/")
+    model for model in PlatformModelConfigs.models_capable_of_driving_agents if model.startswith("groq/")
 ]
 _DEFAULT_MODELS = list(dict.fromkeys(["groq/openai/gpt-oss-20b", *_CONFIGURED_MODELS]))
 MODELS_TO_TEST = _ENV_MODELS or _DEFAULT_MODELS
@@ -115,9 +113,7 @@ async def test_groq_generate_responses(request, groq_client: GroqClient, case, m
     await prompt.finalize_messages()
     expected_response = request.getfixturevalue(case["response_fixture"])
 
-    cassette_path = (
-        f"platforms/groq/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/groq/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         groq_prompt = await groq_client.converters.convert_prompt(
@@ -143,9 +139,7 @@ async def test_groq_stream_responses(request, groq_client: GroqClient, case, mod
     await prompt.finalize_messages()
     expected_response = request.getfixturevalue(case["response_fixture"])
 
-    cassette_path = (
-        f"platforms/groq/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/groq/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         groq_prompt = await groq_client.converters.convert_prompt(

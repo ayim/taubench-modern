@@ -451,9 +451,7 @@ class MigrationPostgresStorage(StorageInterface):
         except Exception as e:
             import traceback
 
-            logger.error(
-                f"Error counting v1 agents: {type(e).__name__}: {e!s}\n{traceback.format_exc()}"
-            )
+            logger.error(f"Error counting v1 agents: {type(e).__name__}: {e!s}\n{traceback.format_exc()}")
             return 0
 
     async def count_v2_agents(self) -> int:
@@ -468,9 +466,7 @@ class MigrationPostgresStorage(StorageInterface):
         except Exception as e:
             import traceback
 
-            logger.error(
-                f"Error counting v2 agents: {type(e).__name__}: {e!s}\n{traceback.format_exc()}"
-            )
+            logger.error(f"Error counting v2 agents: {type(e).__name__}: {e!s}\n{traceback.format_exc()}")
             return 0
 
     async def get_all_users(self) -> list[dict[str, Any]]:

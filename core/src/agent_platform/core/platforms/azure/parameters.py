@@ -168,9 +168,7 @@ class AzureOpenAIPlatformParameters(PlatformParameters):
             "azure_generated_endpoint_url": self.azure_generated_endpoint_url,
             "azure_generated_endpoint_url_embeddings": self.azure_generated_endpoint_url_embeddings,
             "azure_model_backing_deployment_name": self.azure_model_backing_deployment_name,
-            "azure_model_backing_deployment_name_embeddings": (
-                self.azure_model_backing_deployment_name_embeddings
-            ),
+            "azure_model_backing_deployment_name_embeddings": (self.azure_model_backing_deployment_name_embeddings),
         }
 
         return super().model_dump(exclude_none=exclude_none, extra=extra)

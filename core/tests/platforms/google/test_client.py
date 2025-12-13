@@ -366,9 +366,7 @@ class TestGoogleErrorHandling:
                 assert exc_info.value.response.code == "too_many_requests"
 
     @pytest.mark.asyncio
-    async def test_generate_stream_response_error_handling(
-        self, google_client: GoogleClient
-    ) -> None:
+    async def test_generate_stream_response_error_handling(self, google_client: GoogleClient) -> None:
         """Test error handling in generate_stream_response method."""
         google_prompt = GooglePrompt()
 
@@ -389,9 +387,7 @@ class TestGoogleErrorHandling:
                     new=AsyncMock(return_value="gemini-3-pro-preview"),
                 ):
                     with pytest.raises(StreamingError) as exc_info:
-                        async for _ in google_client.generate_stream_response(
-                            google_prompt, "gemini-3-pro-preview"
-                        ):
+                        async for _ in google_client.generate_stream_response(google_prompt, "gemini-3-pro-preview"):
                             pass  # This shouldn't execute due to the exception
 
                 assert exc_info.value.response.code == "forbidden"
@@ -412,9 +408,7 @@ class TestGoogleErrorHandling:
                 mock_client.aio.models.embed_content.side_effect = error
 
                 with pytest.raises(PlatformHTTPError) as exc_info:
-                    await google_client.create_embeddings(
-                        ["test text"], "google/google/text-embedding-004"
-                    )
+                    await google_client.create_embeddings(["test text"], "google/google/text-embedding-004")
 
                 assert exc_info.value.response.code == "bad_request"
 

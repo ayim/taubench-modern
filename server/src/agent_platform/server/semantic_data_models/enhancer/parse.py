@@ -154,7 +154,7 @@ def validate_and_parse_llm_response(
         raise SchemaValidationError(improvement_msg, response_message=response) from e
 
 
-def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR0912, C901
+def update_semantic_data_model_with_semantic_data_model_from_llm(
     semantic_data_model: SemanticDataModel,
     semantic_data_model_for_llm: SemanticDataModelForLLM,
     tables_to_enhance: set[str] | None = None,
@@ -217,8 +217,7 @@ def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR09
 
         if not existing_table:
             errors.append(
-                f"Table with schema '{schema}' and table '{table_name}' "
-                "not found in existing semantic data model"
+                f"Table with schema '{schema}' and table '{table_name}' not found in existing semantic data model"
             )
             continue
 
@@ -228,10 +227,7 @@ def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR09
         should_process_table = (
             tables_to_enhance is None
             or logical_table_name in tables_to_enhance
-            or (
-                table_to_columns_to_enhance is not None
-                and logical_table_name in table_to_columns_to_enhance
-            )
+            or (table_to_columns_to_enhance is not None and logical_table_name in table_to_columns_to_enhance)
         )
         if not should_process_table:
             continue
@@ -239,9 +235,7 @@ def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR09
         # Determine if we should update table metadata
         # If the table is only specified in table_to_columns_to_enhance (not in tables_to_enhance),
         # we should only update columns, not the table's metadata
-        should_update_table_metadata = (
-            tables_to_enhance is None or logical_table_name in tables_to_enhance
-        )
+        should_update_table_metadata = tables_to_enhance is None or logical_table_name in tables_to_enhance
 
         # Update table properties only if appropriate
         if should_update_table_metadata:
@@ -279,7 +273,7 @@ def update_semantic_data_model_with_semantic_data_model_from_llm(  # noqa: PLR09
             )
 
 
-def _update_table_columns(  # noqa: C901, PLR0912
+def _update_table_columns(
     existing_table: dict,
     llm_columns: list[ColumnForLLM],
     errors: list,
@@ -488,9 +482,7 @@ def update_columns_in_semantic_model(
                 break
 
         if not llm_table or not llm_table.columns:
-            logger.warning(
-                f"Could not find table {table_name} in LLM model or table has no columns"
-            )
+            logger.warning(f"Could not find table {table_name} in LLM model or table has no columns")
             continue
 
         # Build a map of expr -> (index, column) for efficient lookup
@@ -506,10 +498,7 @@ def update_columns_in_semantic_model(
                 idx, _ = column_info
                 llm_table.columns[idx] = enhanced_column
             else:
-                logger.warning(
-                    f"Could not find column with expr '{enhanced_column.expr}' "
-                    f"in table {table_name}"
-                )
+                logger.warning(f"Could not find column with expr '{enhanced_column.expr}' in table {table_name}")
 
     # Apply all changes back to the semantic model
     update_semantic_data_model_with_semantic_data_model_from_llm(

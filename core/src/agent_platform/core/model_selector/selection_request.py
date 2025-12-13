@@ -18,6 +18,4 @@ class ModelSelectionRequest:
     prioritize: ModelPrioritization | None = None
 
     def is_empty(self) -> bool:
-        return (
-            self.direct_model_name is None and self.model_type is None and self.prioritize is None
-        )
+        return self.direct_model_name is None and self.model_type is None and self.prioritize is None

@@ -118,20 +118,14 @@ class EvaluatorEngine:
         expected_count = evaluation.expected
         actual_count = len(agent_messages)
 
-        return TestResult(
-            evaluation=evaluation, passed=actual_count == expected_count, actual_value=actual_count
-        )
+        return TestResult(evaluation=evaluation, passed=actual_count == expected_count, actual_value=actual_count)
 
-    async def _evaluate_with_llm(
-        self, evaluation: LLMEvalEvaluation, agent_messages: list[Message]
-    ) -> TestResult:
+    async def _evaluate_with_llm(self, evaluation: LLMEvalEvaluation, agent_messages: list[Message]) -> TestResult:
         """Evaluate using LLM via the server's /prompts/generate endpoint."""
         from agent_platform.quality.models import TestResult
 
         # Prepare the evaluation prompt
-        agent_content = "\n\n".join(
-            [f"Message {i + 1}: {msg.content}" for i, msg in enumerate(agent_messages)]
-        )
+        agent_content = "\n\n".join([f"Message {i + 1}: {msg.content}" for i, msg in enumerate(agent_messages)])
 
         evaluation_prompt = f"""
 Please evaluate the following agent response(s) against the given criteria.
@@ -156,12 +150,9 @@ Only respond with the JSON object, no other text.
         # Build the prompt for the server API
         prompt_data = {
             "system_instruction": (
-                "You are an expert evaluator of AI agent responses. "
-                "Provide accurate, objective evaluations."
+                "You are an expert evaluator of AI agent responses. Provide accurate, objective evaluations."
             ),
-            "messages": [
-                {"role": "user", "content": [{"kind": "text", "text": evaluation_prompt}]}
-            ],
+            "messages": [{"role": "user", "content": [{"kind": "text", "text": evaluation_prompt}]}],
             "temperature": 0.1,
             "max_output_tokens": 500,
         }
@@ -234,9 +225,7 @@ Only respond with the JSON object, no other text.
                 error=f"LLM evaluation failed: {e!s}",
             )
 
-    async def _evaluate_tool_calls(  # noqa: PLR0912 C901
-        self, evaluation: ToolCallEvaluation, agent_messages: list[Message]
-    ) -> TestResult:
+    async def _evaluate_tool_calls(self, evaluation: ToolCallEvaluation, agent_messages: list[Message]) -> TestResult:
         """Evaluate tool call usage in agent messages."""
         from agent_platform.quality.models import TestResult, ToolUse
 
@@ -263,9 +252,7 @@ Only respond with the JSON object, no other text.
             expected_args = expected_call.get("expected-args", {})
 
             # Find matching tool calls
-            matching_calls = [
-                tool_call for tool_call in all_tool_calls if tool_call.tool_name == expected_tool
-            ]
+            matching_calls = [tool_call for tool_call in all_tool_calls if tool_call.tool_name == expected_tool]
 
             call_found = len(matching_calls) > 0
             args_match = True
@@ -286,9 +273,7 @@ Only respond with the JSON object, no other text.
                             # Check value if specified
                             if expected_value is not None:
                                 actual_value = tool_input[key]
-                                if isinstance(expected_value, str) and isinstance(
-                                    actual_value, str
-                                ):
+                                if isinstance(expected_value, str) and isinstance(actual_value, str):
                                     # Case-insensitive string comparison
                                     if expected_value.lower() != actual_value.lower():
                                         call_args_match = False
@@ -368,9 +353,7 @@ Only respond with the JSON object, no other text.
             error=error,
         )
 
-    async def _find_sql_generation_output(
-        self, thread_files: list[UploadedFile]
-    ) -> SQLGenerationContent | None:
+    async def _find_sql_generation_output(self, thread_files: list[UploadedFile]) -> SQLGenerationContent | None:
         """Find and parse the SQL generation output.json from thread files.
 
         The SQL subagent uploads a file named 'output.json' containing a
@@ -412,9 +395,7 @@ Only respond with the JSON object, no other text.
 
         return None
 
-    async def _fetch_and_parse_json_file(
-        self, thread_id: str, file_ref: str
-    ) -> SQLGenerationContent | None:
+    async def _fetch_and_parse_json_file(self, thread_id: str, file_ref: str) -> SQLGenerationContent | None:
         """Fetch a JSON file by file_id and parse it.
 
         Args:
@@ -427,15 +408,13 @@ Only respond with the JSON object, no other text.
         from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
 
         # Fetch file content from agent server
-        download_url = (
-            f"{self.server_url}/api/v2/threads/{thread_id}/files/download/?file_ref={file_ref}"
-        )
+        download_url = f"{self.server_url}/api/v2/threads/{thread_id}/files/download/?file_ref={file_ref}"
         response = await self.client.get(download_url)
         response.raise_for_status()
 
         return SQLGenerationContent.model_validate(response.json())
 
-    async def _evaluate_sql_generation_result(  # noqa: C901, PLR0912
+    async def _evaluate_sql_generation_result(
         self, evaluation: SQLGenerationResultEvaluation, thread_files: list[UploadedFile]
     ) -> TestResult:
         """Evaluate SQL generation subagent results.
@@ -472,9 +451,7 @@ Only respond with the JSON object, no other text.
                 checks.append(True)
             else:
                 checks.append(False)
-                failures.append(
-                    f"Status mismatch: expected={expected_status}, actual={actual_status}"
-                )
+                failures.append(f"Status mismatch: expected={expected_status}, actual={actual_status}")
 
         # Check for logical SQL presence
         if expected.has_sql is not None:
@@ -484,9 +461,7 @@ Only respond with the JSON object, no other text.
                 checks.append(True)
             else:
                 checks.append(False)
-                failures.append(
-                    f"Logical SQL presence mismatch: expected={expected.has_sql}, actual={has_sql}"
-                )
+                failures.append(f"Logical SQL presence mismatch: expected={expected.has_sql}, actual={has_sql}")
 
         # Check for patterns in SQL
         if expected.sql_contains is not None:
@@ -517,8 +492,7 @@ Only respond with the JSON object, no other text.
             else:
                 checks.append(False)
                 failures.append(
-                    f"Assumptions presence mismatch: "
-                    f"expected={expected.has_assumptions}, actual={has_assumptions}"
+                    f"Assumptions presence mismatch: expected={expected.has_assumptions}, actual={has_assumptions}"
                 )
 
         passed = all(checks) if checks else False
@@ -564,9 +538,7 @@ Only respond with the JSON object, no other text.
                 error="No SQL query found in output.json",
             )
 
-        passed, explanation = await self._compare_sql_semantically(
-            sql_gen_content.sql_query, golden_sql
-        )
+        passed, explanation = await self._compare_sql_semantically(sql_gen_content.sql_query, golden_sql)
 
         return TestResult(
             evaluation=evaluation,
@@ -633,9 +605,7 @@ Respond with a JSON object:
                 "You are an expert SQL analyst. Compare SQL queries for semantic equivalence. "
                 "Be precise and thorough in your analysis."
             ),
-            "messages": [
-                {"role": "user", "content": [{"kind": "text", "text": comparison_prompt}]}
-            ],
+            "messages": [{"role": "user", "content": [{"kind": "text", "text": comparison_prompt}]}],
             "temperature": 0.1,
             "max_output_tokens": 500,
         }

@@ -1,9 +1,7 @@
 from collections.abc import Awaitable, Callable
 
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
-from agent_platform.core.responses.streaming.stream_sink_noop import (
-    NoOpResponseStreamSink,
-)
+from agent_platform.core.responses.streaming.stream_sink_noop import NoOpResponseStreamSink
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
@@ -12,7 +10,6 @@ async def _on_start_noop(
     tool_def: ToolDefinition | None,
 ) -> None:
     """A no-op on_tag_open callback."""
-    pass
 
 
 async def _on_partial_noop(
@@ -20,7 +17,6 @@ async def _on_partial_noop(
     tool_def: ToolDefinition | None,
 ) -> None:
     """A no-op on_tag_partial callback."""
-    pass
 
 
 async def _on_complete_noop(
@@ -28,7 +24,6 @@ async def _on_complete_noop(
     tool_def: ToolDefinition | None,
 ) -> None:
     """A no-op on_tag_complete callback."""
-    pass
 
 
 class ToolUseResponseStreamSink(NoOpResponseStreamSink):

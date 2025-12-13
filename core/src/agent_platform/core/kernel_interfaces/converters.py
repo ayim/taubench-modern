@@ -20,9 +20,7 @@ class ConvertersInterface(ABC):
     @abstractmethod
     def set_thread_message_conversion_function(
         self,
-        conversion_function: Callable[
-            ["Kernel", list[ThreadMessage]], Awaitable[list[AnyPromptMessage]]
-        ],
+        conversion_function: Callable[["Kernel", list[ThreadMessage]], Awaitable[list[AnyPromptMessage]]],
     ) -> None:
         """Set the function responsible for converting a list of thread messages
         to a list of prompt messages."""
@@ -55,4 +53,3 @@ class ConvertersInterface(ABC):
         Arguments:
             messages: The list of thread messages to convert.
         """
-        pass

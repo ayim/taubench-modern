@@ -63,46 +63,30 @@ class TestValidateVerifiedQueryName:
 
     def test_special_characters_raise_error(self):
         """Test that special characters raise an error."""
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Test_Query")  # underscore
 
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Test-Query")  # hyphen
 
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Test.Query")  # period
 
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Test@Query")  # at sign
 
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Test/Query")  # slash
 
     def test_punctuation_raises_error(self):
         """Test that punctuation characters raise an error."""
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("What is the status?")  # question mark
 
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Sales Report!")  # exclamation
 
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Q1, Q2 Status")  # comma
 
     def test_unicode_letters_are_valid(self):
@@ -113,9 +97,7 @@ class TestValidateVerifiedQueryName:
 
     def test_emoji_raises_error(self):
         """Test that emojis raise an error."""
-        with pytest.raises(
-            VerifiedQueryNameError, match="only contain letters, numbers, and spaces"
-        ):
+        with pytest.raises(VerifiedQueryNameError, match="only contain letters, numbers, and spaces"):
             validate_verified_query_name("Test 📊 Query")
 
 
@@ -124,10 +106,7 @@ class TestDataFrameNameToVerifiedQueryName:
 
     def test_converts_underscores_to_spaces(self):
         """Test that underscores are converted to spaces."""
-        assert (
-            data_frame_name_to_verified_query_name("active_oakland_schools")
-            == "Active Oakland Schools"
-        )
+        assert data_frame_name_to_verified_query_name("active_oakland_schools") == "Active Oakland Schools"
         assert data_frame_name_to_verified_query_name("my_data_frame") == "My Data Frame"
 
     def test_applies_title_case(self):

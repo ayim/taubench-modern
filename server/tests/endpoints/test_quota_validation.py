@@ -107,9 +107,7 @@ class TestAgentQuotaValidation:
         assert result is None
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_quota_check_with_zero_limit(
-        self, mock_get_quotas_instance, mock_storage, mock_quotas_service
-    ):
+    async def test_quota_check_with_zero_limit(self, mock_get_quotas_instance, mock_storage, mock_quotas_service):
         """Test quota check with zero limit (no agents allowed)."""
         # Setup: quota limit is 0, current count is 0
         mock_get_quotas_instance.return_value = mock_quotas_service
@@ -126,9 +124,7 @@ class TestAgentQuotaValidation:
         assert exception.data["quota_limit"] == 0
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_quota_check_with_large_numbers(
-        self, mock_get_quotas_instance, mock_storage, mock_quotas_service
-    ):
+    async def test_quota_check_with_large_numbers(self, mock_get_quotas_instance, mock_storage, mock_quotas_service):
         """Test quota check works with large numbers."""
         # Setup: large quota limit
         mock_get_quotas_instance.return_value = mock_quotas_service
@@ -145,9 +141,7 @@ class TestAgentQuotaValidation:
             await check_agent_quota(mock_storage)
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_quota_error_message_format(
-        self, mock_get_quotas_instance, mock_storage, mock_quotas_service
-    ):
+    async def test_quota_error_message_format(self, mock_get_quotas_instance, mock_storage, mock_quotas_service):
         """Test that quota error contains proper message format."""
         # Setup
         mock_get_quotas_instance.return_value = mock_quotas_service

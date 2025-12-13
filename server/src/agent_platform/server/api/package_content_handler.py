@@ -36,8 +36,7 @@ def create_binary_zip_openapi_extra(schema_ref: str) -> dict:
                     },
                     "encoding": {"package_zip_file": {"contentType": "application/zip"}},
                     "description": (
-                        f"Multipart form with all {schema_ref} fields plus "
-                        "ZIP file under the 'package_zip_file' field"
+                        f"Multipart form with all {schema_ref} fields plus ZIP file under the 'package_zip_file' field"
                     ),
                 },
                 "application/zip": {
@@ -107,9 +106,7 @@ async def _extract_binary_zip(request: Request) -> bytes:
         validate_zip_content(content)
     except ValueError as exc:
         # Normalize to HTTP 422 for invalid zip content
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     return content
 
@@ -121,9 +118,7 @@ async def _extract_multipart_zip_and_data(request: Request) -> tuple[bytes, dict
     Also tolerates 'file', 'package' or 'zip' for file field for backward compatibility.
     """
     form = await request.form()
-    candidate = (
-        form.get("package_zip_file") or form.get("file") or form.get("package") or form.get("zip")
-    )
+    candidate = form.get("package_zip_file") or form.get("file") or form.get("package") or form.get("zip")
 
     # Extract all other form fields as data for the payload
     form_data = {}
@@ -132,9 +127,7 @@ async def _extract_multipart_zip_and_data(request: Request) -> tuple[bytes, dict
             if hasattr(value, "read"):
                 # If it's somehow uploaded as a file, read its content
                 content = await value.read()  # type: ignore[attr-defined]
-                form_data[key] = (
-                    content.decode("utf-8") if isinstance(content, bytes) else str(content)
-                )
+                form_data[key] = content.decode("utf-8") if isinstance(content, bytes) else str(content)
             else:
                 form_data[key] = value
 
@@ -155,9 +148,7 @@ async def _extract_multipart_zip_and_data(request: Request) -> tuple[bytes, dict
         try:
             validate_zip_content(content)
         except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
     return content, form_data
 
 
@@ -281,17 +272,13 @@ async def _create_minimal_payload(payload_model: type[T]) -> T:
     return payload_model(name="Uploaded Package")  # type: ignore[call-arg]
 
 
-async def handle_json_or_binary_zip(
-    request: Request, payload_model: type[T] | None = None
-) -> tuple[T, bytes | None]:
+async def handle_json_or_binary_zip(request: Request, payload_model: type[T] | None = None) -> tuple[T, bytes | None]:
     """
     Handle application/json, multipart/form-data, and binary ZIP content types.
     Returns a tuple of (payload, zip_content).
     """
     if payload_model is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="payload_model is required"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="payload_model is required")
 
     content_type = request.headers.get("content-type", "").lower()
 

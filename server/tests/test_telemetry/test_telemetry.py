@@ -6,9 +6,7 @@ def test_format_variables(monkeypatch) -> None:
     monkeypatch.setattr(pretty_print_module, "MAX_CHARS_TO_CONSIDER_SMALL_LINE", 0)
 
     indent = "  "
-    assert pretty_print('{"name": "John", "age": 30}') == (
-        f'{{\n{indent}"name": "John",\n{indent}"age": 30\n}}'
-    )
+    assert pretty_print('{"name": "John", "age": 30}') == (f'{{\n{indent}"name": "John",\n{indent}"age": 30\n}}')
 
     # Not ideal (we could remove the last \n${indent})
     assert pretty_print('{"name": "John", "age": 30,}') == (

@@ -37,9 +37,7 @@ def normalize_response(response: ResponseMessage) -> ResponseMessage:
 
     # Pop any ReasoningContent items
     indices_of_reasoning_content = [
-        i
-        for i, content_item in enumerate(response.content)
-        if isinstance(content_item, ResponseReasoningContent)
+        i for i, content_item in enumerate(response.content) if isinstance(content_item, ResponseReasoningContent)
     ]
     for i in reversed(indices_of_reasoning_content):
         response.content.pop(i)
@@ -58,9 +56,7 @@ def normalize_response(response: ResponseMessage) -> ResponseMessage:
 # MODEL LISTS
 # -------------------------------------------------------------------------
 MODELS_TO_TEST = [
-    model
-    for model in PlatformModelConfigs.models_capable_of_driving_agents
-    if model.startswith("bedrock/")
+    model for model in PlatformModelConfigs.models_capable_of_driving_agents if model.startswith("bedrock/")
 ]
 
 # TODO: get access to these if we want to e2e test them
@@ -163,9 +159,7 @@ async def test_bedrock_generate_responses(request, bedrock_client, case, model_i
     expected_response = request.getfixturevalue(case["response_fixture"])
 
     # Unique cassette per test
-    cassette_path = (
-        f"platforms/bedrock/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/bedrock/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         bedrock_prompt = await bedrock_client.converters.convert_prompt(
@@ -201,10 +195,7 @@ async def test_bedrock_stream_responses(request, bedrock_client, case, model_id)
     await prompt.finalize_messages()
     expected_response = request.getfixturevalue(case["response_fixture"])
 
-    cassette_path = (
-        f"platforms/bedrock/test_e2e/"
-        f"test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/bedrock/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         convert_start = time.perf_counter()

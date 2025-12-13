@@ -155,7 +155,7 @@ async def _read_thread_file(
         return None
 
 
-async def _upload_thread_files_to_scenario(  # noqa: PLR0913
+async def _upload_thread_files_to_scenario(
     *,
     file_manager: BaseFileManager,
     uploads: list[tuple[UploadFile, BinaryIO]],
@@ -171,8 +171,7 @@ async def _upload_thread_files_to_scenario(  # noqa: PLR0913
     )
 
     id_map = {
-        source_id: dest.file_id
-        for source_id, dest in zip(source_file_ids, uploaded_scenario_files, strict=False)
+        source_id: dest.file_id for source_id, dest in zip(source_file_ids, uploaded_scenario_files, strict=False)
     }
     if not id_map:
         return scenario
@@ -195,11 +194,7 @@ def _update_attachment_uris(
 
     for message in messages:
         for content in message.content:
-            if (
-                isinstance(content, ThreadAttachmentContent)
-                and content.uri
-                and content.uri.startswith(prefix)
-            ):
+            if isinstance(content, ThreadAttachmentContent) and content.uri and content.uri.startswith(prefix):
                 original_id = content.uri[len(prefix) :]
                 new_id = id_map.get(original_id)
                 if new_id and new_id != original_id:

@@ -63,10 +63,7 @@ async def get_agents(
         description="Filter agents by name (starts with, case insensitive).",
     ),
 ) -> PaginatedResponse:
-    agents = [
-        AgentCompat.from_agent(a)
-        for a in filter_hidden_agents(await storage.list_agents(user.user_id))
-    ]
+    agents = [AgentCompat.from_agent(a) for a in filter_hidden_agents(await storage.list_agents(user.user_id))]
     if name:
         agents = [agent for agent in agents if agent.name.lower().startswith(name.lower())]
     return PaginatedResponse(next=None, has_more=False, data=agents)
@@ -197,9 +194,7 @@ async def create_conversation(
 @router.post(
     "/{aid}/conversations/{cid}/messages",
     summary="Post a message (synchronous)",
-    description=(
-        "Post a message to a conversation thread, and get the updated conversation state."
-    ),
+    description=("Post a message to a conversation thread, and get the updated conversation state."),
     response_description="Conversation with messages",
     tags=["conversations"],
     responses={
@@ -228,9 +223,7 @@ async def post_messages_simple(
         role="user",
         content=[ThreadTextContent(text=body.content)],
     )
-    initial_payload = InitiateStreamPayload(
-        thread_id=thread.thread_id, agent_id=agent.agent_id, messages=[message]
-    )
+    initial_payload = InitiateStreamPayload(thread_id=thread.thread_id, agent_id=agent.agent_id, messages=[message])
     await sync_run(
         agent_id=agent.agent_id,
         initial_payload=initial_payload,
@@ -282,9 +275,7 @@ async def post_public_api_messages_simple(
         role="user",
         content=[ThreadTextContent(text=body.content)],
     )
-    await storage.add_message_to_thread(
-        user_id=user.user_id, thread_id=thread.thread_id, message=thread_message
-    )
+    await storage.add_message_to_thread(user_id=user.user_id, thread_id=thread.thread_id, message=thread_message)
 
     active_run = Run(
         run_id=str(uuid4()),
@@ -373,9 +364,7 @@ async def delete_chat(
 
     files = await storage.get_thread_files(thread_id=cid, user_id=user.user_id)
     for file in files:
-        await file_manager.delete(
-            user_id=user.user_id, thread_id=thread.thread_id, file_id=file.file_id
-        )
+        await file_manager.delete(user_id=user.user_id, thread_id=thread.thread_id, file_id=file.file_id)
 
     await storage.delete_thread(user.user_id, cid)
     return Conversation.from_thread(thread)

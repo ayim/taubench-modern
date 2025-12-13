@@ -84,9 +84,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                 detail=detail,
             )
         else:
-            raise ValueError(
-                f"Unsupported image content type/value: {content.sub_type} / {type(content.value)}"
-            )
+            raise ValueError(f"Unsupported image content type/value: {content.sub_type} / {type(content.value)}")
 
     async def convert_audio_content(
         self,
@@ -197,9 +195,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             try:
                 # Make sure to force_overwrite=True, else download_with_resume will
                 # not actually download the file.
-                download_result = download_with_resume(
-                    content.value, temp_file_path, overwrite_existing=True
-                )
+                download_result = download_with_resume(content.value, temp_file_path, overwrite_existing=True)
                 file_data = base64.b64encode(download_result.path.read_bytes()).decode("utf-8")
             finally:
                 # Clean up the temporary file
@@ -209,9 +205,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                     pass
 
         else:
-            raise ValueError(
-                "Document content must provide base64, raw_bytes, or url for the OpenAI"
-            )
+            raise ValueError("Document content must provide base64, raw_bytes, or url for the OpenAI")
 
         OpenAIConverters._check_file_size(content.mime_type, file_data)
 
@@ -243,11 +237,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
             match content:
                 case PromptTextContent() as text_content:
-                    if (
-                        last_content_part
-                        and "type" in last_content_part
-                        and last_content_part["type"] == "input_text"
-                    ):
+                    if last_content_part and "type" in last_content_part and last_content_part["type"] == "input_text":
                         last_content_part["text"] += text_content.text
                     else:
                         content_parts.append(
@@ -267,7 +257,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
         return content_parts, tool_results
 
-    async def _convert_messages(  # noqa: PLR0912, C901
+    async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
     ) -> list["ResponseInputItemParam"]:
@@ -360,10 +350,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
                                 # (audio/document not supported in Responses API yet).
                                 pass
 
-                    if (
-                        len(converted_messages) > 0
-                        and converted_messages[-1].get("type") == "reasoning"
-                    ):
+                    if len(converted_messages) > 0 and converted_messages[-1].get("type") == "reasoning":
                         # This is to patch over a case where we could end up w/ a reasoning
                         # item at the end, but no tool call (perhaps there was text content
                         # we didn't care to include... say, because we're not showing that
@@ -411,7 +398,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
             )
         return converted_tools
 
-    def _model_id_to_reasoning_effort(self, model_id: str | None) -> "ReasoningEffort":  # noqa: PLR0911
+    def _model_id_to_reasoning_effort(self, model_id: str | None) -> "ReasoningEffort":
         """Convert a model ID to a reasoning effort."""
         if not model_id:
             # No model ID, default to medium effort
@@ -451,11 +438,7 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
         filtered_messages: list[ResponseInputItemParam] = []
         for index, message in enumerate(messages):
-            if (
-                index < last_user_message_index
-                and "type" in message
-                and message["type"] == "reasoning"
-            ):
+            if index < last_user_message_index and "type" in message and message["type"] == "reasoning":
                 continue
             filtered_messages.append(message)
 
@@ -521,15 +504,12 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
         )
 
     @classmethod
-    def _check_file_size(
-        cls, mime_type: str, b64_encoded_file_data: str, limit_mb: int = 10
-    ) -> None:
+    def _check_file_size(cls, mime_type: str, b64_encoded_file_data: str, limit_mb: int = 10) -> None:
         """Coarse check to ensure that a single file doesn't exceed the 10MB limit."""
 
         approximate_size_bytes = len(b64_encoded_file_data) / 1.33
         if approximate_size_bytes > limit_mb * 1024 * 1024:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
-                message="OpenAI limits the size of a single file to 10MB "
-                f"(saw {approximate_size_bytes} bytes)",
+                message=f"OpenAI limits the size of a single file to 10MB (saw {approximate_size_bytes} bytes)",
             )

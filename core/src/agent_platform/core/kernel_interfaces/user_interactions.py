@@ -13,4 +13,3 @@ class UserInteractionsInterface(ABC):
         Returns:
             The user's response as a ThreadUserMessage.
         """
-        pass

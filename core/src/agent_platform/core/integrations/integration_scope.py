@@ -41,11 +41,7 @@ class IntegrationScope(TolerantDataclass):
 
     def model_dump(self) -> dict:
         """Convert to dictionary for serialization."""
-        created_at_str = (
-            self.created_at.isoformat()
-            if isinstance(self.created_at, datetime)
-            else self.created_at
-        )
+        created_at_str = self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at
         return {
             "integration_id": self.integration_id,
             "agent_id": self.agent_id,

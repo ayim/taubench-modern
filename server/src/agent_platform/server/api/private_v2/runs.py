@@ -126,7 +126,7 @@ async def get_run_status(
 
 
 @router.websocket("/ephemeral/stream")
-async def ephemeral_stream_run(  # noqa: C901, PLR0915
+async def ephemeral_stream_run(
     websocket: WebSocket,
     user: AuthedUserWebsocket,
     storage: StorageDependency,
@@ -294,7 +294,7 @@ async def ephemeral_stream_run(  # noqa: C901, PLR0915
 
 
 @router.websocket("/{agent_id}/stream")
-async def stream_run(  # noqa: C901, PLR0912, PLR0915
+async def stream_run(
     websocket: WebSocket,
     user: AuthedUserWebsocket,
     agent_id: str,
@@ -368,9 +368,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
         if initial_payload.thread_id is not None:
             attributes["thread_id"] = initial_payload.thread_id
 
-        server_context.increment_counter(
-            "sema4ai.agent_server.messages", len(initial_payload.messages), attributes
-        )
+        server_context.increment_counter("sema4ai.agent_server.messages", len(initial_payload.messages), attributes)
 
         # Start a new trace for this stream
         with server_context.start_span(
@@ -450,9 +448,7 @@ async def stream_run(  # noqa: C901, PLR0912, PLR0915
                 }
 
                 server_context.increment_counter("sema4ai.agent_server.runs", 1, attributes)
-                active_run = await _create_run(
-                    agent_id, thread_state.thread_id, storage, run_type="stream"
-                )
+                active_run = await _create_run(agent_id, thread_state.thread_id, storage, run_type="stream")
                 create_span.set_attribute("run_id", active_run.run_id)
                 create_span.set_attribute("run_type", active_run.run_type)
                 span.set_attribute("run_id", active_run.run_id)
@@ -742,7 +738,7 @@ async def sync_run(
 
 
 @router.post("/{agent_id}/async", response_model=Run)
-async def async_run(  # noqa: C901, PLR0915
+async def async_run(
     agent_id: str,
     initial_payload: InitiateStreamPayload,
     user: AuthedUser,
@@ -833,9 +829,7 @@ async def async_run(  # noqa: C901, PLR0915
                         "thread_id": thread_state.thread_id,
                     },
                 )
-                active_run = await _create_run(
-                    agent_id, thread_state.thread_id, storage, run_type="async"
-                )
+                active_run = await _create_run(agent_id, thread_state.thread_id, storage, run_type="async")
                 create_span.set_attribute("run_id", active_run.run_id)
                 create_span.set_attribute("run_type", active_run.run_type)
                 create_span.set_attribute("output.value", json.dumps(active_run.model_dump()))
@@ -900,9 +894,7 @@ async def async_run(  # noqa: C901, PLR0915
             # Add a callback to handle any exceptions that might occur
             def _handle_background_task_done(task):
                 if task.exception():
-                    logger.error(
-                        f"Background task for run {active_run.run_id} failed: {task.exception()}"
-                    )
+                    logger.error(f"Background task for run {active_run.run_id} failed: {task.exception()}")
 
             background_task.add_done_callback(_handle_background_task_done)
 

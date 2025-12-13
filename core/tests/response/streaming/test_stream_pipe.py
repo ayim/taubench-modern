@@ -428,9 +428,9 @@ async def test_new_content_item_triggers_begin_events() -> None:
     first_img_begin = names.index("on_image_content_begin")
 
     # Ensure *some* content_end happened before the image_begin
-    assert any(
-        idx < first_img_begin for idx, name in enumerate(names) if name == "on_content_end"
-    ), "Expected a content_end event before image content begin"
+    assert any(idx < first_img_begin for idx, name in enumerate(names) if name == "on_content_end"), (
+        "Expected a content_end event before image content begin"
+    )
 
     assert names.count("on_image_content_begin") == 1
 
@@ -731,8 +731,7 @@ async def test_tail_end_is_final_for_index_zero() -> None:
 
     # Ensure NO later `partial` for idx 0 exists
     duplicate = any(
-        name == "on_text_content_partial" and args[0] == 0 and i > end_pos
-        for i, (name, args) in enumerate(sink.events)
+        name == "on_text_content_partial" and args[0] == 0 and i > end_pos for i, (name, args) in enumerate(sink.events)
     )
 
     assert not duplicate, "saw partial callback after end for idx 0"

@@ -178,13 +178,9 @@ class ThreadStateSinks:
                     as_token_usage = TokenUsage.model_validate(
                         self._message.agent_metadata["total_usage"],
                     )
-                    self._message.agent_metadata["total_usage"] = (
-                        as_token_usage + usage
-                    ).model_dump()
+                    self._message.agent_metadata["total_usage"] = (as_token_usage + usage).model_dump()
                 except Exception as ex:
-                    logger.warning(
-                        f"Failed to add usage to total usage, resetting to new usage: {ex!r}"
-                    )
+                    logger.warning(f"Failed to add usage to total usage, resetting to new usage: {ex!r}")
                     self._message.agent_metadata["total_usage"] = usage.model_dump()
             await self._message.stream_delta()
 

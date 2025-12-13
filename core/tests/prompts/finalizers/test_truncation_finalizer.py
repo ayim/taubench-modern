@@ -117,9 +117,7 @@ async def test_many_small_messages_progress_and_preserve_newest(mock_kernel, moc
     pre_tokens = count_prompt_tokens_for(prompt.messages, prompt)
 
     # Run
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     post_tokens = count_prompt_tokens_for(result, prompt)
     assert post_tokens < pre_tokens, f"no progress: {post_tokens} !< {pre_tokens}"
@@ -181,9 +179,7 @@ async def test_many_small_tool_calls_progress_and_preserve_newest(mock_kernel, m
     last_tool_before = prompt.messages[-1].content[0].content[0].text
 
     pre_tokens = count_prompt_tokens_for(prompt.messages, prompt)
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
     post_tokens = count_prompt_tokens_for(result, prompt)
     assert post_tokens < pre_tokens, f"no progress: {post_tokens} !< {pre_tokens}"
 
@@ -262,15 +258,11 @@ async def test_large_tool_result_absorbs_most_truncation(mock_kernel, mock_platf
     prompt = Prompt(messages=msgs)
 
     pre_tokens = count_prompt_tokens_for(prompt.messages, prompt)
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
     post_tokens = count_prompt_tokens_for(result, prompt)
 
     # Strong progress: reduce by at least ~60%
-    assert post_tokens <= int(pre_tokens * 0.4), (
-        f"insufficient reduction: {post_tokens} vs {pre_tokens}"
-    )
+    assert post_tokens <= int(pre_tokens * 0.4), f"insufficient reduction: {post_tokens} vs {pre_tokens}"
 
     # The big, older tool result should show the truncation marker
     assert isinstance(result[2], PromptUserMessage)
@@ -302,9 +294,7 @@ async def test_long_user_message_truncated_under_budget(mock_kernel, mock_platfo
         ]
     )
 
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     assert_not_over_budget(
         result,
@@ -340,9 +330,7 @@ async def test_long_agent_message_truncated_under_budget(mock_kernel, mock_platf
         ]
     )
 
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     assert_not_over_budget(
         result,
@@ -386,9 +374,7 @@ async def test_oldest_first_preference_for_plain_text(mock_kernel, mock_platform
     assert isinstance(prompt.messages[2].content[0], PromptTextContent)
     newer_before = prompt.messages[2].content[0].text
 
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     assert_not_over_budget(
         result,
@@ -474,9 +460,7 @@ async def test_oldest_first_preference_for_tool_results(mock_kernel, mock_platfo
     assert isinstance(prompt.messages[4].content[0].content[0], PromptTextContent)
     newer_before = prompt.messages[4].content[0].content[0].text  # newest tool result text
 
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     assert_not_over_budget(
         result,
@@ -550,9 +534,7 @@ async def test_mixed_plain_text_vs_tool_prefers_tool_first(mock_kernel, mock_pla
     assert isinstance(prompt.messages[1].content[0], PromptTextContent)
     older_plain_before = prompt.messages[1].content[0].text
 
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     assert_not_over_budget(
         result,
@@ -672,9 +654,7 @@ async def test_respects_tool_floor_even_if_budget_demands_more(mock_kernel, mock
         ]
     )
 
-    result = await finalizer(
-        prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low"
-    )
+    result = await finalizer(prompt.messages, prompt, mock_kernel, platform=mock_platform, model="o4-mini-low")
 
     # Confirm the tool result wasn't pushed *below* floor.
     assert isinstance(result[2], PromptUserMessage)

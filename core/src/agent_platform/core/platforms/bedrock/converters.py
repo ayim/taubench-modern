@@ -58,13 +58,11 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
 
             if width > BedrockContentLimits.max_image_width:
                 raise ValueError(
-                    f"Image width {width}px exceeds maximum allowed "
-                    f"{BedrockContentLimits.max_image_width}px",
+                    f"Image width {width}px exceeds maximum allowed {BedrockContentLimits.max_image_width}px",
                 )
             if height > BedrockContentLimits.max_image_height:
                 raise ValueError(
-                    f"Image height {height}px exceeds maximum allowed "
-                    f"{BedrockContentLimits.max_image_height}px",
+                    f"Image height {height}px exceeds maximum allowed {BedrockContentLimits.max_image_height}px",
                 )
         except Exception as e:
             raise ValueError(f"Failed to verify image dimensions: {e}") from e
@@ -81,8 +79,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         size = len(image_data)
         if size > BedrockContentLimits.max_image_size:
             raise ValueError(
-                f"Image size {size} bytes exceeds maximum allowed "
-                f"{BedrockContentLimits.max_image_size} bytes",
+                f"Image size {size} bytes exceeds maximum allowed {BedrockContentLimits.max_image_size} bytes",
             )
 
     async def _verify_image_count(
@@ -100,8 +97,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         image_count = sum(1 for block in content_blocks if "image" in block)
         if image_count > BedrockContentLimits.max_image_count:
             raise ValueError(
-                f"Number of images {image_count} exceeds maximum allowed "
-                f"{BedrockContentLimits.max_image_count}",
+                f"Number of images {image_count} exceeds maximum allowed {BedrockContentLimits.max_image_count}",
             )
 
     async def _verify_document_size(self, document_data: bytes) -> None:
@@ -116,8 +112,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         size = len(document_data)
         if size > BedrockContentLimits.max_document_size:
             raise ValueError(
-                f"Document size {size} bytes exceeds maximum allowed "
-                f"{BedrockContentLimits.max_document_size} bytes",
+                f"Document size {size} bytes exceeds maximum allowed {BedrockContentLimits.max_document_size} bytes",
             )
 
     async def _verify_document_count(
@@ -135,8 +130,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         doc_count = sum(1 for block in content_blocks if "document" in block)
         if doc_count > BedrockContentLimits.max_document_count:
             raise ValueError(
-                f"Number of documents {doc_count} exceeds maximum allowed "
-                f"{BedrockContentLimits.max_document_count}",
+                f"Number of documents {doc_count} exceeds maximum allowed {BedrockContentLimits.max_document_count}",
             )
 
     async def _verify_document_name(self, name: str) -> None:
@@ -442,7 +436,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
             case _:
                 raise ValueError(f"Role '{role}' not mapped to Bedrock role")
 
-    async def _convert_messages(  # noqa: C901
+    async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
     ) -> list["MessageTypeDef"]:
@@ -559,10 +553,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
         has_both_temperature_and_top_p = "topP" in config and "temperature" in config
         is_claude_4_5_variant = bool(
             model_id
-            and any(
-                variant in model_id
-                for variant in ("claude-4-5-sonnet", "claude-4-5-haiku", "claude-4-5-opus")
-            )
+            and any(variant in model_id for variant in ("claude-4-5-sonnet", "claude-4-5-haiku", "claude-4-5-opus"))
         )
         if has_both_temperature_and_top_p and is_claude_4_5_variant:
             # Prefer temperature over top_p for Claude 4.5 variants
@@ -679,9 +670,7 @@ class BedrockConverters(PlatformConverters, UsesKernelMixin):
 
         thinking_tokens = (overrides or {}).get("thinking", {}).get("budget_tokens", 0)
         if thinking_tokens > 0:
-            existing_max_tokens = (
-                inference_config.get("maxTokens") if inference_config is not None else None
-            )
+            existing_max_tokens = inference_config.get("maxTokens") if inference_config is not None else None
             required_max_tokens = max(existing_max_tokens or 0, thinking_tokens)
 
             if inference_config is None:

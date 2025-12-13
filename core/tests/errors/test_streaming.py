@@ -387,8 +387,7 @@ class TestStreamingErrorIntegration:
                     "tokens_generated": 1024,
                     "tool_calls_made": 2,
                     "tool_calls_completed": 1,
-                    "last_complete_sentence": "I have successfully retrieved the weather "
-                    "data for New York.",
+                    "last_complete_sentence": "I have successfully retrieved the weather data for New York.",
                 },
                 "resource_usage": {
                     "cpu_percent": 85.2,

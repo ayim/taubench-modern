@@ -81,11 +81,7 @@ class DocIntelManager:
         """
         Identifies cards that are 'done' but missing schemas, and runs inference.
         """
-        targets = [
-            c
-            for c in self.state.doc_int.cards
-            if c.status == "done" and not isinstance(c.json_schema, dict)
-        ]
+        targets = [c for c in self.state.doc_int.cards if c.status == "done" and not isinstance(c.json_schema, dict)]
 
         if not targets:
             return
@@ -95,9 +91,7 @@ class DocIntelManager:
         for card in targets:
             usage = await self.schema_gen.emit_tool_start(message, card.file_ref, "")
             result = await self.schema_gen.infer_and_apply(card, message)
-            await self.schema_gen.emit_tool_finish(
-                message, usage, card.file_ref, result=result, is_error=False
-            )
+            await self.schema_gen.emit_tool_finish(message, usage, card.file_ref, result=result, is_error=False)
 
             # Update the original message (so "Schema Ready" appears there),
             # keeping the current "Thinking..." message clean.
@@ -130,9 +124,7 @@ class DocIntelManager:
         for file_ref, snapshots in card_snapshots.items():
             final_cards.append(self._reconstruct_card_state(file_ref, snapshots))
 
-        self.state.doc_int = DocIntState(
-            revision=highest_revision, cards=final_cards, prompt_payload=""
-        )
+        self.state.doc_int = DocIntState(revision=highest_revision, cards=final_cards, prompt_payload="")
         self._start_revision = highest_revision
 
     def _reconstruct_card_state(self, file_ref: str, snapshots: list[DocCard]) -> DocCard:
@@ -156,9 +148,7 @@ class DocIntelManager:
 
         return base
 
-    async def persist(
-        self, message: ThreadMessageWithThreadState, force_current_message: bool = False
-    ):
+    async def persist(self, message: ThreadMessageWithThreadState, force_current_message: bool = False):
         """
         Persists state to storage.
 
@@ -188,9 +178,7 @@ class DocIntelManager:
                 is_current = False
             else:
                 # Fallback to current if we can't find where to put it
-                logger.warning(
-                    "doc_int.persist.history_gap: No anchor found, defaulting to current."
-                )
+                logger.warning("doc_int.persist.history_gap: No anchor found, defaulting to current.")
                 target_message = message.message
                 is_current = True
         else:
@@ -242,9 +230,7 @@ class DocIntelManager:
 
         storage = StorageService.get_instance()
         try:
-            files = await storage.get_thread_files(
-                self.kernel.thread_state.thread_id, self.kernel.user.user_id
-            )
+            files = await storage.get_thread_files(self.kernel.thread_state.thread_id, self.kernel.user.user_id)
         except Exception:
             return False
 
@@ -272,9 +258,7 @@ class DocIntelManager:
         from agent_platform.core.thread.content import ThreadTextContent
 
         message.message.content.append(
-            ThreadTextContent(
-                text="Waiting for PDF markup. Open the document cards and mark each as done."
-            )
+            ThreadTextContent(text="Waiting for PDF markup. Open the document cards and mark each as done.")
         )
         self.state.step = "gathering-pdf-context"
 

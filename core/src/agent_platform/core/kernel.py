@@ -32,11 +32,7 @@ from agent_platform.core.kernel_interfaces import (
     UserInteractionsInterface,
     WorkItemInterface,
 )
-from agent_platform.core.model_selector import (
-    DefaultModelSelector,
-    ModelSelectionRequest,
-    ModelSelector,
-)
+from agent_platform.core.model_selector import DefaultModelSelector, ModelSelectionRequest, ModelSelector
 from agent_platform.core.platforms.configs import ModelPrioritization, ModelType
 from agent_platform.core.runs import Run
 from agent_platform.core.streaming import IncomingDelta, StreamingDelta
@@ -73,7 +69,6 @@ class Kernel(ABC):
         Returns:
             Agent: The agent bound to this kernel instance.
         """
-        pass
 
     @property
     @abstractmethod
@@ -83,7 +78,6 @@ class Kernel(ABC):
         Returns:
             User: The user bound to this kernel instance.
         """
-        pass
 
     @property
     @abstractmethod
@@ -93,7 +87,6 @@ class Kernel(ABC):
         Returns:
             Thread: The thread bound to this kernel instance.
         """
-        pass
 
     @property
     @abstractmethod
@@ -103,13 +96,11 @@ class Kernel(ABC):
         Returns:
             Run: The run bound to this kernel instance.
         """
-        pass
 
     @property
     @abstractmethod
     def converters(self) -> ConvertersInterface:
         """Interface for converting between thread, prompt, and response objects."""
-        pass
 
     @property
     @abstractmethod
@@ -125,7 +116,6 @@ class Kernel(ABC):
         Returns:
             EventsInterface: Interface for emitting events to the agent-server.
         """
-        pass
 
     @property
     @abstractmethod
@@ -139,7 +129,6 @@ class Kernel(ABC):
         Returns:
             EventsInterface: Interface for receiving events from the agent-server.
         """
-        pass
 
     @property
     @abstractmethod
@@ -153,7 +142,6 @@ class Kernel(ABC):
         Returns:
             FilesInterface: Interface for managing uploaded files.
         """
-        pass
 
     @property
     @abstractmethod
@@ -167,7 +155,6 @@ class Kernel(ABC):
         Returns:
             MemoryInterface: Interface for memory operations.
         """
-        pass
 
     @property
     @abstractmethod
@@ -181,7 +168,6 @@ class Kernel(ABC):
         Returns:
             list[PlatformInterface]: List of platform interfaces.
         """
-        pass
 
     @property
     @abstractmethod
@@ -196,7 +182,6 @@ class Kernel(ABC):
         Returns:
             PromptsInterface: Interface for prompt management.
         """
-        pass
 
     @property
     @abstractmethod
@@ -213,7 +198,6 @@ class Kernel(ABC):
         Returns:
             RunbookInterface: Interface for runbook interactions.
         """
-        pass
 
     @property
     @abstractmethod
@@ -228,7 +212,6 @@ class Kernel(ABC):
         Returns:
             StorageInterface: Interface for storage operations.
         """
-        pass
 
     @property
     @abstractmethod
@@ -244,7 +227,6 @@ class Kernel(ABC):
         Returns:
             ToolsInterface: Interface for tool operations.
         """
-        pass
 
     @property
     @abstractmethod
@@ -254,7 +236,6 @@ class Kernel(ABC):
         Returns:
             list[ToolDefinition]: List of tool definitions.
         """
-        pass
 
     @property
     @abstractmethod
@@ -267,7 +248,6 @@ class Kernel(ABC):
         Returns:
             ThreadStateInterface: Interface for thread state operations.
         """
-        pass
 
     @property
     @abstractmethod
@@ -280,7 +260,6 @@ class Kernel(ABC):
         Returns:
             UserInterface: Interface for user interactions.
         """
-        pass
 
     @property
     @abstractmethod
@@ -289,7 +268,6 @@ class Kernel(ABC):
 
         The OTel API is used to interact with the OpenTelemetry (OTel) API.
         """
-        pass
 
     @property
     @abstractmethod

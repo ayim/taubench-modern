@@ -111,10 +111,7 @@ def test_multiline_docstring():
         foo,
     )
     assert tool.name == "foo"
-    assert (
-        tool.description
-        == "Docstring line 0\nThis is a multiline docstring.\n  - item 1\n  - item 2"
-    )
+    assert tool.description == "Docstring line 0\nThis is a multiline docstring.\n  - item 1\n  - item 2"
 
 
 def test_falls_back_to_docstring():
@@ -183,9 +180,7 @@ def test_optional_nullable():
     # The param is not in "required" because it has no default? Actually
     # Note that "Optional" alone doesn't mean it has a default.
     # It's "required" if there's no default. It's also "nullable" in the type.
-    assert "x" in schema["required"], (
-        "Optional without a default is still required, but can be null."
-    )
+    assert "x" in schema["required"], "Optional without a default is still required, but can be null."
     assert x_schema["type"] == ["string", "null"]
 
 
@@ -383,14 +378,12 @@ def test_reject_args_kwargs():
 
     async def tool_with_args(*args: Annotated[str, "testing"]):
         """Testing"""
-        pass
 
     with pytest.raises(ValueError, match="Unsupported parameter kind"):
         ToolDefinition.from_callable(tool_with_args)
 
     async def tool_with_kwargs(**kwargs: Annotated[str, "testing"]):
         """Testing"""
-        pass
 
     with pytest.raises(ValueError, match="Unsupported parameter kind"):
         ToolDefinition.from_callable(tool_with_kwargs)
@@ -427,7 +420,6 @@ def test_reject_non_async_function():
 
     def not_async(a: Annotated[str, "testing"]):
         """Testing"""
-        pass
 
     with pytest.raises(ValueError, match="must be async"):
         ToolDefinition.from_callable(

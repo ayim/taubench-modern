@@ -3,7 +3,7 @@
 from agent_platform.server.semantic_data_models.enhancer.type_defs import EnhancementMode
 
 
-def render_system_prompt(  # noqa
+def render_system_prompt(
     mode: EnhancementMode,
     tables_to_enhance: set[str] | None = None,
     table_to_columns_to_enhance: dict[str, list[str]] | None = None,
@@ -49,18 +49,10 @@ def render_system_prompt(  # noqa
     # Add model-level information section
     if mode == "full":
         parts.append("\n**Model-Level Information:**\n")
-        parts.append(
-            "   - A descriptive, domain-specific name for the semantic model that clearly indicates\n"
-        )
-        parts.append(
-            "     what business domain or data subject it represents (e.g., 'Product Catalog',\n"
-        )
-        parts.append(
-            "     'Sales Analytics', 'Customer Orders', NOT generic names like 'Semantic Data Model')\n"
-        )
-        parts.append(
-            "   - An improved description that explains the business purpose and use cases\n"
-        )
+        parts.append("   - A descriptive, domain-specific name for the semantic model that clearly indicates\n")
+        parts.append("     what business domain or data subject it represents (e.g., 'Product Catalog',\n")
+        parts.append("     'Sales Analytics', 'Customer Orders', NOT generic names like 'Semantic Data Model')\n")
+        parts.append("   - An improved description that explains the business purpose and use cases\n")
 
     # Add table information section
     if mode in {"full", "tables"}:
@@ -90,9 +82,7 @@ def render_system_prompt(  # noqa
             parts.append("   - Better logical name for the column\n")
         parts.append("   - Improved description that explains what the data represents\n")
         parts.append("   - Synonyms that users might use to refer to this column\n")
-        parts.append(
-            '   - Proper categorization into "dimension", "fact", "metric", or "time_dimension"\n'
-        )
+        parts.append('   - Proper categorization into "dimension", "fact", "metric", or "time_dimension"\n')
 
     # List data connection tables if any exist
     if data_connection_tables and mode in {"full", "tables", "columns"}:
@@ -104,15 +94,9 @@ def render_system_prompt(  # noqa
         parts.append("\n**Categorization Guidelines:**\n")
         parts.append("   - **dimension**: Categorical data used for grouping/filtering\n")
         parts.append("     (e.g., product_name, customer_id, region)\n")
-        parts.append(
-            "   - **fact**: Numeric measures at row level (e.g., quantity, price, revenue)\n"
-        )
-        parts.append(
-            "   - **metric**: Aggregated business KPIs (e.g., total_revenue, avg_order_value)\n"
-        )
-        parts.append(
-            "   - **time_dimension**: Temporal data for time-based analysis (e.g., order_date, created_at)\n"
-        )
+        parts.append("   - **fact**: Numeric measures at row level (e.g., quantity, price, revenue)\n")
+        parts.append("   - **metric**: Aggregated business KPIs (e.g., total_revenue, avg_order_value)\n")
+        parts.append("   - **time_dimension**: Temporal data for time-based analysis (e.g., order_date, created_at)\n")
 
     # Add quality standards section
     parts.append("\n**Quality Standards:**\n")
@@ -130,17 +114,11 @@ def render_system_prompt(  # noqa
         description_text = "table's purpose"
     else:
         description_text = "column's purpose"
-    parts.append(
-        f"   - Descriptions should be concise but informative and explain the {description_text}\n"
-    )
+    parts.append(f"   - Descriptions should be concise but informative and explain the {description_text}\n")
 
     # Synonyms guidance
-    parts.append(
-        "   - Synonyms should cover common alternative terms and be user friendly. Note that technical\n"
-    )
-    parts.append(
-        "     terms can be used, but the context here is that non-technical users will be using\n"
-    )
+    parts.append("   - Synonyms should cover common alternative terms and be user friendly. Note that technical\n")
+    parts.append("     terms can be used, but the context here is that non-technical users will be using\n")
 
     # Reference text for synonyms
     if mode == "full":
@@ -156,13 +134,9 @@ def render_system_prompt(  # noqa
     # Table synonyms examples
     if mode in {"full", "tables"}:
         parts.append("     Examples of synonyms for tables:\n")
-        parts.append(
-            '     - synonyms for orders_table: "orders", "customer orders", "order data"\n'
-        )
+        parts.append('     - synonyms for orders_table: "orders", "customer orders", "order data"\n')
         parts.append('     - synonyms for product_catalog: "products", "product list", "catalog"\n')
-        parts.append(
-            '     - synonyms for user_profiles: "users", "user data", "customer profiles"\n'
-        )
+        parts.append('     - synonyms for user_profiles: "users", "user data", "customer profiles"\n')
 
     # Column synonyms examples
     if mode in {"full", "columns"}:
@@ -189,17 +163,13 @@ def render_system_prompt(  # noqa
     elif mode == "tables":
         parts.append("\n")
         table_text = "table" if is_single_table else "table(s)"
-        parts.append(
-            "You will receive the full semantic model for context, but you should ONLY enhance the specific\n"
-        )
+        parts.append("You will receive the full semantic model for context, but you should ONLY enhance the specific\n")
         verb = "is" if is_single_table else "are"
         focus_text = "this single table" if is_single_table else "these tables"
         parts.append(
             f"{table_text} that {verb} highlighted. Focus on making {focus_text}'s metadata more useful so that later\n"
         )
-        parts.append(
-            "it's easier to generate SQL queries from natural language based on the semantic data model.\n"
-        )
+        parts.append("it's easier to generate SQL queries from natural language based on the semantic data model.\n")
         parts.append("\n")
         parts.append(
             "**IMPORTANT:** You should NOT regenerate or modify any column information. Only provide metadata\n"
@@ -208,23 +178,17 @@ def render_system_prompt(  # noqa
     elif mode == "columns":
         parts.append("\n")
         column_text = "column" if is_single_column else "columns"
-        parts.append(
-            "You will receive the full semantic model for context, but you should ONLY enhance the specific\n"
-        )
+        parts.append("You will receive the full semantic model for context, but you should ONLY enhance the specific\n")
         verb = "is" if is_single_column else "are"
         focus_text = "this single column" if is_single_column else "these columns"
         parts.append(
             f"{column_text} that {verb} highlighted. Focus on making {focus_text} more useful so that later it's\n"
         )
-        parts.append(
-            "easier to generate SQL queries from natural language based on the semantic data model.\n"
-        )
+        parts.append("easier to generate SQL queries from natural language based on the semantic data model.\n")
 
     # Add tool usage instructions
     parts.append("\n**Output Instructions:**\n")
-    parts.append(
-        "Use the provided tool to submit your enhanced result. The tool will validate your output against\n"
-    )
+    parts.append("Use the provided tool to submit your enhanced result. The tool will validate your output against\n")
     parts.append(
         "the expected schema. If your first attempt has validation errors, you will be asked to correct them.\n"
     )

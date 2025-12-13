@@ -31,9 +31,7 @@ def step(func):
         # Extract and validate kernel and state.
         kernel, state = extract_kernel_and_create_or_get_state(sig, *args, **kwargs)
         extra_args = args[2:]
-        extra_kwargs = {
-            key: value for key, value in kwargs.items() if key not in {"kernel", "state"}
-        }
+        extra_kwargs = {key: value for key, value in kwargs.items() if key not in {"kernel", "state"}}
 
         # Extract step name from function
         step_name = func.__name__

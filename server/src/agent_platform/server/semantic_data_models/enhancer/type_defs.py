@@ -120,9 +120,7 @@ class BaseTable(BaseModel):
     MUST NOT be changed.
     """
 
-    schema: str | None = Field(
-        alias="schema", description="Name of the schema. MUST NOT be changed.", default=None
-    )
+    schema: str | None = Field(alias="schema", description="Name of the schema. MUST NOT be changed.", default=None)
 
     table: Annotated[
         str,
@@ -163,8 +161,7 @@ class LogicalTable(LogicalTableBase):
 
     columns: Annotated[
         list[ColumnForLLM] | None,
-        "A list of columns in this table with their categories (dimension, fact, metric, "
-        "time_dimension).",
+        "A list of columns in this table with their categories (dimension, fact, metric, time_dimension).",
     ] = None
 
 
@@ -276,17 +273,13 @@ def create_semantic_data_model_for_llm_from_semantic_data_model(
 class TablesOutputSchema(BaseModel):
     """A schema for a list of tables."""
 
-    tables: Annotated[
-        list[LogicalTableMetadataForLLM], "A list of logical tables in this semantic model"
-    ]
+    tables: Annotated[list[LogicalTableMetadataForLLM], "A list of logical tables in this semantic model"]
 
 
 class TableToColumnsOutputSchema(BaseModel):
     """A schema for a dictionary of table names to columns."""
 
-    table_to_columns: Annotated[
-        dict[str, list[ColumnForLLM]], "A dictionary of table names to columns"
-    ]
+    table_to_columns: Annotated[dict[str, list[ColumnForLLM]], "A dictionary of table names to columns"]
 
 
 LLMOutputSchemas = SemanticDataModelForLLM | TablesOutputSchema | TableToColumnsOutputSchema

@@ -50,10 +50,7 @@ def start_agent_server(tmpdir, logs_dir, env: dict[str, str] | None = None) -> I
     #    all preconditions
     agent_server_process.start(logs_dir=logs_dir, timeout=10 * 60, env=env)
 
-    logger.debug(
-        f"Agent server started with host={agent_server_process.host}, "
-        f"port={agent_server_process.port}"
-    )
+    logger.debug(f"Agent server started with host={agent_server_process.host}, port={agent_server_process.port}")
     url = f"http://{agent_server_process.host}:{agent_server_process.port}"
     logger.debug(f"Yielding URL: {url}")
 
@@ -114,9 +111,7 @@ def base_url_agent_server_with_data_frames(tmpdir, logs_dir, files_location):
         "sync",
     ]
 )
-def base_url_agent_server_sync_and_async_actions_and_sync_mode(
-    tmpdir, logs_dir, files_location, request
-):
+def base_url_agent_server_sync_and_async_actions_and_sync_mode(tmpdir, logs_dir, files_location, request):
     """Fixture that starts agent server with async actions enabled."""
 
     sync_mode = request.param

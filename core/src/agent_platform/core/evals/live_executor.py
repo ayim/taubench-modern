@@ -83,9 +83,7 @@ class LiveToolExecutor(ToolExecutor):
         ]
 
         results: list[KernelToolExecutionResult] = []
-        async for kernel_result in self._kernel.tools.execute_pending_tool_calls(
-            pending_tool_calls
-        ):
+        async for kernel_result in self._kernel.tools.execute_pending_tool_calls(pending_tool_calls):
             results.append(kernel_result)
 
         if not results:

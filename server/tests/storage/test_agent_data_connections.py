@@ -23,9 +23,7 @@ async def check_agent_data_connection_storage_crud(
     data_connection_3 = await model_creator.obtain_sample_data_connection("connection_3")
 
     # Test initial state - no connections associated
-    connection_ids = await model_creator.storage.get_agent_data_connection_ids(
-        sample_agent.agent_id
-    )
+    connection_ids = await model_creator.storage.get_agent_data_connection_ids(sample_agent.agent_id)
     assert connection_ids == []
 
     connections = await model_creator.storage.get_agent_data_connections(sample_agent.agent_id)
@@ -33,14 +31,10 @@ async def check_agent_data_connection_storage_crud(
 
     # Test setting data connections
     initial_connection_ids = [data_connection_1.id, data_connection_2.id]
-    await model_creator.storage.set_agent_data_connections(
-        sample_agent.agent_id, initial_connection_ids
-    )
+    await model_creator.storage.set_agent_data_connections(sample_agent.agent_id, initial_connection_ids)
 
     # Verify the connections were set
-    connection_ids = await model_creator.storage.get_agent_data_connection_ids(
-        sample_agent.agent_id
-    )
+    connection_ids = await model_creator.storage.get_agent_data_connection_ids(sample_agent.agent_id)
     assert set(connection_ids) == set(initial_connection_ids)
 
     connections = await model_creator.storage.get_agent_data_connections(sample_agent.agent_id)
@@ -56,14 +50,10 @@ async def check_agent_data_connection_storage_crud(
 
     # Test replacing connections (set_agent_data_connections should replace all existing)
     new_connection_ids = [data_connection_2.id, data_connection_3.id]
-    await model_creator.storage.set_agent_data_connections(
-        sample_agent.agent_id, new_connection_ids
-    )
+    await model_creator.storage.set_agent_data_connections(sample_agent.agent_id, new_connection_ids)
 
     # Verify the connections were replaced
-    connection_ids = await model_creator.storage.get_agent_data_connection_ids(
-        sample_agent.agent_id
-    )
+    connection_ids = await model_creator.storage.get_agent_data_connection_ids(sample_agent.agent_id)
     assert set(connection_ids) == set(new_connection_ids)
 
     connections = await model_creator.storage.get_agent_data_connections(sample_agent.agent_id)
@@ -74,9 +64,7 @@ async def check_agent_data_connection_storage_crud(
     # Test setting empty connections list (should remove all associations)
     await model_creator.storage.set_agent_data_connections(sample_agent.agent_id, [])
 
-    connection_ids = await model_creator.storage.get_agent_data_connection_ids(
-        sample_agent.agent_id
-    )
+    connection_ids = await model_creator.storage.get_agent_data_connection_ids(sample_agent.agent_id)
     assert connection_ids == []
 
     connections = await model_creator.storage.get_agent_data_connections(sample_agent.agent_id)

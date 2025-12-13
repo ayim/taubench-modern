@@ -210,9 +210,7 @@ Gadget,25.50
 
 
 @pytest.mark.asyncio
-async def test_get_related_to_semantic_data_model_name_with_resolved_file_reference(
-    sqlite_storage, tmpdir
-) -> None:
+async def test_get_related_to_semantic_data_model_name_with_resolved_file_reference(sqlite_storage, tmpdir) -> None:
     """Test that _get_related_to_semantic_data_model_name returns the SDM name when
     the SDM already has a resolved file_reference matching the file.
     """

@@ -89,9 +89,7 @@ class _FakeToolsInterface:
         self._live_tool = live_tool
         self._calls = calls
 
-    async def execute_pending_tool_calls(
-        self, pending_tool_calls, message_to_update=None, extra_headers=None
-    ):
+    async def execute_pending_tool_calls(self, pending_tool_calls, message_to_update=None, extra_headers=None):
         for _, tool_use in pending_tool_calls:
             payload = json.loads(tool_use.tool_input_raw)
             result_payload = await self._live_tool.function(**payload)
@@ -208,6 +206,4 @@ async def test_live_tool_executor_reports_gather_issues_on_missing_definition() 
         await executor.execute(tool)
 
     assert exc.value.details["tool"] == "demo-tool"
-    assert exc.value.details["tool_gathering_issues"] == [
-        "Error acquiring tool definitions from action server"
-    ]
+    assert exc.value.details["tool_gathering_issues"] == ["Error acquiring tool definitions from action server"]

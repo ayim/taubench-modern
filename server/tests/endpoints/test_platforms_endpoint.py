@@ -88,18 +88,9 @@ def test_create_platform_azure(client: TestClient, sample_azure_platform_payload
     assert data["kind"] == sample_azure_platform_payload["kind"]
     assert data["name"] == sample_azure_platform_payload["name"]
     assert data["description"] == sample_azure_platform_payload["description"]
-    assert (
-        data["azure_endpoint_url"]
-        == sample_azure_platform_payload["credentials"]["azure_endpoint_url"]
-    )
-    assert (
-        data["azure_api_version"]
-        == sample_azure_platform_payload["credentials"]["azure_api_version"]
-    )
-    assert (
-        data["azure_deployment_name"]
-        == sample_azure_platform_payload["credentials"]["azure_deployment_name"]
-    )
+    assert data["azure_endpoint_url"] == sample_azure_platform_payload["credentials"]["azure_endpoint_url"]
+    assert data["azure_api_version"] == sample_azure_platform_payload["credentials"]["azure_api_version"]
+    assert data["azure_deployment_name"] == sample_azure_platform_payload["credentials"]["azure_deployment_name"]
     assert data["models"] == sample_azure_platform_payload["models"]
     assert "platform_id" in data
     assert data["platform_id"] is not None
@@ -208,9 +199,7 @@ def test_update_platform(client: TestClient, sample_openai_platform_payload: dic
     assert data["kind"] == sample_openai_platform_payload["kind"]
 
 
-def test_update_platform_preserves_credentials_on_omission(
-    client: TestClient, sample_openai_platform_payload: dict
-):
+def test_update_platform_preserves_credentials_on_omission(client: TestClient, sample_openai_platform_payload: dict):
     """Omitting credentials on update should keep existing stored credentials."""
     # Create platform with credentials
     create_response = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)
@@ -239,9 +228,7 @@ def test_update_platform_preserves_credentials_on_omission(
 def test_update_platform_not_found(client: TestClient, sample_openai_platform_payload: dict):
     """Test updating a non-existent platform returns 404."""
     non_existent_id = "00000000-0000-0000-0000-000000000000"
-    response = client.put(
-        f"/api/v2/private/platforms/{non_existent_id}", json=sample_openai_platform_payload
-    )
+    response = client.put(f"/api/v2/private/platforms/{non_existent_id}", json=sample_openai_platform_payload)
 
     assert response.status_code == 404
 
@@ -335,14 +322,10 @@ def test_create_platform_validation_error_empty_strings(client: TestClient):
 class TestPlatformCRUDWorkflow:
     """Test complete CRUD workflow for platforms."""
 
-    def test_full_platform_lifecycle(
-        self, client: TestClient, sample_openai_platform_payload: dict
-    ):
+    def test_full_platform_lifecycle(self, client: TestClient, sample_openai_platform_payload: dict):
         """Test complete create, read, update, delete workflow."""
         # Create
-        create_response = client.post(
-            "/api/v2/private/platforms/", json=sample_openai_platform_payload
-        )
+        create_response = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)
         assert create_response.status_code == 200
         platform_id = create_response.json()["platform_id"]
 
@@ -354,9 +337,7 @@ class TestPlatformCRUDWorkflow:
         # Update
         updated_payload = sample_openai_platform_payload.copy()
         updated_payload["name"] = "Updated Platform Name"
-        update_response = client.put(
-            f"/api/v2/private/platforms/{platform_id}", json=updated_payload
-        )
+        update_response = client.put(f"/api/v2/private/platforms/{platform_id}", json=updated_payload)
         assert update_response.status_code == 200
         assert update_response.json()["name"] == "Updated Platform Name"
 

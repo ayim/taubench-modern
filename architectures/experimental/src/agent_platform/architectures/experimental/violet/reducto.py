@@ -23,9 +23,7 @@ class VioletReductoClient:
     async def upload(self, file: Path | tuple[str, bytes]) -> "Upload":
         return await self.client.upload(file=file)
 
-    async def parse(
-        self, parse_options: "ParseRunParams", uploaded_document: "Upload"
-    ) -> "ParseResponse":
+    async def parse(self, parse_options: "ParseRunParams", uploaded_document: "Upload") -> "ParseResponse":
         """Parse a document into a structured format using Reducto."""
         from reducto import NOT_GIVEN
         from reducto.types.shared import ParseResponse
@@ -48,9 +46,7 @@ class VioletReductoClient:
             raise ValueError(f"Expected ParseResponse but got {type(result)}")
         return await self._fetch_remote_result(result)
 
-    async def extract(
-        self, extract_options: "ExtractRunParams", uploaded_document: "Upload"
-    ) -> "ExtractResponse":
+    async def extract(self, extract_options: "ExtractRunParams", uploaded_document: "Upload") -> "ExtractResponse":
         """Extract structured data from a document using a JSON schema using Reducto."""
         from reducto import NOT_GIVEN
         from reducto.types.shared import ExtractResponse

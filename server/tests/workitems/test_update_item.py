@@ -85,9 +85,7 @@ class TestUpdateItem:
             "\n",
         ],
     )
-    async def test_update_empty_name_fails(
-        self, invalid_name, mock_user, mock_storage, sample_work_item
-    ):
+    async def test_update_empty_name_fails(self, invalid_name, mock_user, mock_storage, sample_work_item):
         """Test that updating with empty/whitespace-only names fails."""
         # Pre-populate the mock storage with the work item
         await mock_storage.create_work_item(sample_work_item)

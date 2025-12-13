@@ -176,7 +176,7 @@ class AzureOpenAIClient(
             error_type = StreamingError if stream else PlatformHTTPError
             raise self._handle_openai_error(e, model, error_type) from e
 
-    def _handle_openai_error(  # noqa: C901, PLR0911, PLR0912
+    def _handle_openai_error(
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         """Handle OpenAI errors and convert them to PlatformError instances.
@@ -213,15 +213,13 @@ class AzureOpenAIClient(
             case AuthenticationError():
                 return error_type(
                     error_code=ErrorCode.UNAUTHORIZED,
-                    message="Authentication failed for Azure OpenAI. Please check your API "
-                    "key and credentials.",
+                    message="Authentication failed for Azure OpenAI. Please check your API key and credentials.",
                     data={"model": model, "azure_endpoint": self._parameters.azure_endpoint_url},
                 )
             case PermissionDeniedError():
                 return error_type(
                     error_code=ErrorCode.FORBIDDEN,
-                    message=f"Access denied for Azure OpenAI model '{model}'. Please check "
-                    "your permissions.",
+                    message=f"Access denied for Azure OpenAI model '{model}'. Please check your permissions.",
                     data={"model": model},
                 )
             case BadRequestError():
@@ -288,8 +286,7 @@ class AzureOpenAIClient(
 
                     if not response:
                         logger.warning(
-                            "Received a rate limit error."
-                            "But we cannot get retry-after because response is missing"
+                            "Received a rate limit error.But we cannot get retry-after because response is missing"
                         )
 
                     headers = getattr(response, "headers", None) or {}

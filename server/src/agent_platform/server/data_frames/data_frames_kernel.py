@@ -34,9 +34,7 @@ def recursion_guard(func: typing.Callable) -> typing.Callable:
         if data_frame.data_frame_id in self._computing_data_frames:
             from agent_platform.core.errors.base import PlatformError
 
-            raise PlatformError(
-                message=f"Recursion detected when computing data frame: {data_frame.data_frame_id}"
-            )
+            raise PlatformError(message=f"Recursion detected when computing data frame: {data_frame.data_frame_id}")
         self._computing_data_frames.add(data_frame.data_frame_id)
         try:
             return func(self, data_frame, *args, **kwargs)
@@ -83,9 +81,7 @@ class Dependencies:
         """
         self._data_frames[name] = data_frame
 
-    def add_leaf_data_frame_source_dependency(
-        self, name: str, data_frame_source: "DataFrameSource"
-    ):
+    def add_leaf_data_frame_source_dependency(self, name: str, data_frame_source: "DataFrameSource"):
         """
         Adds a data frame source dependency (i.e.: one which will load from a
         semantic data model).
@@ -110,9 +106,7 @@ class Dependencies:
         else:
             raise PlatformError(message=f"Unsupported input_id_type: {df.input_id_type}")
 
-    def _get_backend_from_df_source(
-        self, df_source: "DataFrameSource"
-    ) -> "SupportedIbisBackends|None":
+    def _get_backend_from_df_source(self, df_source: "DataFrameSource") -> "SupportedIbisBackends|None":
         from agent_platform.core.data_frames.semantic_data_model_types import BaseTable
         from agent_platform.server.data_frames.data_node import (
             DUCK_DB_BACKEND,
@@ -123,8 +117,7 @@ class Dependencies:
             base_table: BaseTable | None = typing.cast(BaseTable | None, df_source.base_table)
             if base_table is None:
                 logger.error(
-                    f"Semantic data model base table is None in DataFrameSource. "
-                    f"df_source: {df_source!r}",
+                    f"Semantic data model base table is None in DataFrameSource. df_source: {df_source!r}",
                 )
                 return None
             # Ok, we have a base table, let's see if it's a database or a file
@@ -161,9 +154,7 @@ class Dependencies:
 
         return backends
 
-    async def resolve_graph(
-        self, kernel: "DataFramesKernel", data_frame: "PlatformDataFrame"
-    ) -> "DataNodeResult":
+    async def resolve_graph(self, kernel: "DataFramesKernel", data_frame: "PlatformDataFrame") -> "DataNodeResult":
         from agent_platform.core.errors.base import PlatformError
         from agent_platform.server.data_frames.data_node import (
             SupportedIbisBackends,
@@ -190,16 +181,11 @@ class Dependencies:
                 initial_time = time.monotonic()
                 raw_con = ibis.duckdb.connect()
                 con = AsyncIbisConnection(raw_con, engine="duckdb")
-                logger.info(
-                    f"Created ibis.duckdb connection in "
-                    f"{time.monotonic() - initial_time:.2f} seconds"
-                )
+                logger.info(f"Created ibis.duckdb connection in {time.monotonic() - initial_time:.2f} seconds")
                 return await self._resolve_sql_with_connection(kernel, data_frame, con)
 
             elif use_backend.backend == "data-connection":
-                return await self._resolve_sql_with_data_connection_backend(
-                    kernel, data_frame, use_backend
-                )
+                return await self._resolve_sql_with_data_connection_backend(kernel, data_frame, use_backend)
 
             else:
                 raise PlatformError(message=f"Unsupported required_backend: {use_backend}")
@@ -239,9 +225,7 @@ class Dependencies:
 
         data_connection_id = use_backend.data_connection_id
         if data_connection_id is None:
-            raise PlatformError(
-                message=f"Data connection id or database is None for backend: {use_backend}"
-            )
+            raise PlatformError(message=f"Data connection id or database is None for backend: {use_backend}")
         data_connection = await kernel._storage.get_data_connection(data_connection_id)
         con = await DataConnectionInspector.create_ibis_connection(data_connection)
         return await self._resolve_sql_with_connection(kernel, data_frame, con)
@@ -336,9 +320,7 @@ class Dependencies:
 
             # Now apply transformations with consistent target dialect
             cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
-            cte_sql_ast = update_column_table_qualifiers(
-                cte_sql_ast, logical_table_name_to_actual_table_name
-            )
+            cte_sql_ast = update_column_table_qualifiers(cte_sql_ast, logical_table_name_to_actual_table_name)
             cte_sql_ast = update_column_references(
                 cte_sql_ast,
                 table_name_to_column_names_to_expr,
@@ -350,9 +332,7 @@ class Dependencies:
         ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
         main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
         main_sql_ast = update_table_names(main_sql_ast, logical_table_name_to_actual_table_name)
-        main_sql_ast = update_column_table_qualifiers(
-            main_sql_ast, logical_table_name_to_actual_table_name
-        )
+        main_sql_ast = update_column_table_qualifiers(main_sql_ast, logical_table_name_to_actual_table_name)
         main_sql_ast = update_column_references(
             main_sql_ast,
             table_name_to_column_names_to_expr,
@@ -389,9 +369,7 @@ class Dependencies:
         assert sql_query
 
         # These will become CTEs in the SQL query
-        sql_computation_data_frames = [
-            df for df in self._iter_recursive_sql_computation_data_frames()
-        ]
+        sql_computation_data_frames = [df for df in self._iter_recursive_sql_computation_data_frames()]
 
         for df in self._iter_recursive_data_frames():
             # These need to be materialized as tables in duckdb
@@ -425,46 +403,32 @@ class Dependencies:
 
                     if df_source.base_table.get("file_reference") is not None:
                         assert df_source.logical_table_name is not None
-                        name_to_coro[df_source.logical_table_name] = (
-                            kernel._resolve_file_data_source(df_source)
-                        )
+                        name_to_coro[df_source.logical_table_name] = kernel._resolve_file_data_source(df_source)
                     elif df_source.base_table.get("data_connection_id") is not None:
                         assert df_source.logical_table_name is not None
                         base_table = df_source.base_table
                         if not base_table:
-                            logger.critical(
-                                f"Base table is None for semantic data model. "
-                                f"df_source: {df_source}"
-                            )
+                            logger.critical(f"Base table is None for semantic data model. df_source: {df_source}")
                             continue
                         actual_table_name = base_table.get("table")
                         if not actual_table_name:
                             logger.critical(
-                                f"Actual table name is None for semantic data model. "
-                                f"df_source: {df_source}"
+                                f"Actual table name is None for semantic data model. df_source: {df_source}"
                             )
                             continue
                         schema = base_table.get("schema")
                         if schema:
                             actual_table_name = f"{schema}.{actual_table_name}"
-                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = (
-                            actual_table_name
-                        )
+                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = actual_table_name
                     else:
                         assert df_source.logical_table_name is not None
                         base_table = df_source.base_table
                         if not base_table:
-                            logger.critical(
-                                f"Base table is None for semantic data model. "
-                                f"df_source: {df_source}"
-                            )
+                            logger.critical(f"Base table is None for semantic data model. df_source: {df_source}")
                             continue
                         data_frame_name = base_table.get("table")
                         if not data_frame_name:
-                            logger.critical(
-                                f"'table' name is None for semantic data model. "
-                                f"df_source: {df_source}"
-                            )
+                            logger.critical(f"'table' name is None for semantic data model. df_source: {df_source}")
                             continue
                         # Get the data frame by name from the thread
                         name_to_data_frame = await kernel._get_name_to_data_frame()
@@ -478,9 +442,7 @@ class Dependencies:
                         # Resolve the data frame and map logical table name to actual data frame name
                         name_to_coro[data_frame_name] = kernel.resolve_data_frame(df)
                         # Map logical table name to actual data frame name for SQL queries
-                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = (
-                            data_frame_name
-                        )
+                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = data_frame_name
 
         if name_to_coro:
             if con.name != "duckdb":
@@ -770,18 +732,12 @@ class DataFramesKernel:
             raise RuntimeError("Must resolve as a data frame, not a data source")
 
         elif data_source.source_type == "semantic_data_model":
-            base_table_info: BaseTable | None = typing.cast(
-                BaseTable | None, data_source.base_table
-            )
+            base_table_info: BaseTable | None = typing.cast(BaseTable | None, data_source.base_table)
             if base_table_info is None:
-                raise PlatformError(
-                    message=f"Data source info is None for data source: {data_source}"
-                )
+                raise PlatformError(message=f"Data source info is None for data source: {data_source}")
             logical_table_name = data_source.logical_table_name
             if logical_table_name is None:
-                raise PlatformError(
-                    message=f"Logical table name is None for data source: {data_source}"
-                )
+                raise PlatformError(message=f"Logical table name is None for data source: {data_source}")
 
             file_reference = base_table_info.get("file_reference")
             if file_reference is not None:
@@ -807,9 +763,7 @@ class DataFramesKernel:
                 )
                 return await self.resolve_data_frame(temp_data_frame)
             else:
-                raise PlatformError(
-                    message=f"file_reference is None for data source: {data_source}"
-                )
+                raise PlatformError(message=f"file_reference is None for data source: {data_source}")
 
         raise PlatformError(message=f"Unsupported source_type: {data_source.source_type}")
 
@@ -906,9 +860,7 @@ class DataFramesKernel:
                     f"{data_frame.data_frame_id}"
                 )
 
-            dependencies = await self._compute_data_frame_graph(
-                data_frame, await self._get_name_to_data_frame()
-            )
+            dependencies = await self._compute_data_frame_graph(data_frame, await self._get_name_to_data_frame())
 
             if assembly_info is not None:
                 assembly_info.set_initial_data_frame(data_frame)

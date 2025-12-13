@@ -213,9 +213,7 @@ def test_litellm_multi_models_without_direct_name_falls_back():
 async def test_get_platform_and_model_uses_override_when_set():
     """When `override_model_id` is set, the selector returns that ID."""
     # Use an OpenAI-like dummy so DefaultModelSelector finds candidates
-    dummy = _DummyPlatform(
-        _DummyClient(name="openai", params=_DummyParams({"openai": ["gpt-4-1", "gpt-4o"]}))
-    )
+    dummy = _DummyPlatform(_DummyClient(name="openai", params=_DummyParams({"openai": ["gpt-4-1", "gpt-4o"]})))
     kernel = _MinimalKernel(platforms=[dummy])
 
     override_id = "openai/openai/gpt-4-1"
@@ -231,17 +229,13 @@ async def test_get_platform_and_model_uses_override_when_set():
 @pytest.mark.asyncio
 async def test_get_platform_and_model_raises_for_unknown_override():
     """Invalid override IDs for a platform raise a ValueError from the selector."""
-    dummy = _DummyPlatform(
-        _DummyClient(name="openai", params=_DummyParams({"openai": ["gpt-4-1"]}))
-    )
+    dummy = _DummyPlatform(_DummyClient(name="openai", params=_DummyParams({"openai": ["gpt-4-1"]})))
     kernel = _MinimalKernel(platforms=[dummy])
 
     # This generic ID does not exist in the configs for the 'openai' platform
     kernel.model_selector.override_model("openai/openai/not-a-real-model")
 
-    with pytest.raises(
-        ValueError, match="Override model id openai/openai/not-a-real-model not found in candidates"
-    ):
+    with pytest.raises(ValueError, match="Override model id openai/openai/not-a-real-model not found in candidates"):
         await kernel.get_platform_and_model(model_type="llm")
 
 

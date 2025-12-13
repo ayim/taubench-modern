@@ -158,10 +158,7 @@ async def test_save_data_frame_as_validated_query(
 
     # Verify the semantic data model doesn't have verified_queries yet
     retrieved_model_before = await sqlite_storage.get_semantic_data_model(semantic_data_model_id)
-    assert (
-        "verified_queries" not in retrieved_model_before
-        or retrieved_model_before.get("verified_queries") is None
-    )
+    assert "verified_queries" not in retrieved_model_before or retrieved_model_before.get("verified_queries") is None
 
     # Step 1: Get the data frame as a validated query
     get_response = client.post(

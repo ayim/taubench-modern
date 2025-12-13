@@ -14,4 +14,3 @@ class CursorMixin(AbstractStorage):
         cursor: AsyncCursor[DictRow] | None = None,
     ) -> AbstractAsyncContextManager[AsyncCursor[DictRow]]:
         """Get a cursor for the database (or uses the provided cursor)."""
-        pass

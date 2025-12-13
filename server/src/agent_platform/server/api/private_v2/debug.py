@@ -24,7 +24,7 @@ async def get_artifacts(
 
 
 @router.get("/artifacts/search")
-async def search_artifacts(  # noqa: PLR0913
+async def search_artifacts(
     storage: StorageDependency,
     trace_id: str | None = None,
     user_id: str | None = None,

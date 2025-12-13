@@ -44,9 +44,7 @@ class MockPlatform:
 def mock_kernel():
     """Create a mock kernel for testing."""
     # Create a large tool result that would be in the conversation history
-    large_tool_result = (
-        "This is a very large tool result with lots of data. " * 800
-    )  # Lots of tokens
+    large_tool_result = "This is a very large tool result with lots of data. " * 800  # Lots of tokens
 
     # Define hydrated messages that would result from the special message
     # Include actual tool results that can be truncated

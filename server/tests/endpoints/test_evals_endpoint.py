@@ -69,9 +69,7 @@ def _assert_trial_statuses(payload: dict, expected_runs: int, expected_trials: i
             assert trial["status"] in {status.value for status in TrialStatus}
 
 
-async def test_export_agent_scenarios_returns_zip_with_payload(
-    client, storage, seed_agents, stub_user
-):
+async def test_export_agent_scenarios_returns_zip_with_payload(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Greeting")
 
@@ -102,9 +100,7 @@ async def test_export_agent_scenarios_returns_zip_with_payload(
     assert "scenario_id" not in metadata["files"][0]
 
 
-async def test_export_agent_scenarios_includes_scenario_files(
-    client, storage, seed_agents, stub_user
-):
+async def test_export_agent_scenarios_includes_scenario_files(client, storage, seed_agents, stub_user):
     FileManagerService.reset()
     try:
         agent = seed_agents[0]
@@ -186,9 +182,7 @@ def test_rewrite_attachment_handles_updates_uris():
     updated = _rewrite_attachment_handles([message], {old_id: new_id})
 
     assert updated is True
-    attachment = next(
-        content for content in message.content if isinstance(content, ThreadAttachmentContent)
-    )
+    attachment = next(content for content in message.content if isinstance(content, ThreadAttachmentContent))
     assert attachment.uri == f"agent-server-file://{new_id}"
 
 
@@ -645,9 +639,7 @@ async def test_import_agent_scenarios_rejects_invalid_archive(client, storage, s
 
 
 @pytest.mark.asyncio
-async def test_copy_scenario_files_to_run_thread_prefers_scenario_files(
-    storage, seed_agents, stub_user
-):
+async def test_copy_scenario_files_to_run_thread_prefers_scenario_files(storage, seed_agents, stub_user):
     FileManagerService.reset()
     try:
         file_manager = FileManagerService.get_instance(storage)
@@ -698,9 +690,7 @@ async def test_copy_scenario_files_to_run_thread_prefers_scenario_files(
             destination_user_id=stub_user.user_id,
         )
 
-        thread_files = await storage.get_thread_files(
-            destination_thread.thread_id, stub_user.user_id
-        )
+        thread_files = await storage.get_thread_files(destination_thread.thread_id, stub_user.user_id)
         assert len(thread_files) == 1
 
         copied_file = thread_files[0]
@@ -716,9 +706,7 @@ async def test_copy_scenario_files_to_run_thread_prefers_scenario_files(
 
 
 @pytest.mark.asyncio
-async def test_copy_scenario_files_to_run_thread_ignores_thread_files(
-    storage, seed_agents, stub_user
-):
+async def test_copy_scenario_files_to_run_thread_ignores_thread_files(storage, seed_agents, stub_user):
     FileManagerService.reset()
     try:
         file_manager = FileManagerService.get_instance(storage)
@@ -774,9 +762,7 @@ async def test_copy_scenario_files_to_run_thread_ignores_thread_files(
             destination_user_id=stub_user.user_id,
         )
 
-        thread_files = await storage.get_thread_files(
-            destination_thread.thread_id, stub_user.user_id
-        )
+        thread_files = await storage.get_thread_files(destination_thread.thread_id, stub_user.user_id)
         assert not thread_files
         assert not file_map
     finally:
@@ -845,9 +831,7 @@ async def test_update_scenario_persists_changes(client, storage, seed_agents, st
     assert "tool_execution_mode" not in drift_policy
 
 
-async def test_create_agent_batch_run_creates_runs_for_all_scenarios(
-    client, storage, seed_agents, stub_user
-):
+async def test_create_agent_batch_run_creates_runs_for_all_scenarios(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 1")
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 2")
@@ -872,9 +856,7 @@ async def test_create_agent_batch_run_creates_runs_for_all_scenarios(
         assert all(trial.status == TrialStatus.PENDING for trial in trials)
 
 
-async def test_create_agent_batch_run_returns_trial_statuses(
-    client, storage, seed_agents, stub_user
-):
+async def test_create_agent_batch_run_returns_trial_statuses(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 1")
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Scenario 2")
@@ -978,9 +960,7 @@ async def test_get_agent_batch_run_returns_trial_statuses(client, storage, seed_
 
 async def test_retry_after_at_persists_through_api(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
-    scenario = await _create_scenario(
-        storage, stub_user.user_id, agent.agent_id, name="Throttle me"
-    )
+    scenario = await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Throttle me")
 
     run_response = client.post(
         f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs",
@@ -1007,9 +987,7 @@ async def test_retry_after_at_persists_through_api(client, storage, seed_agents,
         reschedule_attempts=3,
     )
 
-    run_detail = client.get(
-        f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs/{scenario_run_id}"
-    )
+    run_detail = client.get(f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs/{scenario_run_id}")
     assert run_detail.status_code == 200
     run_detail_payload = run_detail.json()
     trial_payload = run_detail_payload["trials"][0]
@@ -1022,9 +1000,7 @@ async def test_retry_after_at_persists_through_api(client, storage, seed_agents,
     assert trial_payload["metadata"] == metadata
 
 
-async def test_cancel_agent_batch_run_marks_trials_canceled(
-    client, storage, seed_agents, stub_user
-):
+async def test_cancel_agent_batch_run_marks_trials_canceled(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Alpha")
     await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Beta")
@@ -1047,9 +1023,7 @@ async def test_cancel_agent_batch_run_marks_trials_canceled(
             TrialStatus.COMPLETED,
         )
 
-    response = client.delete(
-        f"/api/v2/evals/agents/{agent.agent_id}/batches/{batch['batch_run_id']}"
-    )
+    response = client.delete(f"/api/v2/evals/agents/{agent.agent_id}/batches/{batch['batch_run_id']}")
     assert response.status_code == 200
     canceled_batch = response.json()
 

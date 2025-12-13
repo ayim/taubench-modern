@@ -1,25 +1,19 @@
 from collections.abc import Awaitable, Callable
 
-from agent_platform.core.responses.content.reasoning import (
-    ResponseReasoningContent,
-)
-from agent_platform.core.responses.streaming.stream_sink_noop import (
-    NoOpResponseStreamSink,
-)
+from agent_platform.core.responses.content.reasoning import ResponseReasoningContent
+from agent_platform.core.responses.streaming.stream_sink_noop import NoOpResponseStreamSink
 
 
 async def _on_start_noop(
     reasoning: str,
 ) -> None:
     """A no-op on_reasoning_start callback."""
-    pass
 
 
 async def _on_partial_noop(
     reasoning: str,
 ) -> None:
     """A no-op on_reasoning_partial callback."""
-    pass
 
 
 async def _on_complete_noop(
@@ -27,7 +21,6 @@ async def _on_complete_noop(
     content: ResponseReasoningContent,
 ) -> None:
     """A no-op on_reasoning_complete callback."""
-    pass
 
 
 class ReasoningResponseStreamSink(NoOpResponseStreamSink):

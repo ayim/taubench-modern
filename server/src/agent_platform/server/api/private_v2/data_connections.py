@@ -58,9 +58,7 @@ async def create_data_connection(
 
     try:
         connection_id = str(uuid.uuid4())
-        db_data_connection = DbDataConnection.from_payload(
-            payload=data, connection_id=connection_id
-        )
+        db_data_connection = DbDataConnection.from_payload(payload=data, connection_id=connection_id)
         await storage.set_data_connection(db_data_connection)
 
         logger.info(
@@ -82,9 +80,7 @@ async def create_data_connection(
             engine=data.engine,
             user_id=user.user_id,
         )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create data connection: {e!s}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to create data connection: {e!s}") from e
 
 
 @router.get("/", response_model=list[DataConnectionPayload])
@@ -105,9 +101,7 @@ async def list_data_connections(
 
     except Exception as e:
         logger.error("Failed to list data connections", error=str(e), user_id=user.user_id)
-        raise HTTPException(
-            status_code=500, detail=f"Failed to list data connections: {e!s}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to list data connections: {e!s}") from e
 
 
 @router.get("/{connection_id}", response_model=DataConnectionPayload)
@@ -152,9 +146,7 @@ async def update_data_connection(
         )
 
     try:
-        db_data_connection = DbDataConnection.from_payload(
-            payload=data_connection, connection_id=connection_id
-        )
+        db_data_connection = DbDataConnection.from_payload(payload=data_connection, connection_id=connection_id)
 
         await storage.update_data_connection(db_data_connection)
 
@@ -170,9 +162,7 @@ async def update_data_connection(
             engine=data_connection.engine,
             user_id=user.user_id,
         )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to update data connection: {e!s}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to update data connection: {e!s}") from e
 
 
 @router.delete("/{connection_id}", response_model=None)
@@ -191,9 +181,7 @@ async def delete_data_connection(
             error=str(e),
             user_id=user.user_id,
         )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to delete data connection: {e!s}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to delete data connection: {e!s}") from e
 
 
 @router.post("/{connection_id}/inspect")
@@ -270,9 +258,7 @@ def _infer_data_type(sample_values: list) -> str:
 
 def _create_column_info(header: str, sample_rows: list, column_index: int) -> ColumnInfo:
     """Create ColumnInfo from header and sample data."""
-    sample_values = (
-        [row[column_index] for row in sample_rows if column_index < len(row)] if sample_rows else []
-    )
+    sample_values = [row[column_index] for row in sample_rows if column_index < len(row)] if sample_rows else []
     data_type = _infer_data_type(sample_values)
 
     return ColumnInfo(
@@ -330,9 +316,7 @@ async def inspect_file_as_data_connection(
         # Get the file name from headers
         file_name = request.headers.get("X-File-Name")
         if not file_name:
-            raise PlatformError(
-                error_code=ErrorCode.BAD_REQUEST, message="X-File-Name header is required"
-            )
+            raise PlatformError(error_code=ErrorCode.BAD_REQUEST, message="X-File-Name header is required")
 
         # Get the file contents from the request body
         file_contents = await request.body()

@@ -62,9 +62,7 @@ def _scenario_list_workload(base_url: str) -> Callable[[], tuple[int, str]]:
     return _fn
 
 
-def _data_connection_update_workload(
-    base_url: str, base_connection: dict[str, Any]
-) -> Callable[[], tuple[int, str]]:
+def _data_connection_update_workload(base_url: str, base_connection: dict[str, Any]) -> Callable[[], tuple[int, str]]:
     def _fn() -> tuple[int, str]:
         idx = str(uuid.uuid4())
         payload = {
@@ -104,15 +102,11 @@ def _create_scenario(base_url: str, thread_id: str) -> dict[str, Any]:
     return response.json()
 
 
-def _run_workloads(
-    workloads: list[Workload], *, max_workers: int = 50
-) -> list[tuple[str, int, str]]:
+def _run_workloads(workloads: list[Workload], *, max_workers: int = 50) -> list[tuple[str, int, str]]:
     errors: list[tuple[str, int, str]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(workload.fn) for workload in workloads]
-        for workload, future in zip(
-            workloads, concurrent.futures.as_completed(futures), strict=False
-        ):
+        for workload, future in zip(workloads, concurrent.futures.as_completed(futures), strict=False):
             status, text = future.result()
             if status >= http.HTTPStatus.INTERNAL_SERVER_ERROR or status == 0:
                 errors.append((workload.name, status, text))
@@ -140,7 +134,7 @@ def _collect_log_hits(log_dir: Path, signature: str) -> int:
     [(200, 400, 200)],
 )
 @pytest.mark.integration
-def test_sqlalchemy_commit_in_progress(  # noqa: PLR0913
+def test_sqlalchemy_commit_in_progress(
     base_url_agent_server_evals_sqlite: str,
     agent_factory,
     logs_dir: Path,

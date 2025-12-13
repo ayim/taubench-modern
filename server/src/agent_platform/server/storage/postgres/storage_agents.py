@@ -238,9 +238,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
 
         # Handle platform params associations if the agent has platform_params_ids
         if hasattr(agent, "platform_params_ids") and agent.platform_params_ids:
-            await self.associate_platform_params_with_agent(
-                agent.agent_id, agent.platform_params_ids
-            )
+            await self.associate_platform_params_with_agent(agent.agent_id, agent.platform_params_ids)
 
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
@@ -306,9 +304,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                         {"name": name, "user_id": user_id, "agent_id": agent_id},
                     )
                     if await cur.fetchone():
-                        raise AgentWithNameAlreadyExistsError(
-                            f"Agent name {name!r} is not unique for user {user_id}"
-                        )
+                        raise AgentWithNameAlreadyExistsError(f"Agent name {name!r} is not unique for user {user_id}")
         except IntegrityError as e:
             if "UNIQUE constraint failed: v2.agent.name" in str(e):
                 raise RecordAlreadyExistsError(
@@ -372,9 +368,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
 
             try:
                 # If mcp_servers is already a list of MCPServer objects, use them
-                if isinstance(agent.mcp_servers, list) and all(
-                    isinstance(s, MCPServer) for s in agent.mcp_servers
-                ):
+                if isinstance(agent.mcp_servers, list) and all(isinstance(s, MCPServer) for s in agent.mcp_servers):
                     resolved_mcp_servers = agent.mcp_servers
                 else:
                     # Parse the JSON and create MCPServer objects
@@ -390,10 +384,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                 import structlog
 
                 logger = structlog.get_logger(__name__)
-                logger.warning(
-                    f"Failed to parse resolved MCP servers from JSON for agent "
-                    f"{agent.agent_id}: {e}"
-                )
+                logger.warning(f"Failed to parse resolved MCP servers from JSON for agent {agent.agent_id}: {e}")
 
         # Return agent with:
         # - mcp_server_ids: Global MCP server IDs from join table
@@ -414,9 +405,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
                 try:
                     platform_params = await self.get_platform_params(platform_id)
                     resolved_platform_configs.append(platform_params)
-                    self.logger.info(
-                        f"Resolved platform params ID {platform_id} to {platform_params.kind}"
-                    )
+                    self.logger.info(f"Resolved platform params ID {platform_id} to {platform_params.kind}")
                 except Exception as e:
                     self.logger.warning(f"Failed to resolve platform params ID {platform_id}: {e}")
 
@@ -424,9 +413,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
         all_platform_configs = list(agent.platform_configs) + resolved_platform_configs
 
         # Return agent with both platform_params_ids and resolved platform_configs populated
-        return agent.copy(
-            platform_params_ids=platform_params_ids, platform_configs=all_platform_configs
-        )
+        return agent.copy(platform_params_ids=platform_params_ids, platform_configs=all_platform_configs)
 
     async def count_agents_by_mode(self, mode: str) -> int:
         """Count the number of agents by mode."""
@@ -441,9 +428,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
             # 3. Return the count
             return row["count"]
 
-    async def associate_platform_params_with_agent(
-        self, agent_id: str, platform_params_ids: list[str]
-    ) -> None:
+    async def associate_platform_params_with_agent(self, agent_id: str, platform_params_ids: list[str]) -> None:
         """Associate platform params with an agent, replacing any existing associations.
 
         PostgreSQL-specific implementation that handles UUID validation and casting.

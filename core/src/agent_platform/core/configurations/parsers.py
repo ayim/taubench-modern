@@ -419,9 +419,7 @@ class NestedDataclassParser(AstParserMixin, FieldRequiredMixin, Parser):
         if isinstance(value, str):
             value = self.literal_eval(value, (dict,))
         if not isinstance(value, dict):
-            raise ValueError(
-                f"Field value must be a dictionary for Nested Dataclasses. Field: {self.field.name}"
-            )
+            raise ValueError(f"Field value must be a dictionary for Nested Dataclasses. Field: {self.field.name}")
         for f in fields(self.field.type):
             if not f.init:
                 value.pop(f.name, None)
@@ -465,10 +463,7 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
             raise ValueError(
                 f"Field type {self.field.type} is not a Union of dataclasses type",
             )
-        if (
-            "discriminator_mapping" not in self.field.metadata
-            or "discriminator" not in self.field.metadata
-        ):
+        if "discriminator_mapping" not in self.field.metadata or "discriminator" not in self.field.metadata:
             raise ConfigurationDiscriminatorError(
                 f"Discriminator mapping and discriminator field name are required for "
                 f"Unions of Dataclasses. Field: {self.field.name}"
@@ -476,8 +471,7 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
         discriminator_field = self.field.metadata["discriminator"]
         if not isinstance(discriminator_field, str):
             raise ConfigurationDiscriminatorError(
-                f"Discriminator field name must be a string for "
-                f"Unions of Dataclasses. Field: {self.field.name}"
+                f"Discriminator field name must be a string for Unions of Dataclasses. Field: {self.field.name}"
             )
 
     def get_target_class(self) -> Any:
@@ -492,8 +486,7 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
         discriminator_field = self.field.metadata["discriminator"]
         if not isinstance(discriminator_field, str):
             raise ConfigurationDiscriminatorError(
-                f"Discriminator field name must be a string for "
-                f"Unions of Dataclasses. Field: {self.field.name}"
+                f"Discriminator field name must be a string for Unions of Dataclasses. Field: {self.field.name}"
             )
 
         # Get the discriminator value from the parent config or config data. Config data
@@ -526,8 +519,7 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
         discriminator_mapping = self.field.metadata["discriminator_mapping"]
         if not isinstance(discriminator_mapping, dict):
             raise ConfigurationDiscriminatorError(
-                f"Discriminator mapping must be a dictionary for "
-                f"Unions of Dataclasses. Field: {self.field.name}"
+                f"Discriminator mapping must be a dictionary for Unions of Dataclasses. Field: {self.field.name}"
             )
 
         # Get the class for this discriminator value
@@ -537,13 +529,10 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
             target_class = discriminator_mapping.get(discriminator_value.value)
         if target_class is None:
             raise ConfigurationDiscriminatorError(
-                f"No class found for discriminator value '{discriminator_value}' "
-                f"in field {self.field.name}"
+                f"No class found for discriminator value '{discriminator_value}' in field {self.field.name}"
             )
         if isinstance(target_class, type) and not is_dataclass(target_class):
-            raise ConfigurationDiscriminatorError(
-                f"Target class {target_class.__name__} is not a dataclass"
-            )
+            raise ConfigurationDiscriminatorError(f"Target class {target_class.__name__} is not a dataclass")
         return target_class
 
     def parse(self, value: Any) -> Any:
@@ -570,8 +559,7 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
             value = self.literal_eval(value, (dict,))
         if not isinstance(value, dict):
             raise ConfigurationDiscriminatorError(
-                f"Field value must be a dictionary for "
-                f"Unions of Dataclasses. Field: {self.field.name}"
+                f"Field value must be a dictionary for Unions of Dataclasses. Field: {self.field.name}"
             )
 
         # Create an instance of the target class, which is a dataclass
@@ -585,8 +573,7 @@ class UnionOfDataclassParser(AstParserMixin, FieldRequiredMixin, ParentConfigReq
             return target_class(**value)
         except Exception as e:
             raise ConfigurationDiscriminatorError(
-                f"Failed to create instance of {target_class.__name__} "
-                f"for field {self.field.name}: {e}"
+                f"Failed to create instance of {target_class.__name__} for field {self.field.name}: {e}"
             ) from e
 
     @classmethod

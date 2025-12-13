@@ -22,9 +22,7 @@ async def read_question_groups(handler: AgentPackageHandler) -> list[QuestionGro
         guide_yaml = _yaml.load(conversation_guide_raw.decode())
         qg_list = guide_yaml.get("question-groups", []) if isinstance(guide_yaml, dict) else []
 
-        question_groups = [
-            QuestionGroup.model_validate(qg) for qg in qg_list if isinstance(qg, dict)
-        ]
+        question_groups = [QuestionGroup.model_validate(qg) for qg in qg_list if isinstance(qg, dict)]
 
         return question_groups
     except Exception as e:
@@ -52,9 +50,7 @@ async def read_semantic_data_models(
     spec_agent = await handler.get_spec_agent()
     sdm_refs = spec_agent.semantic_data_models or []
 
-    logger.info(
-        f"[_extract_semantic_data_models] Found {len(sdm_refs)} SDM references in spec: {sdm_refs}"
-    )
+    logger.info(f"[_extract_semantic_data_models] Found {len(sdm_refs)} SDM references in spec: {sdm_refs}")
 
     if not sdm_refs:
         logger.info("[_extract_semantic_data_models] No SDM references found, returning None")
@@ -81,14 +77,10 @@ async def read_semantic_data_models(
                 continue
 
             sdms[sdm_filename] = sdm_content
-            logger.info(
-                f"[_extract_semantic_data_models] Successfully extracted SDM: {sdm_filename}"
-            )
+            logger.info(f"[_extract_semantic_data_models] Successfully extracted SDM: {sdm_filename}")
 
         except KeyError:
-            logger.warning(
-                f"[_extract_semantic_data_models] SDM file not found in package: {sdm_filename}"
-            )
+            logger.warning(f"[_extract_semantic_data_models] SDM file not found in package: {sdm_filename}")
         except Exception as e:
             logger.error(
                 f"[_extract_semantic_data_models] Failed to parse SDM file {sdm_filename}: {e}",
@@ -101,8 +93,5 @@ async def read_semantic_data_models(
     result = sdms if sdms else None
     sdm_count = len(sdms) if sdms else 0
     sdm_keys = list(sdms.keys()) if sdms else []
-    logger.info(
-        f"[_extract_semantic_data_models] Extraction complete. "
-        f"Returning {sdm_count} SDMs: {sdm_keys}"
-    )
+    logger.info(f"[_extract_semantic_data_models] Extraction complete. Returning {sdm_count} SDMs: {sdm_keys}")
     return result

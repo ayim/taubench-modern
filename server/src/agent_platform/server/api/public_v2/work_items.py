@@ -82,24 +82,20 @@ async def upload_work_item_file(
 # List work items endpoints
 @router.get("", response_model=WorkItemsListResponse)
 @router.get("/", response_model=WorkItemsListResponse)
-async def list_work_items(  # noqa: PLR0913
+async def list_work_items(
     user: AuthedUser,
     storage: StorageDependency,
     agent_id: str | None = Query(None, description="The ID of the agent to filter by"),
     limit: int = Query(100, ge=1, description="The maximum number of work items to return"),
     offset: int = Query(0, ge=0, description="The offset to start from"),
-    created_by: str | None = Query(
-        None, description="The ID of the user who created the work items"
-    ),
+    created_by: str | None = Query(None, description="The ID of the user who created the work items"),
     work_item_status: list[WorkItemStatus] | None = Query(  # noqa: B008
         None, description="Filter by work item status (can specify multiple statuses)"
     ),
     name_search: str | None = Query(None, description="Search in work item name"),
 ) -> WorkItemsListResponse:
     """Lists all work items."""
-    return await rest.list_work_items(
-        user, storage, agent_id, limit, offset, created_by, work_item_status, name_search
-    )
+    return await rest.list_work_items(user, storage, agent_id, limit, offset, created_by, work_item_status, name_search)
 
 
 # Continue work item endpoint

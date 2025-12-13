@@ -136,9 +136,7 @@ class ParsingUtils:
         start_char = self.char_at(start_pos)
 
         if start_char != '"' and start_char != "'":
-            raise ValueError(
-                f"Wrong location to eat literals. Expecting ' or \". Found: >>{start_char}<<"
-            )
+            raise ValueError(f"Wrong location to eat literals. Expecting ' or \". Found: >>{start_char}<<")
 
         end_pos = self.get_literal_end(start_pos, start_char)
 

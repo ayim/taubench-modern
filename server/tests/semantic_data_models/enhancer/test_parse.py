@@ -249,7 +249,7 @@ class TestUpdateTableColumns:
         assert moved_fact["synonyms"] == ["new_synonym"]
 
     def test_update_table_columns_respects_column_filtering(self, example_semantic_model):
-        """Verify only specified columns are updated when table_to_columns_to_enhance is provided."""  # noqa: E501
+        """Verify only specified columns are updated when table_to_columns_to_enhance is provided."""
         from agent_platform.server.semantic_data_models.enhancer.parse import (
             update_semantic_data_model_with_semantic_data_model_from_llm,
         )
@@ -307,7 +307,7 @@ class TestUpdateTableColumns:
         assert updated_table["facts"][0]["description"] != "Updated fact description"
 
     def test_update_table_columns_filtering_uses_expr_not_name(self, example_semantic_model):
-        """REGRESSION TEST: Verify filtering checks expr (not name) - Bug fix for lost descriptions."""  # noqa: E501
+        """REGRESSION TEST: Verify filtering checks expr (not name) - Bug fix for lost descriptions."""
         from agent_platform.server.semantic_data_models.enhancer.parse import (
             update_semantic_data_model_with_semantic_data_model_from_llm,
         )

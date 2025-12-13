@@ -12,8 +12,7 @@ class ThreadQuickActionContent:
 
     value: str = field(
         metadata={
-            "description": "The value of the quick action (the text that will be "
-            "submitted when the action is clicked)",
+            "description": "The value of the quick action (the text that will be submitted when the action is clicked)",
         },
     )
     """The value of the quick action (the text that will be submitted when
@@ -162,9 +161,7 @@ class ThreadQuickActionsContent(ThreadMessageContent):
     def model_validate(cls, data: dict) -> "ThreadQuickActionsContent":
         """Create a thread quick actions content from a dictionary."""
         data = data.copy()
-        actions = [
-            ThreadQuickActionContent.model_validate(action) for action in data.pop("actions")
-        ]
+        actions = [ThreadQuickActionContent.model_validate(action) for action in data.pop("actions")]
         return cls(**data, actions=actions)
 
 

@@ -107,8 +107,7 @@ def get_last_successful_sql_call(tool_calls: list) -> Any:
         sql_query = call.input_data.get("sql_query", "").upper()
         # Check if it's an aggregate query (COUNT, SUM, AVG, MIN, MAX only)
         is_aggregate = (
-            sql_query.count("COUNT(") > 0
-            and "," not in sql_query.split("SELECT")[1].split("FROM")[0]  # Single column
+            sql_query.count("COUNT(") > 0 and "," not in sql_query.split("SELECT")[1].split("FROM")[0]  # Single column
         ) or ("COUNT(*)" in sql_query and "," not in sql_query.split("SELECT")[1].split("FROM")[0])
 
         if is_aggregate:
@@ -166,9 +165,7 @@ def validate_sql_execution_and_data(
 
     # Validate row counts
     if expected_row_count is not None:
-        assert num_rows == expected_row_count, (
-            f"Expected exactly {expected_row_count} rows, got {num_rows}"
-        )
+        assert num_rows == expected_row_count, f"Expected exactly {expected_row_count} rows, got {num_rows}"
     elif min_row_count > 0:
         assert num_rows >= min_row_count, f"Expected at least {min_row_count} rows, got {num_rows}"
 
@@ -239,9 +236,7 @@ def agent_for_comparison_queries(
             "timestamp dimensions, and text dimensions. Use the semantic data model provided "
             "to answer user questions."
         ),
-        description=(
-            "Agent for testing invoice comparison queries with comprehensive SDM column types"
-        ),
+        description=("Agent for testing invoice comparison queries with comprehensive SDM column types"),
         document_intelligence="v2",
     )
 
@@ -478,9 +473,7 @@ def test_query_list_documents_with_init_status(
         )
         if status_col:
             # Verify status is INIT
-            assert str(row[status_col]).upper() == "INIT", (
-                f"Expected INIT status, got: {row[status_col]}"
-            )
+            assert str(row[status_col]).upper() == "INIT", f"Expected INIT status, got: {row[status_col]}"
 
 
 @pytest.mark.batch1
@@ -534,30 +527,24 @@ def test_query_document_names_and_invoice_totals(
 
     # Verify each row has document name and both v1/v2 invoice totals
     first_row = contents[0]
-    assert any(
-        "document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
-    ), f"Expected document/name column, got: {list(first_row.keys())}"
+    assert any("document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()), (
+        f"Expected document/name column, got: {list(first_row.keys())}"
+    )
 
     # Check for v1 and v2 columns (could be invoice, total, or amount)
     v1_cols = [
         k
         for k in first_row.keys()
-        if "v1" in str(k).lower()
-        and any(x in str(k).lower() for x in ["invoice", "total", "amount"])
+        if "v1" in str(k).lower() and any(x in str(k).lower() for x in ["invoice", "total", "amount"])
     ]
     v2_cols = [
         k
         for k in first_row.keys()
-        if "v2" in str(k).lower()
-        and any(x in str(k).lower() for x in ["invoice", "total", "amount"])
+        if "v2" in str(k).lower() and any(x in str(k).lower() for x in ["invoice", "total", "amount"])
     ]
 
-    assert len(v1_cols) > 0, (
-        f"Expected v1 invoice/total/amount column, got columns: {list(first_row.keys())}"
-    )
-    assert len(v2_cols) > 0, (
-        f"Expected v2 invoice/total/amount column, got columns: {list(first_row.keys())}"
-    )
+    assert len(v1_cols) > 0, f"Expected v1 invoice/total/amount column, got columns: {list(first_row.keys())}"
+    assert len(v2_cols) > 0, f"Expected v2 invoice/total/amount column, got columns: {list(first_row.keys())}"
 
 
 @pytest.mark.batch1
@@ -611,9 +598,9 @@ def test_query_documents_created_after_date(
 
     # Verify the row has a document name
     first_row = contents[0]
-    assert any(
-        "document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
-    ), f"Expected document/name column, got: {list(first_row.keys())}"
+    assert any("document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()), (
+        f"Expected document/name column, got: {list(first_row.keys())}"
+    )
 
     # Get the document name value
     doc_name_col = next(
@@ -688,9 +675,7 @@ def test_query_top_5_recently_updated_documents(
             curr_val = contents[i].get(updated_col)
             next_val = contents[i + 1].get(updated_col)
             if curr_val and next_val:
-                assert str(curr_val) >= str(next_val), (
-                    "Documents not in descending order by updated_at"
-                )
+                assert str(curr_val) >= str(next_val), "Documents not in descending order by updated_at"
 
 
 # ============================================================================
@@ -931,9 +916,7 @@ def test_query_average_invoice_totals(
     # Verify the row has average values
     first_row = contents[0]
     # Check for average columns (could be avg_v1, avg_v2, or similar)
-    avg_cols = [
-        k for k in first_row.keys() if "avg" in str(k).lower() or "average" in str(k).lower()
-    ]
+    avg_cols = [k for k in first_row.keys() if "avg" in str(k).lower() or "average" in str(k).lower()]
 
     # Should have at least one average value
     assert len(avg_cols) > 0 or len(first_row.keys()) > 0, (
@@ -943,10 +926,7 @@ def test_query_average_invoice_totals(
     # Verify values are numeric (or None for NULL averages)
     for key, value in first_row.items():
         if value is not None:
-            is_numeric = (
-                isinstance(value, int | float)
-                or str(value).replace(".", "").replace("-", "").isdigit()
-            )
+            is_numeric = isinstance(value, int | float) or str(value).replace(".", "").replace("-", "").isdigit()
             assert is_numeric, f"Expected numeric value for {key}, got: {value}"
 
 
@@ -1070,17 +1050,12 @@ def test_query_sum_of_invoice_totals(
     [k for k in first_row.keys() if "sum" in str(k).lower()]
 
     # Verify we have data columns (sum or regular numeric columns)
-    assert len(first_row.keys()) > 0, (
-        f"Expected sum columns in result, got: {list(first_row.keys())}"
-    )
+    assert len(first_row.keys()) > 0, f"Expected sum columns in result, got: {list(first_row.keys())}"
 
     # Verify values are numeric (or None for NULL sums)
     for key, value in first_row.items():
         if value is not None:
-            is_numeric = (
-                isinstance(value, int | float)
-                or str(value).replace(".", "").replace("-", "").isdigit()
-            )
+            is_numeric = isinstance(value, int | float) or str(value).replace(".", "").replace("-", "").isdigit()
             assert is_numeric, f"Expected numeric value for {key}, got: {value}"
 
 
@@ -1159,9 +1134,7 @@ def test_query_count_grouped_by_export_status(
         )
         statuses.append(str(row[status_col]).upper())
 
-    assert "INIT" in statuses or "EXPORTED" in statuses, (
-        f"Expected INIT or EXPORTED statuses, got: {statuses}"
-    )
+    assert "INIT" in statuses or "EXPORTED" in statuses, f"Expected INIT or EXPORTED statuses, got: {statuses}"
 
 
 # ============================================================================
@@ -1228,12 +1201,8 @@ def test_query_match_status_with_case_expression(
 
     # Check that each row has a document name and a match indicator
     first_row = contents[0]
-    has_doc_name_col = any(
-        "document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
-    )
-    assert has_doc_name_col, (
-        f"Expected document/name column in result, got columns: {list(first_row.keys())}"
-    )
+    has_doc_name_col = any("document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys())
+    assert has_doc_name_col, f"Expected document/name column in result, got columns: {list(first_row.keys())}"
 
     # Find the match indicator column (various names like "match", "matches", "invoice_match")
     match_column = None
@@ -1254,8 +1223,7 @@ def test_query_match_status_with_case_expression(
     # Just verify we have at least some indication of both match and no-match
     unique_values = set(str(v).lower() for v in match_values)
     assert len(unique_values) > 1, (
-        f"Expected both matching and non-matching documents, "
-        f"but all values are the same: {unique_values}"
+        f"Expected both matching and non-matching documents, but all values are the same: {unique_values}"
     )
 
 
@@ -1275,9 +1243,7 @@ def test_query_invoice_mismatch_flag(
     agent_id = agent_with_comparison_model
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
-    query = (
-        "List documents with a flag indicating when v1 invoice total differs from v2 invoice total."
-    )
+    query = "List documents with a flag indicating when v1 invoice total differs from v2 invoice total."
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
 
@@ -1312,33 +1278,28 @@ def test_query_invoice_mismatch_flag(
 
     # Verify each row has a document name and a mismatch flag
     first_row = contents[0]
-    assert any(
-        "document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
-    ), f"Expected document/name column, got: {list(first_row.keys())}"
+    assert any("document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()), (
+        f"Expected document/name column, got: {list(first_row.keys())}"
+    )
 
     # Find the mismatch flag column
     flag_col = next(
         (
             k
             for k in first_row.keys()
-            if "mismatch" in str(k).lower()
-            or "differ" in str(k).lower()
-            or "flag" in str(k).lower()
+            if "mismatch" in str(k).lower() or "differ" in str(k).lower() or "flag" in str(k).lower()
         ),
         None,
     )
 
-    assert flag_col is not None, (
-        f"Expected a mismatch flag column in result, got columns: {list(first_row.keys())}"
-    )
+    assert flag_col is not None, f"Expected a mismatch flag column in result, got columns: {list(first_row.keys())}"
     print(f"Found mismatch flag column: {flag_col}")
 
     # Verify that we have both true and false values in the result
     flag_values = [row[flag_col] for row in contents]
     unique_values = set(str(v).lower() for v in flag_values)
     assert len(unique_values) > 1, (
-        f"Expected both matching and non-matching documents, "
-        f"but all values are the same: {unique_values}"
+        f"Expected both matching and non-matching documents, but all values are the same: {unique_values}"
     )
 
 
@@ -1358,10 +1319,7 @@ def test_query_percentage_change_calculation(
     agent_id = agent_with_comparison_model
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
-    query = (
-        "Show document name, v1 invoice total, v2 invoice total, "
-        "and calculate the percentage change between them."
-    )
+    query = "Show document name, v1 invoice total, v2 invoice total, and calculate the percentage change between them."
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
 
@@ -1396,9 +1354,9 @@ def test_query_percentage_change_calculation(
 
     # Verify each row has document name, v1, v2, and percentage change columns
     first_row = contents[0]
-    assert any(
-        "document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
-    ), f"Expected document/name column, got: {list(first_row.keys())}"
+    assert any("document" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()), (
+        f"Expected document/name column, got: {list(first_row.keys())}"
+    )
 
     # Check for percentage/change column
     pct_col = next(
@@ -1550,10 +1508,7 @@ def test_query_init_with_mismatch(
     agent_id = agent_with_comparison_model
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
-    query = (
-        "Show all documents where export status is INIT and v1 invoice total "
-        "differs from v2 invoice total."
-    )
+    query = "Show all documents where export status is INIT and v1 invoice total differs from v2 invoice total."
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
 
@@ -1707,10 +1662,7 @@ def test_query_percentage_exported_documents(
     print(f"Percentage of exported documents: {percentage_value}")
 
     # Verify percentage is a number (between 0 and 100, or 0 and 1 if not multiplied by 100)
-    is_numeric = (
-        isinstance(percentage_value, int | float)
-        or str(percentage_value).replace(".", "").isdigit()
-    )
+    is_numeric = isinstance(percentage_value, int | float) or str(percentage_value).replace(".", "").isdigit()
     assert is_numeric, f"Expected numeric percentage value, got: {percentage_value}"
 
     # Expected: ~70% (19 exported out of 27 total = 70.37%)

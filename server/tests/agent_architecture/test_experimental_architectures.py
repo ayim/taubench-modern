@@ -84,8 +84,7 @@ async def test_experimental_runner_invokes_real_entrypoint(caplog, tmp_path, pac
     # Verify the function name matches what we expect
     expected_func_name = f"entrypoint_exp_{package_name.split('_')[-1]}"
     actual_func_name = (
-        getattr(runner.entry_func, "__name__", None)
-        or getattr(runner.entry_func, "__wrapped__", lambda: None).__name__
+        getattr(runner.entry_func, "__name__", None) or getattr(runner.entry_func, "__wrapped__", lambda: None).__name__
     )
     assert expected_func_name in str(actual_func_name), (
         f"Expected function name to contain '{expected_func_name}', got '{actual_func_name}'"

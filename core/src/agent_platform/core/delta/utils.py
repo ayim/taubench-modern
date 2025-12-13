@@ -228,7 +228,7 @@ def _validate_single_path(
     grandparent_value = None
     grandparent_pointer = None
     # If we have at least 2 parts, also check the grandparent
-    if len(pointer.parts) >= 2:  # noqa: PLR2004
+    if len(pointer.parts) >= 2:
         grandparent_pointer = _get_parent_pointer(parent_pointer)
         grandparent_value = get_value_at_path(initial_value, grandparent_pointer)
 

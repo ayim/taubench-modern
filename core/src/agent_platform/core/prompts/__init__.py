@@ -32,19 +32,11 @@ AnyPromptMessage = (
 )
 
 AnyPromptMessageContent = (
-    PromptAudioContent
-    | PromptImageContent
-    | PromptTextContent
-    | PromptToolResultContent
-    | PromptToolUseContent
+    PromptAudioContent | PromptImageContent | PromptTextContent | PromptToolResultContent | PromptToolUseContent
 )
 
 UserPromptMessageContent = (
-    PromptTextContent
-    | PromptImageContent
-    | PromptAudioContent
-    | PromptToolResultContent
-    | PromptDocumentContent
+    PromptTextContent | PromptImageContent | PromptAudioContent | PromptToolResultContent | PromptDocumentContent
 )
 
 AgentPromptMessageContent = PromptTextContent | PromptReasoningContent | PromptToolUseContent

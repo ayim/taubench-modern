@@ -108,10 +108,7 @@ def get_tool_result_by_ref(
     if not tool_results:
         return {
             "error_code": "tool_not_found",
-            "message": (
-                f"No completed tool results found for tool '{tool_name}' "
-                f"in thread {thread.thread_id}"
-            ),
+            "message": (f"No completed tool results found for tool '{tool_name}' in thread {thread.thread_id}"),
         }
 
     logger.info(f"Found {len(tool_results)} completed results for tool '{tool_name}'")
@@ -139,10 +136,7 @@ def get_tool_result_by_ref(
             )
         return {
             "error_code": "invalid_message_reference",
-            "message": (
-                f"Message reference out.{tool_name}[{index}] is out of range. "
-                f"Valid range: {valid_range}"
-            ),
+            "message": (f"Message reference out.{tool_name}[{index}] is out of range. Valid range: {valid_range}"),
         }
 
     sequence_number, result_str = tool_results[result_index]
@@ -152,10 +146,7 @@ def get_tool_result_by_ref(
     except json.JSONDecodeError:
         return {
             "error_code": "invalid_tool_output",
-            "message": (
-                f"Tool result for out.{tool_name}[{index}] "
-                f"(sequence {sequence_number}) is not valid JSON"
-            ),
+            "message": (f"Tool result for out.{tool_name}[{index}] (sequence {sequence_number}) is not valid JSON"),
         }
 
     # Extract the result field if present, otherwise use the whole output

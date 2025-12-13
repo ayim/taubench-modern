@@ -558,9 +558,7 @@ def test_ephemeral_stream_with_client_tools(client: TestClient, inject_runner):
     assert finished["event_type"] == "agent_finished"
 
 
-def test_ephemeral_stream_does_not_auto_name(
-    client: TestClient, inject_runner, stub_storage: StubStorage
-):
+def test_ephemeral_stream_does_not_auto_name(client: TestClient, inject_runner, stub_storage: StubStorage):
     """Ephemeral threads should never be auto-named regardless of model output."""
     inject_runner(StubRunner, run_id="r", thread_id="ephemeral", agent_id="ephemeral")
 
@@ -802,9 +800,7 @@ def test_stream_run_applies_auto_thread_naming(
 
     # Attach the missing methods to the stub storage
     monkeypatch.setattr(stub_storage, "list_runs_for_thread", list_runs_for_thread, raising=False)
-    monkeypatch.setattr(
-        stub_storage, "list_threads_for_agent", list_threads_for_agent, raising=False
-    )
+    monkeypatch.setattr(stub_storage, "list_threads_for_agent", list_threads_for_agent, raising=False)
 
     # Inject a runner that finishes immediately
     aid, tid = str(uuid.uuid4()), str(uuid.uuid4())
@@ -961,9 +957,7 @@ def test_client_info_and_exec_tools_flow(client: TestClient, inject_runner, monk
                 input_schema={"type": "object"},
                 category="client-info-tool",
             )
-            info_call = ResponseToolUseContent(
-                tool_call_id="info1", tool_name="info", tool_input_raw="{}"
-            )
+            info_call = ResponseToolUseContent(tool_call_id="info1", tool_name="info", tool_input_raw="{}")
             async for _ in kernel.tools.execute_pending_tool_calls([(info_tool, info_call)]):
                 pass
 
@@ -974,9 +968,7 @@ def test_client_info_and_exec_tools_flow(client: TestClient, inject_runner, monk
                 input_schema={"type": "object"},
                 category="client-exec-tool",
             )
-            exec_call = ResponseToolUseContent(
-                tool_call_id="exec1", tool_name="exec", tool_input_raw="{}"
-            )
+            exec_call = ResponseToolUseContent(tool_call_id="exec1", tool_name="exec", tool_input_raw="{}")
             task = asyncio.create_task(kernel.tools._safe_execute_client_tool(exec_tool, exec_call))
             await asyncio.sleep(0.005)
             task.cancel()
@@ -997,26 +989,16 @@ def test_client_info_and_exec_tools_flow(client: TestClient, inject_runner, monk
         except WebSocketDisconnect:
             pass
 
-    tool_names = {
-        e.tool_name for e in outgoing if isinstance(e, StreamingDeltaRequestToolExecution)
-    }
+    tool_names = {e.tool_name for e in outgoing if isinstance(e, StreamingDeltaRequestToolExecution)}
     assert "exec" in tool_names
     assert "info" in tool_names
 
     # Make sure the info tool's event was _not_ set to requires_execution=True
-    info_events = [
-        e
-        for e in outgoing
-        if isinstance(e, StreamingDeltaRequestToolExecution) and e.tool_name == "info"
-    ]
+    info_events = [e for e in outgoing if isinstance(e, StreamingDeltaRequestToolExecution) and e.tool_name == "info"]
     assert len(info_events) == 1
     assert info_events[0].requires_execution is False
 
     # Make sure the exec tool's event was set to requires_execution=True
-    exec_events = [
-        e
-        for e in outgoing
-        if isinstance(e, StreamingDeltaRequestToolExecution) and e.tool_name == "exec"
-    ]
+    exec_events = [e for e in outgoing if isinstance(e, StreamingDeltaRequestToolExecution) and e.tool_name == "exec"]
     assert len(exec_events) == 1
     assert exec_events[0].requires_execution is True

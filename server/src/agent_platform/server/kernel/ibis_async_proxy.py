@@ -89,9 +89,7 @@ class AsyncIbisConnection:
         raw_expr = await asyncio.to_thread(cast(Any, self._connection).sql, query, dialect=dialect)
         return AsyncIbisTable(raw_expr, engine=self._engine)
 
-    async def create_table(
-        self, name: str, obj: pyarrow.Table | pandas.DataFrame | Any
-    ) -> IbisTable:
+    async def create_table(self, name: str, obj: pyarrow.Table | pandas.DataFrame | Any) -> IbisTable:
         """Create a table from an object (e.g., PyArrow table, pandas DataFrame).
 
         This is a blocking I/O operation wrapped with asyncio.to_thread.

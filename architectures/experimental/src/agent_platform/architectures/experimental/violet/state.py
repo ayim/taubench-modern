@@ -25,9 +25,7 @@ class VioletState(aa.StateBase, DataFrameArchState, WorkItemArchState, DocumentA
     current_iteration: int = field(default=0)
     """The current iteration of the agent's main loop."""
 
-    processing_start_time: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
-    )
+    processing_start_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds"))
     """Timestamp (ISO 8601) when the current processing turn began."""
 
     processing_elapsed_time: str = "0.00 seconds"

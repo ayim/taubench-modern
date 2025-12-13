@@ -48,9 +48,7 @@ class SQLiteStorageConfigMixin(CursorMixin, CommonMixin):
         row_dict = dict(row)
         return Config.model_validate(row_dict)
 
-    async def set_config(
-        self, config_type: ConfigType, current_value: JSONValue, *, namespace: str = "global"
-    ):
+    async def set_config(self, config_type: ConfigType, current_value: JSONValue, *, namespace: str = "global"):
         validate_config_type(config_type)
 
         config_value = json.dumps(current_value)

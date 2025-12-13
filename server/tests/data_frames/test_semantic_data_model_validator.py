@@ -193,9 +193,7 @@ class _SemanticDataModelValidatorChecker:
             },
         )
 
-    async def validate_model(
-        self, semantic_model: "SemanticDataModel"
-    ) -> "SemanticDataModelValidator":
+    async def validate_model(self, semantic_model: "SemanticDataModel") -> "SemanticDataModelValidator":
         """Run validation and return validator."""
         from agent_platform.server.data_frames.semantic_data_model_validator import (
             SemanticDataModelValidator,
@@ -1274,9 +1272,7 @@ async def test_validation_without_thread_id_file_references_fail(validator_check
     warnings = validator.warnings
     assert len(warnings) > 0
     warning_messages = [w["message"] for w in warnings]
-    assert any(
-        "cannot be resolved and validated without thread ID" in msg for msg in warning_messages
-    )
+    assert any("cannot be resolved and validated without thread ID" in msg for msg in warning_messages)
 
 
 @pytest.mark.asyncio
@@ -1357,6 +1353,4 @@ async def test_validation_without_thread_id_mixed_sources(validator_checker):
     warnings = validator.warnings
     assert len(warnings) > 0
     warning_messages = [w["message"] for w in warnings]
-    assert any(
-        "cannot be resolved and validated without thread ID" in msg for msg in warning_messages
-    )
+    assert any("cannot be resolved and validated without thread ID" in msg for msg in warning_messages)

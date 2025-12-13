@@ -205,16 +205,12 @@ class DataServerDetails:
         return {
             "username": self.username,
             "password": password_value,
-            "data_server_endpoints": [
-                conn.model_dump(mode=mode) for conn in self.data_server_endpoints
-            ],
+            "data_server_endpoints": [conn.model_dump(mode=mode) for conn in self.data_server_endpoints],
             "updated_at": self.updated_at if mode == "python" else self.updated_at.isoformat(),
         }
 
     @classmethod
-    def model_validate(  # noqa: C901, PLR0912
-        cls, data: "dict[str, Any] | Mapping[str, Any] | DataServerDetails"
-    ) -> "DataServerDetails":
+    def model_validate(cls, data: "dict[str, Any] | Mapping[str, Any] | DataServerDetails") -> "DataServerDetails":
         """Create a DataServerDetails instance from a dictionary or existing instance.
 
         Args:
@@ -264,8 +260,7 @@ class DataServerDetails:
         for key in ["data_sources", "data_connections"]:
             if key in data_dict and isinstance(data_dict[key], dict):
                 data_dict["data_sources"] = {
-                    name: DataConnection.model_validate(conn)
-                    for name, conn in data_dict[key].items()
+                    name: DataConnection.model_validate(conn) for name, conn in data_dict[key].items()
                 }
                 break
         # Remove the old name if present

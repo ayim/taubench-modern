@@ -201,11 +201,7 @@ class ImportSemanticDataModelPayload:
     """
 
     semantic_model: SemanticDataModel | dict | str = field(
-        metadata={
-            "description": (
-                "The semantic data model with data_connection_name (can be dict or YAML string)."
-            )
-        },
+        metadata={"description": ("The semantic data model with data_connection_name (can be dict or YAML string).")},
     )
     """The semantic data model with data_connection_name instead of data_connection_id.
     Can be provided as a dict/object or as a YAML string."""
@@ -332,8 +328,7 @@ class ValidateSemanticDataModelPayload:
 
     thread_id: Annotated[
         str | None,
-        "The ID of the thread for file resolution context OR as the sole selector "
-        "to validate all thread SDMs.",
+        "The ID of the thread for file resolution context OR as the sole selector to validate all thread SDMs.",
     ] = None
 
     @classmethod
@@ -349,9 +344,7 @@ class ValidateSemanticDataModelPayload:
     def __post_init__(self) -> None:
         """Validate payload options and raise BAD_REQUEST if invalid."""
         # Validate we have at least one option provided
-        if not any(
-            [self.semantic_data_model, self.semantic_data_model_id, self.agent_id, self.thread_id]
-        ):
+        if not any([self.semantic_data_model, self.semantic_data_model_id, self.agent_id, self.thread_id]):
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
                 message="At least one of semantic_data_model, semantic_data_model_id, "

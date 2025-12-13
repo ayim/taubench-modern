@@ -144,18 +144,14 @@ def _subset_args_check(
     for k, v in expected.items():
         cur_path = [*path, k]
         if k not in actual:
-            return ArgMismatchDetail(
-                path=".".join(cur_path), expected=v, actual="<missing>", reason="missing_key"
-            )
+            return ArgMismatchDetail(path=".".join(cur_path), expected=v, actual="<missing>", reason="missing_key")
         av = actual[k]
         if isinstance(v, dict) and isinstance(av, dict):
             sub = _subset_args_check(v, av, eps, coerce_num, cur_path)
             if sub is not None:
                 return sub
         elif not _coerce_equal(v, av, eps, coerce_num):
-            return ArgMismatchDetail(
-                path=".".join(cur_path), expected=v, actual=av, reason="value_diff"
-            )
+            return ArgMismatchDetail(path=".".join(cur_path), expected=v, actual=av, reason="value_diff")
     return None
 
 
@@ -179,7 +175,7 @@ class ReplayToolExecutor(ToolExecutor):
     Enforces both call order and argument equality (deep compare).
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         expected_calls: list[ExpectedCall],
         *,
@@ -229,10 +225,7 @@ class ReplayToolExecutor(ToolExecutor):
             evt = DriftEvent(
                 index_before=self._i,
                 drift_type=DriftType.EXTRA_ACTUAL_CALL,
-                message=(
-                    f"Unexpected tool call #{self._i + 1}: {tool.tool_name}. "
-                    "No more calls were recorded."
-                ),
+                message=(f"Unexpected tool call #{self._i + 1}: {tool.tool_name}. No more calls were recorded."),
                 expected_tool=None,
                 actual_tool=tool.tool_name,
             )
@@ -368,14 +361,8 @@ class ReplayToolExecutor(ToolExecutor):
             )
             self._record_drift_event(evt)
 
-            output_payload = (
-                decision.proposed_output
-                if decision.proposed_output is not None
-                else expected.output
-            )
-            error_payload = (
-                decision.proposed_error if decision.proposed_error is not None else expected.error
-            )
+            output_payload = decision.proposed_output if decision.proposed_output is not None else expected.output
+            error_payload = decision.proposed_error if decision.proposed_error is not None else expected.error
 
             return ToolExecutionResult(
                 error=error_payload,
@@ -409,8 +396,7 @@ class ReplayToolExecutor(ToolExecutor):
             index_before=self._i,
             drift_type=DriftType.LEFTOVER_RECORDED_CALLS,
             message=(
-                f"{len(remaining)} recorded call(s) left unconsumed "
-                f"at end of replay: {', '.join(remaining_names)}."
+                f"{len(remaining)} recorded call(s) left unconsumed at end of replay: {', '.join(remaining_names)}."
             ),
             expected_tool=remaining[0].tool_name if remaining else None,
             expected_args=remaining[0].expected_args if remaining else None,
@@ -428,7 +414,7 @@ class ReplayToolExecutor(ToolExecutor):
         return
 
     @classmethod
-    def from_conversation(  # noqa: PLR0912, C901, PLR0915
+    def from_conversation(
         cls,
         messages: list[ThreadMessage],
         *,
@@ -458,9 +444,7 @@ class ReplayToolExecutor(ToolExecutor):
                     try:
                         output = json.loads(tool_result) if tool_result is not None else None
                     except json.JSONDecodeError as e:
-                        raise ValueError(
-                            f"Bad output JSON for {tool_name}: {e}\n{tool_result}"
-                        ) from e
+                        raise ValueError(f"Bad output JSON for {tool_name}: {e}\n{tool_result}") from e
 
                     expected.append(ExpectedCall(tool_name, expected_args, output, item.error))
                     used_tool_names.add(tool_name)
@@ -511,9 +495,7 @@ class ReplayToolExecutor(ToolExecutor):
         )
 
         if policy_overrides:
-            valid_overrides = {
-                key: value for key, value in policy_overrides.items() if hasattr(policy, key)
-            }
+            valid_overrides = {key: value for key, value in policy_overrides.items() if hasattr(policy, key)}
             if valid_overrides:
                 policy = replace(policy, **valid_overrides)
 

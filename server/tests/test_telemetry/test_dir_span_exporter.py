@@ -20,7 +20,7 @@ def _create_span_context(trace_id: int, span_id: int = 1) -> SpanContext:
     )
 
 
-def _create_readable_span(  # noqa: PLR0913
+def _create_readable_span(
     name: str,
     trace_id: int,
     attributes: dict | None = None,
@@ -63,9 +63,7 @@ async def test_format_prompt_with_input_output_values(
             "big_string": "a" * 300,
         }
     )
-    output_value = json.dumps(
-        {"response": "Test response\nanother value\nand another value", "tokens": 100}
-    )
+    output_value = json.dumps({"response": "Test response\nanother value\nand another value", "tokens": 100})
 
     span = _create_readable_span(
         name="format_prompt",
@@ -113,9 +111,7 @@ async def test_other_attributes_formatted_with_pretty_print(
 
     # Find the exported file
     exported_files = list(output_dir.glob("**/*.txt"))
-    assert len(exported_files) == 1, (
-        f"Expected 1 exported file, got {len(exported_files)}: {exported_files}"
-    )
+    assert len(exported_files) == 1, f"Expected 1 exported file, got {len(exported_files)}: {exported_files}"
 
     # Read and verify the content
     content = exported_files[0].read_text(encoding="utf-8")
@@ -136,9 +132,7 @@ def exporter(output_dir: Path):
 
 
 @pytest.mark.asyncio
-async def test_old_entries_removed_when_max_entries_reached(
-    output_dir: Path, exporter: DirSpanExporter
-) -> None:
+async def test_old_entries_removed_when_max_entries_reached(output_dir: Path, exporter: DirSpanExporter) -> None:
     """Test that old entries are removed from disk when max_entries_in_disk is reached."""
     from sema4ai.common.wait_for import wait_for_non_error_condition
 
@@ -188,8 +182,6 @@ async def test_old_entries_removed_when_max_entries_reached(
             i_dirs_found.add(i_dir_found)
 
         expected = set(range(4, 9))
-        assert i_dirs_found == expected, (
-            f"Expected directories {expected}, got {i_dirs_found}\n{dirs_after_str}"
-        )
+        assert i_dirs_found == expected, f"Expected directories {expected}, got {i_dirs_found}\n{dirs_after_str}"
 
     wait_for_non_error_condition(check_dirs_after)

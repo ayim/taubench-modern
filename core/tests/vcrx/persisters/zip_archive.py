@@ -179,9 +179,7 @@ class ZipArchivePersister:
         os.makedirs(os.path.dirname(archive_path), exist_ok=True)
 
         serialized_data = vcr_serialize(cassette_dict, serializer)
-        data_bytes = (
-            serialized_data.encode("utf-8") if isinstance(serialized_data, str) else serialized_data
-        )
+        data_bytes = serialized_data.encode("utf-8") if isinstance(serialized_data, str) else serialized_data
 
         if not os.path.exists(archive_path):
             with zipfile.ZipFile(archive_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:

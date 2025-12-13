@@ -224,12 +224,8 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
         for row in rows:
             row_dict = dict(row)
             row_dict["content"] = json.loads(row_dict["content"]) if row_dict["content"] else []
-            row_dict["agent_metadata"] = (
-                json.loads(row_dict["agent_metadata"]) if row_dict["agent_metadata"] else {}
-            )
-            row_dict["server_metadata"] = (
-                json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
-            )
+            row_dict["agent_metadata"] = json.loads(row_dict["agent_metadata"]) if row_dict["agent_metadata"] else {}
+            row_dict["server_metadata"] = json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             # Set commited=True and completed=True for messages retrieved from database
             row_dict["commited"] = True  # Note: using "commited" to match the field name
             row_dict["complete"] = True
@@ -303,12 +299,8 @@ class SQLiteStorageMessagesMixin(CursorMixin, CommonMixin):
         for row in rows:
             row_dict = dict(row)
             row_dict["content"] = json.loads(row_dict["content"]) if row_dict["content"] else []
-            row_dict["agent_metadata"] = (
-                json.loads(row_dict["agent_metadata"]) if row_dict["agent_metadata"] else {}
-            )
-            row_dict["server_metadata"] = (
-                json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
-            )
+            row_dict["agent_metadata"] = json.loads(row_dict["agent_metadata"]) if row_dict["agent_metadata"] else {}
+            row_dict["server_metadata"] = json.loads(row_dict["server_metadata"]) if row_dict["server_metadata"] else {}
             # Set commited=True and completed=True for messages retrieved from database
             row_dict["commited"] = True  # Note: using "commited" to match the field name
             row_dict["complete"] = True

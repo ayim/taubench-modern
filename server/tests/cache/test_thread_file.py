@@ -39,9 +39,7 @@ class ValidatedCacheKeyStrategy(CacheKeyStrategy):
 
 
 @pytest.mark.asyncio
-async def test_cache_miss_then_set_then_hit(
-    sqlite_storage, sqlite_model_creator: SampleModelCreator
-):
+async def test_cache_miss_then_set_then_hit(sqlite_storage, sqlite_model_creator: SampleModelCreator):
     """Test basic cache workflow: miss, set, then hit."""
     # Setup
     storage = sqlite_storage
@@ -89,17 +87,13 @@ async def test_cache_miss_then_set_then_hit(
 
     # Verify the contents in the cache file are accurate.
     actual_cached_file = await storage.get_file_by_ref(thread, "test_file.pdf.cache.json", user_id)
-    cached_file_contents = await file_manager.read_file_contents(
-        actual_cached_file.file_id, user_id
-    )
+    cached_file_contents = await file_manager.read_file_contents(actual_cached_file.file_id, user_id)
     cached_file_contents = json.loads(cached_file_contents)
     assert SampleCachedData.model_validate(cached_file_contents) == data
 
 
 @pytest.mark.asyncio
-async def test_cache_with_custom_validation(
-    sqlite_storage, sqlite_model_creator: SampleModelCreator
-):
+async def test_cache_with_custom_validation(sqlite_storage, sqlite_model_creator: SampleModelCreator):
     """Test cache with custom validation logic."""
     # Setup
     storage = sqlite_storage

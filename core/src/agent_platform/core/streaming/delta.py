@@ -120,16 +120,12 @@ class StreamingDeltaAgentError(StreamingDeltaAgent):
     """Type representing a streaming delta to indicate that
     the agent is in an error state."""
 
-    error: ErrorResponse = field(
-        metadata={"description": "The error information in the agreed upon error response."}
-    )
+    error: ErrorResponse = field(metadata={"description": "The error information in the agreed upon error response."})
     """The error information following the agreed upon error response."""
 
     context: dict[str, Any] = field(
         default_factory=dict,
-        metadata={
-            "description": "Additional structured context for the error (not exposed to clients)."
-        },
+        metadata={"description": "Additional structured context for the error (not exposed to clients)."},
     )
     """Additional structured context for the error."""
 
@@ -320,12 +316,8 @@ class StreamingDeltaThreadNameUpdated(StreamingDelta):
     thread_id: str = field(metadata={"description": "The ID of the thread."})
     agent_id: str = field(metadata={"description": "The ID of the agent."})
     new_name: str = field(metadata={"description": "The new name of the thread."})
-    old_name: str | None = field(
-        default=None, metadata={"description": "The previous name of the thread, if known."}
-    )
-    reason: Literal["auto", "manual"] = field(
-        default="manual", metadata={"description": "Reason for the update."}
-    )
+    old_name: str | None = field(default=None, metadata={"description": "The previous name of the thread, if known."})
+    reason: Literal["auto", "manual"] = field(default="manual", metadata={"description": "Reason for the update."})
 
     event_type: Literal["thread_name_updated"] = field(
         metadata={"description": "The type of streaming event."},

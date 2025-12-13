@@ -53,15 +53,11 @@ class RequestTriage:
         self.state = state
         self.message = message
 
-    async def _quick_reply(
-        self, markdown: Annotated[str, "Markdown reply to send immediately."]
-    ) -> dict[str, str]:
+    async def _quick_reply(self, markdown: Annotated[str, "Markdown reply to send immediately."]) -> dict[str, str]:
         """Terminal tool: Immediately reply to the user with simple markdown text."""
         return {"result": "Quick reply was rendered."}
 
-    async def _proceed_with_planning(
-        self, reason: Annotated[str, "Rationale for planning."]
-    ) -> dict[str, str]:
+    async def _proceed_with_planning(self, reason: Annotated[str, "Rationale for planning."]) -> dict[str, str]:
         """Signal that the full planning and execution cycle is required."""
         logger.info("Triage decision: Proceeding to planning. Reason: %s", reason)
         return {"result": "Proceeding to main execution flow."}
@@ -83,9 +79,7 @@ class RequestTriage:
         async with self.platform.stream_response(prompt, self.model) as stream:
             await stream.pipe_to(
                 self.message.sinks.reasoning,
-                self.message.sinks.tool_calls(
-                    forward_to_content="quick_reply", content_from_key="markdown"
-                ),
+                self.message.sinks.tool_calls(forward_to_content="quick_reply", content_from_key="markdown"),
                 self.message.sinks.usage,
                 self.state.sinks.pending_tool_calls,
             )
@@ -94,14 +88,10 @@ class RequestTriage:
             logger.warning("Triage produced no tool calls; defaulting to full planning.")
             return TriageOutcome.PROCEED_TO_PLANNING
 
-        quick_reply_invoked = any(
-            tool.name == "quick_reply" for tool, _ in self.state.pending_tool_calls
-        )
+        quick_reply_invoked = any(tool.name == "quick_reply" for tool, _ in self.state.pending_tool_calls)
 
         # Execute whichever tool the model chose.
-        async for _ in self.kernel.tools.execute_pending_tool_calls(
-            self.state.pending_tool_calls, self.message
-        ):
+        async for _ in self.kernel.tools.execute_pending_tool_calls(self.state.pending_tool_calls, self.message):
             pass
         self.state.pending_tool_calls.clear()
 
@@ -112,9 +102,7 @@ class RequestTriage:
         return TriageOutcome.PROCEED_TO_PLANNING
 
 
-async def entrypoint_consistency(
-    kernel: Kernel, state: ConsistencyArchState
-) -> ConsistencyArchState:
+async def entrypoint_consistency(kernel: Kernel, state: ConsistencyArchState) -> ConsistencyArchState:
     """Top-level entrypoint that initializes state and runs the processing pipeline."""
     try:
         logger.info("Consistency architecture starting turn.")
@@ -123,9 +111,7 @@ async def entrypoint_consistency(
 
         return await _process_conversation_step(kernel, state)
     except Exception:
-        logger.error(
-            "Consistency architecture turn failed with an unhandled exception.", exc_info=True
-        )
+        logger.error("Consistency architecture turn failed with an unhandled exception.", exc_info=True)
         raise
     finally:
         logger.info("Consistency architecture turn completed.")
@@ -155,15 +141,11 @@ async def _handle_special_command_if_present(kernel: Kernel, state: ConsistencyA
 
 
 @aa.step
-async def _process_conversation_step(
-    kernel: Kernel, state: ConsistencyArchState
-) -> ConsistencyArchState:
+async def _process_conversation_step(kernel: Kernel, state: ConsistencyArchState) -> ConsistencyArchState:
     """Orchestrates the main agent workflow for a single conversation step."""
     from functools import partial
 
-    kernel.converters.set_thread_message_conversion_function(
-        partial(thread_messages_to_prompt_messages, state=state)
-    )
+    kernel.converters.set_thread_message_conversion_function(partial(thread_messages_to_prompt_messages, state=state))
 
     platform, model = await _resolve_platform_and_model(kernel, state)
     message = await kernel.thread_state.new_agent_message()
@@ -206,16 +188,14 @@ async def _process_conversation_step(
     return state
 
 
-async def _resolve_platform_and_model(
-    kernel: Kernel, state: ConsistencyArchState
-) -> tuple[PlatformInterface, str]:
+async def _resolve_platform_and_model(kernel: Kernel, state: ConsistencyArchState) -> tuple[PlatformInterface, str]:
     """Resolves the platform and model, and updates the state with the details."""
     platform, model_str = await kernel.get_platform_and_model(model_type="llm")
     logger.info("Using model: %s", model_str)
 
     # Expected format: "platform/provider/model_name"
     parts = model_str.split("/")
-    if len(parts) == 3:  # noqa: PLR2004
+    if len(parts) == 3:
         state.selected_platform, state.selected_model_provider, state.selected_model = parts
     else:
         state.selected_platform = platform.name

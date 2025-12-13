@@ -97,13 +97,10 @@ async def _read_auth_file(auth_file_path: typing.Any) -> dict[str, typing.Any]:
             ) from e
         except json.JSONDecodeError as e:
             raise SnowflakeAuthError(
-                "Failed to parse Snowflake authentication file at "
-                f"{auth_file_path}. Invalid JSON format: {e}"
+                f"Failed to parse Snowflake authentication file at {auth_file_path}. Invalid JSON format: {e}"
             ) from e
         except OSError as e:
-            raise SnowflakeAuthError(
-                f"Failed to read Snowflake authentication file at {auth_file_path}: {e}"
-            ) from e
+            raise SnowflakeAuthError(f"Failed to read Snowflake authentication file at {auth_file_path}: {e}") from e
         except Exception as e:
             raise SnowflakeAuthError(
                 f"Unexpected error reading Snowflake authentication file at {auth_file_path}: {e}"
@@ -131,19 +128,14 @@ async def _read_token_file(token_path: str) -> str:
                 return f.read().strip()
         except FileNotFoundError as e:
             raise SnowflakeAuthError(
-                f"OAuth token file not found at: {token_path}. "
-                "Please re-authenticate with Snowflake."
+                f"OAuth token file not found at: {token_path}. Please re-authenticate with Snowflake."
             ) from e
         except PermissionError as e:
-            raise SnowflakeAuthError(
-                f"Permission denied reading OAuth token file at: {token_path}"
-            ) from e
+            raise SnowflakeAuthError(f"Permission denied reading OAuth token file at: {token_path}") from e
         except OSError as e:
             raise SnowflakeAuthError(f"Failed to read OAuth token file at {token_path}: {e}") from e
         except Exception as e:
-            raise SnowflakeAuthError(
-                f"Unexpected error reading OAuth token from {token_path}: {e}"
-            ) from e
+            raise SnowflakeAuthError(f"Unexpected error reading OAuth token from {token_path}: {e}") from e
 
     return await asyncio.to_thread(_read_token)
 
@@ -186,8 +178,7 @@ async def get_snowflake_connection_params(
     authenticator = linking_details.get("authenticator")
     if not authenticator:
         raise SnowflakeAuthError(
-            "No authenticator found in Snowflake authentication file. "
-            f"Please check the file at: {auth_file_path}"
+            f"No authenticator found in Snowflake authentication file. Please check the file at: {auth_file_path}"
         )
 
     # Common connection parameters
@@ -215,14 +206,10 @@ async def get_snowflake_connection_params(
         token_path = linking_details.get("tokenPath")
 
         if not account:
-            raise SnowflakeAuthError(
-                "Account not found in Snowflake authentication file for OAuth."
-            )
+            raise SnowflakeAuthError("Account not found in Snowflake authentication file for OAuth.")
 
         if not token_path:
-            raise SnowflakeAuthError(
-                "Token path not found in Snowflake authentication file for OAuth."
-            )
+            raise SnowflakeAuthError("Token path not found in Snowflake authentication file for OAuth.")
 
         # Read the OAuth token asynchronously
         token = await _read_token_file(token_path)
@@ -244,14 +231,10 @@ async def get_snowflake_connection_params(
         private_key_passphrase = linking_details.get("privateKeyPassphrase")
 
         if not user or not account:
-            raise SnowflakeAuthError(
-                "User or account not found in Snowflake authentication file for JWT."
-            )
+            raise SnowflakeAuthError("User or account not found in Snowflake authentication file for JWT.")
 
         if not private_key_path:
-            raise SnowflakeAuthError(
-                "Private key path not found in Snowflake authentication file for JWT."
-            )
+            raise SnowflakeAuthError("Private key path not found in Snowflake authentication file for JWT.")
 
         # Load the private key asynchronously
         private_key_bytes = await asyncio.to_thread(
@@ -270,8 +253,7 @@ async def get_snowflake_connection_params(
 
     else:
         raise SnowflakeAuthError(
-            f"Unsupported authenticator type: {authenticator}. "
-            "Supported types are: OAUTH, SNOWFLAKE_JWT"
+            f"Unsupported authenticator type: {authenticator}. Supported types are: OAUTH, SNOWFLAKE_JWT"
         )
 
     return connection_params

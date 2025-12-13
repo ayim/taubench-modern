@@ -127,7 +127,7 @@ class OpenAIClient(
             error_type = StreamingError if stream else PlatformHTTPError
             raise self._handle_openai_error(e, model, error_type) from e
 
-    def _handle_openai_error(  # noqa: C901, PLR0911, PLR0912
+    def _handle_openai_error(
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         """Handle OpenAI errors and convert them to PlatformError instances.
@@ -164,15 +164,13 @@ class OpenAIClient(
             case AuthenticationError():
                 return error_type(
                     error_code=ErrorCode.UNAUTHORIZED,
-                    message="Authentication failed for OpenAI. Please check your API "
-                    "key and credentials.",
+                    message="Authentication failed for OpenAI. Please check your API key and credentials.",
                     data={"model": model},
                 )
             case PermissionDeniedError():
                 return error_type(
                     error_code=ErrorCode.FORBIDDEN,
-                    message=f"Access denied for OpenAI model '{model}'. Please check "
-                    "your permissions.",
+                    message=f"Access denied for OpenAI model '{model}'. Please check your permissions.",
                     data={"model": model},
                 )
             case BadRequestError():
@@ -229,15 +227,13 @@ class OpenAIClient(
             case APIConnectionError():
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
-                    message="Failed to connect to OpenAI service. Please check your "
-                    "network connection.",
+                    message="Failed to connect to OpenAI service. Please check your network connection.",
                     data={"model": model},
                 )
             case InternalServerError():
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
-                    message="OpenAI service encountered an internal error. Please "
-                    "try again later or contact support.",
+                    message="OpenAI service encountered an internal error. Please try again later or contact support.",
                     data={"model": model},
                 )
             case APIError():

@@ -2,9 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 
 from agent_platform.core.actions import ActionPackage
-from agent_platform.core.kernel_interfaces.thread_state import (
-    ThreadMessageWithThreadState,
-)
+from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
@@ -34,7 +32,6 @@ class ToolsInterface(ABC):
         Returns:
             A list of tool execution results.
         """
-        pass
 
     @abstractmethod
     async def from_action_packages(
@@ -51,7 +48,6 @@ class ToolsInterface(ABC):
             A tuple containing a list of tool definitions and a list of
             configuration issues.
         """
-        pass
 
     @abstractmethod
     async def from_mcp_servers(
@@ -68,4 +64,3 @@ class ToolsInterface(ABC):
             A tuple containing a list of tool definitions and a list of
             configuration issues.
         """
-        pass

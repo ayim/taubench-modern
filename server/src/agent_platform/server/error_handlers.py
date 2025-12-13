@@ -106,9 +106,7 @@ async def generic_exception_handler(
         error_id=error_response.error_id,  # TODO: repeated for current structlog config
         exc_info=exc,
     )
-    return convert_error_response(
-        error_response, include_message=True, status_code=HTTP_500_INTERNAL_SERVER_ERROR
-    )
+    return convert_error_response(error_response, include_message=True, status_code=HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def http_exception_handler(
@@ -133,9 +131,7 @@ async def http_exception_handler(
     # Get the error code, defaulting to UNEXPECTED for unmapped status codes
     error_code = status_code_to_error_code.get(exc.status_code, ErrorCode.UNEXPECTED)
 
-    error_response = ErrorResponse(
-        error_code, message_override=exc.detail, status_code_override=exc.status_code
-    )
+    error_response = ErrorResponse(error_code, message_override=exc.detail, status_code_override=exc.status_code)
 
     # Do we double log the exception by logging here?
     _safe_log_error(
@@ -246,9 +242,7 @@ async def platform_error_handler(
         error_id=exc.response.error_id,  # TODO: repeated for current structlog config
         exc_info=exc,
     )
-    return convert_error_response(
-        exc.response, include_message=True, status_code=HTTP_500_INTERNAL_SERVER_ERROR
-    )
+    return convert_error_response(exc.response, include_message=True, status_code=HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def platform_http_error_handler(
@@ -354,9 +348,7 @@ def _safe_log_error(log_method, *args, **kwargs) -> None:
         # so the information is not completely lost.
         import sys
 
-        safe_msg = (
-            f"[logging-failed-encoding] {log_method.__qualname__}: {exc.__class__.__name__}: {exc}"
-        )
+        safe_msg = f"[logging-failed-encoding] {log_method.__qualname__}: {exc.__class__.__name__}: {exc}"
         print(safe_msg, file=sys.stderr)
         # Do *not* re-raise - we intentionally swallow the failure.
 
@@ -431,10 +423,7 @@ def _redact_secrets(value: Any, placeholder: str = "***REDACTED***") -> Any:  # 
     """
 
     if isinstance(value, dict):
-        return {
-            k: (placeholder if _is_secret_key(k) else _redact_secrets(v, placeholder))
-            for k, v in value.items()
-        }
+        return {k: (placeholder if _is_secret_key(k) else _redact_secrets(v, placeholder)) for k, v in value.items()}
     if isinstance(value, list):
         return [_redact_secrets(item, placeholder) for item in value]
     return value

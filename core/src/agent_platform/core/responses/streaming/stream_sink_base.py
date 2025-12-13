@@ -27,7 +27,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when a new ResponseMessage is recognized or begins streaming.
         """
-        pass
 
     @abstractmethod
     async def on_stop_reason(
@@ -37,7 +36,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when a ResponseMessage's stop reason becomes known.
         """
-        pass
 
     @abstractmethod
     async def on_usage(
@@ -47,7 +45,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when usage info is available or updated.
         """
-        pass
 
     @abstractmethod
     async def on_message_end(
@@ -57,7 +54,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when a ResponseMessage is fully completed.
         """
-        pass
 
     @abstractmethod
     async def on_content_begin(
@@ -68,7 +64,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called before partial content updates for a specific content item.
         """
-        pass
 
     @abstractmethod
     async def on_content_end(
@@ -79,7 +74,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the content item at `idx` is considered final/completed.
         """
-        pass
 
     @abstractmethod
     async def on_text_content_begin(
@@ -90,7 +84,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called before partial updates of text content.
         """
-        pass
 
     @abstractmethod
     async def on_text_content_partial(
@@ -102,7 +95,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called to update the partial text content at `idx`.
         """
-        pass
 
     @abstractmethod
     async def on_text_content_end(
@@ -113,7 +105,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the text content at `idx` is final.
         """
-        pass
 
     @abstractmethod
     async def on_image_content_begin(
@@ -124,7 +115,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called before partial updates of image content.
         """
-        pass
 
     @abstractmethod
     async def on_image_content_partial(
@@ -136,7 +126,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called to update the partial image content at `idx`.
         """
-        pass
 
     @abstractmethod
     async def on_image_content_end(
@@ -147,7 +136,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the image content at `idx` is final.
         """
-        pass
 
     @abstractmethod
     async def on_audio_content_begin(
@@ -158,7 +146,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called before partial updates of audio content.
         """
-        pass
 
     @abstractmethod
     async def on_audio_content_partial(
@@ -170,7 +157,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called to update the partial audio content at `idx`.
         """
-        pass
 
     @abstractmethod
     async def on_audio_content_end(
@@ -181,7 +167,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the audio content at `idx` is final.
         """
-        pass
 
     @abstractmethod
     async def on_document_content_begin(
@@ -192,7 +177,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called before partial updates of document content.
         """
-        pass
 
     @abstractmethod
     async def on_document_content_partial(
@@ -204,7 +188,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called to update the partial document content at `idx`.
         """
-        pass
 
     @abstractmethod
     async def on_document_content_end(
@@ -215,7 +198,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the document content at `idx` is final.
         """
-        pass
 
     @abstractmethod
     async def on_tool_use_content_begin(
@@ -227,7 +209,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called before partial updates of tool use content.
         """
-        pass
 
     @abstractmethod
     async def on_tool_use_content_partial(
@@ -240,7 +221,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called to update the partial tool use content at `idx`.
         """
-        pass
 
     @abstractmethod
     async def on_tool_use_content_end(
@@ -252,7 +232,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the tool use content at `idx` is final.
         """
-        pass
 
     @abstractmethod
     async def on_reasoning_content_begin(
@@ -263,7 +242,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when a new reasoning content item is recognized or begins streaming.
         """
-        pass
 
     @abstractmethod
     async def on_reasoning_content_partial(
@@ -275,7 +253,6 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when a partial update of reasoning content is received.
         """
-        pass
 
     @abstractmethod
     async def on_reasoning_content_end(
@@ -286,4 +263,3 @@ class ResponseStreamSinkBase(ABC):
         """
         Called when the reasoning content item at `idx` is considered final/completed.
         """
-        pass

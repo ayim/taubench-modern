@@ -73,8 +73,7 @@ class PromptSelector(ABC):
             return resources.files(package)
         except AttributeError as ex:
             raise ValueError(
-                f"Failed to locate resource files in package {package}. "
-                "Are you sure it's a valid Python package?",
+                f"Failed to locate resource files in package {package}. Are you sure it's a valid Python package?",
             ) from ex
 
     def _collect_prompt_files(
@@ -101,8 +100,7 @@ class PromptSelector(ABC):
                     {
                         file.name: file
                         for file in resource_path.iterdir()
-                        if file.is_file()
-                        and (file.name.endswith(".yaml") or file.name.endswith(".yml"))
+                        if file.is_file() and (file.name.endswith(".yaml") or file.name.endswith(".yml"))
                     }
                 )
 
@@ -131,4 +129,3 @@ class PromptSelector(ABC):
             A tuple of the name of the selected prompt and the prompt content (without
             formatting).
         """
-        pass

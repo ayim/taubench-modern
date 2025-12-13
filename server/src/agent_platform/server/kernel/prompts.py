@@ -32,9 +32,7 @@ class AgentServerPromptsInterface(PromptsInterface, UsesKernelMixin):
         """
         # Create input metadata for tracing
         input_metadata = {
-            "user_id": self.kernel.user.cr_user_id
-            if self.kernel.user.cr_user_id
-            else self.kernel.user.sub,
+            "user_id": self.kernel.user.cr_user_id if self.kernel.user.cr_user_id else self.kernel.user.sub,
             "agent_architecture": self.kernel.agent.agent_architecture.name,
             "agent_architecture_version": self.kernel.agent.agent_architecture.version,
         }

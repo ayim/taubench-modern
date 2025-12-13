@@ -47,7 +47,7 @@ def _create_test_agent(
     )
 
 
-def _create_test_work_item(  # noqa: PLR0913
+def _create_test_work_item(
     work_item_id: str,
     user_id: str,
     created_by: str,
@@ -315,9 +315,7 @@ class TestListWorkItems:
         assert response_data["records"][0]["work_item_id"] == completed_search_item.work_item_id
 
         # Test with multiple statuses
-        response = client.get(
-            "/work-items?work_item_status=PENDING&work_item_status=COMPLETED&name_search=Search"
-        )
+        response = client.get("/work-items?work_item_status=PENDING&work_item_status=COMPLETED&name_search=Search")
         assert response.status_code == 200
         response_data = response.json()
         assert len(response_data["records"]) == 2
@@ -358,9 +356,7 @@ class TestListWorkItems:
         await storage.create_work_item(item2)
 
         # Update item2 to have a more recent updated_at
-        await storage.update_work_item_status(
-            sample_work_item.user_id, item2.work_item_id, WorkItemStatus.COMPLETED
-        )
+        await storage.update_work_item_status(sample_work_item.user_id, item2.work_item_id, WorkItemStatus.COMPLETED)
 
         # Get items and verify ordering
         response = client.get("/work-items")

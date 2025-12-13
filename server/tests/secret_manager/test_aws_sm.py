@@ -53,9 +53,7 @@ class TestAwsSecretManager:
 
         mock_client = MagicMock()
         mock_boto_client.return_value = mock_client
-        mock_client.describe_key.side_effect = ClientError(
-            {"Error": {"Code": "NotFoundException"}}, "DescribeKey"
-        )
+        mock_client.describe_key.side_effect = ClientError({"Error": {"Code": "NotFoundException"}}, "DescribeKey")
 
         with pytest.raises(RuntimeError, match="AWS KMS key not found"):
             AwsSecretManager(kms_key_arn=self.TEST_KMS_ARN)

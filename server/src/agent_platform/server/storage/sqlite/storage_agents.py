@@ -121,7 +121,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         agent = await self._populate_agent_mcp_servers(agent)
         return await self._populate_agent_platform_params(agent)
 
-    async def upsert_agent(self, user_id: str, agent: Agent) -> None:  # noqa: C901, PLR0912
+    async def upsert_agent(self, user_id: str, agent: Agent) -> None:
         """Create or update an agent, avoiding false-positives on
         the name-uniqueness index."""
         self._validate_uuid(user_id)
@@ -226,9 +226,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                                 )
                             else:
                                 # This shouldn't happen - could be a race condition
-                                raise StorageError(
-                                    f"Upsert failed unexpectedly for agent {agent.agent_id}"
-                                )
+                                raise StorageError(f"Upsert failed unexpectedly for agent {agent.agent_id}")
                         else:
                             # Agent exists, check user access
                             await cur.execute(
@@ -242,8 +240,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                             row = await cur.fetchone()
                             if not row or not row["has_access"]:
                                 raise UserAccessDeniedError(
-                                    f"User {user_id} does not have permission "
-                                    f"to update agent {agent.agent_id}"
+                                    f"User {user_id} does not have permission to update agent {agent.agent_id}"
                                 )
 
                             # Must be a name collision with another agent
@@ -266,22 +263,16 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                                 )
                             else:
                                 # Shouldn't happen - defensive coding
-                                raise StorageError(
-                                    f"Upsert failed unexpectedly for agent {agent.agent_id}"
-                                )
+                                raise StorageError(f"Upsert failed unexpectedly for agent {agent.agent_id}")
 
         except aiosqlite.IntegrityError as e:
             # We should rarely hit this with our logic, but handle race conditions
-            if "UNIQUE constraint failed" in str(e) and (
-                "idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)
-            ):
+            if "UNIQUE constraint failed" in str(e) and ("idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)):
                 raise AgentWithNameAlreadyExistsError(
                     f"Agent name {agent.name} is not unique for user {user_id}"
                 ) from e
             elif "foreign key constraint" in str(e).lower():
-                raise ReferenceIntegrityError(
-                    "Invalid foreign key reference updating/inserting agent"
-                ) from e
+                raise ReferenceIntegrityError("Invalid foreign key reference updating/inserting agent") from e
             else:
                 self._logger.error("Unexpected database integrity error", error=str(e))
                 raise StorageError(f"Database integrity error: {e}") from e
@@ -307,9 +298,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
 
         # Handle platform params associations if the agent has platform_params_ids
         if hasattr(agent, "platform_params_ids") and agent.platform_params_ids:
-            await self.associate_platform_params_with_agent(
-                agent.agent_id, agent.platform_params_ids
-            )
+            await self.associate_platform_params_with_agent(agent.agent_id, agent.platform_params_ids)
 
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
@@ -374,20 +363,12 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                         {"name": name, "user_id": user_id, "agent_id": agent_id},
                     )
                     if await cur.fetchone():
-                        raise AgentWithNameAlreadyExistsError(
-                            f"Agent name '{name}' is not unique for user {user_id}"
-                        )
+                        raise AgentWithNameAlreadyExistsError(f"Agent name '{name}' is not unique for user {user_id}")
         except aiosqlite.IntegrityError as e:
-            if "UNIQUE constraint failed" in str(e) and (
-                "idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)
-            ):
-                raise AgentWithNameAlreadyExistsError(
-                    f"Agent name {name} is not unique for user {user_id}"
-                ) from e
+            if "UNIQUE constraint failed" in str(e) and ("idx_agent_name_per_user_v2" in str(e) or ".name" in str(e)):
+                raise AgentWithNameAlreadyExistsError(f"Agent name {name} is not unique for user {user_id}") from e
             elif "foreign key constraint" in str(e).lower():
-                raise ReferenceIntegrityError(
-                    "Invalid foreign key reference updating/inserting agent"
-                ) from e
+                raise ReferenceIntegrityError("Invalid foreign key reference updating/inserting agent") from e
             else:
                 self._logger.error("Unexpected database integrity error", error=str(e))
                 raise StorageError(f"Database integrity error: {e}") from e
@@ -442,9 +423,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
     async def count_agents_by_mode(self, mode: str) -> int:
         """Count the number of agents by mode."""
         async with self._cursor() as cur:
-            await cur.execute(
-                "SELECT COUNT(*) AS cnt FROM v2_agent WHERE mode = :mode", {"mode": mode}
-            )
+            await cur.execute("SELECT COUNT(*) AS cnt FROM v2_agent WHERE mode = :mode", {"mode": mode})
             row = await cur.fetchone()
         return row["cnt"] if row else 0
 
@@ -508,9 +487,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
 
             try:
                 # If mcp_servers is already a list of MCPServer objects, use them
-                if isinstance(agent.mcp_servers, list) and all(
-                    isinstance(s, MCPServer) for s in agent.mcp_servers
-                ):
+                if isinstance(agent.mcp_servers, list) and all(isinstance(s, MCPServer) for s in agent.mcp_servers):
                     resolved_mcp_servers = agent.mcp_servers
                 else:
                     # Parse the JSON and create MCPServer objects
@@ -526,10 +503,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                 import structlog
 
                 logger = structlog.get_logger(__name__)
-                logger.warning(
-                    f"Failed to parse resolved MCP servers from JSON for agent "
-                    f"{agent.agent_id}: {e}"
-                )
+                logger.warning(f"Failed to parse resolved MCP servers from JSON for agent {agent.agent_id}: {e}")
 
         # Return agent with:
         # - mcp_server_ids: Global MCP server IDs from join table
@@ -550,9 +524,7 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
                 try:
                     platform_params = await self.get_platform_params(platform_id)
                     resolved_platform_configs.append(platform_params)
-                    self._logger.info(
-                        f"Resolved platform params ID {platform_id} to {platform_params.kind}"
-                    )
+                    self._logger.info(f"Resolved platform params ID {platform_id} to {platform_params.kind}")
                 except Exception as e:
                     self._logger.warning(f"Failed to resolve platform params ID {platform_id}: {e}")
 
@@ -560,13 +532,9 @@ class SQLiteStorageAgentsMixin(CursorMixin, CommonMixin):
         all_platform_configs = list(agent.platform_configs) + resolved_platform_configs
 
         # Return agent with both platform_params_ids and resolved platform_configs populated
-        return agent.copy(
-            platform_params_ids=platform_params_ids, platform_configs=all_platform_configs
-        )
+        return agent.copy(platform_params_ids=platform_params_ids, platform_configs=all_platform_configs)
 
-    async def associate_platform_params_with_agent(
-        self, agent_id: str, platform_params_ids: list[str]
-    ) -> None:
+    async def associate_platform_params_with_agent(self, agent_id: str, platform_params_ids: list[str]) -> None:
         """Associate platform params with an agent, replacing any existing associations.
 
         SQLite-specific implementation that handles string-based UUIDs.

@@ -35,11 +35,7 @@ def _is_openai_retryable_factory(retryable_status: set[int]) -> Callable[[BaseEx
                 resp = getattr(exc, "response", None)
                 status = getattr(resp, "status_code", None)
             # Retry generic 5xx, excluding clearly non-transient server responses.
-            if (
-                isinstance(status, int)
-                and 500 <= status < 600  # noqa: PLR2004
-                and status not in {501, 505}
-            ):
+            if isinstance(status, int) and 500 <= status < 600 and status not in {501, 505}:
                 return True
             # Fall back to the explicit allowlist (e.g., 408/409/429).
             return status in retryable_status
@@ -51,9 +47,7 @@ def _is_openai_retryable_factory(retryable_status: set[int]) -> Callable[[BaseEx
 # Utilities specific to OpenAI retry behaviour.
 
 
-def _wait_with_retry_after_factory(
-    base: float, maximum: float
-) -> Callable[[RetryCallState], float]:
+def _wait_with_retry_after_factory(base: float, maximum: float) -> Callable[[RetryCallState], float]:
     """Return a Tenacity wait function that honors Retry-After header if present."""
     from openai import APIError
 
@@ -65,9 +59,7 @@ def _wait_with_retry_after_factory(
         if isinstance(exc, APIError):
             resp = getattr(exc, "response", None)
             headers = getattr(resp, "headers", None) or {}
-            retry_after = _parse_retry_after_header(
-                headers.get("retry-after") or headers.get("Retry-After")
-            )
+            retry_after = _parse_retry_after_header(headers.get("retry-after") or headers.get("Retry-After"))
 
         return retry_after if retry_after is not None else exponential(state)
 
@@ -102,7 +94,7 @@ def _before_sleep_logger_factory(
     return _before_sleep
 
 
-def build_openai_retry_decorator(  # noqa: PLR0913
+def build_openai_retry_decorator(
     *,
     logger: logging.Logger,
     provider_name: str,
@@ -124,9 +116,7 @@ def build_openai_retry_decorator(  # noqa: PLR0913
     """
 
     wait_fn = _wait_with_retry_after_factory(base_backoff_s, max_backoff_s)
-    before_sleep = _before_sleep_logger_factory(
-        logger, provider_name, context, max_attempts, wait_fn
-    )
+    before_sleep = _before_sleep_logger_factory(logger, provider_name, context, max_attempts, wait_fn)
     predicate = _is_openai_retryable_factory(retryable_status)
 
     return retry(
@@ -149,7 +139,7 @@ def _is_httpx_retryable_factory(retryable_status: set[int]) -> Callable[[BaseExc
             status = exc.response.status_code
             if status is None:
                 return False
-            return status in retryable_status or 500 <= status < 600  # noqa: PLR2004
+            return status in retryable_status or 500 <= status < 600
         if isinstance(exc, RequestError):
             return True
         return False
@@ -172,9 +162,7 @@ def _parse_retry_after_header(value: str | None) -> float | None:
         return delay if delay > 0 else None
 
 
-def _wait_with_httpx_retry_after_factory(
-    base: float, maximum: float
-) -> Callable[[RetryCallState], float]:
+def _wait_with_httpx_retry_after_factory(base: float, maximum: float) -> Callable[[RetryCallState], float]:
     from httpx import HTTPStatusError
 
     exponential = wait_random_exponential(multiplier=base, max=maximum)
@@ -184,13 +172,9 @@ def _wait_with_httpx_retry_after_factory(
         retry_after: float | None = None
         if isinstance(exc, HTTPStatusError):
             headers = exc.response.headers
-            retry_after = _parse_retry_after_header(
-                headers.get("retry-after") or headers.get("Retry-After")
-            )
+            retry_after = _parse_retry_after_header(headers.get("retry-after") or headers.get("Retry-After"))
 
-        return (
-            min(math.ceil(retry_after), maximum) if retry_after is not None else exponential(state)
-        )
+        return min(math.ceil(retry_after), maximum) if retry_after is not None else exponential(state)
 
     return _wait
 
@@ -221,7 +205,7 @@ def _before_sleep_logger_httpx_factory(
     return _before_sleep
 
 
-def _build_httpx_retry_kwargs(  # noqa: PLR0913
+def _build_httpx_retry_kwargs(
     *,
     logger: logging.Logger,
     provider_name: str,
@@ -249,7 +233,7 @@ def _build_httpx_retry_kwargs(  # noqa: PLR0913
     }
 
 
-def build_httpx_retry_decorator(  # noqa: PLR0913
+def build_httpx_retry_decorator(
     *,
     logger: logging.Logger,
     provider_name: str,
@@ -274,7 +258,7 @@ def build_httpx_retry_decorator(  # noqa: PLR0913
     return retry(**kwargs)
 
 
-def build_httpx_async_retrying(  # noqa: PLR0913
+def build_httpx_async_retrying(
     *,
     logger: logging.Logger,
     provider_name: str,

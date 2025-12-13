@@ -18,8 +18,7 @@ class ActionPackageHandler(BasePackageHandler):
         if not has_spec_file:
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-                message=f"{AgentPackageConfig.action_package_spec_filename} is missing "
-                "in Action Package",
+                message=f"{AgentPackageConfig.action_package_spec_filename} is missing in Action Package",
             )
 
     async def read_package_spec_raw(self) -> bytes:

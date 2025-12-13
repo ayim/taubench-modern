@@ -385,7 +385,7 @@ class BedrockParsers(PlatformParsers):
                 },
             )
 
-    def _handle_content_block_delta(  # noqa: C901, PLR0912
+    def _handle_content_block_delta(
         self,
         event: dict,
         message: dict,
@@ -441,8 +441,8 @@ class BedrockParsers(PlatformParsers):
             if "redactedContent" in reasoning_delta:
                 # TODO: Will we even ever see these? This might've been a 3.7 sonnet
                 # specific quirk prior to the use of summarization for 4.0+...
-                message["content"][content_block_index]["redacted_content"] = (
-                    _normalize_blob_type_to_str(reasoning_delta["redactedContent"])
+                message["content"][content_block_index]["redacted_content"] = _normalize_blob_type_to_str(
+                    reasoning_delta["redactedContent"]
                 )
 
     def _handle_message_stop(self, event: dict, message: dict) -> None:
@@ -455,9 +455,7 @@ class BedrockParsers(PlatformParsers):
         if "stopReason" in event["messageStop"]:
             message["stop_reason"] = event["messageStop"]["stopReason"]
         if "additionalModelResponseFields" in event["messageStop"]:
-            message["additional_response_fields"] = event["messageStop"][
-                "additionalModelResponseFields"
-            ]
+            message["additional_response_fields"] = event["messageStop"]["additionalModelResponseFields"]
 
     def _handle_metadata(
         self,

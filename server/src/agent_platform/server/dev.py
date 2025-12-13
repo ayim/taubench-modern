@@ -12,7 +12,7 @@ from agent_platform.server.configuration_manager import ConfigurationService
 from agent_platform.server.log_config import setup_logging
 
 
-def create_dev_app() -> FastAPI:  # noqa: PLR0915
+def create_dev_app() -> FastAPI:
     """Development factory function for uvicorn --factory with proper setup.
 
     This replicates the essential setup from main.py but gets configuration

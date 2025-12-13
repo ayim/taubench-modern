@@ -39,8 +39,7 @@ class CortexPlatformParameters(PlatformParameters):
     snowflake_account: str | None = field(
         default=None,
         metadata={
-            "description": "The Snowflake account. If not provided, it will be"
-            "inferred from the environment.",
+            "description": "The Snowflake account. If not provided, it will beinferred from the environment.",
         },
     )
     """The Snowflake account. If not provided,
@@ -146,9 +145,7 @@ class CortexPlatformParameters(PlatformParameters):
         """
         extra = {
             "snowflake_username": self.snowflake_username,
-            "snowflake_password": (
-                self.snowflake_password.get_secret_value() if self.snowflake_password else None
-            ),
+            "snowflake_password": (self.snowflake_password.get_secret_value() if self.snowflake_password else None),
             "snowflake_account": self.snowflake_account,
             "snowflake_host": self.snowflake_host,
             "snowflake_warehouse": self.snowflake_warehouse,

@@ -37,7 +37,7 @@ class PipeSpec:
     pipe_fn: PipeFn
 
 
-async def _main_prompt_pipe(  # noqa: PLR0913
+async def _main_prompt_pipe(
     stream: ResponseStreamPipe,
     message: ThreadMessageWithThreadState,
     state: VioletState,
@@ -55,13 +55,9 @@ async def _main_prompt_pipe(  # noqa: PLR0913
         widget_sinks.append(
             chart_detection_sink(
                 manager=widget_manager,
-                spawn_chart=lambda widget_id, description: widget_tasks.spawn_chart_task(
-                    widget_id, description
-                ),
+                spawn_chart=lambda widget_id, description: widget_tasks.spawn_chart_task(widget_id, description),
                 spawn_buttons=(
-                    lambda widget_id, description: buttons_tasks.spawn_buttons_task(
-                        widget_id, description
-                    )
+                    lambda widget_id, description: buttons_tasks.spawn_buttons_task(widget_id, description)
                     if buttons_tasks
                     else None
                 ),
@@ -92,7 +88,7 @@ WAIT_STRATEGY = wait_random_exponential(
 logger = logging.getLogger(__name__)
 
 
-async def stream_with_retry(  # noqa: PLR0913
+async def stream_with_retry(
     platform: PlatformInterface,
     model: str,
     prompt: Prompt,
@@ -149,10 +145,7 @@ async def stream_with_retry(  # noqa: PLR0913
                     raise
 
                 # If Tenacity won't retry, this is terminal; add stack trace and end timing.
-                should_retry = (
-                    is_transient_stream_error(exc)
-                    and attempt.retry_state.attempt_number < RETRY_ATTEMPTS
-                )
+                should_retry = is_transient_stream_error(exc) and attempt.retry_state.attempt_number < RETRY_ATTEMPTS
                 if not should_retry:
                     logger.error(
                         "%s stream failed on %s/%s: %s",

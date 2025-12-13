@@ -152,7 +152,7 @@ class Agent(TolerantDataclass):
         """Post-initialization checks."""
         assert_literal_value_valid(self, "mode")
 
-    def copy(self, **updates: Any) -> "Agent":  # noqa: C901, PLR0912
+    def copy(self, **updates: Any) -> "Agent":
         """
         Returns a deep copy of the agent, optionally applying updates.
 
@@ -195,16 +195,12 @@ class Agent(TolerantDataclass):
                 elif field_name == "question_groups":
                     constructor_args[field_name] = [group.copy() for group in original_value]
                 elif field_name == "platform_configs":
-                    constructor_args[field_name] = [
-                        config.model_copy() for config in original_value
-                    ]
+                    constructor_args[field_name] = [config.model_copy() for config in original_value]
                 elif field_name == "observability_configs":
                     constructor_args[field_name] = [config.copy() for config in original_value]
                 elif field_name == "selected_tools":
                     constructor_args[field_name] = (
-                        original_value.copy()
-                        if hasattr(original_value, "copy")
-                        else deepcopy(original_value)
+                        original_value.copy() if hasattr(original_value, "copy") else deepcopy(original_value)
                     )
                 elif field_name == "extra":
                     constructor_args[field_name] = deepcopy(original_value)
@@ -217,9 +213,7 @@ class Agent(TolerantDataclass):
     def model_dump(self) -> dict:
         """Serializes the agent to a dictionary. Useful for JSON serialization."""
         return {
-            "action_packages": [
-                action_package.model_dump() for action_package in self.action_packages
-            ],
+            "action_packages": [action_package.model_dump() for action_package in self.action_packages],
             "mcp_servers": [mcp_server.model_dump() for mcp_server in self.mcp_servers],
             "mcp_server_ids": self.mcp_server_ids,
             "selected_tools": self.selected_tools.model_dump()
@@ -231,17 +225,12 @@ class Agent(TolerantDataclass):
             "description": self.description,
             "extra": self.extra,
             "mode": self.mode,
-            "platform_configs": [
-                platform_config.model_dump() for platform_config in self.platform_configs
-            ],
+            "platform_configs": [platform_config.model_dump() for platform_config in self.platform_configs],
             "name": self.name,
             "observability_configs": [
-                observability_config.model_dump()
-                for observability_config in self.observability_configs
+                observability_config.model_dump() for observability_config in self.observability_configs
             ],
-            "question_groups": [
-                question_group.model_dump() for question_group in self.question_groups
-            ],
+            "question_groups": [question_group.model_dump() for question_group in self.question_groups],
             "runbook_structured": self.runbook_structured.model_dump(),
             "agent_id": self.agent_id,
             "updated_at": self.updated_at.isoformat(),
@@ -250,9 +239,7 @@ class Agent(TolerantDataclass):
         }
 
     def get_agent_models(self) -> list[str]:
-        return sorted(
-            {m for cfg in self.platform_configs for m in PlatformParameters.build_model_slugs(cfg)}
-        )
+        return sorted({m for cfg in self.platform_configs for m in PlatformParameters.build_model_slugs(cfg)})
 
     def is_worker_agent(self) -> bool:
         return self.mode == "worker"
@@ -300,12 +287,9 @@ class Agent(TolerantDataclass):
 
         # Parse nested objects
         actions_packages = [
-            ActionPackage.model_validate(action_package)
-            for action_package in data.pop("action_packages", [])
+            ActionPackage.model_validate(action_package) for action_package in data.pop("action_packages", [])
         ]
-        mcp_servers = [
-            MCPServer.model_validate(mcp_server) for mcp_server in data.pop("mcp_servers", [])
-        ]
+        mcp_servers = [MCPServer.model_validate(mcp_server) for mcp_server in data.pop("mcp_servers", [])]
         agent_architecture = AgentArchitecture.model_validate(
             data.pop("agent_architecture", {}),
         )
@@ -316,12 +300,9 @@ class Agent(TolerantDataclass):
         question_groups_raw = data.pop("question_groups", None)
         if question_groups_raw is None:
             question_groups_raw = []
-        question_groups = [
-            QuestionGroup.model_validate(question_group) for question_group in question_groups_raw
-        ]
+        question_groups = [QuestionGroup.model_validate(question_group) for question_group in question_groups_raw]
         platform_configs = [
-            PlatformParameters.model_validate(platform_config)
-            for platform_config in data.pop("platform_configs", [])
+            PlatformParameters.model_validate(platform_config) for platform_config in data.pop("platform_configs", [])
         ]
 
         # Parse selected_tools

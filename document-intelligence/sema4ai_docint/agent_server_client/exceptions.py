@@ -4,8 +4,6 @@
 class AgentServerError(Exception):
     """Base exception class for all agent-server-client errors."""
 
-    pass
-
 
 class DocumentClassificationError(AgentServerError):
     """Raised when a document cannot be classified into any of the available schemas."""

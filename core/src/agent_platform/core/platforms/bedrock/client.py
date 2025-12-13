@@ -108,7 +108,7 @@ class BedrockClient(
             ).__aenter__()
         return self._bedrock_control_plane_client
 
-    async def _get_model_arn_from_local_model_id(self, model_id: str) -> str:  # noqa: C901
+    async def _get_model_arn_from_local_model_id(self, model_id: str) -> str:
         # So bedrock is complex... we need to list _inference profiles_ and
         # try and find a matching one... can fall back to the foundation model
         # listing (but that likely wont work, unless on-demand is enabled)
@@ -218,9 +218,7 @@ class BedrockClient(
 
         try:
             async for event in response["stream"]:
-                async for delta in self._parsers.parse_stream_event(
-                    event, response, message_state, last_msg_state
-                ):
+                async for delta in self._parsers.parse_stream_event(event, response, message_state, last_msg_state):
                     yield delta
                 last_msg_state = deepcopy(message_state)
         except Exception as exc:
@@ -360,7 +358,7 @@ class BedrockClient(
     # Error handling
     # ------------------------------------------------------------------#
 
-    def _handle_bedrock_error(  # noqa: PLR0911
+    def _handle_bedrock_error(
         self,
         error: Exception,
         model: str,

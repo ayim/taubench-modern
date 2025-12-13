@@ -6,7 +6,7 @@ from agent_platform import server
 logger = structlog.get_logger(__name__)
 
 
-def setup_telemetry(agent_trace_dir: Path | None = None):  # noqa: PLR0915
+def setup_telemetry(agent_trace_dir: Path | None = None):
     """Set up OpenTelemetry for the server
 
     This function configures and returns the global tracer and meter providers

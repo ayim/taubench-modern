@@ -27,9 +27,7 @@ SCOPED_AGENT_ID = str(uuid.uuid4())  # Agent with custom retention period
 SYSTEM_AGENT_ID = str(uuid.uuid4())  # Agent owned by system user
 
 # Default retention period from the quota service configuration
-DEFAULT_RETENTION_PERIOD: QuotaConfig = QuotasService.CONFIG_TYPES[
-    QuotasService.AGENT_THREAD_RETENTION_PERIOD_DAYS
-]
+DEFAULT_RETENTION_PERIOD: QuotaConfig = QuotasService.CONFIG_TYPES[QuotasService.AGENT_THREAD_RETENTION_PERIOD_DAYS]
 
 
 @pytest.fixture
@@ -241,9 +239,7 @@ async def test_retention_policy_worker__functional(stale_data_storage, monkeypat
     await retention_policy_worker()
 
     # Get threads for each agent after worker execution to verify results
-    system_agent_threads = await storage.list_threads_for_agent(
-        system_user.user_id, SYSTEM_AGENT_ID
-    )
+    system_agent_threads = await storage.list_threads_for_agent(system_user.user_id, SYSTEM_AGENT_ID)
     user_agent_threads = await storage.list_threads_for_agent(user.user_id, USER_AGENT_ID)
     scoped_agent_threads = await storage.list_threads_for_agent(user.user_id, SCOPED_AGENT_ID)
 
@@ -260,9 +256,7 @@ async def test_retention_policy_worker__functional(stale_data_storage, monkeypat
     remaining_thread = user_agent_threads[0]
 
     # Verify the remaining thread is the newer one
-    assert remaining_thread.name == "Test Agent - BEFORE THRESHOLD", (
-        "Only future thread should remain for user agent"
-    )
+    assert remaining_thread.name == "Test Agent - BEFORE THRESHOLD", "Only future thread should remain for user agent"
 
     # Remove the remaining thread from expected deletions
     del file_rm_args[remaining_thread.thread_id]
@@ -329,9 +323,7 @@ async def test_retention_policy_worker__scoped_agent(stale_data_storage, monkeyp
         await retention_policy_worker()
 
     # Get threads for each agent after worker execution to verify results
-    system_agent_threads = await storage.list_threads_for_agent(
-        system_user.user_id, SYSTEM_AGENT_ID
-    )
+    system_agent_threads = await storage.list_threads_for_agent(system_user.user_id, SYSTEM_AGENT_ID)
     user_agent_threads = await storage.list_threads_for_agent(user.user_id, USER_AGENT_ID)
     scoped_agent_threads = await storage.list_threads_for_agent(user.user_id, SCOPED_AGENT_ID)
 

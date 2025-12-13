@@ -245,10 +245,7 @@ class PostgresStorage(
             if new_max < current_min:
                 raise PlatformHTTPError(
                     error_code=ErrorCode.BAD_REQUEST,
-                    message=(
-                        "Invalid value for POSTGRES_POOL_MAX_SIZE: must be >= "
-                        f"current min_size {current_min}"
-                    ),
+                    message=(f"Invalid value for POSTGRES_POOL_MAX_SIZE: must be >= current min_size {current_min}"),
                     data={
                         "new_value": new_max,
                         "current_min": current_min,

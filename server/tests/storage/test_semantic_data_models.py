@@ -106,9 +106,7 @@ async def check_semantic_data_model_storage_crud(
     await model_creator.storage.delete_semantic_data_model(another_model_id)
 
     # Verify the model was deleted
-    with pytest.raises(
-        PlatformHTTPError, match=f"Semantic data model with ID {another_model_id} not found"
-    ):
+    with pytest.raises(PlatformHTTPError, match=f"Semantic data model with ID {another_model_id} not found"):
         await model_creator.storage.get_semantic_data_model(another_model_id)
 
     # Verify the first model still exists
@@ -150,9 +148,7 @@ async def check_thread_semantic_data_model_storage_crud(
     semantic_data_model_3 = await model_creator.obtain_sample_semantic_data_model("model_3")
 
     # Test initial state - no semantic data models associated
-    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
-        sample_thread.thread_id
-    )
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(sample_thread.thread_id)
     assert model_ids == []
 
     models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
@@ -160,14 +156,10 @@ async def check_thread_semantic_data_model_storage_crud(
 
     # Test setting semantic data models
     initial_model_ids = [semantic_data_model_1, semantic_data_model_2]
-    await model_creator.storage.set_thread_semantic_data_models(
-        sample_thread.thread_id, initial_model_ids
-    )
+    await model_creator.storage.set_thread_semantic_data_models(sample_thread.thread_id, initial_model_ids)
 
     # Verify the models were set
-    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
-        sample_thread.thread_id
-    )
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(sample_thread.thread_id)
     assert set(model_ids) == set(initial_model_ids)
 
     models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
@@ -175,14 +167,10 @@ async def check_thread_semantic_data_model_storage_crud(
 
     # Test replacing models (set_thread_semantic_data_models should replace all existing)
     new_model_ids = [semantic_data_model_2, semantic_data_model_3]
-    await model_creator.storage.set_thread_semantic_data_models(
-        sample_thread.thread_id, new_model_ids
-    )
+    await model_creator.storage.set_thread_semantic_data_models(sample_thread.thread_id, new_model_ids)
 
     # Verify the models were replaced
-    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
-        sample_thread.thread_id
-    )
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(sample_thread.thread_id)
     assert set(model_ids) == set(new_model_ids)
 
     models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
@@ -191,9 +179,7 @@ async def check_thread_semantic_data_model_storage_crud(
     # Test setting empty models list (should remove all associations)
     await model_creator.storage.set_thread_semantic_data_models(sample_thread.thread_id, [])
 
-    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(
-        sample_thread.thread_id
-    )
+    model_ids = await model_creator.storage.get_thread_semantic_data_model_ids(sample_thread.thread_id)
     assert model_ids == []
 
     models = await model_creator.storage.get_thread_semantic_data_models(sample_thread.thread_id)
@@ -233,9 +219,7 @@ async def check_agent_semantic_data_model_storage_crud(
 
     # Test setting semantic data models
     initial_model_ids = [semantic_data_model_1, semantic_data_model_2]
-    await model_creator.storage.set_agent_semantic_data_models(
-        sample_agent.agent_id, initial_model_ids
-    )
+    await model_creator.storage.set_agent_semantic_data_models(sample_agent.agent_id, initial_model_ids)
 
     # Verify the models were set
     model_ids = await model_creator.storage.get_agent_semantic_data_model_ids(sample_agent.agent_id)
@@ -362,12 +346,8 @@ async def check_list_semantic_data_models(
     )
 
     # Associate models with agent and thread
-    await model_creator.storage.set_agent_semantic_data_models(
-        sample_agent.agent_id, [model_id_1, model_id_2]
-    )
-    await model_creator.storage.set_thread_semantic_data_models(
-        sample_thread.thread_id, [model_id_1]
-    )
+    await model_creator.storage.set_agent_semantic_data_models(sample_agent.agent_id, [model_id_1, model_id_2])
+    await model_creator.storage.set_thread_semantic_data_models(sample_thread.thread_id, [model_id_1])
 
     # Test listing all semantic data models
     all_models = await model_creator.storage.list_semantic_data_models()
@@ -393,16 +373,12 @@ async def check_list_semantic_data_models(
     check_models(all_models)
 
     # Test listing semantic data models with agent_id
-    agent_models = await model_creator.storage.list_semantic_data_models(
-        agent_id=sample_agent.agent_id
-    )
+    agent_models = await model_creator.storage.list_semantic_data_models(agent_id=sample_agent.agent_id)
     assert len(agent_models) == 2
     check_models(agent_models)
 
     # Test listing semantic data models with thread_id
-    thread_models = await model_creator.storage.list_semantic_data_models(
-        thread_id=sample_thread.thread_id
-    )
+    thread_models = await model_creator.storage.list_semantic_data_models(thread_id=sample_thread.thread_id)
     assert len(thread_models) == 1
     check_models(thread_models)
 
@@ -543,15 +519,10 @@ async def check_semantic_data_model_metadata(
     )
 
     # Verify model without metadata works fine
-    retrieved_model_no_metadata = await model_creator.storage.get_semantic_data_model(
-        model_id_no_metadata
-    )
+    retrieved_model_no_metadata = await model_creator.storage.get_semantic_data_model(model_id_no_metadata)
     assert retrieved_model_no_metadata is not None
     # Metadata field may or may not be present (both are valid)
-    assert (
-        retrieved_model_no_metadata.get("metadata") is None
-        or "metadata" not in retrieved_model_no_metadata
-    )
+    assert retrieved_model_no_metadata.get("metadata") is None or "metadata" not in retrieved_model_no_metadata
 
 
 @pytest.mark.asyncio

@@ -34,8 +34,7 @@ def validate_config_type(config_type: str) -> None:
         ConfigType(config_type)
     except ValueError:
         raise ValueError(
-            f"Invalid config_type: {config_type}. "
-            f"Must be one of: {sorted(str(item) for item in ConfigType)}"
+            f"Invalid config_type: {config_type}. Must be one of: {sorted(str(item) for item in ConfigType)}"
         ) from None
     # if config_type not in ALL_CONFIG_TYPES:
 

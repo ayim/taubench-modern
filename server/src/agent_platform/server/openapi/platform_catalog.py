@@ -78,9 +78,7 @@ def inject_platform_model_catalog(
     providers_by_platform_value = {
         platform: sorted(providers_by_platform.get(platform, ())) for platform in platform_ids
     }
-    models_by_platform_value = {
-        platform: sorted(models_by_platform.get(platform, ())) for platform in platform_ids
-    }
+    models_by_platform_value = {platform: sorted(models_by_platform.get(platform, ())) for platform in platform_ids}
     models_by_platform_provider_value = {
         platform_provider: sorted(models_by_platform_provider.get(platform_provider, ()))
         for platform_provider in platform_provider_ids
@@ -153,9 +151,7 @@ def inject_platform_model_catalog(
         },
         "required": platform_provider_ids,
         "additionalProperties": False,
-        "description": (
-            "Maps each `<platform>/<provider>` pair to the generic model IDs it offers."
-        ),
+        "description": ("Maps each `<platform>/<provider>` pair to the generic model IDs it offers."),
         "default": models_by_platform_provider_value,
         "examples": [models_by_platform_provider_value],
     }
@@ -186,9 +182,7 @@ def inject_platform_model_catalog(
             },
             "providers_by_platform": {"$ref": ref_template.format(model="PlatformProviders")},
             "models_by_platform": {"$ref": ref_template.format(model="PlatformModelsByPlatform")},
-            "models_by_platform_provider": {
-                "$ref": ref_template.format(model="PlatformModelsByPlatformProvider")
-            },
+            "models_by_platform_provider": {"$ref": ref_template.format(model="PlatformModelsByPlatformProvider")},
         },
         "required": [
             "platforms",
@@ -199,9 +193,7 @@ def inject_platform_model_catalog(
             "models_by_platform_provider",
         ],
         "additionalProperties": False,
-        "description": (
-            "Precomputed lookup tables relating platforms, providers, and generic model IDs."
-        ),
+        "description": ("Precomputed lookup tables relating platforms, providers, and generic model IDs."),
         "default": platform_model_catalog,
         "examples": [platform_model_catalog],
     }

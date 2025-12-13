@@ -306,16 +306,14 @@ async def test_agent_filter_by_user(
     # Create an agent for user A.
     user_a, _ = await storage.get_or_create_user(sub="tenant:testing:user:user_a")
     agent_a = Agent.model_validate(
-        sample_agent.model_dump()
-        | {"agent_id": str(uuid4()), "name": "User A Agent", "user_id": user_a.user_id},
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "User A Agent", "user_id": user_a.user_id},
     )
     await storage.upsert_agent(user_a.user_id, agent_a)
 
     # Create an agent for user B.
     user_b, _ = await storage.get_or_create_user(sub="tenant:testing:user:user_b")
     agent_b = Agent.model_validate(
-        sample_agent.model_dump()
-        | {"agent_id": str(uuid4()), "name": "User B Agent", "user_id": user_b.user_id},
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "User B Agent", "user_id": user_b.user_id},
     )
     await storage.upsert_agent(user_b.user_id, agent_b)
 
@@ -371,9 +369,7 @@ async def test_agent_mcp_server_operations(
 
     # Test 2: MCP server population from different sources
     # Agent with join table associations only
-    agent_join = Agent.model_validate(
-        sample_agent.model_dump() | {"mcp_server_ids": [server_ids[1]]}
-    )
+    agent_join = Agent.model_validate(sample_agent.model_dump() | {"mcp_server_ids": [server_ids[1]]})
     await storage.upsert_agent(sample_user_id, agent_join)
     await storage.associate_mcp_servers_with_agent(agent_join.agent_id, [server_ids[1]])
 
@@ -529,9 +525,7 @@ async def test_agent_platform_params_association(
     assert associated_ids[0] == platform_id_1
 
     # Test 2: Associate with multiple platform_params_ids (should replace existing)
-    await storage.associate_platform_params_with_agent(
-        agent.agent_id, [platform_id_1, platform_id_2]
-    )
+    await storage.associate_platform_params_with_agent(agent.agent_id, [platform_id_1, platform_id_2])
 
     # Verify both associations exist
     associated_ids_after_multiple = await storage.get_agent_platform_params_ids(agent.agent_id)
@@ -577,9 +571,7 @@ async def test_patch_agent(
     # Test that other users cannot patch the agent
     other_user, _ = await storage.get_or_create_user(sub="tenant:testing:user:other")
     with pytest.raises(UserAccessDeniedError):
-        await storage.patch_agent(
-            other_user.user_id, agent.agent_id, "Hacked Name", "Hacked Description"
-        )
+        await storage.patch_agent(other_user.user_id, agent.agent_id, "Hacked Name", "Hacked Description")
 
     # Test that a patch cannot occur if the name is the same
     dup_agent = Agent.model_validate(
@@ -592,9 +584,7 @@ async def test_patch_agent(
     )
     await storage.upsert_agent(owner.user_id, dup_agent)
     with pytest.raises(AgentWithNameAlreadyExistsError):
-        await storage.patch_agent(
-            owner.user_id, agent.agent_id, dup_agent.name, dup_agent.description
-        )
+        await storage.patch_agent(owner.user_id, agent.agent_id, dup_agent.name, dup_agent.description)
 
 
 @pytest.mark.asyncio

@@ -79,8 +79,7 @@ class AgentWorkItemsSummaryResponse(TolerantDataclass):
             agent_id=data["agent_id"],
             agent_name=data["agent_name"],
             work_items_status_counts={
-                WorkItemStatus(status): count
-                for status, count in data["work_items_status_counts"].items()
+                WorkItemStatus(status): count for status, count in data["work_items_status_counts"].items()
             },
         )
 
@@ -89,9 +88,7 @@ class WorkItemTaskStatusResponseItem(BaseModel):
     """Status of task executing a work item."""
 
     task_id: int = Field(..., description="The unique ID of the task executing a work item.")
-    status: Literal["idle", "executing"] = Field(
-        ..., description="The status of the task executing a work item."
-    )
+    status: Literal["idle", "executing"] = Field(..., description="The status of the task executing a work item.")
     work_item_id: str | None = Field(
         default=None,
         description="The ID of the work item being executed by the task, null if the task is idle.",
@@ -165,9 +162,7 @@ async def create_work_item(
         logger.info(f"Work item ID provided: {payload.work_item_id}")
         work_item = await storage.get_work_item(payload.work_item_id)
         if not work_item:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND.value, detail="Work item not found"
-            )
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Work item not found")
         if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST.value,
@@ -178,20 +173,16 @@ async def create_work_item(
         payload.callbacks = await _validate_callbacks(payload.callbacks)
         work_item.callbacks = payload.callbacks
         work_item.payload = payload.payload
-        work_item.work_item_name = WorkItem.normalize_work_item_name(
-            payload.work_item_name
-        ) or WorkItem.default_name(work_item.work_item_id)
+        work_item.work_item_name = WorkItem.normalize_work_item_name(payload.work_item_name) or WorkItem.default_name(
+            work_item.work_item_id
+        )
 
         # set agent ID as it wouldn't have been set before.
         work_item.agent_id = payload.agent_id
         # Set the initial messages and messages to the user-provided list of messages.
         # Messages for work-items files are added after the work-item moves to EXECUTING.
-        work_item.initial_messages = [
-            ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages
-        ]
-        work_item.messages = [
-            ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages
-        ]
+        work_item.initial_messages = [ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages]
+        work_item.messages = [ThreadMessage.model_validate(msg.model_dump()) for msg in payload.messages]
 
         await storage.update_work_item(work_item)
         # set work item status to pending
@@ -232,9 +223,7 @@ async def get_work_item(
     work_item = await storage.get_work_item(work_item_id)
     if not include_results:
         work_item.messages = []
-    work_item.work_item_url = (
-        _build_work_item_url(work_item) if work_item.thread_id and work_item.agent_id else None
-    )
+    work_item.work_item_url = _build_work_item_url(work_item) if work_item.thread_id and work_item.agent_id else None
     return work_item
 
 
@@ -254,8 +243,7 @@ async def confirm_file(
     if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
         raise PlatformHTTPError(
             ErrorCode.BAD_REQUEST,
-            f"Files can only be attached to work-items in the DRAFT state."
-            f" Currently in {work_item.status}",
+            f"Files can only be attached to work-items in the DRAFT state. Currently in {work_item.status}",
         )
 
     # Check for duplicate file names
@@ -269,9 +257,7 @@ async def confirm_file(
             )
 
     # 2. Call file_manager.confirm_remote_file_upload
-    await file_manager.confirm_remote_file_upload(
-        owner=work_item, file_ref=payload.file_ref, file_id=payload.file_id
-    )
+    await file_manager.confirm_remote_file_upload(owner=work_item, file_ref=payload.file_ref, file_id=payload.file_id)
 
     # 3. Return the work_item_id
     return {"work_item_id": work_item_id}
@@ -299,8 +285,7 @@ async def upload_work_item_file(
             if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
                 raise PlatformHTTPError(
                     ErrorCode.BAD_REQUEST,
-                    f"Files can only be attached to work-items in the DRAFT state."
-                    f" Currently in {work_item.status}",
+                    f"Files can only be attached to work-items in the DRAFT state. Currently in {work_item.status}",
                 )
 
         # Request remote file upload from file manager
@@ -323,8 +308,7 @@ async def upload_work_item_file(
         if work_item.status not in (WorkItemStatus.PRECREATED, WorkItemStatus.DRAFT):
             raise PlatformHTTPError(
                 ErrorCode.BAD_REQUEST,
-                f"Files can only be attached to work-items in the DRAFT state."
-                f" Currently in {work_item.status}",
+                f"Files can only be attached to work-items in the DRAFT state. Currently in {work_item.status}",
             )
         logger.info(f"Work item ID from work item: {work_item.work_item_id}")
     else:
@@ -334,9 +318,7 @@ async def upload_work_item_file(
 
     # A real user uploads the file, but we store it in the file_owners table as the system_user.
     system_user, _created = await storage.get_or_create_user(WORK_ITEMS_SYSTEM_USER_SUB)
-    logger.info(
-        f"Uploading files to work item {work_item.work_item_id} on behalf of user {user.user_id}"
-    )
+    logger.info(f"Uploading files to work item {work_item.work_item_id} on behalf of user {user.user_id}")
     existing_files = await storage.get_workitem_files(work_item.work_item_id, system_user.user_id)
     for f in existing_files:
         if f.file_ref == file.filename:
@@ -352,7 +334,7 @@ async def upload_work_item_file(
     }
 
 
-async def list_work_items(  # noqa: PLR0913
+async def list_work_items(
     user: AuthedUser,
     storage: StorageDependency,
     agent_id: str | None = None,

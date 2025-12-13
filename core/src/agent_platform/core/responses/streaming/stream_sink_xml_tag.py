@@ -142,7 +142,7 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
 
     # ------------------------- construction -----------------------------
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         tag: str,
         *,
@@ -176,9 +176,7 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
         self._finished: bool = False
 
         # --- caller options ---
-        self._expected_next_open_seq: Final[str | None] = (
-            f"<{expected_next_tag}>" if expected_next_tag else None
-        )
+        self._expected_next_open_seq: Final[str | None] = f"<{expected_next_tag}>" if expected_next_tag else None
         self._expected_prev_close_seq: Final[str | None] = (
             f"</{expected_preceding_tag}>" if expected_preceding_tag else None
         )
@@ -248,7 +246,7 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
         self._content_parts.clear()
         self._pending_close = ""
 
-    async def _process_delta(self, delta: str) -> None:  # noqa: C901 PLR0912 PLR0915
+    async def _process_delta(self, delta: str) -> None:
         if self._pending_open:
             delta = self._pending_open + delta
             self._pending_open = ""
@@ -328,9 +326,7 @@ class XmlTagResponseStreamSink(NoOpResponseStreamSink):
 
                 # 1) not enough bytes to decide: when *remain* is
                 # a *prefix* of the expected open seq
-                if len(remain) < len(
-                    self._expected_next_open_seq
-                ) and self._expected_next_open_seq.startswith(remain):
+                if len(remain) < len(self._expected_next_open_seq) and self._expected_next_open_seq.startswith(remain):
                     # keep undecided slice & wait for more data
                     self._pending_close = before_close + self._close_seq + after_close
                     self._buffer = ""

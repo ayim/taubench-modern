@@ -403,9 +403,7 @@ class TestCreateAgentFromPackage:
         # Execute deploy handler
         from agent_platform.server.api.private_v2.package import deploy_agent_from_package
 
-        result = await deploy_agent_from_package(
-            user=mock_user, request=request, storage=mock_storage, _=None
-        )
+        result = await deploy_agent_from_package(user=mock_user, request=request, storage=mock_storage, _=None)
 
         assert isinstance(result, AgentCompat)
         created_agent = mock_storage.upsert_agent.call_args[0][1]
@@ -461,9 +459,7 @@ class TestCreateAgentFromPackage:
                     }
                 ]
             ),
-            "action_servers": json.dumps(
-                [{"url": "https://actions.example.com", "api_key": "act"}]
-            ),
+            "action_servers": json.dumps([{"url": "https://actions.example.com", "api_key": "act"}]),
             "langsmith": json.dumps(
                 {
                     "api_key": "ls",
@@ -476,9 +472,7 @@ class TestCreateAgentFromPackage:
 
         # Compose raw multipart payload
         def part(name: str, value: str) -> bytes:
-            return (
-                f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'
-            ).encode()
+            return (f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n').encode()
 
         body = b"".join(part(k, v) for k, v in fields.items()) + f"--{boundary}--\r\n".encode()
 
@@ -501,9 +495,7 @@ class TestCreateAgentFromPackage:
         # Execute deploy handler
         from agent_platform.server.api.private_v2.package import deploy_agent_from_package
 
-        result = await deploy_agent_from_package(
-            user=mock_user, request=request, storage=mock_storage, _=None
-        )
+        result = await deploy_agent_from_package(user=mock_user, request=request, storage=mock_storage, _=None)
 
         assert isinstance(result, AgentCompat)
         created_agent = mock_storage.upsert_agent.call_args[0][1]
@@ -826,10 +818,8 @@ class TestCreateAgentFromPackage:
         mock_storage.upsert_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
-    async def test_create_agent_from_package_url_success(  # noqa: PLR0913
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    async def test_create_agent_from_package_url_success(
         self,
         mock_read_package_bytes,
         mock_user,
@@ -866,10 +856,8 @@ class TestCreateAgentFromPackage:
         )
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
-    async def test_create_agent_from_package_base64_success(  # noqa: PLR0913
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    async def test_create_agent_from_package_base64_success(
         self,
         mock_read_package_bytes,
         mock_user,
@@ -905,9 +893,7 @@ class TestCreateAgentFromPackage:
         )
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_create_agent_from_package_with_action_servers(
         self,
         mock_read_package_bytes,
@@ -965,9 +951,7 @@ class TestCreateAgentFromPackage:
         assert isinstance(action_package.api_key, SecretString)
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_create_agent_from_package_with_langsmith(
         self,
         mock_read_package_bytes,
@@ -1016,9 +1000,7 @@ class TestCreateAgentFromPackage:
         assert as_legacy.advanced_config["langsmith"]["api_key"] == "langsmith-123"
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_create_agent_package_extraction_error(
         self,
         mock_read_package_bytes,
@@ -1084,10 +1066,8 @@ class TestUpdateAgentFromPackage:
         assert created_agent.agent_id == aid
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
-    async def test_update_agent_from_package_success(  # noqa: PLR0913
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    async def test_update_agent_from_package_success(
         self,
         mock_read_package_bytes,
         mock_user,
@@ -1130,11 +1110,9 @@ class TestCreateOrUpdateAgentFromPackageHelper:
     """Test cases for the _create_or_update_agent_from_package helper function."""
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     @patch("agent_platform.server.api.private_v2.package.ToolDefinitionCache")
-    async def test_tools_cache_cleared(  # noqa: PLR0913
+    async def test_tools_cache_cleared(
         self,
         mock_cache_class,
         mock_read_package_bytes,
@@ -1171,9 +1149,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         mock_cache_instance.clear_for_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_complex_agent_spec_processing(
         self,
         mock_read_package_bytes,
@@ -1260,10 +1236,8 @@ class TestCreateOrUpdateAgentFromPackageHelper:
             assert action_package.api_key.get_secret_value() == "complex-key-123"
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
-    async def test_agent_architecture_mapping(  # noqa: PLR0913
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    async def test_agent_architecture_mapping(
         self,
         mock_read_package_bytes,
         mock_user,
@@ -1300,9 +1274,7 @@ class TestConversationFields:
     """Test cases for conversation-related fields in agent specifications."""
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_agent_spec_with_conversation_fields(
         self,
         mock_read_package_bytes,
@@ -1330,8 +1302,7 @@ class TestConversationFields:
                             "conversation-guide": "conversation-guide.yaml",
                             "conversation-starter": "Hello! I'm ready to help you with your tasks. "
                             "What can I do for you today?",
-                            "welcome-message": "Welcome! I'm here to assist you. "
-                            "Let me know how I can help.",
+                            "welcome-message": "Welcome! I'm here to assist you. Let me know how I can help.",
                             "agent-settings": {
                                 "max_iterations": 10,
                                 "temperature": 0.7,
@@ -1350,8 +1321,7 @@ class TestConversationFields:
                     ],
                 }
             },
-            "runbook_text": "# Conversation Agent\n"
-            "You are a helpful assistant with conversation capabilities.",
+            "runbook_text": "# Conversation Agent\nYou are a helpful assistant with conversation capabilities.",
         }
 
         payload = AgentPackagePayload(
@@ -1415,9 +1385,7 @@ class TestConversationFields:
         assert created_agent.extra["agent_settings"] == expected_settings
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_agent_spec_with_minimal_conversation_fields(
         self,
         mock_read_package_bytes,
@@ -1504,9 +1472,7 @@ class TestConversationFields:
         assert created_agent.question_groups == []
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_agent_spec_with_complex_agent_settings(
         self,
         mock_read_package_bytes,
@@ -1661,9 +1627,7 @@ class TestConversationFields:
         assert created_agent.extra["agent_settings"] == expected_complex_settings
 
     @pytest.mark.asyncio
-    @patch(
-        "agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock
-    )
+    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
     async def test_agent_spec_with_conversation_guide_question_groups(
         self,
         mock_read_package_bytes,
@@ -1764,9 +1728,7 @@ class TestConversationFields:
         created_agent = call_args[1]
 
         # Check conversation-starter and welcome-message
-        assert (
-            created_agent.extra["conversation_starter"] == "Hello! I can help with various tasks."
-        )
+        assert created_agent.extra["conversation_starter"] == "Hello! I can help with various tasks."
         assert created_agent.extra["welcome_message"] == "Welcome! Ask me anything."
 
         # Check that question_groups from conversation guide are properly stored

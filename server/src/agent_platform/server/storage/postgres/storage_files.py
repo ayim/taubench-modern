@@ -299,7 +299,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
         self._logger.debug("File by ID result", found=ret is not None)
         return ret
 
-    async def _get_file_for_deletion(  # noqa: PLR0913
+    async def _get_file_for_deletion(
         self,
         cur,
         file_id: str,
@@ -426,7 +426,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             self._logger.debug(f"Deleting scenario file {file.file_id}")
             await self.delete_file(scenario, file.file_id, user_id)
 
-    async def put_file_owner(  # noqa: PLR0913
+    async def put_file_owner(
         self,
         file_id: str,
         file_path: str | None,
@@ -541,9 +541,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                     file_dict,
                 )
             except UniqueViolation as e:
-                self._logger.warning(
-                    "Insert failed due to unique constraint violation", file_ref=file_ref
-                )
+                self._logger.warning("Insert failed due to unique constraint violation", file_ref=file_ref)
 
                 # Rollback to the savepoint so we can continue using this transaction
                 await cur.execute("ROLLBACK TO SAVEPOINT savepoint1")

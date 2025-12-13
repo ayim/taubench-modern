@@ -88,9 +88,7 @@ class TestAsyncIbisConnection:
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             await async_conn.create_table("new_table", mock_obj)
 
-            mock_to_thread.assert_called_once_with(
-                mock_ibis_connection.create_table, "new_table", mock_obj
-            )
+            mock_to_thread.assert_called_once_with(mock_ibis_connection.create_table, "new_table", mock_obj)
 
     @pytest.mark.asyncio
     async def test_get_current_schema(self, mock_ibis_connection):

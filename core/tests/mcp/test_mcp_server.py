@@ -137,9 +137,7 @@ def test_mcp_server_env_handling():
 
     # Test with populated env dict
     test_env3: dict[str, MCPUnionOfVariableTypes] = {
-        "VAR1": MCPVariableTypeOAuth2Secret(
-            scopes=["user.read"], provider="Github", description="this"
-        ),
+        "VAR1": MCPVariableTypeOAuth2Secret(scopes=["user.read"], provider="Github", description="this"),
         "VAR2": "value2",
     }
     srv3 = MCPServer(name="test3", command="python", env=test_env3)
@@ -189,9 +187,7 @@ def test_mcp_server_env_handling():
 def test_mcp_server_cache_key_includes_env():
     """Test that cache key includes environment variables for stdio servers."""
     # Two servers with same command/args but different env should have different cache keys
-    srv1 = MCPServer(
-        name="test1", command="python", args=["-c", "print('hello')"], env={"VAR1": "value1"}
-    )
+    srv1 = MCPServer(name="test1", command="python", args=["-c", "print('hello')"], env={"VAR1": "value1"})
 
     srv2 = MCPServer(
         name="test2",
@@ -246,9 +242,7 @@ def test_mcp_server_model_dump_and_validate_roundtrip():
         "KEY_WITH_VALUE": "value",
         "KEY_STRING_OBJECT": MCPVariableTypeString(value="v", description="desc"),
         "KEY_SECRET_OBJECT": MCPVariableTypeSecret(description="sdesc"),
-        "KEY_OAUTH2_OBJECT": MCPVariableTypeOAuth2Secret(
-            scopes=["scope1"], provider="prov", description="odesc"
-        ),
+        "KEY_OAUTH2_OBJECT": MCPVariableTypeOAuth2Secret(scopes=["scope1"], provider="prov", description="odesc"),
         "KEY_DATA_OBJECT": MCPVariableTypeDataServerInfo(),
     }
 

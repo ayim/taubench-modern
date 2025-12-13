@@ -26,9 +26,7 @@ async def sample_user_id(storage: "SQLiteStorage | PostgresStorage") -> str:
 
 
 @pytest.fixture
-async def sample_mcp_url(
-    storage: "SQLiteStorage | PostgresStorage", sample_user_id: str
-) -> AsyncGenerator[str, None]:
+async def sample_mcp_url(storage: "SQLiteStorage | PostgresStorage", sample_user_id: str) -> AsyncGenerator[str, None]:
     from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 
     mcp_url = "https://example.com/mcp"
@@ -59,13 +57,9 @@ async def test_oauth_token_save_and_retrieve(
         refresh_token="test_refresh_token_456",
     )
 
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token)
 
-    retrieved_token = await storage.get_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
-    )
+    retrieved_token = await storage.get_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True)
     assert retrieved_token is not None
     assert retrieved_token.access_token == "test_access_token_123"
     assert retrieved_token.token_type == "Bearer"
@@ -90,13 +84,9 @@ async def test_oauth_token_ttl_recalculation(
         refresh_token="test_refresh_token_456",
     )
 
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token)
 
-    retrieved_token = await storage.get_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
-    )
+    retrieved_token = await storage.get_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True)
     assert retrieved_token is not None
     assert retrieved_token.expires_in is not None
 
@@ -106,9 +96,7 @@ async def test_oauth_token_ttl_recalculation(
     )
     assert retrieved_token_after_wait is not None
     assert retrieved_token_after_wait.expires_in is not None
-    assert (
-        retrieved_token.expires_in - retrieved_token_after_wait.expires_in
-    ) >= 1  # At least 1 second difference
+    assert (retrieved_token.expires_in - retrieved_token_after_wait.expires_in) >= 1  # At least 1 second difference
 
 
 @pytest.mark.asyncio
@@ -125,9 +113,7 @@ async def test_oauth_token_update(
         scope="read write",
         refresh_token="test_refresh_token_456",
     )
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token)
 
     updated_token = OAuthToken(
         access_token="new_access_token_789",
@@ -136,13 +122,9 @@ async def test_oauth_token_update(
         scope="read",
         refresh_token="new_refresh_token_012",
     )
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=updated_token
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=updated_token)
 
-    retrieved_updated = await storage.get_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
-    )
+    retrieved_updated = await storage.get_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True)
     assert retrieved_updated is not None
     assert retrieved_updated.access_token == "new_access_token_789"
     assert retrieved_updated.expires_in is not None
@@ -168,9 +150,7 @@ async def test_oauth_client_info_save_and_retrieve(
         client_name="Test OAuth Client",
     )
 
-    await storage.set_mcp_oauth_client_info(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, client_info=client_info
-    )
+    await storage.set_mcp_oauth_client_info(user_id=sample_user_id, mcp_url=sample_mcp_url, client_info=client_info)
 
     retrieved_client_info = await storage.get_mcp_oauth_client_info(
         user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
@@ -199,9 +179,7 @@ async def test_oauth_token_without_expires_in(
         expires_in=None,
         refresh_token="refresh_no_expiry",
     )
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=token_no_expiry
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=token_no_expiry)
 
     retrieved_no_expiry = await storage.get_mcp_oauth_token(
         user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
@@ -222,9 +200,7 @@ async def test_oauth_token_without_refresh_token(
         token_type="Bearer",
         expires_in=1800,
     )
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=token_no_refresh
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=token_no_refresh)
 
     retrieved_no_refresh = await storage.get_mcp_oauth_token(
         user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
@@ -246,14 +222,10 @@ async def test_oauth_token_deletion(
         expires_in=3600,
         refresh_token="test_refresh_token_456",
     )
-    await storage.set_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token
-    )
+    await storage.set_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, token=initial_token)
 
     await storage.delete_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url)
-    deleted_token = await storage.get_mcp_oauth_token(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=False
-    )
+    deleted_token = await storage.get_mcp_oauth_token(user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=False)
     assert deleted_token is None
 
 
@@ -275,9 +247,7 @@ async def test_oauth_client_info_deletion(
         scope="read",
         client_name="Test OAuth Client",
     )
-    await storage.set_mcp_oauth_client_info(
-        user_id=sample_user_id, mcp_url=sample_mcp_url, client_info=client_info
-    )
+    await storage.set_mcp_oauth_client_info(user_id=sample_user_id, mcp_url=sample_mcp_url, client_info=client_info)
 
     await storage.delete_mcp_oauth_client_info(user_id=sample_user_id, mcp_url=sample_mcp_url)
     deleted_client_info = await storage.get_mcp_oauth_client_info(

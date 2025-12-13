@@ -52,9 +52,7 @@ class AESGCM2:
         ciphertext, tag = ct_and_tag[: -self.TAG_SIZE], ct_and_tag[-self.TAG_SIZE :]
         return EncryptionResult(nonce=nonce, ciphertext=ciphertext, tag=tag)
 
-    def decrypt(
-        self, nonce: bytes, ciphertext: bytes, tag: bytes, associated_data: bytes | None = None
-    ) -> bytes:
+    def decrypt(self, nonce: bytes, ciphertext: bytes, tag: bytes, associated_data: bytes | None = None) -> bytes:
         """
         Decrypts and verifies AES-GCM ciphertext.
 
@@ -68,9 +66,7 @@ class AESGCM2:
         """
         # Validate nonce length (must be 12 bytes for GCM)
         if len(nonce) != self.NONCE_SIZE:
-            raise ValueError(
-                f"Nonce must be exactly {self.NONCE_SIZE} bytes long, but got {len(nonce)}"
-            )
+            raise ValueError(f"Nonce must be exactly {self.NONCE_SIZE} bytes long, but got {len(nonce)}")
 
         # Validate tag length (must be 16 bytes for GCM)
         if len(tag) != self.TAG_SIZE:

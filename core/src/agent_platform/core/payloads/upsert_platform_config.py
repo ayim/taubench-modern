@@ -34,9 +34,7 @@ class UpsertPlatformConfigPayload:
     models: dict[str, list[str]] | None = field(
         default=None,
         metadata={
-            "description": (
-                "Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3-high']})"
-            ),
+            "description": ("Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3-high']})"),
         },
     )
     """Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3-high']})"""
@@ -85,17 +83,14 @@ class UpsertPlatformConfigPayload:
                     message=(
                         "Invalid platform parameters kind. "
                         f"Provided: {self.kind!r}. "
-                        "Must be one of: "
-                        + ", ".join(PlatformParameters._platform_parameters_registry.keys())
+                        "Must be one of: " + ", ".join(PlatformParameters._platform_parameters_registry.keys())
                     ),
                     data={"kind": self.kind},
                 ) from e
             raise e
 
     @classmethod
-    def from_platform_parameters(
-        cls, platform_params: PlatformParameters, config_id: str | None = None
-    ) -> Self:
+    def from_platform_parameters(cls, platform_params: PlatformParameters, config_id: str | None = None) -> Self:
         """Create a payload from PlatformParameters.
 
         Args:
@@ -152,14 +147,10 @@ class UpsertPlatformConfigPayload:
         credentials_value = data.get("credentials")
         if credentials_value is not None and isinstance(credentials_value, dict):
             empty_credential_keys = [
-                key
-                for key, value in credentials_value.items()
-                if isinstance(value, str) and value.strip() == ""
+                key for key, value in credentials_value.items() if isinstance(value, str) and value.strip() == ""
             ]
             if empty_credential_keys:
-                validation_errors["credentials"] = (
-                    f"empty values for: {', '.join(sorted(empty_credential_keys))}"
-                )
+                validation_errors["credentials"] = f"empty values for: {', '.join(sorted(empty_credential_keys))}"
 
         if validation_errors:
             raise PlatformHTTPError(

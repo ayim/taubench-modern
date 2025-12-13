@@ -17,9 +17,7 @@ class UploadFilePayload:
     embedded: bool | None = field(
         default=None,
         metadata={
-            "description": (
-                "Whether the file is embedded. If None, it will be inferred from file type."
-            ),
+            "description": ("Whether the file is embedded. If None, it will be inferred from file type."),
         },
     )
     """Whether the file is embedded. If None, it will be inferred from file type."""

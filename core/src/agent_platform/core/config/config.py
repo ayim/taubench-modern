@@ -14,9 +14,7 @@ class Config:
 
     id: str = field(metadata={"description": "The id of the config, Primary key"})
     config_type: ConfigType = field(metadata={"description": "The config type of this row"})
-    namespace: str = field(
-        metadata={"description": 'The namespace of the config. Defaults to "global"'}
-    )
+    namespace: str = field(metadata={"description": 'The namespace of the config. Defaults to "global"'})
     config_value: Any = field(metadata={"description": "The config value of the config type"})
     updated_at: datetime = field(metadata={"description": "The last update time of the config"})
 

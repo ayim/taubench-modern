@@ -40,9 +40,7 @@ class ConsistencyArchState(aa.StateBase):
     current_iteration: int = 0
     """The current iteration number within the active plan step's execution loop."""
 
-    processing_start_time: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
-    )
+    processing_start_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds"))
     """Timestamp (ISO 8601) when the current processing turn began."""
 
     processing_elapsed_time: str = "0.00 seconds"

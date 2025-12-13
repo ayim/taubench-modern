@@ -40,7 +40,6 @@ class HTTPHandlerForTests(BaseHTTPRequestHandler):
 
     def log_message(self, format_str, *args):
         """Suppress HTTP server logs during testing."""
-        pass
 
     def do_POST(self):
         """Handle POST requests to /upload endpoint."""

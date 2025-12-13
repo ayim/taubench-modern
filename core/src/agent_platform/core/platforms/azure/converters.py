@@ -11,5 +11,3 @@ class AzureOpenAIConverters(OpenAIConverters):
 
     Nothing need (at the moment) to be done here, just inherit from OpenAIConverters.
     """
-
-    pass

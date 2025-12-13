@@ -223,9 +223,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 logger.warning(f"Unknown SQL generation mode: {mode}, defaulting to legacy")
             return LegacySqlStrategy(data_frame_tools=data_frame_tools)
 
-    async def step_initialize(
-        self, *, storage: BaseStorage | None = None, state: DataFrameArchState
-    ) -> None:
+    async def step_initialize(self, *, storage: BaseStorage | None = None, state: DataFrameArchState) -> None:
         from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
         from agent_platform.server.data_frames.semantic_data_model_collector import (
             SemanticDataModelCollector,
@@ -242,9 +240,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         try:
             storage = StorageService.get_instance() if storage is None else storage
-            data_frames = tuple(
-                await storage.list_data_frames(thread_id=self.kernel.thread.thread_id)
-            )
+            data_frames = tuple(await storage.list_data_frames(thread_id=self.kernel.thread.thread_id))
         except Exception:
             logger.exception("Error getting data frames")
             data_frames = ()
@@ -265,14 +261,10 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         # Collect verified queries from semantic data models
         self._verified_queries = {}
         for semantic_data_model_and_refs in self._semantic_data_models:
-            all_data_connection_ids.update(
-                semantic_data_model_and_refs.references.data_connection_ids
-            )
+            all_data_connection_ids.update(semantic_data_model_and_refs.references.data_connection_ids)
 
             # Extract verified queries from this semantic data model
-            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
             verified_queries = semantic_data_model.get("verified_queries")
             if verified_queries:
                 for verified_query in verified_queries:
@@ -280,9 +272,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                         query_name = verified_query.get("name")
                         sql_query = verified_query.get("sql")
                         if query_name and sql_query:
-                            self._verified_queries[query_name] = typing.cast(
-                                VerifiedQuery, verified_query
-                            )
+                            self._verified_queries[query_name] = typing.cast(VerifiedQuery, verified_query)
 
         if all_data_connection_ids:
             data_connections = await storage.get_data_connections(list(all_data_connection_ids))
@@ -315,12 +305,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     data_frame_tools.create_data_frame_from_json,
                     name=DF_CREATE_FROM_JSON_TOOL_NAME,
                 ),
-                ToolDefinition.from_callable(
-                    data_frame_tools.delete_data_frame, name=DF_DELETE_TOOL_NAME
-                ),
-                ToolDefinition.from_callable(
-                    data_frame_tools.data_frame_slice, name=DF_SLICE_TOOL_NAME
-                ),
+                ToolDefinition.from_callable(data_frame_tools.delete_data_frame, name=DF_DELETE_TOOL_NAME),
+                ToolDefinition.from_callable(data_frame_tools.data_frame_slice, name=DF_SLICE_TOOL_NAME),
             ]
 
             # Add tool for verified queries if any exist
@@ -362,9 +348,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         # Add SQL generation tools (if there are data frames, semantic data models, or state is enabled)
         # SQL can be used to query both data frames and semantic data models
         # Once enabled, keep SQL tools available even if data frames are temporarily cleared
-        if self._sql_strategy and (
-            data_frames or previous_state == "enabled" or self._semantic_data_models
-        ):
+        if self._sql_strategy and (data_frames or previous_state == "enabled" or self._semantic_data_models):
             sql_tools = self._sql_strategy.get_tools()
             if sql_tools:
                 self._data_frame_tools += sql_tools
@@ -458,12 +442,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
         for semantic_data_model_and_refs in self._semantic_data_models:
             try:
-                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info[
-                    "semantic_data_model"
-                ]
-                new_model: SemanticDataModel = typing.cast(
-                    SemanticDataModel, {x: y for x, y in model.items() if y}
-                )
+                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
+                new_model: SemanticDataModel = typing.cast(SemanticDataModel, {x: y for x, y in model.items() if y})
 
                 tables = new_model.get("tables", [])
                 if not tables:
@@ -495,8 +475,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
         if data_connection_ids:
             engines = {
-                self._data_connection_id_to_engine.get(data_connection_id)
-                for data_connection_id in data_connection_ids
+                self._data_connection_id_to_engine.get(data_connection_id) for data_connection_id in data_connection_ids
             }
             engines.discard(None)
             if len(engines) == 1:
@@ -605,8 +584,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     )
                 ],
                 "data_connection_id_to_logical_table_names": {
-                    key: sorted(value)
-                    for key, value in references.data_connection_id_to_logical_table_names.items()
+                    key: sorted(value) for key, value in references.data_connection_id_to_logical_table_names.items()
                 },
                 "file_reference_to_logical_table_names": [
                     {
@@ -728,9 +706,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                             description=description,
                         )
                         data_frame_summary = self._data_frame_summary(data_frame)
-                        logger.info(
-                            f"Automatically created data frame {name} from {tool_def.name}."
-                        )
+                        logger.info(f"Automatically created data frame {name} from {tool_def.name}.")
                         msg = f"Data frame {name} created from {tool_def.name}.\nDetails: "
                         msg += data_frame_summary
 
@@ -743,10 +719,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             return result_output  # Nothing changed
         except Exception:
-            logger.exception(
-                f"Error auto creating data frame from {tool_def.name} with result output"
-                f" {result_output}"
-            )
+            logger.exception(f"Error auto creating data frame from {tool_def.name} with result output {result_output}")
 
             return result_output
 
@@ -815,9 +788,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                             """).strip()
                 else:
                     # Multiple sheets found - ask LLM to show options
-                    sheet_names = [
-                        inspected_data_frame.sheet_name for inspected_data_frame in found
-                    ]
+                    sheet_names = [inspected_data_frame.sheet_name for inspected_data_frame in found]
 
                     if is_work_item_attachment:
                         return dedent(f"""
@@ -877,9 +848,7 @@ class _DataFrameTools:
         thread_state: ThreadStateInterface | None = None,
         verified_queries: dict[str, VerifiedQuery] | None = None,
     ):
-        assert isinstance(name_to_data_frame, dict), (
-            f"Expected a dict, got {type(name_to_data_frame)}"
-        )
+        assert isinstance(name_to_data_frame, dict), f"Expected a dict, got {type(name_to_data_frame)}"
         self._user = user
         self._tid = tid
         self._name_to_data_frame = name_to_data_frame
@@ -1004,9 +973,7 @@ class _DataFrameTools:
         # If no jq_expression provided, use identity transform to pass through the data
         effective_jq_expression = jq_expression if jq_expression is not None else "."
 
-        transform_result = await self._transform_json(
-            tool_call_ref_or_json_data, effective_jq_expression
-        )
+        transform_result = await self._transform_json(tool_call_ref_or_json_data, effective_jq_expression)
 
         if "error_code" in transform_result:
             return transform_result
@@ -1152,10 +1119,7 @@ class _DataFrameTools:
             logger.exception(f"Error deleting data frame {data_frame_name} in thread {self._tid}")
             return {
                 "error_code": "unable_to_delete_data_frame",
-                "message": (
-                    f"Unable to delete data frame {data_frame_name!r} in thread {self._tid}. "
-                    f"Error: {e!r}"
-                ),
+                "message": (f"Unable to delete data frame {data_frame_name!r} in thread {self._tid}. Error: {e!r}"),
             }
 
         return {"result": f"Data frame {data_frame_name!r} deleted"}
@@ -1163,9 +1127,7 @@ class _DataFrameTools:
     async def data_frame_slice(
         self,
         data_frame_name: Annotated[str, "The name of the existing data frame to slice."],
-        offset: Annotated[
-            int, "From which row it should start to collect samples (starts at 0)"
-        ] = 0,
+        offset: Annotated[int, "From which row it should start to collect samples (starts at 0)"] = 0,
         limit: Annotated[int, "The number of rows to sample (max 500)"] = 10,
         column_names: Annotated[list[str] | None, "The column names to include."] = None,
         order_by: Annotated[str | None, "The column name to order by."] = None,
@@ -1334,15 +1296,10 @@ class _DataFrameTools:
         associated with this thread or agent.
         """
         if verified_query_name not in self._verified_queries:
-            available_queries = (
-                ", ".join(sorted(self._verified_queries.keys()))
-                if self._verified_queries
-                else "none"
-            )
+            available_queries = ", ".join(sorted(self._verified_queries.keys())) if self._verified_queries else "none"
             return {
                 "error": (
-                    f"Verified query '{verified_query_name}' not found. "
-                    f"Available verified queries: {available_queries}"
+                    f"Verified query '{verified_query_name}' not found. Available verified queries: {available_queries}"
                 ),
             }
 

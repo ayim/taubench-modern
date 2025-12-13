@@ -41,9 +41,7 @@ class PromptThread(Prompt):
                 else:
                     raise ValueError("No response message available for retry")
 
-    def append_response_and_error(
-        self, response: ResponseMessage, improvement_request: str
-    ) -> None:
+    def append_response_and_error(self, response: ResponseMessage, improvement_request: str) -> None:
         """Append the response and error to the prompt.
 
         We convert the response from the LLM to a PromptMessage so it can learn from it's mistake,
@@ -101,7 +99,7 @@ def _get_data_connection_table_names(semantic_model: SemanticDataModel) -> set[s
     return data_connection_tables
 
 
-def create_enhancement_prompt(  # noqa: PLR0913
+def create_enhancement_prompt(
     semantic_model: SemanticDataModel,
     mode: EnhancementMode,
     tables_to_enhance: set[str] | None = None,
@@ -173,7 +171,7 @@ def create_enhancement_prompt(  # noqa: PLR0913
     return prompt  # type: ignore[return-value]
 
 
-def create_quality_check_prompt(  # noqa: PLR0913
+def create_quality_check_prompt(
     enhanced_model: SemanticDataModel,
     *,
     mode: EnhancementMode = "full",

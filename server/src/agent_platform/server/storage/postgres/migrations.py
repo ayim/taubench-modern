@@ -57,9 +57,7 @@ class PostgresMigrations(MigrationsProvider):
         self._cursor = cursor_provider
         self._logger = get_logger(__name__)
         self._timeout = timeout
-        self._migrations_path = (
-            migrations_path if migrations_path is not None else self._get_migrations_path()
-        )
+        self._migrations_path = migrations_path if migrations_path is not None else self._get_migrations_path()
 
     def _get_migrations_path(self) -> Path:
         current_dir = path.dirname(path.abspath(__file__))
@@ -138,9 +136,7 @@ class PostgresMigrations(MigrationsProvider):
                         old = applied[version]
                         if old["dirty"]:
                             raise MigrationError(
-                                f"Migration {version} is dirty. "
-                                "No migrations will be applied. "
-                                "Please fix it manually.",
+                                f"Migration {version} is dirty. No migrations will be applied. Please fix it manually.",
                             )
                         # TODO we previously had a check to detect if a migration is already
                         # applied but the migration we have _now_ is different. This points out
@@ -204,8 +200,7 @@ class PostgresMigrations(MigrationsProvider):
             return row["locked_by"]
         else:
             logger.error(
-                f"Could not acquire migration lock. "
-                f"Another migration might be in progress. {row!r}",
+                f"Could not acquire migration lock. Another migration might be in progress. {row!r}",
             )
             return None
 

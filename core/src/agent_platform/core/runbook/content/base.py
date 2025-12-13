@@ -20,12 +20,10 @@ class RunbookContent(ABC):
     def model_dump(self) -> dict:
         """Serializes the runbook content to a dictionary.
         Useful for JSON serialization."""
-        pass
 
     @abstractmethod
     def copy(self) -> Self:
         """Returns a deep copy of the runbook content."""
-        pass
 
     @classmethod
     def register_content_kind(

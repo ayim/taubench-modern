@@ -30,9 +30,7 @@ class TestWorkItemFileAttachmentValidation:
     """Test class for work item file attachment size validation."""
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_file_check_allows_small_file(
-        self, mock_get_quotas_instance, mock_upload_file, mock_quotas_service
-    ):
+    async def test_file_check_allows_small_file(self, mock_get_quotas_instance, mock_upload_file, mock_quotas_service):
         """Test that small files are allowed."""
         # Setup mocks
         mock_get_quotas_instance.return_value = mock_quotas_service
@@ -47,9 +45,7 @@ class TestWorkItemFileAttachmentValidation:
         mock_quotas_service.get_max_work_item_file_attachment_size.assert_called_once()
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_file_check_blocks_large_file(
-        self, mock_get_quotas_instance, mock_upload_file, mock_quotas_service
-    ):
+    async def test_file_check_blocks_large_file(self, mock_get_quotas_instance, mock_upload_file, mock_quotas_service):
         """Test that large files are blocked."""
         # Setup mocks
         mock_get_quotas_instance.return_value = mock_quotas_service
@@ -62,9 +58,7 @@ class TestWorkItemFileAttachmentValidation:
 
         # Verify exception details
         error = exc_info.value
-        assert "Work item file attachment size (10.0 MB) exceeds the allowed limit (5.0 MB)" in str(
-            error
-        )
+        assert "Work item file attachment size (10.0 MB) exceeds the allowed limit (5.0 MB)" in str(error)
 
         # Verify method calls
         mock_quotas_service.get_max_work_item_file_attachment_size.assert_called_once()
@@ -76,9 +70,7 @@ class TestWorkItemFileAttachmentValidation:
         assert result is None
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_file_check_handles_none_size(
-        self, mock_get_quotas_instance, mock_upload_file, mock_quotas_service
-    ):
+    async def test_file_check_handles_none_size(self, mock_get_quotas_instance, mock_upload_file, mock_quotas_service):
         """Test that files with None size are skipped."""
         # Setup mocks - QuotasService should not be called if file.size is None
         mock_get_quotas_instance.return_value = mock_quotas_service

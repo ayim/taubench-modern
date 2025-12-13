@@ -100,8 +100,7 @@ def test_create_data_frame_from_json_with_array(base_url_agent_server_session, d
             thread_id=thread_id,
             json_data=json_data,
             jq_expression=(
-                ". as $root | .line_items[] | "
-                "{invoice_number: $root.invoice_number, product, quantity, price}"
+                ". as $root | .line_items[] | {invoice_number: $root.invoice_number, product, quantity, price}"
             ),
             name="invoice_with_items",
         )
@@ -112,9 +111,7 @@ def test_create_data_frame_from_json_with_array(base_url_agent_server_session, d
 
 
 @pytest.mark.integration
-def test_create_data_frame_from_json_with_schema_fields(
-    base_url_agent_server_session, data_regression
-):
+def test_create_data_frame_from_json_with_schema_fields(base_url_agent_server_session, data_regression):
     """Test creating a data frame from JSON with schema fields."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
@@ -306,9 +303,7 @@ def test_create_multiple_data_frames_from_json(base_url_agent_server_session, da
 
 
 @pytest.mark.integration
-def test_create_data_frame_from_json_auto_name_generation(
-    base_url_agent_server_session, data_regression
-):
+def test_create_data_frame_from_json_auto_name_generation(base_url_agent_server_session, data_regression):
     """Test automatic name generation when no name is provided."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
@@ -348,9 +343,7 @@ def test_create_data_frame_from_json_auto_name_generation(
 
 
 @pytest.mark.integration
-def test_create_data_frame_from_json_with_sql_computation(
-    base_url_agent_server_session, data_regression
-):
+def test_create_data_frame_from_json_with_sql_computation(base_url_agent_server_session, data_regression):
     """Test creating a data frame from JSON and then using it in SQL computation."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 

@@ -41,9 +41,7 @@ class ObservabilityIntegration(Integration):
         # Validate kind is "observability"
         kind = data.get("kind", "observability")
         if kind != "observability":
-            raise ValueError(
-                f"ObservabilityIntegration requires kind='observability', got '{kind}'"
-            )
+            raise ValueError(f"ObservabilityIntegration requires kind='observability', got '{kind}'")
 
         # Create ObservabilityIntegrationSettings directly (bypassing factory)
         settings = ObservabilityIntegrationSettings.model_validate(data["settings"])

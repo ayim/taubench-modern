@@ -59,9 +59,7 @@ def test_list_integrations_with_filter(client):
     assert resp_all.status_code == 200
     assert len(resp_all.json()) == 2
 
-    resp_filtered = client.get(
-        "/api/v2/observability/integrations", params={"provider": "langsmith"}
-    )
+    resp_filtered = client.get("/api/v2/observability/integrations", params={"provider": "langsmith"})
     assert resp_filtered.status_code == 200
     data = resp_filtered.json()
     assert len(data) == 1

@@ -148,9 +148,7 @@ def patch_redshift_connection(connection: Any) -> Any:
     # ========================================================================
     # These can be patched directly on the instance
     connection.get_schema = types.MethodType(_patched_get_schema, connection)
-    connection._get_schema_using_query = types.MethodType(
-        _patched_get_schema_using_query, connection
-    )
+    connection._get_schema_using_query = types.MethodType(_patched_get_schema_using_query, connection)
 
     # ========================================================================
     # STEP 3: Patch class properties (current_database, _session_temp_db)
@@ -275,16 +273,11 @@ def _get_optimal_arraysize(con: Any) -> int:
                     # Use 1,000,000 for optimal performance
                     # This matches psycopg3's default and works well
                     # for typical data inspection queries
-                    logger.debug(
-                        f"Detected Redshift multi-node cluster "
-                        f"({node_count} nodes), using arraysize=1000000"
-                    )
+                    logger.debug(f"Detected Redshift multi-node cluster ({node_count} nodes), using arraysize=1000000")
                     return 1_000_000
     except Exception as e:
         # If detection fails, use conservative default
-        logger.warning(
-            f"Failed to detect Redshift cluster type: {e!r}, using conservative arraysize=1000"
-        )
+        logger.warning(f"Failed to detect Redshift cluster type: {e!r}, using conservative arraysize=1000")
 
     # Default to 1000 (safe for single-node)
     return 1000

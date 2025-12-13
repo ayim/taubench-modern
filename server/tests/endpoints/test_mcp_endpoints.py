@@ -167,9 +167,7 @@ async def mock_storage() -> AsyncGenerator[None, Any]:
             ),
         )
 
-        with patch(
-            "agent_platform.server.storage.StorageService.get_instance", return_value=storage
-        ):
+        with patch("agent_platform.server.storage.StorageService.get_instance", return_value=storage):
             yield
 
         await storage.teardown()
@@ -231,9 +229,7 @@ def _build_proxy_app() -> Starlette:
                 )
             )
 
-            await stack.enter_async_context(
-                agent_server_app.router.lifespan_context(agent_server_app)
-            )
+            await stack.enter_async_context(agent_server_app.router.lifespan_context(agent_server_app))
 
             yield {
                 "http_client": client,
@@ -333,17 +329,13 @@ async def test_mcp_endpoints(mock_mcp_proxy):
     """Test that the MCPAuthenticationMiddleware authenticates requests."""
 
     base_url = mock_mcp_proxy
-    async with mcp_streamablehttp_client(
-        f"{base_url}/api/v2/public-mcp/mcp/?api_key={MOCK_USER_SUB}"
-    ) as (
+    async with mcp_streamablehttp_client(f"{base_url}/api/v2/public-mcp/mcp/?api_key={MOCK_USER_SUB}") as (
         read_stream,
         write_stream,
         _,
     ):
         # # Create a session using the client streams
-        async with MCPClientSession(
-            read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)
-        ) as session:
+        async with MCPClientSession(read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)) as session:
             # Initialize the connection
             await session.initialize()
             assert [t.name for t in (await session.list_tools()).tools] == [
@@ -365,17 +357,13 @@ async def test_mcp_endpoints(mock_mcp_proxy):
 @pytest.mark.asyncio
 async def test_mcp_endpoints__random_auth(mock_mcp_proxy):
     base_url = mock_mcp_proxy
-    async with mcp_streamablehttp_client(
-        f"{base_url}/api/v2/public-mcp/mcp/?api_key={uuid.uuid4()}"
-    ) as (
+    async with mcp_streamablehttp_client(f"{base_url}/api/v2/public-mcp/mcp/?api_key={uuid.uuid4()}") as (
         read_stream,
         write_stream,
         _,
     ):
         # # Create a session using the client streams
-        async with MCPClientSession(
-            read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)
-        ) as session:
+        async with MCPClientSession(read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)) as session:
             # Initialize the connection
             await session.initialize()
             assert [t.name for t in (await session.list_tools()).tools] == [
@@ -409,9 +397,7 @@ async def test_agent_as_mcp_endpoints(mock_mcp_proxy):
         _,
     ):
         # # Create a session using the client streams
-        async with MCPClientSession(
-            read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)
-        ) as session:
+        async with MCPClientSession(read_stream, write_stream, read_timeout_seconds=timedelta(seconds=30)) as session:
             # Initialize the connection
             await session.initialize()
             assert [t.name for t in (await session.list_tools()).tools] == [
@@ -432,9 +418,7 @@ async def test_agent_as_mcp_endpoints(mock_mcp_proxy):
                 arguments={"thread_id": test_thread_1["thread_id"]},
             )
 
-            messages = json.loads(cast(TextContent, list_messages_response.content[0]).text)[
-                "thread_messages"
-            ]
+            messages = json.loads(cast(TextContent, list_messages_response.content[0]).text)["thread_messages"]
             assert messages == [
                 {"role": "agent", "content": [{"kind": "text", "text": "agent_1_message_1"}]},
                 {"role": "user", "content": [{"kind": "text", "text": "agent_1_message_2"}]},

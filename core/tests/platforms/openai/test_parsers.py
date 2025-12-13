@@ -284,9 +284,7 @@ class TestOpenAIParsers:
             deltas.append(delta)
 
         assert len(deltas) > 0
-        assert any(
-            isinstance(item, dict) and item.get("kind") == "tool_use" for item in message["content"]
-        )
+        assert any(isinstance(item, dict) and item.get("kind") == "tool_use" for item in message["content"])
 
     @pytest.mark.asyncio
     async def test_parse_stream_event_with_completed_event_tool_call(
@@ -414,10 +412,7 @@ class TestOpenAIParsers:
             deltas.append(delta)
 
         assert len(deltas) > 0
-        assert any(
-            item.get("kind") == "text" and item.get("text") == "hello world"
-            for item in message["content"]
-        )
+        assert any(item.get("kind") == "text" and item.get("text") == "hello world" for item in message["content"])
 
     @pytest.mark.asyncio
     async def test_parse_stream_event_completed_text_no_duplication(
@@ -502,10 +497,7 @@ class TestOpenAIParsers:
         ):
             deltas.append(delta)
 
-        assert any(
-            item.get("kind") == "text" and item.get("text") == "hello world"
-            for item in message["content"]
-        )
+        assert any(item.get("kind") == "text" and item.get("text") == "hello world" for item in message["content"])
         # No duplication in text content
         text_items = [item for item in message["content"] if item.get("kind") == "text"]
         assert len(text_items) == 1

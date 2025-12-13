@@ -60,8 +60,7 @@ def sdm_with_verified_queries() -> SemanticDataModel:
                 {
                     "name": "top_customers",
                     "nlq": "Find top 10 customers by revenue",
-                    "sql": "SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id "
-                    "ORDER BY 2 DESC LIMIT 10",
+                    "sql": "SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id ORDER BY 2 DESC LIMIT 10",
                 },
             ],
         },
@@ -173,24 +172,16 @@ class TestSdmSqlPrompters:
         assert "second_model" in result
         assert "third_model" in result
 
-    def test_verified_query_names_appear_in_summary(
-        self, sdm_with_verified_queries: SemanticDataModel
-    ):
+    def test_verified_query_names_appear_in_summary(self, sdm_with_verified_queries: SemanticDataModel):
         """Verified query names should appear in summary."""
-        result = summarize_data_models(
-            [(cast(SemanticDataModel, sdm_with_verified_queries), "duckdb")]
-        )
+        result = summarize_data_models([(cast(SemanticDataModel, sdm_with_verified_queries), "duckdb")])
 
         assert "total_sales" in result
         assert "top_customers" in result
 
-    def test_verified_query_descriptions_appear_in_summary(
-        self, sdm_with_verified_queries: SemanticDataModel
-    ):
+    def test_verified_query_descriptions_appear_in_summary(self, sdm_with_verified_queries: SemanticDataModel):
         """Verified query NLQ descriptions should appear in summary."""
-        result = summarize_data_models(
-            [(cast(SemanticDataModel, sdm_with_verified_queries), "duckdb")]
-        )
+        result = summarize_data_models([(cast(SemanticDataModel, sdm_with_verified_queries), "duckdb")])
 
         assert "Get total sales for the current month" in result
         assert "Find top 10 customers by revenue" in result
@@ -203,9 +194,7 @@ class TestSdmSqlPrompters:
 
     def test_snowflake_guidance(self, snowflake_sdm_with_variant: dict[str, Any]):
         """Snowflake guidance"""
-        result = _get_sql_generation_instructions(
-            [(cast(SemanticDataModel, snowflake_sdm_with_variant), "snowflake")]
-        )
+        result = _get_sql_generation_instructions([(cast(SemanticDataModel, snowflake_sdm_with_variant), "snowflake")])
 
         # Unique to Snowflake: bracket notation requirement
         assert "bracket notation" in result.lower() or "col['field']" in result
@@ -215,9 +204,7 @@ class TestSdmSqlPrompters:
 
     def test_postgres_guidance(self, postgres_sdm_with_json: dict[str, Any]):
         """PostgreSQL guidance"""
-        result = _get_sql_generation_instructions(
-            [(cast(SemanticDataModel, postgres_sdm_with_json), "postgres")]
-        )
+        result = _get_sql_generation_instructions([(cast(SemanticDataModel, postgres_sdm_with_json), "postgres")])
 
         # Unique to PostgreSQL: LATERAL for JSON aggregation
         assert "LATERAL" in result or "lateral" in result.lower()
@@ -228,9 +215,7 @@ class TestSdmSqlPrompters:
 
     def test_mysql_guidance(self, mysql_sdm_with_json: dict[str, Any]):
         """MySQL guidance"""
-        result = _get_sql_generation_instructions(
-            [(cast(SemanticDataModel, mysql_sdm_with_json), "mysql")]
-        )
+        result = _get_sql_generation_instructions([(cast(SemanticDataModel, mysql_sdm_with_json), "mysql")])
 
         # Unique to MySQL: mandatory $.path syntax
         assert "$.path" in result or "'$.field'" in result

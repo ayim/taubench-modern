@@ -27,10 +27,7 @@ class GroqPlatformParameters(PlatformParameters):
     groq_base_url: str | None = field(
         default=None,
         metadata={
-            "description": (
-                "Optional override for the Groq base URL "
-                "(defaults to https://api.groq.com/openai/v1)."
-            ),
+            "description": ("Optional override for the Groq base URL (defaults to https://api.groq.com/openai/v1)."),
         },
     )
 

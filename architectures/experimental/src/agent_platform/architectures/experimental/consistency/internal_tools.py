@@ -18,9 +18,7 @@ from agent_platform.core.tools.tool_definition import ToolDefinition
 logger = logging.getLogger(__name__)
 
 
-def render_plan_snapshot(
-    summary: str, steps: Sequence[PlanStep], assumptions: str | None = None
-) -> str:
+def render_plan_snapshot(summary: str, steps: Sequence[PlanStep], assumptions: str | None = None) -> str:
     """Renders a human-readable snapshot of the plan for prompt embedding."""
     if not steps:
         return "No plan steps have been recorded yet."
@@ -29,9 +27,7 @@ def render_plan_snapshot(
 
     if assumptions:
         lines.append("Assumptions / open items:")
-        lines.extend(
-            f"  - {line.strip()}" for line in assumptions.strip().splitlines() if line.strip()
-        )
+        lines.extend(f"  - {line.strip()}" for line in assumptions.strip().splitlines() if line.strip())
 
     lines.append("Ordered steps:")
     for idx, step in enumerate(steps, 1):
@@ -42,8 +38,7 @@ def render_plan_snapshot(
         if step.notes:
             latest_note = step.notes[-1]
             lines.append(
-                f"     Latest note [{latest_note['level']} "
-                f"@ {latest_note['timestamp']}]: {latest_note['note']}"
+                f"     Latest note [{latest_note['level']} @ {latest_note['timestamp']}]: {latest_note['note']}"
             )
     return "\n".join(lines)
 
@@ -57,9 +52,7 @@ class ConsistencyToolsManager:
     providing a clear and testable interface for each tool's implementation.
     """
 
-    def __init__(
-        self, state: ConsistencyArchState, message: ThreadMessageWithThreadState | None = None
-    ):
+    def __init__(self, state: ConsistencyArchState, message: ThreadMessageWithThreadState | None = None):
         self.state = state
         self.message = message
 
@@ -102,17 +95,11 @@ class ConsistencyToolsManager:
             raise ValueError("No active plan step is currently being executed.")
 
         active_step_tuple = next(
-            (
-                (i, s)
-                for i, s in enumerate(self.state.plan_steps)
-                if s.step_id == self.state.current_plan_step_id
-            ),
+            ((i, s) for i, s in enumerate(self.state.plan_steps) if s.step_id == self.state.current_plan_step_id),
             None,
         )
         if active_step_tuple is None:
-            raise ValueError(
-                f"Active plan step '{self.state.current_plan_step_id}' not found in plan."
-            )
+            raise ValueError(f"Active plan step '{self.state.current_plan_step_id}' not found in plan.")
         return active_step_tuple
 
     def _activate_next_pending_step(self, start_index: int, timestamp: str) -> None:
@@ -133,9 +120,7 @@ class ConsistencyToolsManager:
         if all(step.status in {"completed", "skipped"} for step in self.state.plan_steps):
             self.state.plan_status = "completed"
 
-    async def _resolve_current_step(
-        self, new_status: PlanStatus, note: str, level: FeedbackLevel
-    ) -> dict[str, str]:
+    async def _resolve_current_step(self, new_status: PlanStatus, note: str, level: FeedbackLevel) -> dict[str, str]:
         """Core logic to resolve the current step with a new status and note."""
         index, step = self._find_current_step()
         timestamp = self._now()
@@ -180,11 +165,7 @@ class ConsistencyToolsManager:
 
         seen_ids = set()
         for i, step_input in enumerate(steps):
-            step_id = (
-                step_input.step_id
-                if isinstance(step_input, PlanStepInput)
-                else step_input.get("step_id")
-            )
+            step_id = step_input.step_id if isinstance(step_input, PlanStepInput) else step_input.get("step_id")
             if not step_id or not isinstance(step_id, str):
                 raise ValueError(f"Step at index {i} is missing a valid 'step_id'.")
             if step_id.lower() in seen_ids:
@@ -194,8 +175,7 @@ class ConsistencyToolsManager:
         self.state.plan_summary = summary.strip()
         self.state.plan_assumptions = assumptions.strip()
         self.state.plan_steps = [
-            PlanStep.from_input(s if isinstance(s, PlanStepInput) else PlanStepInput(**s))
-            for s in steps
+            PlanStep.from_input(s if isinstance(s, PlanStepInput) else PlanStepInput(**s)) for s in steps
         ]
         self.state.plan_status = "active"
         self.state.monitor_feedback_latest = MonitorFeedbackEntry(  # Reset feedback on new plan
@@ -292,9 +272,7 @@ class ConsistencyToolsManager:
         target_step.status = "in_progress"
         target_step.last_updated = timestamp
         target_step.notes.append(
-            NoteEntry(
-                timestamp=timestamp, note=f"Rework requested: {cleaned_reason}", level="warning"
-            )
+            NoteEntry(timestamp=timestamp, note=f"Rework requested: {cleaned_reason}", level="warning")
         )
         self.state.rework_requested_for_step_id = step_id
 
@@ -326,9 +304,7 @@ def build_consistency_tools(
 
     return [
         ToolDefinition.from_callable(manager.define_plan, name="define_plan"),
-        ToolDefinition.from_callable(
-            manager.record_monitor_feedback, name="record_monitor_feedback"
-        ),
+        ToolDefinition.from_callable(manager.record_monitor_feedback, name="record_monitor_feedback"),
         ToolDefinition.from_callable(manager.complete_current_step, name="complete_current_step"),
         ToolDefinition.from_callable(manager.block_current_step, name="block_current_step"),
         ToolDefinition.from_callable(manager.declare_plan_failed, name="declare_plan_failed"),

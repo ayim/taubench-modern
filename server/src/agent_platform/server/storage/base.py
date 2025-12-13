@@ -307,8 +307,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if data_frame_name is not None:
                 raise PlatformHTTPError(
                     error_code=ErrorCode.NOT_FOUND,
-                    message=f"Data frame with name {data_frame_name} not found "
-                    f"in thread: {thread_id}",
+                    message=f"Data frame with name {data_frame_name} not found in thread: {thread_id}",
                 )
             elif data_frame_id is not None:
                 raise PlatformHTTPError(
@@ -411,9 +410,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_frame_dict.pop("data_frame_id", None)
 
         stmt = (
-            data_frames.update()
-            .where(data_frames.c.data_frame_id == data_frame.data_frame_id)
-            .values(data_frame_dict)
+            data_frames.update().where(data_frames.c.data_frame_id == data_frame.data_frame_id).values(data_frame_dict)
         )
 
         async with self._write_connection() as conn:
@@ -493,9 +490,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return [str(row["platform_params_id"]) for row in rows]
 
-    async def associate_mcp_servers_with_agent(
-        self, agent_id: str, mcp_server_ids: list[str]
-    ) -> None:
+    async def associate_mcp_servers_with_agent(self, agent_id: str, mcp_server_ids: list[str]) -> None:
         """Associate MCP servers with an agent."""
         agent_mcp_server = self._get_table("agent_mcp_server")
 
@@ -507,8 +502,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             # Then add new associations
             if mcp_server_ids:
                 insert_data = [
-                    {"agent_id": agent_id, "mcp_server_id": mcp_server_id}
-                    for mcp_server_id in mcp_server_ids
+                    {"agent_id": agent_id, "mcp_server_id": mcp_server_id} for mcp_server_id in mcp_server_ids
                 ]
                 insert_stmt = sa.insert(agent_mcp_server).values(insert_data)
                 await conn.execute(insert_stmt)
@@ -532,17 +526,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return [str(row["data_connection_id"]) for row in rows]
 
-    async def set_agent_data_connections(
-        self, agent_id: str, data_connection_ids: list[str]
-    ) -> None:
+    async def set_agent_data_connections(self, agent_id: str, data_connection_ids: list[str]) -> None:
         """Set data connections for an agent (replace all existing associations)."""
         agent_data_connections = self._get_table("agent_data_connections")
 
         async with self._write_connection() as conn:
             # First, remove existing associations
-            delete_stmt = sa.delete(agent_data_connections).where(
-                agent_data_connections.c.agent_id == agent_id
-            )
+            delete_stmt = sa.delete(agent_data_connections).where(agent_data_connections.c.agent_id == agent_id)
             await conn.execute(delete_stmt)
 
             # Then add new associations
@@ -598,9 +588,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             delete_stmt = sa.delete(dids_connection_details)
             await conn.execute(delete_stmt)
 
-    async def clean_up_stale_threads(
-        self, default_retention_period: timedelta
-    ) -> "list[StaleThreadsResult]":
+    async def clean_up_stale_threads(self, default_retention_period: timedelta) -> "list[StaleThreadsResult]":
         """
         Returns:
             list[StaleThreadsResult]: A list of thread_ids that were cleaned up.
@@ -645,9 +633,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             stale_threads = [StaleThreadsResult(**item) for item in result.mappings().fetchall()]
 
             await conn.execute(
-                sa.delete(threads).where(
-                    threads.c.thread_id.in_({item.thread_id for item in stale_threads})
-                )
+                sa.delete(threads).where(threads.c.thread_id.in_({item.thread_id for item in stale_threads}))
             )
 
         return stale_threads
@@ -1114,9 +1100,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return ScenarioBatchRun.model_validate(dict(row)) if row is not None else None
 
-    async def list_scenario_batch_runs(
-        self, agent_id: str, limit: int | None = None
-    ) -> list[ScenarioBatchRun]:
+    async def list_scenario_batch_runs(self, agent_id: str, limit: int | None = None) -> list[ScenarioBatchRun]:
         """List batch runs for a given agent."""
         batches = self._get_table("scenario_run_batches")
         stmt = (
@@ -1234,9 +1218,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             trials.c.reschedule_attempts,
         ]
         stmt = sa.select(*columns).where(
-            sa.and_(
-                trials.c.scenario_run_id == scenario_run_id, trials.c.index_in_run == trial_index
-            )
+            sa.and_(trials.c.scenario_run_id == scenario_run_id, trials.c.index_in_run == trial_index)
         )
 
         async with self._read_connection() as conn:
@@ -1384,9 +1366,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return [row["trial_id"] for row in rows]
 
-    async def update_trial_status(
-        self, trial_id: str, user_id: str, status: TrialStatus, error: str | None = None
-    ):
+    async def update_trial_status(self, trial_id: str, user_id: str, status: TrialStatus, error: str | None = None):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
 
@@ -1440,9 +1420,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 return row["trial_id"]
 
             # No row updated: figure out if it's because it's canceled, or missing.
-            status_row = await conn.execute(
-                sa.select(trials.c.status).where(trials.c.trial_id == trial_id)
-            )
+            status_row = await conn.execute(sa.select(trials.c.status).where(trials.c.trial_id == trial_id))
             status_value = status_row.scalar_one_or_none()
 
             if status_value is None:
@@ -1451,9 +1429,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if status_value == TrialStatus.CANCELED:
                 raise TrialAlreadyCanceledError(f"Trial {trial_id!r} is already canceled")
 
-    async def update_trial_evaluation_results(
-        self, trial_id: str, evaluations: Sequence[EvaluationResult]
-    ):
+    async def update_trial_evaluation_results(self, trial_id: str, evaluations: Sequence[EvaluationResult]):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
 
@@ -1546,9 +1522,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Data Connections getter and setter
     # -------------------------------------------------------------------------
-    async def get_data_connections(
-        self, data_connection_ids: list[str] | None = None
-    ) -> list["DataConnection"]:
+    async def get_data_connections(self, data_connection_ids: list[str] | None = None) -> list["DataConnection"]:
         """Get all data connections."""
         data_connections = self._get_table("data_connection")
 
@@ -1578,9 +1552,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Get data connection by ID."""
         data_connections = self._get_table("data_connection")
         async with self._read_connection() as conn:
-            result = await conn.execute(
-                sa.select(data_connections).where(data_connections.c.id == connection_id)
-            )
+            result = await conn.execute(sa.select(data_connections).where(data_connections.c.id == connection_id))
             row = result.mappings().fetchone()
             if row is None:
                 raise DataConnectionNotFoundError(connection_id)
@@ -1599,9 +1571,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_connections = self._get_table("data_connection")
         async with self._read_connection() as conn:
             result = await conn.execute(
-                sa.select(data_connections).where(
-                    sa.func.lower(data_connections.c.name) == name.lower()
-                )
+                sa.select(data_connections).where(sa.func.lower(data_connections.c.name) == name.lower())
             )
             row = result.mappings().fetchone()
             if row is None:
@@ -1621,9 +1591,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Set data connections."""
         data_connections = self._get_table("data_connection")
         data_connection_dict = data_connection.model_dump()
-        data_connection_dict["enc_configuration"] = self._encrypt_config(
-            data_connection_dict["configuration"]
-        )
+        data_connection_dict["enc_configuration"] = self._encrypt_config(data_connection_dict["configuration"])
         data_connection_dict.pop("configuration")
 
         # Convert tags list to JSON string for SQLite compatibility
@@ -1637,9 +1605,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete data connection."""
         data_connections = self._get_table("data_connection")
         async with self._write_connection() as conn:
-            result = await conn.execute(
-                sa.delete(data_connections).where(data_connections.c.id == connection_id)
-            )
+            result = await conn.execute(sa.delete(data_connections).where(data_connections.c.id == connection_id))
             if result.rowcount == 0:
                 raise DataConnectionNotFoundError(connection_id)
 
@@ -1647,9 +1613,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Update data connections."""
         data_connections = self._get_table("data_connection")
         data_connection_dict = data_connection.model_dump()
-        data_connection_dict["enc_configuration"] = self._encrypt_config(
-            data_connection_dict["configuration"]
-        )
+        data_connection_dict["enc_configuration"] = self._encrypt_config(data_connection_dict["configuration"])
         data_connection_dict.pop("configuration")
         data_connection_dict["updated_at"] = datetime.now(UTC)
 
@@ -1687,11 +1651,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 current_tags.append(tag)
 
             # Update with new tags
-            tags_value = (
-                json.dumps(current_tags)
-                if self._sa_engine.dialect.name == "sqlite"
-                else current_tags
-            )
+            tags_value = json.dumps(current_tags) if self._sa_engine.dialect.name == "sqlite" else current_tags
             await conn.execute(
                 sa.update(data_connections)
                 .where(data_connections.c.id == connection_id)
@@ -1721,11 +1681,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 current_tags.remove(tag)
 
             # Update with new tags
-            tags_value = (
-                json.dumps(current_tags)
-                if self._sa_engine.dialect.name == "sqlite"
-                else current_tags
-            )
+            tags_value = json.dumps(current_tags) if self._sa_engine.dialect.name == "sqlite" else current_tags
             await conn.execute(
                 sa.update(data_connections)
                 .where(data_connections.c.id == connection_id)
@@ -1737,9 +1693,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         data_connections = self._get_table("data_connection")
         async with self._read_connection() as conn:
             if self._sa_engine.dialect.name == "postgresql":
-                result = await conn.execute(
-                    sa.select(data_connections).where(data_connections.c.tags.contains([tag]))
-                )
+                result = await conn.execute(sa.select(data_connections).where(data_connections.c.tags.contains([tag])))
             else:  # sqlite
                 result = await conn.execute(
                     sa.select(data_connections).where(data_connections.c.tags.contains(f'"{tag}"'))
@@ -1783,9 +1737,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
         # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
         semantic_model_value = (
-            json.dumps(semantic_model)
-            if self._sa_engine.dialect.name == "sqlite"
-            else semantic_model
+            json.dumps(semantic_model) if self._sa_engine.dialect.name == "sqlite" else semantic_model
         )
         async with self._write_connection() as conn:
             await conn.execute(
@@ -1814,9 +1766,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
             # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
             semantic_model_value = (
-                json.dumps(semantic_model)
-                if self._sa_engine.dialect.name == "sqlite"
-                else semantic_model
+                json.dumps(semantic_model) if self._sa_engine.dialect.name == "sqlite" else semantic_model
             )
 
             if semantic_data_model_id is None:
@@ -1877,9 +1827,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     }
                     for conn_id in data_connection_ids
                 ]
-                await conn.execute(
-                    sa.insert(input_data_connections).values(insert_data_connections)
-                )
+                await conn.execute(sa.insert(input_data_connections).values(insert_data_connections))
 
             # Add new file reference associations
             if file_references:
@@ -1904,9 +1852,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self._read_connection() as conn:
             result = await conn.execute(
-                sa.select(semantic_data_models).where(
-                    semantic_data_models.c.id == semantic_data_model_id
-                )
+                sa.select(semantic_data_models).where(semantic_data_models.c.id == semantic_data_model_id)
             )
             row = result.mappings().fetchone()
             if row is None:
@@ -1934,9 +1880,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         async with self._write_connection() as conn:
             result = await conn.execute(
-                sa.delete(semantic_data_models).where(
-                    semantic_data_models.c.id == semantic_data_model_id
-                )
+                sa.delete(semantic_data_models).where(semantic_data_models.c.id == semantic_data_model_id)
             )
             if result.rowcount == 0:
                 raise PlatformHTTPError(
@@ -1947,17 +1891,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Methods for Agent Semantic Data Models
     # -------------------------------------------------------------------------
-    async def set_agent_semantic_data_models(
-        self, agent_id: str, semantic_data_model_ids: list[str]
-    ) -> None:
+    async def set_agent_semantic_data_models(self, agent_id: str, semantic_data_model_ids: list[str]) -> None:
         """Set semantic data models for an agent (replace all existing associations)."""
         agent_semantic_data_models = self._get_table("agent_semantic_data_models")
 
         async with self._write_connection() as conn:
             # First, remove existing associations
-            delete_stmt = sa.delete(agent_semantic_data_models).where(
-                agent_semantic_data_models.c.agent_id == agent_id
-            )
+            delete_stmt = sa.delete(agent_semantic_data_models).where(agent_semantic_data_models.c.agent_id == agent_id)
             await conn.execute(delete_stmt)
 
             # Then add new associations
@@ -2012,9 +1952,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Methods for Thread Semantic Data Models
     # -------------------------------------------------------------------------
-    async def set_thread_semantic_data_models(
-        self, thread_id: str, semantic_data_model_ids: list[str]
-    ) -> None:
+    async def set_thread_semantic_data_models(self, thread_id: str, semantic_data_model_ids: list[str]) -> None:
         """Set semantic data models for a thread (replace all existing associations)."""
         thread_semantic_data_models = self._get_table("thread_semantic_data_models")
 
@@ -2148,9 +2086,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         integrations = self._get_table("integration")
 
         async with self._read_connection() as conn:
-            result = await conn.execute(
-                sa.select(integrations).where(integrations.c.id == integration_id)
-            )
+            result = await conn.execute(sa.select(integrations).where(integrations.c.id == integration_id))
             row = result.mappings().fetchone()
 
         if row is None:
@@ -2175,9 +2111,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         integrations = self._get_table("integration")
 
         async with self._write_connection() as conn:
-            result = await conn.execute(
-                sa.delete(integrations).where(integrations.c.id == integration_id)
-            )
+            result = await conn.execute(sa.delete(integrations).where(integrations.c.id == integration_id))
             if result.rowcount == 0:
                 raise IntegrationNotFoundError(integration_id, by="id")
 
@@ -2245,9 +2179,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             }
         )
 
-    async def set_integration_scope(
-        self, integration_id: str, scope: str, agent_id: str | None
-    ) -> IntegrationScope:
+    async def set_integration_scope(self, integration_id: str, scope: str, agent_id: str | None) -> IntegrationScope:
         """Assign an integration to a scope (global or agent-specific).
 
         Args:
@@ -2311,9 +2243,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         else:
             return self._row_to_integration_scope(row)
 
-    async def delete_integration_scope(
-        self, integration_id: str, scope: str, agent_id: str | None
-    ) -> None:
+    async def delete_integration_scope(self, integration_id: str, scope: str, agent_id: str | None) -> None:
         """Delete a scope assignment.
 
         Args:
@@ -2336,9 +2266,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
             result = await conn.execute(sa.delete(integration_scopes).where(where_clause))
             if result.rowcount == 0:
-                scope_desc = (
-                    f"integration={integration_id}, scope={scope}, agent={agent_id or 'global'}"
-                )
+                scope_desc = f"integration={integration_id}, scope={scope}, agent={agent_id or 'global'}"
                 raise IntegrationScopeNotFoundError(scope_desc)
 
     async def list_integration_scopes(self, integration_id: str) -> list[IntegrationScope]:
@@ -2353,9 +2281,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         integration_scopes = self._get_table("integration_scopes")
 
         async with self._read_connection() as conn:
-            stmt = sa.select(integration_scopes).where(
-                integration_scopes.c.integration_id == integration_id
-            )
+            stmt = sa.select(integration_scopes).where(integration_scopes.c.integration_id == integration_id)
             result = await conn.execute(stmt)
             rows = result.mappings().fetchall()
 
@@ -2386,9 +2312,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         global_query = (
             sa.select(integrations)
             .select_from(
-                integrations.join(
-                    integration_scopes, integrations.c.id == integration_scopes.c.integration_id
-                )
+                integrations.join(integration_scopes, integrations.c.id == integration_scopes.c.integration_id)
             )
             .where(
                 integrations.c.kind == "observability",
@@ -2401,9 +2325,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         agent_query = (
             sa.select(integrations)
             .select_from(
-                integrations.join(
-                    integration_scopes, integrations.c.id == integration_scopes.c.integration_id
-                )
+                integrations.join(integration_scopes, integrations.c.id == integration_scopes.c.integration_id)
             )
             .where(
                 integrations.c.kind == "observability",
@@ -2448,12 +2370,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
             ).select_from(
                 semantic_data_models.outerjoin(
                     agent_semantic_data_models,
-                    semantic_data_models.c.id
-                    == agent_semantic_data_models.c.semantic_data_model_id,
+                    semantic_data_models.c.id == agent_semantic_data_models.c.semantic_data_model_id,
                 ).outerjoin(
                     thread_semantic_data_models,
-                    semantic_data_models.c.id
-                    == thread_semantic_data_models.c.semantic_data_model_id,
+                    semantic_data_models.c.id == thread_semantic_data_models.c.semantic_data_model_id,
                 )
             )
 
@@ -2567,9 +2487,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     )
                 await conn.execute(update_stmt)
         except Exception:
-            logger.error(
-                f"Error updating last_accessed_at for cache key {cache_key}", exc_info=True
-            )
+            logger.error(f"Error updating last_accessed_at for cache key {cache_key}", exc_info=True)
 
     async def get_cache_entries(self, cache_keys: list[str]) -> dict[str, CacheValue]:
         """Get cache entries by keys."""
@@ -2625,9 +2543,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         stmt = insert(cache_table).values(
             cache_key=cache_key,
             cache_data=cache_data,
-            last_accessed_at=(
-                last_accessed_at if last_accessed_at is not None else datetime.now(UTC)
-            ),
+            last_accessed_at=(last_accessed_at if last_accessed_at is not None else datetime.now(UTC)),
             time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
             cache_size_in_bytes=cache_size_in_bytes,
         )
@@ -2646,9 +2562,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         async with self._write_connection() as conn:
             await conn.execute(stmt)
 
-    async def evict_old_cache_entries_by_size(
-        self, max_cache_size_bytes: int = 100 * 1024 * 1024
-    ) -> None:
+    async def evict_old_cache_entries_by_size(self, max_cache_size_bytes: int = 100 * 1024 * 1024) -> None:
         """Evict old cache entries using LRU strategy."""
         cache_table = self._get_table("data_cache")
 
@@ -2678,9 +2592,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         if keys_to_delete:
             async with self._write_connection() as conn:
-                delete_stmt = cache_table.delete().where(
-                    cache_table.c.cache_key.in_(keys_to_delete)
-                )
+                delete_stmt = cache_table.delete().where(cache_table.c.cache_key.in_(keys_to_delete))
                 result = await conn.execute(delete_stmt)
                 if result.rowcount > 0:
                     logger.info(f"Evicted {result.rowcount} cache entries")
@@ -2694,18 +2606,14 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Delete entries older than the cutoff date
         if self._sa_engine.dialect.name == "sqlite":
-            delete_stmt = cache_table.delete().where(
-                cache_table.c.last_accessed_at < cutoff_date.isoformat()
-            )
+            delete_stmt = cache_table.delete().where(cache_table.c.last_accessed_at < cutoff_date.isoformat())
         else:
             delete_stmt = cache_table.delete().where(cache_table.c.last_accessed_at < cutoff_date)
 
         async with self._write_connection() as conn:
             result = await conn.execute(delete_stmt)
             if result.rowcount > 0:
-                logger.info(
-                    f"Evicted {result.rowcount} cache entries older than {max_age_days} days"
-                )
+                logger.info(f"Evicted {result.rowcount} cache entries older than {max_age_days} days")
 
     async def list_cached_entries(self) -> dict[str, CacheValue]:
         cache_table = self._get_table("data_cache")
@@ -2732,19 +2640,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # Methods for OAuth Token Storage
     # -------------------------------------------------------------------------
 
-    async def _load_mcp_oauth_token_from_row(
-        self, row: RowMapping, *, decrypt: bool = False
-    ) -> "OAuthToken":
+    async def _load_mcp_oauth_token_from_row(self, row: RowMapping, *, decrypt: bool = False) -> "OAuthToken":
         from mcp.shared.auth import OAuthToken
 
         # Decrypt tokens if requested
         if decrypt:
             access_token = self._secret_manager.fetch(row["access_token_enc"])
-            refresh_token = (
-                self._secret_manager.fetch(row["refresh_token_enc"])
-                if row["refresh_token_enc"]
-                else None
-            )
+            refresh_token = self._secret_manager.fetch(row["refresh_token_enc"]) if row["refresh_token_enc"] else None
         else:
             access_token = row["access_token_enc"]
             refresh_token = row["refresh_token_enc"]
@@ -2776,9 +2678,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             refresh_token=refresh_token,
         )
 
-    async def get_mcp_server_to_oauth_token(
-        self, user_id: str, *, decrypt: bool = False
-    ) -> dict[str, "OAuthToken"]:
+    async def get_mcp_server_to_oauth_token(self, user_id: str, *, decrypt: bool = False) -> dict[str, "OAuthToken"]:
         """
         Get a dictionary of MCP server URLs to OAuth tokens for a user.
         Should be used for getting the status of all MCP servers that the user has access to.
@@ -2809,16 +2709,12 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return result_dict
 
-    async def get_mcp_oauth_token(
-        self, user_id: str, mcp_url: str, *, decrypt: bool = False
-    ) -> "OAuthToken | None":
+    async def get_mcp_oauth_token(self, user_id: str, mcp_url: str, *, decrypt: bool = False) -> "OAuthToken | None":
         """Get OAuth token for a user and MCP server. May return None if no token is found."""
 
         token_table = self._get_table("oauth_token")
 
-        stmt = sa.select(token_table).where(
-            (token_table.c.user_id == user_id) & (token_table.c.mcp_url == mcp_url)
-        )
+        stmt = sa.select(token_table).where((token_table.c.user_id == user_id) & (token_table.c.mcp_url == mcp_url))
 
         async with self._read_connection() as conn:
             result = await conn.execute(stmt)
@@ -2839,9 +2735,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Encrypt tokens
         access_token_enc = self._secret_manager.store(token.access_token)
-        refresh_token_enc = (
-            self._secret_manager.store(token.refresh_token) if token.refresh_token else None
-        )
+        refresh_token_enc = self._secret_manager.store(token.refresh_token) if token.refresh_token else None
         if token.expires_in is not None:
             expires_at = datetime.now(UTC) + timedelta(seconds=token.expires_in)
         else:
@@ -2886,9 +2780,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete OAuth token for a user and MCP server."""
         token_table = self._get_table("oauth_token")
 
-        stmt = token_table.delete().where(
-            (token_table.c.user_id == user_id) & (token_table.c.mcp_url == mcp_url)
-        )
+        stmt = token_table.delete().where((token_table.c.user_id == user_id) & (token_table.c.mcp_url == mcp_url))
 
         async with self._write_connection() as conn:
             await conn.execute(stmt)
@@ -2904,9 +2796,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         client_table = self._get_table("oauth_client_info")
 
-        stmt = sa.select(client_table).where(
-            (client_table.c.user_id == user_id) & (client_table.c.mcp_url == mcp_url)
-        )
+        stmt = sa.select(client_table).where((client_table.c.user_id == user_id) & (client_table.c.mcp_url == mcp_url))
 
         async with self._read_connection() as conn:
             result = await conn.execute(stmt)
@@ -2918,11 +2808,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         if decrypt:
             # Decrypt client_id and client_secret
             client_id = self._secret_manager.fetch(row["client_id_enc"])
-            client_secret = (
-                self._secret_manager.fetch(row["client_secret_enc"])
-                if row["client_secret_enc"]
-                else None
-            )
+            client_secret = self._secret_manager.fetch(row["client_secret_enc"]) if row["client_secret_enc"] else None
         else:
             client_id = row["client_id_enc"]
             client_secret = row["client_secret_enc"]
@@ -2955,11 +2841,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Encrypt client_id and client_secret
         client_id_enc = self._secret_manager.store(client_info.client_id)
-        client_secret_enc = (
-            self._secret_manager.store(client_info.client_secret)
-            if client_info.client_secret
-            else None
-        )
+        client_secret_enc = self._secret_manager.store(client_info.client_secret) if client_info.client_secret else None
 
         # Extract metadata (everything except client_id, client_secret, client_id_issued_at
         # and client_secret_expires_at)
@@ -3024,9 +2906,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Delete OAuth client information for a user and MCP server."""
         client_table = self._get_table("oauth_client_info")
 
-        stmt = client_table.delete().where(
-            (client_table.c.user_id == user_id) & (client_table.c.mcp_url == mcp_url)
-        )
+        stmt = client_table.delete().where((client_table.c.user_id == user_id) & (client_table.c.mcp_url == mcp_url))
 
         async with self._write_connection() as conn:
             await conn.execute(stmt)

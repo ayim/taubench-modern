@@ -53,7 +53,7 @@ async def _verify_payload_in_thread_messages(
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-async def test_work_items_with_file_e2e(  # noqa: PLR0915
+async def test_work_items_with_file_e2e(
     base_url_agent_server_workitems_matrix: str,
     openai_api_key: str,
     callback_server,
@@ -167,9 +167,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
 
             # Verify thread name uses the custom work item name
             thread_id = final_work_item["thread_id"]
-            async with AsyncClient(
-                base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
-            ) as thread_client:
+            async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2") as thread_client:
                 thread_resp = await thread_client.get(f"/threads/{thread_id}/state")
                 assert thread_resp.status_code == 200
                 thread_data = thread_resp.json()
@@ -181,8 +179,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
                 callback_received = completed_callback_srv.wait_for("COMPLETED")
                 assert callback_received, "COMPLETED callback was not received within timeout"
                 assert len(completed_callback_srv.requests) == 1, (
-                    "Expected exactly 1 COMPLETED callback, "
-                    f"got {len(completed_callback_srv.requests)}"
+                    f"Expected exactly 1 COMPLETED callback, got {len(completed_callback_srv.requests)}"
                 )
                 assert len(needs_review_callback_srv.requests) == 0, (
                     "Expected 0 NEEDS_REVIEW callbacks, "
@@ -200,8 +197,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
                 callback_received = needs_review_callback_srv.wait_for("NEEDS_REVIEW")
                 assert callback_received, "NEEDS_REVIEW callback was not received within timeout"
                 assert len(needs_review_callback_srv.requests) == 1, (
-                    "Expected exactly 1 NEEDS_REVIEW callback, "
-                    f"got {len(needs_review_callback_srv.requests)}"
+                    f"Expected exactly 1 NEEDS_REVIEW callback, got {len(needs_review_callback_srv.requests)}"
                 )
                 assert len(completed_callback_srv.requests) == 0, (
                     f"Expected 0 COMPLETED callbacks, got {len(completed_callback_srv.requests)}. "
@@ -257,9 +253,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
         )
 
         # Make sure the private v2 work-items endpoint is working:
-        async with AsyncClient(
-            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
-        ) as client:
+        async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2") as client:
             v2_list_resp = await client.get("/work-items/")
             assert v2_list_resp.status_code == 200
             v2_listed_items = v2_list_resp.json()["records"]
@@ -267,9 +261,7 @@ async def test_work_items_with_file_e2e(  # noqa: PLR0915
             assert work_item_id in v2_work_item_ids
 
         # Verify that the thread retrieved from the API has the correct work_item_id
-        async with AsyncClient(
-            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
-        ) as client:
+        async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2") as client:
             thread_resp = await client.get(f"/threads/{thread_id}/state")
             assert thread_resp.status_code == 200
             thread_data = thread_resp.json()
@@ -379,9 +371,7 @@ async def test_work_items_e2e(
         )
 
         # Make sure the private v2 work-items endpoint is working:
-        async with AsyncClient(
-            base_url=f"{base_url_agent_server_workitems_matrix}/api/v2/work-items"
-        ) as client:
+        async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2/work-items") as client:
             v2_list_resp = await client.get("/")
             assert v2_list_resp.status_code == 200
             v2_listed_items = v2_list_resp.json()["records"]

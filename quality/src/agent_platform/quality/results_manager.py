@@ -240,16 +240,12 @@ class QualityResultsManager:
                             for e in result.test_case.evaluations
                         ],
                         "thread": self._serialize_thread(getattr(result.test_case, "thread", None)),
-                        "workitem": self._serialize_workitem(
-                            getattr(result.test_case, "workitem", None)
-                        ),
+                        "workitem": self._serialize_workitem(getattr(result.test_case, "workitem", None)),
                     },
                     "agent_messages": [
                         {
                             "role": msg.role,
-                            "content": [
-                                self._serialize_content(content) for content in msg.content
-                            ],
+                            "content": [self._serialize_content(content) for content in msg.content],
                         }
                         for msg in result.agent_messages
                     ],
@@ -277,9 +273,7 @@ class QualityResultsManager:
                     # Convert UploadedFile dataclasses to dicts for serialization
                     thread_files_data = [dataclasses.asdict(f) for f in result.thread_files]
                     with open(thread_files_file, "w") as file:
-                        yaml.dump(
-                            thread_files_data, file, default_flow_style=False, sort_keys=False
-                        )
+                        yaml.dump(thread_files_data, file, default_flow_style=False, sort_keys=False)
 
             except Exception as e:
                 logger.error(f"Failed to write test result for {test_id}: {e}")
@@ -402,7 +396,7 @@ class QualityResultsManager:
         """Get the current run directory path."""
         return self.current_run_dir
 
-    def _serialize_content(self, content):  # noqa: PLR0911
+    def _serialize_content(self, content):
         """Serialize message content for JSON storage."""
         from agent_platform.quality.models import FileAttachment, Text, Thought, ToolUse
 

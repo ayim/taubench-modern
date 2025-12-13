@@ -1,4 +1,4 @@
-def test_import_all():  # noqa: C901
+def test_import_all():
     """Test that all modules in agent_platform.server can be imported without errors."""
     import importlib
     from pathlib import Path
@@ -47,9 +47,7 @@ def test_import_all():  # noqa: C901
     # Report results
     # print(f"Successfully imported {len(all_modules)} modules")
 
-    assert len(all_modules) > 400, (
-        f"Expected to import at least 400 modules, but only imported {len(all_modules)}"
-    )
+    assert len(all_modules) > 400, f"Expected to import at least 400 modules, but only imported {len(all_modules)}"
     critical_modules = [
         "agent_platform.server.app",
         "agent_platform.server.main",
@@ -81,9 +79,7 @@ def test_import_all():  # noqa: C901
     with open(check_dir / "pyproject.toml", "rb") as f:
         toml_config = tomllib.load(f)
 
-    banned_modules = toml_config["tool"]["ruff"]["lint"]["flake8-tidy-imports"][
-        "banned-module-level-imports"
-    ]
+    banned_modules = toml_config["tool"]["ruff"]["lint"]["flake8-tidy-imports"]["banned-module-level-imports"]
     for banned_module in banned_modules:
         # print(f"Importing module banned from top-level imports: {banned_module}")
         importlib.import_module(banned_module)

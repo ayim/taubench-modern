@@ -225,9 +225,7 @@ class TestSlotResize:
         release_event = asyncio.Event()
         original_execute = executor._execute_work_item_in_slot
 
-        async def gated_execute_work_item(
-            self, item: WorkItem, slot_state: SlotState, timeout: float
-        ) -> None:
+        async def gated_execute_work_item(self, item: WorkItem, slot_state: SlotState, timeout: float) -> None:
             queued_event.set()
             await release_event.wait()
             await original_execute(item, slot_state, timeout)
@@ -290,9 +288,7 @@ class TestSlotResize:
             for _ in range(200):
                 slot_state = executor.slot_manager.slots[slot_id]
                 is_idle = (
-                    slot_state.status == "idle"
-                    and slot_state.work_item_id is None
-                    and executor._work_queue.empty()
+                    slot_state.status == "idle" and slot_state.work_item_id is None and executor._work_queue.empty()
                 )
                 if is_idle:
                     return
@@ -302,15 +298,11 @@ class TestSlotResize:
         await wait_for_slot_idle()
         slot_state = executor.slot_manager.slots[slot_id]
         assert slot_state.status == "idle", "Slot should be idle after work item"
-        assert slot_state.work_item_task is None, (
-            "Work item task reference should be cleared after work item"
-        )
+        assert slot_state.work_item_task is None, "Work item task reference should be cleared after work item"
 
         try:
             await executor._resize_slots(0, shutdown_event)
-            assert slot_task.done(), (
-                "Resize should cancel the long-running slot task for an idle slot"
-            )
+            assert slot_task.done(), "Resize should cancel the long-running slot task for an idle slot"
         finally:
             if not slot_task.done():
                 slot_task.cancel()
@@ -391,9 +383,7 @@ class TestSlotResize:
         crash_count = {"slot_1": 0}
 
         # Mock the slot executor task to crash for slot_id=1 on first invocation only
-        async def fake_slot_executor_task(
-            self, slot_id: int, shutdown_event: asyncio.Event
-        ) -> None:
+        async def fake_slot_executor_task(self, slot_id: int, shutdown_event: asyncio.Event) -> None:
             if slot_id == 1 and crash_count["slot_1"] == 0:
                 # This slot crashes immediately on first invocation
                 crash_count["slot_1"] += 1

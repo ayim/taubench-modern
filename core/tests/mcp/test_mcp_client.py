@@ -156,11 +156,7 @@ async def test_probe_accepts_header_only():
 @pytest.mark.asyncio
 async def test_connect_streamable_http(live_streamable_server):
     """Connect to explicit streamable-http endpoint."""
-    client = MCPClient(
-        target_server=MCPServer(
-            name="test", url=live_streamable_server, transport="streamable-http"
-        )
-    )
+    client = MCPClient(target_server=MCPServer(name="test", url=live_streamable_server, transport="streamable-http"))
     await client.connect()
 
     assert client.is_connected
@@ -614,9 +610,7 @@ async def test_client_sse_headers_propagated(monkeypatch):
     await client.connect()
 
     # Verify the headers were passed correctly to sse_client
-    assert captured_headers == expected_headers, (
-        f"Expected {expected_headers}, but got {captured_headers}"
-    )
+    assert captured_headers == expected_headers, f"Expected {expected_headers}, but got {captured_headers}"
 
     # Verify connection was successful
     assert client.is_connected
@@ -807,9 +801,7 @@ async def test_stdio_env_none_handling(monkeypatch):
     monkeypatch.setattr(os, "environ", mock_env)
 
     # Create a server with no environment variables (None)
-    server = MCPServer(
-        name="test-stdio-none", command="python", args=["-c", "print('test')"], env=None
-    )
+    server = MCPServer(name="test-stdio-none", command="python", args=["-c", "print('test')"], env=None)
 
     client = MCPClient(target_server=server)
 
@@ -861,9 +853,7 @@ async def test_stdio_env_empty_handling(monkeypatch):
     monkeypatch.setattr(os, "environ", mock_env)
 
     # Create a server with empty environment variables
-    server = MCPServer(
-        name="test-stdio-empty", command="python", args=["-c", "print('test')"], env={}
-    )
+    server = MCPServer(name="test-stdio-empty", command="python", args=["-c", "print('test')"], env={})
 
     client = MCPClient(target_server=server)
 
@@ -1119,9 +1109,7 @@ async def test_no_action_context_header_when_type_generic_mcp():
         name="test-server",
         url="https://api.example.com/mcp",
         headers={
-            "Authorization": MCPVariableTypeSecret(
-                value="gh-token-value", description="GitHub token"
-            ),
+            "Authorization": MCPVariableTypeSecret(value="gh-token-value", description="GitHub token"),
             "X-Custom-Auth": MCPVariableTypeOAuth2Secret(
                 provider="github",
                 scopes=["repo"],
@@ -1262,9 +1250,7 @@ async def test_ensure_data_context_header_no_header_when_missing_credentials():
     data_server_details1 = DataServerDetails(
         username=None,
         password="testpass",
-        data_server_endpoints=[
-            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)
-        ],
+        data_server_endpoints=[DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)],
     )
 
     client1 = MCPClient(target_server=server, data_server_details=data_server_details1)
@@ -1274,18 +1260,14 @@ async def test_ensure_data_context_header_no_header_when_missing_credentials():
     data_server_details2 = DataServerDetails(
         username="testuser",
         password=None,
-        data_server_endpoints=[
-            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)
-        ],
+        data_server_endpoints=[DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)],
     )
 
     client2 = MCPClient(target_server=server, data_server_details=data_server_details2)
     assert "X-Data-Context" not in client2._headers
 
     # Test missing endpoints
-    data_server_details3 = DataServerDetails(
-        username="testuser", password="testpass", data_server_endpoints=[]
-    )
+    data_server_details3 = DataServerDetails(username="testuser", password="testpass", data_server_endpoints=[])
 
     client3 = MCPClient(target_server=server, data_server_details=data_server_details3)
     assert "X-Data-Context" not in client3._headers
@@ -1313,9 +1295,7 @@ async def test_ensure_data_context_header_no_header_when_not_action_server_or_no
     data_server_details = DataServerDetails(
         username="testuser",
         password="testpass",
-        data_server_endpoints=[
-            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)
-        ],
+        data_server_endpoints=[DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)],
     )
 
     client1 = MCPClient(target_server=server1, data_server_details=data_server_details)

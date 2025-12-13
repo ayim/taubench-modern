@@ -55,7 +55,7 @@ class MockStorage:
     async def get_work_items_by_ids(self, work_item_ids: list[str]) -> list[WorkItem]:
         return [await self.get_work_item(wid) for wid in work_item_ids]
 
-    async def list_work_items(  # noqa: PLR0913
+    async def list_work_items(
         self,
         agent_id: str | None = None,
         limit: int = 100,
@@ -99,9 +99,7 @@ class MockStorage:
         self.work_items[work_item_id].status_updated_by = status_updated_by
         self.work_items[work_item_id].status_updated_at = datetime.now(UTC)
 
-    async def complete_work_item(
-        self, user_id: str, work_item_id: str, completed_by: WorkItemCompletedBy
-    ) -> None:
+    async def complete_work_item(self, user_id: str, work_item_id: str, completed_by: WorkItemCompletedBy) -> None:
         """Complete a work item with the specified completed_by value."""
         if work_item_id not in self.work_items:
             raise WorkItemNotFoundError(work_item_id)

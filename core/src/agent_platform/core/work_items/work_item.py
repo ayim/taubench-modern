@@ -103,9 +103,7 @@ class WorkItemCallback:
     """Payload to define callback after a work item reaches a certain status."""
 
     url: str = field(
-        metadata={
-            "description": "The URL to call (POST) when the work item reaches the specified status."
-        },
+        metadata={"description": "The URL to call (POST) when the work item reaches the specified status."},
     )
     """The URL to call (POST) when the work item reaches the specified status."""
 
@@ -121,10 +119,7 @@ class WorkItemCallback:
 
     on_status: allowed_callback_status_types = field(
         default=WorkItemStatus.NEEDS_REVIEW,
-        metadata={
-            "description": "The status which, when reached, will trigger"
-            " the callback (default NEEDS_REVIEW)."
-        },
+        metadata={"description": "The status which, when reached, will trigger the callback (default NEEDS_REVIEW)."},
     )
     """The status which, when reached, will trigger the callback."""
 
@@ -242,9 +237,7 @@ class WorkItem:
     thread_id: str | None = field(
         default=None,
         metadata={
-            "description": (
-                "The ID of the thread associated with this work item (may be null until created)."
-            ),
+            "description": ("The ID of the thread associated with this work item (may be null until created)."),
         },
     )
     """The ID of the thread associated with this work item (nullable)."""
@@ -323,17 +316,13 @@ class WorkItem:
 
     work_item_name: str | None = field(
         default=None,
-        metadata={
-            "description": "User-friendly name for the work item. Must be less than 255 characters."
-        },
+        metadata={"description": "User-friendly name for the work item. Must be less than 255 characters."},
     )
     """User-friendly name for the work item. Must be less than 255 characters."""
 
     def model_dump(self) -> dict:
         # Do not advertise the PRECREATED status to the client.
-        status = (
-            WorkItemStatus.DRAFT.value if self.status == WorkItemStatus.PRECREATED else self.status
-        )
+        status = WorkItemStatus.DRAFT.value if self.status == WorkItemStatus.PRECREATED else self.status
         return {
             "work_item_id": self.work_item_id,
             "user_id": self.user_id,
@@ -394,15 +383,13 @@ class WorkItem:
             messages_for_thread.append(
                 ThreadMessage(
                     role="user",
-                    content=[
-                        ThreadTextContent(text=f"Work item payload: {json.dumps(self.payload)}")
-                    ],
+                    content=[ThreadTextContent(text=f"Work item payload: {json.dumps(self.payload)}")],
                 )
             )
         return messages_for_thread
 
     @classmethod
-    def model_validate(cls, data: dict) -> "WorkItem":  # noqa: C901, PLR0912
+    def model_validate(cls, data: dict) -> "WorkItem":
         data = data.copy()
 
         # Handle UUIDs
@@ -447,20 +434,16 @@ class WorkItem:
                 data["status_updated_by"] = WorkItemStatusUpdatedBy.HUMAN
         if "messages" in data:
             data["messages"] = [
-                ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
-                for msg in data["messages"]
+                ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg for msg in data["messages"]
             ]
         if "callbacks" in data and data["callbacks"] is not None:
             data["callbacks"] = [
-                WorkItemCallback.model_validate(callback)
-                if isinstance(callback, dict)
-                else callback
+                WorkItemCallback.model_validate(callback) if isinstance(callback, dict) else callback
                 for callback in data["callbacks"]
             ]
         if "initial_messages" in data and data["initial_messages"] is not None:
             data["initial_messages"] = [
-                ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
-                for msg in data["initial_messages"]
+                ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg for msg in data["initial_messages"]
             ]
         return cls(**data)
 

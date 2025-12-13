@@ -61,7 +61,7 @@ class SemanticDataModelCollector:
         self.state = state
         self.on_cache_hit = Callback()
 
-    async def _find_file_which_matches_unresolved_file_reference(  # noqa
+    async def _find_file_which_matches_unresolved_file_reference(
         self,
         storage: "BaseStorage",
         references: "References",
@@ -77,9 +77,7 @@ class SemanticDataModelCollector:
         )
 
         if not tables_with_unresolved_file_references:
-            raise RuntimeError(
-                "Don't call this method unless there are actual unresolved file references!"
-            )
+            raise RuntimeError("Don't call this method unless there are actual unresolved file references!")
 
         # Load the files in the thread
         files_in_thread = await storage.get_thread_files(
@@ -91,9 +89,7 @@ class SemanticDataModelCollector:
         if self.state is not None and updated_at is not None:
             cache_key_lst = [f"{self.thread_id}:{updated_at}"]
             for empty_file_reference in tables_with_unresolved_file_references:
-                cache_key_lst.append(
-                    f"{empty_file_reference.base_table_table}:{empty_file_reference.sheet_name}"
-                )
+                cache_key_lst.append(f"{empty_file_reference.base_table_table}:{empty_file_reference.sheet_name}")
             cache_key = ";".join(cache_key_lst)
 
             matching_info = self.state.empty_file_cache_key_to_matching_info.get(cache_key)
@@ -101,11 +97,7 @@ class SemanticDataModelCollector:
                 try:
                     ret = MatchingInfo(**matching_info)
                     existing_file = next(
-                        (
-                            file
-                            for file in files_in_thread
-                            if file.file_ref == ret.uploaded_file_file_ref
-                        ),
+                        (file for file in files_in_thread if file.file_ref == ret.uploaded_file_file_ref),
                         None,
                     )
                     if existing_file is not None:
@@ -124,9 +116,7 @@ class SemanticDataModelCollector:
                 # We should at least cache this information accordingly (both the result of
                 # the inspection as well as which file matches which semantic data model).
                 # At least we cache the inspection metadata for the file!
-                inspected_data_frames: list[
-                    _DataFrameInspectionAPI
-                ] = await inspect_file_as_data_frame(
+                inspected_data_frames: list[_DataFrameInspectionAPI] = await inspect_file_as_data_frame(
                     user=self.user,
                     tid=self.thread_id,
                     storage=storage,
@@ -150,30 +140,22 @@ class SemanticDataModelCollector:
                             sheet_matches = True  # single sheet, matches by default
                         else:
                             sheet_matches = (
-                                not (
-                                    unresolved_reference.sheet_name
-                                    and inspected_data_frame.sheet_name
-                                )
-                                or unresolved_reference.sheet_name
-                                == inspected_data_frame.sheet_name
+                                not (unresolved_reference.sheet_name and inspected_data_frame.sheet_name)
+                                or unresolved_reference.sheet_name == inspected_data_frame.sheet_name
                             )
 
                         if not sheet_matches:
                             continue
 
-                        logical_table_with_matching_columns = (
-                            self._logical_table_with_matching_columns(
-                                semantic_data_model, unresolved_reference, inspected_data_frame
-                            )
+                        logical_table_with_matching_columns = self._logical_table_with_matching_columns(
+                            semantic_data_model, unresolved_reference, inspected_data_frame
                         )
 
                         if not logical_table_with_matching_columns:
                             continue
 
-                        matching_table_names: list[str] = (
-                            sheet_name_to_logical_table_names.setdefault(
-                                inspected_data_frame.sheet_name, []
-                            )
+                        matching_table_names: list[str] = sheet_name_to_logical_table_names.setdefault(
+                            inspected_data_frame.sheet_name, []
                         )
                         name = logical_table_with_matching_columns.get("name")
                         if not name:
@@ -186,8 +168,7 @@ class SemanticDataModelCollector:
                         found_matching += 1
                         if found_matching == len(tables_with_unresolved_file_references):
                             logger.info(
-                                f"Found matching file for unresolved reference (file_ref: "
-                                f"{uploaded_file.file_ref})",
+                                f"Found matching file for unresolved reference (file_ref: {uploaded_file.file_ref})",
                             )
                             matching_info = MatchingInfo(
                                 uploaded_file_thread_id=inspected_data_frame.thread_id,
@@ -196,14 +177,11 @@ class SemanticDataModelCollector:
                             )
                             # Save to cache if both state and updated_at are available
                             if self.state is not None and updated_at is not None:
-                                self.state.empty_file_cache_key_to_matching_info[cache_key] = (
-                                    matching_info.model_dump()
-                                )
+                                self.state.empty_file_cache_key_to_matching_info[cache_key] = matching_info.model_dump()
                             return matching_info
             except Exception as e:
                 logger.error(
-                    f"Error inspecting file {uploaded_file.file_ref} for unresolved "
-                    f"references: {e}",
+                    f"Error inspecting file {uploaded_file.file_ref} for unresolved references: {e}",
                 )
                 continue
 
@@ -231,9 +209,7 @@ class SemanticDataModelCollector:
             True if the columns match, False otherwise
         """
         # Get the logical table from the semantic data model
-        logical_table = self._find_logical_table_by_name(
-            semantic_data_model, unresolved_reference.logical_table_name
-        )
+        logical_table = self._find_logical_table_by_name(semantic_data_model, unresolved_reference.logical_table_name)
         if not logical_table:
             return None
 
@@ -291,7 +267,7 @@ class SemanticDataModelCollector:
                     columns.add(column_info["name"].lower())
         return columns
 
-    async def resolve_file_references_for_semantic_data_model(  # noqa: C901
+    async def resolve_file_references_for_semantic_data_model(
         self,
         storage: "BaseStorage",
         semantic_data_model: "SemanticDataModel",
@@ -373,27 +349,19 @@ class SemanticDataModelCollector:
                 # Re-validate to get fresh references that reflect the newly-populated
                 # file references. The old references still have unresolved file references;
                 # the new ones will show them as resolved in the file_references set.
-                references = validate_semantic_model_payload_and_extract_references(
-                    semantic_data_model
-                )
+                references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
 
         return semantic_data_model, references
 
-    async def collect_semantic_data_models(
-        self, storage: "BaseStorage"
-    ) -> "list[SemanticDataModelAndReferences]":
+    async def collect_semantic_data_models(self, storage: "BaseStorage") -> "list[SemanticDataModelAndReferences]":
         try:
             return await self._collect_semantic_data_models(storage)
         except Exception:
             logger.exception("Error collecting semantic data models")
             return []
 
-    async def _collect_semantic_data_models(
-        self, storage: "BaseStorage"
-    ) -> "list[SemanticDataModelAndReferences]":
-        semantic_data_model_infos: list[
-            BaseStorage.SemanticDataModelInfo
-        ] = await storage.list_semantic_data_models(
+    async def _collect_semantic_data_models(self, storage: "BaseStorage") -> "list[SemanticDataModelAndReferences]":
+        semantic_data_model_infos: list[BaseStorage.SemanticDataModelInfo] = await storage.list_semantic_data_models(
             agent_id=self.agent_id, thread_id=self.thread_id
         )
 
@@ -430,9 +398,7 @@ class SemanticDataModelCollector:
             # resolve_file_references_for_semantic_data_model mutates in place
 
             resolved_semantic_data_model_infos.append(
-                SemanticDataModelAndReferences(
-                    semantic_data_model_info=semantic_data_model_info, references=references
-                )
+                SemanticDataModelAndReferences(semantic_data_model_info=semantic_data_model_info, references=references)
             )
 
         return resolved_semantic_data_model_infos

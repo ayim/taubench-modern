@@ -267,9 +267,7 @@ async def inspect_agent_from_package(
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:
         logger.exception("Failed to inspect agent package")
-        return StatusResponse.failure(
-            [StatusError.from_message(f"Failed to inspect package: {e}", code="unexpected")]
-        )
+        return StatusResponse.failure([StatusError.from_message(f"Failed to inspect package: {e}", code="unexpected")])
 
 
 @router.post(
@@ -315,9 +313,7 @@ async def inspect_action_from_package(
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:
         logger.exception("Failed to inspect action package")
-        return StatusResponse.failure(
-            [StatusError.from_message(f"Failed to inspect package: {e}", code="unexpected")]
-        )
+        return StatusResponse.failure([StatusError.from_message(f"Failed to inspect package: {e}", code="unexpected")])
 
 
 @router.post(
@@ -367,7 +363,7 @@ async def build_agent_package(
 # ===============================
 
 
-async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
+async def upsert_agent_from_package(
     user: AuthedUser,
     aid: str,
     payload: AgentPackagePayload,
@@ -512,9 +508,7 @@ async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
 
         as_upsert_payload = UpsertAgentPayload(
             name=payload.name,  # Want name from payload, not agent project
-            description=payload.description
-            if payload.description is not None
-            else spec_agent.description,
+            description=payload.description if payload.description is not None else spec_agent.description,
             version=spec_agent.version or "1.0.0",
             action_packages=[
                 ActionPackage(
@@ -588,7 +582,7 @@ async def upsert_agent_from_package(  # noqa: C901, PLR0912, PLR0915
     return AgentCompat.from_agent(as_agent)
 
 
-async def upsert_semantic_data_models(  # noqa: C901
+async def upsert_semantic_data_models(
     agent_id: str,
     sdms: Mapping[str, dict[str, Any]] | None,
     storage: StorageDependency,

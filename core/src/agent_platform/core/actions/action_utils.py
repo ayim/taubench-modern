@@ -241,10 +241,7 @@ def _dereference_refs_recursive(item: Any, full_schema: dict) -> Any:
                 IndexError,
             ) as e:
                 # Catch potential errors from jsonpointer or during path manipulation
-                logger.warning(
-                    f"Warning: Failed to resolve ref '{ref_value}' "
-                    f"(path='{pointer_path}'): {e}. Skipping."
-                )
+                logger.warning(f"Warning: Failed to resolve ref '{ref_value}' (path='{pointer_path}'): {e}. Skipping.")
                 # Return the original item (with $ref) if resolution fails
                 return item
         else:
@@ -282,10 +279,7 @@ def _dereference_refs(spec: dict, full_schema: dict) -> dict:
     if not isinstance(resolved_spec, dict):
         # This might happen if the top-level 'spec' was just a $ref pointing
         # to a non-object schema (e.g., a string or array).
-        raise TypeError(
-            f"Dereferencing resulted in a non-dictionary type: {type(resolved_spec)}. "
-            f"Input spec: {spec}"
-        )
+        raise TypeError(f"Dereferencing resulted in a non-dictionary type: {type(resolved_spec)}. Input spec: {spec}")
     return resolved_spec
 
 
@@ -327,9 +321,7 @@ async def _get_run_id_from_request_id(
                 logger.warning(f"No run_id found in response for request ID {request_id}")
                 return None
         else:
-            logger.warning(
-                f"Failed to get run ID for request ID {request_id}. Status: {response.status_code}"
-            )
+            logger.warning(f"Failed to get run ID for request ID {request_id}. Status: {response.status_code}")
             response.raise_for_status()
     except Exception as e:
         logger.error(f"Error getting run ID from request ID: {e!s}", exc_info=True)
@@ -366,10 +358,7 @@ async def _check_action_status(
         response = await client.get(f"{base_url}/api/runs/{async_action_run_id}", headers=headers)
 
         if response.status_code != HTTPStatus.OK:
-            logger.warning(
-                f"Action status check failed: HTTP {response.status_code} "
-                f"for run {async_action_run_id}"
-            )
+            logger.warning(f"Action status check failed: HTTP {response.status_code} for run {async_action_run_id}")
             return {"status": -1}  # Indicate error with status -1
 
         return response.json()
@@ -378,7 +367,7 @@ async def _check_action_status(
         return {"status": -1}
 
 
-def _handle_status_check(  # noqa
+def _handle_status_check(
     status_result: ActionStatusResponse,
     action_server_run_id: str | None,
     result_is_json_string: bool,
@@ -401,9 +390,7 @@ def _handle_status_check(  # noqa
             if not isinstance(result, str):
                 # Action Server API not what we expected, log as critical
                 # (but don't break the flow).
-                logger.critical(
-                    f"Expected Action Server run result to be a (json) string, got: {type(result)}"
-                )
+                logger.critical(f"Expected Action Server run result to be a (json) string, got: {type(result)}")
             else:
                 try:
                     result = json.loads(result)
@@ -448,14 +435,14 @@ def _handle_status_check(  # noqa
         return None
 
 
-def _build_post_async_function(  # noqa
+def _build_post_async_function(
     action_url: str,
     api_key: str,
     # Extra headers to be added to the request at
     # tool definition time
     additional_headers: dict | None = None,
 ) -> Callable[..., Coroutine[Any, Any, ActionResponse]]:
-    async def _post_async_function(  # noqa
+    async def _post_async_function(
         # Extra headers to be added to the request at
         # tool invocation time
         extra_headers: dict | None = None,
@@ -483,9 +470,7 @@ def _build_post_async_function(  # noqa
             try:
                 float(timeout_seconds)
             except Exception:
-                logger.warning(
-                    f"Invalid timeout value: {timeout_seconds}. Using default 20 seconds."
-                )
+                logger.warning(f"Invalid timeout value: {timeout_seconds}. Using default 20 seconds.")
                 timeout_seconds = "20"
 
             headers.update(
@@ -531,9 +516,7 @@ def _build_post_async_function(  # noqa
 
                 # Use a separate client with retry transport for status checks
                 # (these are read-only and should be more resilient)
-                async with httpx.AsyncClient(
-                    transport=_get_read_retry_transport(), timeout=60.0
-                ) as status_client:
+                async with httpx.AsyncClient(transport=_get_read_retry_transport(), timeout=60.0) as status_client:
                     while retries < max_retries:
                         try:
                             if action_server_run_id:
@@ -564,9 +547,7 @@ def _build_post_async_function(  # noqa
                             retries += 1
 
                         except Exception as e:
-                            logger.error(
-                                f"Error checking async action status: {e!s}", exc_info=True
-                            )
+                            logger.error(f"Error checking async action status: {e!s}", exc_info=True)
                             await asyncio.sleep(retry_interval)
                             retries += 1
 
@@ -579,10 +560,7 @@ def _build_post_async_function(  # noqa
                     )
             else:  # not async action
                 if response.status_code not in (200, 201):
-                    logger.info(
-                        "Action completed synchronously with error "
-                        f"(status code: {response.status_code})"
-                    )
+                    logger.info(f"Action completed synchronously with error (status code: {response.status_code})")
 
                     status_response = _handle_status_check(
                         {"status": ActionRunStatus.FAILED, "result": result},
@@ -630,10 +608,7 @@ def _openapi_spec_to_tool_definitions(
 
             # Get the requestBody's schema (JSON schema)
             request_body_schema = (
-                resolved_spec.get("requestBody", {})
-                .get("content", {})
-                .get("application/json", {})
-                .get("schema", {})
+                resolved_spec.get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema", {})
             )
 
             request_body_args = request_body_schema.get("properties", {})
@@ -689,12 +664,8 @@ async def get_spec_and_build_tool_definitions(
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)
         original_count = len(definitions)
-        definitions = [
-            definition for definition in definitions if definition.name in allowed_actions
-        ]
-        logger.info(
-            f"Filtered {original_count} -> {len(definitions)} tools (allowed: {allowed_actions})"
-        )
+        definitions = [definition for definition in definitions if definition.name in allowed_actions]
+        logger.info(f"Filtered {original_count} -> {len(definitions)} tools (allowed: {allowed_actions})")
 
     logger.info(f"Found {len(definitions)} tool definitions for action-server @ {url}")
     if len(definitions) == 0:

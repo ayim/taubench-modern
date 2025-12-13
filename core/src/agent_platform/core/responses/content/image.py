@@ -55,8 +55,7 @@ class ResponseImageContent(ResponseMessageContent):
     sub_type: Literal["url", "base64", "raw_bytes"] = field(
         default="url",
         metadata={
-            "description": "Format of the image data - either a URL or base64 encoded "
-            "string, or raw bytes",
+            "description": "Format of the image data - either a URL or base64 encoded string, or raw bytes",
         },
     )
     """Format of the image data - either a URL or base64 encoded string, or raw bytes"""
@@ -181,9 +180,7 @@ class ResponseImageContent(ResponseMessageContent):
 
         # If we have a valid filename, use that
         has_valid_filename = (
-            hasattr(image, "filename")
-            and image.filename is not None
-            and Path(image.filename).is_file()
+            hasattr(image, "filename") and image.filename is not None and Path(image.filename).is_file()
         )
 
         if has_valid_filename and image.filename:

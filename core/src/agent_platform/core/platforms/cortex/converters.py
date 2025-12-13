@@ -137,7 +137,7 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
             case _:
                 raise ValueError(f"Unsupported role: {role}")
 
-    async def _convert_messages(  # noqa: C901, PLR0912
+    async def _convert_messages(
         self,
         messages: list[PromptUserMessage | PromptAgentMessage],
     ) -> list[CortexPromptMessage]:
@@ -204,9 +204,7 @@ class CortexConverters(PlatformConverters, UsesKernelMixin):
                             ],
                         )
                     ).strip(),
-                    content_list=(
-                        (collapsed_messages[-1].content_list or []) + (message.content_list or [])
-                    ),
+                    content_list=((collapsed_messages[-1].content_list or []) + (message.content_list or [])),
                 )
 
         # NOTE: cortex does NOT like messages with empty content

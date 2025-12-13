@@ -91,14 +91,10 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         # Collect verified queries from semantic data models
         self._verified_queries = {}
         for semantic_data_model_and_refs in self._semantic_data_models:
-            all_data_connection_ids.update(
-                semantic_data_model_and_refs.references.data_connection_ids
-            )
+            all_data_connection_ids.update(semantic_data_model_and_refs.references.data_connection_ids)
 
             # Extract verified queries from this semantic data model
-            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
             verified_queries = semantic_data_model.get("verified_queries")
             if verified_queries:
                 for verified_query in verified_queries:
@@ -106,14 +102,10 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
                         query_name = verified_query.get("name")
                         sql_query = verified_query.get("sql")
                         if query_name and sql_query:
-                            self._verified_queries[query_name] = typing.cast(
-                                VerifiedQuery, verified_query
-                            )
+                            self._verified_queries[query_name] = typing.cast(VerifiedQuery, verified_query)
 
         if all_data_connection_ids:
-            data_connections = await self._storage.get_data_connections(
-                list(all_data_connection_ids)
-            )
+            data_connections = await self._storage.get_data_connections(list(all_data_connection_ids))
             for data_connection in data_connections:
                 self._data_connection_id_to_engine[data_connection.id] = data_connection.engine
 
@@ -135,12 +127,8 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
         for semantic_data_model_and_refs in self._semantic_data_models:
             try:
-                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info[
-                    "semantic_data_model"
-                ]
-                new_model: SemanticDataModel = typing.cast(
-                    SemanticDataModel, {x: y for x, y in model.items() if y}
-                )
+                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
+                new_model: SemanticDataModel = typing.cast(SemanticDataModel, {x: y for x, y in model.items() if y})
 
                 tables = new_model.get("tables", [])
                 if not tables:
@@ -173,8 +161,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
         if data_connection_ids:
             engines = {
-                self._data_connection_id_to_engine.get(data_connection_id)
-                for data_connection_id in data_connection_ids
+                self._data_connection_id_to_engine.get(data_connection_id) for data_connection_id in data_connection_ids
             }
             engines.discard(None)
             if len(engines) == 1:
@@ -308,9 +295,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
         # Search for the table in semantic data models
         for sdm_and_refs in self._semantic_data_models:
-            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
             tables = semantic_data_model.get("tables", [])
 
             for table in tables:
@@ -334,9 +319,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
         table_names: list[str] = []
         for sdm_and_refs in self._semantic_data_models:
-            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
             for table in semantic_data_model.get("tables", []):
                 name = table.get("name")
                 if name:
@@ -411,9 +394,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
         for sdm_and_refs in self._semantic_data_models:
-            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
             for table in semantic_data_model.get("tables", []):
                 if table.get("name") == table_name:
                     return self._extract_column_names_from_table(typing.cast(dict[str, Any], table))
@@ -535,10 +516,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         # SUCCESS case - look up the data frame and extract SQL queries
         else:
             if not data_frame_name:
-                raise ValueError(
-                    "data_frame_name is required when not providing "
-                    "message_to_parent or error_message"
-                )
+                raise ValueError("data_frame_name is required when not providing message_to_parent or error_message")
 
             # Get the data frame from storage
             data_frame = await self._storage.get_data_frame(

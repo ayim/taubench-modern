@@ -71,8 +71,7 @@ class ReductoConverters(PlatformConverters, UsesKernelMixin):
                 return (content.name, response.content)
         else:
             raise ValueError(
-                f"Unsupported document content sub-type / value: {content.sub_type} "
-                f"/ {type(content.value)}",
+                f"Unsupported document content sub-type / value: {content.sub_type} / {type(content.value)}",
             )
 
     async def convert_prompt(

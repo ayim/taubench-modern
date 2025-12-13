@@ -258,9 +258,7 @@ class TestLangSmithContext:
         assert parsed_result["function"]["arguments"] == {}
 
     @pytest.mark.asyncio
-    async def test_trace_llm_calls_server_context_start_span(
-        self, mock_server_context: MagicMock
-    ) -> None:
+    async def test_trace_llm_calls_server_context_start_span(self, mock_server_context: MagicMock) -> None:
         """Test that LangSmithContext.trace_llm() calls server_context.start_span()."""
         context = LangSmithContext(mock_server_context)
 

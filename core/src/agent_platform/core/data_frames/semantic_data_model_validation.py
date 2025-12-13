@@ -61,16 +61,14 @@ class References:
     file_references: set[_FileReference]
     data_connection_id_to_logical_table_names: dict[str, set[str]]
     file_reference_to_logical_table_names: dict[_FileReference, set[str]]
-    logical_table_name_to_connection_info: dict[
-        str, DataConnectionInfo | FileConnectionInfo | DataFrameConnectionInfo
-    ]
+    logical_table_name_to_connection_info: dict[str, DataConnectionInfo | FileConnectionInfo | DataFrameConnectionInfo]
     errors: list[str]
     _structured_errors: list[ValidationMessage]
     tables_with_unresolved_file_references: set[EmptyFileReference]
     semantic_data_model_with_errors: "SemanticDataModel | None"
 
 
-def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR0912, PLR0915
+def validate_semantic_model_payload_and_extract_references(
     semantic_data_model: "SemanticDataModel",
 ) -> References:
     """Validate the semantic model payload."""
@@ -145,8 +143,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
         if not base_table:
             error = ValidationMessage(
                 message=(
-                    f"'base_table' must be specified in a semantic data model table"
-                    f" (table: {logical_table_name})."
+                    f"'base_table' must be specified in a semantic data model table (table: {logical_table_name})."
                 ),
                 level=ValidationMessageLevel.ERROR,
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
@@ -159,8 +156,7 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
         if not base_table_table:
             error = ValidationMessage(
                 message=(
-                    f"'table' must be specified in a semantic data model base table"
-                    f" (table: {logical_table_name})."
+                    f"'table' must be specified in a semantic data model base table (table: {logical_table_name})."
                 ),
                 level=ValidationMessageLevel.ERROR,
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
@@ -197,13 +193,11 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                 sheet_name = base_table_file_reference.get("sheet_name")
 
                 if file_ref and thread_id:
-                    file_reference = _FileReference(
-                        thread_id=thread_id, file_ref=file_ref, sheet_name=sheet_name
-                    )
+                    file_reference = _FileReference(thread_id=thread_id, file_ref=file_ref, sheet_name=sheet_name)
                     references.file_references.add(file_reference)
-                    references.file_reference_to_logical_table_names.setdefault(
-                        file_reference, set()
-                    ).add(logical_table_name)
+                    references.file_reference_to_logical_table_names.setdefault(file_reference, set()).add(
+                        logical_table_name
+                    )
                     if references.logical_table_name_to_connection_info.get(logical_table_name):
                         msg = (
                             f"Logical table name {logical_table_name} is referenced more than once in "
@@ -218,15 +212,13 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                         table.setdefault("errors", []).append(error)
                         continue
 
-                    references.logical_table_name_to_connection_info[logical_table_name] = (
-                        FileConnectionInfo(
-                            kind="file",
-                            thread_id=thread_id,
-                            file_ref=file_ref,
-                            sheet_name=sheet_name,
-                            logical_table=logical_table_name,
-                            real_table=base_table_table,
-                        )
+                    references.logical_table_name_to_connection_info[logical_table_name] = FileConnectionInfo(
+                        kind="file",
+                        thread_id=thread_id,
+                        file_ref=file_ref,
+                        sheet_name=sheet_name,
+                        logical_table=logical_table_name,
+                        real_table=base_table_table,
                     )
 
                 else:
@@ -256,19 +248,17 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                     table.setdefault("errors", []).append(error)
                     continue
 
-                references.logical_table_name_to_connection_info[logical_table_name] = (
-                    DataFrameConnectionInfo(
-                        kind="data_frame",
-                        data_frame_name=base_table_table,
-                    )
+                references.logical_table_name_to_connection_info[logical_table_name] = DataFrameConnectionInfo(
+                    kind="data_frame",
+                    data_frame_name=base_table_table,
                 )
 
         else:
             # We're dealing with a data connection (fields as "usual").
             references.data_connection_ids.add(base_table_data_connection_id)
-            references.data_connection_id_to_logical_table_names.setdefault(
-                base_table_data_connection_id, set()
-            ).add(logical_table_name)
+            references.data_connection_id_to_logical_table_names.setdefault(base_table_data_connection_id, set()).add(
+                logical_table_name
+            )
             if references.logical_table_name_to_connection_info.get(logical_table_name):
                 error = ValidationMessage(
                     message=(
@@ -282,15 +272,13 @@ def validate_semantic_model_payload_and_extract_references(  # noqa: C901, PLR09
                 table.setdefault("errors", []).append(error)
                 continue
 
-            references.logical_table_name_to_connection_info[logical_table_name] = (
-                DataConnectionInfo(
-                    kind="data_connection",
-                    data_connection_id=base_table_data_connection_id,
-                    database=base_table.get("database") or "",
-                    schema=base_table.get("schema") or "",
-                    logical_table=logical_table_name,
-                    real_table=base_table_table,
-                )
+            references.logical_table_name_to_connection_info[logical_table_name] = DataConnectionInfo(
+                kind="data_connection",
+                data_connection_id=base_table_data_connection_id,
+                database=base_table.get("database") or "",
+                schema=base_table.get("schema") or "",
+                logical_table=logical_table_name,
+                real_table=base_table_table,
             )
 
     # Set the semantic data model with errors if any were found

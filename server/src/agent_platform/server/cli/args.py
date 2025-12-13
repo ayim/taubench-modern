@@ -58,10 +58,7 @@ def parse_args() -> ServerArgs:
         "--host",
         type=str,
         default=SystemConfig.host,
-        help=(
-            "Host address to run the HTTP server on. "
-            f"Default is from config or '{SystemConfig.host}'."
-        ),
+        help=(f"Host address to run the HTTP server on. Default is from config or '{SystemConfig.host}'."),
     )
     parser.add_argument(
         "--port",
@@ -84,8 +81,7 @@ def parse_args() -> ServerArgs:
         "--parent-pid",
         type=int,
         default=SystemConfig.parent_pid,
-        help="Parent PID of the agent server (when the given pid exits, "
-        "the agent server will also exit).",
+        help="Parent PID of the agent server (when the given pid exits, the agent server will also exit).",
     )
     parser.add_argument(
         "--use-data-dir-lock",
@@ -96,8 +92,7 @@ def parse_args() -> ServerArgs:
     parser.add_argument(
         "--kill-lock-holder",
         action="store_true",
-        help="Kill the process holding the lock file (only used if --use-data-dir-lock "
-        "is also used).",
+        help="Kill the process holding the lock file (only used if --use-data-dir-lock is also used).",
     )
     parser.add_argument(
         "--config-path",
@@ -138,8 +133,7 @@ def parse_args() -> ServerArgs:
     parser.add_argument(
         "--ignore-config",
         action="store_true",
-        help="Ignore the configuration file and use the defaults, CLI "
-        "arguments or environment variables.",
+        help="Ignore the configuration file and use the defaults, CLI arguments or environment variables.",
     )
     parser.add_argument(
         "--export-config",

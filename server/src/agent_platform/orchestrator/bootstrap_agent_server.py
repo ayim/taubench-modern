@@ -75,7 +75,7 @@ class AgentServerProcess(BootstrapBase):
 
         return base_args
 
-    def start(  # noqa: PLR0913
+    def start(
         self,
         *,
         logs_dir: Path,

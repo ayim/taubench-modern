@@ -53,9 +53,7 @@ class KeyForDimension:
         return f"{self.key_for_base_table}.{self.column_expr}"
 
     @classmethod
-    def from_category(
-        cls, key_for_base_table: KeyForBaseTable, category: DimensionTypes
-    ) -> "KeyForDimension":
+    def from_category(cls, key_for_base_table: KeyForBaseTable, category: DimensionTypes) -> "KeyForDimension":
         return KeyForDimension(
             key_for_base_table=key_for_base_table,
             column_expr=category.get("expr"),
@@ -91,15 +89,13 @@ class SemanticDataModelIndex:
             if not logical_table_name:
                 log.critical(f"Logical table name not found in table: {table}")
                 continue
-            self.logical_table_name_to_logical_table[logical_table_name] = ValueForBaseTable(
-                table=table
-            )
+            self.logical_table_name_to_logical_table[logical_table_name] = ValueForBaseTable(table=table)
             for category in CATEGORIES:
                 category_items = table.get(category) or []
                 for item in category_items:
-                    self.table_name_and_dim_expr_to_dimension[
-                        f"{logical_table_name}.{item.get('expr')}"
-                    ] = ValueForDimension(dimension=item, category=category, logical_table=table)
+                    self.table_name_and_dim_expr_to_dimension[f"{logical_table_name}.{item.get('expr')}"] = (
+                        ValueForDimension(dimension=item, category=category, logical_table=table)
+                    )
 
             base_table = table.get("base_table")
             if base_table:
@@ -132,7 +128,7 @@ class SemanticDataModelIndex:
                             )
 
 
-def copy_synonyms_and_descriptions_from_existing_semantic_model(  # noqa
+def copy_synonyms_and_descriptions_from_existing_semantic_model(
     index_from: SemanticDataModelIndex, index_to: SemanticDataModelIndex
 ) -> list[KeyForDimension | KeyForBaseTable]:
     """
@@ -190,9 +186,7 @@ def copy_synonyms_and_descriptions_from_existing_semantic_model(  # noqa
                 if curr_dimension:
                     curr_dimension.remove(value_to.dimension)
 
-                to_dimension: list[DimensionTypes] | None = value_to.logical_table.get(
-                    value_from.category
-                )
+                to_dimension: list[DimensionTypes] | None = value_to.logical_table.get(value_from.category)
                 if not to_dimension:
                     to_dimension = []
                     value_to.logical_table[value_from.category] = typing.cast(Any, to_dimension)

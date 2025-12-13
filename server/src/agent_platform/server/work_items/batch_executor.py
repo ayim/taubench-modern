@@ -117,17 +117,12 @@ class BatchExecutor:
         results: list[bool | BaseException] = []
         incomplete_work_item_ids = []
 
-        done, pending = await asyncio.wait(
-            tasks.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED
-        )
+        done, pending = await asyncio.wait(tasks.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED)
 
         # Collect the pending tasks.
         if pending:
             # Some tasks didn't complete within timeout
-            logger.warning(
-                f"Batch timeout ({batch_timeout}s) exceeded for "
-                f"{len(pending)} of {len(tasks)} work items"
-            )
+            logger.warning(f"Batch timeout ({batch_timeout}s) exceeded for {len(pending)} of {len(tasks)} work items")
 
             # Cancel pending tasks
             for task in pending:
@@ -144,9 +139,7 @@ class BatchExecutor:
                     logger.info(f"Work item {item.work_item_id} completed normally")
                 except Exception as e:
                     results.append(e)
-                    logger.warning(
-                        f"Work item {item.work_item_id} failed with error: {e}", exc_info=e
-                    )
+                    logger.warning(f"Work item {item.work_item_id} failed with error: {e}", exc_info=e)
             else:
                 # Task didn't complete - mark as ERROR
                 incomplete_work_item_ids.append(item.work_item_id)

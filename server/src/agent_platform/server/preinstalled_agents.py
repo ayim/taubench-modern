@@ -22,9 +22,7 @@ def _has_required_metadata(candidate_metadata: object) -> bool:
     if not isinstance(candidate_metadata, dict):
         return False
 
-    return all(
-        candidate_metadata.get(key) == value for key, value in PREINSTALLED_AGENT_METADATA.items()
-    )
+    return all(candidate_metadata.get(key) == value for key, value in PREINSTALLED_AGENT_METADATA.items())
 
 
 def _merge_required_metadata(candidate_metadata: object) -> dict[str, object]:

@@ -21,9 +21,7 @@ class AgentServerConvertersInterface(ConvertersInterface, UsesKernelMixin):
 
     def set_thread_message_conversion_function(
         self,
-        conversion_function: Callable[
-            [Kernel, list[ThreadMessage]], Awaitable[list[AnyPromptMessage]]
-        ],
+        conversion_function: Callable[[Kernel, list[ThreadMessage]], Awaitable[list[AnyPromptMessage]]],
     ) -> None:
         """Sets the function responsible for converting a list of thread messages
         to a list of prompt messages."""

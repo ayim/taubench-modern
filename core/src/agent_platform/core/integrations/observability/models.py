@@ -45,9 +45,7 @@ class GrafanaObservabilitySettings:
     )
     additional_headers: dict[str, str] | None = field(
         default=None,
-        metadata={
-            "description": "Optional HTTP headers to send with the request to Grafana Cloud."
-        },
+        metadata={"description": "Optional HTTP headers to send with the request to Grafana Cloud."},
     )
     DISALLOWED_HEADERS: ClassVar[set[str]] = {"Authorization", "Content-Type", "Host"}
 
@@ -109,14 +107,8 @@ class GrafanaObservabilitySettings:
             endpoint = f"{endpoint}/v1/traces"
 
         # Authorization value should be "base64<grafana_instance_id:api_token>"
-        api_key = (
-            self.api_token.get_secret_value()
-            if isinstance(self.api_token, SecretString)
-            else self.api_token
-        )
-        basic_auth_value = base64.b64encode(
-            f"{self.grafana_instance_id}:{api_key}".encode()
-        ).decode()
+        api_key = self.api_token.get_secret_value() if isinstance(self.api_token, SecretString) else self.api_token
+        basic_auth_value = base64.b64encode(f"{self.grafana_instance_id}:{api_key}".encode()).decode()
 
         # Sent as HTTP Basic Auth
         headers = {"Authorization": f"Basic {basic_auth_value}"}
@@ -231,9 +223,7 @@ class ObservabilitySettings:
                 provider_cls.__name__,
                 normalized_kind,
             )
-            settings_value = provider_cls.model_validate(
-                settings_value.model_dump(redact_secret=False)
-            )
+            settings_value = provider_cls.model_validate(settings_value.model_dump(redact_secret=False))
         object.__setattr__(self, "provider_settings", settings_value)
 
     def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:

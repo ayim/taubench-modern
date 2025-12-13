@@ -43,9 +43,7 @@ class ResponseType(BaseModel):
 
 
 @action
-def add_contact_with_secret(
-    name: str, email: str, phone: str, some_secret: Secret
-) -> Response[ResponseType]:
+def add_contact_with_secret(name: str, email: str, phone: str, some_secret: Secret) -> Response[ResponseType]:
     """
     Adds a new contact to the CRM along with an additional secret.
 
@@ -77,11 +75,7 @@ def get_contact_names_as_data_frame() -> Response[Table]:
     """
     Gets the names of all contacts as a data frame.
     """
-    return Response(
-        result=Table(
-            columns=["name"], rows=[[contact["name"]] for contact in contact_details.values()]
-        )
-    )
+    return Response(result=Table(columns=["name"], rows=[[contact["name"]] for contact in contact_details.values()]))
 
 
 @action
@@ -99,9 +93,7 @@ def calculate(expression: str) -> Response[str]:
         # Simple safe evaluation for basic math operations
         allowed_chars = set("0123456789+-*/.() ")
         if not all(c in allowed_chars for c in expression):
-            return Response(
-                error="Invalid characters in expression. Only numbers and +, -, *, /, (, ) are allowed."  # noqa: E501
-            )
+            return Response(error="Invalid characters in expression. Only numbers and +, -, *, /, (, ) are allowed.")
 
         result = eval(expression)
         return Response(result=f"The result of {expression} is {result}")

@@ -11,8 +11,7 @@ class WorkItemPayloadTooLargeError(PlatformHTTPError):
         super().__init__(
             error_code=ErrorCode.BAD_REQUEST,
             message=(
-                f"Work item payload size ({payload_size} KB) exceeds the allowed limit "
-                f"({allowed_payload_size} KB)"
+                f"Work item payload size ({payload_size} KB) exceeds the allowed limit ({allowed_payload_size} KB)"
             ),
             data={
                 "payload_size_kb": payload_size,

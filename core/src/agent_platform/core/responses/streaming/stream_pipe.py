@@ -77,15 +77,11 @@ class ResponseStreamPipe:
     ) -> None:
         self.stream = stream
         self.source_prompt = prompt
-        requested_flush = (
-            flush_interval if flush_interval is not None else self.DEFAULT_FLUSH_INTERVAL
-        )
+        requested_flush = flush_interval if flush_interval is not None else self.DEFAULT_FLUSH_INTERVAL
         self.flush_interval = max(0.01, min(requested_flush, self.FLUSH_INTERVAL_CEILING))
 
         # Bound for per-sink callback latency
-        self._sink_timeout: float = (
-            sink_timeout if sink_timeout is not None else self.DEFAULT_SINK_TIMEOUT
-        )
+        self._sink_timeout: float = sink_timeout if sink_timeout is not None else self.DEFAULT_SINK_TIMEOUT
 
         # Fast lookup for tool definitions used by sinks
         self._tool_def_cache: dict[str, ToolDefinition] = {
@@ -99,9 +95,7 @@ class ResponseStreamPipe:
         self._open_content_indices: set[int] = set()
 
         # Queues
-        self._delta_q: asyncio.Queue[GenericDelta | DeltaEndSentinel] = asyncio.Queue(
-            maxsize=delta_queue_size
-        )
+        self._delta_q: asyncio.Queue[GenericDelta | DeltaEndSentinel] = asyncio.Queue(maxsize=delta_queue_size)
         self._msg_q: asyncio.Queue[ResponseMessage | MsgEndSentinel] = asyncio.Queue()
 
         # Sinks
@@ -126,9 +120,7 @@ class ResponseStreamPipe:
     def raw_response_matches(self, regex: re.Pattern[str]) -> bool:
         if not self.last_message:
             return False
-        text = "\n".join(
-            c.text for c in self.last_message.content if isinstance(c, ResponseTextContent)
-        )
+        text = "\n".join(c.text for c in self.last_message.content if isinstance(c, ResponseTextContent))
         return regex.match(text) is not None
 
     def raw_response_matches_with_postfix(
@@ -138,9 +130,7 @@ class ResponseStreamPipe:
     ) -> bool:
         if not self.last_message:
             return False
-        text = "\n".join(
-            c.text for c in self.last_message.content if isinstance(c, ResponseTextContent)
-        )
+        text = "\n".join(c.text for c in self.last_message.content if isinstance(c, ResponseTextContent))
         return regex.match(text + postfix) is not None
 
     # ──────────────────────────────────────────────────────────────
@@ -223,7 +213,7 @@ class ResponseStreamPipe:
             # Stream ended or errored, then we push sentinel for downstream workers
             await self._delta_q.put(DeltaEndSentinel())
 
-    async def _diff_worker(self) -> None:  # noqa: C901
+    async def _diff_worker(self) -> None:
         """Continuously diff/validate pending deltas and emit messages.
 
         The previous implementation only flushed after *reading* a delta. If
@@ -275,11 +265,7 @@ class ResponseStreamPipe:
             if isinstance(delta, GenericDelta):
                 # If a new delta arrives after the flush interval elapsed,
                 # flush the existing batch first to avoid coalescing updates.
-                if (
-                    batch
-                    and last_batch_ts is not None
-                    and (now - last_batch_ts) >= self.flush_interval
-                ):
+                if batch and last_batch_ts is not None and (now - last_batch_ts) >= self.flush_interval:
                     buffer_obj, flushed = await self._flush_batch(loop, batch, buffer_obj)
                     if flushed:
                         batch.clear()
@@ -431,9 +417,7 @@ class ResponseStreamPipe:
             case ResponseDocumentContent() as c:
                 await self._fan_out("on_document_content_begin", idx, c)
             case ResponseToolUseContent() as c:
-                await self._fan_out(
-                    "on_tool_use_content_begin", idx, c, self._find_matching_tool_def(c)
-                )
+                await self._fan_out("on_tool_use_content_begin", idx, c, self._find_matching_tool_def(c))
             case ResponseReasoningContent() as c:
                 await self._fan_out("on_reasoning_content_begin", idx, c)
 

@@ -74,8 +74,7 @@ class LocalFileManager(BaseFileManager):
         for f in files:
             file_id = str(uuid4())
             assert f.file.filename, (
-                "Invalid (empty) file name (should've raised an error in "
-                "self._validate_files_pre_upload already)."
+                "Invalid (empty) file name (should've raised an error in self._validate_files_pre_upload already)."
             )
             file_url = self._build_file_url(file_id, f.file.filename)
             try:
@@ -97,8 +96,7 @@ class LocalFileManager(BaseFileManager):
                 uploaded_files.append(uploaded_file)
             except Exception as e:
                 logger.exception(
-                    f"Failed to upload {f.file.filename} with file id {file_id}. "
-                    f"Error: {e}. Reverting all uploads.",
+                    f"Failed to upload {f.file.filename} with file id {file_id}. Error: {e}. Reverting all uploads.",
                 )
                 await self._revert_uploads(
                     owner,
@@ -125,10 +123,7 @@ class LocalFileManager(BaseFileManager):
     async def read_file_contents(self, file_id: str, user_id: str) -> bytes:
         file = await self.storage.get_file_by_id(file_id, user_id)
         if file is None:
-            logger.debug(
-                f"File not found (LocalFileManager): {file_id}, user_id: {user_id}"
-                f" -- storage: {self.storage}"
-            )
+            logger.debug(f"File not found (LocalFileManager): {file_id}, user_id: {user_id} -- storage: {self.storage}")
             raise Exception(f"File not found: {file_id}")
         if not file.file_path:
             raise Exception(f"Unable to read file {file_id} (no file path).")
@@ -161,10 +156,7 @@ class LocalFileManager(BaseFileManager):
         """
         file = await self.storage.get_file_by_id(file_id, user_id)
         if file is None:
-            logger.debug(
-                f"File not found (LocalFileManager): {file_id}, user_id: {user_id}"
-                f" -- storage: {self.storage}"
-            )
+            logger.debug(f"File not found (LocalFileManager): {file_id}, user_id: {user_id} -- storage: {self.storage}")
             raise Exception(f"File not found: {file_id}")
         if not file.file_path:
             raise Exception(f"Unable to read file {file_id} (no file path).")

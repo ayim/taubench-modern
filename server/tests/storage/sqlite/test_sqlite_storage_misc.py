@@ -40,8 +40,7 @@ async def test_count_operations(
 
     # Create a worker agent to test worker count
     worker_agent = Agent.model_validate(
-        sample_agent.model_dump()
-        | {"agent_id": str(uuid4()), "name": "Test Worker Agent", "mode": "worker"}
+        sample_agent.model_dump() | {"agent_id": str(uuid4()), "name": "Test Worker Agent", "mode": "worker"}
     )
     await storage.upsert_agent(sample_user_id, worker_agent)
     assert await storage.count_agents() == 2

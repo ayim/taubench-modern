@@ -49,7 +49,7 @@ class SemanticDataModelEnhancer:
     prompt_generate API.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         user: User,
         storage: StorageDependency,
@@ -117,9 +117,7 @@ class SemanticDataModelEnhancer:
     def _write_output_response(self, response: str, prompt_type: str, iteration: int):
         """Write the output response to a file."""
         if self._output_results_to:
-            with open(
-                self._output_results_to / f"{prompt_type}_response_{iteration}.yaml", "w"
-            ) as f:
+            with open(self._output_results_to / f"{prompt_type}_response_{iteration}.yaml", "w") as f:
                 f.write(response)
 
     async def enhance_semantic_data_model(
@@ -181,13 +179,10 @@ class SemanticDataModelEnhancer:
             logger.error(f"Unexpected error during enhancement: {e}", exc_info=True)
             logger.warning("Returning the original semantic data model")
         finally:
-            logger.info(
-                f"Semantic data model enhancement completed in "
-                f"{time.monotonic() - initial_time:.2f} seconds"
-            )
+            logger.info(f"Semantic data model enhancement completed in {time.monotonic() - initial_time:.2f} seconds")
         return semantic_model
 
-    async def _generate_enhancement_with_retry(  # noqa: C901, PLR0915
+    async def _generate_enhancement_with_retry(
         self,
         semantic_model: SemanticDataModel,
         mode: EnhancementMode = "full",
@@ -242,9 +237,7 @@ class SemanticDataModelEnhancer:
             # Get generation from LLM
             initial_time = time.monotonic()
             logger.info(">> Starting enhancement (prompt_generate)")
-            self._write_input_prompt(
-                self._enhancement_prompt_thread, "enhancement", iteration=attempt_number
-            )
+            self._write_input_prompt(self._enhancement_prompt_thread, "enhancement", iteration=attempt_number)
 
             response = await prompt_generate(
                 # Don't send our current prompt thread or it will be finalized by the server.
@@ -256,10 +249,7 @@ class SemanticDataModelEnhancer:
                 minimize_reasoning=self._minimize_reasoning,
             )
 
-            logger.info(
-                f"<< Enhancement (prompt_generate) completed in "
-                f"{time.monotonic() - initial_time} seconds"
-            )
+            logger.info(f"<< Enhancement (prompt_generate) completed in {time.monotonic() - initial_time} seconds")
 
             parsed_result = validate_and_parse_llm_response(response, mode=mode)
 
@@ -409,9 +399,7 @@ class SemanticDataModelEnhancer:
         try:
             initial_time = time.monotonic()
             logger.info(">> Starting quality check (prompt_generate)")
-            self._write_input_prompt(
-                self._quality_check_prompt_thread, "quality_check", iteration=iteration
-            )
+            self._write_input_prompt(self._quality_check_prompt_thread, "quality_check", iteration=iteration)
             response = await prompt_generate(
                 prompt=self._quality_check_prompt_thread.copy(),
                 user=self._user,
@@ -421,10 +409,7 @@ class SemanticDataModelEnhancer:
                 # We need to pass it here (the prompt value is overridden)
                 minimize_reasoning=self._minimize_reasoning,
             )
-            logger.info(
-                f"<< Quality check (prompt_generate) completed in "
-                f"{time.monotonic() - initial_time} seconds"
-            )
+            logger.info(f"<< Quality check (prompt_generate) completed in {time.monotonic() - initial_time} seconds")
 
             response_text = str(response.model_dump())
             self._write_output_response(response_text, "quality_check", iteration=iteration)
@@ -441,10 +426,7 @@ class SemanticDataModelEnhancer:
                     f"LLM suggested further improvements needed in the semantic "
                     f"data model: {quality_response.improvement_request}"
                 )
-                return (
-                    quality_response.improvement_request
-                    or "Quality check failed, please improve the enhancement"
-                )
+                return quality_response.improvement_request or "Quality check failed, please improve the enhancement"
         except EmptyResponseError as e:
             logger.warning(f"Empty response from LLM while checking enhancement quality: {e}")
         except Exception as e:

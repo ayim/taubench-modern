@@ -296,9 +296,7 @@ class DatabricksDataConnection(BaseDataConnection):
 class SnowflakeDataConnection(BaseDataConnection):
     engine: Literal["snowflake"] = "snowflake"
     configuration: (
-        SnowflakeDataConnectionConfiguration
-        | SnowflakeCustomKeyPairConfiguration
-        | SnowflakeLinkedConfiguration
+        SnowflakeDataConnectionConfiguration | SnowflakeCustomKeyPairConfiguration | SnowflakeLinkedConfiguration
     )
 
 

@@ -127,7 +127,7 @@ def setup_logging(verbose: bool = False):
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--show-env", is_flag=True, help="Show loaded .env file location")
 @click.pass_context
-def cli(  # noqa: PLR0913
+def cli(
     ctx,
     home_folder: Path,
     server_url: str,
@@ -312,8 +312,7 @@ def list_tests(ctx: Context, agent_name: str | None):
     required=False,
     type=str,
     help=(
-        "Override the agent architecture plugin name for testing, e.g. "
-        "'agent_platform.architectures.experimental_1'"
+        "Override the agent architecture plugin name for testing, e.g. 'agent_platform.architectures.experimental_1'"
     ),
 )
 @click.option(
@@ -330,7 +329,7 @@ def list_tests(ctx: Context, agent_name: str | None):
     help="Comma-separated list of test thread names to run (matches YAML 'name').",
 )
 @click.pass_obj
-async def run(  # noqa: PLR0913
+async def run(
     ctx: Context,
     detailed: bool,
     platform_summary: bool,
@@ -362,9 +361,7 @@ async def run(  # noqa: PLR0913
         )
         tests_filter = [test.strip() for test in tests.split(",") if test.strip()]
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
-            selected_agents=[
-                selected.strip() for selected in selected_agents.split(",") if selected.strip()
-            ],
+            selected_agents=[selected.strip() for selected in selected_agents.split(",") if selected.strip()],
             max_concurrent_agents=max_agents,
             platform_filter=platform,
             tests_filter=tests_filter if tests_filter else None,
@@ -384,8 +381,7 @@ async def run(  # noqa: PLR0913
         def any_failures(results: dict[str, list[ThreadResult]]) -> bool:
             """Return True if at least one thread list is empty or if at least one failed."""
             return any(
-                not thread_list or any(not thread.success for thread in thread_list)
-                for thread_list in results.values()
+                not thread_list or any(not thread.success for thread in thread_list) for thread_list in results.values()
             )
 
         if any_failures(all_results):
@@ -424,9 +420,7 @@ async def oauth(ctx: Context):
         scope = " ".join(scope_names)
 
         if provider not in ctx.oauth:
-            raise click.UsageError(
-                f"👤 Provider '{provider}' not found in config. Required in 🔧 {provider_actions}"
-            )
+            raise click.UsageError(f"👤 Provider '{provider}' not found in config. Required in 🔧 {provider_actions}")
 
         cfg = ctx.oauth[provider]
         auth_params = {
@@ -505,7 +499,7 @@ async def oauth(ctx: Context):
 )
 @click.option("--assert-all-consumed", is_flag=True)
 @click.pass_obj
-async def replay(  # noqa: PLR0913
+async def replay(
     ctx: Context,
     trace_file: Path,
     agent_server_version: str | None,
@@ -520,17 +514,12 @@ async def replay(  # noqa: PLR0913
         click.echo("-" * 40)
         click.echo(f"{click.style('Name:', fg='green')} {trace.environment.name}")
         click.echo(f"{click.style('Agent Name:', fg='green')} {trace.environment.agent_name}")
-        click.echo(
-            f"{click.style('Agent Server Version:', fg='green')} "
-            f"{trace.environment.agent_server_version}"
-        )
+        click.echo(f"{click.style('Agent Server Version:', fg='green')} {trace.environment.agent_server_version}")
         click.echo(f"{click.style('Platform:', fg='green')} {trace.environment.platform}")
         click.echo("-" * 40)
 
         agent_server_version = (
-            agent_server_version
-            if agent_server_version is not None
-            else trace.environment.agent_server_version
+            agent_server_version if agent_server_version is not None else trace.environment.agent_server_version
         )
 
         simulator = Simulator(

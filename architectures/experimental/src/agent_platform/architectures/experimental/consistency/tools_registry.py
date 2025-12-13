@@ -70,13 +70,9 @@ class ToolsRegistry:
         await self.kernel.documents.step_initialize(state=self.state)
         return self.kernel.documents.get_document_tools()
 
-    async def _get_action_tools(
-        self, *, refresh: bool
-    ) -> tuple[Sequence[ToolDefinition], list[str]]:
+    async def _get_action_tools(self, *, refresh: bool) -> tuple[Sequence[ToolDefinition], list[str]]:
         if refresh or not self.state.action_tools:
-            tools, issues = await self.kernel.tools.from_action_packages(
-                self.kernel.agent.action_packages
-            )
+            tools, issues = await self.kernel.tools.from_action_packages(self.kernel.agent.action_packages)
             self.state.action_tools = tools
             self.state.action_issues = issues
         return self.state.action_tools, self.state.action_issues

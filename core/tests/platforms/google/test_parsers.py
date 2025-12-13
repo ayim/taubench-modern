@@ -270,10 +270,7 @@ class TestGoogleParsers:
 
         # Check the message content was updated
         assert len(message["content"]) > 0
-        assert any(
-            item.get("kind") == "text" and item.get("text") == "Hello, world!"
-            for item in message["content"]
-        )
+        assert any(item.get("kind") == "text" and item.get("text") == "Hello, world!" for item in message["content"])
 
         # Check token usage was added
         assert "usage" in message
@@ -405,8 +402,7 @@ class TestGoogleParsers:
         # Check tool use content was added
         assert len(message["content"]) > 0
         assert any(
-            item.get("kind") == "tool_use" and item.get("tool_name") == "test-tool"
-            for item in message["content"]
+            item.get("kind") == "tool_use" and item.get("tool_name") == "test-tool" for item in message["content"]
         )
 
     @pytest.mark.asyncio

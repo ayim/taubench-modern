@@ -34,11 +34,7 @@ class Dependency:
         return not self.name.startswith("-") and self.name == right.name
 
     def exactly_same(self, right: "Dependency") -> bool:
-        return (
-            self.name == right.name
-            and self.qualifier == right.qualifier
-            and self.versions == right.versions
-        )
+        return self.name == right.name and self.qualifier == right.qualifier and self.versions == right.versions
 
     def choose_specific(self, right: "Dependency") -> "Dependency":
         if not self.same_as(right):
@@ -246,9 +242,7 @@ def _read_package_yaml_from_contents(data: dict[str, Any], dev_dependencies: boo
     return env
 
 
-def calculate_environment_hash(
-    yaml_files: list[str], dev_dependencies: bool = False
-) -> tuple[str, str]:
+def calculate_environment_hash(yaml_files: list[str], dev_dependencies: bool = False) -> tuple[str, str]:
     """
     Calculate the environment hash for given YAML files.
 

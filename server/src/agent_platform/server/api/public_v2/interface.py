@@ -31,9 +31,7 @@ class AgentCompat:
 
     @classmethod
     def from_agent(cls, agent: Agent) -> "AgentCompat":
-        return cls(
-            id=agent.agent_id, name=agent.name, description=agent.description, mode=agent.mode
-        )
+        return cls(id=agent.agent_id, name=agent.name, description=agent.description, mode=agent.mode)
 
 
 @dataclass(frozen=True)

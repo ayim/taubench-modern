@@ -40,9 +40,7 @@ async def test_cache_eviction_retention_policy(
 
         remaining_entries = await storage.list_cached_entries()
         total_size = sum(entry.cache_size_in_bytes for entry in remaining_entries.values())
-        assert total_size <= max_cache_size_bytes, (
-            f"Cache size {total_size} exceeds limit {max_cache_size_bytes}"
-        )
+        assert total_size <= max_cache_size_bytes, f"Cache size {total_size} exceeds limit {max_cache_size_bytes}"
         assert len(remaining_entries) == 1, (
             f"Expected 1 cache entry to be remaining, but found {len(remaining_entries)} entries"
         )

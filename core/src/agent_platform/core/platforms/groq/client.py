@@ -161,7 +161,7 @@ class GroqClient(
             error_type = StreamingError if stream else PlatformHTTPError
             raise self._handle_openai_error(exc, model, error_type) from exc
 
-    def _handle_openai_error(  # noqa: C901, PLR0911, PLR0912
+    def _handle_openai_error(
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         """Handle OpenAI SDK errors surfaced via Groq and map them to PlatformErrors."""
@@ -197,9 +197,7 @@ class GroqClient(
             case PermissionDeniedError():
                 return error_type(
                     error_code=ErrorCode.FORBIDDEN,
-                    message=(
-                        f"Access denied for Groq model '{model}'. Please verify your permissions."
-                    ),
+                    message=(f"Access denied for Groq model '{model}'. Please verify your permissions."),
                     data={"model": model},
                 )
             case BadRequestError():
@@ -215,8 +213,7 @@ class GroqClient(
                 return error_type(
                     error_code=ErrorCode.BAD_REQUEST,
                     message=(
-                        "Something went wrong while sending the request to Groq. "
-                        "Please try again or contact support."
+                        "Something went wrong while sending the request to Groq. Please try again or contact support."
                     ),
                     data={"model": model},
                 )
@@ -229,10 +226,7 @@ class GroqClient(
             case UnprocessableEntityError():
                 return error_type(
                     error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-                    message=(
-                        "Groq could not process the request. "
-                        "Please verify the payload and try again."
-                    ),
+                    message=("Groq could not process the request. Please verify the payload and try again."),
                     data={"model": model},
                 )
             case APITimeoutError():
@@ -244,9 +238,7 @@ class GroqClient(
             case APIConnectionError():
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
-                    message=(
-                        "Failed to connect to Groq service. Please check your network connection."
-                    ),
+                    message=("Failed to connect to Groq service. Please check your network connection."),
                     data={"model": model},
                 )
             case InternalServerError():
@@ -269,8 +261,7 @@ class GroqClient(
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
                     message=(
-                        f"An unexpected error occurred with Groq model '{model}'. "
-                        "Please try again or contact support."
+                        f"An unexpected error occurred with Groq model '{model}'. Please try again or contact support."
                     ),
                     data={"model": model, "error_message": error_message},
                 )

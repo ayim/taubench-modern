@@ -124,9 +124,7 @@ def validate_sql_execution_and_data(
 
     # Validate row counts
     if expected_row_count is not None:
-        assert num_rows == expected_row_count, (
-            f"Expected exactly {expected_row_count} rows, got {num_rows}"
-        )
+        assert num_rows == expected_row_count, f"Expected exactly {expected_row_count} rows, got {num_rows}"
     elif min_row_count > 0:
         assert num_rows >= min_row_count, f"Expected at least {min_row_count} rows, got {num_rows}"
 
@@ -420,22 +418,15 @@ def test_query_content_translated_sum_vs_invoice_total(
     # Verify each row has the expected columns
     first_row = contents[0]
     assert any(
-        "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower()
-        for k in first_row.keys()
+        "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
     ), f"Expected document/title column, got: {list(first_row.keys())}"
 
     # Check for sum and invoice total columns
     has_sum = any("sum" in str(k).lower() or "amount" in str(k).lower() for k in first_row.keys())
-    has_total = any(
-        "total" in str(k).lower() or "invoice" in str(k).lower() for k in first_row.keys()
-    )
+    has_total = any("total" in str(k).lower() or "invoice" in str(k).lower() for k in first_row.keys())
 
-    assert has_sum or len(first_row.keys()) >= 2, (
-        f"Expected sum column in result, got: {list(first_row.keys())}"
-    )
-    assert has_total or len(first_row.keys()) >= 2, (
-        f"Expected total column in result, got: {list(first_row.keys())}"
-    )
+    assert has_sum or len(first_row.keys()) >= 2, f"Expected sum column in result, got: {list(first_row.keys())}"
+    assert has_total or len(first_row.keys()) >= 2, f"Expected total column in result, got: {list(first_row.keys())}"
 
 
 @pytest.mark.flaky(max_runs=3, min_passes=1)
@@ -495,8 +486,7 @@ def test_query_content_translated_filter_by_buyer_name(
     # Verify each row has a document name/title
     for i, row in enumerate(contents):
         assert any(
-            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower()
-            for k in row.keys()
+            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower() for k in row.keys()
         ), f"Row {i}: Expected document/title column, got: {list(row.keys())}"
 
 
@@ -568,22 +558,15 @@ def test_query_content_extracted_sum_vs_invoice_total(
     # Verify each row has the expected columns
     first_row = contents[0]
     assert any(
-        "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower()
-        for k in first_row.keys()
+        "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower() for k in first_row.keys()
     ), f"Expected document/title column, got: {list(first_row.keys())}"
 
     # Check for sum and invoice total columns
     has_sum = any("sum" in str(k).lower() or "amount" in str(k).lower() for k in first_row.keys())
-    has_total = any(
-        "total" in str(k).lower() or "invoice" in str(k).lower() for k in first_row.keys()
-    )
+    has_total = any("total" in str(k).lower() or "invoice" in str(k).lower() for k in first_row.keys())
 
-    assert has_sum or len(first_row.keys()) >= 2, (
-        f"Expected sum column in result, got: {list(first_row.keys())}"
-    )
-    assert has_total or len(first_row.keys()) >= 2, (
-        f"Expected total column in result, got: {list(first_row.keys())}"
-    )
+    assert has_sum or len(first_row.keys()) >= 2, f"Expected sum column in result, got: {list(first_row.keys())}"
+    assert has_total or len(first_row.keys()) >= 2, f"Expected total column in result, got: {list(first_row.keys())}"
 
 
 @pytest.mark.flaky(max_runs=3, min_passes=1)
@@ -643,8 +626,7 @@ def test_query_content_extracted_filter_by_customer_name(
     # Verify each row has a document name/title
     for i, row in enumerate(contents):
         assert any(
-            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower()
-            for k in row.keys()
+            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower() for k in row.keys()
         ), f"Row {i}: Expected document/title column, got: {list(row.keys())}"
 
 
@@ -713,9 +695,7 @@ def test_query_count_documents_by_data_model(
         # Check for count column
         has_count = any("count" in str(k).lower() for k in row.keys())
 
-        assert has_model or has_count, (
-            f"Row {i}: Expected model and count columns, got: {list(row.keys())}"
-        )
+        assert has_model or has_count, f"Row {i}: Expected model and count columns, got: {list(row.keys())}"
 
 
 @pytest.mark.flaky(max_runs=3, min_passes=1)
@@ -742,8 +722,7 @@ def test_query_documents_with_mismatched_totals_extracted(
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
     query = (
-        "Show all documents where the sum of line items amounts in content_extracted "
-        "doesn't match the invoice total."
+        "Show all documents where the sum of line items amounts in content_extracted doesn't match the invoice total."
     )
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
@@ -780,8 +759,7 @@ def test_query_documents_with_mismatched_totals_extracted(
     # Verify each row has a document name/title
     for i, row in enumerate(contents):
         assert any(
-            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower()
-            for k in row.keys()
+            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower() for k in row.keys()
         ), f"Row {i}: Expected document/title column, got: {list(row.keys())}"
 
 
@@ -809,8 +787,7 @@ def test_query_documents_with_mismatched_totals_translated(
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
     query = (
-        "Show all documents where the sum of transaction amounts in content_translated "
-        "doesn't match the invoice total."
+        "Show all documents where the sum of transaction amounts in content_translated doesn't match the invoice total."
     )
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
@@ -847,8 +824,7 @@ def test_query_documents_with_mismatched_totals_translated(
     # Verify each row has a document name/title
     for i, row in enumerate(contents):
         assert any(
-            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower()
-            for k in row.keys()
+            "document" in str(k).lower() or "title" in str(k).lower() or "name" in str(k).lower() for k in row.keys()
         ), f"Row {i}: Expected document/title column, got: {list(row.keys())}"
 
 
@@ -914,15 +890,10 @@ def test_query_total_invoice_amount_by_customer(
     # Verify each row has customer name and total amount
     for i, row in enumerate(contents):
         # Check for customer/name column
-        has_customer = any(
-            "customer" in str(k).lower() or "name" in str(k).lower() for k in row.keys()
-        )
+        has_customer = any("customer" in str(k).lower() or "name" in str(k).lower() for k in row.keys())
         # Check for total/amount column
         has_total = any(
-            "total" in str(k).lower() or "amount" in str(k).lower() or "sum" in str(k).lower()
-            for k in row.keys()
+            "total" in str(k).lower() or "amount" in str(k).lower() or "sum" in str(k).lower() for k in row.keys()
         )
 
-        assert has_customer or has_total, (
-            f"Row {i}: Expected customer and total columns, got: {list(row.keys())}"
-        )
+        assert has_customer or has_total, f"Row {i}: Expected customer and total columns, got: {list(row.keys())}"

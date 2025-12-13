@@ -76,9 +76,7 @@ async def test_agent_details_one_action_package_online(mock_user, mock_storage):
     # Mock the action packages data response with new structure
     mock_response_data = {"TestServerPackage": {"actions": ["Test Action"], "version": "1.0.0"}}
 
-    with patch(
-        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data"
-    ) as mock_fetch:
+    with patch("agent_platform.server.api.private_v2.agents._fetch_action_packages_data") as mock_fetch:
         mock_fetch.return_value = mock_response_data
 
         mock_storage.get_agent.return_value = agent
@@ -459,9 +457,7 @@ async def test_agent_details_two_mcp_servers_mixed_status(mock_user, mock_storag
 # =============================================================================
 
 
-async def test_agent_details_with_action_packages_and_mcp_servers_all_online(
-    mock_user, mock_storage
-):
+async def test_agent_details_with_action_packages_and_mcp_servers_all_online(mock_user, mock_storage):
     """Test getting agent details for an agent with both action packages and MCP servers,
     all online."""
     action_package = ActionPackage(
@@ -478,9 +474,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_all_online(
     agent = create_test_agent(action_packages=[action_package], mcp_servers=[mcp_server])
 
     # Mock action packages response
-    mock_action_packages_data = {
-        "TestServerPackage": {"actions": ["Test Action"], "version": "1.0.0"}
-    }
+    mock_action_packages_data = {"TestServerPackage": {"actions": ["Test Action"], "version": "1.0.0"}}
 
     with patch(
         "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
@@ -513,9 +507,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_all_online(
     assert len(result.mcp_servers[0].actions) == 1
 
 
-async def test_agent_details_with_action_packages_and_mcp_servers_mixed_status(
-    mock_user, mock_storage
-):
+async def test_agent_details_with_action_packages_and_mcp_servers_mixed_status(mock_user, mock_storage):
     """Test getting agent details for an agent with both action packages and MCP servers,
     mixed status."""
     action_package = ActionPackage(
@@ -532,9 +524,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_mixed_status(
     agent = create_test_agent(action_packages=[action_package], mcp_servers=[mcp_server])
 
     # Mock action packages response (online)
-    mock_action_packages_data = {
-        "TestServerPackage": {"actions": ["Test Action"], "version": "1.0.0"}
-    }
+    mock_action_packages_data = {"TestServerPackage": {"actions": ["Test Action"], "version": "1.0.0"}}
 
     # Action package online, MCP server offline
     with patch(
@@ -702,9 +692,7 @@ async def test_agent_details_with_version_override(mock_user, mock_storage):
         }
     }
 
-    with patch(
-        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data"
-    ) as mock_fetch:
+    with patch("agent_platform.server.api.private_v2.agents._fetch_action_packages_data") as mock_fetch:
         mock_fetch.return_value = mock_response_data
 
         mock_storage.get_agent.return_value = agent
@@ -742,9 +730,7 @@ async def test_agent_details_with_default_version_fallback(mock_user, mock_stora
         }
     }
 
-    with patch(
-        "agent_platform.server.api.private_v2.agents._fetch_action_packages_data"
-    ) as mock_fetch:
+    with patch("agent_platform.server.api.private_v2.agents._fetch_action_packages_data") as mock_fetch:
         mock_fetch.return_value = mock_response_data
 
         mock_storage.get_agent.return_value = agent
@@ -844,9 +830,7 @@ async def test_get_agent_user_interfaces_empty(mock_user, mock_storage):
     agent = create_test_agent()
     mock_storage.get_agent.return_value = agent
 
-    result = await get_agent_user_interfaces(
-        agent_id="test_agent", user=mock_user, storage=mock_storage
-    )
+    result = await get_agent_user_interfaces(agent_id="test_agent", user=mock_user, storage=mock_storage)
 
     assert result == []
 
@@ -866,9 +850,7 @@ async def test_get_agent_user_interfaces(mock_user, mock_storage):
     )
     mock_storage.get_agent.return_value = agent
 
-    result = await get_agent_user_interfaces(
-        agent_id="test_agent", user=mock_user, storage=mock_storage
-    )
+    result = await get_agent_user_interfaces(agent_id="test_agent", user=mock_user, storage=mock_storage)
 
     assert len(result) == 1
     assert result[0] == AgentUserInterface.DOCUMENT_INTELLIGENCE_PARSE_ONLY
@@ -879,8 +861,6 @@ async def test_get_agent_user_interfaces_not_found(mock_user, mock_storage):
     mock_storage.get_agent.return_value = None
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_agent_user_interfaces(
-            agent_id="nonexistent", user=mock_user, storage=mock_storage
-        )
+        await get_agent_user_interfaces(agent_id="nonexistent", user=mock_user, storage=mock_storage)
 
     assert exc_info.value.status_code == 404

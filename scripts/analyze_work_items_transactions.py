@@ -144,9 +144,7 @@ class TransactionLogAnalyzer:
     """Analyzes work items transaction logs."""
 
     def __init__(self):
-        self.executions: dict[str, WorkItemExecution] = defaultdict(
-            lambda: WorkItemExecution(work_item_id="")
-        )
+        self.executions: dict[str, WorkItemExecution] = defaultdict(lambda: WorkItemExecution(work_item_id=""))
         self.parse_errors: list[tuple[str, str]] = []
 
     def parse_log_file(self, file_path: Path) -> None:
@@ -170,22 +168,16 @@ class TransactionLogAnalyzer:
                         )
 
                         if event.work_item_id == "unknown":
-                            self.parse_errors.append(
-                                (str(file_path), f"Line {line_num}: Missing work_item_id")
-                            )
+                            self.parse_errors.append((str(file_path), f"Line {line_num}: Missing work_item_id"))
                             continue
 
                         if event.work_item_id not in self.executions:
-                            self.executions[event.work_item_id] = WorkItemExecution(
-                                work_item_id=event.work_item_id
-                            )
+                            self.executions[event.work_item_id] = WorkItemExecution(work_item_id=event.work_item_id)
 
                         self.executions[event.work_item_id].add_event(event)
 
                     except json.JSONDecodeError as e:
-                        self.parse_errors.append(
-                            (str(file_path), f"Line {line_num}: Invalid JSON - {e}")
-                        )
+                        self.parse_errors.append((str(file_path), f"Line {line_num}: Invalid JSON - {e}"))
 
         except FileNotFoundError:
             print(f"Error: File not found: {file_path}", file=sys.stderr)

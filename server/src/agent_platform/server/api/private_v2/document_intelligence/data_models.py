@@ -58,9 +58,7 @@ async def create_data_model(
     try:
         existing = DataModel.find_by_name(docint_ds, payload.data_model.name)
         if existing is not None:
-            raise PlatformHTTPError(
-                ErrorCode.CONFLICT, f"Data model already exists: {payload.data_model.name}"
-            )
+            raise PlatformHTTPError(ErrorCode.CONFLICT, f"Data model already exists: {payload.data_model.name}")
 
         result = await run_in_threadpool(
             di_service.data_model.create_from_schema,
@@ -70,9 +68,7 @@ async def create_data_model(
         )
         model = DataModel.find_by_name(docint_ds, result["name"])
         if model is None:
-            raise PlatformHTTPError(
-                ErrorCode.UNEXPECTED, f"Data model not found: {payload.data_model.name}"
-            )
+            raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Data model not found: {payload.data_model.name}")
         return DataModelResponse(data_model=model)
     except PlatformHTTPError:
         raise
@@ -81,9 +77,7 @@ async def create_data_model(
 
 
 @router.get("/data-models/{model_name}")
-async def get_data_model(
-    model_name: str, docint_ds: DocIntDatasourceDependency
-) -> DataModelResponse:
+async def get_data_model(model_name: str, docint_ds: DocIntDatasourceDependency) -> DataModelResponse:
     try:
         model = DataModel.find_by_name(docint_ds, model_name)
         if model is None:
@@ -126,9 +120,7 @@ async def update_data_model(
 
 
 @router.delete("/data-models/{model_name}")
-async def delete_data_model(
-    model_name: str, docint_ds: DocIntDatasourceDependency
-) -> dict[str, bool]:
+async def delete_data_model(model_name: str, docint_ds: DocIntDatasourceDependency) -> dict[str, bool]:
     try:
         model = DataModel.find_by_name(docint_ds, model_name)
         if model is None:
@@ -145,7 +137,7 @@ async def delete_data_model(
 
 
 @router.post("/data-models/generate")
-async def generate_data_model_from_document(  # noqa: PLR0913
+async def generate_data_model_from_document(
     file: UploadFile | str,
     thread_id: str,
     user: AuthedUser,
@@ -211,13 +203,11 @@ async def generate_data_model_description(
     except PlatformHTTPError:
         raise
     except ValueError as e:
-        raise PlatformHTTPError(
-            ErrorCode.UNEXPECTED, f"Failed to generate data model description: {e!s}"
-        ) from e
+        raise PlatformHTTPError(ErrorCode.UNEXPECTED, f"Failed to generate data model description: {e!s}") from e
 
 
 @router.post("/data-models/modify")
-async def generate_schema_modifications(  # noqa: PLR0913
+async def generate_schema_modifications(
     payload: ModifySchemaRequestPayload,
     agent_id: str,
     thread_id: str,

@@ -43,9 +43,7 @@ def test_make_cte_query(file_regression):
     ctes = build_ctes(
         name_to_cte_ast={
             "cte1": parse_one("SELECT id, total FROM orders WHERE total > 100", read="duckdb"),
-            "cte2": parse_one(
-                "SELECT user_id, country FROM users WHERE country = 'BR'", read="duckdb"
-            ),
+            "cte2": parse_one("SELECT user_id, country FROM users WHERE country = 'BR'", read="duckdb"),
         },
     )
     main_sql = update_with_clause(main_sql, ctes)
@@ -149,10 +147,7 @@ def test_update_column_table_qualifiers_with_joins(file_regression):
         update_table_names,
     )
 
-    input_sql = (
-        "SELECT Orders.order_id, Items.product_id "
-        "FROM Orders JOIN Items ON Orders.id = Items.order_id"
-    )
+    input_sql = "SELECT Orders.order_id, Items.product_id FROM Orders JOIN Items ON Orders.id = Items.order_id"
     sql = parse_one(input_sql, read="mysql")
     logical_to_physical = {"Orders": "sales_orders", "Items": "order_items"}
 
@@ -270,9 +265,7 @@ def test_get_destructive_reasons_destructive_subqueries():
     from agent_platform.server.data_frames.sql_manipulation import get_destructive_reasons
 
     # Test WITH clause containing destructive statement
-    stmt = parse_one(
-        "WITH cte AS (INSERT INTO temp_table SELECT * FROM users) SELECT * FROM cte", read="duckdb"
-    )
+    stmt = parse_one("WITH cte AS (INSERT INTO temp_table SELECT * FROM users) SELECT * FROM cte", read="duckdb")
     reasons = get_destructive_reasons(stmt)
     assert len(reasons) == 1
     assert "Only read-only statements are allowed" in reasons[0]
@@ -341,8 +334,7 @@ def test_get_destructive_reasons_all_destructive_keywords():
             assert len(reasons) >= 1, f"Expected destructive reasons for: {sql}"
             # Should either be top-level destructive or contain destructive clause
             assert any(
-                "Only read-only top-levels are allowed" in reason
-                or "Only read-only statements are allowed" in reason
+                "Only read-only top-levels are allowed" in reason or "Only read-only statements are allowed" in reason
                 for reason in reasons
             ), f"Expected destructive reason for: {sql}"
         except Exception:
@@ -460,9 +452,7 @@ def test_update_column_references_multiple_tables(file_regression):
 
     from agent_platform.server.data_frames.sql_manipulation import update_column_references
 
-    input_sql = (
-        "SELECT e.full_name, d.dept_name FROM employees e JOIN departments d ON e.dept_id = d.id"
-    )
+    input_sql = "SELECT e.full_name, d.dept_name FROM employees e JOIN departments d ON e.dept_id = d.id"
     sql = parse_one(input_sql, read="duckdb")
     table_column_mappings = {
         "employees": {
@@ -543,10 +533,7 @@ def test_update_column_references_in_join_on(file_regression):
     from agent_platform.server.data_frames.sql_manipulation import update_column_references
 
     # This mimics the error from the log where JOIN ON had aliased columns
-    input_sql = (
-        "SELECT * FROM order_line_items oli JOIN product_catalog_basic pcb "
-        "ON pcb.product_id = oli.product_id"
-    )
+    input_sql = "SELECT * FROM order_line_items oli JOIN product_catalog_basic pcb ON pcb.product_id = oli.product_id"
     sql = parse_one(input_sql, read="postgres")
     table_column_mappings = {
         "product_catalog_basic": {
@@ -598,10 +585,7 @@ def test_update_column_references_computed_expr_with_join(file_regression):
     from agent_platform.server.data_frames.sql_manipulation import update_column_references
 
     # Test a JOIN where both tables have the same computed column
-    input_sql = (
-        "SELECT e1.full_name, e2.full_name FROM employees e1 "
-        "JOIN employees e2 ON e1.id = e2.manager_id"
-    )
+    input_sql = "SELECT e1.full_name, e2.full_name FROM employees e1 JOIN employees e2 ON e1.id = e2.manager_id"
     sql = parse_one(input_sql, read="postgres")
     table_column_mappings = {
         "employees": {
@@ -622,9 +606,7 @@ def test_update_column_references_computed_expr_multiple_tables(file_regression)
     from agent_platform.server.data_frames.sql_manipulation import update_column_references
 
     # Both tables have a first_name column - computed expression must be qualified
-    input_sql = (
-        "SELECT e.full_name, c.contact_name FROM employees e JOIN contacts c ON e.contact_id = c.id"
-    )
+    input_sql = "SELECT e.full_name, c.contact_name FROM employees e JOIN contacts c ON e.contact_id = c.id"
     sql = parse_one(input_sql, read="postgres")
     table_column_mappings = {
         "employees": {
@@ -921,11 +903,7 @@ def test_nested_df_cte_prepending_single(file_regression):
             "JOIN products ON order_line_items.product_id = products.id"
         ),
     }
-    df_ctes = build_ctes(
-        name_to_cte_ast={
-            name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()
-        }
-    )
+    df_ctes = build_ctes(name_to_cte_ast={name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()})
 
     result_sql = update_with_clause(main_sql, df_ctes)
     result_str = result_sql.sql(dialect="postgres", pretty=True)
@@ -935,9 +913,7 @@ def test_nested_df_cte_prepending_single(file_regression):
     user_pos = result_str.find("user_aggregation AS")
     assert df_pos < user_pos, "Data frame must come before user CTE"
 
-    file_regression.check(
-        _format_nested_df_test_output(input_sql, df_ctes_dict, None, None, result_str)
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, df_ctes_dict, None, None, result_str))
 
 
 def test_nested_df_cte_prepending_multiple(file_regression):
@@ -964,16 +940,10 @@ def test_nested_df_cte_prepending_multiple(file_regression):
     main_sql = parse_one(input_sql, read="postgres")
 
     df_ctes_dict = {
-        "df_order_line_totals": (
-            "SELECT order_id, SUM(line_total) AS subtotal FROM lines GROUP BY order_id"
-        ),
+        "df_order_line_totals": ("SELECT order_id, SUM(line_total) AS subtotal FROM lines GROUP BY order_id"),
         "df_order_totals": "SELECT order_id, order_total FROM orders",
     }
-    df_ctes = build_ctes(
-        name_to_cte_ast={
-            name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()
-        }
-    )
+    df_ctes = build_ctes(name_to_cte_ast={name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()})
 
     result_sql = update_with_clause(main_sql, df_ctes)
     result_str = result_sql.sql(dialect="postgres", pretty=True)
@@ -985,9 +955,7 @@ def test_nested_df_cte_prepending_multiple(file_regression):
     assert df1_pos < user_pos, "df_order_line_totals must come before user CTE"
     assert df2_pos < user_pos, "df_order_totals must come before user CTE"
 
-    file_regression.check(
-        _format_nested_df_test_output(input_sql, df_ctes_dict, None, None, result_str)
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, df_ctes_dict, None, None, result_str))
 
 
 def test_nested_df_cte_deep_nesting(file_regression):
@@ -1023,11 +991,7 @@ def test_nested_df_cte_deep_nesting(file_regression):
         "df_enriched": "SELECT order_id, product_id, revenue FROM sales",
         "df_totals": "SELECT order_id, SUM(amount) AS total FROM orders GROUP BY order_id",
     }
-    df_ctes = build_ctes(
-        name_to_cte_ast={
-            name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()
-        }
-    )
+    df_ctes = build_ctes(name_to_cte_ast={name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()})
 
     result_sql = update_with_clause(main_sql, df_ctes)
     result_str = result_sql.sql(dialect="postgres", pretty=True)
@@ -1043,9 +1007,7 @@ def test_nested_df_cte_deep_nesting(file_regression):
     assert l1_pos < l2_pos, "layer1 must come before layer2"
     assert l2_pos < l3_pos, "layer2 must come before layer3"
 
-    file_regression.check(
-        _format_nested_df_test_output(input_sql, df_ctes_dict, None, None, result_str)
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, df_ctes_dict, None, None, result_str))
 
 
 def test_nested_df_column_mapping_exclusion(file_regression):
@@ -1084,11 +1046,7 @@ def test_nested_df_column_mapping_exclusion(file_regression):
     assert "product_category" in result_str
     assert "dli.category" not in result_str
 
-    file_regression.check(
-        _format_nested_df_test_output(
-            input_sql, None, data_frame_names, column_mappings, result_str
-        )
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, None, data_frame_names, column_mappings, result_str))
 
 
 def test_nested_df_column_mapping_sdm_still_works(file_regression):
@@ -1125,11 +1083,7 @@ def test_nested_df_column_mapping_sdm_still_works(file_regression):
     # Mappings SHOULD be applied to SDM table
     assert "category" in result_str or "name" in result_str
 
-    file_regression.check(
-        _format_nested_df_test_output(
-            input_sql, None, data_frame_names, column_mappings, result_str
-        )
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, None, data_frame_names, column_mappings, result_str))
 
 
 def test_nested_df_mixed_df_and_sdm(file_regression):
@@ -1176,11 +1130,7 @@ def test_nested_df_mixed_df_and_sdm(file_regression):
     result_lower = result_str.lower()
     assert "pc.category" in result_lower or "category as" in result_lower
 
-    file_regression.check(
-        _format_nested_df_test_output(
-            input_sql, None, data_frame_names, column_mappings, result_str
-        )
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, None, data_frame_names, column_mappings, result_str))
 
 
 def test_nested_df_column_mapping_unqualified_exclusion(file_regression):
@@ -1221,11 +1171,7 @@ def test_nested_df_column_mapping_unqualified_exclusion(file_regression):
     # Make sure they weren't incorrectly rewritten
     assert "category" not in result_str.lower() or "product_category" in result_str.lower()
 
-    file_regression.check(
-        _format_nested_df_test_output(
-            input_sql, None, data_frame_names, column_mappings, result_str
-        )
-    )
+    file_regression.check(_format_nested_df_test_output(input_sql, None, data_frame_names, column_mappings, result_str))
 
 
 def test_nested_df_combined_cte_and_column_fixes(file_regression):
@@ -1265,11 +1211,7 @@ def test_nested_df_combined_cte_and_column_fixes(file_regression):
             "JOIN products ON order_lines.product_id = products.id"
         ),
     }
-    df_ctes = build_ctes(
-        name_to_cte_ast={
-            name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()
-        }
-    )
+    df_ctes = build_ctes(name_to_cte_ast={name: parse_one(sql, read="postgres") for name, sql in df_ctes_dict.items()})
     result_sql = update_with_clause(main_sql, df_ctes)
 
     # Step 2: Apply column mappings with DF exclusion
@@ -1298,7 +1240,5 @@ def test_nested_df_combined_cte_and_column_fixes(file_regression):
     assert "dli.product_category" in result_str, "DF columns should not be rewritten"
 
     file_regression.check(
-        _format_nested_df_test_output(
-            input_sql, df_ctes_dict, data_frame_names, column_mappings, result_str
-        )
+        _format_nested_df_test_output(input_sql, df_ctes_dict, data_frame_names, column_mappings, result_str)
     )

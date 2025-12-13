@@ -60,9 +60,7 @@ def client(fastapi_app: FastAPI) -> TestClient:
 
 
 class TestContinueWorkItem:
-    async def test_continue_success(
-        self, client: TestClient, storage: MockStorage, test_user: User, system_user: User
-    ):
+    async def test_continue_success(self, client: TestClient, storage: MockStorage, test_user: User, system_user: User):
         """Test successfully continuing a work item from NEEDS_REVIEW to PENDING."""
         # Setup: Create a work item that can be continued
         work_item = WorkItem(

@@ -215,9 +215,7 @@ class TestCortexParsers:
         assert response.content[1].tool_input == {
             "joke": "Why did the chicken cross the road?",
         }
-        assert response.content[1].tool_input_raw == (
-            '{"joke": "Why did the chicken cross the road?"}'
-        )
+        assert response.content[1].tool_input_raw == ('{"joke": "Why did the chicken cross the road?"}')
 
     @pytest.mark.asyncio
     async def test_parse_stream_event(

@@ -91,18 +91,12 @@ class SpecAgent(BaseModel):
     runbook: str | None = None
     action_packages: list[SpecActionPackage] = Field(alias="action-packages")
     knowledge: list[SpecKnowledge] | None = None
-    semantic_data_models: list[SpecSemanticDataModel] | None = Field(
-        default=None, alias="semantic-data-models"
-    )
+    semantic_data_models: list[SpecSemanticDataModel] | None = Field(default=None, alias="semantic-data-models")
     mcp_servers: list[SpecMCPServer] | None = Field(default=None, alias="mcp-servers")
-    docker_mcp_gateway: SpecDockerMcpGateway | None = Field(
-        default=None, alias="docker-mcp-gateway"
-    )
+    docker_mcp_gateway: SpecDockerMcpGateway | None = Field(default=None, alias="docker-mcp-gateway")
     conversation_guide: str | None = Field(default=None, alias="conversation-guide")
     conversation_starter: str | None = Field(default=None, alias="conversation-starter")
-    document_intelligence: SpecDocumentIntelligence | None = Field(
-        default=None, alias="document-intelligence"
-    )
+    document_intelligence: SpecDocumentIntelligence | None = Field(default=None, alias="document-intelligence")
     welcome_message: str | None = Field(default=None, alias="welcome-message")
     metadata: SpecAgentMetadata | None = None
     selected_tools: SpecSelectedTools | None = Field(default=None, alias="selected-tools")

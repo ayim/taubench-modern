@@ -22,12 +22,7 @@ async def sqlite_db_path(tmp_path_factory):
 async def test_sqlite_run_migrations_successfully(sqlite_db_path):
     """Test that migrations run successfully and create expected tables in SQLite."""
     path_to_migrations = (
-        Path(__file__).parent.parent.parent.parent
-        / "src"
-        / "agent_platform"
-        / "server"
-        / "migrations"
-        / "sqlite"
+        Path(__file__).parent.parent.parent.parent / "src" / "agent_platform" / "server" / "migrations" / "sqlite"
     )
     migrations = SQLiteMigrations(sqlite_db_path, migrations_path=path_to_migrations)
     await migrations.run_migrations()
@@ -52,15 +47,10 @@ async def test_sqlite_run_migrations_successfully(sqlite_db_path):
             latest_version = row[0] if row else None
 
             # Let's count the number of migrations we have in the migrations folder
-            migration_files = [
-                f
-                for f in path_to_migrations.iterdir()
-                if f.is_file() and f.name.endswith(".up.sql")
-            ]
+            migration_files = [f for f in path_to_migrations.iterdir() if f.is_file() and f.name.endswith(".up.sql")]
             num_migrations = len(migration_files)
             assert latest_version == num_migrations, (
-                f"Expected the latest migration version to be {num_migrations}, "
-                f"got {latest_version}"
+                f"Expected the latest migration version to be {num_migrations}, got {latest_version}"
             )
 
 
@@ -277,12 +267,7 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
     """
     # Use your normal migrations directory.
     migrations_path = (
-        Path(__file__).parent.parent.parent.parent
-        / "src"
-        / "agent_platform"
-        / "server"
-        / "migrations"
-        / "sqlite"
+        Path(__file__).parent.parent.parent.parent / "src" / "agent_platform" / "server" / "migrations" / "sqlite"
     )
     migrations = SQLiteMigrations(sqlite_db_path, migrations_path=migrations_path)
 

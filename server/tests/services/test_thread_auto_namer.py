@@ -105,11 +105,7 @@ async def test_auto_names_thread_on_first_run(
         user_id=sample_user_id,
         agent_id=sample_agent.agent_id,
         name="Untitled Thread",
-        messages=[
-            ThreadUserMessage(
-                content=[ThreadTextContent(text="Help me plan a weekend trip to Tokyo.")]
-            )
-        ],
+        messages=[ThreadUserMessage(content=[ThreadTextContent(text="Help me plan a weekend trip to Tokyo.")])],
     )
     await storage.upsert_thread(sample_user_id, thread)
     stored_thread = await storage.get_thread(sample_user_id, thread.thread_id)
@@ -160,9 +156,7 @@ async def test_auto_name_skips_when_user_named(
         agent_id=sample_agent.agent_id,
         name="Custom Name",
         metadata={"thread_name": {"user_named": True}},
-        messages=[
-            ThreadUserMessage(content=[ThreadTextContent(text="Summarize our team meeting notes.")])
-        ],
+        messages=[ThreadUserMessage(content=[ThreadTextContent(text="Summarize our team meeting notes.")])],
     )
     await storage.upsert_thread(sample_user_id, thread)
     stored_thread = await storage.get_thread(sample_user_id, thread.thread_id)
@@ -201,11 +195,7 @@ async def test_auto_name_skips_when_prior_runs_exist(
         user_id=sample_user_id,
         agent_id=sample_agent.agent_id,
         name="Original Thread",
-        messages=[
-            ThreadUserMessage(
-                content=[ThreadTextContent(text="Draft a quarterly budget overview.")]
-            )
-        ],
+        messages=[ThreadUserMessage(content=[ThreadTextContent(text="Draft a quarterly budget overview.")])],
     )
     await storage.upsert_thread(sample_user_id, thread)
     stored_thread = await storage.get_thread(sample_user_id, thread.thread_id)
@@ -255,11 +245,7 @@ async def test_auto_name_allows_duplicate_names(
         user_id=sample_user_id,
         agent_id=sample_agent.agent_id,
         name="Another Thread",
-        messages=[
-            ThreadUserMessage(
-                content=[ThreadTextContent(text="Outline the project kickoff steps.")]
-            )
-        ],
+        messages=[ThreadUserMessage(content=[ThreadTextContent(text="Outline the project kickoff steps.")])],
     )
     await storage.upsert_thread(sample_user_id, thread)
     stored_thread = await storage.get_thread(sample_user_id, thread.thread_id)

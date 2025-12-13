@@ -41,18 +41,13 @@ class CreateWorkItemPayload:
 
     work_item_name: str | None = field(
         default=None,
-        metadata={
-            "description": "User-friendly name for the work item.Must be less than 255 characters."
-        },
+        metadata={"description": "User-friendly name for the work item.Must be less than 255 characters."},
     )
     """User-friendly name for the work item. Must be less than 255 characters."""
 
     callbacks: list[WorkItemCallback] | None = field(
         default=None,
-        metadata={
-            "description": "A list of callbacks to trigger when the"
-            " work item reaches a certain status."
-        },
+        metadata={"description": "A list of callbacks to trigger when the work item reaches a certain status."},
     )
     """A list of callbacks to trigger when the work item reaches a certain status."""
 
@@ -65,9 +60,7 @@ class CreateWorkItemPayload:
     ) -> WorkItem:
         work_item_id = payload.work_item_id or str(uuid4())
         # Use the normalized name, falling back to the default name if empty.
-        name = WorkItem.normalize_work_item_name(payload.work_item_name) or WorkItem.default_name(
-            work_item_id
-        )
+        name = WorkItem.normalize_work_item_name(payload.work_item_name) or WorkItem.default_name(work_item_id)
         return WorkItem(
             user_id=owner_user_id,
             created_by=created_by_user_id,

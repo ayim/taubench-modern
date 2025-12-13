@@ -171,9 +171,7 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
     return all_action_details
 
 
-async def _process_mcp_servers(
-    agent: Agent, storage: StorageDependency, user: AuthedUser
-) -> list[MCPServerDetail]:
+async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: AuthedUser) -> list[MCPServerDetail]:
     """Process MCP servers and return their details."""
     all_mcp_server_details = []
 
@@ -251,10 +249,7 @@ async def list_agents(
     "/search/by-metadata",
     response_model=list[AgentCompat],
     summary="Find agents by metadata",
-    description=(
-        "Provide metadata key/value pairs as "
-        "query parameters (e.g., ?project=xyz&visibility=hidden)."
-    ),
+    description=("Provide metadata key/value pairs as query parameters (e.g., ?project=xyz&visibility=hidden)."),
 )
 async def search_agents_by_metadata(
     user: AuthedUser,
@@ -393,11 +388,7 @@ async def update_agent_action_server_config(
                 organization=action_package.organization,
                 version=action_package.version,
                 url=payload.url,
-                api_key=(
-                    SecretString(payload.api_key)
-                    if isinstance(payload.api_key, str)
-                    else payload.api_key
-                ),
+                api_key=(SecretString(payload.api_key) if isinstance(payload.api_key, str) else payload.api_key),
                 allowed_actions=action_package.allowed_actions,
             )
             for action_package in agent.action_packages

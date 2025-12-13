@@ -11,7 +11,7 @@ from agent_platform.orchestrator.agent_server_client import (
 from fastapi import status
 
 
-def _file_uploads_with_existing_thread(  # noqa: PLR0915
+def _file_uploads_with_existing_thread(
     agent_client: AgentServerClient,
     thread_id: str,
     agent_id: str,
@@ -49,9 +49,7 @@ def _file_uploads_with_existing_thread(  # noqa: PLR0915
     total_files = 1 + 2
     thread_file_refs = agent_client.list_files(thread_id)
     assert thread_file_refs is not None, "Thread file refs not found"
-    assert len(thread_file_refs) == total_files, (
-        f"Expected {total_files} files, got {len(thread_file_refs)}"
-    )
+    assert len(thread_file_refs) == total_files, f"Expected {total_files} files, got {len(thread_file_refs)}"
     print_success(f"Successfully listed {len(thread_file_refs)} files")
 
     # Get file by ref
@@ -59,14 +57,10 @@ def _file_uploads_with_existing_thread(  # noqa: PLR0915
     file_ref = thread_file_refs[file_id]
     file_info = agent_client.get_file_info_by_ref(thread_id, file_ref)
     assert file_info is not None, "File info not found"
-    assert file_info["file_id"] == file_id, (
-        f"Expected file ID {file_id}, got {file_info['file_id']}"
-    )
+    assert file_info["file_id"] == file_id, f"Expected file ID {file_id}, got {file_info['file_id']}"
     # Checking if file_url is present in file_info
     assert "file_url" in file_info.keys(), "Expected file URL to be present in file data"
-    assert file_info["file_url"] == file_info["file_path"], (
-        "Expected file URL to be the same as file path"
-    )
+    assert file_info["file_url"] == file_info["file_path"], "Expected file URL to be the same as file path"
 
     print_success(f"Successfully got file info for {file_id}")
 
@@ -80,9 +74,7 @@ def _file_uploads_with_existing_thread(  # noqa: PLR0915
     agent_client.delete_file_by_ref(thread_id, file_id)
     thread_files = agent_client.list_files(thread_id)
     assert thread_files is not None, "Thread files not found"
-    assert len(thread_files) == total_files - 1, (
-        f"Expected {total_files - 1} files, got {len(thread_files)}"
-    )
+    assert len(thread_files) == total_files - 1, f"Expected {total_files - 1} files, got {len(thread_files)}"
     print_success(f"Successfully deleted file {file_id} from thread")
 
     # Delete all files from thread
@@ -110,9 +102,7 @@ def _file_uploads_with_existing_thread(  # noqa: PLR0915
             content=file_content,
             embedded=True,
         )
-        assert response.status_code == status.HTTP_200_OK, (
-            f"Failed to upload Unicode filename {filename}"
-        )
+        assert response.status_code == status.HTTP_200_OK, f"Failed to upload Unicode filename {filename}"
         response_data = response.json()
         assert response_data[0]["file_ref"] == filename
         unicode_file_ids[filename] = response_data[0]["file_id"]

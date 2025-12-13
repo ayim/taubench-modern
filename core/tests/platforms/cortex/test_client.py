@@ -106,8 +106,7 @@ def cortex_client(
         {provider: list(models) for provider, models in available_models.items()}
     )
     client._available_models_cache = {
-        provider: list(models)
-        for provider, models in CortexClient._GLOBAL_AVAILABLE_MODELS_CACHE.items()
+        provider: list(models) for provider, models in CortexClient._GLOBAL_AVAILABLE_MODELS_CACHE.items()
     }
     return client
 
@@ -547,10 +546,7 @@ async def test_generate_stream_response_success(
         assert any(d.path == "/role" and d.value == "agent" for d in deltas)
         # We should have a delta with a path of /content and a
         # value of [{"kind": "text", "text": "This is a"}]
-        assert any(
-            d.path == "/content" and d.value == [{"kind": "text", "text": "This is a"}]
-            for d in deltas
-        )
+        assert any(d.path == "/content" and d.value == [{"kind": "text", "text": "This is a"}] for d in deltas)
         # We should have a delta with a path of /content/0/text and a value " test"
         assert any(d.path == "/content/0/text" and d.value == " test" for d in deltas)
         # We should have a delta with a path of /usage/input_tokens and a value 1
@@ -610,7 +606,7 @@ async def test_iter_stream_with_backoff_retries_on_transient_failure(
 
 
 @pytest.mark.asyncio
-async def test_iter_stream_with_backoff_retries_on_retryable_status(  # noqa: C901
+async def test_iter_stream_with_backoff_retries_on_retryable_status(
     cortex_client: CortexClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -805,9 +801,7 @@ async def test_generate_stream_response_refreshes_session_on_unauthorized(
         request=Request("POST", "https://cortex.test"),
     )
 
-    success_lines = (
-        b'data: {"delta": {"content": [{"type": "text", "text": "chunk"}]}}\n\ndata: [DONE]\n\n'
-    )
+    success_lines = b'data: {"delta": {"content": [{"type": "text", "text": "chunk"}]}}\n\ndata: [DONE]\n\n'
     success_stream = Response(
         status_code=200,
         content=success_lines,
@@ -900,9 +894,7 @@ async def test_create_embeddings(
     mock_collect_result = [
         {"EMBEDDING": [0.1, 0.2, 0.3]},
     ]
-    (
-        mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value
-    ) = mock_collect_result
+    (mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value) = mock_collect_result
 
     texts = ["This is a test"]
 
@@ -944,9 +936,7 @@ async def test_create_embeddings_model_selector(
     to pick a friendly model name, then pass it to create_embeddings.
     """
     mock_collect_result = [{"EMBEDDING": [0.1, 0.2, 0.3]}]
-    (
-        mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value
-    ) = mock_collect_result
+    (mock_snowpark_session.create_dataframe.return_value.select.return_value.collect.return_value) = mock_collect_result
 
     selected_model_friendly_name = "snowflake-arctic-embed-m"
 

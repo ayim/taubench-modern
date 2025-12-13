@@ -30,10 +30,7 @@ class GroqPrompt(OpenAIPrompt):
         sanitized_input = self._sanitize_input_items(original_input)
         if sanitized_input is not None:
             if original_input and not sanitized_input:
-                raise ValueError(
-                    "Groq request sanitization removed all input content. "
-                    "Review prompt construction."
-                )
+                raise ValueError("Groq request sanitization removed all input content. Review prompt construction.")
             request["input"] = sanitized_input
             if logger.isEnabledFor(logging.DEBUG):
                 preview: list[dict[str, Any]] = []
@@ -49,8 +46,7 @@ class GroqPrompt(OpenAIPrompt):
                     content = item.get("content")
                     if isinstance(content, list):
                         entry["content_types"] = [
-                            c.get("type") if isinstance(c, dict) else type(c).__name__
-                            for c in content
+                            c.get("type") if isinstance(c, dict) else type(c).__name__ for c in content
                         ]
                     preview.append(entry)
                 logger.debug("Groq sanitized input preview: %s", preview)
@@ -123,11 +119,7 @@ class GroqPrompt(OpenAIPrompt):
                 part_dict = GroqPrompt._model_dump_generic(part)
                 part_dict.pop("annotations", None)
                 content_type = part_dict.get("type")
-                allowed_keys = (
-                    allowed_content_keys.get(content_type)
-                    if isinstance(content_type, str)
-                    else None
-                )
+                allowed_keys = allowed_content_keys.get(content_type) if isinstance(content_type, str) else None
                 if not allowed_keys:
                     continue
                 if content_type in {"input_text", "output_text"}:
@@ -136,9 +128,7 @@ class GroqPrompt(OpenAIPrompt):
                         continue
                     sanitized_content.append({"type": "input_text", "text": text_value})
                     continue
-                cleaned = {
-                    key: part_dict[key] for key in allowed_keys if part_dict.get(key) is not None
-                }
+                cleaned = {key: part_dict[key] for key in allowed_keys if part_dict.get(key) is not None}
                 if cleaned:
                     sanitized_content.append(cleaned)
             if sanitized_content:

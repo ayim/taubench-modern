@@ -27,8 +27,6 @@ class EphemeralStreamPayload:
             name=data.get("name"),
             messages=[ThreadMessage.model_validate(m) for m in data.get("messages", [])],
             metadata=data.get("metadata", {}),
-            client_tools=[
-                ToolDefinitionPayload.model_validate(t) for t in data.get("client_tools", [])
-            ],
+            client_tools=[ToolDefinitionPayload.model_validate(t) for t in data.get("client_tools", [])],
             override_model_id=data.get("override_model_id", None),
         )

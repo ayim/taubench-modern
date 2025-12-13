@@ -83,9 +83,7 @@ async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.M
 
 
 @pytest.mark.asyncio
-async def test_list_mcp_tools_endpoint_with_different_transport(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-):
+async def test_list_mcp_tools_endpoint_with_different_transport(client: TestClient, monkeypatch: pytest.MonkeyPatch):
     dummy_tool = DummyTool(name="echo", description="", input_schema={})
 
     async def fake_from_mcp_servers(self, servers, additional_headers=None):

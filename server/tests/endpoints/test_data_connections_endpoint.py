@@ -138,9 +138,7 @@ def sample_sqlite_data_connection(tmp_path: Path):
 
 def test_create_data_connection(client: TestClient, sample_postgres_data_connection: dict):
     """Test creating a data connection via API."""
-    response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
 
     assert response.status_code == 200
     data = response.json()
@@ -154,14 +152,10 @@ def test_create_data_connection(client: TestClient, sample_postgres_data_connect
     assert data["updated_at"] is not None
 
 
-def test_create_data_connection_with_storage_error(
-    client: TestClient, sample_postgres_data_connection: dict, storage
-):
+def test_create_data_connection_with_storage_error(client: TestClient, sample_postgres_data_connection: dict, storage):
     """Test creating a data connection when storage operation fails."""
     with patch.object(storage, "set_data_connection", side_effect=Exception("Storage error")):
-        response = client.post(
-            "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-        )
+        response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
 
     assert response.status_code == 500
     error_data = response.json()
@@ -182,9 +176,7 @@ def test_list_data_connections_multiple(
     client: TestClient, sample_postgres_data_connection: dict, sample_mysql_data_connection: dict
 ):
     """Test listing multiple data connections."""
-    response1 = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    response1 = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     assert response1.status_code == 200
 
     response2 = client.post("/api/v2/private/data-connections/", json=sample_mysql_data_connection)
@@ -214,9 +206,7 @@ def test_list_data_connections_with_storage_error(client: TestClient, storage):
 
 def test_get_data_connection_by_id(client: TestClient, sample_postgres_data_connection: dict):
     """Test getting a specific data connection by ID."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     assert create_response.status_code == 200
     connection_id = create_response.json()["id"]
 
@@ -240,13 +230,9 @@ def test_get_data_connection_not_found(client: TestClient):
     assert "Failed to get data connection" in error_data["error"]["message"]
 
 
-def test_get_data_connection_with_storage_error(
-    client: TestClient, sample_postgres_data_connection: dict, storage
-):
+def test_get_data_connection_with_storage_error(client: TestClient, sample_postgres_data_connection: dict, storage):
     """Test getting a data connection when storage operation fails."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     connection_id = create_response.json()["id"]
 
     with patch.object(storage, "get_data_connection", side_effect=Exception("Storage error")):
@@ -259,9 +245,7 @@ def test_get_data_connection_with_storage_error(
 
 def test_update_data_connection(client: TestClient, sample_postgres_data_connection: dict):
     """Test updating a data connection."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     assert create_response.status_code == 200
     connection_id = create_response.json()["id"]
 
@@ -293,13 +277,9 @@ def test_update_data_connection(client: TestClient, sample_postgres_data_connect
     assert data["updated_at"] is not None
 
 
-def test_update_data_connection_with_storage_error(
-    client: TestClient, sample_postgres_data_connection: dict, storage
-):
+def test_update_data_connection_with_storage_error(client: TestClient, sample_postgres_data_connection: dict, storage):
     """Test updating a data connection when storage operation fails."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     connection_id = create_response.json()["id"]
 
     updated_payload = {
@@ -310,9 +290,7 @@ def test_update_data_connection_with_storage_error(
     }
 
     with patch.object(storage, "update_data_connection", side_effect=Exception("Storage error")):
-        response = client.put(
-            f"/api/v2/private/data-connections/{connection_id}", json=updated_payload
-        )
+        response = client.put(f"/api/v2/private/data-connections/{connection_id}", json=updated_payload)
 
     assert response.status_code == 500
     error_data = response.json()
@@ -321,9 +299,7 @@ def test_update_data_connection_with_storage_error(
 
 def test_delete_data_connection(client: TestClient, sample_postgres_data_connection: dict):
     """Test deleting a data connection."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     assert create_response.status_code == 200
     connection_id = create_response.json()["id"]
 
@@ -334,13 +310,9 @@ def test_delete_data_connection(client: TestClient, sample_postgres_data_connect
     assert get_response.status_code == 500
 
 
-def test_delete_data_connection_with_storage_error(
-    client: TestClient, sample_postgres_data_connection: dict, storage
-):
+def test_delete_data_connection_with_storage_error(client: TestClient, sample_postgres_data_connection: dict, storage):
     """Test deleting a data connection when storage operation fails."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     connection_id = create_response.json()["id"]
 
     with patch.object(storage, "delete_data_connection", side_effect=Exception("Storage error")):
@@ -372,9 +344,7 @@ def test_data_connection_validation_error(client: TestClient):
 
 def test_data_connection_response_format(client: TestClient, sample_postgres_data_connection: dict):
     """Test the format of data connection responses."""
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
     assert create_response.status_code == 200
     created_data = create_response.json()
 
@@ -400,13 +370,9 @@ def test_data_connection_response_format(client: TestClient, sample_postgres_dat
     assert get_data["name"] == sample_postgres_data_connection["name"]
 
 
-def test_create_data_connection_with_tag(
-    client: TestClient, sample_postgres_data_connection_with_tag: dict
-):
+def test_create_data_connection_with_tag(client: TestClient, sample_postgres_data_connection_with_tag: dict):
     """Test creating a data connection with tag via API."""
-    response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection_with_tag
-    )
+    response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection_with_tag)
 
     assert response.status_code == 200
     data = response.json()
@@ -421,13 +387,9 @@ def test_create_data_connection_with_tag(
     assert data["updated_at"] is not None
 
 
-def test_create_data_connection_without_tag_has_empty_tag(
-    client: TestClient, sample_postgres_data_connection: dict
-):
+def test_create_data_connection_without_tag_has_empty_tag(client: TestClient, sample_postgres_data_connection: dict):
     """Test creating a data connection without tag has empty tag field."""
-    response = client.post(
-        "/api/v2/private/data-connections/", json=sample_postgres_data_connection
-    )
+    response = client.post("/api/v2/private/data-connections/", json=sample_postgres_data_connection)
 
     assert response.status_code == 200
     data = response.json()
@@ -437,9 +399,7 @@ def test_create_data_connection_without_tag_has_empty_tag(
 def test_inspect_data_connection_success(client: TestClient, sample_sqlite_data_connection: dict):
     """Test inspecting a data connection successfully."""
     # Create a data connection first
-    create_response = client.post(
-        "/api/v2/private/data-connections/", json=sample_sqlite_data_connection
-    )
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
     assert create_response.status_code == 200
     connection_id = create_response.json()["id"]
 
@@ -504,20 +464,13 @@ def test_create_snowflake_data_connection_with_sanitized_connection_details(
     assert data["tags"] == sample["tags"]
     assert data["configuration"]["user"] == sample["configuration"]["user"].strip()
     assert data["configuration"]["account"] == sample["configuration"]["account"].strip()
-    assert data["configuration"]["private_key_path"] == (
-        sample["configuration"]["private_key_path"].strip()
-    )
+    assert data["configuration"]["private_key_path"] == (sample["configuration"]["private_key_path"].strip())
     assert data["configuration"]["warehouse"] == sample["configuration"]["warehouse"].strip()
     assert data["configuration"]["database"] == sample["configuration"]["database"].strip()
-    assert data["configuration"]["credential_type"] == (
-        sample["configuration"]["credential_type"].strip()
-    )
+    assert data["configuration"]["credential_type"] == (sample["configuration"]["credential_type"].strip())
     assert data["configuration"]["database"] == sample["configuration"]["database"].strip()
     assert data["configuration"]["schema"] == sample["configuration"]["schema"].strip()
-    assert (
-        data["configuration"]["private_key_passphrase"]
-        == (sample["configuration"]["private_key_passphrase"])
-    )
+    assert data["configuration"]["private_key_passphrase"] == (sample["configuration"]["private_key_passphrase"])
     assert "id" in data
     assert data["id"] is not None
     assert data["created_at"] is not None

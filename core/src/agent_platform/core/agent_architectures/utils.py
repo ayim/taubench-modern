@@ -29,8 +29,7 @@ def validate_2param_async(func, param_names=("kernel", "state")):
         param = parameters[index]
         if param.name != expected_name:
             raise ValueError(
-                f"Parameter {index + 1} must be named '{expected_name}', "
-                f"found '{param.name}' instead.",
+                f"Parameter {index + 1} must be named '{expected_name}', found '{param.name}' instead.",
             )
     if not iscoroutinefunction(func):
         raise ValueError("Function must be an async function.")

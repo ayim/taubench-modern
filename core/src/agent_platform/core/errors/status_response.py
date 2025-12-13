@@ -83,17 +83,11 @@ class StatusResponse(BaseModel, Generic[T]):
     both success and failure cases without using HTTP error status codes.
     """
 
-    status: Literal["success", "failure"] = Field(
-        description="Indicates whether the operation was successful"
-    )
+    status: Literal["success", "failure"] = Field(description="Indicates whether the operation was successful")
 
-    data: T | None = Field(
-        default=None, description="The result data when successful, null when failed"
-    )
+    data: T | None = Field(default=None, description="The result data when successful, null when failed")
 
-    errors: list[StatusError | str] = Field(
-        default_factory=list, description="List of errors when the operation fails"
-    )
+    errors: list[StatusError | str] = Field(default_factory=list, description="List of errors when the operation fails")
 
     @classmethod
     def success(cls, data: T) -> "StatusResponse[T]":
@@ -129,9 +123,7 @@ class StatusResponse(BaseModel, Generic[T]):
         Returns:
             StatusResponse with status="failure" and safe error information
         """
-        status_errors: list[StatusError | str] = [
-            StatusError.from_platform_error(pe) for pe in platform_errors
-        ]
+        status_errors: list[StatusError | str] = [StatusError.from_platform_error(pe) for pe in platform_errors]
         return cls(status="failure", data=None, errors=status_errors)
 
     @classmethod

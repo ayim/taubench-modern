@@ -208,9 +208,7 @@ def test_semantic_model_validation_missing_name():
         ],
     }
 
-    references = validate_semantic_model_payload_and_extract_references(
-        typing.cast(SemanticDataModel, semantic_model)
-    )
+    references = validate_semantic_model_payload_and_extract_references(typing.cast(SemanticDataModel, semantic_model))
     assert len(references.errors) == 1
     assert "'name' must be specified" in references.errors[0]
 
@@ -267,9 +265,7 @@ def test_semantic_model_validation_missing_table_name():
         ],
     }
 
-    references = validate_semantic_model_payload_and_extract_references(
-        typing.cast(SemanticDataModel, semantic_model)
-    )
+    references = validate_semantic_model_payload_and_extract_references(typing.cast(SemanticDataModel, semantic_model))
     assert len(references.errors) == 1
     assert "'name' must be specified in a semantic data model table" in references.errors[0]
 
@@ -293,9 +289,7 @@ def test_semantic_model_validation_missing_base_table():
         ],
     }
 
-    references = validate_semantic_model_payload_and_extract_references(
-        typing.cast(SemanticDataModel, semantic_model)
-    )
+    references = validate_semantic_model_payload_and_extract_references(typing.cast(SemanticDataModel, semantic_model))
     assert len(references.errors) == 1
     assert "'base_table' must be specified" in references.errors[0]
 

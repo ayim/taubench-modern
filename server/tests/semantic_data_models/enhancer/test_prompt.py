@@ -156,9 +156,7 @@ def _get_example_semantic_model_with_two_tables():
 
     semantic_model_example: SemanticDataModel = {
         "name": "Sales and Inventory Data",
-        "description": (
-            "This semantic model can be used for asking questions over sales and inventory data."
-        ),
+        "description": ("This semantic model can be used for asking questions over sales and inventory data."),
         "tables": tables_example,
     }
 
@@ -171,9 +169,7 @@ def test_system_prompt_full_mode(file_regression):
         render_system_prompt,
     )
 
-    prompt = render_system_prompt(
-        mode="full", tables_to_enhance=None, table_to_columns_to_enhance=None
-    )
+    prompt = render_system_prompt(mode="full", tables_to_enhance=None, table_to_columns_to_enhance=None)
     file_regression.check(prompt, basename="system_prompt_full_mode")
 
 
@@ -183,9 +179,7 @@ def test_system_prompt_tables_mode_single(file_regression):
         render_system_prompt,
     )
 
-    prompt = render_system_prompt(
-        mode="tables", tables_to_enhance={"sales_data"}, table_to_columns_to_enhance=None
-    )
+    prompt = render_system_prompt(mode="tables", tables_to_enhance={"sales_data"}, table_to_columns_to_enhance=None)
     file_regression.check(prompt, basename="system_prompt_tables_mode_single")
 
 
@@ -274,7 +268,7 @@ def test_user_prompt_full_mode_with_selection(file_regression):
 
 
 def test_user_prompt_full_mode_mixed_selection(file_regression):
-    """Test the user prompt for full enhancement mode with mixed selection: two tables, one with columns."""  # noqa: E501
+    """Test the user prompt for full enhancement mode with mixed selection: two tables, one with columns."""
     from agent_platform.server.semantic_data_models.enhancer.prompt_templates.user_prompt import (
         render_user_prompt,
     )
@@ -338,7 +332,7 @@ def test_user_prompt_columns_mode(file_regression):
 
 def test_quality_check_system_prompt(file_regression):
     """Test the quality check system prompt."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_prompt import (
         render_quality_check_system_prompt,
     )
 
@@ -348,7 +342,7 @@ def test_quality_check_system_prompt(file_regression):
 
 def test_quality_check_user_prompt(file_regression):
     """Test the quality check user prompt."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
 
@@ -361,7 +355,7 @@ def test_quality_check_user_prompt(file_regression):
 
 def test_quality_check_user_prompt_tables_mode(file_regression):
     """Test the quality check user prompt with tables mode."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
 
@@ -378,7 +372,7 @@ def test_quality_check_user_prompt_tables_mode(file_regression):
 
 def test_quality_check_user_prompt_columns_mode(file_regression):
     """Test the quality check user prompt with columns mode."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
 
@@ -395,7 +389,7 @@ def test_quality_check_user_prompt_columns_mode(file_regression):
 
 def test_quality_check_user_prompt_full_mode_with_tables(file_regression):
     """Test the quality check user prompt with full mode and specific tables."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
 
@@ -412,7 +406,7 @@ def test_quality_check_user_prompt_full_mode_with_tables(file_regression):
 
 def test_quality_check_user_prompt_full_mode_with_columns(file_regression):
     """Test the quality check user prompt with full mode and specific columns."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
 
@@ -429,7 +423,7 @@ def test_quality_check_user_prompt_full_mode_with_columns(file_regression):
 
 def test_quality_check_user_prompt_full_mode_mixed(file_regression):
     """Test the quality check user prompt with full mode and mixed tables/columns selection."""
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (  # noqa: E501
+    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.quality_check_user_prompt import (
         render_quality_check_user_prompt,
     )
 

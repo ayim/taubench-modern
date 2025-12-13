@@ -49,8 +49,7 @@ class PromptImageContent(PromptMessageContent):
     sub_type: Literal["url", "base64", "raw_bytes"] = field(
         default="url",
         metadata={
-            "description": "Format of the image data - either a URL or base64"
-            "encoded string, or raw bytes",
+            "description": "Format of the image data - either a URL or base64encoded string, or raw bytes",
         },
     )
     """Format of the image data - either a URL or base64

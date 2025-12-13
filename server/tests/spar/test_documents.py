@@ -46,9 +46,7 @@ class TestDocuments:
         agent_id = agent_factory()
         thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
 
-        file_upload_result = upload_file_to_thread(
-            agent_server_client_with_doc_int, thread_id, file_path
-        )
+        file_upload_result = upload_file_to_thread(agent_server_client_with_doc_int, thread_id, file_path)
 
         # Step 1: Generate a data model from the file
         response = requests.post(
@@ -121,9 +119,7 @@ class TestDocuments:
         agent_id = agent_factory()
         thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
 
-        file_upload_result = upload_file_to_thread(
-            agent_server_client_with_doc_int, thread_id, file_path
-        )
+        file_upload_result = upload_file_to_thread(agent_server_client_with_doc_int, thread_id, file_path)
 
         # Step 1: Parse the document
         response = requests.post(

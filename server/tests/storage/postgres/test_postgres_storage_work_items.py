@@ -242,10 +242,7 @@ async def test_list_work_items_status_filtering(
         work_item_status=[WorkItemStatus.PENDING, WorkItemStatus.COMPLETED]
     )
     assert len(multiple_status_items) == 2
-    assert all(
-        wi.status in [WorkItemStatus.PENDING, WorkItemStatus.COMPLETED]
-        for wi in multiple_status_items
-    )
+    assert all(wi.status in [WorkItemStatus.PENDING, WorkItemStatus.COMPLETED] for wi in multiple_status_items)
     assert pending_item.work_item_id in {wi.work_item_id for wi in multiple_status_items}
     assert completed_item.work_item_id in {wi.work_item_id for wi in multiple_status_items}
 
@@ -363,9 +360,7 @@ async def test_list_work_items_combined_filtering(
         await storage.create_work_item(item)
 
     # Test combined filtering
-    combined_results = await storage.list_work_items(
-        work_item_status=[WorkItemStatus.PENDING], name_search="Search"
-    )
+    combined_results = await storage.list_work_items(work_item_status=[WorkItemStatus.PENDING], name_search="Search")
     assert len(combined_results) == 1
     assert pending_search_item.work_item_id in {wi.work_item_id for wi in combined_results}
     assert completed_search_item.work_item_id not in {wi.work_item_id for wi in combined_results}
@@ -384,9 +379,7 @@ async def test_list_work_items_combined_filtering(
     )
     assert len(multiple_status_combined) == 2
     assert pending_search_item.work_item_id in {wi.work_item_id for wi in multiple_status_combined}
-    assert completed_search_item.work_item_id in {
-        wi.work_item_id for wi in multiple_status_combined
-    }
+    assert completed_search_item.work_item_id in {wi.work_item_id for wi in multiple_status_combined}
 
 
 @pytest.mark.asyncio
@@ -429,9 +422,7 @@ async def test_list_work_items_ordering_by_created_at(
     assert items[0].work_item_id == item2.work_item_id
 
     # Update item2 to have a more recent updated_at
-    await storage.update_work_item_status(
-        sample_user_id, item2.work_item_id, WorkItemStatus.COMPLETED
-    )
+    await storage.update_work_item_status(sample_user_id, item2.work_item_id, WorkItemStatus.COMPLETED)
 
     # Get items again
     items = await storage.list_work_items(limit=10)
@@ -496,9 +487,7 @@ async def test_work_item_access_control_users(
     await storage.create_work_item(wi)
 
     # Other regular user can update status (global visibility for system-owned items)
-    await storage.update_work_item_status(
-        other_user.user_id, wi.work_item_id, WorkItemStatus.COMPLETED
-    )
+    await storage.update_work_item_status(other_user.user_id, wi.work_item_id, WorkItemStatus.COMPLETED)
     updated = await storage.get_work_item(wi.work_item_id)
     assert updated.status == WorkItemStatus.COMPLETED
 
@@ -1065,9 +1054,7 @@ async def test_work_item_file_ownership_system_user(
     assert regular_user_files[0].file_id == file_id
 
     # System user should also be able to access the file
-    system_user_files = await storage.get_workitem_files(
-        work_item.work_item_id, system_user.user_id
-    )
+    system_user_files = await storage.get_workitem_files(work_item.work_item_id, system_user.user_id)
     assert len(system_user_files) == 1
     assert system_user_files[0].file_id == file_id
 

@@ -155,9 +155,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
             created_model_id_and_references["semantic_data_model_id"]
         )
         assert created_model_id_and_references["data_connection_ids"] == [data_connection_1["id"]]
-        assert created_model_id_and_references["file_references"] == [
-            {"thread_id": thread_id, "file_ref": name_file_1}
-        ]
+        assert created_model_id_and_references["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
 
         # Test creating with a specific ID
         model_id = "test-model-id-123"
@@ -167,9 +165,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         )
         assert created_model_with_id["semantic_data_model_id"] == model_id
         assert created_model_with_id["data_connection_ids"] == [data_connection_1["id"]]
-        assert created_model_with_id["file_references"] == [
-            {"thread_id": thread_id, "file_ref": name_file_1}
-        ]
+        assert created_model_with_id["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
 
         # Test getting the semantic data model
         retrieved_model = agent_client.get_semantic_data_model(model_id)
@@ -238,9 +234,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
             semantic_model=dict(semantic_model=updated_semantic_model),
         )
         assert updated_model_id_and_references["data_connection_ids"] == []
-        assert updated_model_id_and_references["file_references"] == [
-            {"thread_id": thread_id, "file_ref": name_file_1}
-        ]
+        assert updated_model_id_and_references["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
         assert updated_model_id_and_references["semantic_data_model_id"] == model_id
 
         # Verify the update
@@ -264,9 +258,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
 
 @pytest.mark.integration
-def test_semantic_data_model_query_with_llm_integration(
-    base_url_agent_server_session, resources_dir, openai_api_key
-):
+def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_session, resources_dir, openai_api_key):
     """Test semantic data model query with LLM integration."""
     import json
 
@@ -349,16 +341,9 @@ def test_semantic_data_model_query_with_llm_integration(
         final_response, tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             thread_id,
-            (
-                "Can you provide me with the list of notable AI systems which were "
-                "sampled in the year 2023?"
-            ),
+            ("Can you provide me with the list of notable AI systems which were sampled in the year 2023?"),
         )
-        sql_tool_calls = [
-            tool_call
-            for tool_call in tool_calls
-            if tool_call.tool_name == DF_CREATE_FROM_SQL_TOOL_NAME
-        ]
+        sql_tool_calls = [tool_call for tool_call in tool_calls if tool_call.tool_name == DF_CREATE_FROM_SQL_TOOL_NAME]
         assert sql_tool_calls, (
             f"Expected {DF_CREATE_FROM_SQL_TOOL_NAME} tool call not found. "
             f"Final response: {final_response}. Tool calls: {[tc.tool_name for tc in tool_calls]}"
@@ -372,15 +357,11 @@ def test_semantic_data_model_query_with_llm_integration(
             f"Errors: {[tc.error for tc in sql_tool_calls]} | Final response: {final_response}"
         )
 
-        assert sql_tool_call.error is None, (
-            f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
-        )
+        assert sql_tool_call.error is None, f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
 
         # Get all successful SQL tool calls and their data frame names
         successful_sql_calls = [
-            tc
-            for tc in sql_tool_calls
-            if tc.error is None and tc.input_data.get("new_data_frame_name")
+            tc for tc in sql_tool_calls if tc.error is None and tc.input_data.get("new_data_frame_name")
         ]
         assert successful_sql_calls, "No successful SQL tool calls with data frame names"
 
@@ -409,16 +390,14 @@ def test_semantic_data_model_query_with_llm_integration(
                     rows = json.loads(contents)
                     checked_frames.append(data_frame_name)
                     if rows and any(
-                        "claude_2"
-                        in "_".join(str(value).lower().replace(" ", "_") for value in row.values())
+                        "claude_2" in "_".join(str(value).lower().replace(" ", "_") for value in row.values())
                         for row in rows
                     ):
                         found_claude_2 = True
                         break
 
         assert found_claude_2, (
-            f"Expected Claude 2 to appear in at least one of the queried data frames. "
-            f"Checked frames: {checked_frames}"
+            f"Expected Claude 2 to appear in at least one of the queried data frames. Checked frames: {checked_frames}"
         )
 
 
@@ -456,9 +435,7 @@ def test_generate_semantic_data_model_generation_integration(
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
-        assert not agent_client.list_semantic_data_models(), (
-            "No semantic data models should be present"
-        )
+        assert not agent_client.list_semantic_data_models(), "No semantic data models should be present"
 
         # Create an agent and thread
         agent_id = agent_client.create_agent_and_return_agent_id(
@@ -493,12 +470,8 @@ def test_generate_semantic_data_model_generation_integration(
             connection_id=data_connection_1["id"],
         )
         # Remove dynamic timestamp field before regression check
-        inspect_response_for_check = {
-            k: v for k, v in inspect_response.items() if k != "inspected_at"
-        }
-        data_regression.check(
-            inspect_response_for_check, basename="data_connection_inspect_response"
-        )
+        inspect_response_for_check = {k: v for k, v in inspect_response.items() if k != "inspected_at"}
+        data_regression.check(inspect_response_for_check, basename="data_connection_inspect_response")
         tables_info = inspect_response["tables"]
         for table_info in tables_info:
             assert "name" in table_info, "Table name is expected"
@@ -646,9 +619,7 @@ def test_generate_semantic_data_model_generation_integration(
 
 
 @pytest.mark.integration
-def test_semantic_data_model_with_file_reference_workflow(
-    base_url_agent_server_session, openai_api_key
-):
+def test_semantic_data_model_with_file_reference_workflow(base_url_agent_server_session, openai_api_key):
     """Create semantic data model from file, upload file, and query with LLM."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
@@ -782,9 +753,7 @@ Google,2023,15"""
 
 
 @pytest.mark.integration
-def test_semantic_data_model_validation_with_file_reference_resolution(
-    base_url_agent_server, resources_dir
-):
+def test_semantic_data_model_validation_with_file_reference_resolution(base_url_agent_server, resources_dir):
     """Test that the validate endpoint resolves file references when given thread context.
 
     This test verifies the fix for SDM validation where file references should be
@@ -854,8 +823,7 @@ def test_semantic_data_model_validation_with_file_reference_resolution(
             headers={"Content-Type": "application/json"},
         )
         assert response_before.status_code == 200, (
-            f"Validation request failed with status {response_before.status_code}: "
-            f"{response_before.text}"
+            f"Validation request failed with status {response_before.status_code}: {response_before.text}"
         )
         validation_result_before = response_before.json()
 
@@ -886,8 +854,7 @@ Test2,200"""
             headers={"Content-Type": "application/json"},
         )
         assert response_after.status_code == 200, (
-            f"Validation request failed with status {response_after.status_code}: "
-            f"{response_after.text}"
+            f"Validation request failed with status {response_after.status_code}: {response_after.text}"
         )
         validation_result_after = response_after.json()
 
@@ -896,13 +863,10 @@ Test2,200"""
 
         # Should have NO warnings about unresolved file references now
         unresolved_warnings_after = [
-            w
-            for w in result_after.get("warnings", [])
-            if "unresolved" in w.get("message", "").lower()
+            w for w in result_after.get("warnings", []) if "unresolved" in w.get("message", "").lower()
         ]
         assert len(unresolved_warnings_after) == 0, (
-            f"Expected no unresolved file reference warnings after upload, "
-            f"but got: {unresolved_warnings_after}"
+            f"Expected no unresolved file reference warnings after upload, but got: {unresolved_warnings_after}"
         )
 
 
@@ -998,16 +962,9 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         final_response, tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             thread_id,
-            (
-                "Can you provide me with the list of notable AI systems which were "
-                "sampled in the year 2023?"
-            ),
+            ("Can you provide me with the list of notable AI systems which were sampled in the year 2023?"),
         )
-        sql_tool_calls = [
-            tool_call
-            for tool_call in tool_calls
-            if tool_call.tool_name == DF_CREATE_FROM_SQL_TOOL_NAME
-        ]
+        sql_tool_calls = [tool_call for tool_call in tool_calls if tool_call.tool_name == DF_CREATE_FROM_SQL_TOOL_NAME]
         assert sql_tool_calls, (
             f"Expected {DF_CREATE_FROM_SQL_TOOL_NAME} tool call not found. "
             f"Final response: {final_response}. Tool calls: {[tc.tool_name for tc in tool_calls]}"
@@ -1021,14 +978,10 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             f"Errors: {[tc.error for tc in sql_tool_calls]} | Final response: {final_response}"
         )
 
-        assert sql_tool_call.error is None, (
-            f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
-        )
+        assert sql_tool_call.error is None, f"{DF_CREATE_FROM_SQL_TOOL_NAME} failed: {sql_tool_call.error}"
 
         data_frame_name = sql_tool_call.input_data.get("new_data_frame_name")
-        assert data_frame_name, (
-            f"Tool input missing new_data_frame_name: {sql_tool_call.input_data}"
-        )
+        assert data_frame_name, f"Tool input missing new_data_frame_name: {sql_tool_call.input_data}"
 
         # The verified query name is converted to human-readable format
         from agent_platform.core.data_frames.data_frame_utils import (
@@ -1044,12 +997,9 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             None,
         )
         assert matching_data_frame is not None, (
-            f"Data frame {data_frame_name} not found in thread: "
-            f"{[df['name'] for df in data_frames]}"
+            f"Data frame {data_frame_name} not found in thread: {[df['name'] for df in data_frames]}"
         )
-        assert matching_data_frame["num_rows"] > 0, (
-            f"Expected rows in data frame {data_frame_name}, got 0"
-        )
+        assert matching_data_frame["num_rows"] > 0, f"Expected rows in data frame {data_frame_name}, got 0"
 
         # Get the original data frame contents for comparison
         original_contents = agent_client.get_data_frame_contents(
@@ -1069,8 +1019,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         )
         get_response = requests.post(get_url, json={"data_frame_name": data_frame_name})
         assert get_response.status_code == requests.codes.ok, (
-            f"Error getting data frame as validated query: {get_response.status_code} "
-            f"{get_response.text}"
+            f"Error getting data frame as validated query: {get_response.status_code} {get_response.text}"
         )
         validated_query = get_response.json()
         assert validated_query["name"] == expected_verified_query_name
@@ -1116,13 +1065,10 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         new_final_response, new_tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             new_thread_id,
-            f"Please create a data frame using the verified query "
-            f"named '{expected_verified_query_name}'.",
+            f"Please create a data frame using the verified query named '{expected_verified_query_name}'.",
         )
         verified_query_tool_calls = [
-            tool_call
-            for tool_call in new_tool_calls
-            if tool_call.tool_name == DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME
+            tool_call for tool_call in new_tool_calls if tool_call.tool_name == DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME
         ]
         assert verified_query_tool_calls, (
             f"Expected {DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} tool call not found. "
@@ -1130,11 +1076,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             f"Tool calls: {[tc.tool_name for tc in new_tool_calls]}"
         )
         verified_query_tool_call = next(
-            (
-                tool_call
-                for tool_call in reversed(verified_query_tool_calls)
-                if tool_call.error is None
-            ),
+            (tool_call for tool_call in reversed(verified_query_tool_calls) if tool_call.error is None),
             None,
         )
         assert verified_query_tool_call is not None, (
@@ -1150,14 +1092,11 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         # Verify the verified query name was used
         actual_verified_query_name = verified_query_tool_call.input_data.get("verified_query_name")
         assert actual_verified_query_name == expected_verified_query_name, (
-            f"Expected verified_query_name to be '{expected_verified_query_name}', "
-            f"got '{actual_verified_query_name}'"
+            f"Expected verified_query_name to be '{expected_verified_query_name}', got '{actual_verified_query_name}'"
         )
 
         new_data_frame_name = verified_query_tool_call.input_data.get("new_data_frame_name")
-        assert new_data_frame_name, (
-            f"Tool input missing new_data_frame_name: {verified_query_tool_call.input_data}"
-        )
+        assert new_data_frame_name, f"Tool input missing new_data_frame_name: {verified_query_tool_call.input_data}"
 
         # Verify the new data frame was created
         new_data_frames = agent_client.get_data_frames(new_thread_id, num_samples=5)
@@ -1166,12 +1105,9 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             None,
         )
         assert new_matching_data_frame is not None, (
-            f"Data frame {new_data_frame_name} not found in new thread: "
-            f"{[df['name'] for df in new_data_frames]}"
+            f"Data frame {new_data_frame_name} not found in new thread: {[df['name'] for df in new_data_frames]}"
         )
-        assert new_matching_data_frame["num_rows"] > 0, (
-            f"Expected rows in data frame {new_data_frame_name}, got 0"
-        )
+        assert new_matching_data_frame["num_rows"] > 0, f"Expected rows in data frame {new_data_frame_name}, got 0"
         assert new_matching_data_frame["num_rows"] == matching_data_frame["num_rows"], (
             f"Expected new data frame to have {matching_data_frame['num_rows']} rows, "
             f"got {new_matching_data_frame['num_rows']}"
@@ -1192,9 +1128,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
 
         # Verify the data matches (compare row by row)
         # Note: We compare the sorted rows to handle any ordering differences
-        original_rows_sorted = sorted(
-            original_rows, key=lambda x: tuple(str(v) for v in x.values())
-        )
+        original_rows_sorted = sorted(original_rows, key=lambda x: tuple(str(v) for v in x.values()))
         new_rows_sorted = sorted(new_rows, key=lambda x: tuple(str(v) for v in x.values()))
         assert original_rows_sorted == new_rows_sorted, (
             "Expected the new data frame contents to match the original data frame contents"

@@ -78,9 +78,7 @@ async def test_create_work_item(client: TestClient, seed_agents: list[Agent]):
     """Test creating a work item."""
     payload = {
         "agent_id": seed_agents[0].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Hello, test message"}]}
-        ],
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Hello, test message"}]}],
         "payload": {"test_key": "test_value"},
     }
 
@@ -153,9 +151,7 @@ async def test_describe_work_item(client: TestClient, seed_agents: list[Agent]):
     assert work_item["work_item_url"] is None
 
 
-async def test_work_item_response_includes_work_item_url(
-    client: TestClient, seed_agents: list[Agent]
-):
+async def test_work_item_response_includes_work_item_url(client: TestClient, seed_agents: list[Agent]):
     """Test that work item API responses include work_item_url field."""
     agent_id = seed_agents[0].agent_id
 
@@ -425,9 +421,7 @@ async def test_full_workflow(client: TestClient, seed_agents: list[Agent]):
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_work_item(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_upload_file_to_work_item(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test uploading a file to a work item."""
     manager_type, manager = file_manager_type
 
@@ -452,9 +446,7 @@ async def test_upload_file_to_work_item(
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_existing_work_item(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_upload_file_to_existing_work_item(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test uploading a file to an existing work item."""
     manager_type, manager = file_manager_type
     # First create a work item in DRAFT state
@@ -477,9 +469,7 @@ async def test_upload_file_to_existing_work_item(
 
 
 @pytest.mark.asyncio
-async def test_upload_duplicate_file_name_to_work_item(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_upload_duplicate_file_name_to_work_item(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test uploading a file with duplicate name to work item should fail."""
     manager_type, manager = file_manager_type
     # Create work item with first file
@@ -502,9 +492,7 @@ async def test_upload_duplicate_file_name_to_work_item(
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_nonexistent_work_item(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_upload_file_to_nonexistent_work_item(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test uploading a file to a non-existent work item should fail."""
     manager_type, manager = file_manager_type
     test_file = ("test.txt", BytesIO(b"Test content"), "text/plain")
@@ -520,9 +508,7 @@ async def test_upload_file_to_nonexistent_work_item(
 
 
 @pytest.mark.asyncio
-async def test_upload_file_to_non_draft_work_item(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_upload_file_to_non_draft_work_item(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test uploading a file to a work item not in DRAFT state should fail."""
     manager_type, manager = file_manager_type
     # Create a work item with agent (will be in PENDING state)
@@ -545,16 +531,11 @@ async def test_upload_file_to_non_draft_work_item(
     )
 
     assert response.status_code == 400
-    assert (
-        "Files can only be attached to work-items in the DRAFT state."
-        in response.json()["error"]["message"]
-    )
+    assert "Files can only be attached to work-items in the DRAFT state." in response.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_work_item_with_files_workflow(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_work_item_with_files_workflow(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test complete workflow: upload files -> create work item -> verify files copied to thread."""
     manager_type, manager = file_manager_type
     # 1. Upload files to create work item
@@ -576,9 +557,7 @@ async def test_work_item_with_files_workflow(
     # 2. Convert work item to PENDING by adding agent and messages
     payload = {
         "agent_id": seed_agents[0].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Process these files"}]}
-        ],
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Process these files"}]}],
         "payload": {"task": "file_processing"},
         "work_item_id": work_item_id,
     }
@@ -599,17 +578,13 @@ async def test_work_item_with_files_workflow(
 
 
 @pytest.mark.asyncio
-async def test_create_describe_and_list_work_item_with_callback(
-    client: TestClient, seed_agents: list[Agent]
-):
+async def test_create_describe_and_list_work_item_with_callback(client: TestClient, seed_agents: list[Agent]):
     """Test creating a work item with callback, then describing and listing to
     verify callbacks are included."""
     # Create a work item with a callback
     create_payload = {
         "agent_id": seed_agents[0].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Test message with callback"}]}
-        ],
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Test message with callback"}]}],
         "payload": {"test_key": "test_value"},
         "callbacks": [
             {
@@ -663,15 +638,11 @@ async def test_create_describe_and_list_work_item_with_callback(
 
 
 @pytest.mark.asyncio
-async def test_create_work_item_with_multiple_callbacks(
-    client: TestClient, seed_agents: list[Agent]
-):
+async def test_create_work_item_with_multiple_callbacks(client: TestClient, seed_agents: list[Agent]):
     """Test creating a work item with multiple callbacks for different statuses."""
     create_payload = {
         "agent_id": seed_agents[1].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Multiple callbacks test"}]}
-        ],
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Multiple callbacks test"}]}],
         "payload": {"multi_callback": True},
         "callbacks": [
             {
@@ -723,9 +694,7 @@ async def test_create_work_item_with_invalid_callbacks(
     """Test validation of invalid callback configurations."""
     payload = {
         "agent_id": seed_agents[0].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Test invalid callback"}]}
-        ],
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Test invalid callback"}]}],
         "payload": {},
         "callbacks": [callback_config],
     }
@@ -737,16 +706,12 @@ async def test_create_work_item_with_invalid_callbacks(
 
 
 @pytest.mark.asyncio
-async def test_cannot_create_multiple_callbacks_for_same_status(
-    client: TestClient, seed_agents: list[Agent]
-):
+async def test_cannot_create_multiple_callbacks_for_same_status(client: TestClient, seed_agents: list[Agent]):
     """Test creating a work item with multiple callbacks for the same status."""
     # Create a work item with a callback
     create_payload = {
         "agent_id": seed_agents[0].agent_id,
-        "messages": [
-            {"role": "user", "content": [{"kind": "text", "text": "Test message with callback"}]}
-        ],
+        "messages": [{"role": "user", "content": [{"kind": "text", "text": "Test message with callback"}]}],
         "payload": {"test_key": "test_value"},
         "callbacks": [
             {
@@ -767,9 +732,7 @@ async def test_cannot_create_multiple_callbacks_for_same_status(
 
 
 @pytest.mark.asyncio
-async def test_work_item_request_remote_file_upload_new_work_item(
-    client: TestClient, file_manager_type
-):
+async def test_work_item_request_remote_file_upload_new_work_item(client: TestClient, file_manager_type):
     """Test requesting remote file upload that creates a new work item."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
@@ -801,9 +764,7 @@ async def test_work_item_request_remote_file_upload_new_work_item(
 
 
 @pytest.mark.asyncio
-async def test_work_item_request_remote_file_upload_existing_work_item(
-    client: TestClient, file_manager_type
-):
+async def test_work_item_request_remote_file_upload_existing_work_item(client: TestClient, file_manager_type):
     """Test requesting remote file upload for existing work item."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
@@ -831,9 +792,7 @@ async def test_work_item_request_remote_file_upload_existing_work_item(
 
 
 @pytest.mark.asyncio
-async def test_work_item_request_remote_file_upload_invalid_work_item(
-    client: TestClient, file_manager_type
-):
+async def test_work_item_request_remote_file_upload_invalid_work_item(client: TestClient, file_manager_type):
     """Test requesting remote file upload for non-existent work item."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
@@ -875,10 +834,7 @@ async def test_work_item_request_remote_file_upload_non_draft_work_item(
     )
 
     assert response.status_code == 400
-    assert (
-        "Files can only be attached to work-items in the DRAFT state."
-        in response.json()["error"]["message"]
-    )
+    assert "Files can only be attached to work-items in the DRAFT state." in response.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -898,9 +854,7 @@ async def test_work_item_confirm_remote_file_upload(client: TestClient, file_man
     # Confirm the upload
     confirm_payload = {"file_ref": file_ref, "file_id": file_id}
 
-    response = client.post(
-        f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
-    )
+    response = client.post(f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -908,9 +862,7 @@ async def test_work_item_confirm_remote_file_upload(client: TestClient, file_man
 
 
 @pytest.mark.asyncio
-async def test_work_item_confirm_remote_file_upload_missing_work_item(
-    client: TestClient, file_manager_type
-):
+async def test_work_item_confirm_remote_file_upload_missing_work_item(client: TestClient, file_manager_type):
     """Test confirming remote file upload for non-existent work item."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
@@ -919,9 +871,7 @@ async def test_work_item_confirm_remote_file_upload_missing_work_item(
 
     confirm_payload = {"file_ref": "test.pdf", "file_id": "fake-file-id"}
 
-    response = client.post(
-        f"/api/public/v1/work-items/{fake_work_item_id}/confirm-file", json=confirm_payload
-    )
+    response = client.post(f"/api/public/v1/work-items/{fake_work_item_id}/confirm-file", json=confirm_payload)
 
     assert response.status_code == 404
     assert "A work item with the given ID was not found" in response.json()["error"]["message"]
@@ -949,15 +899,10 @@ async def test_work_item_confirm_remote_file_upload_non_draft_work_item(
     # Try to confirm upload for PENDING work item
     confirm_payload = {"file_ref": "test.pdf", "file_id": "fake-file-id"}
 
-    response = client.post(
-        f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
-    )
+    response = client.post(f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload)
 
     assert response.status_code == 400
-    assert (
-        "Files can only be attached to work-items in the DRAFT state."
-        in response.json()["error"]["message"]
-    )
+    assert "Files can only be attached to work-items in the DRAFT state." in response.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -992,9 +937,7 @@ async def test_work_item_two_stage_file_upload_workflow(
 
     # 3. Confirm the upload
     confirm_payload = {"file_ref": file_ref, "file_id": file_id}
-    confirm_response = client.post(
-        f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
-    )
+    confirm_response = client.post(f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload)
     assert confirm_response.status_code == 200
     confirm_data = confirm_response.json()
     assert confirm_data["work_item_id"] == work_item_id
@@ -1094,9 +1037,7 @@ async def test_confirm_file_attachment_size_quota_validation(
         pytest.skip("File attachment size validation only applies to direct uploads")
 
     # Mock QuotasService to return very small file attachment limit
-    with patch(
-        "agent_platform.core.configurations.quotas.QuotasService.get_instance"
-    ) as mock_quotas:
+    with patch("agent_platform.core.configurations.quotas.QuotasService.get_instance") as mock_quotas:
         mock_service = Mock()
         mock_service.get_max_work_item_payload_size.return_value = 1000  # 1000 KB payload limit
         mock_service.get_max_work_item_file_attachment_size.return_value = 0.001  # 1 KB file limit
@@ -1112,9 +1053,7 @@ async def test_confirm_file_attachment_size_quota_validation(
 
 
 @pytest.mark.asyncio
-async def test_confirm_file_quota_validation_success(
-    client: TestClient, seed_agents: list[Agent], file_manager_type
-):
+async def test_confirm_file_quota_validation_success(client: TestClient, seed_agents: list[Agent], file_manager_type):
     """Test that confirm_file endpoint succeeds when within quota limits."""
     manager_type, manager = file_manager_type
     skip_if_local_for_remote_tests(manager_type)
@@ -1130,18 +1069,14 @@ async def test_confirm_file_quota_validation_success(
     file_ref = request_data["file_ref"]
 
     # Mock QuotasService to return generous limits
-    with patch(
-        "agent_platform.core.configurations.quotas.QuotasService.get_instance"
-    ) as mock_quotas:
+    with patch("agent_platform.core.configurations.quotas.QuotasService.get_instance") as mock_quotas:
         mock_service = Mock()
         mock_service.get_max_work_item_payload_size.return_value = 1000  # 1000 KB payload limit
         mock_service.get_max_work_item_file_attachment_size.return_value = 100  # 100 MB file limit
         mock_quotas.return_value = mock_service
 
         confirm_payload = {"file_ref": file_ref, "file_id": file_id}
-        confirm_response = client.post(
-            f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload
-        )
+        confirm_response = client.post(f"/api/public/v1/work-items/{work_item_id}/confirm-file", json=confirm_payload)
 
         # Should succeed
         assert confirm_response.status_code == 200

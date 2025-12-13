@@ -257,9 +257,7 @@ class TestBedrockErrorHandling:
         assert "not found" in result.response.message
         assert result.data["model"] == "invalid-model"
 
-    def test_handle_bedrock_error_service_quota_exceeded(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    def test_handle_bedrock_error_service_quota_exceeded(self, bedrock_client: BedrockClient) -> None:
         """Test handling of ServiceQuotaExceededException."""
         from botocore.exceptions import (
             ClientError,
@@ -305,9 +303,7 @@ class TestBedrockErrorHandling:
         assert "timed out" in result.response.message
         assert result.data["error_code"] == "ModelTimeoutException"
 
-    def test_handle_bedrock_error_internal_server_error(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    def test_handle_bedrock_error_internal_server_error(self, bedrock_client: BedrockClient) -> None:
         """Test handling of InternalServerException."""
         from botocore.exceptions import (
             ClientError,
@@ -417,9 +413,7 @@ class TestBedrockErrorHandling:
         assert result.response.code == "unexpected"
         assert "timed out" in result.response.message
 
-    def test_handle_bedrock_error_botocore_connection_error(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    def test_handle_bedrock_error_botocore_connection_error(self, bedrock_client: BedrockClient) -> None:
         """Test handling of botocore ConnectionError."""
         from botocore.exceptions import (
             ConnectionError as BotocoreConnectionError,
@@ -433,9 +427,7 @@ class TestBedrockErrorHandling:
         assert result.response.code == "unexpected"
         assert "network connection" in result.response.message.lower()
 
-    def test_handle_bedrock_error_generic_botocore_error(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    def test_handle_bedrock_error_generic_botocore_error(self, bedrock_client: BedrockClient) -> None:
         """Test handling of generic BotoCoreError."""
         from botocore.exceptions import (
             BotoCoreError,
@@ -456,9 +448,7 @@ class TestBedrockErrorHandling:
         with pytest.raises(ValueError, match="Some unexpected error"):
             bedrock_client._handle_bedrock_error(error, "claude-3-sonnet")
 
-    def test_handle_bedrock_error_with_custom_error_type(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    def test_handle_bedrock_error_with_custom_error_type(self, bedrock_client: BedrockClient) -> None:
         """Test that custom error types are respected."""
         from botocore.exceptions import (
             ClientError,
@@ -474,9 +464,7 @@ class TestBedrockErrorHandling:
             operation_name="converse",
         )
 
-        result = bedrock_client._handle_bedrock_error(
-            client_error, "claude-3-sonnet", PlatformHTTPError
-        )
+        result = bedrock_client._handle_bedrock_error(client_error, "claude-3-sonnet", PlatformHTTPError)
 
         assert isinstance(result, PlatformHTTPError)
         assert result.response.code == "too_many_requests"
@@ -511,9 +499,7 @@ class TestBedrockErrorHandling:
             assert exc_info.value.response.code == "too_many_requests"
 
     @pytest.mark.asyncio
-    async def test_generate_stream_response_error_handling(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    async def test_generate_stream_response_error_handling(self, bedrock_client: BedrockClient) -> None:
         """Test error handling in generate_stream_response method."""
         from botocore.exceptions import (
             ClientError,
@@ -537,9 +523,7 @@ class TestBedrockErrorHandling:
             mock_client.converse_stream.side_effect = client_error
 
             with pytest.raises(StreamingError) as exc_info:
-                async for _ in bedrock_client.generate_stream_response(
-                    bedrock_prompt, "claude-3-5-sonnet"
-                ):
+                async for _ in bedrock_client.generate_stream_response(bedrock_prompt, "claude-3-5-sonnet"):
                     pass  # This shouldn't execute due to the exception
 
             assert exc_info.value.response.code == "forbidden"
@@ -572,9 +556,7 @@ class TestBedrockErrorHandling:
             assert exc_info.value.response.code == "bad_request"
 
     @pytest.mark.asyncio
-    async def test_create_embeddings_value_error_passthrough(
-        self, bedrock_client: BedrockClient
-    ) -> None:
+    async def test_create_embeddings_value_error_passthrough(self, bedrock_client: BedrockClient) -> None:
         """Test that ValueError for unsupported models is not caught by error handler."""
         # Use a model that exists in the model map but will trigger ValueError
         # The claude models don't start with known embedding prefixes, so they'll raise ValueError
@@ -619,25 +601,20 @@ class TestBedrockClient:
                 },
                 {
                     "chunk": {
+                        "bytes": (b'{"type":"content_block_start","index":0,"content_block":{"type":"text"}}'),
+                    },
+                },
+                {
+                    "chunk": {
                         "bytes": (
-                            b'{"type":"content_block_start","index":0,"content_block"'
-                            b':{"type":"text"}}'
+                            b'{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"test "}}'
                         ),
                     },
                 },
                 {
                     "chunk": {
                         "bytes": (
-                            b'{"type":"content_block_delta","index":0,"delta":{"type"'
-                            b':"text_delta","text":"test "}}'
-                        ),
-                    },
-                },
-                {
-                    "chunk": {
-                        "bytes": (
-                            b'{"type":"content_block_delta","index":0,"delta":{"type"'
-                            b':"text_delta","text":"response"}}'
+                            b'{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"response"}}'
                         ),
                     },
                 },

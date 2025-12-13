@@ -33,8 +33,5 @@ class DataSources:
     def model_validate(cls, data: dict) -> "DataSources":
         return DataSources(
             data_server=DataServerDetails.model_validate(data["data_server"]),
-            data_sources={
-                name: DataConnection.model_validate(conn)
-                for name, conn in data["data_sources"].items()
-            },
+            data_sources={name: DataConnection.model_validate(conn) for name, conn in data["data_sources"].items()},
         )

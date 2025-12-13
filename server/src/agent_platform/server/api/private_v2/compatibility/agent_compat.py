@@ -149,7 +149,7 @@ class AgentCompat(Agent):
     mcp_servers: list[MCPServerCompat] = field(default_factory=list)
 
     @classmethod
-    def _convert_platform_config_to_legacy_model(  # noqa: PLR0912, C901
+    def _convert_platform_config_to_legacy_model(
         cls,
         platform_configs: list[AnyPlatformParameters],
         reveal_sensitive: bool = False,
@@ -219,9 +219,7 @@ class AgentCompat(Agent):
 
         # Mask sensitive API keys if requested
         if not reveal_sensitive:
-            model_config = {
-                k: "**********" if k in cls.SENSITIVE_KEYS else v for k, v in model_config.items()
-            }
+            model_config = {k: "**********" if k in cls.SENSITIVE_KEYS else v for k, v in model_config.items()}
 
         return dict(
             provider=cls.KIND_TO_PROVIDER[platform_configs[0].kind],
@@ -324,8 +322,7 @@ class AgentCompat(Agent):
                 for ap in agent.action_packages
             ],
             mcp_servers=[
-                MCPServerCompat.from_mcp_server(s, reveal_sensitive=reveal_sensitive)
-                for s in agent.mcp_servers
+                MCPServerCompat.from_mcp_server(s, reveal_sensitive=reveal_sensitive) for s in agent.mcp_servers
             ],
             mcp_server_ids=agent.mcp_server_ids,
             selected_tools=agent.selected_tools,

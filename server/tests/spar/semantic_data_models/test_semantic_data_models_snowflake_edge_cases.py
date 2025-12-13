@@ -107,9 +107,7 @@ def validate_sql_execution_and_data(
 
     # Validate row counts
     if expected_row_count is not None:
-        assert num_rows == expected_row_count, (
-            f"Expected exactly {expected_row_count} rows, got {num_rows}"
-        )
+        assert num_rows == expected_row_count, f"Expected exactly {expected_row_count} rows, got {num_rows}"
     else:
         assert num_rows >= min_row_count, f"Expected at least {min_row_count} rows, got {num_rows}"
 
@@ -179,8 +177,7 @@ def test_edge_case_tables_load(
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         tables_to_inspect=[
-            {"name": table, "database": None, "schema": None, "columns_to_inspect": None}
-            for table in EDGE_CASE_TABLES
+            {"name": table, "database": None, "schema": None, "columns_to_inspect": None} for table in EDGE_CASE_TABLES
         ],
     )
 
@@ -201,8 +198,7 @@ def test_edge_case_columns_detected(
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         tables_to_inspect=[
-            {"name": table, "database": None, "schema": None, "columns_to_inspect": None}
-            for table in EDGE_CASE_TABLES
+            {"name": table, "database": None, "schema": None, "columns_to_inspect": None} for table in EDGE_CASE_TABLES
         ],
     )
 
@@ -246,8 +242,7 @@ def test_generate_semantic_model_with_edge_cases(
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         tables_to_inspect=[
-            {"name": table, "database": None, "schema": None, "columns_to_inspect": None}
-            for table in EDGE_CASE_TABLES
+            {"name": table, "database": None, "schema": None, "columns_to_inspect": None} for table in EDGE_CASE_TABLES
         ],
     )
 
@@ -305,8 +300,7 @@ def created_edge_case_model_id(
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         tables_to_inspect=[
-            {"name": table, "database": None, "schema": None, "columns_to_inspect": None}
-            for table in EDGE_CASE_TABLES
+            {"name": table, "database": None, "schema": None, "columns_to_inspect": None} for table in EDGE_CASE_TABLES
         ],
     )
 

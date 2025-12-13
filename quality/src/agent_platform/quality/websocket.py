@@ -108,10 +108,7 @@ class WebSocketClient:
                 except Exception as e:
                     print(f"[recv][parse] {type(e).__name__}: {e}", file=sys.stderr)
                 await self.on_message(event)
-            logger.info(
-                f"[recv] closing handshake code={self._ws.close_code} "
-                f"reason={self._ws.close_reason}"
-            )
+            logger.info(f"[recv] closing handshake code={self._ws.close_code} reason={self._ws.close_reason}")
         except ConnectionClosed as e:
             logger.info(f"[recv] connection closed: code={e.code} reason={e.reason}")
         except Exception as e:

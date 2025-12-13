@@ -51,8 +51,7 @@ class StorageStub:
         ret = self._files.get(file_id)
         if ret is None:
             logger.info(
-                f"File not found (mock StorageStub): {file_id}, user_id: {user_id}"
-                f" -- files: {self._files.keys()}"
+                f"File not found (mock StorageStub): {file_id}, user_id: {user_id} -- files: {self._files.keys()}"
             )
         return ret
 

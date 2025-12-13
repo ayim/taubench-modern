@@ -54,17 +54,14 @@ class MCPServer:
     url: str | None = field(
         default=None,
         metadata={
-            "description": "The URL of the MCP server. This should point directly"
-            " to the transport endpoint to use."
+            "description": "The URL of the MCP server. This should point directly to the transport endpoint to use."
         },
     )
     """The URL of the MCP server."""
 
     headers: MCPVariables | None = field(
         default=None,
-        metadata={
-            "description": "Headers used for configuring requests & connections to the MCP server."
-        },
+        metadata={"description": "Headers used for configuring requests & connections to the MCP server."},
     )
     """Headers used for configuring requests & connections to the MCP server."""
 
@@ -88,8 +85,7 @@ class MCPServer:
     env: MCPVariables | None = field(
         default=None,
         metadata={
-            "description": "Environment variables to merge with agent-server's env vars "
-            "for the MCP server command."
+            "description": "Environment variables to merge with agent-server's env vars for the MCP server command."
         },
     )
     """Environment variables to merge with agent-server's env vars for the MCP server command."""

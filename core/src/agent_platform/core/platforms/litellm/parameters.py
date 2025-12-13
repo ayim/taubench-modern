@@ -18,16 +18,13 @@ class LiteLLMPlatformParameters(PlatformParameters):
     litellm_api_key: SecretString | None = field(
         default=None,
         metadata={
-            "description": (
-                "The LiteLLM API key. If not provided, it is loaded from LITELLM_API_KEY."
-            ),
+            "description": ("The LiteLLM API key. If not provided, it is loaded from LITELLM_API_KEY."),
         },
     )
     litellm_base_url: str | None = field(
         default=None,
         metadata={
-            "description": "Optional override for the LiteLLM base URL "
-            "(defaults to https://llm.backend.sema4.ai).",
+            "description": "Optional override for the LiteLLM base URL (defaults to https://llm.backend.sema4.ai).",
         },
     )
 
@@ -56,9 +53,7 @@ class LiteLLMPlatformParameters(PlatformParameters):
     def model_dump(self, *, exclude_none: bool = True) -> dict:
         extra = {
             "litellm_api_key": (
-                self.litellm_api_key.get_secret_value()
-                if isinstance(self.litellm_api_key, SecretString)
-                else None
+                self.litellm_api_key.get_secret_value() if isinstance(self.litellm_api_key, SecretString) else None
             ),
             "litellm_base_url": self.litellm_base_url,
         }

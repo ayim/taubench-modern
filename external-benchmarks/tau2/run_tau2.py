@@ -31,9 +31,7 @@ def _ensure_gymnasium_stub() -> None:
             pass
 
         def sample(self, *args, **kwargs):
-            raise RuntimeError(
-                "gymnasium is not installed. Install gymnasium to use RL/Gym features."
-            )
+            raise RuntimeError("gymnasium is not installed. Install gymnasium to use RL/Gym features.")
 
         def contains(self, *_args, **_kwargs):
             return False
@@ -45,14 +43,10 @@ def _ensure_gymnasium_stub() -> None:
             pass
 
         def reset(self, *args, **kwargs):
-            raise RuntimeError(
-                "gymnasium is not installed. Install gymnasium to use RL/Gym features."
-            )
+            raise RuntimeError("gymnasium is not installed. Install gymnasium to use RL/Gym features.")
 
         def step(self, *args, **kwargs):
-            raise RuntimeError(
-                "gymnasium is not installed. Install gymnasium to use RL/Gym features."
-            )
+            raise RuntimeError("gymnasium is not installed. Install gymnasium to use RL/Gym features.")
 
         def close(self):
             return None
@@ -164,8 +158,7 @@ def _maybe_register_sema4ai_agent(agent_spec: str, ws_url: str) -> None:
         from sema4_agent_shim import register_sema4ai_agent
     except ImportError as exc:  # pragma: no cover - shim dependency guard
         raise RuntimeError(
-            "Failed to import the Sema4AI agent shim. "
-            "Run 'uv pip install --python .venv/bin/python -e .'"
+            "Failed to import the Sema4AI agent shim. Run 'uv pip install --python .venv/bin/python -e .'"
         ) from exc
 
     register_sema4ai_agent(agent_spec, ws_url=ws_url)

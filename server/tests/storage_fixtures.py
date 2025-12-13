@@ -41,9 +41,7 @@ async def sqlite_template_db(tmp_path_factory) -> "AsyncGenerator[Path, None]":
 
 
 @pytest.fixture
-async def sqlite_storage(
-    tmp_path: Path, sqlite_template_db: Path
-) -> "AsyncGenerator[SQLiteStorage, None]":
+async def sqlite_storage(tmp_path: Path, sqlite_template_db: Path) -> "AsyncGenerator[SQLiteStorage, None]":
     """
     Initialize SQLiteStorage with an ephemeral database.
     We'll also seed a system user, just like in Postgres tests.
@@ -63,9 +61,7 @@ async def sqlite_storage(
     FileManagerService.reset()
 
 
-async def _create_sqlite_storage(
-    tmp_path: Path, template_db_path: Path | None = None
-) -> "SQLiteStorage":
+async def _create_sqlite_storage(tmp_path: Path, template_db_path: Path | None = None) -> "SQLiteStorage":
     """Helper function to create and setup SQLite storage.
 
     If template_db_path is provided, copies the template database file
@@ -128,7 +124,7 @@ async def postgres_testing(request):
 @pytest.fixture(scope="session")
 async def postgres_test_db(
     postgres_testing,
-) -> "AsyncGenerator[AsyncConnectionPool[AsyncConnection[TupleRow]], None] | AsyncGenerator[None, None]":  # noqa: E501
+) -> "AsyncGenerator[AsyncConnectionPool[AsyncConnection[TupleRow]], None] | AsyncGenerator[None, None]":
     """Creates a shared temporary Postgres instance for the entire test session."""
     from psycopg import AsyncConnection
     from psycopg.rows import TupleRow
@@ -265,9 +261,7 @@ async def storage(
 
 
 @pytest.fixture
-async def sqlite_model_creator(
-    sqlite_storage: "SQLiteStorage", tmp_path: Path
-) -> "SampleModelCreator":
+async def sqlite_model_creator(sqlite_storage: "SQLiteStorage", tmp_path: Path) -> "SampleModelCreator":
     from server.tests.storage.sample_model_creator import SampleModelCreator
 
     smc = SampleModelCreator(sqlite_storage, tmp_path)
@@ -276,9 +270,7 @@ async def sqlite_model_creator(
 
 
 @pytest.fixture
-async def postgres_model_creator(
-    postgres_storage: "PostgresStorage", tmp_path: Path
-) -> "SampleModelCreator":
+async def postgres_model_creator(postgres_storage: "PostgresStorage", tmp_path: Path) -> "SampleModelCreator":
     from server.tests.storage.sample_model_creator import SampleModelCreator
 
     smc = SampleModelCreator(postgres_storage, tmp_path)

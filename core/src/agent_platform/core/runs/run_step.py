@@ -35,8 +35,7 @@ class RunStep:
     ] = field(
         default="created",
         metadata={
-            "description": "The step's status (e.g., 'created', 'running', "
-            "'completed', 'failed', 'cancelled')",
+            "description": "The step's status (e.g., 'created', 'running', 'completed', 'failed', 'cancelled')",
         },
     )
     """The step's status (e.g., 'created', 'running',

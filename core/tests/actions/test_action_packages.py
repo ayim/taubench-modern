@@ -197,9 +197,7 @@ class TestActionPackage:
         assert tool_definitions[0] == tool_def
 
         # Verify the mock was called with correct arguments
-        mock_get_spec.assert_called_once_with(
-            "http://example.com", "test-api-key", ["action1"], None
-        )
+        mock_get_spec.assert_called_once_with("http://example.com", "test-api-key", ["action1"], None)
 
     @pytest.mark.asyncio
     @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")

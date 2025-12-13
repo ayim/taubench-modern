@@ -19,9 +19,7 @@ from core.tests.vcrx import patched_vcr
 # MODEL LISTS
 # -------------------------------------------------------------------------
 MODELS_TO_TEST = [
-    model
-    for model in PlatformModelConfigs.models_capable_of_driving_agents
-    if model.startswith("cortex/")
+    model for model in PlatformModelConfigs.models_capable_of_driving_agents if model.startswith("cortex/")
 ]
 
 # -------------------------------------------------------------------------
@@ -122,9 +120,7 @@ def cortex_client(kernel: Kernel, monkeypatch):
     client = CortexClient(
         parameters=CortexPlatformParameters(
             snowflake_username=snowflake_username,
-            snowflake_password=(
-                SecretString(snowflake_password) if snowflake_password is not None else None
-            ),
+            snowflake_password=(SecretString(snowflake_password) if snowflake_password is not None else None),
             snowflake_account=snowflake_account,
             snowflake_role=snowflake_role,
         ),
@@ -191,9 +187,7 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
     expected_response = request.getfixturevalue(case["response_fixture"])
 
     # Unique cassette per test
-    cassette_path = (
-        f"platforms/cortex/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/cortex/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         cortex_prompt = await cortex_client.converters.convert_prompt(
@@ -207,9 +201,7 @@ async def test_cortex_generate_responses(request, cortex_client, case, model_id)
 
     # For deepseek-r1, we get <think>...</think> inline; strip this
     # to test comparison
-    final_response = (
-        _strip_deepseek_r1_think_tags(response) if model_id == "deepseek-r1" else response
-    )
+    final_response = _strip_deepseek_r1_think_tags(response) if model_id == "deepseek-r1" else response
 
     compare_responses(final_response, expected_response)
 
@@ -227,9 +219,7 @@ async def test_cortex_stream_responses(request, cortex_client, case, model_id):
     await prompt.finalize_messages()
     expected_response = request.getfixturevalue(case["response_fixture"])
 
-    cassette_path = (
-        f"platforms/cortex/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/cortex/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         cortex_prompt = await cortex_client.converters.convert_prompt(
@@ -251,9 +241,7 @@ async def test_cortex_stream_responses(request, cortex_client, case, model_id):
 
     # For deepseek-r1, we get <think>...</think> inline; strip this
     # to test comparison
-    final_response = (
-        _strip_deepseek_r1_think_tags(response) if model_id == "deepseek-r1" else response
-    )
+    final_response = _strip_deepseek_r1_think_tags(response) if model_id == "deepseek-r1" else response
 
     # TODO(jjhenkel): Cortex + Claude 3.5 does not respect the optionality of the
     # 'category' field in our test tool schema for the parallel tool-call case.

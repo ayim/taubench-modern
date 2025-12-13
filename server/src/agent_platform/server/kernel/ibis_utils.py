@@ -104,9 +104,7 @@ _ERROR_PATTERNS = [
             "access denied for user",
             "incorrect username or password",  # Snowflake-specific
         ],
-        message_template=(
-            "Authentication failed for user '{user}'. Please check your username and password."
-        ),
+        message_template=("Authentication failed for user '{user}'. Please check your username and password."),
         config_fields=["user"],
     ),
     # Snowflake-specific errors (check before generic patterns)
@@ -122,8 +120,7 @@ _ERROR_PATTERNS = [
     _ErrorPattern(
         keywords=["schema", "does not exist"],
         message_template=(
-            "Schema '{schema}' does not exist or is not accessible. "
-            "Please verify the schema name and your permissions."
+            "Schema '{schema}' does not exist or is not accessible. Please verify the schema name and your permissions."
         ),
         config_fields=["schema"],
         engine_specific="snowflake",
@@ -131,8 +128,7 @@ _ERROR_PATTERNS = [
     _ErrorPattern(
         keywords=["role", "does not exist"],
         message_template=(
-            "Role '{role}' does not exist or is not accessible. "
-            "Please verify the role name and your permissions."
+            "Role '{role}' does not exist or is not accessible. Please verify the role name and your permissions."
         ),
         config_fields=["role"],
         engine_specific="snowflake",
@@ -140,10 +136,7 @@ _ERROR_PATTERNS = [
     _ErrorPattern(
         # Account identifier errors - must NOT contain username/password
         keywords=["account identifier"],
-        message_template=(
-            "Invalid Snowflake account '{account}'. "
-            "Please verify your account identifier is correct."
-        ),
+        message_template=("Invalid Snowflake account '{account}'. Please verify your account identifier is correct."),
         config_fields=["account"],
         engine_specific="snowflake",
         exclude_keywords=["username", "password"],
@@ -170,17 +163,13 @@ _ERROR_PATTERNS = [
     # Database does not exist
     _ErrorPattern(
         keywords=["database", "does not exist"],
-        message_template=(
-            "Database '{database}' does not exist. Please verify the database name is correct."
-        ),
+        message_template=("Database '{database}' does not exist. Please verify the database name is correct."),
         config_fields=["database"],
     ),
     # Timeout
     _ErrorPattern(
         keywords=["timeout", "timed out"],
-        message_template=(
-            "Connection timed out. Please check your network connection and firewall settings."
-        ),
+        message_template=("Connection timed out. Please check your network connection and firewall settings."),
     ),
     # Permission denied
     _ErrorPattern(
@@ -253,19 +242,13 @@ async def create_ibis_connection(data_connection: DataConnection) -> AsyncIbisCo
     config = data_connection.configuration
 
     if engine == "sqlite":
-        conn = await _create_sqlite_connection(
-            typing.cast(SQLiteDataConnectionConfiguration, config)
-        )
+        conn = await _create_sqlite_connection(typing.cast(SQLiteDataConnectionConfiguration, config))
     elif engine == "postgres":
-        conn = await _create_postgres_connection(
-            typing.cast(PostgresDataConnectionConfiguration, config)
-        )
+        conn = await _create_postgres_connection(typing.cast(PostgresDataConnectionConfiguration, config))
     elif engine == "mysql":
         conn = await _create_mysql_connection(typing.cast(MySQLDataConnectionConfiguration, config))
     elif engine == "redshift":
-        conn = await _create_redshift_connection(
-            typing.cast(RedshiftDataConnectionConfiguration, config)
-        )
+        conn = await _create_redshift_connection(typing.cast(RedshiftDataConnectionConfiguration, config))
     elif engine == "snowflake":
         conn = await _create_snowflake_connection(
             typing.cast(
@@ -276,9 +259,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> AsyncIbisCo
             )
         )
     elif engine == "databricks":
-        conn = await _create_databricks_connection(
-            typing.cast(DatabricksDataConnectionConfiguration, config)
-        )
+        conn = await _create_databricks_connection(typing.cast(DatabricksDataConnectionConfiguration, config))
     else:
         raise ValueError(f"Unsupported engine for inspection: {engine}")
 
@@ -312,9 +293,7 @@ def _replace_method_with_thread_verification(conn: Any, attr: str) -> None:
             raise IbisDbCallNotInWorkerThreadError(msg)
         original = orig_weak_method()
         if original is None:
-            raise RuntimeError(
-                f"The connection was already garbage collected. Unable to run {attr}."
-            )
+            raise RuntimeError(f"The connection was already garbage collected. Unable to run {attr}.")
         return original(expr, *args, **kwargs)
 
     setattr(conn, attr, verify_thread_and_call_original)
@@ -342,9 +321,7 @@ async def _create_sqlite_connection(config: SQLiteDataConnectionConfiguration) -
             return Backend.from_connection(sqlite_conn)
 
         ret = await asyncio.to_thread(_create_sqlite_conn)
-        logger.info(
-            f"Created ibis.sqlite connection in {time.monotonic() - initial_time:.2f} seconds"
-        )
+        logger.info(f"Created ibis.sqlite connection in {time.monotonic() - initial_time:.2f} seconds")
         return ret
     except ConnectionFailedError:
         raise
@@ -375,9 +352,7 @@ async def _create_postgres_connection(config: PostgresDataConnectionConfiguratio
             password=config.password,
             schema=config.schema,
         )
-        logger.info(
-            f"Created ibis.postgres connection in {time.monotonic() - initial_time:.2f} seconds"
-        )
+        logger.info(f"Created ibis.postgres connection in {time.monotonic() - initial_time:.2f} seconds")
         return ret
     except ConnectionFailedError:
         # Re-raise our own exceptions without modification
@@ -427,9 +402,7 @@ async def _create_mysql_connection(config: MySQLDataConnectionConfiguration) -> 
             connect_params["ssl_key"] = config.ssl_key
 
         ret = await asyncio.to_thread(ibis.mysql.connect, **connect_params)
-        logger.info(
-            f"Created ibis.mysql connection in {time.monotonic() - initial_time:.2f} seconds"
-        )
+        logger.info(f"Created ibis.mysql connection in {time.monotonic() - initial_time:.2f} seconds")
         return ret
     except ConnectionFailedError:
         # Re-raise our own exceptions without modification
@@ -472,9 +445,7 @@ async def _create_redshift_connection(config: RedshiftDataConnectionConfiguratio
         )
         # Patch connection to work around Redshift incompatibilities
         ret = await asyncio.to_thread(patch_redshift_connection, ret)
-        logger.info(
-            f"Created ibis.redshift connection in {time.monotonic() - initial_time:.2f} seconds"
-        )
+        logger.info(f"Created ibis.redshift connection in {time.monotonic() - initial_time:.2f} seconds")
         return ret
     except ConnectionFailedError:
         raise
@@ -507,9 +478,7 @@ async def _create_databricks_connection(config: DatabricksDataConnectionConfigur
             schema=config.schema,
             catalog=config.catalog,
         )
-        logger.info(
-            f"Created ibis.databricks connection in {time.monotonic() - initial_time:.2f} seconds"
-        )
+        logger.info(f"Created ibis.databricks connection in {time.monotonic() - initial_time:.2f} seconds")
         return ret
     except ConnectionFailedError:
         raise
@@ -526,9 +495,7 @@ async def _create_databricks_connection(config: DatabricksDataConnectionConfigur
 
 
 async def _create_snowflake_connection(
-    config: SnowflakeDataConnectionConfiguration
-    | SnowflakeCustomKeyPairConfiguration
-    | SnowflakeLinkedConfiguration,
+    config: SnowflakeDataConnectionConfiguration | SnowflakeCustomKeyPairConfiguration | SnowflakeLinkedConfiguration,
 ) -> Any:
     """Create Snowflake ibis connection."""
     import time

@@ -28,8 +28,7 @@ class PoolMonitorSettings(Configuration):
     check_interval: int = field(
         default=60,
         metadata=FieldMetadata(
-            description="The frequency in seconds to report the database "
-            + "connection pool statistics.",
+            description="The frequency in seconds to report the database " + "connection pool statistics.",
             env_vars=[
                 "SEMA4AI_AGENT_SERVER_DATABASE_POOL_MONITOR_INTERVAL",
                 "DATABASE_POOL_MONITOR_INTERVAL",
@@ -47,10 +46,7 @@ async def pool_monitor_loop(shutdown_event: asyncio.Event) -> None:
     Args:
         shutdown_event: Event to signal shutdown (for lifespan integration)
     """
-    logger.info(
-        f"Starting database connection pool monitor "
-        f"(interval={PoolMonitorSettings.check_interval}s)"
-    )
+    logger.info(f"Starting database connection pool monitor (interval={PoolMonitorSettings.check_interval}s)")
 
     storage = StorageService.get_instance()
     event_wait_task = asyncio.create_task(shutdown_event.wait())

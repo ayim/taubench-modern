@@ -187,7 +187,7 @@ class LegacySqlStrategy(SqlGenerationStrategy):
         )
 
 
-def _get_sql_generation_instructions(  # noqa: C901
+def _get_sql_generation_instructions(
     models_and_engines: list[tuple[SemanticDataModel, str]],
 ) -> str:
     """Generate instructions for writing SQL against these models.
@@ -202,9 +202,7 @@ def _get_sql_generation_instructions(  # noqa: C901
     instructions_parts = []
 
     # Add join guidance for non-Snowflake databases
-    has_non_snowflake = any(
-        engine and engine.lower() != "snowflake" for _, engine in models_and_engines
-    )
+    has_non_snowflake = any(engine and engine.lower() != "snowflake" for _, engine in models_and_engines)
     if has_non_snowflake:
         instructions_parts.append(
             dedent("""
@@ -224,9 +222,7 @@ def _get_sql_generation_instructions(  # noqa: C901
             if snowflake_guidance:
                 # Add prominent banner to make it unmissable
                 instructions_parts.append("\n" + "=" * 80)
-                instructions_parts.append(
-                    "🚨 CRITICAL: SNOWFLAKE VARIANT/OBJECT/ARRAY COLUMN SYNTAX 🚨"
-                )
+                instructions_parts.append("🚨 CRITICAL: SNOWFLAKE VARIANT/OBJECT/ARRAY COLUMN SYNTAX 🚨")
                 instructions_parts.append("=" * 80)
                 instructions_parts.append(snowflake_guidance)
                 instructions_parts.append("=" * 80 + "\n")
@@ -242,7 +238,7 @@ def _get_sql_generation_instructions(  # noqa: C901
     return "\n".join(instructions_parts)
 
 
-def _get_postgres_json_guidance(model: SemanticDataModel) -> str:  # noqa: C901
+def _get_postgres_json_guidance(model: SemanticDataModel) -> str:
     """Generate PostgreSQL-specific JSON/JSONB column guidance for a semantic data model.
 
     Scans the model for JSON and JSONB columns and returns targeted guidance
@@ -301,7 +297,7 @@ def _get_postgres_json_guidance(model: SemanticDataModel) -> str:  # noqa: C901
     return "\n".join(guidance_parts)
 
 
-def _get_snowflake_variant_guidance(model: SemanticDataModel) -> str:  # noqa: C901, PLR0912
+def _get_snowflake_variant_guidance(model: SemanticDataModel) -> str:
     """Generate Snowflake-specific VARIANT/ARRAY/OBJECT column guidance for a semantic data model.
 
     Scans the model for these special Snowflake types and returns targeted guidance
@@ -564,12 +560,8 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
 
     async def generate_sql(
         self,
-        query_intent: Annotated[
-            str, "The natural language intent of the query to generate SQL for."
-        ],
-        semantic_data_model_name: Annotated[
-            str, "The name of the semantic data model to generate SQL for."
-        ],
+        query_intent: Annotated[str, "The natural language intent of the query to generate SQL for."],
+        semantic_data_model_name: Annotated[str, "The name of the semantic data model to generate SQL for."],
     ) -> InternalToolResponse:
         """Generate SQL from a natural language query for the specified semantic data model.
         This tool may return a status of success, needs_info, or failure.
@@ -599,14 +591,10 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         file_manager = FileManagerService.get_instance(storage=storage)
 
         # Find the SDM ID that matches the requested name
-        sdm_result = await _find_sdm_by_name(
-            storage, kernel.agent.agent_id, semantic_data_model_name
-        )
+        sdm_result = await _find_sdm_by_name(storage, kernel.agent.agent_id, semantic_data_model_name)
 
         if not sdm_result:
-            raise ValueError(
-                f"Semantic data model '{semantic_data_model_name}' not found on the user's agent"
-            )
+            raise ValueError(f"Semantic data model '{semantic_data_model_name}' not found on the user's agent")
 
         sdm_id, target_sdm = sdm_result
 
@@ -830,9 +818,7 @@ async def _collect_sdm_files(
 
     # The name of thread files that are referenced by the SDM.
     sdm_referenced_file_names = {
-        ref.file_ref
-        for ref in references.file_references
-        if ref.thread_id == kernel.thread.thread_id
+        ref.file_ref for ref in references.file_references if ref.thread_id == kernel.thread.thread_id
     }
 
     return [f for f in thread_files if f.file_ref in sdm_referenced_file_names]

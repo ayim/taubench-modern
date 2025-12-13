@@ -7,5 +7,3 @@ class AzureOpenAIParsers(OpenAIParsers):
     This class inherits all functionality from OpenAIParsers since Azure OpenAI
     responses have the same format as OpenAI responses.
     """
-
-    pass

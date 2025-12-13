@@ -59,8 +59,7 @@ class ThreadMessage:
     commited: bool = field(
         default=False,
         metadata={
-            "description": "Whether the message has been committed to the thread "
-            "(saved to backing storage)",
+            "description": "Whether the message has been committed to the thread (saved to backing storage)",
         },
     )
     """Whether the message has been committed to the thread
@@ -81,8 +80,7 @@ class ThreadMessage:
     agent_metadata: dict[str, Any] = field(
         default_factory=dict,
         metadata={
-            "description": "The metadata associated with the message "
-            "(for agent architecture use only)",
+            "description": "The metadata associated with the message (for agent architecture use only)",
         },
     )
     """The metadata associated with the message (for agent architecture use only)"""
@@ -219,9 +217,7 @@ class ThreadMessage:
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
         if "content" in data:
-            data["content"] = [
-                ThreadMessageContent.model_validate(content) for content in data["content"]
-            ]
+            data["content"] = [ThreadMessageContent.model_validate(content) for content in data["content"]]
         if "complete" in data:
             data["complete"] = bool(data["complete"])
         else:

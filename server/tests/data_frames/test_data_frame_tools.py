@@ -21,9 +21,7 @@ def find_tool(name: str, tools: Sequence["ToolDefinition"]) -> "ToolDefinition":
     try:
         return next(tool for tool in tools if tool.name == name)
     except Exception as e:
-        raise RuntimeError(
-            f"{name} tool not found. Available tools: {', '.join([tool.name for tool in tools])}"
-        ) from e
+        raise RuntimeError(f"{name} tool not found. Available tools: {', '.join([tool.name for tool in tools])}") from e
 
 
 @pytest.mark.asyncio
@@ -334,9 +332,7 @@ async def test_data_frames_create_from_file(sqlite_storage: "SQLiteStorage", tmp
 
 
 @pytest.mark.asyncio
-async def test_create_data_frame_with_complex_values(
-    sqlite_storage: "SQLiteStorage", tmp_path: Path
-):
+async def test_create_data_frame_with_complex_values(sqlite_storage: "SQLiteStorage", tmp_path: Path):
     """Test that create_data_frame_from_columns_and_rows cleans complex values.
 
     This test verifies the fix for data cleaning in auto-created data frames:
@@ -434,9 +430,7 @@ async def test_data_frame_tools(sqlite_storage: "SQLiteStorage", tmp_path: Path)
         rows=[[1, 4], [2, 5], [3, 6]],
     )
 
-    data_frames = await storage.list_data_frames(
-        (await model_creator.obtain_sample_thread()).thread_id
-    )
+    data_frames = await storage.list_data_frames((await model_creator.obtain_sample_thread()).thread_id)
     assert len(data_frames) == 1
     data_frame = data_frames[0]
 
@@ -470,9 +464,7 @@ async def test_data_frame_tools(sqlite_storage: "SQLiteStorage", tmp_path: Path)
     )
     assert rows == {"columns": ["col1"], "rows": [[3], [2]]}
 
-    assert await tools.delete_data_frame("test_data_frame_2") == {
-        "result": "Data frame 'test_data_frame_2' deleted"
-    }
+    assert await tools.delete_data_frame("test_data_frame_2") == {"result": "Data frame 'test_data_frame_2' deleted"}
 
     assert await tools.delete_data_frame("test_data_frame_2") == {
         "error_code": "data_frame_not_found",
@@ -481,9 +473,7 @@ async def test_data_frame_tools(sqlite_storage: "SQLiteStorage", tmp_path: Path)
 
 
 @pytest.mark.asyncio
-async def test_semantic_data_models_engine_in_summary(
-    sqlite_storage, resources_dir, tmp_path, file_regression
-):
+async def test_semantic_data_models_engine_in_summary(sqlite_storage, resources_dir, tmp_path, file_regression):
     db_file = resources_dir / "data_frames" / "combined_data.sqlite"
     assert db_file.exists()
 
@@ -635,10 +625,7 @@ async def test_sql_error_returns_needs_retry_status():
     # Most importantly: NO "error" key (which would make UI red)
     assert "error" not in bad_result
     # Error message should contain helpful guidance
-    assert (
-        "column" in bad_result["message"].lower()
-        or "does not exist" in bad_result["message"].lower()
-    )
+    assert "column" in bad_result["message"].lower() or "does not exist" in bad_result["message"].lower()
 
     # Test 2: Good SQL after "retry" should succeed
     good_result = await tools._create_data_frame_from_sql_impl(

@@ -246,9 +246,7 @@ def test_data_frame_patch_extra_data():
         "sample_rows": [["row1", "row2", "row3"]],
     }
 
-    data_frame.patch_extra_data(
-        sql_dialect="sqlite", sample_rows=[["row1", "row2", "row3", "row4", "row5"]]
-    )
+    data_frame.patch_extra_data(sql_dialect="sqlite", sample_rows=[["row1", "row2", "row3", "row4", "row5"]])
     assert data_frame.extra_data == {
         "sql_dialect": "sqlite",
         "sample_rows": [["row1", "row2", "row3", "row4", "row5"]],

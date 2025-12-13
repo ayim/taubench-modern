@@ -82,16 +82,8 @@ class TestGroqPrompt:
         assert isinstance(request["tools"], list)
         first_tool = request["tools"][0]
         # handle both dict- and object-returns defensively
-        tool_type = (
-            first_tool.get("type")
-            if isinstance(first_tool, dict)
-            else getattr(first_tool, "type", None)
-        )
-        func = (
-            first_tool.get("function")
-            if isinstance(first_tool, dict)
-            else getattr(first_tool, "function", None)
-        )
+        tool_type = first_tool.get("type") if isinstance(first_tool, dict) else getattr(first_tool, "type", None)
+        func = first_tool.get("function") if isinstance(first_tool, dict) else getattr(first_tool, "function", None)
         func_name = func.get("name") if isinstance(func, dict) else getattr(func, "name", None)
 
         assert tool_type == "function"

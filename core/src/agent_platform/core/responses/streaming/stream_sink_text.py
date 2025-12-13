@@ -1,30 +1,25 @@
 from collections.abc import Awaitable, Callable
 
 from agent_platform.core.responses.content.text import ResponseTextContent
-from agent_platform.core.responses.streaming.stream_sink_noop import (
-    NoOpResponseStreamSink,
-)
+from agent_platform.core.responses.streaming.stream_sink_noop import NoOpResponseStreamSink
 
 
 async def _on_start_noop(
     text: str,
 ) -> None:
     """A no-op on_text_start callback."""
-    pass
 
 
 async def _on_partial_noop(
     text: str,
 ) -> None:
     """A no-op on_text_partial callback."""
-    pass
 
 
 async def _on_complete_noop(
     text: str,
 ) -> None:
     """A no-op on_text_complete callback."""
-    pass
 
 
 class TextResponseStreamSink(NoOpResponseStreamSink):

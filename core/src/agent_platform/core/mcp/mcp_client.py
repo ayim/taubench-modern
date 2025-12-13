@@ -312,9 +312,7 @@ class MCPClient:
         except Exception:
             # If we can't get data server details, create client without them
             # This allows the client to work even when data context is unavailable
-            return cls(
-                target_server, additional_headers, None, mcp_sema4ai_action_invocation_context
-            )
+            return cls(target_server, additional_headers, None, mcp_sema4ai_action_invocation_context)
 
     @property
     def is_connected(self) -> bool:
@@ -375,9 +373,7 @@ class MCPClient:
 
         if data_context["data-server"]:
             payload_to_encrypt = json.dumps(data_context)
-            x_data_context_value = base64.b64encode(payload_to_encrypt.encode("utf-8")).decode(
-                "ascii"
-            )
+            x_data_context_value = base64.b64encode(payload_to_encrypt.encode("utf-8")).decode("ascii")
 
             self._headers["X-Data-Context"] = x_data_context_value
             logger.info("X-Data-Context header added to the headers")
@@ -408,16 +404,12 @@ class MCPClient:
         # If we have secrets, create the X-Action-Context header
         if secrets:
             action_context = {"secrets": secrets}
-            x_action_context_value = base64.b64encode(
-                json.dumps(action_context).encode("utf-8")
-            ).decode("ascii")
+            x_action_context_value = base64.b64encode(json.dumps(action_context).encode("utf-8")).decode("ascii")
 
             self._headers["X-Action-Context"] = x_action_context_value
             logger.info("X-Action-Context header added to the headers")
 
-    def _ensure_action_invocation_header(
-        self, action_invocation_context: dict[str, str] | None = None
-    ) -> None:
+    def _ensure_action_invocation_header(self, action_invocation_context: dict[str, str] | None = None) -> None:
         """Creates the X-Action-Invocation-Context header value with invocation metadata only.
 
         This header contains only metadata
@@ -440,9 +432,7 @@ class MCPClient:
         context_data = json.dumps(
             {
                 "agent_id": action_invocation_context.get("agent_id", ""),
-                "invoked_on_behalf_of_user_id": action_invocation_context.get(
-                    "invoked_on_behalf_of_user_id", ""
-                ),
+                "invoked_on_behalf_of_user_id": action_invocation_context.get("invoked_on_behalf_of_user_id", ""),
                 "thread_id": action_invocation_context.get("thread_id", ""),
                 "tenant_id": action_invocation_context.get("tenant_id", ""),
                 "action_invocation_id": str(uuid.uuid4()),
@@ -450,9 +440,7 @@ class MCPClient:
         )
 
         # Encode and set the header
-        self._headers["X-Action-Invocation-Context"] = base64.b64encode(
-            context_data.encode("utf-8")
-        ).decode("utf-8")
+        self._headers["X-Action-Invocation-Context"] = base64.b64encode(context_data.encode("utf-8")).decode("utf-8")
         logger.info("X-Action-Invocation-Context header added to the headers")
 
     # ------------------------------------------------------------------ #
@@ -555,8 +543,7 @@ class MCPClient:
         merged_env = dict(os.environ)
         if srv.env:
             target_env: dict[str, str] = {
-                key: value if isinstance(value, str) else value.value or ""
-                for key, value in srv.env.items()
+                key: value if isinstance(value, str) else value.value or "" for key, value in srv.env.items()
             }
             merged_env.update(target_env)
 
@@ -577,8 +564,7 @@ class MCPClient:
         allowed = os.getenv(_ALLOW_STDIO_ENV_VAR, "").lower()
         if allowed not in {"1", "true", "yes"}:
             raise ValueError(
-                "Stdio-based MCP servers are disabled by default; "
-                f"set {_ALLOW_STDIO_ENV_VAR}=1 to enable."
+                f"Stdio-based MCP servers are disabled by default; set {_ALLOW_STDIO_ENV_VAR}=1 to enable."
             )
 
         winner_evt = asyncio.Event()
@@ -705,10 +691,7 @@ class MCPClient:
                     timeout=handshake_timeout_seconds,
                 )
                 latency = time.monotonic() - start_time
-                logger.info(
-                    f"{name} handshake ok  ({latency * 1000:.0f} ms,"
-                    f" protocol={init_result.protocolVersion})"
-                )
+                logger.info(f"{name} handshake ok  ({latency * 1000:.0f} ms, protocol={init_result.protocolVersion})")
 
                 # Victory?
                 async with self._race_lock:
@@ -740,9 +723,7 @@ class MCPClient:
             finally:
                 # Give the stack a bounded time to clean up
                 try:
-                    await asyncio.wait_for(
-                        stack.aclose(), timeout=self._cfg.cleanup_timeout_seconds
-                    )
+                    await asyncio.wait_for(stack.aclose(), timeout=self._cfg.cleanup_timeout_seconds)
                 except TimeoutError:
                     logger.warning(
                         f"{name} cleanup exceeded {self._cfg.cleanup_timeout_seconds}s",
@@ -776,9 +757,7 @@ class MCPClient:
             headers.update(self._headers)
 
         try:
-            async with client.stream(
-                "GET", url, headers=headers, timeout=self._cfg.probe_timeout_seconds
-            ) as resp:
+            async with client.stream("GET", url, headers=headers, timeout=self._cfg.probe_timeout_seconds) as resp:
                 # Any status < 600 means we reached *our* server, including
                 # 503 Maintenance. 5xx still counts as "alive".
                 return resp.status_code < httpx.codes.BAD_GATEWAY + 100
@@ -790,9 +769,7 @@ class MCPClient:
     # ------------------------------------------------------------------ #
     def _is_transient(self, e: Exception) -> bool:
         # Network/timeout/protocol errors: transient
-        if isinstance(
-            e, (ClosedResourceError | BrokenResourceError | TimeoutError | ConnectionError)
-        ):
+        if isinstance(e, (ClosedResourceError | BrokenResourceError | TimeoutError | ConnectionError)):
             return True
         if isinstance(e, httpx.RequestError) and not isinstance(e, httpx.HTTPStatusError):
             # DNS failures, connect timeouts, read timeouts, protocol errors...
@@ -801,10 +778,7 @@ class MCPClient:
             resp = e.response
             code = resp.status_code if resp is not None else None
             # Retry only classic transient statuses
-            return (
-                code in self._cfg.http_retry_status_forcelist
-                or (code is not None and 500 <= code < 600)  # noqa: PLR2004
-            )
+            return code in self._cfg.http_retry_status_forcelist or (code is not None and 500 <= code < 600)
         return False
 
     async def _reconnect_when_appropriate(self, exc: Exception) -> None:
@@ -876,9 +850,7 @@ class MCPClient:
                             )
                         ),
                         CallToolResult,
-                        request_read_timeout_seconds=timedelta(
-                            seconds=self._cfg.tool_call_read_timeout_seconds
-                        ),
+                        request_read_timeout_seconds=timedelta(seconds=self._cfg.tool_call_read_timeout_seconds),
                         metadata=metadata,
                     )
                 logger.info(f"MCP Tool {name} succeeded (attempt {attempt}/{attempts})")
@@ -901,8 +873,7 @@ class MCPClient:
                 await self._reconnect_when_appropriate(exc)
                 last_exc = exc
                 logger.debug(
-                    f"tool {name} attempt {attempt}/{attempts} "
-                    f"failed: {exc!r} (resumption_token={last_token})"
+                    f"tool {name} attempt {attempt}/{attempts} failed: {exc!r} (resumption_token={last_token})"
                 )
                 await asyncio.sleep(_full_jitter(base_backoff, attempt, backoff_cap))
 

@@ -117,9 +117,7 @@ class TestDeduplication:
 
         def mock_list_scopes(integration_id):
             return AsyncMock(
-                return_value=[
-                    IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")
-                ]
+                return_value=[IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")]
             )()
 
         mock_storage.list_integration_scopes = mock_list_scopes
@@ -148,9 +146,7 @@ class TestDeduplication:
 
         def mock_list_scopes(integration_id):
             return AsyncMock(
-                return_value=[
-                    IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")
-                ]
+                return_value=[IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")]
             )()
 
         mock_storage.list_integration_scopes = mock_list_scopes
@@ -183,9 +179,7 @@ class TestSpanRouting:
 
         def mock_list_scopes(integration_id):
             return AsyncMock(
-                return_value=[
-                    IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")
-                ]
+                return_value=[IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")]
             )()
 
         mock_storage.list_integration_scopes = mock_list_scopes
@@ -220,19 +214,11 @@ class TestSpanRouting:
         def mock_list_scopes(integration_id):
             if integration_id in ["id1", "id2"]:
                 return AsyncMock(
-                    return_value=[
-                        IntegrationScope(
-                            integration_id=integration_id, agent_id=None, scope="global"
-                        )
-                    ]
+                    return_value=[IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")]
                 )()
             else:
                 return AsyncMock(
-                    return_value=[
-                        IntegrationScope(
-                            integration_id=integration_id, agent_id="agent-foo", scope="agent"
-                        )
-                    ]
+                    return_value=[IntegrationScope(integration_id=integration_id, agent_id="agent-foo", scope="agent")]
                 )()
 
         mock_storage.list_integration_scopes = mock_list_scopes
@@ -277,9 +263,7 @@ class TestReload:
 
         def mock_list_scopes(integration_id):
             return AsyncMock(
-                return_value=[
-                    IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")
-                ]
+                return_value=[IntegrationScope(integration_id=integration_id, agent_id=None, scope="global")]
             )()
 
         mock_storage.list_integration_scopes = mock_list_scopes

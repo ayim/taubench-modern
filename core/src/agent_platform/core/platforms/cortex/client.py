@@ -224,8 +224,7 @@ class CortexClient(
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNAUTHORIZED,
                 message=(
-                    "Cortex authentication failed or session token expired. "
-                    "Please verify your Snowflake credentials."
+                    "Cortex authentication failed or session token expired. Please verify your Snowflake credentials."
                 ),
                 data=error_data,
             ) from exc
@@ -240,9 +239,7 @@ class CortexClient(
         if codes.is_server_error(status_code):
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNEXPECTED,
-                message=(
-                    "Cortex temporarily failed to process the request. Please try again shortly."
-                ),
+                message=("Cortex temporarily failed to process the request. Please try again shortly."),
                 data=error_data,
             ) from exc
 
@@ -291,11 +288,7 @@ class CortexClient(
                 database=parameters.snowflake_database,
                 schema=parameters.snowflake_schema,
                 username=parameters.snowflake_username,
-                password=(
-                    parameters.snowflake_password.get_secret_value()
-                    if parameters.snowflake_password
-                    else None
-                ),
+                password=(parameters.snowflake_password.get_secret_value() if parameters.snowflake_password else None),
                 account=parameters.snowflake_account,
             )
 
@@ -310,9 +303,7 @@ class CortexClient(
                 # it's a link file issue
                 raise PlatformHTTPError(
                     error_code=ErrorCode.UNAUTHORIZED,
-                    message=(
-                        "Authentication failed for Snowflake Cortex: no linking details were found."
-                    ),
+                    message=("Authentication failed for Snowflake Cortex: no linking details were found."),
                 ) from e
             # This would be a much more nuanced/obscure scenario... so let's
             # give a generic message (not even sure if we _can_ hit this...
@@ -415,7 +406,7 @@ class CortexClient(
             if not generic_id.startswith("cortex/"):
                 continue
             parts = generic_id.split("/", 2)
-            if len(parts) != 3:  # noqa: PLR2004 (platform/provider/model)
+            if len(parts) != 3:
                 continue
             _, provider, _ = parts
             provider_lookup.setdefault(platform_id, provider.lower())
@@ -517,8 +508,7 @@ class CortexClient(
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNAUTHORIZED,
                 message=(
-                    "Cortex authentication failed or session token expired. "
-                    "Please verify your Snowflake credentials."
+                    "Cortex authentication failed or session token expired. Please verify your Snowflake credentials."
                 ),
                 data={"status_code": status_code, "context": context},
                 status_code=status_code,
@@ -526,9 +516,7 @@ class CortexClient(
         if codes.is_success(status_code):
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNEXPECTED,
-                message=(
-                    "Cortex returned an unexpected success status while processing the request."
-                ),
+                message=("Cortex returned an unexpected success status while processing the request."),
                 data={"status_code": status_code, "context": context},
             )
         response.raise_for_status()
@@ -672,9 +660,7 @@ class CortexClient(
                     continue
                 raise PlatformHTTPError(
                     error_code=ErrorCode.UNAUTHORIZED,
-                    message=(
-                        "Cortex streaming authentication failed after session refresh attempt."
-                    ),
+                    message=("Cortex streaming authentication failed after session refresh attempt."),
                     status_code=codes.UNAUTHORIZED,
                 ) from refresh_exc
 

@@ -27,10 +27,7 @@ class ToolToUse:
     ]
     problems: Annotated[
         str,
-        (
-            "Any issues, perhaps this tool is NOT a callable tool. "
-            "Perhaps this is info you need to ask the user for."
-        ),
+        ("Any issues, perhaps this tool is NOT a callable tool. Perhaps this is info you need to ask the user for."),
     ]
 
 
@@ -164,8 +161,7 @@ async def consider_runbook_adherence(
     other tools."""
     return {
         "result": (
-            "Runbook adherence considered. "
-            "Next, I should use other tools to make progress towards the user's request. "
+            "Runbook adherence considered. Next, I should use other tools to make progress towards the user's request. "
         )
     }
 

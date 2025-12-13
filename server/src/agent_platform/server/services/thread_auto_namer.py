@@ -39,14 +39,12 @@ async def maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorage
         await _maybe_auto_name_thread(kernel, storage)
     except CancelledError:
         logger.debug(
-            f"Auto naming task cancelled for thread ({kernel.thread.thread_id}) "
-            f" | run ({kernel.run.run_id})",
+            f"Auto naming task cancelled for thread ({kernel.thread.thread_id})  | run ({kernel.run.run_id})",
         )
         raise
     except Exception:
         logger.exception(
-            f"Auto naming task failed for thread ({kernel.thread.thread_id}) "
-            f" | run ({kernel.run.run_id})",
+            f"Auto naming task failed for thread ({kernel.thread.thread_id})  | run ({kernel.run.run_id})",
         )
 
 
@@ -123,9 +121,7 @@ def _check_thread_eligibility(
     return True
 
 
-async def _is_first_run_for_thread(
-    storage: BaseStorage, thread_id: str, current_run_id: str, agent_id: str
-) -> bool:
+async def _is_first_run_for_thread(storage: BaseStorage, thread_id: str, current_run_id: str, agent_id: str) -> bool:
     """True if the current run is the thread's first run."""
     runs = await storage.list_runs_for_thread(thread_id)
     for run in runs:
@@ -196,8 +192,7 @@ async def _persist_auto_named_thread(
         latest_thread = await storage.get_thread(kernel.user.user_id, original_thread.thread_id)
     except ThreadNotFoundError:
         logger.debug(
-            "Thread disappeared before auto naming could be "
-            f"applied for thread ({original_thread.thread_id})",
+            f"Thread disappeared before auto naming could be applied for thread ({original_thread.thread_id})",
             exc_info=True,
         )
         return
@@ -205,15 +200,13 @@ async def _persist_auto_named_thread(
     latest_meta = latest_thread.metadata.get("thread_name", {})
     if latest_thread.is_user_named():
         logger.debug(
-            "User renamed thread before auto naming could be "
-            f"applied for thread ({original_thread.thread_id})",
+            f"User renamed thread before auto naming could be applied for thread ({original_thread.thread_id})",
         )
         return
 
     if latest_thread.name != original_thread.name:
         logger.debug(
-            "Thread name changed before auto naming could be "
-            f"applied for thread ({original_thread.thread_id})",
+            f"Thread name changed before auto naming could be applied for thread ({original_thread.thread_id})",
         )
         return
 
@@ -324,9 +317,7 @@ def _build_prompt(
 
 def _extract_response_text(response: ResponseMessage) -> str | None:
     """Join text parts from the LLM response and normalize whitespace."""
-    text_fragments = [
-        content.text for content in response.content if isinstance(content, ResponseTextContent)
-    ]
+    text_fragments = [content.text for content in response.content if isinstance(content, ResponseTextContent)]
     if not text_fragments:
         return None
     return " ".join(text_fragments)

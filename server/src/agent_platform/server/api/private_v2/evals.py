@@ -49,9 +49,7 @@ logger = get_logger(__name__)
 
 def _build_run_configuration(agent: Agent) -> dict[str, Any]:
     """Collect agent metadata that describes how a run was executed."""
-    platforms = sorted(
-        {cfg.kind for cfg in getattr(agent, "platform_configs", []) if getattr(cfg, "kind", None)}
-    )
+    platforms = sorted({cfg.kind for cfg in getattr(agent, "platform_configs", []) if getattr(cfg, "kind", None)})
     runbook_updated_at = agent.runbook_structured.updated_at
     run_metadata: dict[str, Any] = {
         "models": agent.get_agent_models(),
@@ -99,7 +97,7 @@ class CreateScenarioPayload:
     evaluation_criteria: list[EvaluationCriterion] | None = None
 
     @classmethod
-    def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:  # noqa: C901
+    def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:
         def trim_initial_agents(messages):
             trimmed = []
             skip = True
@@ -169,9 +167,7 @@ class CreateScenarioPayload:
 
 
 @router.post("/scenarios", response_model=Scenario)
-async def create_scenario(
-    payload: CreateScenarioPayload, user: AuthedUser, storage: StorageDependency
-):
+async def create_scenario(payload: CreateScenarioPayload, user: AuthedUser, storage: StorageDependency):
     thread = await storage.get_thread(user.user_id, payload.thread_id)
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -208,7 +204,7 @@ class UpdateScenarioPayload:
     tool_execution_mode: Literal["replay", "live"] | None = None
     evaluation_criteria: list[EvaluationCriterion] | None = None
 
-    def apply(self, scenario: Scenario) -> Scenario:  # noqa: PLR0912, C901
+    def apply(self, scenario: Scenario) -> Scenario:
         metadata = deepcopy(scenario.metadata) if isinstance(scenario.metadata, dict) else {}
         drift_policy = metadata.get("drift_policy")
         if isinstance(drift_policy, dict):
@@ -274,9 +270,7 @@ class SuggestScenarioPayload:
 
 
 @router.post("/scenarios/suggest", response_model=ScenarioSuggestion)
-async def suggest_scenario_from_thread(
-    payload: SuggestScenarioPayload, user: AuthedUser, storage: StorageDependency
-):
+async def suggest_scenario_from_thread(payload: SuggestScenarioPayload, user: AuthedUser, storage: StorageDependency):
     thread = await storage.get_thread(user.user_id, payload.thread_id)
     if thread is None:
         raise HTTPException(status_code=404, detail="Thread not found")
@@ -337,15 +331,11 @@ async def import_agent_scenarios(
         raise HTTPException(status_code=400, detail="Uploaded archive is empty")
 
     try:
-        bundles = await load_scenarios_bundles(
-            agent_id=agent.agent_id, user_id=user.user_id, content=content
-        )
+        bundles = await load_scenarios_bundles(agent_id=agent.agent_id, user_id=user.user_id, content=content)
     except ScenarioImportError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except zipfile.BadZipFile as exc:
-        raise HTTPException(
-            status_code=400, detail="Uploaded file is not a valid ZIP archive"
-        ) from exc
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid ZIP archive") from exc
 
     return await create_scenarios_from_bundles(user.user_id, bundles, storage)
 
@@ -445,9 +435,7 @@ async def create_scenario_run(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     configuration = _build_run_configuration(agent)
-    scenario_run = CreateScenarioRunPayload.to_scenario_run(
-        payload, user.user_id, scenario.scenario_id, configuration
-    )
+    scenario_run = CreateScenarioRunPayload.to_scenario_run(payload, user.user_id, scenario.scenario_id, configuration)
 
     return await storage.create_scenario_run(scenario_run)
 
@@ -472,9 +460,7 @@ async def get_latest_scenario_run(scenario_id: str, user: AuthedUser, storage: S
 
 
 @router.get("/scenarios/{scenario_id}/runs/{scenario_run_id}", response_model=ScenarioRun)
-async def get_scenario_run(
-    scenario_id: str, scenario_run_id: str, user: AuthedUser, storage: StorageDependency
-):
+async def get_scenario_run(scenario_id: str, scenario_run_id: str, user: AuthedUser, storage: StorageDependency):
     scenario = await storage.get_scenario(scenario_id=scenario_id)
 
     if scenario is None:
@@ -489,9 +475,7 @@ async def get_scenario_run(
 
 
 @router.get("/scenarios/{scenario_id}/runs", response_model=list[ScenarioRun])
-async def list_scenario_runs(
-    scenario_id: str, user: AuthedUser, storage: StorageDependency, limit: int | None = None
-):
+async def list_scenario_runs(scenario_id: str, user: AuthedUser, storage: StorageDependency, limit: int | None = None):
     scenario = await storage.get_scenario(scenario_id=scenario_id)
 
     if scenario is None:
@@ -682,9 +666,7 @@ TERMINAL_BATCH_STATUSES = {
 }
 
 
-async def _refresh_batch_run_statistics(
-    batch_run: ScenarioBatchRun, storage: StorageDependency
-) -> ScenarioBatchRun:
+async def _refresh_batch_run_statistics(batch_run: ScenarioBatchRun, storage: StorageDependency) -> ScenarioBatchRun:
     scenario_runs = await storage.list_scenario_runs_for_batch(batch_run.batch_run_id)
     if not scenario_runs:
         return replace(batch_run, trial_statuses=[])
@@ -710,9 +692,7 @@ async def _refresh_batch_run_statistics(
         or (batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES)
     )
     completed_at = (
-        datetime.now(UTC)
-        if batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES
-        else None
+        datetime.now(UTC) if batch_run.completed_at is None and derived_status in TERMINAL_BATCH_STATUSES else None
     )
     trial_statuses = _build_batch_trial_statuses(trials_per_run, scenario_runs_by_id)
 
@@ -730,7 +710,7 @@ async def _refresh_batch_run_statistics(
     return replace(target, trial_statuses=trial_statuses)
 
 
-def _calculate_batch_statistics(  # noqa: PLR0912, PLR0915, C901
+def _calculate_batch_statistics(
     trials_per_run: dict[str, list[Trial]],
     expected_scenarios: int,
 ) -> tuple[ScenarioBatchRunStatistics, ScenarioBatchRunStatus]:
@@ -826,9 +806,7 @@ def _build_batch_trial_statuses(
     statuses: list[ScenarioBatchRunTrialStatus] = []
     for scenario_run_id, trials in trials_per_run.items():
         run = scenario_runs_by_id.get(scenario_run_id)
-        scenario_id = (
-            run.scenario_id if run is not None else (trials[0].scenario_id if trials else "")
-        )
+        scenario_id = run.scenario_id if run is not None else (trials[0].scenario_id if trials else "")
         entries = [
             ScenarioBatchRunTrialStatusEntry(
                 trial_id=trial.trial_id,

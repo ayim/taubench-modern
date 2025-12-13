@@ -95,9 +95,7 @@ class AbstractStorage(ABC):
         """Get MCP server IDs associated with an agent."""
 
     @abstractmethod
-    async def associate_mcp_servers_with_agent(
-        self, agent_id: str, mcp_server_ids: list[str]
-    ) -> None:
+    async def associate_mcp_servers_with_agent(self, agent_id: str, mcp_server_ids: list[str]) -> None:
         """Associate MCP servers with an agent."""
 
     @abstractmethod
@@ -105,9 +103,7 @@ class AbstractStorage(ABC):
         """Get platform params IDs associated with an agent."""
 
     @abstractmethod
-    async def associate_platform_params_with_agent(
-        self, agent_id: str, platform_params_ids: list[str]
-    ) -> None:
+    async def associate_platform_params_with_agent(self, agent_id: str, platform_params_ids: list[str]) -> None:
         """Associate platform params with an agent."""
 
     # -------------------------
@@ -368,7 +364,7 @@ class AbstractStorage(ABC):
         """Get a file by ID."""
 
     @abstractmethod
-    async def put_file_owner(  # noqa: PLR0913
+    async def put_file_owner(
         self,
         file_id: str,
         file_path: str | None,
@@ -419,7 +415,7 @@ class AbstractStorage(ABC):
         """Get a list of otel artifacts by IDs or all if ids is None."""
 
     @abstractmethod
-    async def search_otel_artifacts(  # noqa: PLR0913
+    async def search_otel_artifacts(
         self,
         trace_id: str | None = None,
         user_id: str | None = None,
@@ -470,7 +466,7 @@ class AbstractStorage(ABC):
         """Get work items by IDs."""
 
     @abstractmethod
-    async def list_work_items(  # noqa: PLR0913
+    async def list_work_items(
         self,
         agent_id: str | None = None,
         limit: int = 100,
@@ -677,9 +673,7 @@ class AbstractStorage(ABC):
         """
 
     @abstractmethod
-    async def set_config(
-        self, config_type: str, current_value: JSONValue, *, namespace: str = "global"
-    ):
+    async def set_config(self, config_type: str, current_value: JSONValue, *, namespace: str = "global"):
         """Sets the config value in the DB for the config_type
 
         Args:
@@ -692,9 +686,7 @@ class AbstractStorage(ABC):
         """Get Interval for cleaning up stale threads."""
 
     @abstractmethod
-    async def clean_up_stale_threads(
-        self, default_retention_period: timedelta
-    ) -> list[StaleThreadsResult]:
+    async def clean_up_stale_threads(self, default_retention_period: timedelta) -> list[StaleThreadsResult]:
         """Cleans up stale threads based on the configured retention period."""
 
     # Methods for integrations
@@ -755,9 +747,7 @@ class AbstractStorage(ABC):
         """
 
     @abstractmethod
-    async def delete_integration_scope(
-        self, integration_id: str, scope: str, agent_id: str | None
-    ) -> None:
+    async def delete_integration_scope(self, integration_id: str, scope: str, agent_id: str | None) -> None:
         """Delete a scope assignment.
 
         Args:

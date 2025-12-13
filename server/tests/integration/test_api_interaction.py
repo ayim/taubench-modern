@@ -248,31 +248,20 @@ def test_api_interaction_with_action_server(
         )
 
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
-        result, _ = agent_client.send_message_to_agent_thread(
-            agent_id, thread_id, "Which tools/actions can you call?"
-        )
+        result, _ = agent_client.send_message_to_agent_thread(agent_id, thread_id, "Which tools/actions can you call?")
 
         result = result.lower()
 
         if "contact" not in result or ("retrieve" not in result and "list" not in result):
-            raise AssertionError(
-                "Agent did not provide that it has the list contact action. "
-                f"Found result: {result!r}"
-            )
+            raise AssertionError(f"Agent did not provide that it has the list contact action. Found result: {result!r}")
 
-        result, _ = agent_client.send_message_to_agent_thread(
-            agent_id, thread_id, "Please list all contacts"
-        )
+        result, _ = agent_client.send_message_to_agent_thread(agent_id, thread_id, "Please list all contacts")
         result = result.lower().replace("\xa0", " ")
 
         if "john doe" not in result and "jane doe" not in result:
-            raise AssertionError(
-                f"Agent did not find contacts: 'john doe' or 'jane doe'. Found result: {result!r}"
-            )
+            raise AssertionError(f"Agent did not find contacts: 'john doe' or 'jane doe'. Found result: {result!r}")
 
-        _, tool_calls = agent_client.send_message_to_agent_thread(
-            agent_id, thread_id, "Please call my_named_query"
-        )
+        _, tool_calls = agent_client.send_message_to_agent_thread(agent_id, thread_id, "Please call my_named_query")
         found = False
         for tool_call in tool_calls:
             if "Data frame my_named_query created from my_named_query" in str(tool_call):
@@ -332,9 +321,7 @@ def test_mcp_calling_with_action_server(
                 MCPServer(
                     url=url + "/mcp",
                     name="ActionServer",
-                    headers={"X-some-secret": "my-secret-test"}
-                    if scenario == "mcp-secret"
-                    else None,
+                    headers={"X-some-secret": "my-secret-test"} if scenario == "mcp-secret" else None,
                 )
             ],
             platform_configs=[
@@ -370,12 +357,8 @@ def test_mcp_calling_with_action_server(
                 "result",
             }, f"""Structured content keys are not {"error", "result"}: {result}.
                 Final message: {final_message}"""
-            assert result["error"] is None, (
-                f"Error is not None: {result}. Final message: {final_message}"
-            )
-            assert result["result"] is not None, (
-                f"Result is not None: {result}. Final message: {final_message}"
-            )
+            assert result["error"] is None, f"Error is not None: {result}. Final message: {final_message}"
+            assert result["result"] is not None, f"Result is not None: {result}. Final message: {final_message}"
             assert (
                 result["result"]["message"] == "Added contact with secret my-secret-test"
             ), f"""Result message is not 'Added contact with secret my-secret-test': {result}.
@@ -405,9 +388,7 @@ def test_mcp_calling_with_action_server(
                 "Please call the always_error_action_action_response with message=Test error",
             )
             tool_call = tool_calls[0] if tool_calls else None
-            assert tool_call is not None, (
-                f"No tool calls returned for error case. Final message: {final_message}"
-            )
+            assert tool_call is not None, f"No tool calls returned for error case. Final message: {final_message}"
             assert tool_call.tool_name == "always_error_action_action_response"
             assert "result" in tool_call.result
             assert "error" in tool_call.result, (
@@ -427,9 +408,7 @@ def test_mcp_calling_with_action_server(
                 "Please call the always_error_action_internal_error action",
             )
             tool_call = tool_calls[0] if tool_calls else None
-            assert tool_call is not None, (
-                f"No tool calls returned for error case. Final message: {final_message}"
-            )
+            assert tool_call is not None, f"No tool calls returned for error case. Final message: {final_message}"
             assert tool_call.tool_name == "always_error_action_internal_error"
             assert "Unexpected error (ValueError)" in str(tool_call.error), (
                 f"'Unexpected error (ValueError)' not found in tool call error: {tool_call.error}. Final message: {final_message}"
@@ -651,11 +630,8 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):
             # Look for the expected error message
             import re
 
-            assert any(
-                re.search(r"Failed to bind socket", line) for line in error_log_content.splitlines()
-            ), (
-                "Error log should contain 'Failed to bind socket' in one of its lines, "
-                f"but was:\n{error_log_content}"
+            assert any(re.search(r"Failed to bind socket", line) for line in error_log_content.splitlines()), (
+                f"Error log should contain 'Failed to bind socket' in one of its lines, but was:\n{error_log_content}"
             )
 
             # Also check for port-in-use related messages
@@ -668,8 +644,7 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):
                 for pattern in port_error_patterns
             )
             assert found_port_error, (
-                "Error log should contain port conflict message in one of its lines, "
-                f"but was:\n{error_log_content}"
+                f"Error log should contain port conflict message in one of its lines, but was:\n{error_log_content}"
             )
 
             # Verify the error message about not being able to continue
@@ -719,13 +694,9 @@ def test_async_action_polling_with_fast_retry_interval(
     sync_mode = base_url_agent_server_sync_and_async_actions_and_sync_mode["sync_mode"]
 
     if sync_mode == "async":
-        assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "true", (
-            "Async actions must be enabled"
-        )
+        assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "true", "Async actions must be enabled"
     else:
-        assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "false", (
-            "Async actions must NOT be enabled"
-        )
+        assert os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION") == "false", "Async actions must NOT be enabled"
 
     with AgentServerClient(agent_server_url) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
@@ -813,9 +784,7 @@ def check_async_action_happy_path(agent_client: AgentServerClient, agent_id: str
 
     tool_call = tool_calls[0] if tool_calls else None
     assert tool_call is not None, f"No tool calls returned. Result: {result}"
-    assert tool_call.tool_name == "sleep_action", (
-        f"Expected sleep action but got: {tool_call.tool_name}"
-    )
+    assert tool_call.tool_name == "sleep_action", f"Expected sleep action but got: {tool_call.tool_name}"
     assert tool_call.result == {
         "result": "Action completed after sleeping for 0.5 seconds",
         "error": None,
@@ -923,8 +892,7 @@ def check_unexpected_value_error(agent_client: AgentServerClient, agent_id: str)
     tool_call = tool_calls[0] if tool_calls else None
     assert tool_call is not None, f"No tool calls returned. Result: {result}"
     assert tool_call.tool_name == "raise_unexpected_value_error", (
-        f"Expected unexpected value error but got: {tool_call.tool_name}.\n"
-        f"Result: {result}.\nTool call: {tool_call}"
+        f"Expected unexpected value error but got: {tool_call.tool_name}.\nResult: {result}.\nTool call: {tool_call}"
     )
 
     assert tool_call.error, f"Tool call should contain error field. Got: {tool_call}"
@@ -935,9 +903,7 @@ def check_unexpected_value_error(agent_client: AgentServerClient, agent_id: str)
         f"Error message should NOT contain the unexpected error message "
         f"'UNEXPECTED VALUE ERROR IS RAISED'. Got: {error_message}"
     )
-    assert "ValueError" in error_message, (
-        f"Error message should contain the ValueError message. Got: {error_message}"
-    )
+    assert "ValueError" in error_message, f"Error message should contain the ValueError message. Got: {error_message}"
 
 
 @pytest.mark.integration
@@ -979,9 +945,7 @@ async def test_agent_details_endpoint(
                 name=f"test_package_{i}",
                 organization="test_org",
                 version="1.0.0",
-                url=url
-                if i == 0
-                else "http://non-existent-url:12345",  # Second package has invalid URL
+                url=url if i == 0 else "http://non-existent-url:12345",  # Second package has invalid URL
                 api_key=SecretKey(value=api_key),
                 whitelist="",
                 allowed_actions=[],
@@ -1007,12 +971,8 @@ async def test_agent_details_endpoint(
 
         # First URL has valid server, second URL fails,
         # so we should get 1 online package + 1 offline package
-        online_packages = [
-            pkg for pkg in agent_details["action_packages"] if pkg["status"] == "online"
-        ]
-        offline_packages = [
-            pkg for pkg in agent_details["action_packages"] if pkg["status"] == "offline"
-        ]
+        online_packages = [pkg for pkg in agent_details["action_packages"] if pkg["status"] == "online"]
+        offline_packages = [pkg for pkg in agent_details["action_packages"] if pkg["status"] == "offline"]
 
         assert len(online_packages) == 1, "Should have one online package from valid URL"
         assert len(offline_packages) == 1, "Should have one offline package from invalid URL"

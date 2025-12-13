@@ -147,8 +147,6 @@ class InitiateStreamPayload:
             thread_id=data["thread_id"] if "thread_id" in data else None,
             messages=[ThreadMessage.model_validate(message) for message in data["messages"]],
             metadata=data["metadata"] if "metadata" in data else {},
-            client_tools=[
-                ToolDefinitionPayload.model_validate(tool) for tool in data.get("client_tools", [])
-            ],
+            client_tools=[ToolDefinitionPayload.model_validate(tool) for tool in data.get("client_tools", [])],
             override_model_id=data["override_model_id"] if "override_model_id" in data else None,
         )

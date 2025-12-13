@@ -92,8 +92,7 @@ def _group_contents_by_prompt_index(
         value = content_idx_to_prompt_idx.get(str(content_index), 0)
         if not isinstance(value, int):
             raise ValueError(
-                f"Prompt index for content index {content_index} "
-                f"must be an int, got: {type(value).__name__}"
+                f"Prompt index for content index {content_index} must be an int, got: {type(value).__name__}"
             )
         return value
 
@@ -143,14 +142,10 @@ async def thread_messages_to_prompt_messages(
                     "content_idx_to_prompt_idx",
                     {},
                 )
-                grouped_contents = _group_contents_by_prompt_index(
-                    message.content, content_idx_to_prompt_idx
-                )
+                grouped_contents = _group_contents_by_prompt_index(message.content, content_idx_to_prompt_idx)
 
                 for grouped in grouped_contents:
-                    agent_contents, user_contents = await _agent_thread_contents_to_prompt_contents(
-                        grouped
-                    )
+                    agent_contents, user_contents = await _agent_thread_contents_to_prompt_contents(grouped)
                     if len(agent_contents) > 0:
                         prompt_messages.append(PromptAgentMessage(content=agent_contents))
                     if len(user_contents) > 0:

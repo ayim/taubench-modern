@@ -250,9 +250,7 @@ class PostgresStorageRunsMixin(CursorMixin, CommonMixin):
                 {"run_id": run_id},
             )
             rows = await cur.fetchall()
-        return [
-            RunStep.model_validate(self._convert_run_step_json_fields(dict(row))) for row in rows
-        ]
+        return [RunStep.model_validate(self._convert_run_step_json_fields(dict(row))) for row in rows]
 
     async def get_run_step(self, step_id: str) -> RunStep:
         """Retrieve a run step record by its ID."""

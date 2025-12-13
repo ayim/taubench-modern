@@ -85,7 +85,7 @@ def _start_pool_monitor() -> tuple[asyncio.Task, asyncio.Event]:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # noqa: PLR0915
+async def lifespan(app: FastAPI):
     from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
     from agent_platform.server.telemetry.setup_telemetry import setup_telemetry
 

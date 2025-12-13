@@ -146,20 +146,14 @@ class PostgresContainerManager:
         await asyncio.to_thread(self._execute_sql, connection, connection_info, sql_text)
 
     @staticmethod
-    def _execute_sql(
-        connection: Connection, connection_info: PostgresConnectionInfo, sql_text: str
-    ) -> None:
+    def _execute_sql(connection: Connection, connection_info: PostgresConnectionInfo, sql_text: str) -> None:
         from psycopg import sql
 
         log = structlog.get_logger(__name__)
         try:
             with connection.cursor() as cur:
                 if connection_info.schema:
-                    cur.execute(
-                        sql.SQL("SET search_path TO {}").format(
-                            sql.Identifier(connection_info.schema)
-                        )
-                    )
+                    cur.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(connection_info.schema)))
                 for statement in _split_sql_statements(sql_text):
                     cur.execute(statement)
         except Exception:
@@ -172,9 +166,7 @@ class PostgresContainerManager:
             )
             raise
 
-    async def _get_connection(
-        self, folder_key: str, connection_info: PostgresConnectionInfo
-    ) -> Connection:
+    async def _get_connection(self, folder_key: str, connection_info: PostgresConnectionInfo) -> Connection:
         cached = self._connections.get(folder_key)
         if cached is not None and not cached.closed:
             return cached
@@ -198,6 +190,4 @@ class PostgresContainerManager:
 
 def _split_sql_statements(sql_text: str) -> list[bytes]:
     """Split a SQL script into individual statements, preserving order, and encoding as bytes."""
-    return [
-        statement.strip().encode("utf-8") for statement in sql_text.split(";") if statement.strip()
-    ]
+    return [statement.strip().encode("utf-8") for statement in sql_text.split(";") if statement.strip()]

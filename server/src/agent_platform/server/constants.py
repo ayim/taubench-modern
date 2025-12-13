@@ -64,8 +64,7 @@ class SystemConfig(Configuration):
         default=0,
         metadata=FieldMetadata(
             description=(
-                "The parent process ID of the agent server (when "
-                "the given pid exits, the agent server will also exit)."
+                "The parent process ID of the agent server (when the given pid exits, the agent server will also exit)."
             ),
             env_vars=["SEMA4AI_AGENT_SERVER_PARENT_PID"],
         ),
@@ -128,10 +127,7 @@ class SystemConfig(Configuration):
     log_level: str = field(
         default="INFO",
         metadata=FieldMetadata(
-            description=(
-                "The log level to use. "
-                "Must be one of: 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'."
-            ),
+            description=("The log level to use. Must be one of: 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'."),
             env_vars=["SEMA4AI_AGENT_SERVER_LOG_LEVEL", "LOG_LEVEL"],
         ),
     )
@@ -196,7 +192,7 @@ class SystemConfig(Configuration):
             )
 
         # Validate port
-        if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:  # noqa: PLR2004
+        if not isinstance(self.port, int) or self.port < 0 or self.port > 65535:
             raise ValueError(f"Invalid port number: {self.port}")
 
     @property

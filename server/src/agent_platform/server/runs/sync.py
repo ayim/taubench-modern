@@ -110,7 +110,7 @@ async def _update_run_status(
     await storage.upsert_run(run)
 
 
-async def invoke_agent_sync(  # noqa: C901, PLR0915
+async def invoke_agent_sync(
     agent: Agent,
     user: User,
     storage: BaseStorage,
@@ -199,9 +199,7 @@ async def invoke_agent_sync(  # noqa: C901, PLR0915
                     "thread_id": thread_state.thread_id,
                 },
             )
-            active_run = await _create_run(
-                agent.agent_id, thread_state.thread_id, storage, run_type="sync"
-            )
+            active_run = await _create_run(agent.agent_id, thread_state.thread_id, storage, run_type="sync")
             create_span.set_attribute("run_id", active_run.run_id)
             create_span.set_attribute("run_type", active_run.run_type)
             create_span.set_attribute("output.value", json.dumps(active_run.model_dump()))

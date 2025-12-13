@@ -31,11 +31,7 @@ class InvalidPathError(DeltaError):
         self.path_attr = path_attr
         super().__init__(
             message
-            or (
-                f"Invalid target path '{path}'"
-                if path_attr == "path"
-                else f"Invalid source path '{path}'"
-            )
+            or (f"Invalid target path '{path}'" if path_attr == "path" else f"Invalid source path '{path}'")
             + (f": {detailed_message}" if detailed_message else ""),
             delta_object=delta_object,
         )

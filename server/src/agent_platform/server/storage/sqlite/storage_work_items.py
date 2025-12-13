@@ -111,7 +111,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         return [WorkItem.model_validate(self._convert_work_item_json_fields(dict(r))) for r in rows]
 
-    async def list_work_items(  # noqa: PLR0913
+    async def list_work_items(
         self,
         agent_id: str | None = None,
         limit: int = 100,
@@ -232,9 +232,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
             "status": WorkItemStatus.COMPLETED.value,
             "work_item_id": work_item_id,
             "user_id": user_id,
-            "completed_by": completed_by.value
-            if isinstance(completed_by, WorkItemCompletedBy)
-            else str(completed_by),
+            "completed_by": completed_by.value if isinstance(completed_by, WorkItemCompletedBy) else str(completed_by),
             "status_updated_by": completed_by.as_status_updated_by().value,
         }
 
@@ -379,20 +377,12 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         # Convert messages, payload, and callbacks to JSON strings
         initial_messages_json = (
-            json.dumps([msg.model_dump() for msg in work_item.initial_messages])
-            if work_item.initial_messages
-            else "[]"
+            json.dumps([msg.model_dump() for msg in work_item.initial_messages]) if work_item.initial_messages else "[]"
         )
-        messages_json = (
-            json.dumps([msg.model_dump() for msg in work_item.messages])
-            if work_item.messages
-            else "[]"
-        )
+        messages_json = json.dumps([msg.model_dump() for msg in work_item.messages]) if work_item.messages else "[]"
         payload_json = json.dumps(work_item.payload)
         callbacks_json = (
-            json.dumps([callback.model_dump() for callback in work_item.callbacks])
-            if work_item.callbacks
-            else "[]"
+            json.dumps([callback.model_dump() for callback in work_item.callbacks]) if work_item.callbacks else "[]"
         )
 
         async with self._transaction() as cur:
@@ -425,9 +415,7 @@ class SQLiteStorageWorkItemsMixin(CursorMixin, CommonMixin):
                     "status": work_item.status.value
                     if isinstance(work_item.status, WorkItemStatus)
                     else str(work_item.status),
-                    "completed_by": work_item.completed_by.value
-                    if work_item.completed_by
-                    else None,
+                    "completed_by": work_item.completed_by.value if work_item.completed_by else None,
                     "status_updated_at": work_item.status_updated_at,
                     "status_updated_by": work_item.status_updated_by.value,
                     "work_item_id": work_item.work_item_id,

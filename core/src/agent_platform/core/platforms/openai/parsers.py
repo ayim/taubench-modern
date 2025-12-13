@@ -245,7 +245,7 @@ class OpenAIParsers(PlatformParsers):
             reasoning_tokens=usage.output_tokens_details.reasoning_tokens,
         )
 
-    async def parse_stream_event(  # noqa: PLR0912, C901
+    async def parse_stream_event(
         self,
         event: "ResponseStreamEvent",
         message: dict[str, Any],
@@ -335,9 +335,7 @@ class OpenAIParsers(PlatformParsers):
             return content
         return None
 
-    def _find_reasoning_content_by_item_id(
-        self, message: dict[str, Any], item_id: str | None
-    ) -> dict[str, Any] | None:
+    def _find_reasoning_content_by_item_id(self, message: dict[str, Any], item_id: str | None) -> dict[str, Any] | None:
         if item_id is None:
             return None
         return self._find_content(
@@ -550,10 +548,7 @@ class OpenAIParsers(PlatformParsers):
         message["additional_response_fields"]["model"] = response_obj.model
 
         # Normalize stop reason when the response is incomplete due to token cap
-        if (
-            response_obj.incomplete_details
-            and response_obj.incomplete_details.reason == "max_output_tokens"
-        ):
+        if response_obj.incomplete_details and response_obj.incomplete_details.reason == "max_output_tokens":
             message["stop_reason"] = "max_tokens"
 
         # Token usage (typically present on completed)
@@ -579,9 +574,7 @@ class OpenAIParsers(PlatformParsers):
                 case _:
                     continue
 
-    def _add_text_from_completed(
-        self, msg: "ResponseOutputMessage", message: dict[str, Any]
-    ) -> None:
+    def _add_text_from_completed(self, msg: "ResponseOutputMessage", message: dict[str, Any]) -> None:
         """Add text content if none was built during streaming."""
         from openai.types.responses import ResponseOutputText
 

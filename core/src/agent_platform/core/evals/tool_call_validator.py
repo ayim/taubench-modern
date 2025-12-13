@@ -52,9 +52,7 @@ class ToolCallValidator(ABC):
         return None
 
     @abstractmethod
-    async def validate(
-        self, context: ToolCallValidationContext
-    ) -> ToolCallValidationDecision | None:
+    async def validate(self, context: ToolCallValidationContext) -> ToolCallValidationDecision | None:
         """Evaluate a tool call drift."""
         raise NotImplementedError
 
@@ -71,9 +69,7 @@ class LanguageModelToolCallValidator(ToolCallValidator):
         """Record the kernel for later model access."""
         self._kernel = kernel
 
-    async def validate(
-        self, context: ToolCallValidationContext
-    ) -> ToolCallValidationDecision | None:
+    async def validate(self, context: ToolCallValidationContext) -> ToolCallValidationDecision | None:
         """Validate drift with a language model if possible."""
         if self._kernel is None:
             logger.debug("Skipping LLM drift validation; kernel not attached")
@@ -200,8 +196,7 @@ class LanguageModelToolCallValidator(ToolCallValidator):
                 f"Actual arguments: {actual_args}",
                 f"Recorded output: {expected_output}",
                 f"Recorded error: {expected_error}",
-                "# RESPONSE FORMAT"
-                "Respond with a strict JSON object containing the keys: valid (boolean),",
+                "# RESPONSE FORMATRespond with a strict JSON object containing the keys: valid (boolean),",
                 "reason (string explanation), output (JSON value to return if valid, null if the",
                 "recorded output should be reused), and error (string or null).",
                 "Output RAW JSON only. Do not use code fences, markdown, or language tags.",

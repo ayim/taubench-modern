@@ -247,9 +247,7 @@ class SemanticDataModelGenerator:
 
         return time_dimension
 
-    def _get_sample_values(
-        self, sample_values: list[Any] | None
-    ) -> list[str | int | float | bool | None] | None:
+    def _get_sample_values(self, sample_values: list[Any] | None) -> list[str | int | float | bool | None] | None:
         """Get sample values as strings."""
         if sample_values is None:
             return None
@@ -336,14 +334,9 @@ class SemanticDataModelGenerator:
             raise ValueError("Storage is required to create data connection snapshot metadata")
 
         if not data_connection_info.inspect_response or not data_connection_info.inspect_request:
-            raise ValueError(
-                "Inspect response and request are required to create data "
-                "connection snapshot metadata"
-            )
+            raise ValueError("Inspect response and request are required to create data connection snapshot metadata")
 
-        data_connection = await self.storage.get_data_connection(
-            data_connection_info.data_connection_id
-        )
+        data_connection = await self.storage.get_data_connection(data_connection_info.data_connection_id)
 
         # Build request metadata
         request_metadata: DataConnectionSnapshotMetadata = {
@@ -356,8 +349,7 @@ class SemanticDataModelGenerator:
             "kind": "data_connection",
             "inspection_result": data_connection_info.inspect_response,
             "inspection_request_info": request_metadata,
-            "inspected_at": data_connection_info.inspect_response.inspected_at
-            or datetime.now(UTC).isoformat(),
+            "inspected_at": data_connection_info.inspect_response.inspected_at or datetime.now(UTC).isoformat(),
         }
 
         return snapshot
@@ -395,8 +387,7 @@ class SemanticDataModelGenerator:
             "kind": "file",
             "inspection_result": file_info.inspect_response,
             "inspection_request_info": request_metadata,
-            "inspected_at": file_info.inspect_response.inspected_at
-            or datetime.now(UTC).isoformat(),
+            "inspected_at": file_info.inspect_response.inspected_at or datetime.now(UTC).isoformat(),
         }
 
         return snapshot

@@ -310,7 +310,7 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
         )
         return ret
 
-    async def _get_file_for_deletion(  # noqa: PLR0913
+    async def _get_file_for_deletion(
         self,
         cur,
         file_id: str,
@@ -442,7 +442,7 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
             self._logger.debug(f"Deleting scenario file {file.file_id}")
             await self.delete_file(scenario, file.file_id, user_id)
 
-    async def put_file_owner(  # noqa: PLR0913, PLR0915
+    async def put_file_owner(
         self,
         file_id: str,
         file_path: str | None,
@@ -565,17 +565,11 @@ class SQLiteStorageFilesMixin(CursorMixin, CommonMixin):
                 is_unique_constraint = e.sqlite_errorcode == SQLITE_CONSTRAINT_UNIQUE
                 is_thread_unique_constraint = is_unique_constraint and (
                     "unique_file_ref_thread" in error_message
-                    or (
-                        "v2_file_owner.file_ref" in error_message
-                        and "v2_file_owner.thread_id" in error_message
-                    )
+                    or ("v2_file_owner.file_ref" in error_message and "v2_file_owner.thread_id" in error_message)
                 )
                 is_scenario_unique_constraint = is_unique_constraint and (
                     "unique_file_ref_scenario" in error_message
-                    or (
-                        "v2_file_owner.file_ref" in error_message
-                        and "v2_file_owner.scenario_id" in error_message
-                    )
+                    or ("v2_file_owner.file_ref" in error_message and "v2_file_owner.scenario_id" in error_message)
                 )
 
                 if is_thread_unique_constraint:

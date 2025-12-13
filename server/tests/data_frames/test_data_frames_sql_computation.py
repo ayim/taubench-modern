@@ -48,9 +48,7 @@ def test_is_safe_select():
     with pytest.raises(ValueError, match=".*Found: update.*"):
         verify_safe_select("UPDATE table SET column = value WHERE condition; SELECT * FROM table")
     with pytest.raises(ValueError, match=".*Found: delete.*"):
-        verify_safe_select(
-            "SELECT * FROM table; DELETE FROM table WHERE condition; SELECT * FROM table"
-        )
+        verify_safe_select("SELECT * FROM table; DELETE FROM table WHERE condition; SELECT * FROM table")
     with pytest.raises(ValueError, match=".*Found: drop.*"):
         verify_safe_select("DROP TABLE table")
     with pytest.raises(ValueError, match=".*Found: alter.*"):
@@ -184,7 +182,7 @@ def test_ibis_pandas_computation(datadir: Path):
 
 
 @pytest.mark.asyncio
-async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
+async def test_create_data_frame_from_sql_computation():
     import io
 
     import pyarrow.parquet as pq
@@ -231,14 +229,10 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     assert result.platform_data_frame.column_headers == ["col1", "col2"]
     assert result.platform_data_frame.sql_dialect == "duckdb"
 
-    loaded = json.loads(
-        typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json"))
-    )
+    loaded = json.loads(typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}]
 
-    loaded = json.loads(
-        typing.cast(bytes, await result.slice(offset=0, limit=2, output_format="json"))
-    )
+    loaded = json.loads(typing.cast(bytes, await result.slice(offset=0, limit=2, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}, {"col1": 2, "col2": 5}]
 
     loaded = json.loads(
@@ -308,14 +302,10 @@ async def test_create_data_frame_from_sql_computation():  # noqa: PLR0915
     assert result.platform_data_frame.num_rows == 1
     assert result.platform_data_frame.sql_dialect == "postgres"
 
-    loaded = json.loads(
-        typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json"))
-    )
+    loaded = json.loads(typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}]
 
-    loaded = json.loads(
-        typing.cast(bytes, await result.slice(offset=0, limit=2, output_format="json"))
-    )
+    loaded = json.loads(typing.cast(bytes, await result.slice(offset=0, limit=2, output_format="json")))
     # Still same (we only have one row in this query)
     assert loaded == [{"col1": 1, "col2": 4}]
 
@@ -515,9 +505,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
     )
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=1, output_format="table"))
-    file_regression.check(
-        json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte"
-    )
+    file_regression.check(json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte")
 
     # Now do a new cte on top of the previous one
     new_data_frame_name = "test_data_frame_2"
@@ -540,9 +528,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
     )
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=1, output_format="table"))
-    file_regression.check(
-        json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte-2"
-    )
+    file_regression.check(json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte-2")
 
 
 class _DataFramesChecker:
@@ -597,9 +583,7 @@ class _DataFramesChecker:
             )
         return tables_info
 
-    async def inspect_data_connection(
-        self, data_connection_id: str
-    ) -> "DataConnectionsInspectResponse":
+    async def inspect_data_connection(self, data_connection_id: str) -> "DataConnectionsInspectResponse":
         from agent_platform.core.payloads.data_connection import DataConnectionsInspectRequest
         from agent_platform.server.api.private_v2.data_connections import inspect_data_connection
 
@@ -731,9 +715,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
 
     # Create a data connection and a semantic data model
     db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
-    data_connection = await dfs_checker.model_creator.obtain_sample_data_connection(
-        db_file_path=db_file_path
-    )
+    data_connection = await dfs_checker.model_creator.obtain_sample_data_connection(db_file_path=db_file_path)
 
     raised_error = False
 
@@ -793,9 +775,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
     )
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=10, output_format="table"))
-    file_regression.check(
-        json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-semantic-data-model"
-    )
+    file_regression.check(json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-semantic-data-model")
 
 
 async def check(
@@ -899,9 +879,7 @@ WHERE EXISTS (
 async def test_create_data_frame_from_wrapper(file_regression):
     # This fails at parsing
     with pytest.raises(PlatformError, match="Parser Error: syntax error at or near"):
-        await check(
-            "SELECT * FROM TABLE(generator(rowcount => 10))", file_regression, dialect="snowflake"
-        )
+        await check("SELECT * FROM TABLE(generator(rowcount => 10))", file_regression, dialect="snowflake")
 
 
 @pytest.mark.asyncio

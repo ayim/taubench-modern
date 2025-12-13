@@ -8,13 +8,7 @@ from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.utils import SecretString
 
 GOOGLE_PROVIDER = "google"
-_DEFAULT_SA_PATH = (
-    Path(__file__).parents[5]
-    / "tests"
-    / "platforms"
-    / "google"
-    / "google_vertex_service_account.json"
-)
+_DEFAULT_SA_PATH = Path(__file__).parents[5] / "tests" / "platforms" / "google" / "google_vertex_service_account.json"
 _DEFAULT_PROJECT_ID = "high-bedrock-479317-g9"
 _DEFAULT_LOCATION = "global"
 
@@ -137,9 +131,7 @@ class GooglePlatformParameters(PlatformParameters):
         object.__setattr__(self, "google_cloud_location", location)
 
         # Set Vertex Service Account JSON Credential
-        vertex_credentials = self.google_vertex_service_account_json or getenv(
-            "GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON"
-        )
+        vertex_credentials = self.google_vertex_service_account_json or getenv("GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON")
 
         # Legacy configurations might rely on credentials set elsewhere. We defer
         # validation to the Google client so existing configs can still load.

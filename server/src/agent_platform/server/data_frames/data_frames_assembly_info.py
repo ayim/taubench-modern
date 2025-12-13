@@ -50,8 +50,6 @@ class DataFrameNodeFile(DataFrameNodeBase):
 class DataFrameNodeInMemory(DataFrameNodeBase):
     """Node data for data_frame with in_memory input_id_type."""
 
-    pass
-
 
 # Union type for all DataFrame node variants
 DataFrameNode = DataFrameNodeSqlComputation | DataFrameNodeFile | DataFrameNodeInMemory
@@ -366,9 +364,7 @@ class _Node:
                 lines.append(f"{indent_str}")
 
         else:
-            lines.append(
-                f"{indent_str}#### Error: Unknown kind: {self.kind} when dealing with data: {self.data}"
-            )
+            lines.append(f"{indent_str}#### Error: Unknown kind: {self.kind} when dealing with data: {self.data}")
 
         # Add children recursively
         if self.children:
@@ -544,8 +540,7 @@ class AssemblyInfo:
                         error_data: SemanticDataModelNodeError = {
                             "logical_table_name": name,
                             "error": (
-                                "Unable to determine source (no data_connection_id, file_reference, "
-                                "or data_frame_name)"
+                                "Unable to determine source (no data_connection_id, file_reference, or data_frame_name)"
                             ),
                         }
                         source_data = error_data

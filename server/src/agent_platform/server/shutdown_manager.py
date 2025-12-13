@@ -83,9 +83,7 @@ class ShutdownManager:
         instance = cls.get_instance()
         ev = instance._shutdown_events.get(worker_name)
         if ev is None:
-            logger.warning(
-                f"Shutdown event requested for unknown (or finished) worker: {worker_name}"
-            )
+            logger.warning(f"Shutdown event requested for unknown (or finished) worker: {worker_name}")
 
         return ev
 
@@ -105,9 +103,7 @@ class ShutdownManager:
         # It's not there, create it now based on the shutdown event
         shutdown_event = instance._get_shutdown_event(worker_name)
         if shutdown_event is None:
-            logger.warning(
-                f"Shutdown task requested for unknown (or finished) worker: {worker_name}"
-            )
+            logger.warning(f"Shutdown task requested for unknown (or finished) worker: {worker_name}")
             return None
         shutdown_task = asyncio.create_task(shutdown_event.wait())
         instance._shutdown_tasks[worker_name] = shutdown_task
@@ -188,9 +184,7 @@ class ShutdownManager:
         shutdown_events = instance._shutdown_events
         if shutdown_events:
             event_names = list(shutdown_events.keys())
-            logger.info(
-                f"Signaling shutdown events for {len(shutdown_events)} workers: {event_names}"
-            )
+            logger.info(f"Signaling shutdown events for {len(shutdown_events)} workers: {event_names}")
             for shutdown_event in shutdown_events.values():
                 shutdown_event.set()
 
@@ -208,8 +202,7 @@ class ShutdownManager:
             exceptions = [result for result in results if isinstance(result, Exception)]
             if exceptions:
                 logger.warning(
-                    f"{len(exceptions)} background tasks failed during shutdown: "
-                    f"{[str(exc) for exc in exceptions]}"
+                    f"{len(exceptions)} background tasks failed during shutdown: {[str(exc) for exc in exceptions]}"
                 )
             else:
                 logger.info("All background tasks completed")

@@ -146,10 +146,7 @@ def test_nested_df_generates_valid_postgres_jsonb_sql():
     """
     from agent_platform.server.data_frames.data_frames_kernel import Dependencies
 
-    pricing_json = (
-        '{"currency": "USD", "base_price": 100, '
-        '"discounts": [{"percent_off": 10}, {"percent_off": 5}]}'
-    )
+    pricing_json = '{"currency": "USD", "base_price": 100, "discounts": [{"percent_off": 10}, {"percent_off": 5}]}'
     base_df = create_sql_data_frame_with_dialect(
         "products_df",
         f"""

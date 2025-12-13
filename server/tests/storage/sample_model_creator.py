@@ -363,9 +363,7 @@ class SampleModelCreator:
         await self.storage.create_work_item(work_item)
         return work_item
 
-    async def create_in_memory_data_frame(
-        self, name: str, columns: list[str], rows: list[list]
-    ) -> PlatformDataFrame:
+    async def create_in_memory_data_frame(self, name: str, columns: list[str], rows: list[list]) -> PlatformDataFrame:
         from agent_platform.server.kernel.data_frames import create_data_frame_from_columns_and_rows
 
         data_frame = await create_data_frame_from_columns_and_rows(

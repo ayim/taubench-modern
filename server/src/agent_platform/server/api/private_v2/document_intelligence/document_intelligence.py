@@ -212,10 +212,7 @@ async def upsert_document_intelligence(
     if payload.data_connection_id and len(payload.data_connection_id.strip()) == 0:
         error_response = ErrorResponse(
             ErrorCode.UNPROCESSABLE_ENTITY,
-            message_override=(
-                "data_connection_id cannot be empty. "
-                "Please provide a valid data connection ID or None."
-            ),
+            message_override=("data_connection_id cannot be empty. Please provide a valid data connection ID or None."),
         )
         return DocumentIntelligenceConfigResponse(
             status=DocumentIntelligenceConfigStatus.ERROR,
@@ -268,9 +265,7 @@ async def upsert_document_intelligence(
         # We don't have an existing data server integration, so create a new one.
         data_server_id = str(uuid4())
 
-    data_server_integration = Integration(
-        id=data_server_id, kind="data_server", settings=data_server_settings
-    )
+    data_server_integration = Integration(id=data_server_id, kind="data_server", settings=data_server_settings)
     await storage.upsert_integration(data_server_integration)
 
     # Upsert other integrations (if provided)
@@ -307,9 +302,7 @@ async def upsert_document_intelligence(
     await storage.clear_data_connection_tag(DataConnectionTag.DOCUMENT_INTELLIGENCE)
 
     if payload.data_connection_id:
-        await storage.add_data_connection_tag(
-            payload.data_connection_id, DataConnectionTag.DOCUMENT_INTELLIGENCE
-        )
+        await storage.add_data_connection_tag(payload.data_connection_id, DataConnectionTag.DOCUMENT_INTELLIGENCE)
 
     return await _get_document_intelligence_config_response(storage)
 

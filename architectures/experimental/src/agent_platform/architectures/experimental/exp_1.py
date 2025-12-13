@@ -69,9 +69,7 @@ class Exp1State(aa.StateBase):
     """
 
     current_iteration: int = 0
-    processing_start_time: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
-    )
+    processing_start_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds"))
     no_toolcall_retry_count: int = 0
     no_final_reply_retry_count: int = 0
     controller_feedback: str = ""
@@ -190,9 +188,7 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
     from functools import partial
 
     # Convert thread messages to prompt messages for this architecture
-    kernel.converters.set_thread_message_conversion_function(
-        partial(thread_messages_to_prompt_messages, state=state)
-    )
+    kernel.converters.set_thread_message_conversion_function(partial(thread_messages_to_prompt_messages, state=state))
 
     # Platform/model & family
     platform, model, model_family = await _resolve_platform_and_model(kernel, state)
@@ -222,9 +218,7 @@ async def _process_conversation_step(kernel: Kernel, state: Exp1State) -> Exp1St
         _update_elapsed_time(state)
 
         logger.info(f"Iteration {state.current_iteration}/{MAX_ITERATIONS} (model={model})")
-        logger.debug(
-            f"Controller feedback (pre-iteration): {state.controller_feedback or '<none>'}"
-        )
+        logger.debug(f"Controller feedback (pre-iteration): {state.controller_feedback or '<none>'}")
 
         # Build the tool-loop prompt
         conversation_prompt = await _build_tool_loop_prompt(
@@ -342,9 +336,7 @@ async def _gather_tools(
 
     if not state.action_tools or force_refresh:
         logger.info("Gathering action tools from remote servers")
-        action_tools, action_issues = await kernel.tools.from_action_packages(
-            kernel.agent.action_packages
-        )
+        action_tools, action_issues = await kernel.tools.from_action_packages(kernel.agent.action_packages)
         state.action_tools = action_tools
         state.action_issues = action_issues
 
@@ -394,7 +386,7 @@ async def _resolve_platform_and_model(kernel: Kernel, state: Exp1State):
     platform, model = await kernel.get_platform_and_model(model_type="llm")
 
     # Bookkeep some of this on state so we can interpolate it into the prompt
-    if model.count("/") == 2:  # noqa: PLR2004 (platform/provider/model)
+    if model.count("/") == 2:
         selected_platform, selected_model_provider, selected_model = model.split("/")
         state.selected_platform = selected_platform
         state.selected_model_provider = selected_model_provider
@@ -451,9 +443,7 @@ async def _build_final_reply_prompt(
 
 def _update_elapsed_time(state: Exp1State) -> None:
     """Update elapsed time string on state (for prompt visibility & logs)."""
-    elapsed_seconds = (
-        datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)
-    ).total_seconds()
+    elapsed_seconds = (datetime.now(UTC) - datetime.fromisoformat(state.processing_start_time)).total_seconds()
     state.processing_elapsed_time = f"{elapsed_seconds:.2f} seconds"
 
 
@@ -513,14 +503,9 @@ async def _stream_tool_loop_with_retry(
             can_retry = transient and attempt < STREAM_RETRY_MAX
 
             if can_retry:
-                logger.warning(
-                    "Transient stream failure during tool-loop "
-                    f"(attempt {attempt}/{STREAM_RETRY_MAX}): {e}"
-                )
+                logger.warning(f"Transient stream failure during tool-loop (attempt {attempt}/{STREAM_RETRY_MAX}): {e}")
                 await ckpt.rollback()
-                await asyncio.sleep(
-                    STREAM_BACKOFF_SECONDS[min(attempt - 1, len(STREAM_BACKOFF_SECONDS) - 1)]
-                )
+                await asyncio.sleep(STREAM_BACKOFF_SECONDS[min(attempt - 1, len(STREAM_BACKOFF_SECONDS) - 1)])
                 continue
 
             # Final failure: rollback and re-raise
@@ -591,12 +576,8 @@ async def _execute_pending_tools(
     # Try and detect repeated calls to the same tool
     # If the most recent tools intersect with the 5 previous tool
     # calls, then let's warn the agent
-    last_5_as_set = {
-        _tool_execution_name_and_input_key(result) for result in state.recently_called_tools[-5:]
-    }
-    most_recent_as_set = {
-        _tool_execution_name_and_input_key(result) for result in most_recent_tools
-    }
+    last_5_as_set = {_tool_execution_name_and_input_key(result) for result in state.recently_called_tools[-5:]}
+    most_recent_as_set = {_tool_execution_name_and_input_key(result) for result in most_recent_tools}
     if most_recent_as_set & last_5_as_set:
         state.controller_feedback += (
             "TOOL LOOP WARNING: You seem to be calling the same tool with the same arguments, "
@@ -623,8 +604,7 @@ async def _handle_no_tool_calls(state: Exp1State) -> bool:
             "Do not emit any prose."
         )
         logger.info(
-            "No tool calls detected; nudging model "
-            f"(retry {state.no_toolcall_retry_count}/{NO_TOOLCALL_RETRY_LIMIT})."
+            f"No tool calls detected; nudging model (retry {state.no_toolcall_retry_count}/{NO_TOOLCALL_RETRY_LIMIT})."
         )
         return True
     else:
@@ -702,13 +682,10 @@ async def _stream_final_reply_with_retry(
 
             if can_retry:
                 logger.warning(
-                    "Transient stream failure during final reply "
-                    f"(attempt {attempt}/{STREAM_RETRY_MAX}): {e}"
+                    f"Transient stream failure during final reply (attempt {attempt}/{STREAM_RETRY_MAX}): {e}"
                 )
                 await ckpt.rollback()
-                await asyncio.sleep(
-                    STREAM_BACKOFF_SECONDS[min(attempt - 1, len(STREAM_BACKOFF_SECONDS) - 1)]
-                )
+                await asyncio.sleep(STREAM_BACKOFF_SECONDS[min(attempt - 1, len(STREAM_BACKOFF_SECONDS) - 1)])
                 continue
 
             logger.error(f"Final-reply stream failed (non-retryable or exhausted): {e}")
@@ -725,9 +702,7 @@ def _has_text_content(stream: ResponseStreamPipe) -> bool:
         content = getattr(getattr(stream, "reassembled_response", None), "content", None)
         if not content:
             return False
-        return any(
-            getattr(c, "kind", None) == "text" and getattr(c, "text", "").strip() for c in content
-        )
+        return any(getattr(c, "kind", None) == "text" and getattr(c, "text", "").strip() for c in content)
     except Exception:
         # If we cannot inspect, be conservative
         return False

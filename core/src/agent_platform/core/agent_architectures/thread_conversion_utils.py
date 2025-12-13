@@ -18,9 +18,7 @@ class ThreadConversionState(Protocol):
     """Protocol for the architecture state required for
     converting thread content to prompt content."""
 
-    attachment_id_to_attachment_text_cache: Annotated[
-        dict[str, str], "A cache of attachment IDs to attachment text."
-    ]
+    attachment_id_to_attachment_text_cache: Annotated[dict[str, str], "A cache of attachment IDs to attachment text."]
 
 
 async def _get_file_details(
@@ -68,9 +66,7 @@ async def user_thread_contents_to_prompt_contents(
                 )
             case ThreadAttachmentContent() as attachment_content:
                 if state is not None:
-                    attachment_text = state.attachment_id_to_attachment_text_cache.get(
-                        attachment_content.content_id
-                    )
+                    attachment_text = state.attachment_id_to_attachment_text_cache.get(attachment_content.content_id)
                     if attachment_text is not None:
                         prompt_contents.append(PromptTextContent(text=attachment_text))
                         continue
@@ -102,9 +98,7 @@ async def user_thread_contents_to_prompt_contents(
 
                     # Store the result in the cache
                     if state is not None:
-                        state.attachment_id_to_attachment_text_cache[
-                            attachment_content.content_id
-                        ] = final_text
+                        state.attachment_id_to_attachment_text_cache[attachment_content.content_id] = final_text
                     prompt_contents.append(PromptTextContent(text=final_text))
 
             # TODO: multi-modal content/docs
@@ -114,7 +108,7 @@ async def user_thread_contents_to_prompt_contents(
     return prompt_contents
 
 
-async def _build_prompt_from_user_uploaded_file(  # noqa: PLR0911
+async def _build_prompt_from_user_uploaded_file(
     kernel: "Kernel",
     file_details: "UploadedFile",
     *,
@@ -208,9 +202,7 @@ async def _get_related_to_semantic_data_model_name(
 
         # Check if file_ref matches any file reference in semantic data models
         for sdm_and_references in sdms_and_refs:
-            semantic_data_model: SemanticDataModel = sdm_and_references.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model: SemanticDataModel = sdm_and_references.semantic_data_model_info["semantic_data_model"]
             tables = semantic_data_model.get("tables") or []
             for semantic_data_model_table in tables:
                 base_table = semantic_data_model_table.get("base_table")

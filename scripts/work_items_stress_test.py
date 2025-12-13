@@ -149,9 +149,7 @@ class WorkItemStressTest:
             "mode": "worker",
             "name": f"Stress Test Agent #{agent_number} - {timestamp}",
             "version": "1.0.0",
-            "description": (
-                f"Agent #{agent_number} for stress testing work items with {provider_name}"
-            ),
+            "description": (f"Agent #{agent_number} for stress testing work items with {provider_name}"),
             "runbook": """# Objective
 You are a helpful assistant designed to test the work items system.
 

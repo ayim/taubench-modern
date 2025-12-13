@@ -13,14 +13,10 @@ get_executable_path = get_default_executable_path
 DEFAULT_ACTION_SERVER_VERSION = "2.17.0"
 
 
-def get_action_server_executable_path(
-    version: str = DEFAULT_ACTION_SERVER_VERSION, download: bool = True
-) -> Path:
+def get_action_server_executable_path(version: str = DEFAULT_ACTION_SERVER_VERSION, download: bool = True) -> Path:
     from sema4ai.common import tools
 
-    target_location = tools.ActionServerTool.get_default_executable(
-        version=version, download=download
-    )
+    target_location = tools.ActionServerTool.get_default_executable(version=version, download=download)
     return target_location
 
 

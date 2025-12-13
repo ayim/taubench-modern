@@ -57,9 +57,7 @@ class GoogleParsers(PlatformParsers):
         """
         raise NotImplementedError("Image content not supported yet")
 
-    def parse_thought_content(
-        self, content: str | None, thought_signature: bytes | None
-    ) -> ResponseReasoningContent:
+    def parse_thought_content(self, content: str | None, thought_signature: bytes | None) -> ResponseReasoningContent:
         """Parses a platform-specific reasoning content to an agent-server
         reasoning content.
         Args:
@@ -470,9 +468,7 @@ class GoogleParsers(PlatformParsers):
             if not self._function_exists_in_message(message, function_details):
                 self._add_function_to_message(message, function_details)
 
-    def _extract_function_details(
-        self, function_call: FunctionCall, thought_signature: bytes | None
-    ) -> dict[str, Any]:
+    def _extract_function_details(self, function_call: FunctionCall, thought_signature: bytes | None) -> dict[str, Any]:
         """Extract function details.
 
         Args:
@@ -555,8 +551,7 @@ class GoogleParsers(PlatformParsers):
         )
 
         logger.debug(
-            f"Added new tool call: {function_details['name']}"
-            f"with args: {function_details['args_str']}",
+            f"Added new tool call: {function_details['name']}with args: {function_details['args_str']}",
         )
 
     def _process_event_metadata(

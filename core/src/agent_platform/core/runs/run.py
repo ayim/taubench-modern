@@ -35,8 +35,7 @@ class Run:
     status: Literal["created", "running", "completed", "failed", "cancelled"] = field(
         default="created",
         metadata={
-            "description": "The run's status (e.g., 'created', 'running',"
-            "'completed', 'failed', 'cancelled')",
+            "description": "The run's status (e.g., 'created', 'running','completed', 'failed', 'cancelled')",
         },
     )
     """The run's status (e.g., 'created', 'running',

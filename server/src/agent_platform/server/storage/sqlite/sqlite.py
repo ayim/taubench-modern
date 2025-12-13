@@ -156,9 +156,7 @@ class NonReentrantAsyncLock:
     def _release(self) -> None:
         current = asyncio.current_task()
         if current is None:
-            raise RuntimeError(
-                "NonReentrantAsyncLock.release() must be called within an asyncio task"
-            )
+            raise RuntimeError("NonReentrantAsyncLock.release() must be called within an asyncio task")
 
         if not self._lock.locked():
             raise RuntimeError("Release called on an unlocked NonReentrantAsyncLock")
@@ -292,7 +290,7 @@ class SQLiteStorage(
 
         self._is_setup = True
 
-    async def _conn_factory(self) -> Connection:  # noqa: C901
+    async def _conn_factory(self) -> Connection:
         """
         Create and configure a new SQLite connection.
         """
@@ -311,7 +309,7 @@ class SQLiteStorage(
         # ---------------------------------------------------------------------
         # Register the check_user_access function in SQLite
         # ---------------------------------------------------------------------
-        def check_user_access(record_user_id: str, requesting_user_id: str) -> int:  # noqa: PLR0911
+        def check_user_access(record_user_id: str, requesting_user_id: str) -> int:
             """
             Return 1 if requesting_user_id can access record_user_id's resource, else 0.
             - If record_user_id is 'system user', OK
@@ -452,8 +450,7 @@ class SQLiteStorage(
     ):
         """Get Interval for cleaning up stale threads"""
         return sa.text(
-            f"datetime('{now.isoformat()}', '-' "
-            f"|| CAST(json_extract({config_column.name}, '$') AS integer) || ' days')"
+            f"datetime('{now.isoformat()}', '-' || CAST(json_extract({config_column.name}, '$') AS integer) || ' days')"
         )
 
     async def apply_pool_size(self, new_max: int) -> None:

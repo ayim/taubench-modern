@@ -26,9 +26,7 @@ class TestLifespan:
         storage_instance.list_enabled_observability_integrations = AsyncMock(return_value=[])
         storage_instance.list_all_agents = AsyncMock(return_value=[])
         storage_instance.get_system_user_id = AsyncMock(return_value="system-user-id")
-        storage_instance.get_user_by_id = AsyncMock(
-            return_value=MagicMock(user_id="system-user-id")
-        )
+        storage_instance.get_user_by_id = AsyncMock(return_value=MagicMock(user_id="system-user-id"))
         storage_instance.list_agents = AsyncMock(return_value=[])
         storage_instance.upsert_agent = AsyncMock()
 
@@ -46,12 +44,8 @@ class TestLifespan:
         patches = [
             patch.multiple(
                 "agent_platform.server.lifespan",
-                llms_metadata_loader=MagicMock(
-                    load_data=MagicMock(return_value=None), model_count=10
-                ),
-                SecretService=MagicMock(
-                    get_instance=MagicMock(return_value=MagicMock(setup=MagicMock()))
-                ),
+                llms_metadata_loader=MagicMock(load_data=MagicMock(return_value=None), model_count=10),
+                SecretService=MagicMock(get_instance=MagicMock(return_value=MagicMock(setup=MagicMock()))),
                 start_data_retention_worker=MagicMock(return_value=MagicMock(cancel=MagicMock())),
                 ResponseStreamPipe=MagicMock(_DIFF_POOL=MagicMock(shutdown=MagicMock())),
                 SystemPaths=MagicMock(upload_dir=MagicMock()),

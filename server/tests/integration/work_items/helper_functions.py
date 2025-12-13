@@ -90,9 +90,7 @@ def make_text_message(text: str) -> list[dict[str, Any]]:
     ]
 
 
-def assert_work_item_url(
-    body: dict[str, Any], agent_id: str, work_item_id: str, thread_id: str
-) -> None:
+def assert_work_item_url(body: dict[str, Any], agent_id: str, work_item_id: str, thread_id: str) -> None:
     """Assert that the work item URL has the expected format."""
     expected_url_suffix = f"{agent_id}/{work_item_id}/{thread_id}"
     assert body["work_item_url"].endswith(expected_url_suffix)

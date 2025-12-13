@@ -68,9 +68,7 @@ async def test_initialize_data_source():
         await initialize_data_source(data_sources)
 
         # Assert: connection setup called with proper input
-        mock_datasource_cls.setup_connection_from_input_json.assert_called_once_with(
-            expected_connection_input
-        )
+        mock_datasource_cls.setup_connection_from_input_json.assert_called_once_with(expected_connection_input)
 
         # Assert: admin datasource created for the known project
         mock_datasource_cls.model_validate.assert_called_once_with(datasource_name="sema4ai")

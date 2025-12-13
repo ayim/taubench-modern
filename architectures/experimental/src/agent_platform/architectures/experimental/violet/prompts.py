@@ -7,7 +7,7 @@ from agent_platform.core.prompts.selector.default import select_prompt
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
-async def build_prompt(  # noqa: PLR0913
+async def build_prompt(
     kernel: Kernel,
     state: VioletState,
     *,

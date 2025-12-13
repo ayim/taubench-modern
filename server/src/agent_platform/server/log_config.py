@@ -51,8 +51,7 @@ def _get_default_formatter(use_color: bool = True) -> logging.Formatter:
 def _get_access_handler() -> logging.StreamHandler:
     """Set up access handler for Uvicorn."""
     access_formatter = AccessFormatter(
-        "%(asctime)s - %(name)s - %(levelprefix)s  "
-        '%(client_addr)s - "%(request_line)s" %(status_code)s',
+        '%(asctime)s - %(name)s - %(levelprefix)s  %(client_addr)s - "%(request_line)s" %(status_code)s',
     )
     access_handler = logging.StreamHandler(sys.stdout)
     access_handler.setFormatter(access_formatter)
@@ -133,18 +132,14 @@ def _setup_additional_loggers(
     # sqlalchemy_engine_logger.propagate = False
 
     mcp_client_sse_logger = logging.getLogger("mcp.client.sse")
-    mcp_client_sse_logger.addFilter(
-        lambda record: "Unknown SSE event: ping" not in record.getMessage()
-    )
+    mcp_client_sse_logger.addFilter(lambda record: "Unknown SSE event: ping" not in record.getMessage())
     mcp_client_sse_logger.setLevel(logging.WARNING)
     mcp_client_sse_logger.handlers.clear()
     mcp_client_sse_logger.addHandler(default_handler)
     mcp_client_sse_logger.addHandler(file_handler)
 
     mcp_client_http_logger = logging.getLogger("mcp.client.streamable_http")
-    mcp_client_http_logger.addFilter(
-        lambda record: "Unknown SSE event: ping" not in record.getMessage()
-    )
+    mcp_client_http_logger.addFilter(lambda record: "Unknown SSE event: ping" not in record.getMessage())
     mcp_client_http_logger.setLevel(logging.WARNING)
     mcp_client_http_logger.handlers.clear()
     mcp_client_http_logger.addHandler(default_handler)
@@ -277,11 +272,7 @@ def _multiline_variables_renderer(_, __, event_dict):
     msg = event_dict.pop("event", "")
     color_message = event_dict.pop("color_message", "")
 
-    additional = {
-        kw: event_dict.pop(kw)
-        for kw in ("exc_info", "stack_info", "stacklevel")
-        if kw in event_dict
-    }
+    additional = {kw: event_dict.pop(kw) for kw in ("exc_info", "stack_info", "stacklevel") if kw in event_dict}
 
     msg = msg or color_message
     if event_dict:

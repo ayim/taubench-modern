@@ -56,9 +56,7 @@ class DocIntSerializer:
         # UI-friendly flat lists (redundant but often expected by frontend hooks)
         message.agent_metadata["doc_cards"] = serialized_cards
         message.agent_metadata["doc_int_revision"] = state.revision
-        message.agent_metadata["doc_int_input_locked"] = any(
-            c.status != "done" for c in state.cards
-        )
+        message.agent_metadata["doc_int_input_locked"] = any(c.status != "done" for c in state.cards)
 
     # --- Serialization (Object -> Dict) ---
 
@@ -98,9 +96,7 @@ class DocIntSerializer:
                 else:
                     parse_data_out = page.parse_data
             except Exception:
-                logger.warning(
-                    f"Failed to serialize parse_data page={page.page} type={type(page.parse_data)}"
-                )
+                logger.warning(f"Failed to serialize parse_data page={page.page} type={type(page.parse_data)}")
                 parse_data_out = {}
 
         return {
@@ -137,7 +133,7 @@ class DocIntSerializer:
             prompt_payload=raw.get("prompt_payload", ""),
         )
 
-    def deserialize_card(self, raw: Any) -> DocCard | None:  # noqa: C901
+    def deserialize_card(self, raw: Any) -> DocCard | None:
         if not isinstance(raw, dict):
             return None
 

@@ -60,8 +60,8 @@ class AwsSecretManager(BaseSecretManager):
         # Always create fallback encryption instance for decrypting old fallback data
         from agent_platform.core.utils.encryption.envelope import StaticKeyEnvelopeEncryption
 
-        self._fallback_envelope_encryption: StaticKeyEnvelopeEncryption = (
-            StaticKeyEnvelopeEncryption(self.FALLBACK_KEY, key_id="fallback")
+        self._fallback_envelope_encryption: StaticKeyEnvelopeEncryption = StaticKeyEnvelopeEncryption(
+            self.FALLBACK_KEY, key_id="fallback"
         )
 
         if self._kms_key_arn is None:
@@ -89,12 +89,7 @@ class AwsSecretManager(BaseSecretManager):
             # Minimum expected parts: arn, aws, kms, region
             min_arn_parts = 4
             parts = arn.split(":")
-            if (
-                len(parts) < min_arn_parts
-                or parts[0] != "arn"
-                or parts[1] != "aws"
-                or parts[2] != "kms"
-            ):
+            if len(parts) < min_arn_parts or parts[0] != "arn" or parts[1] != "aws" or parts[2] != "kms":
                 raise ValueError("Invalid KMS ARN format")
             return parts[3]  # region is the 4th component
         except (IndexError, AttributeError) as e:
@@ -111,15 +106,11 @@ class AwsSecretManager(BaseSecretManager):
 
         try:
             try:
-                self._client = boto3.client(
-                    AwsKmsConstants.SERVICE_NAME, region_name=self._region_name
-                )
+                self._client = boto3.client(AwsKmsConstants.SERVICE_NAME, region_name=self._region_name)
                 logger.info(f"AWS KMS client initialized for region: {self._region_name}")
             except Exception as client_error:
                 logger.error(f"Failed to create AWS KMS client: {client_error}")
-                raise RuntimeError(
-                    f"Failed to create AWS KMS client: {client_error}"
-                ) from client_error
+                raise RuntimeError(f"Failed to create AWS KMS client: {client_error}") from client_error
 
             # Assert for type checker - client should be initialized at this point
             assert self._client is not None
@@ -175,9 +166,7 @@ class AwsSecretManager(BaseSecretManager):
 
         try:
             # Generate a data key using AWS KMS
-            response = self._client.generate_data_key(
-                KeyId=self._kms_key_arn, KeySpec=AwsKmsConstants.KEY_SPEC_AES_256
-            )
+            response = self._client.generate_data_key(KeyId=self._kms_key_arn, KeySpec=AwsKmsConstants.KEY_SPEC_AES_256)
 
             plaintext_data_key = response["Plaintext"]
             encrypted_data_key = response["CiphertextBlob"]
@@ -192,9 +181,7 @@ class AwsSecretManager(BaseSecretManager):
 
             # Encrypt the data using AES-GCM with the plaintext data key
             data_cipher = AESGCM2(plaintext_data_key)
-            encryption_result = data_cipher.encrypt(
-                data.encode(), associated_data=metadata.to_json().encode()
-            )
+            encryption_result = data_cipher.encrypt(data.encode(), associated_data=metadata.to_json().encode())
 
             # Create envelope result
             envelope_result = EnvelopeEncryptionResult(
@@ -252,15 +239,11 @@ class AwsSecretManager(BaseSecretManager):
         # Validate scheme and key type
         if envelope_result.metadata.scheme != self.SCHEME:
             raise RuntimeError(
-                f"Unsupported encryption scheme: {envelope_result.metadata.scheme}, "
-                f"expected: {self.SCHEME}"
+                f"Unsupported encryption scheme: {envelope_result.metadata.scheme}, expected: {self.SCHEME}"
             )
 
         if envelope_result.metadata.kek_type != self.KEK_TYPE:
-            raise RuntimeError(
-                f"Unsupported key type: {envelope_result.metadata.kek_type}, "
-                f"expected: {self.KEK_TYPE}"
-            )
+            raise RuntimeError(f"Unsupported key type: {envelope_result.metadata.kek_type}, expected: {self.KEK_TYPE}")
 
         return envelope_result
 

@@ -332,4 +332,3 @@ class HTTPTransport(TransportBase):
 
         For HTTP, this is a no-op as connections are stateless.
         """
-        pass

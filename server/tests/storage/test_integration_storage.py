@@ -230,9 +230,7 @@ async def test_unknown_integration_kind_handling(storage) -> None:
     unknown_integration = Integration(
         id=str(uuid4()),
         kind="secure_service",
-        settings=UnhandledIntegrationSettings(
-            kind="secure_service", raw_data=unknown_settings_data
-        ),
+        settings=UnhandledIntegrationSettings(kind="secure_service", raw_data=unknown_settings_data),
     )
 
     await storage.upsert_integration(unknown_integration)
@@ -303,9 +301,7 @@ async def test_remove_data_connection_tag(storage) -> None:
     all_connections = await storage.get_data_connections()
     assert len(all_connections) == 3
 
-    data_intel_connections = [
-        c for c in all_connections if DataConnectionTag.DOCUMENT_INTELLIGENCE in c.tags
-    ]
+    data_intel_connections = [c for c in all_connections if DataConnectionTag.DOCUMENT_INTELLIGENCE in c.tags]
     assert len(data_intel_connections) == 1
 
     other_tag_connections = [c for c in all_connections if "other_tag" in c.tags]
@@ -314,9 +310,7 @@ async def test_remove_data_connection_tag(storage) -> None:
     untagged_connections = [c for c in all_connections if len(c.tags) == 0]
     assert len(untagged_connections) == 1
 
-    await storage.remove_data_connection_tag(
-        connection1.id, DataConnectionTag.DOCUMENT_INTELLIGENCE
-    )
+    await storage.remove_data_connection_tag(connection1.id, DataConnectionTag.DOCUMENT_INTELLIGENCE)
 
     all_connections_after = await storage.get_data_connections()
     assert len(all_connections_after) == 3
@@ -413,9 +407,7 @@ async def test_list_enabled_observability_integrations(storage) -> None:
     assert all(isinstance(i, ObservabilityIntegration) for i in enabled_obs_integrations)
 
     # Verify they all have ObservabilityIntegrationSettings
-    assert all(
-        isinstance(i.settings, ObservabilityIntegrationSettings) for i in enabled_obs_integrations
-    )
+    assert all(isinstance(i.settings, ObservabilityIntegrationSettings) for i in enabled_obs_integrations)
 
     # Verify they are all enabled
     assert all(i.settings.is_enabled for i in enabled_obs_integrations)

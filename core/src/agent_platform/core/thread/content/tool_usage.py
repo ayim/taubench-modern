@@ -80,8 +80,7 @@ class ThreadToolUsageContent(ThreadMessageContent):
     pending_at: datetime | None = field(
         default=None,
         metadata={
-            "description": "The timestamp when the tool call was pending "
-            "(fully formed, not yet executed)",
+            "description": "The timestamp when the tool call was pending (fully formed, not yet executed)",
         },
     )
     """The timestamp when the tool call was pending (fully formed, not yet executed)"""
@@ -153,12 +152,8 @@ class ThreadToolUsageContent(ThreadMessageContent):
             "error": self.error,
             # TODO: This is a hack to get around the fact that the started_at and
             # ended_at fields are sometimes not datetime objects. Need to fix this
-            "started_at": (
-                self.started_at.isoformat() if isinstance(self.started_at, datetime) else None
-            ),
-            "ended_at": (
-                self.ended_at.isoformat() if isinstance(self.ended_at, datetime) else None
-            ),
+            "started_at": (self.started_at.isoformat() if isinstance(self.started_at, datetime) else None),
+            "ended_at": (self.ended_at.isoformat() if isinstance(self.ended_at, datetime) else None),
             "action_server_run_id": self.action_server_run_id,
             "metadata": deepcopy(self.metadata),
         }

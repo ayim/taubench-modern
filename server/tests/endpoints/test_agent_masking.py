@@ -19,9 +19,7 @@ from agent_platform.server.api.private_v2.compatibility.agent_compat import (
 
 @pytest.fixture
 def sample_agent():
-    runbook_content = cast(
-        list[AnyRunbookContent], [RunbookTextContent(content="Sensitive runbook content")]
-    )
+    runbook_content = cast(list[AnyRunbookContent], [RunbookTextContent(content="Sensitive runbook content")])
     runbook = Runbook(raw_text="Sensitive runbook text", content=runbook_content)
     platform_config = OpenAIPlatformParameters(
         openai_api_key=SecretString("sk-test-secret-api-key-12345"),
@@ -102,10 +100,7 @@ def test_unmasking_explicit_true(sample_agent):
     # Runbook structured revealed
     assert compat.runbook_structured.raw_text == "Sensitive runbook text"
     assert len(compat.runbook_structured.content) == 1
-    assert (
-        getattr(compat.runbook_structured.content[0], "content", None)
-        == "Sensitive runbook content"
-    )
+    assert getattr(compat.runbook_structured.content[0], "content", None) == "Sensitive runbook content"
     # Action package API key revealed
     assert compat.action_packages[0].api_key == "ap-key-123"
     # Observability config API key revealed

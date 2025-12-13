@@ -65,10 +65,7 @@ class ConfigMeta(type):
         super_cls = super().__new__(cls, name, bases, attrs)
 
         # Skip the base Configuration class itself
-        if (
-            name == "Configuration"
-            and attrs.get("__module__") == "agent_platform.core.configurations.base"
-        ):
+        if name == "Configuration" and attrs.get("__module__") == "agent_platform.core.configurations.base":
             return super_cls
 
         # Determine if this is an abstract base class or a concrete configuration

@@ -98,9 +98,7 @@ class TestReductoIntegration:
         agent_id = agent_factory()
         thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
         resource_path = spar_resources_path / resource_name
-        file_upload_result = upload_file_to_thread(
-            agent_server_client_with_doc_int, thread_id, resource_path
-        )
+        file_upload_result = upload_file_to_thread(agent_server_client_with_doc_int, thread_id, resource_path)
         return thread_id, file_upload_result.file_ref, agent_id
 
     @pytest.mark.parametrize("resource_name", ["tables.pdf"])
@@ -116,9 +114,7 @@ class TestReductoIntegration:
         )
 
         # perform the parse
-        parse_result = agent_server_client_with_doc_int.parse_document(
-            file_ref, agent_id, thread_id
-        )
+        parse_result = agent_server_client_with_doc_int.parse_document(file_ref, agent_id, thread_id)
 
         # assert the parse result matches expected structure
         self._assert_tables_pdf_parse_result(parse_result)
@@ -136,9 +132,7 @@ class TestReductoIntegration:
         )
 
         # Get a job
-        job_result = agent_server_client_with_doc_int.start_async_document_parse(
-            file_ref, thread_id
-        )
+        job_result = agent_server_client_with_doc_int.start_async_document_parse(file_ref, thread_id)
 
         # Assert the job result matches expected structure
         assert job_result.job_id is not None
@@ -153,9 +147,7 @@ class TestReductoIntegration:
         result_url = result["result_url"]
         while result_url is None:
             sleep(1)
-            result = agent_server_client_with_doc_int.get_job_status(
-                job_result.job_id, JobType.PARSE
-            )
+            result = agent_server_client_with_doc_int.get_job_status(job_result.job_id, JobType.PARSE)
             result_url = result["result_url"]
 
         # check result url is the expected one
@@ -164,9 +156,7 @@ class TestReductoIntegration:
         )
 
         # get the result
-        job_result = agent_server_client_with_doc_int.get_job_result(
-            job_result.job_id, JobType.PARSE
-        )
+        job_result = agent_server_client_with_doc_int.get_job_result(job_result.job_id, JobType.PARSE)
         assert isinstance(job_result, ParseJobResult)
         self._assert_tables_pdf_parse_result(job_result)
 
@@ -185,9 +175,7 @@ class TestReductoIntegration:
         )
 
         # generate the extraction schema
-        extraction_schema = agent_server_client_with_doc_int.generate_extraction_schema(
-            file_ref, thread_id, agent_id
-        )
+        extraction_schema = agent_server_client_with_doc_int.generate_extraction_schema(file_ref, thread_id, agent_id)
         return {
             "schema": extraction_schema.schema,
             "resource_name": resource_name,

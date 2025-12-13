@@ -44,10 +44,7 @@ def serialize_aiobotocore_headers(resp: Any) -> dict[str, list[str]]:
         try:
             key = str(k)
             if isinstance(v, list | tuple):
-                vals = [
-                    str(x, "utf-8", "ignore") if isinstance(x, bytes | bytearray) else str(x)
-                    for x in v
-                ]
+                vals = [str(x, "utf-8", "ignore") if isinstance(x, bytes | bytearray) else str(x) for x in v]
             else:
                 vals = [str(v, "utf-8", "ignore") if isinstance(v, bytes | bytearray) else str(v)]
         except Exception:
@@ -66,11 +63,7 @@ def is_openai_models(url: str) -> bool:
 
 def is_transient_body(text: str) -> bool:
     t = (text or "").lower()
-    return (
-        "upstream connect error" in t
-        or "reset before headers" in t
-        or "connection termination" in t
-    )
+    return "upstream connect error" in t or "reset before headers" in t or "connection termination" in t
 
 
 def should_skip_record(status_code: int) -> bool:

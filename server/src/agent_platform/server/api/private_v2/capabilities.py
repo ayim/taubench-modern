@@ -53,9 +53,7 @@ class _Book:
 class ListMCPToolsRequest:
     """Payload schema for listing tools from MCP servers."""
 
-    mcp_servers: list[MCPServer] = field(
-        metadata={"description": "The MCP servers to query for tools."}
-    )
+    mcp_servers: list[MCPServer] = field(metadata={"description": "The MCP servers to query for tools."})
 
 
 def _basic_test_prompt_with_tool() -> tuple[Prompt, Callable[[ResponseMessage], bool]]:

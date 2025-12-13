@@ -81,9 +81,7 @@ class Trace:
             raise ValueError(f"Unknown message content kind {kind}")
 
         messages = [
-            Message(
-                role=msg["role"], content=[parse_content(content) for content in msg["content"]]
-            )
+            Message(role=msg["role"], content=[parse_content(content) for content in msg["content"]])
             for msg in data["messages"]
         ]
 
@@ -171,26 +169,19 @@ class ReplayToolExecutor(ToolExecutor):
 
     def _assert_next(self, tool: Tool) -> _ExpectedCall:
         if self._i >= len(self._calls):
-            raise AssertionError(
-                f"Unexpected tool call #{self._i + 1}: {tool.tool_name}. "
-                "No more calls were recorded."
-            )
+            raise AssertionError(f"Unexpected tool call #{self._i + 1}: {tool.tool_name}. No more calls were recorded.")
 
         exp = self._calls[self._i]
 
         if tool.tool_name != exp.tool_name:
             raise AssertionError(
-                f"Tool name mismatch at call #{self._i + 1}.\n"
-                f"  expected: {exp.tool_name}\n"
-                f"  got     : {tool.tool_name}"
+                f"Tool name mismatch at call #{self._i + 1}.\n  expected: {exp.tool_name}\n  got     : {tool.tool_name}"
             )
 
         try:
             actual_args = json.loads(tool.input_raw)
         except json.JSONDecodeError as e:
-            raise ValueError(
-                f"Bad actual input JSON for {tool.tool_name}: {e}\n{tool.input_raw}"
-            ) from e
+            raise ValueError(f"Bad actual input JSON for {tool.tool_name}: {e}\n{tool.input_raw}") from e
 
         # Args check (deep equality). If needed, you can customize to allow
         # reordering or extra keys using self._strict.
@@ -224,9 +215,7 @@ class ReplayToolExecutor(ToolExecutor):
             raise AssertionError(f"{remaining} recorded tool call(s) were not executed.")
 
 
-def get_user_messages(
-    messages: list["Message"], start_index: int
-) -> tuple[list["Message"], int | None]:
+def get_user_messages(messages: list["Message"], start_index: int) -> tuple[list["Message"], int | None]:
     n = len(messages)
     if not (0 <= start_index < n) or messages[start_index].role != "user":
         raise ValueError(f"start_index={start_index} out of range or not a user message")
@@ -267,9 +256,7 @@ class ReplayResultManager:
                 "success": result.success,
                 "error": result.error,
                 "golden_trace": self._get_trace_as_json(result.golden_trace),
-                "trace": self._get_trace_as_json(result.trace)
-                if result.trace is not None
-                else None,
+                "trace": self._get_trace_as_json(result.trace) if result.trace is not None else None,
                 "evaluations": [self._get_eval_as_json(e) for e in result.evaluation_results],
             }
             json.dump(payload, f, indent=4)
@@ -350,7 +337,7 @@ class Simulator:
 
         self.result_manager = ReplayResultManager(datadir=datadir)
 
-    async def replay_trace(  # noqa: PLR0915
+    async def replay_trace(
         self,
         golden_trace: Trace,
         assert_all_consumed: bool = False,
@@ -373,9 +360,7 @@ class Simulator:
 
         new_environment = TraceEnvironment(
             name=f"Replay {golden_trace.environment.name}",
-            agent_name=agent_name
-            if agent_name is not None
-            else golden_trace.environment.agent_name,
+            agent_name=agent_name if agent_name is not None else golden_trace.environment.agent_name,
             agent_server_version=agent_server_version
             if agent_server_version is not None
             else golden_trace.environment.agent_server_version,
@@ -397,9 +382,7 @@ class Simulator:
 
             tool_executor = ReplayToolExecutor.from_conversation(golden_trace)
             client_tools = [
-                ClientTool(
-                    name=tool.name, description=tool.description, input_schema=tool.input_schema
-                )
+                ClientTool(name=tool.name, description=tool.description, input_schema=tool.input_schema)
                 for tool in golden_trace.tools
             ]
 
@@ -469,9 +452,7 @@ class Simulator:
             )
             judge = ConversationJudge(agent_server_url=self.server_url)
 
-            evaluation = await judge.evaluate(
-                benchmark=golden_trace.messages, target=trace.messages
-            )
+            evaluation = await judge.evaluate(benchmark=golden_trace.messages, target=trace.messages)
             result = ReplayResult(
                 trace=trace,
                 golden_trace=golden_trace,

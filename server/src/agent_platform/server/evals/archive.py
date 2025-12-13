@@ -91,9 +91,7 @@ def _list_scenario_entries(metadata: dict[str, Any]) -> list[ScenarioArchiveEntr
             if not isinstance(tools_path, str):
                 tools_path = None
             attachments = _parse_attachment_entries(entry.get("attachments"), path)
-            entries.append(
-                ScenarioArchiveEntry(path=path, tools_path=tools_path, attachments=attachments)
-            )
+            entries.append(ScenarioArchiveEntry(path=path, tools_path=tools_path, attachments=attachments))
             seen_paths.add(path)
 
     if not entries:
@@ -119,31 +117,23 @@ def _load_scenario_payload(archive: zipfile.ZipFile, path: str) -> dict[str, Any
     return payload
 
 
-def _parse_attachment_entries(  # noqa: C901
-    raw_attachments: Any, scenario_path: str
-) -> tuple[ScenarioAttachmentEntry, ...]:
+def _parse_attachment_entries(raw_attachments: Any, scenario_path: str) -> tuple[ScenarioAttachmentEntry, ...]:
     if raw_attachments is None:
         return ()
 
     if not isinstance(raw_attachments, list):
-        raise ScenarioImportError(
-            f"Scenario '{scenario_path}' attachments entry must be a list when provided"
-        )
+        raise ScenarioImportError(f"Scenario '{scenario_path}' attachments entry must be a list when provided")
 
     attachments: list[ScenarioAttachmentEntry] = []
     seen_paths: set[str] = set()
 
     for index, raw_attachment in enumerate(raw_attachments):
         if not isinstance(raw_attachment, dict):
-            raise ScenarioImportError(
-                f"Scenario '{scenario_path}' attachment at index {index} must be a mapping"
-            )
+            raise ScenarioImportError(f"Scenario '{scenario_path}' attachment at index {index} must be a mapping")
 
         archive_path = raw_attachment.get("path")
         if not isinstance(archive_path, str) or not archive_path.strip():
-            raise ScenarioImportError(
-                f"Scenario '{scenario_path}' attachment at index {index} is missing a valid path"
-            )
+            raise ScenarioImportError(f"Scenario '{scenario_path}' attachment at index {index} is missing a valid path")
         if archive_path in seen_paths:
             raise ScenarioImportError(
                 f"Scenario '{scenario_path}' attachment at index {index} references duplicate path"
@@ -153,8 +143,7 @@ def _parse_attachment_entries(  # noqa: C901
         file_ref = raw_attachment.get("file_ref")
         if not isinstance(file_ref, str) or not file_ref.strip():
             raise ScenarioImportError(
-                f"Scenario '{scenario_path}' attachment at index {index} "
-                f"is missing a valid file ref"
+                f"Scenario '{scenario_path}' attachment at index {index} is missing a valid file ref"
             )
 
         mime_type = raw_attachment.get("mime_type")
@@ -166,9 +155,7 @@ def _parse_attachment_entries(  # noqa: C901
         size = raw_attachment.get("size")
         if size is not None:
             if not isinstance(size, int) or size < 0:
-                raise ScenarioImportError(
-                    f"Scenario '{scenario_path}' attachment at index {index} has an invalid size"
-                )
+                raise ScenarioImportError(f"Scenario '{scenario_path}' attachment at index {index} has an invalid size")
 
         attachments.append(
             ScenarioAttachmentEntry(
@@ -182,15 +169,11 @@ def _parse_attachment_entries(  # noqa: C901
     return tuple(attachments)
 
 
-def _load_used_tools(
-    archive: zipfile.ZipFile, tools_path: str, scenario_path: str
-) -> list[dict[str, Any]]:
+def _load_used_tools(archive: zipfile.ZipFile, tools_path: str, scenario_path: str) -> list[dict[str, Any]]:
     try:
         payload_bytes = archive.read(tools_path)
     except KeyError as exc:
-        error_message = (
-            f"Used tools file '{tools_path}' referenced by {scenario_path}' is missing from archive"
-        )
+        error_message = f"Used tools file '{tools_path}' referenced by {scenario_path}' is missing from archive"
         raise ScenarioImportError(error_message) from exc
 
     try:
@@ -206,14 +189,10 @@ def _load_used_tools(
     tools: list[dict[str, Any]] = []
     for index, entry in enumerate(payload):
         if not isinstance(entry, dict):
-            raise ScenarioImportError(
-                f"Used tools file '{tools_path}' entry at index {index} must be a mapping"
-            )
+            raise ScenarioImportError(f"Used tools file '{tools_path}' entry at index {index} must be a mapping")
         tool_name = entry.get("name")
         if not isinstance(tool_name, str) or not tool_name.strip():
-            raise ScenarioImportError(
-                f"Used tools file '{tools_path}' entry at index {index} is missing a valid name"
-            )
+            raise ScenarioImportError(f"Used tools file '{tools_path}' entry at index {index} is missing a valid name")
         tools.append(entry)
 
     return tools
@@ -233,9 +212,7 @@ def _extract_tool_categories(messages: list[ThreadMessage]) -> dict[str, str]:
     return categories
 
 
-def _apply_used_tools_to_messages(
-    messages: list[ThreadMessage], used_tools: list[dict[str, Any]] | None
-) -> None:
+def _apply_used_tools_to_messages(messages: list[ThreadMessage], used_tools: list[dict[str, Any]] | None) -> None:
     if not used_tools:
         return
 
@@ -312,15 +289,11 @@ def _scenario_from_payload(
     messages: list[ThreadMessage] = []
     for index, raw_message in enumerate(raw_messages):
         if not isinstance(raw_message, dict):
-            raise ScenarioImportError(
-                f"Scenario '{path}' message at index {index} must be a mapping"
-            )
+            raise ScenarioImportError(f"Scenario '{path}' message at index {index} must be a mapping")
         try:
             message = ThreadMessage.model_validate(raw_message)
         except Exception as exc:
-            raise ScenarioImportError(
-                f"Scenario '{path}' message at index {index} is invalid: {exc}"
-            ) from exc
+            raise ScenarioImportError(f"Scenario '{path}' message at index {index} is invalid: {exc}") from exc
         message.mark_complete()
         messages.append(message)
 
@@ -350,14 +323,12 @@ def _load_archive_attachments(
             file_bytes = archive.read(attachment.archive_path)
         except KeyError as exc:
             raise ScenarioImportError(
-                f"Attachment '{attachment.archive_path}' referenced by '{entry.path}' "
-                "is missing from archive"
+                f"Attachment '{attachment.archive_path}' referenced by '{entry.path}' is missing from archive"
             ) from exc
 
         if attachment.size is not None and len(file_bytes) != attachment.size:
             raise ScenarioImportError(
-                f"Attachment '{attachment.archive_path}' referenced by '{entry.path}' "
-                "has unexpected size"
+                f"Attachment '{attachment.archive_path}' referenced by '{entry.path}' has unexpected size"
             )
 
         attachments.append(
@@ -378,7 +349,7 @@ def _derive_attachment_filename(file_ref: str) -> str:
     return _safe_filename_fragment(file_ref, default="file")
 
 
-def _rewrite_imported_attachment_handles(  # noqa: PLR0912, C901
+def _rewrite_imported_attachment_handles(
     messages: list[ThreadMessage],
     uploads_by_ref: dict[str, UploadedFile],
 ) -> bool:
@@ -582,12 +553,8 @@ async def build_scenarios_archive(
             scenario_path = _scenario_entry_filename(scenario, index)
             tools_path = _tools_entry_filename(scenario, index)
             metadata_dict = scenario.metadata if isinstance(scenario.metadata, dict) else {}
-            drift_policy = (
-                metadata_dict.get("drift_policy", {}) if isinstance(metadata_dict, dict) else {}
-            )
-            tool_execution_mode = (
-                drift_policy.get("tool_execution_mode") if isinstance(drift_policy, dict) else None
-            )
+            drift_policy = metadata_dict.get("drift_policy", {}) if isinstance(metadata_dict, dict) else {}
+            tool_execution_mode = drift_policy.get("tool_execution_mode") if isinstance(drift_policy, dict) else None
 
             scenario_payload = {
                 "name": scenario.name,
@@ -598,10 +565,7 @@ async def build_scenarios_archive(
                     "messages": [
                         {
                             "role": message.role,
-                            "content": [
-                                _remove_metadata(content.model_dump())
-                                for content in message.content
-                            ],
+                            "content": [_remove_metadata(content.model_dump()) for content in message.content],
                         }
                         for message in scenario.messages
                     ],
@@ -609,9 +573,7 @@ async def build_scenarios_archive(
             }
 
             conversation_analysis = ReplayToolExecutor.from_conversation(scenario.messages)
-            tool_defs = [
-                _remove_metadata(tool.model_dump()) for tool in conversation_analysis.tools
-            ]
+            tool_defs = [_remove_metadata(tool.model_dump()) for tool in conversation_analysis.tools]
 
             archive.writestr(tools_path, yaml.safe_dump(tool_defs, sort_keys=False))
             archive.writestr(scenario_path, yaml.safe_dump(scenario_payload, sort_keys=False))
@@ -650,9 +612,7 @@ async def build_scenarios_archive(
     return buffer.getvalue(), _scenarios_export_filename(agent_id)
 
 
-async def load_scenarios_bundles(
-    user_id: str, agent_id: str, content: bytes
-) -> list[ScenarioImportBundle]:
+async def load_scenarios_bundles(user_id: str, agent_id: str, content: bytes) -> list[ScenarioImportBundle]:
     scenarios_to_create: list[ScenarioImportBundle] = []
 
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
@@ -661,9 +621,7 @@ async def load_scenarios_bundles(
         for entry in _list_scenario_entries(metadata):
             payload = _load_scenario_payload(archive, entry.path)
             used_tools = (
-                _load_used_tools(archive, entry.tools_path, entry.path)
-                if entry.tools_path is not None
-                else None
+                _load_used_tools(archive, entry.tools_path, entry.path) if entry.tools_path is not None else None
             )
             scenario_model = _scenario_from_payload(
                 payload=payload,
@@ -710,10 +668,7 @@ async def create_scenarios_from_bundles(
                     for attachment in bundle.attachments
                 ]
                 try:
-                    logger.info(
-                        f"Uploading {len(upload_payloads)} files "
-                        f"for scenario {created_scenario.scenario_id}"
-                    )
+                    logger.info(f"Uploading {len(upload_payloads)} files for scenario {created_scenario.scenario_id}")
                     uploaded_files = await file_manager.upload(
                         upload_payloads,
                         created_scenario,
@@ -721,9 +676,7 @@ async def create_scenarios_from_bundles(
                     )
                     uploads_by_ref = {
                         attachment.file_ref: uploaded
-                        for attachment, uploaded in zip(
-                            bundle.attachments, uploaded_files, strict=False
-                        )
+                        for attachment, uploaded in zip(bundle.attachments, uploaded_files, strict=False)
                         if uploaded is not None
                     }
                 finally:

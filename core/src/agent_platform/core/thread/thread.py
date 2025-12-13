@@ -282,8 +282,7 @@ class Thread(TolerantDataclass):
         """Create a thread from a dictionary."""
         data = data.copy()
         messages = [
-            ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg
-            for msg in data.pop("messages", [])
+            ThreadMessage.model_validate(msg) if isinstance(msg, dict) else msg for msg in data.pop("messages", [])
         ]
         if "thread_id" in data and isinstance(data["thread_id"], UUID):
             data["thread_id"] = str(data["thread_id"])

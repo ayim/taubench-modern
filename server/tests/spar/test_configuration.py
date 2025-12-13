@@ -43,9 +43,7 @@ class TestDocumentIntelligenceConfiguration:
                 row = cur.fetchone()
                 print(row)
                 assert row is not None, "Document intelligence integrations should be set up"
-                assert row["kind"] == "reducto", (
-                    "Document intelligence integration kind should be reducto"
-                )
+                assert row["kind"] == "reducto", "Document intelligence integration kind should be reducto"
 
         import json
 

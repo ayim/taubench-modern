@@ -105,7 +105,7 @@ def write_debug_prompt_yaml(
         logger.exception("Failed writing prompt debug YAML to %s: %s", file_path, write_error)
 
 
-def build_llm_async_http_client(  # noqa: PLR0913
+def build_llm_async_http_client(
     *,
     # Match OpenAI SDK defaults, with bumps to connect,
     # read, and keepalive_expiry. (And defaults to http2.)

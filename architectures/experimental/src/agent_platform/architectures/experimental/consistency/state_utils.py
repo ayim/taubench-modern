@@ -97,9 +97,7 @@ async def sync_consistency_metadata(
 
     # 3. Build the discrete metadata payloads.
     plan_payload = _build_plan_payload(state)
-    monitor_payload = _build_monitor_payload(
-        history=trimmed_history, latest=state.monitor_feedback_latest
-    )
+    monitor_payload = _build_monitor_payload(history=trimmed_history, latest=state.monitor_feedback_latest)
     execution_payload = _build_execution_payload(state)
 
     # 4. Attach payloads to the message metadata.
@@ -135,9 +133,7 @@ def _build_plan_payload(state: ConsistencyArchState) -> dict[str, Any]:
     return payload
 
 
-def _build_monitor_payload(
-    history: list[MonitorFeedbackEntry], latest: MonitorFeedbackEntry
-) -> dict[str, Any]:
+def _build_monitor_payload(history: list[MonitorFeedbackEntry], latest: MonitorFeedbackEntry) -> dict[str, Any]:
     """Constructs the 'monitor' dictionary for agent metadata."""
     return {"latest": latest, "history": history}
 

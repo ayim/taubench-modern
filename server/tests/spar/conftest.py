@@ -90,9 +90,7 @@ def agent_server_client_with_doc_int(
         http_url = http_url_env
         http_port = _env_int("SPAR_DATA_SERVER_HTTP_PORT", parsed_http.port or 47334)
     else:
-        http_host = _env_default(
-            "SPAR_DATA_SERVER_HTTP_HOST", _env_default("SPAR_DATA_SERVER_HOST", "data-server")
-        )
+        http_host = _env_default("SPAR_DATA_SERVER_HTTP_HOST", _env_default("SPAR_DATA_SERVER_HOST", "data-server"))
         http_url = f"http://{http_host}" if "://" not in http_host else http_host
         http_port = _env_int("SPAR_DATA_SERVER_HTTP_PORT", 47334)
 
@@ -106,9 +104,7 @@ def agent_server_client_with_doc_int(
 
     # Data connection used by Document Intelligence extractions
     parsed_postgres = urlparse(
-        _env_default(
-            "SPAR_DATA_CONNECTION_POSTGRES_URL", "postgresql://agents:agents@postgres:5432/agents"
-        )
+        _env_default("SPAR_DATA_CONNECTION_POSTGRES_URL", "postgresql://agents:agents@postgres:5432/agents")
     )
     data_connection_host = _env_default(
         "SPAR_DATA_CONNECTION_HOST",

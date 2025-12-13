@@ -68,7 +68,6 @@ class BaseFileManager(ABC):
         user_id: str,
     ) -> list[UploadedFile]:
         """Implementation specific upload logic."""
-        pass
 
     @abstractmethod
     async def delete(
@@ -122,7 +121,6 @@ class BaseFileManager(ABC):
         Raises:
             Exception: If the file is not found or cannot be accessed
         """
-        pass
 
     @abstractmethod
     async def request_remote_file_upload(
@@ -191,10 +189,7 @@ class BaseFileManager(ABC):
         }
 
         file_base, _ = os.path.splitext(filename)
-        if (
-            filename.upper() in reserved_windows_file_names
-            or file_base.upper() in reserved_windows_file_names
-        ):
+        if filename.upper() in reserved_windows_file_names or file_base.upper() in reserved_windows_file_names:
             raise InvalidFileUploadError(f"Invalid file name: {filename}")
 
         # Invalid characters for Windows

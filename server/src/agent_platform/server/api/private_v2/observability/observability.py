@@ -218,9 +218,7 @@ async def update_observability_integration(
     updated_integration = Integration(
         id=integration.id,
         kind="observability",
-        description=(
-            payload.description if payload.description is not None else integration.description
-        ),
+        description=(payload.description if payload.description is not None else integration.description),
         version=payload.version if payload.version is not None else integration.version,
         settings=updated_settings,
         created_at=integration.created_at,

@@ -16,9 +16,7 @@ class TestDataServerDetails:
     def test_connection_details_missing_required_fields(self):
         """Test that host and port are required fields."""
         # Test missing both host and port
-        with pytest.raises(
-            TypeError, match="missing 2 required positional arguments: 'host' and 'port'"
-        ):
+        with pytest.raises(TypeError, match="missing 2 required positional arguments: 'host' and 'port'"):
             DataServerEndpoint()  # type: ignore[call-arg]
 
         # Test missing port only
@@ -46,9 +44,7 @@ class TestDataServerDetails:
 
     def test_connection_details_mysql_kind(self):
         """Test connection details with MySQL kind and explicit port."""
-        conn = DataServerEndpoint(
-            host="mysql.example.com", port=3306, kind=DataServerEndpointKind.MYSQL
-        )
+        conn = DataServerEndpoint(host="mysql.example.com", port=3306, kind=DataServerEndpointKind.MYSQL)
         assert conn.host == "mysql.example.com"
         assert conn.port == 3306
         assert conn.kind == DataServerEndpointKind.MYSQL
@@ -56,9 +52,7 @@ class TestDataServerDetails:
 
     def test_connection_details_mysql_with_custom_port(self):
         """Test MySQL connection with custom port."""
-        conn = DataServerEndpoint(
-            host="mysql.example.com", kind=DataServerEndpointKind.MYSQL, port=3307
-        )
+        conn = DataServerEndpoint(host="mysql.example.com", kind=DataServerEndpointKind.MYSQL, port=3307)
         assert conn.host == "mysql.example.com"
         assert conn.port == 3307
         assert conn.kind == DataServerEndpointKind.MYSQL
@@ -127,9 +121,7 @@ class TestDataServerDetails:
 
         # Test missing both
         data = {"kind": "http"}
-        with pytest.raises(
-            TypeError, match="missing 2 required positional arguments: 'host' and 'port'"
-        ):
+        with pytest.raises(TypeError, match="missing 2 required positional arguments: 'host' and 'port'"):
             DataServerEndpoint.model_validate(data)
 
     def test_model_validate_invalid_values(self):
@@ -156,9 +148,7 @@ class TestDataServerDetails:
 
     def test_model_validate_roundtrip(self):
         """Test that model_dump -> model_validate is a roundtrip."""
-        original = DataServerEndpoint(
-            host="example.com", port=7777, kind=DataServerEndpointKind.MYSQL
-        )
+        original = DataServerEndpoint(host="example.com", port=7777, kind=DataServerEndpointKind.MYSQL)
         dumped = original.model_dump()
         restored = DataServerEndpoint.model_validate(dumped)
 
@@ -195,9 +185,7 @@ class TestDataServerEndpoint:
 
     def test_secret_string_already_secret_string(self):
         """Test that existing SecretString is preserved and explicit updated_at works."""
-        connection = DataServerEndpoint(
-            host="mysql.example.com", port=3306, kind=DataServerEndpointKind.MYSQL
-        )
+        connection = DataServerEndpoint(host="mysql.example.com", port=3306, kind=DataServerEndpointKind.MYSQL)
         secret_password = SecretString("secret123")
         specific_time = datetime(2024, 1, 15, 10, 30, 45)
 
@@ -267,9 +255,7 @@ class TestDataServerEndpoint:
 
     def test_as_datasource_connection_input_mysql(self):
         """Test as_datasource_connection_input for MySQL connection."""
-        connection = DataServerEndpoint(
-            host="mysql.example.com", port=3307, kind=DataServerEndpointKind.MYSQL
-        )
+        connection = DataServerEndpoint(host="mysql.example.com", port=3307, kind=DataServerEndpointKind.MYSQL)
 
         creds = DataServerDetails(
             username="testuser",
@@ -292,12 +278,8 @@ class TestDataServerEndpoint:
 
     def test_as_datasource_connection_input_multiple_connections(self):
         """Test as_datasource_connection_input with both HTTP and MySQL connections."""
-        http_connection = DataServerEndpoint(
-            host="api.example.com", port=8080, kind=DataServerEndpointKind.HTTP
-        )
-        mysql_connection = DataServerEndpoint(
-            host="mysql.example.com", port=3307, kind=DataServerEndpointKind.MYSQL
-        )
+        http_connection = DataServerEndpoint(host="api.example.com", port=8080, kind=DataServerEndpointKind.HTTP)
+        mysql_connection = DataServerEndpoint(host="mysql.example.com", port=3307, kind=DataServerEndpointKind.MYSQL)
 
         creds = DataServerDetails(
             username="testuser",
@@ -384,9 +366,7 @@ class TestDataServerEndpoint:
 
     def test_model_validate_roundtrip(self):
         """Test that model_dump -> model_validate is a roundtrip."""
-        connection = DataServerEndpoint(
-            host="mysql.example.com", port=3307, kind=DataServerEndpointKind.MYSQL
-        )
+        connection = DataServerEndpoint(host="mysql.example.com", port=3307, kind=DataServerEndpointKind.MYSQL)
 
         original = DataServerDetails(
             username="testuser",

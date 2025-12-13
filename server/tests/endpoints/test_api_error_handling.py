@@ -95,9 +95,7 @@ class MockErrorStorage:
             raise error
         return list(self.threads.values())
 
-    async def add_message_to_thread(
-        self, user_id: str, thread_id: str, message: ThreadMessage
-    ) -> None:
+    async def add_message_to_thread(self, user_id: str, thread_id: str, message: ThreadMessage) -> None:
         if self.error_to_raise:
             error = self.error_to_raise
             self.error_to_raise = None
@@ -219,15 +217,11 @@ class TestHTTPErrorHandling:
 
     def test_malformed_json_returns_422(self, client: TestClient):
         """Test that malformed JSON returns 422 status."""
-        response = client.post(
-            "/threads/", content="invalid json{", headers={"Content-Type": "application/json"}
-        )
+        response = client.post("/threads/", content="invalid json{", headers={"Content-Type": "application/json"})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_platform_error_returns_500_with_custom_message(
-        self, client: TestClient, mock_error_storage
-    ):
+    def test_platform_error_returns_500_with_custom_message(self, client: TestClient, mock_error_storage):
         """Test that PlatformError returns 500 with the custom message in the API response.
 
         This verifies that when PlatformError is raised (to capture internal errors),
@@ -258,9 +252,7 @@ class TestHTTPErrorHandling:
         # The custom message should be included in the response (not squelched)
         assert error_info["message"] == custom_message
 
-    def test_platform_error_with_error_code_returns_custom_message(
-        self, client: TestClient, mock_error_storage
-    ):
+    def test_platform_error_with_error_code_returns_custom_message(self, client: TestClient, mock_error_storage):
         """Test that PlatformError with a specific error code returns the custom message."""
         from agent_platform.core.errors import PlatformError
         from agent_platform.core.errors.responses import ErrorCode
@@ -290,9 +282,7 @@ class TestHTTPErrorHandling:
         assert error_info["message"] == custom_message
         assert error_info["message"] != ErrorCode.UNEXPECTED.default_message
 
-    def test_generic_exception_returns_500_with_message(
-        self, client: TestClient, mock_error_storage
-    ):
+    def test_generic_exception_returns_500_with_message(self, client: TestClient, mock_error_storage):
         """Test that generic exceptions (not inheriting from PlatformError) are caught.
 
         This verifies that any unhandled exception that doesn't inherit from
@@ -319,9 +309,7 @@ class TestHTTPErrorHandling:
         # The exception message should be exposed in the response
         assert error_info["message"] == error_message
 
-    def test_generic_exception_subclass_returns_500_with_message(
-        self, client: TestClient, mock_error_storage
-    ):
+    def test_generic_exception_subclass_returns_500_with_message(self, client: TestClient, mock_error_storage):
         """Test that exceptions that subclass Exception (but not PlatformError) are caught."""
 
         # Create a custom exception class
@@ -349,9 +337,7 @@ class TestHTTPErrorHandling:
         assert error_info["message"] == error_message
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    def test_agent_creation_validation_error_secret_redaction(
-        self, mock_quotas_get_instance, client: TestClient
-    ):
+    def test_agent_creation_validation_error_secret_redaction(self, mock_quotas_get_instance, client: TestClient):
         """Test that API keys and other secrets are redacted from validation error responses."""
         # Mock QuotasService to prevent SQLiteStorage initialization issues
         mock_quotas_service = Mock()
@@ -418,9 +404,7 @@ class TestHTTPErrorHandling:
         )
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    def test_validation_error_secret_redaction_in_logs(
-        self, mock_quotas_get_instance, client: TestClient, caplog
-    ):
+    def test_validation_error_secret_redaction_in_logs(self, mock_quotas_get_instance, client: TestClient, caplog):
         """Test that API keys and other secrets are redacted from log messages during
         validation errors."""
         # Mock QuotasService to prevent SQLiteStorage initialization issues
@@ -479,9 +463,7 @@ class TestHTTPErrorHandling:
         )
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    def test_agent_creation_validation_error_wrong_data_types(
-        self, mock_quotas_get_instance, client: TestClient
-    ):
+    def test_agent_creation_validation_error_wrong_data_types(self, mock_quotas_get_instance, client: TestClient):
         """Test agent creation with wrong data types for specific fields."""
         # Mock QuotasService to prevent SQLiteStorage initialization issues
         mock_quotas_service = Mock()
@@ -621,9 +603,7 @@ class TestHTTPErrorHandling:
             "Agent name already exists",
         )
 
-        response = client.post(
-            "/agents/package", json={"package_url": "http://example.com/package.zip"}
-        )
+        response = client.post("/agents/package", json={"package_url": "http://example.com/package.zip"})
 
         # The test might return 422 instead of 409 due to validation issues
         # with the mock setup, so we'll accept both

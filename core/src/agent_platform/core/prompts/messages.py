@@ -17,11 +17,7 @@ class PromptUserMessage(PromptMessage):
     """Represents a user message in the prompt."""
 
     content: list[  # type: ignore
-        PromptTextContent
-        | PromptImageContent
-        | PromptAudioContent
-        | PromptToolResultContent
-        | PromptDocumentContent
+        PromptTextContent | PromptImageContent | PromptAudioContent | PromptToolResultContent | PromptDocumentContent
     ] = field(metadata={"description": "The contents of the prompt message"})
     # Type ignore here as we have a refinement on the kinds of content
     # that can be in the list for a PromptUserMessage

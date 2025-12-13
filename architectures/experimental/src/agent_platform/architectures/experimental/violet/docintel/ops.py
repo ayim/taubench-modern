@@ -115,9 +115,7 @@ def _handle_delete_comment(card: DocCard, op: dict[str, Any]) -> bool:
     if field_id:
         # Filter out the comment with the matching field_id
         card.comments = [
-            c
-            for c in card.comments
-            if not (isinstance(c.anchor, dict) and c.anchor.get("field_id") == field_id)
+            c for c in card.comments if not (isinstance(c.anchor, dict) and c.anchor.get("field_id") == field_id)
         ]
     else:
         # Fallback: remove the last comment if no ID provided

@@ -174,9 +174,7 @@ class ReceivedMessages:
             message.print_info()
 
 
-def _send_message_collect_all_responses(
-    base_url: str, agent_id: str, thread_id: str, message: str
-) -> ReceivedMessages:
+def _send_message_collect_all_responses(base_url: str, agent_id: str, thread_id: str, message: str) -> ReceivedMessages:
     """Sends a message to the specified thread and collects all response messages."""
     import json
 
@@ -202,9 +200,7 @@ def _send_message_collect_all_responses(
     }
 
     response = requests.post(url, headers=headers, json=data)
-    assert response.status_code == requests.codes.ok, (
-        f"Error sending message: {response.status_code} {response.text}"
-    )
+    assert response.status_code == requests.codes.ok, f"Error sending message: {response.status_code} {response.text}"
 
     # Now 2:
     url = f"{base_url}/runs/{agent_id}/sync"
@@ -213,9 +209,7 @@ def _send_message_collect_all_responses(
         "agent_id": agent_id,
     }
     response = requests.post(url, headers=headers, json=sync_data)
-    assert response.status_code == requests.codes.ok, (
-        f"Error syncing run: {response.status_code} {response.text}"
-    )
+    assert response.status_code == requests.codes.ok, f"Error syncing run: {response.status_code} {response.text}"
 
     received_messages = ReceivedMessages()
 
@@ -422,8 +416,7 @@ class AgentServerClient:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
                 raise requests.exceptions.HTTPError(
-                    f"Error deleting file {file_ref} from thread {thread_id}: "
-                    f"{response.status_code} {response.text}",
+                    f"Error deleting file {file_ref} from thread {thread_id}: {response.status_code} {response.text}",
                 ) from e
 
     def delete_all_files_from_thread(self, thread_id: str) -> None:
@@ -439,7 +432,7 @@ class AgentServerClient:
                     f"Error deleting all files from thread: {response.status_code} {response.text}",
                 ) from e
 
-    def create_agent_and_return_agent_id(  # noqa: PLR0913
+    def create_agent_and_return_agent_id(
         self,
         *,
         name: str = "",
@@ -461,9 +454,7 @@ class AgentServerClient:
         if not name:
             name = f"Test Agent {self._next_agent_id()}"
 
-        action_packages_raw: list[dict] = (
-            [asdict(ap) for ap in action_packages] if action_packages else []
-        )
+        action_packages_raw: list[dict] = [asdict(ap) for ap in action_packages] if action_packages else []
         mcp_servers_raw: list[dict] = [asdict(ms) for ms in mcp_servers] if mcp_servers else []
         data = {
             "mode": "conversational",
@@ -605,9 +596,7 @@ class AgentServerClient:
         print_header("SENDING MESSAGE AND READING RESPONSE")
         print_info(f"Sending message: {message}")
 
-        received_messages = _send_message_collect_all_responses(
-            self.base_url, agent_id, thread_id, message
-        )
+        received_messages = _send_message_collect_all_responses(self.base_url, agent_id, thread_id, message)
         final_message = received_messages.get_final_ai_message()
         assert final_message is not None, "No AI message received in response"
         return final_message, received_messages.tool_calls
@@ -869,12 +858,11 @@ class AgentServerClient:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise requests.exceptions.HTTPError(
-                f"Error creating data frame from computation: {response.status_code} "
-                f"{response.text}",
+                f"Error creating data frame from computation: {response.status_code} {response.text}",
             ) from e
         return response.json()
 
-    def get_data_frame_slice(  # noqa: PLR0913
+    def get_data_frame_slice(
         self,
         thread_id: str,
         data_frame_id: str,
@@ -905,7 +893,7 @@ class AgentServerClient:
             ) from e
         return response.content
 
-    def get_data_frame_contents(  # noqa: PLR0913
+    def get_data_frame_contents(
         self,
         thread_id: str,
         data_frame_name: str,
@@ -977,9 +965,7 @@ class AgentServerClient:
         new_integrations = []
         if hasattr(doc_int_config, "integrations"):
             for integration in doc_int_config.integrations:
-                if hasattr(integration, "api_key") and isinstance(
-                    integration.api_key, SecretString
-                ):
+                if hasattr(integration, "api_key") and isinstance(integration.api_key, SecretString):
                     # Create a new IntegrationInput with the plain string API key
                     new_integration = IntegrationInput(
                         type=integration.type,
@@ -1014,9 +1000,7 @@ class AgentServerClient:
             ) from e
         return response
 
-    def generate_extraction_schema(
-        self, file_ref: str, thread_id: str, agent_id: str
-    ) -> GenerateSchemaResponsePayload:
+    def generate_extraction_schema(self, file_ref: str, thread_id: str, agent_id: str) -> GenerateSchemaResponsePayload:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/documents/generate-schema?thread_id={thread_id}&agent_id={agent_id}",
@@ -1037,9 +1021,7 @@ class AgentServerClient:
 
         return GenerateSchemaResponsePayload(**response.json())
 
-    def get_extraction_schema(
-        self, file_ref: str, thread_id: str, agent_id: str
-    ) -> GenerateSchemaResponsePayload:
+    def get_extraction_schema(self, file_ref: str, thread_id: str, agent_id: str) -> GenerateSchemaResponsePayload:
         """Get a cached extraction schema for a document.
 
         Args:
@@ -1176,9 +1158,7 @@ class AgentServerClient:
             ) from e
         return response.json()
 
-    def get_job_result(
-        self, job_id: str, job_type: "JobType"
-    ) -> ParseJobResult | ExtractJobResult | SplitJobResult:
+    def get_job_result(self, job_id: str, job_type: "JobType") -> ParseJobResult | ExtractJobResult | SplitJobResult:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/jobs/{job_id}/result?job_type={job_type.value}",
@@ -1201,9 +1181,7 @@ class AgentServerClient:
             case _:
                 raise ValueError(f"Invalid job type: {job_type}")
 
-    def create_data_connection(
-        self, name: str, description: str, engine: str, configuration: dict
-    ) -> dict:
+    def create_data_connection(self, name: str, description: str, engine: str, configuration: dict) -> dict:
         url = urljoin(self.base_url + "/", "/api/v2/data-connections")
         payload = {
             "name": name,
@@ -1369,9 +1347,7 @@ class AgentServerClient:
             ) from e
         return response.json()
 
-    def set_thread_semantic_data_models(
-        self, thread_id: str, semantic_data_model_ids: list[str]
-    ) -> None:
+    def set_thread_semantic_data_models(self, thread_id: str, semantic_data_model_ids: list[str]) -> None:
         """Set the semantic data models for a thread."""
         url = urljoin(self.base_url + "/", f"threads/{thread_id}/semantic-data-models")
         payload = {
@@ -1382,8 +1358,7 @@ class AgentServerClient:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise requests.exceptions.HTTPError(
-                f"Error setting thread semantic data models: "
-                f"{response.status_code} {response.text}",
+                f"Error setting thread semantic data models: {response.status_code} {response.text}",
             ) from e
 
     def get_thread_semantic_data_models(self, thread_id: str) -> list[dict]:
@@ -1394,14 +1369,11 @@ class AgentServerClient:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise requests.exceptions.HTTPError(
-                f"Error getting thread semantic data models: "
-                f"{response.status_code} {response.text}",
+                f"Error getting thread semantic data models: {response.status_code} {response.text}",
             ) from e
         return response.json()
 
-    def set_agent_semantic_data_models(
-        self, agent_id: str, semantic_data_model_ids: list[str]
-    ) -> None:
+    def set_agent_semantic_data_models(self, agent_id: str, semantic_data_model_ids: list[str]) -> None:
         """Set the semantic data models for an agent."""
         url = urljoin(self.base_url + "/", f"agents/{agent_id}/semantic-data-models")
         payload = {
@@ -1427,9 +1399,7 @@ class AgentServerClient:
             ) from e
         return response.json()
 
-    def list_semantic_data_models(
-        self, agent_id: str | None = None, thread_id: str | None = None
-    ) -> list[dict]:
+    def list_semantic_data_models(self, agent_id: str | None = None, thread_id: str | None = None) -> list[dict]:
         """List semantic data models with optional filtering by agent_id or thread_id."""
         url = urljoin(self.base_url + "/", "semantic-data-models/")
         params = {}

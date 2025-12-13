@@ -238,9 +238,7 @@ async def test_get_mcp_server_by_name(
     assert source == MCPServerSource.API
 
     # Test getting FILE source server
-    result_file = await storage.get_mcp_server_by_name(
-        sample_mcp_server_stdio.name, MCPServerSource.FILE
-    )
+    result_file = await storage.get_mcp_server_by_name(sample_mcp_server_stdio.name, MCPServerSource.FILE)
     assert result_file is not None
     server_id_file, server_file, source_file = result_file
     assert server_file.name == sample_mcp_server_stdio.name

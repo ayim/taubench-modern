@@ -159,9 +159,7 @@ class _CacheHandler:
             cache_keys_from_sheet_name: list[str] = []
             sheet_name_to_cache_key: dict[str, str] = {}
             for sheet_name in sheet_names:
-                cache_key_sheet_metadata = self._generate_cache_key(
-                    "metadata", self._file_id, sheet_name
-                )
+                cache_key_sheet_metadata = self._generate_cache_key("metadata", self._file_id, sheet_name)
                 cache_keys_from_sheet_name.append(cache_key_sheet_metadata)
                 sheet_name_to_cache_key[sheet_name] = cache_key_sheet_metadata
 
@@ -237,9 +235,7 @@ class _CacheHandler:
 
         ret = self._LoadedFromCache(cache_hit=[], cache_miss=[])
         for data_frame in data_frames:
-            cache_key_samples = self._generate_cache_key(
-                "samples_small", self._file_id, data_frame.sheet_name
-            )
+            cache_key_samples = self._generate_cache_key("samples_small", self._file_id, data_frame.sheet_name)
             cached_entry = await self._storage.get_cache_entry(cache_key_samples)
             if cached_entry is None:
                 ret.cache_miss.append(data_frame)
@@ -248,8 +244,7 @@ class _CacheHandler:
                 data_frame.sample_rows = sample_rows[:num_samples]
                 ret.cache_hit.append(data_frame)
                 logger.info(
-                    f"Loaded {len(data_frame.sample_rows)} samples from samples cache for "
-                    f"data frame {data_frame.name}"
+                    f"Loaded {len(data_frame.sample_rows)} samples from samples cache for data frame {data_frame.name}"
                 )
                 cache_tracking_callback(CacheHitEvent(event="samples_small"))
         return ret
@@ -264,9 +259,7 @@ class _CacheHandler:
 
         ret = self._LoadedFromCache(cache_hit=[], cache_miss=[])
         for data_frame in data_frames:
-            cache_key_full_data = self._generate_cache_key(
-                "full_data", self._file_id, data_frame.sheet_name
-            )
+            cache_key_full_data = self._generate_cache_key("full_data", self._file_id, data_frame.sheet_name)
             cached_entry = await self._storage.get_cache_entry(cache_key_full_data)
             if cached_entry is None:
                 ret.cache_miss.append(data_frame)
@@ -291,9 +284,7 @@ class _CacheHandler:
             if loaded.cache_miss:
                 # We haven't been able to load all samples from the samples cache
                 # try to load from the full data
-                loaded_full = await self.load_samples_from_full_data_cache(
-                    loaded.cache_miss, num_samples
-                )
+                loaded_full = await self.load_samples_from_full_data_cache(loaded.cache_miss, num_samples)
                 loaded.cache_hit.extend(loaded_full.cache_hit)
                 loaded.cache_miss = loaded_full.cache_miss
 
@@ -303,8 +294,7 @@ class _CacheHandler:
 
         else:
             raise RuntimeError(
-                f"Invalid number of samples: {num_samples} (should not get here as it's "
-                f"validated above)"
+                f"Invalid number of samples: {num_samples} (should not get here as it's validated above)"
             )
 
         return loaded
@@ -340,9 +330,7 @@ class _CacheHandler:
             time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
         )
 
-    async def cache_multiple_sheet_names(
-        self, sheet_names: list[str], time_to_compute_data_in_seconds: float
-    ):
+    async def cache_multiple_sheet_names(self, sheet_names: list[str], time_to_compute_data_in_seconds: float):
         import json
 
         await self._storage.set_cache_entry(
@@ -351,9 +339,7 @@ class _CacheHandler:
             time_to_compute_data_in_seconds=time_to_compute_data_in_seconds,
         )
 
-    async def cache_metadata(
-        self, data_frame: _DataFrameInspectionAPI, time_to_compute_data_in_seconds: float
-    ):
+    async def cache_metadata(self, data_frame: _DataFrameInspectionAPI, time_to_compute_data_in_seconds: float):
         import json
 
         value = {
@@ -395,7 +381,7 @@ class InspectFileAsDataFrame:
     _data_reader: "FileDataReader | None" = None
     _cache_handler: "_CacheHandler | None" = None
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         user: AuthedUser,
         tid: str,
@@ -421,9 +407,7 @@ class InspectFileAsDataFrame:
 
     def get_cache_handler(self) -> _CacheHandler:
         if self._cache_handler is None:
-            self._cache_handler = _CacheHandler(
-                self._tid, self._storage, self._sheet_name, self._file_metadata.file_id
-            )
+            self._cache_handler = _CacheHandler(self._tid, self._storage, self._sheet_name, self._file_metadata.file_id)
         return self._cache_handler
 
     async def inspect_from_cache(
@@ -514,19 +498,13 @@ class InspectFileAsDataFrame:
             # i.e.: if we want all samples or if if the number of samples required is greater
             # than the amount of samples stored in the "short samples" cache we load
             # the full data and cache both the full data as well as the short samples data.
-            elif num_samples == -1 or (
-                num_samples > cache_handler.max_samples_in_short_samples_cache
-            ):
+            elif num_samples == -1 or (num_samples > cache_handler.max_samples_in_short_samples_cache):
                 full_data: pyarrow.Table = sheet.to_ibis()
-                sample_rows: list[Row] = convert_pyarrow_slice_to_list_of_rows(
-                    full_data, None, None, None, None
-                )
+                sample_rows: list[Row] = convert_pyarrow_slice_to_list_of_rows(full_data, None, None, None, None)
                 # Cache the full data and the sample data
                 await cache_handler.cache_full_data(value, full_data, start_time - time.monotonic())
                 sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
-                await cache_handler.cache_sample_data(
-                    value, sampled_to_cache, start_time - time.monotonic()
-                )
+                await cache_handler.cache_sample_data(value, sampled_to_cache, start_time - time.monotonic())
 
                 if num_samples != -1:
                     sample_rows = sample_rows[:num_samples]
@@ -538,9 +516,7 @@ class InspectFileAsDataFrame:
 
                 # Cache 10 rows
                 sampled_to_cache = sample_rows[: cache_handler.max_samples_in_short_samples_cache]
-                await cache_handler.cache_sample_data(
-                    value, sampled_to_cache, start_time - time.monotonic()
-                )
+                await cache_handler.cache_sample_data(value, sampled_to_cache, start_time - time.monotonic())
 
             value.sample_rows = sample_rows
 
@@ -550,7 +526,7 @@ class InspectFileAsDataFrame:
 
 
 @router.get("/{tid}/inspect-file-as-data-frame")
-async def inspect_file_as_data_frame(  # noqa: PLR0913
+async def inspect_file_as_data_frame(
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
@@ -594,9 +570,7 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
         )
 
     # Get the file metadata to make sure the file exists and the user has access to it.
-    file_metadata = await get_file_metadata(
-        user.user_id, tid, storage, file_id=file_id, file_ref=file_ref
-    )
+    file_metadata = await get_file_metadata(user.user_id, tid, storage, file_id=file_id, file_ref=file_ref)
 
     inspector = InspectFileAsDataFrame(user, tid, storage, num_samples, sheet_name, file_metadata)
 
@@ -612,10 +586,7 @@ async def inspect_file_as_data_frame(  # noqa: PLR0913
         # reading all the data from the file again for now.
         return await inspector.inspect_and_cache_from_file()
     except Exception as e:
-        if (
-            isinstance(file_metadata.mime_type, str)
-            and file_metadata.mime_type not in TABULAR_DATA_MIME_TYPES
-        ):
+        if isinstance(file_metadata.mime_type, str) and file_metadata.mime_type not in TABULAR_DATA_MIME_TYPES:
             raise PlatformDataFrameWrongMimeTypeError(file_metadata.mime_type) from e
 
         raise
@@ -680,7 +651,7 @@ class PlatformDataFrameWrongMimeTypeError(PlatformHTTPError):
 
 
 @router.post("/{tid}/data-frames/from-file")
-async def create_data_frame_from_file(  # noqa: PLR0913
+async def create_data_frame_from_file(
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
@@ -734,9 +705,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
         )
 
     if len(inspected_data_frames) > 1:
-        found_sheet_names = [
-            inspected_data_frame.sheet_name for inspected_data_frame in inspected_data_frames
-        ]
+        found_sheet_names = [inspected_data_frame.sheet_name for inspected_data_frame in inspected_data_frames]
         raise PlatformHTTPError(
             error_code=ErrorCode.BAD_REQUEST,
             message="Multiple data frames found in file. Please specify sheet_name. "
@@ -749,7 +718,7 @@ async def create_data_frame_from_file(  # noqa: PLR0913
     )
 
 
-async def create_data_frame_from_inspected_data_frame(  # noqa: PLR0913
+async def create_data_frame_from_inspected_data_frame(
     user: AuthedUser,
     tid: str,
     storage: "BaseStorage",
@@ -1088,9 +1057,7 @@ async def get_thread_data_frames(
             input_id_type=data_frame.input_id_type,
             parent_data_frame_ids=list(data_frame.computation_input_sources.keys()),
             sql_dialect=data_frame.sql_dialect,
-            sql_query=data_frame.computation
-            if data_frame.input_id_type == "sql_computation"
-            else None,
+            sql_query=data_frame.computation if data_frame.input_id_type == "sql_computation" else None,
         )
 
         if num_samples != 0:
@@ -1183,9 +1150,7 @@ async def create_data_frame_from_sql_computation(
         input_id_type="sql_computation",
         parent_data_frame_ids=list(platform_data_frame.computation_input_sources.keys()),
         sql_dialect=platform_data_frame.sql_dialect,
-        sql_query=platform_data_frame.computation
-        if platform_data_frame.input_id_type == "sql_computation"
-        else None,
+        sql_query=platform_data_frame.computation if platform_data_frame.input_id_type == "sql_computation" else None,
     )
 
 
@@ -1207,7 +1172,7 @@ class _SliceDataInput(BaseModel):
 
 
 @router.get("/{tid}/data-frames/{data_frame_name}")
-async def get_data_frame(  # noqa: PLR0913
+async def get_data_frame(
     user: AuthedUser,
     tid: str,
     data_frame_name: str,
@@ -1277,10 +1242,7 @@ async def slice_data_frame(
     from agent_platform.server.storage.base import BaseStorage
 
     initial_time = time.monotonic()
-    logger.info(
-        f"Starting slice_data_frame for {payload.data_frame_name or payload.data_frame_id} "
-        f"in thread {tid}"
-    )
+    logger.info(f"Starting slice_data_frame for {payload.data_frame_name or payload.data_frame_id} in thread {tid}")
 
     # Validate that exactly one of data_frame_id or data_frame_name is provided
     if payload.data_frame_id is None and payload.data_frame_name is None:
@@ -1304,14 +1266,10 @@ async def slice_data_frame(
     data_frame = None
     if payload.data_frame_id is not None:
         # Get by ID
-        data_frame = await base_storage.get_data_frame(
-            thread_id=tid, data_frame_id=payload.data_frame_id
-        )
+        data_frame = await base_storage.get_data_frame(thread_id=tid, data_frame_id=payload.data_frame_id)
     else:
         # Get by name
-        data_frame = await base_storage.get_data_frame(
-            thread_id=tid, data_frame_name=payload.data_frame_name
-        )
+        data_frame = await base_storage.get_data_frame(thread_id=tid, data_frame_name=payload.data_frame_name)
 
     try:
         # Resolve the data frame
@@ -1326,9 +1284,7 @@ async def slice_data_frame(
             order_by=payload.order_by,
         )
 
-        logger.info(
-            f"Sliced data frame {data_frame.name} in {time.monotonic() - initial_time:.2f} seconds"
-        )
+        logger.info(f"Sliced data frame {data_frame.name} in {time.monotonic() - initial_time:.2f} seconds")
 
         # Return as streaming response
         if payload.output_format == "json":
@@ -1396,9 +1352,7 @@ async def get_data_frames_assembly_info(
 
     df_name_to_assembly_info = {}
     for data_frame_name in payload.data_frame_names:
-        data_frame = await base_storage.get_data_frame(
-            thread_id=tid, data_frame_name=data_frame_name
-        )
+        data_frame = await base_storage.get_data_frame(thread_id=tid, data_frame_name=data_frame_name)
 
         data_frames_kernel = DataFramesKernel(base_storage, user, tid)
         assembly_info = AssemblyInfo()
@@ -1444,9 +1398,7 @@ async def get_data_frame_as_validated_query(
     await _verify_thread_access(base_storage, user.user_id, tid)
 
     # Get the data frame
-    data_frame = await base_storage.get_data_frame(
-        thread_id=tid, data_frame_name=payload.data_frame_name
-    )
+    data_frame = await base_storage.get_data_frame(thread_id=tid, data_frame_name=payload.data_frame_name)
 
     # Verify that the data frame was created from a SQL computation
     if data_frame.input_id_type != "sql_computation":
@@ -1503,9 +1455,7 @@ class _SaveAsValidatedQueryPayload:
     """Request payload for saving a validated query."""
 
     verified_query: Annotated[VerifiedQuery, "The verified query to save (VerifiedQuery object)."]
-    semantic_data_model_id: Annotated[
-        str, "The ID of the semantic data model to add the validated query to."
-    ]
+    semantic_data_model_id: Annotated[str, "The ID of the semantic data model to add the validated query to."]
 
 
 @router.post("/{tid}/data-frames/save-as-validated-query")
@@ -1538,9 +1488,7 @@ async def save_data_frame_as_validated_query(
     await _verify_thread_access(base_storage, user.user_id, tid)
 
     # Get the semantic data model
-    semantic_data_model_dict = await base_storage.get_semantic_data_model(
-        payload.semantic_data_model_id
-    )
+    semantic_data_model_dict = await base_storage.get_semantic_data_model(payload.semantic_data_model_id)
 
     # Cast to SemanticDataModel type
     semantic_data_model = typing.cast(SemanticDataModel, semantic_data_model_dict)
@@ -1554,9 +1502,7 @@ async def save_data_frame_as_validated_query(
         )
 
     # Initialize verified_queries if it doesn't exist
-    if "verified_queries" not in semantic_data_model or not isinstance(
-        semantic_data_model["verified_queries"], list
-    ):
+    if "verified_queries" not in semantic_data_model or not isinstance(semantic_data_model["verified_queries"], list):
         semantic_data_model["verified_queries"] = []
 
     # Cast the verified query from the payload

@@ -50,17 +50,10 @@ async def retry_async(
             if on_error:
                 on_error(e, attempt)
             if attempt >= policy.max_attempts:
-                raise RetryExceededError(
-                    f"Operation failed after {attempt} attempts", last_error=e
-                ) from e
+                raise RetryExceededError(f"Operation failed after {attempt} attempts", last_error=e) from e
 
             # exponential backoff + jitter
             jitter = random.uniform(policy.jitter_min, policy.jitter_max)
-            sleep_for = (
-                min(delay * (policy.backoff_factor ** (attempt - 1)), policy.max_delay) + jitter
-            )
-            logger.debug(
-                f"Retrying in {sleep_for:.2f}s "
-                f"(attempt {attempt + 1}/{policy.max_attempts}) due to: {e}"
-            )
+            sleep_for = min(delay * (policy.backoff_factor ** (attempt - 1)), policy.max_delay) + jitter
+            logger.debug(f"Retrying in {sleep_for:.2f}s (attempt {attempt + 1}/{policy.max_attempts}) due to: {e}")
             await asyncio.sleep(sleep_for)

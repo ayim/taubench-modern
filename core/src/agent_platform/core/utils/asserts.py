@@ -38,8 +38,7 @@ def assert_literal_value_valid(class_instance: Any, value_name: str) -> None:
         type_annotation = class_instance.__annotations__[value_name]
     except KeyError as e:
         raise ValueError(
-            f"Attribute '{value_name}' has no type annotation in "
-            f"dataclass {type(class_instance).__name__}",
+            f"Attribute '{value_name}' has no type annotation in dataclass {type(class_instance).__name__}",
         ) from e
 
     # Verify it's a Literal type
@@ -54,6 +53,5 @@ def assert_literal_value_valid(class_instance: Any, value_name: str) -> None:
     # Assert that the value is in the valid values
     if value not in valid_values:
         raise ValueError(
-            f"Invalid value for '{value_name}': {value!r}. "
-            f"Must be one of: {', '.join(repr(v) for v in valid_values)}",
+            f"Invalid value for '{value_name}': {value!r}. Must be one of: {', '.join(repr(v) for v in valid_values)}",
         )

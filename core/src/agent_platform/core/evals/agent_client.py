@@ -70,10 +70,7 @@ class AgentClient:
 
     def get_messages(self) -> list[ThreadMessage]:
         # TODO cache this result
-        return [
-            ThreadAgentMessage.model_validate(combine_generic_deltas(chunk))
-            for chunk in self._message_chunks
-        ]
+        return [ThreadAgentMessage.model_validate(combine_generic_deltas(chunk)) for chunk in self._message_chunks]
 
     async def _handle_event(self, event: StreamingDelta) -> None:
         if isinstance(event, StreamingDeltaMessageBegin):

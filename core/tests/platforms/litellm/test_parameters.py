@@ -21,9 +21,7 @@ class TestLiteLLMPlatformParameters:
         ):
             LiteLLMPlatformParameters()
 
-    def test_init_reads_api_key_and_base_url_from_env(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_init_reads_api_key_and_base_url_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify that env vars populate the secret API key and base URL when omitted."""
         monkeypatch.setenv("LITELLM_API_KEY", "env-key")
         monkeypatch.setenv("LITELLM_BASE_URL", "https://router.example/v1")
@@ -33,9 +31,7 @@ class TestLiteLLMPlatformParameters:
         assert params.litellm_api_key.get_secret_value() == "env-key"
         assert params.litellm_base_url == "https://router.example/v1"
 
-    def test_init_uses_default_base_url_when_env_missing(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_init_uses_default_base_url_when_env_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Confirm the default LiteLLM base URL is applied whenever no override is defined."""
         monkeypatch.setenv("LITELLM_API_KEY", "env-key")
         monkeypatch.delenv("LITELLM_BASE_URL", raising=False)

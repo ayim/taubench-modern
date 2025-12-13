@@ -90,11 +90,7 @@ class TestThreadState:
 
         message.update_tool_use(tool_content, tool_def=None, completed=True)
 
-        tool_usages = [
-            content
-            for content in message.message.content
-            if isinstance(content, ThreadToolUsageContent)
-        ]
+        tool_usages = [content for content in message.message.content if isinstance(content, ThreadToolUsageContent)]
         assert len(tool_usages) == 1
         assert tool_usages[0].complete is True
         assert tool_usages[0].pending_at is not None
@@ -124,11 +120,7 @@ class TestThreadState:
         )
         message.update_tool_use(follow_up, tool_def=None, completed=False)
 
-        tool_usage = next(
-            content
-            for content in message.message.content
-            if isinstance(content, ThreadToolUsageContent)
-        )
+        tool_usage = next(content for content in message.message.content if isinstance(content, ThreadToolUsageContent))
 
         assert tool_usage.complete is True
         assert tool_usage.pending_at is not None

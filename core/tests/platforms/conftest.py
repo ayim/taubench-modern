@@ -60,9 +60,7 @@ def compare_responses(
     # really not worth trying to make any kind of assertions about it in these
     # e2e tests.
     given_response.content = [
-        content
-        for content in given_response.content
-        if not isinstance(content, ResponseReasoningContent)
+        content for content in given_response.content if not isinstance(content, ResponseReasoningContent)
     ]
 
     # We need to "align" the given response with the expected response

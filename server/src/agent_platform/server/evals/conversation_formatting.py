@@ -35,9 +35,7 @@ async def format_thread_conversation_for_eval(
     include: list[str] | None = None,
     compression_config: ConversationCompressionConfig = DEFAULT_COMPRESSION_CONFIG,
 ) -> str:
-    converted_messages: list[Any] = await kernel.converters.thread_messages_to_prompt_messages(
-        messages
-    )
+    converted_messages: list[Any] = await kernel.converters.thread_messages_to_prompt_messages(messages)
     if compression_config.max_tool_output_chars > 0:
         _compress_prompt_messages(converted_messages, compression_config)
     prompt = Prompt(
@@ -104,8 +102,5 @@ def _truncate_tool_output_text(
     if omitted_chars <= 0:
         return text
 
-    notice = (
-        f"\n... {TRUNCATED_TOOL_OUTPUT_MARKER}: omitted {omitted_chars} chars "
-        "to fit evaluation context ...\n"
-    )
+    notice = f"\n... {TRUNCATED_TOOL_OUTPUT_MARKER}: omitted {omitted_chars} chars to fit evaluation context ...\n"
     return f"{text[:head_len]}{notice}{text[-tail_len:]}"

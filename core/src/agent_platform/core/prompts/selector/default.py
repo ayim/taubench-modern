@@ -98,7 +98,7 @@ class DefaultPromptSelector(PromptSelector):
         return selected_prompt
 
 
-def select_prompt(  # noqa: PLR0913 the method needs the args for flexibility
+def select_prompt(
     prompt_paths: list[str | Path] | None = None,
     package: str | None = None,
     direct_prompt_name: str | None = None,

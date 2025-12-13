@@ -20,7 +20,7 @@ def _format_table_field(k: str, v: Any) -> str:
     return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
 
 
-def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]]) -> str:  # noqa: C901, PLR0912
+def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]]) -> str:
     """Describe available semantic data models (structure only).
 
     Returns pure structural information: model names, tables, columns,

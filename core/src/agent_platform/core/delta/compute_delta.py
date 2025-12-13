@@ -10,7 +10,7 @@ from jsonpatch import JsonPatch
 from agent_platform.core.delta.base import NO_VALUE, GenericDelta
 
 
-def compute_generic_deltas(  # noqa: PLR0911
+def compute_generic_deltas(
     old_val: Any,
     new_val: Any,
     path: str = "",

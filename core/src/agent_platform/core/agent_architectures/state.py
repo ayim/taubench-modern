@@ -124,8 +124,7 @@ class StateBase:
                 dumps(value)
             except (TypeError, ValueError) as e:
                 raise ValueError(
-                    f"The field '{field_obj.name}' with scope"
-                    f" '{scope}' is not JSON serializable: {e}",
+                    f"The field '{field_obj.name}' with scope '{scope}' is not JSON serializable: {e}",
                 ) from e
 
     pending_tool_calls: list[PendingToolCall] = field(

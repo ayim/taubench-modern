@@ -68,10 +68,7 @@ async def execute_callbacks(work_item: WorkItem, status: WorkItemStatus, timeout
     try:
         await asyncio.wait_for(_run_callbacks(), timeout=timeout)
     except TimeoutError as _:
-        logger.error(
-            f"Callback execution for status {status} "
-            f"timed out for work item {work_item.work_item_id}"
-        )
+        logger.error(f"Callback execution for status {status} timed out for work item {work_item.work_item_id}")
 
 
 def _build_template_work_item_url(template, pieces: dict) -> str:
@@ -81,9 +78,7 @@ def _build_template_work_item_url(template, pieces: dict) -> str:
     try:
         # Pre-validate that required placeholders exist in the template
         required_fields = {"agent_id", "thread_id", "work_item_id"}
-        present_fields = {
-            field_name for _, field_name, _, _ in Formatter().parse(template) if field_name
-        }
+        present_fields = {field_name for _, field_name, _, _ in Formatter().parse(template) if field_name}
         missing = required_fields - present_fields
         if missing:
             raise KeyError("Missing required placeholders in template: " + ", ".join(missing))
@@ -164,18 +159,14 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
             # at the time of callback, the agent_id has to be set.
             # if it isn't, we're in a bad state.
             raise InvalidWorkItemError(
-                f"Agent ID is not set for work item {work_item.work_item_id} "
-                "at the time of callback"
+                f"Agent ID is not set for work item {work_item.work_item_id} at the time of callback"
             )
         agent = await storage.get_agent(user_id=system_user.user_id, agent_id=work_item.agent_id)
         agent_name = agent.name
 
         work_item_url = _build_work_item_url(work_item)
         if work_item_url is None:
-            logger.warning(
-                f"Work item URL is not set for work item {work_item.work_item_id} "
-                "at the time of callback"
-            )
+            logger.warning(f"Work item URL is not set for work item {work_item.work_item_id} at the time of callback")
         # Coerce into our Payload type for strong type checking
         webhook_payload = WorkItemCallbackPayload.model_validate(
             {
@@ -203,9 +194,7 @@ async def _execute_callback(work_item: WorkItem, callback: WorkItemCallback):
         logger.info(f"Completed callback for work item {work_item.work_item_id} to {callback.url}")
     except Exception as e:
         # Don't re-raise the exception so other callbacks can continue
-        logger.error(
-            f"Callback failed for work item {work_item.work_item_id} to {callback.url}: {e}"
-        )
+        logger.error(f"Callback failed for work item {work_item.work_item_id} to {callback.url}: {e}")
 
 
 def _compute_signature(secret: str, body: dict) -> str:

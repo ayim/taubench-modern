@@ -105,8 +105,7 @@ class ErrorResponse:
         default_factory=uuid.uuid4,
         init=False,
         metadata={
-            "description": "A unique identifier for the error for tracing from frontend "
-            "to logs and other services."
+            "description": "A unique identifier for the error for tracing from frontend to logs and other services."
         },
     )
 

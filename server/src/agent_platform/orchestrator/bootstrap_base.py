@@ -68,10 +68,7 @@ class BootstrapPrecondition(Generic[T]):
         logger.info(f"Registering precondition '{name}' with pattern: {pattern}")
 
     def __str__(self) -> str:
-        return (
-            f"class:{self.__class__.__name__}, name:{self.name}, pattern:{self.pattern}, "
-            f"streams:{self.streams}"
-        )
+        return f"class:{self.__class__.__name__}, name:{self.name}, pattern:{self.pattern}, streams:{self.streams}"
 
     def process_line(self, line: str) -> None:
         """Process a line from the output stream and check if it matches the pattern.
@@ -217,9 +214,7 @@ class BootstrapBase:
 
     @property
     def process(self) -> "Process":
-        assert self._process is not None, (
-            "The action server was not properly started (process is None)."
-        )
+        assert self._process is not None, "The action server was not properly started (process is None)."
         return self._process
 
     def setup_output_files_and_wait_for_port(
@@ -332,10 +327,7 @@ class BootstrapBase:
 
             # Wait for all futures to complete
             for precondition in self._bootstrap_preconditions:
-                logger.info(
-                    f"Waiting for '{precondition.name}' precondition"
-                    f" with pattern: {precondition.pattern}"
-                )
+                logger.info(f"Waiting for '{precondition.name}' precondition with pattern: {precondition.pattern}")
                 self._wait_for_precondition(process, precondition, timeout)
 
                 # For port precondition, update the host and port
@@ -393,9 +385,7 @@ class BootstrapBase:
                     if is_debugger_active():
                         continue
                     if time.monotonic() - initial_time >= timeout:
-                        raise TimeoutError(
-                            f"Timeout waiting for {precondition.name} - {precondition}"
-                        ) from ex
+                        raise TimeoutError(f"Timeout waiting for {precondition.name} - {precondition}") from ex
                     if not process.is_alive():
                         raise ProcessExitedError(
                             f"The process already exited with returncode: "

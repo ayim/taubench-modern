@@ -44,10 +44,7 @@ async def test_documents_summary_with_documents():
     assert "Size: 1.0 KB" in summary
 
     assert "### Document: report.docx" in summary
-    assert (
-        "MIME Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        in summary
-    )
+    assert "MIME Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document" in summary
     # file-456 has no size, so it should not appear
     assert "Size:" not in summary.split("### Document: report.docx")[1].split("### Document:")[0]
 

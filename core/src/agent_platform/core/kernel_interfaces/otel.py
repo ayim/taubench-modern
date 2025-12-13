@@ -94,11 +94,7 @@ class OTelArtifact:
         return cls(
             name=data["name"],
             mime_type=data["mime_type"],
-            content=(
-                data["content"]
-                if isinstance(data["content"], bytes)
-                else data["content"].encode("utf-8")
-            ),
+            content=(data["content"] if isinstance(data["content"], bytes) else data["content"].encode("utf-8")),
             artifact_id=data["artifact_id"],
             trace_id=data["trace_id"],
             correlated_user_id=data["correlated_user_id"],
@@ -232,7 +228,6 @@ class OTelInterface(ABC, UsesKernelMixin):
 
         The span will be active until the context manager is exited.
         """
-        pass
 
     @property
     @abstractmethod
@@ -241,7 +236,6 @@ class OTelInterface(ABC, UsesKernelMixin):
 
         If no span is active, this will raise a `RuntimeError`.
         """
-        pass
 
     @property
     @abstractmethod
@@ -250,7 +244,6 @@ class OTelInterface(ABC, UsesKernelMixin):
 
         If no span is active, this will raise a `RuntimeError`.
         """
-        pass
 
     @property
     @abstractmethod
@@ -262,7 +255,6 @@ class OTelInterface(ABC, UsesKernelMixin):
 
         If no span is active, this will raise a `RuntimeError`.
         """
-        pass
 
     @abstractmethod
     async def create_artifact(
@@ -293,7 +285,6 @@ class OTelInterface(ABC, UsesKernelMixin):
         Returns:
             An OTelArtifact object that can be used to link to the span.
         """
-        pass
 
     @abstractmethod
     def enqueue_artifact_creation(
@@ -309,4 +300,3 @@ class OTelInterface(ABC, UsesKernelMixin):
         be processed asynchronously. This is used by the add_event_with_artifacts
         method to avoid blocking the main thread.
         """
-        pass

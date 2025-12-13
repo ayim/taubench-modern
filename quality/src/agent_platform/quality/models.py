@@ -250,8 +250,7 @@ class SFAuthorizationOverride:
                 env_value = os.getenv(env_var_name)
                 if env_value is None:
                     raise ValueError(
-                        f"Environment variable '{env_var_name}' not set, "
-                        f"required for sf-auth-override: '{key}'"
+                        f"Environment variable '{env_var_name}' not set, required for sf-auth-override: '{key}'"
                     )
                 self.__dict__[key] = env_value
 
@@ -334,7 +333,7 @@ class TestCase:
     timeout_seconds: float | None = None
 
     @classmethod
-    def from_file(cls, file_path: Path) -> TestCase:  # noqa: C901
+    def from_file(cls, file_path: Path) -> TestCase:
         """Load a test case from a YAML file."""
         import yaml
 
@@ -395,10 +394,7 @@ class TestCase:
         from pydantic import TypeAdapter
 
         evaluation_adapter = TypeAdapter(Evaluation)
-        evaluations = [
-            evaluation_adapter.validate_python(eval_data)
-            for eval_data in data.get("evaluations", [])
-        ]
+        evaluations = [evaluation_adapter.validate_python(eval_data) for eval_data in data.get("evaluations", [])]
 
         # Parse sf-auth-override if present
         sf_auth_override_data = data.get("sf-auth-override", None)
@@ -534,9 +530,7 @@ class AgentPackage:
         def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
             from sema4ai.common import tools
 
-            target_location = tools.AgentCliTool.get_default_executable(
-                version=version, download=download
-            )
+            target_location = tools.AgentCliTool.get_default_executable(version=version, download=download)
             return target_location
 
         agent_cli_exe = get_agent_cli_executable_path(version="v2.0.6", download=True)

@@ -19,9 +19,7 @@ def mock_kernel():
     from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
 
     kernel = MagicMock()
-    kernel.ctx.start_span = MagicMock(
-        return_value=MagicMock(__enter__=MagicMock(), __exit__=MagicMock())
-    )
+    kernel.ctx.start_span = MagicMock(return_value=MagicMock(__enter__=MagicMock(), __exit__=MagicMock()))
     kernel.agent.agent_id = "test-agent-id"
     kernel.thread.thread_id = "test-thread-id"
     kernel.agent.name = "test-agent"
@@ -299,9 +297,7 @@ async def test_malformed_json_handling(tools_interface: AgentServerToolsInterfac
     )
 
     # Patch the ToolExecutionResult.__post_init__ method to handle invalid JSON
-    with patch(
-        "agent_platform.core.tools.tool_execution_result.ToolExecutionResult.__post_init__"
-    ) as mock_post_init:
+    with patch("agent_platform.core.tools.tool_execution_result.ToolExecutionResult.__post_init__") as mock_post_init:
         # Make post_init do nothing (skip JSON parsing)
         mock_post_init.return_value = None
 
@@ -744,9 +740,7 @@ async def test_client_exec_tool_with_error(tools_interface: AgentServerToolsInte
 
 
 @pytest.mark.asyncio
-async def test_client_exec_tool_cancellation(
-    tools_interface: AgentServerToolsInterface, mock_kernel
-):
+async def test_client_exec_tool_cancellation(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that client-exec-tool properly handles cancellation/disconnection."""
     from unittest.mock import AsyncMock
 
@@ -761,9 +755,7 @@ async def test_client_exec_tool_cancellation(
     mock_kernel.outgoing_events.dispatch = AsyncMock()
 
     # Mock incoming events to raise CancelledError (simulating client disconnect)
-    mock_kernel.incoming_events.wait_for_event = AsyncMock(
-        side_effect=asyncio.CancelledError("Client disconnected")
-    )
+    mock_kernel.incoming_events.wait_for_event = AsyncMock(side_effect=asyncio.CancelledError("Client disconnected"))
 
     tools_interface.attach_kernel(mock_kernel)
 
@@ -832,9 +824,7 @@ async def test_client_info_tool(tools_interface: AgentServerToolsInterface, mock
 
 
 @pytest.mark.asyncio
-async def test_execute_pending_tool_calls_with_client_tools(
-    tools_interface: AgentServerToolsInterface, mock_kernel
-):
+async def test_execute_pending_tool_calls_with_client_tools(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that execute_pending_tool_calls properly handles client tools."""
     from datetime import UTC, datetime
     from unittest.mock import AsyncMock
@@ -991,12 +981,8 @@ async def test_client_tool_categories_in_execute_pending_tool_calls(
 
     # Mock the specific execution methods to track which ones are called
     with (
-        patch.object(
-            tools_interface, "_safe_execute_tool", new_callable=AsyncMock
-        ) as mock_execute_tool,
-        patch.object(
-            tools_interface, "_safe_execute_client_tool", new_callable=AsyncMock
-        ) as mock_execute_client_tool,
+        patch.object(tools_interface, "_safe_execute_tool", new_callable=AsyncMock) as mock_execute_tool,
+        patch.object(tools_interface, "_safe_execute_client_tool", new_callable=AsyncMock) as mock_execute_client_tool,
     ):
         # Mock return values
         mock_execute_tool.return_value = MagicMock(tool_call_id="action_call")
@@ -1036,9 +1022,7 @@ async def test_client_tool_categories_in_execute_pending_tool_calls(
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_user_id(
-    tools_interface: AgentServerToolsInterface, mock_kernel
-):
+async def test_tool_call_headers_with_user_id(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that tool call headers include user ID when available."""
     from unittest.mock import AsyncMock
 
@@ -1095,9 +1079,7 @@ async def test_tool_call_headers_with_user_id(
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_system_id_fallback(
-    tools_interface: AgentServerToolsInterface, mock_kernel
-):
+async def test_tool_call_headers_with_system_id_fallback(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that tool call headers use system ID when user ID is empty."""
     captured_headers = {}
 
@@ -1153,9 +1135,7 @@ async def test_tool_call_headers_with_system_id_fallback(
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_empty_string_user_id(
-    tools_interface: AgentServerToolsInterface, mock_kernel
-):
+async def test_tool_call_headers_with_empty_string_user_id(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that tool call headers use system ID when user ID is empty string."""
     captured_headers = {}
 
@@ -1219,9 +1199,7 @@ async def test_tool_call_headers_with_empty_string_user_id(
         "content_with_error",
     ],
 )
-async def test_mcp_tool_no_runtime_headers(  # noqa: C901
-    tools_interface: AgentServerToolsInterface, mock_kernel, scenario
-):
+async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInterface, mock_kernel, scenario):
     """Test that internal-tool category tools do not receive extra_headers."""
     function_called_with = {}
 
@@ -1267,9 +1245,7 @@ async def test_mcp_tool_no_runtime_headers(  # noqa: C901
         "x-another-header": "another-value",
     }
 
-    result = await tools_interface._safe_execute_tool(
-        tool_def, tool_use, extra_headers=extra_headers
-    )
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
 
     # Verify the tool was called successfully
     if scenario == "structured_content":
@@ -1333,9 +1309,7 @@ async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterfa
         "x-another-header": "another-value",
     }
 
-    result = await tools_interface._safe_execute_tool(
-        tool_def, tool_use, extra_headers=extra_headers
-    )
+    result = await tools_interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
 
     # Verify the tool was called successfully
     assert result.error is None
@@ -1349,9 +1323,7 @@ async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterfa
 
 
 @pytest.mark.asyncio
-async def test_mcp_tools_with_null_selected_tools(
-    tools_interface: AgentServerToolsInterface, mock_kernel
-):
+async def test_mcp_tools_with_null_selected_tools(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that MCP tool filtering works when selected_tools is None (legacy agents)."""
     from agent_platform.core.mcp import MCPServer
     from agent_platform.core.tools import ToolDefinition

@@ -157,10 +157,7 @@ async def deploy_mcp_server(file: UploadFile, deployment_id: str) -> str:
     if file_size > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
-            detail=(
-                f"File size ({file_size} bytes) exceeds maximum allowed size "
-                f"({MAX_FILE_SIZE_BYTES} bytes)"
-            ),
+            detail=(f"File size ({file_size} bytes) exceeds maximum allowed size ({MAX_FILE_SIZE_BYTES} bytes)"),
         )
 
     # Reset file pointer for the actual upload
@@ -183,9 +180,7 @@ async def deploy_mcp_server(file: UploadFile, deployment_id: str) -> str:
 
     # Upload package to MCP Runtime API
     try:
-        deployment_response = await call_mcp_runtime_deployment_api(
-            deployment_endpoint, file_content
-        )
+        deployment_response = await call_mcp_runtime_deployment_api(deployment_endpoint, file_content)
 
         logger.info(
             "MCP server package deployed successfully",
@@ -321,9 +316,7 @@ async def _sync_file_based_mcp_servers(storage: StorageDependency) -> None:
                 )
                 await storage.delete_mcp_server(server_ids_to_remove)
             except Exception as e:
-                logger.error(
-                    f"Failed to remove MCP servers {', '.join(server_names_to_remove)}: {e}"
-                )
+                logger.error(f"Failed to remove MCP servers {', '.join(server_names_to_remove)}: {e}")
 
         # Add/update servers from the config file
         for server in file_servers:
@@ -430,9 +423,7 @@ async def create_hosted_mcp_server(
             detail=f"MCP server with name '{name}' and source 'API' already exists",
         ) from e
 
-    return MCPServerResponse.from_mcp_server(
-        mcp_server_id, MCPServerSource.API, mcp_server, is_hosted=True
-    )
+    return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, mcp_server, is_hosted=True)
 
 
 @router.get("/", response_model=dict[str, MCPServerResponse])
@@ -486,8 +477,7 @@ async def get_mcp_server(
         logger.error(f"Failed to decrypt MCP server configuration for {mcp_server_id}: {e}")
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Configuration data for MCP server {mcp_server_id} is corrupted and cannot be "
-            "decrypted",
+            detail=f"Configuration data for MCP server {mcp_server_id} is corrupted and cannot be decrypted",
         ) from e
 
 

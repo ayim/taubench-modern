@@ -143,9 +143,7 @@ class TruncationFinalizer(BaseFinalizer):
         self.truncation_suffix = truncation_suffix
         self.max_truncation_passes = max_truncation_passes
         # Cache the suffix token cost during initialization
-        self._suffix_token_cost = (
-            PromptTextContent(text=self.truncation_suffix).count_tokens_approx() + 10
-        )
+        self._suffix_token_cost = PromptTextContent(text=self.truncation_suffix).count_tokens_approx() + 10
         super().__init__(*args, **kwargs)
 
     async def __call__(
@@ -229,11 +227,7 @@ class TruncationFinalizer(BaseFinalizer):
 
         # Log some info about the largest items (by tokens) for visibility.
         for item in sorted(truncatable_content, key=lambda x: x["tokens"], reverse=True)[:3]:
-            label = (
-                f"{item['item_type']}:{item['tool_name']}"
-                if item["item_type"] == "tool"
-                else "text"
-            )
+            label = f"{item['item_type']}:{item['tool_name']}" if item["item_type"] == "tool" else "text"
             logger.info(f"Largest truncatable item -> {label} using {item['tokens']} tokens")
 
         # Apply truncation (oldest-first greedy with per-item floors)
@@ -249,10 +243,7 @@ class TruncationFinalizer(BaseFinalizer):
 
         # Recount tokens with the hydrated prompt (not the original one)
         new_token_count = hydrated_prompt.count_tokens_approx()
-        logger.info(
-            f"After truncation: {new_token_count} tokens "
-            f"(reduced by {current_token_count - new_token_count})"
-        )
+        logger.info(f"After truncation: {new_token_count} tokens (reduced by {current_token_count - new_token_count})")
 
         return messages
 
@@ -282,15 +273,9 @@ class TruncationFinalizer(BaseFinalizer):
             for content in message.content:
                 if isinstance(content, PromptToolResultContent):
                     # Extract only text items from the tool result (what we can actually shrink)
-                    text_contents = [
-                        item for item in content.content if isinstance(item, PromptTextContent)
-                    ]
+                    text_contents = [item for item in content.content if isinstance(item, PromptTextContent)]
                     tool_text_tokens = sum(tc.count_tokens_approx() for tc in text_contents)
-                    if (
-                        text_contents
-                        and tool_text_tokens > 0
-                        and any(tc.text for tc in text_contents)
-                    ):
+                    if text_contents and tool_text_tokens > 0 and any(tc.text for tc in text_contents):
                         truncatable_content.append(
                             TruncationItem(
                                 tool_name=content.tool_name,
@@ -360,11 +345,7 @@ class TruncationFinalizer(BaseFinalizer):
             saved = max(0, current_tokens - item["tokens"])
             remaining -= saved
 
-            label = (
-                f"{item['item_type']}:{item['tool_name']}"
-                if item["item_type"] == "tool"
-                else "text"
-            )
+            label = f"{item['item_type']}:{item['tool_name']}" if item["item_type"] == "tool" else "text"
             logger.info(
                 f"Oldest-first truncation -> {label} "
                 f"(msg #{item['message_index']}): {current_tokens} "
@@ -415,9 +396,7 @@ class TruncationFinalizer(BaseFinalizer):
             )  # Keep at least 1 char, at most length
 
             if chars_to_keep < original_len:
-                old_token_count, new_token_count = self._truncate_text_content(
-                    text_content, chars_to_keep
-                )
+                old_token_count, new_token_count = self._truncate_text_content(text_content, chars_to_keep)
                 tokens_saved = old_token_count - new_token_count
                 if tokens_saved > 0:
                     logger.info(
@@ -429,9 +408,7 @@ class TruncationFinalizer(BaseFinalizer):
         # Update the item's token count after truncation (sum of text contents).
         item["tokens"] = sum(tc.count_tokens_approx() for tc in item["text_contents"])
 
-    def _truncate_text_content(
-        self, text_content: PromptTextContent, chars_to_keep: int
-    ) -> tuple[int, int]:
+    def _truncate_text_content(self, text_content: PromptTextContent, chars_to_keep: int) -> tuple[int, int]:
         """Truncate a text content object and return tokens saved.
 
         Args:

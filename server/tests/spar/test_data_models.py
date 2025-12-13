@@ -54,8 +54,7 @@ class TestDataModels:
             "agent_id": agent_id,
         }
         data = {
-            "instructions": "The results of each safety check should be included and be "
-            "a pass/fail enumeration.",
+            "instructions": "The results of each safety check should be included and be a pass/fail enumeration.",
         }
         gen_resp = httpx.post(
             f"{spar_agent_server_base_url}/document-intelligence/data-models/generate",
@@ -99,20 +98,14 @@ class TestDataModels:
         assert len(created["data_model"]["views"]) == 1
         assert isinstance(created["data_model"]["quality_checks"], list)
         assert len(created["data_model"]["quality_checks"]) == 0
-        assert created["data_model"]["prompt"] is None, (
-            "Prompt was not provided and should not be set"
-        )
+        assert created["data_model"]["prompt"] is None, "Prompt was not provided and should not be set"
         assert created["data_model"]["summary"], "Summary should be auto-generated"
 
         assert created["data_model"]["created_at"] is not None
-        created_at = datetime.fromisoformat(created["data_model"]["created_at"]).replace(
-            tzinfo=pytz.UTC
-        )
+        created_at = datetime.fromisoformat(created["data_model"]["created_at"]).replace(tzinfo=pytz.UTC)
 
         assert created["data_model"]["updated_at"] is not None
-        updated_at = datetime.fromisoformat(created["data_model"]["updated_at"]).replace(
-            tzinfo=pytz.UTC
-        )
+        updated_at = datetime.fromisoformat(created["data_model"]["updated_at"]).replace(tzinfo=pytz.UTC)
 
         # Verify the data model was created in the database
         with psycopg.connect(spar_postgres_url) as conn:
@@ -146,23 +139,20 @@ class TestDataModels:
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "Dental Supply Invoice",
             "description": (
-                "Schema representing an invoice for dental supplies, "
-                "including customer details, items, and totals."
+                "Schema representing an invoice for dental supplies, including customer details, items, and totals."
             ),
             "type": "object",
             "properties": {
                 "invoice_number": {
                     "type": "string",
                     "description": (
-                        "Unique identifier for the invoice, typically found "
-                        "near the top right (e.g., 'Invoice #5465')."
+                        "Unique identifier for the invoice, typically found near the top right (e.g., 'Invoice #5465')."
                     ),
                 },
                 "invoice_date": {
                     "type": "string",
                     "description": (
-                        "The date the invoice was issued, located near the "
-                        "invoice number (e.g., '8/28/2025')."
+                        "The date the invoice was issued, located near the invoice number (e.g., '8/28/2025')."
                     ),
                 },
             },

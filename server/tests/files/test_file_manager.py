@@ -395,9 +395,7 @@ class TestFileManager:
 
         # Make sure the file is deleted
         actual_file = await setup_storage.get_file_by_id(files[0].file_id, sample_thread.user_id)
-        assert actual_file is None, (
-            "Files should be automatically deleted when the thread is deleted"
-        )
+        assert actual_file is None, "Files should be automatically deleted when the thread is deleted"
 
     async def test_upload_duplicate_file_names(
         self,
@@ -1203,8 +1201,7 @@ class TestFileManager:
         """Test uploading and listing files with Unicode characters (e.g., kanji) in filenames."""
         # Test files with kanji and other Unicode characters in the name
         unicode_filenames = [
-            "EOW5362_PNP_DETAIL_REPORT_20251103---DSV Chengdu 253045 "
-            "(上海得斯威国际货运有限公司).xlsx",
+            "EOW5362_PNP_DETAIL_REPORT_20251103---DSV Chengdu 253045 (上海得斯威国际货运有限公司).xlsx",
             "A-ONE 询证函_251106.pdf",
             "テスト_ファイル.txt",  # Japanese
             "测试文件.csv",  # Chinese

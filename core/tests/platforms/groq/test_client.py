@@ -184,9 +184,7 @@ class MockOpenAIError(Exception):
         ("PermissionDeniedError", "forbidden"),
     ],
 )
-def test_handle_openai_error(
-    exception_cls: str, expected_code: str, groq_client: GroqClient
-) -> None:
+def test_handle_openai_error(exception_cls: str, expected_code: str, groq_client: GroqClient) -> None:
     with patch(f"openai.{exception_cls}", MockOpenAIError):
         error = MockOpenAIError("boom")
         error.__class__.__name__ = exception_cls

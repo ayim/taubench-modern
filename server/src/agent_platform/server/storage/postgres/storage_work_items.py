@@ -133,11 +133,9 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
             )
             rows = await cur.fetchall()
 
-        return [
-            WorkItem.model_validate(self._convert_work_item_json_fields(dict(row))) for row in rows
-        ]
+        return [WorkItem.model_validate(self._convert_work_item_json_fields(dict(row))) for row in rows]
 
-    async def list_work_items(  # noqa: PLR0913
+    async def list_work_items(
         self,
         agent_id: str | None = None,
         limit: int = 100,
@@ -209,9 +207,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
             await cur.execute(query, params)
             rows = await cur.fetchall()
 
-        return [
-            WorkItem.model_validate(self._convert_work_item_json_fields(dict(row))) for row in rows
-        ]
+        return [WorkItem.model_validate(self._convert_work_item_json_fields(dict(row))) for row in rows]
 
     async def update_work_item_status(
         self,
@@ -269,9 +265,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
             "status": WorkItemStatus.COMPLETED.value,
             "work_item_id": work_item_id,
             "user_id": user_id,
-            "completed_by": completed_by.value
-            if isinstance(completed_by, WorkItemCompletedBy)
-            else str(completed_by),
+            "completed_by": completed_by.value if isinstance(completed_by, WorkItemCompletedBy) else str(completed_by),
             "status_updated_by": completed_by.as_status_updated_by().value,
         }
 
@@ -414,22 +408,16 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
         work_item_data = work_item.model_dump()
 
         work_item_data["initial_messages"] = (
-            Jsonb([msg.model_dump() for msg in work_item.initial_messages])
-            if work_item.initial_messages
-            else Jsonb([])
+            Jsonb([msg.model_dump() for msg in work_item.initial_messages]) if work_item.initial_messages else Jsonb([])
         )
 
         # Convert messages, payload, and callbacks to Jsonb
         work_item_data["messages"] = (
-            Jsonb([msg.model_dump() for msg in work_item.messages])
-            if work_item.messages
-            else Jsonb([])
+            Jsonb([msg.model_dump() for msg in work_item.messages]) if work_item.messages else Jsonb([])
         )
         work_item_data["payload"] = Jsonb(work_item.payload)
         work_item_data["callbacks"] = (
-            Jsonb([callback.model_dump() for callback in work_item.callbacks])
-            if work_item.callbacks
-            else Jsonb([])
+            Jsonb([callback.model_dump() for callback in work_item.callbacks]) if work_item.callbacks else Jsonb([])
         )
 
         async with self._cursor() as cur:

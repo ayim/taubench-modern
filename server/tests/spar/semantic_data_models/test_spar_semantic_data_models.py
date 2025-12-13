@@ -18,9 +18,7 @@ if TYPE_CHECKING:
 pytestmark = [pytest.mark.spar, pytest.mark.semantic_data_models]
 
 
-def assert_inspect_response_structure(
-    inspect_response: dict[str, Any], expect_timestamp: bool = False
-) -> None:
+def assert_inspect_response_structure(inspect_response: dict[str, Any], expect_timestamp: bool = False) -> None:
     """Validate the structure of a data connection inspection response.
 
     Checks that the response has the expected metadata structure for tables and columns.
@@ -55,9 +53,7 @@ def assert_inspect_response_structure(
         # Verify each column has the expected structure (ColumnInfo)
         for column in table["columns"]:
             assert "name" in column, "Column should have 'name' field"
-            assert "data_type" in column, (
-                f"Column {column.get('name')} should have 'data_type' field"
-            )
+            assert "data_type" in column, f"Column {column.get('name')} should have 'data_type' field"
             # Optional fields: sample_values, primary_key, unique, description, synonyms
 
 
@@ -71,9 +67,7 @@ def assert_data_connection_info_structure(data_connection_info: dict[str, Any]) 
         AssertionError: If any required field is missing or has an unexpected type.
     """
     # DataConnectionInfo required fields
-    assert "data_connection_id" in data_connection_info, (
-        "DataConnectionInfo should have 'data_connection_id'"
-    )
+    assert "data_connection_id" in data_connection_info, "DataConnectionInfo should have 'data_connection_id'"
     assert data_connection_info["data_connection_id"], "data_connection_id should not be empty"
 
     assert "tables_info" in data_connection_info, "DataConnectionInfo should have 'tables_info'"
@@ -106,12 +100,8 @@ def assert_table_enhanced(table: LogicalTable) -> None:
     )
 
     assert table.get("name") is not None, f"Expected name for table {table.get('name')}"
-    assert table.get("base_table") is not None, (
-        f"Expected base table for table {table.get('base_table')}"
-    )
-    assert table.get("description") is not None, (
-        f"Expected description for table {table.get('name')}"
-    )
+    assert table.get("base_table") is not None, f"Expected base table for table {table.get('base_table')}"
+    assert table.get("description") is not None, f"Expected description for table {table.get('name')}"
     assert table.get("synonyms") is not None, f"Expected synonyms for table {table.get('name')}"
 
     # Verify columns are in the table
@@ -129,9 +119,7 @@ def assert_table_enhanced(table: LogicalTable) -> None:
 
     for column in columns:
         # Check sample_values (not part of ValueForDimension)
-        assert column.get("sample_values") is not None, (
-            f"Expected sample values for column {column.get('name')}"
-        )
+        assert column.get("sample_values") is not None, f"Expected sample values for column {column.get('name')}"
 
         # Use assert_column_enhanced for the rest (DRY)
         table_name = table.get("name")
@@ -148,18 +136,12 @@ def assert_column_enhanced(column: ValueForDimension):
     Args:
         column: The column ValueForDimension from SemanticDataModelIndex to check.
     """
-    assert column.dimension.get("name") is not None, (
-        f"Expected name for column {column.dimension.get('name')}"
-    )
-    assert column.dimension.get("expr") is not None, (
-        f"Expected expr for column {column.dimension.get('name')}"
-    )
+    assert column.dimension.get("name") is not None, f"Expected name for column {column.dimension.get('name')}"
+    assert column.dimension.get("expr") is not None, f"Expected expr for column {column.dimension.get('name')}"
     assert column.dimension.get("description") is not None, (
         f"Expected description for column {column.dimension.get('name')}"
     )
-    assert column.dimension.get("synonyms") is not None, (
-        f"Expected synonyms for column {column.dimension.get('name')}"
-    )
+    assert column.dimension.get("synonyms") is not None, f"Expected synonyms for column {column.dimension.get('name')}"
     assert column.dimension.get("data_type") is not None, (
         f"Expected data type for column {column.dimension.get('name')}"
     )
@@ -380,9 +362,7 @@ def generated_semantic_data_model(
     Returns:
         dict: Generated semantic data model response with 'semantic_model' key
     """
-    return _generate_full_semantic_data_model(
-        agent_server_client_with_data_connection, agent_for_full_model
-    )
+    return _generate_full_semantic_data_model(agent_server_client_with_data_connection, agent_for_full_model)
 
 
 @pytest.fixture
@@ -399,9 +379,7 @@ def generated_semantic_data_model_for_flaky_tests(
     Returns:
         dict: Generated semantic data model response with 'semantic_model' key
     """
-    return _generate_full_semantic_data_model(
-        agent_server_client_with_data_connection, agent_for_full_model
-    )
+    return _generate_full_semantic_data_model(agent_server_client_with_data_connection, agent_for_full_model)
 
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
@@ -463,9 +441,7 @@ def test_generated_semantic_data_model_structure(
         for column in columns:
             assert column["name"] is not None, f"Expected name for column {column['name']}"
             assert column["expr"] is not None, f"Expected expr for column {column['name']}"
-            assert column["description"] is not None, (
-                f"Expected description for column {column['name']}"
-            )
+            assert column["description"] is not None, f"Expected description for column {column['name']}"
             assert column["synonyms"] is not None, f"Expected synonyms for column {column['name']}"
 
 
@@ -686,9 +662,7 @@ def test_data_frame_column_headers_populated(
 
     # Get the last successful call
     successful_sql_calls = [tc for tc in sql_tool_calls if tc.error is None]
-    assert len(successful_sql_calls) > 0, (
-        f"No successful SQL queries. Errors: {[tc.error for tc in sql_tool_calls]}"
-    )
+    assert len(successful_sql_calls) > 0, f"No successful SQL queries. Errors: {[tc.error for tc in sql_tool_calls]}"
     sql_tool_call = successful_sql_calls[-1]
 
     # Get data frame name from tool input
@@ -706,8 +680,7 @@ def test_data_frame_column_headers_populated(
 
     # num_columns should be > 0
     assert num_columns > 0, (
-        f"num_columns should be > 0 on {engine}, got {num_columns}. "
-        "This indicates the lazy column resolution bug."
+        f"num_columns should be > 0 on {engine}, got {num_columns}. This indicates the lazy column resolution bug."
     )
 
     # column_headers should not be empty
@@ -1024,15 +997,12 @@ def sdm_after_more_columns(
     return client.generate_semantic_data_model(asdict(payload))
 
 
-def assert_table_metadata_unchanged(
-    initial_table_value: LogicalTable, updated_table_value: LogicalTable
-):
+def assert_table_metadata_unchanged(initial_table_value: LogicalTable, updated_table_value: LogicalTable):
     """Checks that the table metadata is the same for both index values. You must use
     the SemanticDataModelIndex to get the table values.
     """
     assert updated_table_value.get("name") == initial_table_value.get("name"), (
-        f"Table name should remain the same: {initial_table_value.get('name')} "
-        f"-> {updated_table_value.get('name')}"
+        f"Table name should remain the same: {initial_table_value.get('name')} -> {updated_table_value.get('name')}"
     )
     assert updated_table_value.get("description") == initial_table_value.get("description"), (
         f"Table description should remain the same: {initial_table_value.get('description')} "
@@ -1044,16 +1014,13 @@ def assert_table_metadata_unchanged(
     )
 
 
-def assert_table_metadta_enhanced(
-    initial_table_value: LogicalTable, updated_table_value: LogicalTable
-):
+def assert_table_metadta_enhanced(initial_table_value: LogicalTable, updated_table_value: LogicalTable):
     """Verifies that the table metadata was enhanced. You must use the SemanticDataModelIndex
     to get the table values.
     """
     # FLAKY
     assert initial_table_value.get("name") != updated_table_value.get("name"), (
-        f"Table name should be enhanced: {initial_table_value.get('name')} -> "
-        f"{updated_table_value.get('name')}"
+        f"Table name should be enhanced: {initial_table_value.get('name')} -> {updated_table_value.get('name')}"
     )
     assert initial_table_value.get("description") != updated_table_value.get("description"), (
         f"Table description should be enhanced: {initial_table_value.get('description')} -> "
@@ -1065,15 +1032,12 @@ def assert_table_metadta_enhanced(
     )
 
 
-def assert_column_metadata_unchanged(
-    initial_column: ValueForDimension, updated_column: ValueForDimension
-):
+def assert_column_metadata_unchanged(initial_column: ValueForDimension, updated_column: ValueForDimension):
     """Checks that the column metadata is the same for both index values. You must use
     the SemanticDataModelIndex to get the column values.
     """
     assert initial_column.category == updated_column.category, (
-        f"Column category should remain the same: "
-        f"{initial_column.category} -> {updated_column.category}"
+        f"Column category should remain the same: {initial_column.category} -> {updated_column.category}"
     )
     assert initial_column.dimension.get("name") == updated_column.dimension.get("name"), (
         f"Column name should remain the same: {initial_column.dimension.get('name')} "
@@ -1091,17 +1055,13 @@ def assert_column_metadata_unchanged(
         f"Column synonyms should remain the same: "
         f"{initial_column.dimension.get('synonyms')} -> {updated_column.dimension.get('synonyms')}"
     )
-    assert initial_column.dimension.get("description") == updated_column.dimension.get(
-        "description"
-    ), (
+    assert initial_column.dimension.get("description") == updated_column.dimension.get("description"), (
         f"Column description should remain the same: {initial_column.dimension.get('description')} "
         f"-> {updated_column.dimension.get('description')}"
     )
 
 
-def assert_column_metadata_enhanced(
-    initial_column: ValueForDimension, updated_column: ValueForDimension
-):
+def assert_column_metadata_enhanced(initial_column: ValueForDimension, updated_column: ValueForDimension):
     """Verifies that the column metadata was enhanced. You must use the SemanticDataModelIndex to
     get the column values."""
     # Expr and data type shouldn't change
@@ -1116,16 +1076,13 @@ def assert_column_metadata_enhanced(
 
     # Expected changes. FLAKY
     assert initial_column.category != updated_column.category, (
-        f"Column category should be enhanced: "
-        f"{initial_column.category} -> {updated_column.category}"
+        f"Column category should be enhanced: {initial_column.category} -> {updated_column.category}"
     )
     assert initial_column.dimension.get("name") != updated_column.dimension.get("name"), (
         f"Column name should be enhanced: {initial_column.dimension.get('name')} -> "
         f"{updated_column.dimension.get('name')}"
     )
-    assert initial_column.dimension.get("description") != updated_column.dimension.get(
-        "description"
-    ), (
+    assert initial_column.dimension.get("description") != updated_column.dimension.get("description"), (
         f"Column description should be enhanced: {initial_column.dimension.get('description')} -> "
         f"{updated_column.dimension.get('description')}"
     )
@@ -1165,23 +1122,15 @@ def test_enhancer_handles_column_changes(
     assert "orders" not in initial_table_names, "Orders table should not be in initial model"
 
     # Find orders tables in both models
-    initial_orders = next(
-        (t for t in initial_model["tables"] if t["base_table"]["table"] == "orders"), None
-    )
-    updated_orders = next(
-        (t for t in updated_model["tables"] if t["base_table"]["table"] == "orders"), None
-    )
+    initial_orders = next((t for t in initial_model["tables"] if t["base_table"]["table"] == "orders"), None)
+    updated_orders = next((t for t in updated_model["tables"] if t["base_table"]["table"] == "orders"), None)
     assert initial_orders is None, "Initial model should not have orders table"
     assert updated_orders is not None, "Updated model should have orders table"
     assert_table_enhanced(updated_orders)
 
     # Find customers table in both models
-    initial_customers = next(
-        (t for t in initial_model["tables"] if t["base_table"]["table"] == "customers"), None
-    )
-    updated_customers = next(
-        (t for t in updated_model["tables"] if t["base_table"]["table"] == "customers"), None
-    )
+    initial_customers = next((t for t in initial_model["tables"] if t["base_table"]["table"] == "customers"), None)
+    updated_customers = next((t for t in updated_model["tables"] if t["base_table"]["table"] == "customers"), None)
 
     assert initial_customers is not None, "Initial model should have customers table"
     assert updated_customers is not None, "Updated model should have customers table"
@@ -1201,9 +1150,7 @@ def test_enhancer_handles_column_changes(
     )
 
     # Verify more columns in updated model
-    assert len(updated_columns) > len(initial_columns), (
-        "Updated model should have more columns than initial model"
-    )
+    assert len(updated_columns) > len(initial_columns), "Updated model should have more columns than initial model"
 
     # Find new columns (columns in updated but not in initial)
     # Compare by expr (database column name) not name (logical name which can be changed)
@@ -1218,9 +1165,7 @@ def test_enhancer_handles_column_changes(
 
     # Verify that top-level logical information remains the same
     assert updated_model["name"] == initial_model["name"], "Model name should remain the same"
-    assert updated_model["description"] == initial_model["description"], (
-        "Model description should remain the same"
-    )
+    assert updated_model["description"] == initial_model["description"], "Model description should remain the same"
 
     initial_sdm_index = SemanticDataModelIndex(initial_model)
     updated_sdm_index = SemanticDataModelIndex(updated_model)
@@ -1240,20 +1185,12 @@ def test_enhancer_handles_column_changes(
     initial_table_name = initial_customers["name"]
     updated_table_name = updated_customers["name"]
 
-    initial_id_column = initial_sdm_index.table_name_and_dim_expr_to_dimension[
-        f"{initial_table_name}.id"
-    ]
-    updated_id_column = updated_sdm_index.table_name_and_dim_expr_to_dimension[
-        f"{updated_table_name}.id"
-    ]
+    initial_id_column = initial_sdm_index.table_name_and_dim_expr_to_dimension[f"{initial_table_name}.id"]
+    updated_id_column = updated_sdm_index.table_name_and_dim_expr_to_dimension[f"{updated_table_name}.id"]
     assert_column_metadata_unchanged(initial_id_column, updated_id_column)
 
-    initial_name_column = initial_sdm_index.table_name_and_dim_expr_to_dimension[
-        f"{initial_table_name}.name"
-    ]
-    updated_name_column = updated_sdm_index.table_name_and_dim_expr_to_dimension[
-        f"{updated_table_name}.name"
-    ]
+    initial_name_column = initial_sdm_index.table_name_and_dim_expr_to_dimension[f"{initial_table_name}.name"]
+    updated_name_column = updated_sdm_index.table_name_and_dim_expr_to_dimension[f"{updated_table_name}.name"]
     assert_column_metadata_unchanged(initial_name_column, updated_name_column)
 
     # Verify new columns (email, created_at) were enhanced
@@ -1261,9 +1198,7 @@ def test_enhancer_handles_column_changes(
     # So we can only verify they're enhanced in the updated model
     new_column_exprs = ["email", "created_at"]
     for expr in new_column_exprs:
-        updated_column = updated_sdm_index.table_name_and_dim_expr_to_dimension[
-            f"{updated_table_name}.{expr}"
-        ]
+        updated_column = updated_sdm_index.table_name_and_dim_expr_to_dimension[f"{updated_table_name}.{expr}"]
         assert_column_enhanced(updated_column)
 
 
@@ -1297,21 +1232,15 @@ def test_enhancer_handles_new_tables(
     assert "products" not in initial_table_names, "Products table should not be in initial model"
 
     # Find products table
-    initial_products = next(
-        (t for t in initial_model["tables"] if t["base_table"]["table"] == "products"), None
-    )
-    updated_products = next(
-        (t for t in updated_model["tables"] if t["base_table"]["table"] == "products"), None
-    )
+    initial_products = next((t for t in initial_model["tables"] if t["base_table"]["table"] == "products"), None)
+    updated_products = next((t for t in updated_model["tables"] if t["base_table"]["table"] == "products"), None)
     assert initial_products is None, "Initial model should not have products table"
     assert updated_products is not None, "Updated model should have products table"
     assert_table_enhanced(updated_products)
 
     # Verify that top-level model name and description remain the same
     assert updated_model["name"] == initial_model["name"], "Model name should remain the same"
-    assert updated_model["description"] == initial_model["description"], (
-        "Model description should remain the same"
-    )
+    assert updated_model["description"] == initial_model["description"], "Model description should remain the same"
 
     initial_sdm_index = SemanticDataModelIndex(initial_model)
     updated_sdm_index = SemanticDataModelIndex(updated_model)
@@ -1413,8 +1342,7 @@ def test_validation_resolves_file_references_with_thread_context(
         headers={"Content-Type": "application/json"},
     )
     assert response_before.status_code == 200, (
-        f"Validation request failed with status {response_before.status_code}: "
-        f"{response_before.text}"
+        f"Validation request failed with status {response_before.status_code}: {response_before.text}"
     )
     validation_result_before = response_before.json()
 
@@ -1458,6 +1386,5 @@ GlobalTrade Ltd,180000"""
         w for w in result_after.get("warnings", []) if "unresolved" in w.get("message", "").lower()
     ]
     assert len(unresolved_warnings_after) == 0, (
-        f"Expected no unresolved file reference warnings after upload, "
-        f"but got: {unresolved_warnings_after}"
+        f"Expected no unresolved file reference warnings after upload, but got: {unresolved_warnings_after}"
     )

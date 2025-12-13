@@ -56,9 +56,7 @@ class WidgetTaskRunner:
             if not task.done():
                 task.cancel()
 
-    async def _run_chart_task(  # noqa: C901, PLR0915
-        self, widget_id: str, description: str
-    ) -> None:
+    async def _run_chart_task(self, widget_id: str, description: str) -> None:
         """
         Run a chart-generation prompt with retries and stream thoughts to metadata.
         """
@@ -96,9 +94,7 @@ class WidgetTaskRunner:
                     self.manager.append_thinking(widget_id, reasoning)
                     await self.message.stream_delta()
 
-                async def _complete_thinking(
-                    reasoning: str, content: ResponseReasoningContent
-                ) -> None:
+                async def _complete_thinking(reasoning: str, content: ResponseReasoningContent) -> None:
                     self.manager.append_thinking(widget_id, reasoning)
                     if content.response_id:
                         self.state.ignored_reasoning_ids.append(content.response_id)
@@ -117,9 +113,7 @@ class WidgetTaskRunner:
                 except Exception as exc:
                     last_exception = exc
                     error_hint = f"Streaming failed ({exc})"
-                    logger.warning(
-                        "Chart generation attempt %s failed: %s", attempt, exc, exc_info=True
-                    )
+                    logger.warning("Chart generation attempt %s failed: %s", attempt, exc, exc_info=True)
                     continue
 
                 if not response:
@@ -127,9 +121,7 @@ class WidgetTaskRunner:
                     continue
 
                 # Extract text blocks
-                text_parts = [
-                    c.text for c in response.content if isinstance(c, ResponseTextContent)
-                ]
+                text_parts = [c.text for c in response.content if isinstance(c, ResponseTextContent)]
                 raw_text = "\n".join(text_parts).strip()
                 if not raw_text:
                     error_hint = "Model returned empty text"
@@ -170,9 +162,7 @@ class WidgetTaskRunner:
             return None
 
         schema = parsed.get("$schema", "")
-        sub_type = (
-            "vega-lite" if isinstance(schema, str) and "vega-lite" in schema.lower() else "vega"
-        )
+        sub_type = "vega-lite" if isinstance(schema, str) and "vega-lite" in schema.lower() else "vega"
 
         try:
             # Let ThreadVegaChartContent validate and normalize.
@@ -213,7 +203,7 @@ class WidgetTaskRunner:
         if "```" not in text:
             return text
         parts = text.split("```")
-        if len(parts) < 2:  # noqa: PLR2004
+        if len(parts) < 2:
             return text
         candidate = parts[1]
         if candidate.strip().startswith(("json", "vega", "vega-lite")):

@@ -8,9 +8,7 @@ from agent_platform.server.storage.errors import ConfigDecryptionError
 
 def skip_postgres_enum_issue(request):
     """Skip test for PostgreSQL in full test suite due to enum caching issue."""
-    if hasattr(request, "node") and "postgres" in str(
-        request.node.callspec.params.get("storage", "")
-    ):
+    if hasattr(request, "node") and "postgres" in str(request.node.callspec.params.get("storage", "")):
         pytest.skip("Skipping PostgreSQL test due to enum caching issue in test suite")
 
 
@@ -164,9 +162,7 @@ def test_update_mcp_server(client: TestClient, sample_mcp_server_payload: dict):
 def test_update_mcp_server_not_found(client: TestClient, sample_mcp_server_payload: dict):
     """Test updating a non-existent MCP server returns 404."""
     non_existent_id = "00000000-0000-0000-0000-000000000000"
-    response = client.put(
-        f"/api/v2/private/mcp-servers/{non_existent_id}", json=sample_mcp_server_payload
-    )
+    response = client.put(f"/api/v2/private/mcp-servers/{non_existent_id}", json=sample_mcp_server_payload)
 
     assert response.status_code == 404
 
@@ -204,9 +200,7 @@ def test_delete_mcp_server_not_found(client: TestClient):
     assert response.status_code == 404
 
 
-def test_create_mcp_server_stdio_transport(
-    client: TestClient, sample_mcp_server_stdio_payload: dict, request
-):
+def test_create_mcp_server_stdio_transport(client: TestClient, sample_mcp_server_stdio_payload: dict, request):
     """Test creating an MCP server with stdio transport."""
     skip_postgres_enum_issue(request)
 
@@ -376,9 +370,7 @@ def test_get_mcp_server_calls_sync(mock_sync, client: TestClient, sample_mcp_ser
 
 
 @patch("agent_platform.server.api.private_v2.mcp_servers._read_mcp_servers_config_file")
-def test_list_includes_file_based_servers(
-    mock_read_config, client: TestClient, sample_mcp_server_payload: dict
-):
+def test_list_includes_file_based_servers(mock_read_config, client: TestClient, sample_mcp_server_payload: dict):
     """Test that file-based servers are included in the list after sync."""
     # Mock file-based server from config
     from agent_platform.core.mcp.mcp_server import MCPServer
@@ -470,9 +462,7 @@ def test_sync_updates_existing_file_server(mock_read_config, client: TestClient)
 
 def test_sync_error_handling(client: TestClient):
     """Test that sync errors don't break the API endpoints."""
-    with patch(
-        "agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"
-    ) as mock_sync:
+    with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers") as mock_sync:
         # Make sync raise an exception
         mock_sync.side_effect = Exception("Sync failed")
 
@@ -567,9 +557,7 @@ def test_create_mcp_server_has_quota_check():
     assert "check_mcp_server_quota" in str(quota_param.annotation)
 
 
-def test_get_mcp_server_decryption_error(
-    client: TestClient, sample_mcp_server_payload: dict, storage
-):
+def test_get_mcp_server_decryption_error(client: TestClient, sample_mcp_server_payload: dict, storage):
     """Test GET MCP server endpoint with decryption error."""
     # First create an MCP server
     response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
@@ -600,9 +588,7 @@ def test_get_mcp_server_decryption_error(
         assert server_id in error_message
 
 
-def test_list_mcp_servers_with_partial_decryption_failure(
-    client: TestClient, sample_mcp_server_payload: dict, storage
-):
+def test_list_mcp_servers_with_partial_decryption_failure(client: TestClient, sample_mcp_server_payload: dict, storage):
     """Test LIST MCP servers endpoint continues to work when some servers have decryption errors."""
     # First create an MCP server
     response = client.post("/api/v2/private/mcp-servers/", json=sample_mcp_server_payload)
@@ -623,9 +609,7 @@ def test_list_mcp_servers_with_partial_decryption_failure(
 
     with patch.object(storage, "list_mcp_servers_with_metadata") as mock_list_metadata:
         mock_list_metadata.return_value = {
-            "working-server-id": MCPServerWithMetadata(
-                server=mock_server, source=MCPServerSource.API
-            )
+            "working-server-id": MCPServerWithMetadata(server=mock_server, source=MCPServerSource.API)
         }
 
         # Mock the sync function to avoid side effects
@@ -675,9 +659,7 @@ def test_upload_mcp_server_success(client: TestClient):
         new_callable=AsyncMock,
         return_value=mock_deployment_response,
     ) as mock_api_call:
-        response = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
         # Verify the API call function was called
         assert mock_api_call.called
@@ -725,9 +707,7 @@ def test_upload_mcp_server_without_headers(client: TestClient):
         new_callable=AsyncMock,
         return_value=mock_deployment_response,
     ):
-        response = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
     assert response.status_code == 200
     response_data = response.json()
@@ -745,9 +725,7 @@ def test_upload_mcp_server_invalid_file_extension(client: TestClient):
     data = {"name": "test-action-server"}
 
     with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
-        response = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
     assert response.status_code == 400
     response_data = response.json()
@@ -773,9 +751,7 @@ def test_upload_mcp_server_file_too_large(client: TestClient):
     data = {"name": "test-action-server"}
 
     with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
-        response = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
     assert response.status_code == 413
     response_data = response.json()
@@ -801,9 +777,7 @@ def test_upload_mcp_server_invalid_headers_json(client: TestClient):
     }
 
     with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
-        response = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
     assert response.status_code == 400
     response_data = response.json()
@@ -829,9 +803,7 @@ def test_upload_mcp_server_headers_not_object(client: TestClient):
     }
 
     with patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"):
-        response = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
     assert response.status_code == 400
     response_data = response.json()
@@ -871,16 +843,12 @@ def test_upload_mcp_server_duplicate_name(client: TestClient):
         patch("agent_platform.server.api.private_v2.mcp_servers._sync_file_based_mcp_servers"),
     ):
         # First upload
-        response1 = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response1 = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
         assert response1.status_code == 200
 
         # Second upload with same name
         zip_content.seek(0)
-        response2 = client.post(
-            "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-        )
+        response2 = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
     assert response2.status_code == 409
     response_data = response2.json()
@@ -929,9 +897,7 @@ def test_upload_mcp_server_quota_check(fastapi_app):
             new_callable=AsyncMock,
             return_value=mock_deployment_response,
         ):
-            response = client.post(
-                "/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data
-            )
+            response = client.post("/api/v2/private/mcp-servers/mcp-servers-hosted", files=files, data=data)
 
         assert response.status_code == 429
     finally:

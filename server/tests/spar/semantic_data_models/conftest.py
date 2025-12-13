@@ -119,7 +119,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
 
 @pytest.fixture(scope="module")
-def sdm_seed_data_connection_configuration(  # noqa: C901, PLR0912
+def sdm_seed_data_connection_configuration(
     engine: "DataConnectionEngine",
 ) -> "DataConnectionConfiguration":
     """
@@ -162,9 +162,7 @@ def sdm_seed_data_connection_configuration(  # noqa: C901, PLR0912
 
     attributes_to_collect = [f.name for f in fields_to_collect]
     for attribute in attributes_to_collect:
-        attribute_value = os.getenv(
-            f"SDM_SEED_DATA_CONNECTION_{engine.upper()}_{attribute.upper()}", None
-        )
+        attribute_value = os.getenv(f"SDM_SEED_DATA_CONNECTION_{engine.upper()}_{attribute.upper()}", None)
         if attribute_value is not None:
             attributes_to_apply[attribute] = attribute_value
 
@@ -253,14 +251,10 @@ def _load_sql_files(
     data_file = engine_data_file if engine_data_file.exists() else shared_data_file
 
     if not schema_file.exists():
-        raise FileNotFoundError(
-            f"Schema file not found: {schema_file}\nExpected schema file for {engine} engine."
-        )
+        raise FileNotFoundError(f"Schema file not found: {schema_file}\nExpected schema file for {engine} engine.")
 
     if not data_file.exists():
-        raise FileNotFoundError(
-            f"Data file not found: {data_file}\nExpected data file for {engine} engine."
-        )
+        raise FileNotFoundError(f"Data file not found: {data_file}\nExpected data file for {engine} engine.")
 
     schema_sql = schema_file.read_text()
     data_sql = data_file.read_text()
@@ -357,7 +351,7 @@ def _initialize_postgres_database(
 
 
 @contextmanager
-def _initialize_mysql_database(  # noqa: C901, PLR0912
+def _initialize_mysql_database(
     config: "MySQLDataConnectionConfiguration",
     resources_path: Path,
 ) -> "Generator[str, Any, Any]":
@@ -446,7 +440,7 @@ def _initialize_mysql_database(  # noqa: C901, PLR0912
 
 
 @contextmanager
-def _initialize_snowflake_database(  # noqa: C901, PLR0912, PLR0915
+def _initialize_snowflake_database(
     config: "SnowflakeDataConnectionConfiguration",
     resources_path: Path,
 ) -> "Generator[str, Any, Any]":
@@ -499,11 +493,7 @@ def _initialize_snowflake_database(  # noqa: C901, PLR0912, PLR0915
                 # Remove leading/trailing whitespace
                 stmt = raw_stmt.strip()
                 # Remove lines that are only comments
-                lines = [
-                    line
-                    for line in stmt.split("\n")
-                    if line.strip() and not line.strip().startswith("--")
-                ]
+                lines = [line for line in stmt.split("\n") if line.strip() and not line.strip().startswith("--")]
                 cleaned = "\n".join(lines).strip()
                 if cleaned:
                     statements.append(cleaned)
@@ -562,7 +552,7 @@ def _initialize_snowflake_database(  # noqa: C901, PLR0912, PLR0915
 
 
 @contextmanager
-def _initialize_databricks_database(  # noqa: C901
+def _initialize_databricks_database(
     config: "DatabricksDataConnectionConfiguration",
     resources_path: Path,
 ) -> "Generator[str, Any, Any]":
@@ -610,11 +600,7 @@ def _initialize_databricks_database(  # noqa: C901
                 # Remove leading/trailing whitespace
                 stmt = raw_stmt.strip()
                 # Remove lines that are only comments
-                lines = [
-                    line
-                    for line in stmt.split("\n")
-                    if line.strip() and not line.strip().startswith("--")
-                ]
+                lines = [line for line in stmt.split("\n") if line.strip() and not line.strip().startswith("--")]
                 cleaned = "\n".join(lines).strip()
                 if cleaned:
                     statements.append(cleaned)
@@ -659,7 +645,7 @@ def _initialize_databricks_database(  # noqa: C901
 
 
 @contextmanager
-def _initialize_redshift_database(  # noqa: C901, PLR0912, PLR0915
+def _initialize_redshift_database(
     config: "RedshiftDataConnectionConfiguration",
     resources_path: Path,
 ) -> "Generator[str, Any, Any]":
@@ -715,11 +701,7 @@ def _initialize_redshift_database(  # noqa: C901, PLR0912, PLR0915
                 # Remove leading/trailing whitespace
                 stmt = raw_stmt.strip()
                 # Remove lines that are only comments
-                lines = [
-                    line
-                    for line in stmt.split("\n")
-                    if line.strip() and not line.strip().startswith("--")
-                ]
+                lines = [line for line in stmt.split("\n") if line.strip() and not line.strip().startswith("--")]
                 cleaned = "\n".join(lines).strip()
                 if cleaned:
                     statements.append(cleaned)
@@ -809,41 +791,31 @@ def initialize_data_base(
     # Select the appropriate context manager based on the engine
     match engine:
         case "postgres":
-            assert isinstance(
-                sdm_seed_data_connection_configuration, PostgresDataConnectionConfiguration
-            )
+            assert isinstance(sdm_seed_data_connection_configuration, PostgresDataConnectionConfiguration)
             ctx = _initialize_postgres_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
         case "snowflake":
-            assert isinstance(
-                sdm_seed_data_connection_configuration, SnowflakeDataConnectionConfiguration
-            )
+            assert isinstance(sdm_seed_data_connection_configuration, SnowflakeDataConnectionConfiguration)
             ctx = _initialize_snowflake_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
         case "databricks":
-            assert isinstance(
-                sdm_seed_data_connection_configuration, DatabricksDataConnectionConfiguration
-            )
+            assert isinstance(sdm_seed_data_connection_configuration, DatabricksDataConnectionConfiguration)
             ctx = _initialize_databricks_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
         case "redshift":
-            assert isinstance(
-                sdm_seed_data_connection_configuration, RedshiftDataConnectionConfiguration
-            )
+            assert isinstance(sdm_seed_data_connection_configuration, RedshiftDataConnectionConfiguration)
             ctx = _initialize_redshift_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
             )
         case "mysql":
-            assert isinstance(
-                sdm_seed_data_connection_configuration, MySQLDataConnectionConfiguration
-            )
+            assert isinstance(sdm_seed_data_connection_configuration, MySQLDataConnectionConfiguration)
             ctx = _initialize_mysql_database(
                 sdm_seed_data_connection_configuration,
                 semantic_data_model_resources_path,
@@ -857,7 +829,7 @@ def initialize_data_base(
 
 
 @pytest.fixture(scope="module")
-def sdm_data_connection_configuration(  # noqa: C901, PLR0912
+def sdm_data_connection_configuration(
     engine: "DataConnectionEngine", initialize_data_base: str
 ) -> "DataConnectionConfiguration":
     """
@@ -880,7 +852,7 @@ def sdm_data_connection_configuration(  # noqa: C901, PLR0912
     ```bash
     SPAR_DATA_SERVER_HOST=localhost SDM_DATA_CONNECTION_POSTGRES_HOST=localhost uv run pytest -v -m semantic_data_models
     ```
-    """  # noqa: E501
+    """
     from dataclasses import fields
 
     from agent_platform.core.payloads.data_connection import (
@@ -910,9 +882,7 @@ def sdm_data_connection_configuration(  # noqa: C901, PLR0912
 
     attributes_to_collect = [f.name for f in fields_to_collect]
     for attribute in attributes_to_collect:
-        attribute_value = os.getenv(
-            f"SDM_DATA_CONNECTION_{engine.upper()}_{attribute.upper()}", None
-        )
+        attribute_value = os.getenv(f"SDM_DATA_CONNECTION_{engine.upper()}_{attribute.upper()}", None)
         if attribute_value is not None:
             attributes_to_apply[attribute] = attribute_value
 

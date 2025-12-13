@@ -72,9 +72,7 @@ async def test_documents_in_context_filters_by_mime_type():
     mock_video.file_ref = "presentation.mp4"
     mock_video.mime_type = "video/mp4"  # Should be filtered out
 
-    mock_storage.get_thread_files = AsyncMock(
-        return_value=[mock_pdf, mock_image, mock_json, mock_video]
-    )
+    mock_storage.get_thread_files = AsyncMock(return_value=[mock_pdf, mock_image, mock_json, mock_video])
 
     documents = await interface.documents_in_context(mock_storage)
 
@@ -102,9 +100,7 @@ async def test_is_enabled_requires_reducto_integration():
     mock_storage = AsyncMock()
     from agent_platform.server.storage.errors import IntegrationNotFoundError
 
-    mock_storage.get_integration_by_kind = AsyncMock(
-        side_effect=IntegrationNotFoundError("reducto", by="kind")
-    )
+    mock_storage.get_integration_by_kind = AsyncMock(side_effect=IntegrationNotFoundError("reducto", by="kind"))
     mock_kernel.storage = mock_storage
 
     interface.attach_kernel(mock_kernel)
@@ -256,9 +252,7 @@ async def test_documents_summary_formats_file_size():
     mock_doc_kb_decimal.mime_type = "application/pdf"
     mock_doc_kb_decimal.file_size_raw = 512  # 0.5 KB
 
-    mock_storage.get_thread_files = AsyncMock(
-        return_value=[mock_doc_kb, mock_doc_mb, mock_doc_kb_decimal]
-    )
+    mock_storage.get_thread_files = AsyncMock(return_value=[mock_doc_kb, mock_doc_mb, mock_doc_kb_decimal])
 
     # Set the documents directly to test the summary
     interface._documents = [mock_doc_kb, mock_doc_mb, mock_doc_kb_decimal]

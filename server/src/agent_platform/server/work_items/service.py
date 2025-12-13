@@ -51,9 +51,7 @@ class WorkItemsService:
     def __init__(self, execution_mode: Literal["batch", "slots"]):
         """Initialize the WorkItemsService."""
         self._executor = (
-            SlotExecutor(self.execute_work_item)
-            if execution_mode == "slots"
-            else BatchExecutor(self.execute_work_item)
+            SlotExecutor(self.execute_work_item) if execution_mode == "slots" else BatchExecutor(self.execute_work_item)
         )
 
         if WORK_ITEMS_SETTINGS.enable_transaction_log:
@@ -95,9 +93,7 @@ class WorkItemsService:
         associated with any active slot.
         """
         if self._executor is None or not isinstance(self._executor, SlotExecutor):
-            logger.warning(
-                "Work item %s is executing but no slot-based executor is available", work_item_id
-            )
+            logger.warning("Work item %s is executing but no slot-based executor is available", work_item_id)
             return False
 
         return await self._executor.cancel_work_item(work_item_id)
@@ -207,10 +203,7 @@ class WorkItemsService:
             item.messages.append(file_upload_message)
 
         payload = item.to_initiate_stream_payload()
-        logger.info(
-            f"Work item {item.work_item_id}: Invoking agent "
-            f"{item.agent_id} with messages {payload.messages}"
-        )
+        logger.info(f"Work item {item.work_item_id}: Invoking agent {item.agent_id} with messages {payload.messages}")
         invoke_resp = await async_run(
             item.agent_id,
             payload,
@@ -244,9 +237,7 @@ class WorkItemsService:
                 logger.error(f"Work item {item.work_item_id}: Run {run_id} failed")
                 return False
             else:
-                logger.debug(
-                    f"Work item {item.work_item_id}: Run {run_id} is {run_status_resp.status}"
-                )
+                logger.debug(f"Work item {item.work_item_id}: Run {run_id} is {run_status_resp.status}")
                 await asyncio.sleep(1)
 
     async def execute_work_item(
@@ -335,9 +326,7 @@ class WorkItemsService:
                     return result
 
                 if new_status == WorkItemStatus.COMPLETED:
-                    await storage.complete_work_item(
-                        system_user_id, item.work_item_id, WorkItemCompletedBy.AGENT
-                    )
+                    await storage.complete_work_item(system_user_id, item.work_item_id, WorkItemCompletedBy.AGENT)
                 else:
                     await storage.update_work_item_status(
                         system_user_id,

@@ -28,7 +28,7 @@ if sys.platform == "win32":
 
 
 @action(is_consequential=False)
-def web_search_places(  # noqa: PLR0912,C901
+def web_search_places(
     place: str,
     city: str = "",
     country: str = "",
@@ -107,9 +107,7 @@ def web_search_news(topic: str, max_results: int = 5) -> SearchResultList:
 
 
 @action(is_consequential=False)
-def web_search_images(
-    keywords: str, type_image: str | None = "", max_results: int = 10
-) -> GenericSearchResultList:
+def web_search_images(keywords: str, type_image: str | None = "", max_results: int = 10) -> GenericSearchResultList:
     """Performs DuckDuckGo Search to find images about a topic.
 
     Args:

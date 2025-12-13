@@ -32,19 +32,13 @@ class ActionServerProcess(BootstrapBase):
     def datadir(self) -> Path:
         return self._datadir
 
-    def import_action_package(
-        self, action_package_path: Path, *, logs_dir: Path, db_file: str = "db.sqlite"
-    ) -> None:
+    def import_action_package(self, action_package_path: Path, *, logs_dir: Path, db_file: str = "db.sqlite") -> None:
         import os
 
         from sema4ai.common.process import Process
 
-        assert os.path.isabs(action_package_path), (
-            f"Action package path must be absolute: {action_package_path}"
-        )
-        assert action_package_path.exists(), (
-            f"Action package path does not exist: {action_package_path}"
-        )
+        assert os.path.isabs(action_package_path), f"Action package path must be absolute: {action_package_path}"
+        assert action_package_path.exists(), f"Action package path does not exist: {action_package_path}"
 
         args = self._get_base_args()
         args.append("import")
@@ -99,7 +93,7 @@ class ActionServerProcess(BootstrapBase):
             ]
         return base_args
 
-    def start(  # noqa: C901 PLR0913
+    def start(
         self,
         *,
         logs_dir: Path,
@@ -170,9 +164,7 @@ class ActionServerProcess(BootstrapBase):
 
         # Register port callback with appropriate regex based on https setting
         match_host_port_regexp = (
-            self.REGEXP_TO_MATCH_HOST_PORT_HTTPS
-            if use_https
-            else self.REGEXP_TO_MATCH_HOST_PORT_HTTP
+            self.REGEXP_TO_MATCH_HOST_PORT_HTTPS if use_https else self.REGEXP_TO_MATCH_HOST_PORT_HTTP
         )
         self.register_port_precondition(match_host_port_regexp, Stream.BOTH)
 

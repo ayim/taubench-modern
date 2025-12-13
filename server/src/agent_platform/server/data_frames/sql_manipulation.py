@@ -65,9 +65,7 @@ def get_destructive_reasons(stmt: exp.Expression) -> list[str]:
     reasons: list[str] = []
     root = _root_key(stmt)
     if root not in READONLY_TOPLEVEL:
-        reasons.append(
-            f"Only read-only top-levels are allowed. Found non-read-only top-level: {root}"
-        )
+        reasons.append(f"Only read-only top-levels are allowed. Found non-read-only top-level: {root}")
         return reasons
     which = _contains_destructive(stmt)
     if which is not None:
@@ -128,9 +126,7 @@ def update_table_names(
 
     for table in main_sql_ast.find_all(exp.Table):
         if table.name in logical_table_name_to_actual_table_name:
-            table.set(
-                "this", exp.Identifier(this=logical_table_name_to_actual_table_name[table.name])
-            )
+            table.set("this", exp.Identifier(this=logical_table_name_to_actual_table_name[table.name]))
     return main_sql_ast
 
 
@@ -253,8 +249,7 @@ def _is_in_select_list(column: exp.Column) -> bool:
         if isinstance(parent, exp.Select):
             # Check if the column (or its immediate parent) is in the SELECT expressions
             return node in parent.expressions or any(
-                node == expr or (isinstance(expr, exp.Alias) and node == expr.this)
-                for expr in parent.expressions
+                node == expr or (isinstance(expr, exp.Alias) and node == expr.this) for expr in parent.expressions
             )
 
         # If we hit any of these contexts, we're definitely not in a SELECT list
@@ -358,7 +353,7 @@ def _replace_column_with_expression(
         )
 
 
-def update_column_references(  # noqa: C901, PLR0912, PLR0915
+def update_column_references(
     main_sql_ast: Expression,
     table_column_mappings: dict[str, dict[str, str]],
     logical_table_name_to_actual_table_name: dict[str, str] | None = None,
@@ -486,10 +481,7 @@ def update_column_references(  # noqa: C901, PLR0912, PLR0915
                     from_clause = parent.args.get("from")
                     if from_clause and hasattr(from_clause, "this"):
                         from_table = from_clause.this
-                        if (
-                            isinstance(from_table, exp.Table)
-                            and from_table.name in data_frame_names
-                        ):
+                        if isinstance(from_table, exp.Table) and from_table.name in data_frame_names:
                             # Querying FROM a data frame - don't rewrite unqualified columns
                             is_unqualified_df_ref = True
                     # Stop at first SELECT
@@ -557,9 +549,7 @@ def update_column_references(  # noqa: C901, PLR0912, PLR0915
             continue
 
         # Find the mapping for this column
-        column_mapping = _find_column_mapping_for_column(
-            column_name, table_name, table_column_mappings
-        )
+        column_mapping = _find_column_mapping_for_column(column_name, table_name, table_column_mappings)
 
         # If we found a mapping and it's different from the column name, replace it
         if column_mapping and column_mapping != column_name:
@@ -594,8 +584,7 @@ def validate_sql_query(sql_query: str, dialect: str | None) -> Any:
     expressions = sqlglot.parse(sql_query, dialect=dialect)
     if len(expressions) != 1:
         raise PlatformError(
-            message=f"SQL query must be a single expression. Found: {len(expressions)} "
-            f"SQL query: {sql_query!r}"
+            message=f"SQL query must be a single expression. Found: {len(expressions)} SQL query: {sql_query!r}"
         )
 
     expr = expressions[0]
@@ -604,7 +593,5 @@ def validate_sql_query(sql_query: str, dialect: str | None) -> Any:
 
     reasons = get_destructive_reasons(expr)
     if reasons:
-        raise PlatformError(
-            message=f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})"
-        )
+        raise PlatformError(message=f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})")
     return expr

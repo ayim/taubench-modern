@@ -169,7 +169,7 @@ class ToolDefinitionCache:
 
     # ------------ public ---------------------------------------------------
 
-    async def get_or_fetch(  # noqa: C901, PLR0912
+    async def get_or_fetch(
         self,
         kind: Literal["action_packages", "mcp_servers"],
         key: str,
@@ -261,22 +261,16 @@ class ToolDefinitionCache:
             return {
                 "key": key,
                 "cache_type": "success" if in_success_cache else "negative",
-                "definitions": [
-                    definition.model_dump() for definition in self._success_cache[key][0]
-                ]
+                "definitions": [definition.model_dump() for definition in self._success_cache[key][0]]
                 if in_success_cache
                 else [],
-                "issues": (
-                    self._success_cache[key][1] if in_success_cache else self._negative_cache[key]
-                ),
+                "issues": (self._success_cache[key][1] if in_success_cache else self._negative_cache[key]),
             }
 
         total_success_cache_interactions = self._success_hits + self._success_misses
         total_negative_cache_interactions = self._negative_hits + self._negative_misses
 
-        cached_action_packages = [
-            _get_cache_value(key) for key in self._keys_by_kind["action_packages"]
-        ]
+        cached_action_packages = [_get_cache_value(key) for key in self._keys_by_kind["action_packages"]]
         cached_mcp_servers = [_get_cache_value(key) for key in self._keys_by_kind["mcp_servers"]]
 
         report = CachedToolDefinitionsReport(
@@ -289,24 +283,18 @@ class ToolDefinitionCache:
             total_negative_cache_misses=self._negative_misses,
             total_negative_cache_entries=len(self._negative_cache),
             average_success_cache_hit_ratio=(
-                self._success_hits / total_success_cache_interactions
-                if total_success_cache_interactions
-                else 0.0
+                self._success_hits / total_success_cache_interactions if total_success_cache_interactions else 0.0
             ),
             average_negative_cache_hit_ratio=(
-                self._negative_hits / total_negative_cache_interactions
-                if total_negative_cache_interactions
-                else 0.0
+                self._negative_hits / total_negative_cache_interactions if total_negative_cache_interactions else 0.0
             ),
             average_time_to_fetch_action_packages=(
-                sum(self._fetch_times_by_kind["action_packages"])
-                / len(self._fetch_times_by_kind["action_packages"])
+                sum(self._fetch_times_by_kind["action_packages"]) / len(self._fetch_times_by_kind["action_packages"])
                 if self._fetch_times_by_kind["action_packages"]
                 else 0.0
             ),
             average_time_to_fetch_mcp_servers=(
-                sum(self._fetch_times_by_kind["mcp_servers"])
-                / len(self._fetch_times_by_kind["mcp_servers"])
+                sum(self._fetch_times_by_kind["mcp_servers"]) / len(self._fetch_times_by_kind["mcp_servers"])
                 if self._fetch_times_by_kind["mcp_servers"]
                 else 0.0
             ),

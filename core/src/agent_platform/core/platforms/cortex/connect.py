@@ -73,13 +73,9 @@ class SPCSConnnectionConfig(Configuration):
 class SnowflakeConfigurationError(Exception):
     """Raised when there are configuration-related issues with Snowflake connection."""
 
-    pass
-
 
 class SnowflakeAuthenticationError(Exception):
     """Raised when there are authentication-related issues with Snowflake connection."""
-
-    pass
 
 
 def _get_dict_value(source: dict, key: str, default_value):
@@ -104,14 +100,10 @@ def _parse_snowflake_oauth_connection_details(
     try:
         token = Path(token_path).read_text().strip()
     except Exception as e:
-        raise SnowflakeConfigurationError(
-            f'Failed to read OAuth token from file "{token_path!s}": {e!s}'
-        ) from e
+        raise SnowflakeConfigurationError(f'Failed to read OAuth token from file "{token_path!s}": {e!s}') from e
     authenticator = _get_mandatory_dict_value(linking_details, "authenticator")
     if authenticator != "OAUTH":
-        raise SnowflakeConfigurationError(
-            f'Unsupported authenticator "{authenticator}" for OAuth based configuration'
-        )
+        raise SnowflakeConfigurationError(f'Unsupported authenticator "{authenticator}" for OAuth based configuration')
     config = {
         "authenticator": authenticator,
         "account": _get_mandatory_dict_value(linking_details, "account"),
@@ -178,13 +170,9 @@ def get_snowflake_connection_details_from_file(
     linking_details = _get_mandatory_dict_value(config_json, "linkingDetails")
 
     if auth_type in ("SNOWFLAKE_OAUTH_PARTNER", "SNOWFLAKE_OAUTH_CUSTOM"):
-        return _parse_snowflake_oauth_connection_details(
-            linking_details, role, warehouse, database, schema
-        )
+        return _parse_snowflake_oauth_connection_details(linking_details, role, warehouse, database, schema)
     if auth_type == "SNOWFLAKE_PRIVATE_KEY":
-        return _parse_snowflake_private_key_connection_details(
-            linking_details, role, warehouse, database, schema
-        )
+        return _parse_snowflake_private_key_connection_details(linking_details, role, warehouse, database, schema)
 
     raise SnowflakeConfigurationError(f'Configuration type "{auth_type}" not supported')
 
@@ -203,7 +191,7 @@ def safe_get_or_create_session(session_builder):
         return session_builder.getOrCreate()
 
 
-def get_connection_details(  # noqa: PLR0913
+def get_connection_details(
     role: str | None = None,
     warehouse: str | None = None,
     database: str | None = None,
@@ -298,9 +286,7 @@ def get_connection_details(  # noqa: PLR0913
         # each of those as Path.home() / ".sema4ai" / "sf-auth.json". If it
         # ever _were_ to change, it'd be a big discussion.
         config_file_path = Path.home() / ".sema4ai" / "sf-auth.json"
-        return get_snowflake_connection_details_from_file(
-            config_file_path, role, warehouse, database, schema
-        )
+        return get_snowflake_connection_details_from_file(config_file_path, role, warehouse, database, schema)
     except Exception as e:
         logger.error(
             f"Failed to read authentication config: {e!s}",

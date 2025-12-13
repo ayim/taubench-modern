@@ -21,13 +21,9 @@ OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID = 5 * 60.0  # 5 minute
 # Override with environment variable if set, otherwise use default
 if os.getenv("SEMA4AI_OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID"):
     try:
-        OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID = float(
-            os.environ["SEMA4AI_OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID"]
-        )
+        OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID = float(os.environ["SEMA4AI_OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID"])
     except Exception as e:
-        logger.error(
-            f"Failed to parse SEMA4AI_OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID as a float: {e}"
-        )
+        logger.error(f"Failed to parse SEMA4AI_OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID as a float: {e}")
 
 if is_debugger_active():  # No interaction timeouts when debugging.
     OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT = None
@@ -42,10 +38,7 @@ else:
                 os.environ["SEMA4AI_OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT"]
             )
         except Exception as e:
-            logger.error(
-                f"Failed to parse SEMA4AI_OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT "
-                f"as a float: {e}"
-            )
+            logger.error(f"Failed to parse SEMA4AI_OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT as a float: {e}")
 
 
 class OAuth2LoginRequest(BaseModel):
@@ -91,9 +84,7 @@ async def oauth2_login(
     from agent_platform.server.shutdown_manager import ShutdownManager
 
     # Create token storage adapter
-    token_storage_adapter = TokenStorageAdapter(
-        storage=storage, user_id=user.user_id, mcp_url=mcp_server_url
-    )
+    token_storage_adapter = TokenStorageAdapter(storage=storage, user_id=user.user_id, mcp_url=mcp_server_url)
 
     # Get base redirect URI from request
     base_url_str = str(request.base_url).rstrip("/")
@@ -138,9 +129,7 @@ async def oauth2_login(
 
             try:
                 async with httpx.AsyncClient(follow_redirects=True, auth=oauth) as client:
-                    await client.get(
-                        mcp_server_url, timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT
-                    )
+                    await client.get(mcp_server_url, timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT)
                     logger.info("OAuth2 flow completed successfully in background")
             except Exception as e:
                 logger.error(f"OAuth2 background flow failed: {e}", exc_info=True)
@@ -152,9 +141,7 @@ async def oauth2_login(
 
         # Wait for the authorization URL to be available
         try:
-            authorization_url = await oauth.get_authorization_url(
-                timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT
-            )
+            authorization_url = await oauth.get_authorization_url(timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT)
             # Return redirect response to the client (who should've opened this URL in a
             # web browser window)
             return RedirectResponse(url=authorization_url)
@@ -196,9 +183,7 @@ async def oauth2_local_login(
     from agent_platform.server.oauth.oauth_provider import OAuth, TokenStorageAdapter
 
     # Create token storage adapter
-    token_storage_adapter = TokenStorageAdapter(
-        storage=storage, user_id=user.user_id, mcp_url=payload.mcp_server_url
-    )
+    token_storage_adapter = TokenStorageAdapter(storage=storage, user_id=user.user_id, mcp_url=payload.mcp_server_url)
 
     # Get base redirect URI from request
     base_url_str = str(request.base_url).rstrip("/")
@@ -231,9 +216,7 @@ async def oauth2_local_login(
         # until the OAuth flow completes.
         async with httpx.AsyncClient(follow_redirects=True, auth=oauth) as client:
             try:
-                await client.get(
-                    payload.mcp_server_url, timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT
-                )
+                await client.get(payload.mcp_server_url, timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT)
                 # If we get here, the OAuth flow completed successfully
                 return OAuth2LoginResponse(
                     message="OAuth2 authentication completed successfully",
@@ -305,9 +288,7 @@ async def oauth2_status(
     try:
         if mcp_server_url:
             # Get status for a specific MCP server
-            token = await storage.get_mcp_oauth_token(
-                user_id=user.user_id, mcp_url=mcp_server_url, decrypt=False
-            )
+            token = await storage.get_mcp_oauth_token(user_id=user.user_id, mcp_url=mcp_server_url, decrypt=False)
 
             if token is None:
                 status_responses[mcp_server_url] = OAuth2StatusResponse(
@@ -319,10 +300,7 @@ async def oauth2_status(
                 status_responses[mcp_server_url] = OAuth2StatusResponse(
                     authenticated=bool(
                         token.access_token
-                        and (
-                            token.expires_in is None
-                            or token.expires_in > OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID
-                        )
+                        and (token.expires_in is None or token.expires_in > OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID)
                     ),
                     has_refresh_token=bool(token.refresh_token),
                     token_expires_in=token.expires_in if token else None,
@@ -338,10 +316,7 @@ async def oauth2_status(
                 status_responses[mcp_url] = OAuth2StatusResponse(
                     authenticated=bool(
                         token.access_token
-                        and (
-                            token.expires_in is None
-                            or token.expires_in > OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID
-                        )
+                        and (token.expires_in is None or token.expires_in > OAUTH2_MIN_TIME_TO_CONSIDER_TOKEN_VALID)
                     ),
                     has_refresh_token=bool(token.refresh_token),
                     token_expires_in=token.expires_in,
@@ -374,9 +349,7 @@ async def oauth2_callback(
 
     try:
         # Store the callback result in the database
-        await storage.set_mcp_oauth_callback_result(
-            callback_id=callback_id, code=code, state=state, error=None
-        )
+        await storage.set_mcp_oauth_callback_result(callback_id=callback_id, code=code, state=state, error=None)
         return HTMLResponse(
             content="""
             <html>
@@ -391,9 +364,7 @@ async def oauth2_callback(
     except Exception as e:
         logger.exception(f"OAuth2 callback failed: {e}")
         # Store error in callback result
-        await storage.set_mcp_oauth_callback_result(
-            callback_id=callback_id, code=None, state=None, error=e
-        )
+        await storage.set_mcp_oauth_callback_result(callback_id=callback_id, code=None, state=None, error=e)
         raise PlatformHTTPError(
             error_code=ErrorCode.INTERNAL_ERROR,
             message=f"OAuth2 callback failed: {e}",
@@ -413,9 +384,7 @@ async def oauth2_refresh(
     from agent_platform.server.oauth.oauth_provider import OAuth, TokenStorageAdapter
 
     # Get existing token
-    token = await storage.get_mcp_oauth_token(
-        user_id=user.user_id, mcp_url=mcp_server_url, decrypt=False
-    )
+    token = await storage.get_mcp_oauth_token(user_id=user.user_id, mcp_url=mcp_server_url, decrypt=False)
     if not token:
         raise PlatformHTTPError(
             error_code=ErrorCode.NOT_FOUND,
@@ -429,9 +398,7 @@ async def oauth2_refresh(
         )
 
     # Create token storage adapter
-    token_storage_adapter = TokenStorageAdapter(
-        storage=storage, user_id=user.user_id, mcp_url=mcp_server_url
-    )
+    token_storage_adapter = TokenStorageAdapter(storage=storage, user_id=user.user_id, mcp_url=mcp_server_url)
 
     # Get base redirect URI from request
     base_url_str = str(request.base_url).rstrip("/")
@@ -452,9 +419,7 @@ async def oauth2_refresh(
         # The OAuth handler will automatically refresh the token if needed
         async with httpx.AsyncClient(follow_redirects=True, auth=oauth) as client:
             # Make a request to trigger token refresh
-            response = await client.get(
-                mcp_server_url, timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT
-            )
+            response = await client.get(mcp_server_url, timeout=OAUTH2_MIN_TIME_FOR_USER_INTERACTION_TIMEOUT)
             response.raise_for_status()
 
             return {"message": "OAuth2 token refreshed successfully"}

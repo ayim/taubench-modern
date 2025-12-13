@@ -100,11 +100,7 @@ class _BedrockPatcher:
     def _make_vcr_request(self, request: Any) -> VcrRequest:
         try:
             body = getattr(request, "body", b"")
-            body_s = (
-                body.decode("utf-8", "ignore")
-                if isinstance(body, bytes | bytearray)
-                else str(body or "")
-            )
+            body_s = body.decode("utf-8", "ignore") if isinstance(body, bytes | bytearray) else str(body or "")
             headers = dict(getattr(request, "headers", {}) or {})
         except Exception:
             body_s, headers = "", {}
@@ -179,9 +175,7 @@ class _BedrockPatcher:
                 self._capture_streaming_response(vcr_request, resp)
             elif "/converse" in url_str:
                 await self._capture_json_response(vcr_request, resp)
-            elif any(
-                endpoint in url_str for endpoint in ("/inference-profiles", "/foundation-models")
-            ):
+            elif any(endpoint in url_str for endpoint in ("/inference-profiles", "/foundation-models")):
                 await self._capture_json_response(vcr_request, resp)
         except Exception as e:
             debug(f"[VCR][bedrock] Failed to capture response for {url_str}: {e}")
@@ -248,18 +242,14 @@ def _install_recording_wrappers_on_bedrock(bedrock_cls: object) -> Callable[[], 
     original_get_model_arn = bedrock_cls._get_model_arn_from_local_model_id  # type: ignore[attr-defined]
 
     async def _wrapped_get_available_models(self):
-        if get_vcr_record_mode() != RecordMode.NONE and not getattr(
-            self, "_vcr_bedrock_forced_models", False
-        ):
+        if get_vcr_record_mode() != RecordMode.NONE and not getattr(self, "_vcr_bedrock_forced_models", False):
             self._available_models_cache = {}
             bedrock_cls._GLOBAL_AVAILABLE_MODELS_CACHE = {}  # type: ignore[attr-defined]
             self._vcr_bedrock_forced_models = True
         return await original_get_available_models(self)
 
     async def _wrapped_get_model_arn(self, model_id: str):
-        if get_vcr_record_mode() != RecordMode.NONE and not getattr(
-            self, "_vcr_bedrock_forced_profiles", False
-        ):
+        if get_vcr_record_mode() != RecordMode.NONE and not getattr(self, "_vcr_bedrock_forced_profiles", False):
             self._profile_arn_cache = {}
             self._model_arn_cache = {}
             bedrock_cls._GLOBAL_PROFILE_ARN_CACHE = {}  # type: ignore[attr-defined]

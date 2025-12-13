@@ -70,9 +70,7 @@ class ReductoClient(
                         ),
                     )
                 case _:
-                    raise ValueError(
-                        "Only 'openai' is supported as a delegate " + "platform client"
-                    )
+                    raise ValueError("Only 'openai' is supported as a delegate " + "platform client")
         else:
             logger.warning("No delegate configured for Reducto platform client")
             self._delegate = None

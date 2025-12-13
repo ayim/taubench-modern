@@ -135,9 +135,7 @@ TEST_TRUNCATION_MODEL_ID = "unit-test-truncation-model"
 def _make_test_platform(max_tokens: int):
     """Build a simple platform stub exposing the context window lookup."""
     return SimpleNamespace(
-        client=SimpleNamespace(
-            model_map=SimpleNamespace(model_context_windows={TEST_TRUNCATION_MODEL_ID: max_tokens})
-        )
+        client=SimpleNamespace(model_map=SimpleNamespace(model_context_windows={TEST_TRUNCATION_MODEL_ID: max_tokens}))
     )
 
 
@@ -504,11 +502,7 @@ async def test_generate_endpoint_uses_agent_id(monkeypatch):
         user_id="testing",
         runbook_structured=Runbook(content=[], raw_text=""),
         version="1.0",
-        platform_configs=[
-            OpenAIPlatformParameters(
-                openai_api_key=SecretString("k"), platform_id=str(uuid.uuid4())
-            )
-        ],  # type: ignore
+        platform_configs=[OpenAIPlatformParameters(openai_api_key=SecretString("k"), platform_id=str(uuid.uuid4()))],  # type: ignore
         agent_architecture=AgentArchitecture(name="arch", version="1"),
     )
 
@@ -549,11 +543,7 @@ async def test_generate_endpoint_uses_thread_id(monkeypatch):
         user_id="testing",
         runbook_structured=Runbook(content=[], raw_text=""),
         version="1.0",
-        platform_configs=[
-            OpenAIPlatformParameters(
-                openai_api_key=SecretString("k"), platform_id=str(uuid.uuid4())
-            )
-        ],  # type: ignore
+        platform_configs=[OpenAIPlatformParameters(openai_api_key=SecretString("k"), platform_id=str(uuid.uuid4()))],  # type: ignore
         agent_architecture=AgentArchitecture(name="arch", version="1"),
     )
 
@@ -783,9 +773,7 @@ async def test_generate_endpoint_respects_minimize_reasoning(monkeypatch):
     ):
         observed["generate_model"] = model
         generic_model_id = model if model.count("/") == 2 else f"openai/openai/{model}"
-        platform_specific_model = platform_configs.models_to_platform_specific_model_ids[
-            generic_model_id
-        ]
+        platform_specific_model = platform_configs.models_to_platform_specific_model_ids[generic_model_id]
         request_payload = converted_prompt.as_platform_request(platform_specific_model)
         observed["request_payload"] = request_payload
         return _RecordedResponse(platform_specific_model)

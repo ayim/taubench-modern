@@ -3,10 +3,7 @@ from pathlib import Path
 
 import click
 from sema4ai.build_common.root_dir import get_root_dir
-from sema4ai.build_common.workflows import (
-    build_and_sign_executable,
-    is_in_github_actions,
-)
+from sema4ai.build_common.workflows import build_and_sign_executable, is_in_github_actions
 
 repo_root_dir = Path(os.path.normpath(os.path.abspath(__file__))).parent.parent
 server_dir = repo_root_dir / "server"
@@ -26,16 +23,13 @@ def get_pyproject_version() -> str:
 
     version = toml_data["project"]["version"]
     if not version:
-        raise ValueError(
-            f"Can't detect version for building executable from pyproject.toml ({pyproject_path})"
-        )
+        raise ValueError(f"Can't detect version for building executable from pyproject.toml ({pyproject_path})")
     return version
 
 
 @click.group()
 def app():
     """Build and manage project executable."""
-    pass
 
 
 @app.command()

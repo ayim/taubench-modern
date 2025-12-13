@@ -160,16 +160,12 @@ class QuotasService:
                     # which had the following structure: {"current": VALUE}
                     if isinstance(current_config.config_value, dict):
                         default_value = self.CONFIG_TYPES[current_config.config_type].default_value
-                        current_value = int(
-                            current_config.config_value.get("current", default_value)
-                        )
+                        current_value = int(current_config.config_value.get("current", default_value))
                     else:
                         current_value = int(current_config.config_value)
 
                     self._config_values[config_type] = current_value
-                    logger.info(
-                        "Loaded config from storage", storage_key=storage_key, value=current_value
-                    )
+                    logger.info("Loaded config from storage", storage_key=storage_key, value=current_value)
                 except (json.JSONDecodeError, KeyError, ValueError) as e:
                     default_value = self.CONFIG_TYPES[config_type].default_value
                     logger.error(
@@ -228,10 +224,7 @@ class QuotasService:
                         f"new value {selected_env_value} from env var {selected_env_var}"
                     )
             except Exception as e:
-                logger.error(
-                    f"Invalid env override for quota {config_type_enum}; keeping existing value. "
-                    f"Error: {e!s}"
-                )
+                logger.error(f"Invalid env override for quota {config_type_enum}; keeping existing value. Error: {e!s}")
 
         # If no env override for pool size, apply the persisted/default value once
         if not applied_postgres_pool_from_env:
@@ -270,9 +263,7 @@ class QuotasService:
         await StorageService.get_instance().set_config(config.storage_key, new_value)
         self._config_values[config_type] = int_value
 
-    def _validate_parallel_work_items_constraint(
-        self, parallel_work_items: int, postgres_pool_max_size: int
-    ) -> None:
+    def _validate_parallel_work_items_constraint(self, parallel_work_items: int, postgres_pool_max_size: int) -> None:
         """Validate that PARALLEL_WORK_ITEMS does not exceed 80% of POSTGRES_POOL_MAX_SIZE.
 
         Args:

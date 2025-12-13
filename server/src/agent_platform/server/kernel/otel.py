@@ -84,9 +84,7 @@ class AgentServerOTelInterface(OTelInterface, UsesKernelMixin):
             correlated_agent_id=(kwargs.get("agent_id", self.kernel.agent.agent_id)),
             correlated_thread_id=(kwargs.get("thread_id", self.kernel.thread.thread_id)),
             correlated_run_id=(kwargs.get("run_id", self.kernel.run.run_id)),
-            correlated_message_id=(
-                kwargs.get("message_id", self.kernel.thread_state.active_message_id)
-            ),
+            correlated_message_id=(kwargs.get("message_id", self.kernel.thread_state.active_message_id)),
         )
 
         await self.kernel.storage.create_otel_artifact(artifact)

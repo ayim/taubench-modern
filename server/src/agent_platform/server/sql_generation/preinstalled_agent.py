@@ -64,9 +64,7 @@ def _build_sql_generation_agent(user_id: str) -> "Agent":
         runbook_structured=Runbook(raw_text=runbook_text, content=[]),
         version=SQL_GENERATION_AGENT_VERSION,
         platform_configs=[],
-        agent_architecture=AgentArchitecture(
-            name=SQL_GENERATION_AGENT_ARCHITECTURE, version="2.0.0"
-        ),
+        agent_architecture=AgentArchitecture(name=SQL_GENERATION_AGENT_ARCHITECTURE, version="2.0.0"),
         extra={
             "metadata": SQL_GENERATION_AGENT_METADATA.copy(),
             "agent_settings": {

@@ -89,9 +89,7 @@ class DataConnectionInspector:
         if self.request.inspect_columns:
             for i, table_spec in enumerate(tables_to_inspect):
                 initial_time = time.monotonic()
-                logger.info(
-                    f"Inspecting table {table_spec.name} ({i + 1} of {len(tables_to_inspect)})"
-                )
+                logger.info(f"Inspecting table {table_spec.name} ({i + 1} of {len(tables_to_inspect)})")
                 table_info = await self._inspect_table(connection, table_spec)
                 logger.info(
                     f"Inspected table {table_spec.name} ({i + 1} of {len(tables_to_inspect)}) in "
@@ -102,9 +100,7 @@ class DataConnectionInspector:
         return DataConnectionsInspectResponse(tables=table_infos)
 
     @classmethod
-    async def create_ibis_connection(
-        cls, data_connection: "DataConnection"
-    ) -> "AsyncIbisConnection":
+    async def create_ibis_connection(cls, data_connection: "DataConnection") -> "AsyncIbisConnection":
         from agent_platform.server.kernel.ibis_utils import create_ibis_connection
 
         return await create_ibis_connection(data_connection)
@@ -225,9 +221,7 @@ class DataConnectionInspector:
         # Ensure all tables have columns to validate
         for table_spec in self.request.tables_to_inspect:
             if table_spec.columns_to_inspect is None:
-                raise ValueError(
-                    f"Table '{table_spec.name}' has no columns_to_inspect specified for validation"
-                )
+                raise ValueError(f"Table '{table_spec.name}' has no columns_to_inspect specified for validation")
 
         errors: dict[str, dict[str, ValidationMessage]] = {}
 
@@ -339,9 +333,7 @@ class DataConnectionInspector:
             Exception: If query execution fails
         """
         # Build query using async proxy (returns AsyncIbisExpression)
-        sample_query = self._select_with_limit(
-            table, columns_to_inspect, self.request.n_sample_rows
-        )
+        sample_query = self._select_with_limit(table, columns_to_inspect, self.request.n_sample_rows)
         # Use async proxy's to_pyarrow which handles backend routing
         return await sample_query.to_pyarrow()
 
@@ -376,16 +368,11 @@ class DataConnectionInspector:
                     col_type = await table[column_name].type()
                 except Exception:
                     col_type = "unknown"
-                logger.error(
-                    f"Error inspecting table {table_name} column {column_name} "
-                    f"column type: {col_type}: {e!r}"
-                )
+                logger.error(f"Error inspecting table {table_name} column {column_name} column type: {col_type}: {e!r}")
                 sample_table_dict[column_name] = None
         return sample_table_dict
 
-    async def _inspect_table(
-        self, connection: "AsyncIbisConnection", table_spec: "TableToInspect"
-    ) -> "TableInfo":
+    async def _inspect_table(self, connection: "AsyncIbisConnection", table_spec: "TableToInspect") -> "TableInfo":
         """Inspect a specific table and return its metadata."""
         import pyarrow
 
@@ -397,26 +384,20 @@ class DataConnectionInspector:
 
         # Filter columns to inspect based on request
         columns_to_inspect = [
-            col
-            for col in column_names
-            if table_spec.columns_to_inspect is None or col in table_spec.columns_to_inspect
+            col for col in column_names if table_spec.columns_to_inspect is None or col in table_spec.columns_to_inspect
         ]
 
         # Fetch sample data if there are columns to inspect
         sample_table: pyarrow.Table | dict[str, pyarrow.Table | None] | None = None
         if columns_to_inspect:
             try:
-                sample_table = await self._fetch_sample_data_for_all_columns(
-                    table, columns_to_inspect
-                )
+                sample_table = await self._fetch_sample_data_for_all_columns(table, columns_to_inspect)
             except IbisDbCallNotInWorkerThreadError:
                 raise
             except Exception as e:
                 logger.error(f"Error inspecting table {table_spec.name}: {e!r}")
                 # Fallback: try fetching columns one by one
-                sample_table = await self._fetch_sample_data_per_column(
-                    table, columns_to_inspect, table_spec.name
-                )
+                sample_table = await self._fetch_sample_data_per_column(table, columns_to_inspect, table_spec.name)
 
         # Inspect each column and collect metadata
         columns = []

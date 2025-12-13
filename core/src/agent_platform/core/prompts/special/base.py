@@ -2,10 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, Literal
 
-from agent_platform.core.prompts.messages import (
-    PromptAgentMessage,
-    PromptUserMessage,
-)
+from agent_platform.core.prompts.messages import PromptAgentMessage, PromptUserMessage
 
 if TYPE_CHECKING:
     from agent_platform.core.kernel import Kernel
@@ -95,4 +92,3 @@ class SpecialPromptMessage(ABC):
         kernel: "Kernel",
     ) -> list[PromptUserMessage | PromptAgentMessage]:
         """Hydrate the special message."""
-        pass

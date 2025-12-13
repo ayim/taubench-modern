@@ -24,9 +24,7 @@ class DataFramesInterface(ABC):
     """Interface for data frames."""
 
     @abstractmethod
-    async def step_initialize(
-        self, *, storage: BaseStorage | None = None, state: DataFrameArchState
-    ) -> None:
+    async def step_initialize(self, *, storage: BaseStorage | None = None, state: DataFrameArchState) -> None:
         """Caches all data frames internally and builds internal data.
         MUST be called before each processing step for data frames and tools
         to be correctly cached."""

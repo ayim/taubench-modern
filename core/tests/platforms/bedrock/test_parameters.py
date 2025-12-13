@@ -190,9 +190,7 @@ class TestBedrockPlatformParametersExtended:
             ),
         ],
     )
-    def test_validate_accepts_legacy_shapes(
-        self, legacy_payload: dict, expected_config: dict
-    ) -> None:
+    def test_validate_accepts_legacy_shapes(self, legacy_payload: dict, expected_config: dict) -> None:
         params = BedrockPlatformParameters.model_validate(legacy_payload)
         assert params.region_name == "us-east-1"
         assert params.config_params == expected_config

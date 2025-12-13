@@ -72,9 +72,7 @@ async def test_special_message_finalizer_with_special_messages(finalizer, mock_k
     prompt = Prompt(messages=messages)  # type: ignore
 
     # Mock the hydrate method using patch on the class
-    with patch.object(
-        ConversationHistorySpecialMessage, "hydrate", new=AsyncMock(return_value=hydrated_messages)
-    ):
+    with patch.object(ConversationHistorySpecialMessage, "hydrate", new=AsyncMock(return_value=hydrated_messages)):
         # Call the finalizer
         result = await finalizer(messages, prompt, mock_kernel)
 
@@ -147,9 +145,7 @@ async def test_special_message_finalizer_multiple_special_messages(finalizer, mo
     prompt = Prompt(messages=messages)  # type: ignore
 
     # Mock the hydrate method for the conversation history class
-    with patch.object(
-        ConversationHistorySpecialMessage, "hydrate", new=AsyncMock(return_value=history_hydrated)
-    ):
+    with patch.object(ConversationHistorySpecialMessage, "hydrate", new=AsyncMock(return_value=history_hydrated)):
         # Call the finalizer
         result = await finalizer(messages, prompt, mock_kernel)
 

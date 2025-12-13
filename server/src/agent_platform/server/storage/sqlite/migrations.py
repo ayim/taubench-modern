@@ -98,9 +98,7 @@ class SQLiteMigrations(MigrationsProvider):
             for version, details in applied.items():
                 if details["dirty"] is True:
                     raise MigrationError(
-                        f"Migration {version} is dirty. "
-                        f"No migrations will be applied. "
-                        f"Please fix it manually.",
+                        f"Migration {version} is dirty. No migrations will be applied. Please fix it manually.",
                     )
 
             # 3) Gather .up.sql files
@@ -136,9 +134,7 @@ class SQLiteMigrations(MigrationsProvider):
                     old = applied[version]
                     if old["dirty"]:
                         raise MigrationError(
-                            f"Migration {version} is dirty. "
-                            f"No migrations will be applied. "
-                            f"Please fix it manually.",
+                            f"Migration {version} is dirty. No migrations will be applied. Please fix it manually.",
                         )
                     # TODO we previously had a check to detect if a migration is already
                     # applied but the migration we have _now_ is different. This points out

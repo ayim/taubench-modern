@@ -77,9 +77,7 @@ class SDMSetup:
         sdm_folder = self._resolve_sdm_folder(cfg.sdm_path)
         semantic_model = self._load_sdm_yaml(sdm_folder)
 
-        sdm_id = await self._import_sdm(
-            semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve())
-        )
+        sdm_id = await self._import_sdm(semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve()))
         await self._upload_excel_file(thread_id, sdm_folder)
 
         return sdm_id
@@ -94,9 +92,7 @@ class SDMSetup:
         semantic_model = self._load_sdm_yaml(sdm_folder)
         connection_names = self._collect_data_connection_names(semantic_model)
         if not connection_names:
-            raise ValueError(
-                f"No data_connection_name entries found in {sdm_folder / SDM_FILE_NAME}"
-            )
+            raise ValueError(f"No data_connection_name entries found in {sdm_folder / SDM_FILE_NAME}")
 
         connection_description = cfg.description or "Quality SDM data connection"
         data_connection_payloads: list[tuple[str, PostgresDataConnectionConfiguration]] = []
@@ -141,9 +137,7 @@ class SDMSetup:
                 description=connection_description,
             )
 
-        sdm_id = await self._import_sdm(
-            semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve())
-        )
+        sdm_id = await self._import_sdm(semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve()))
 
         return sdm_id
 
@@ -172,9 +166,7 @@ class SDMSetup:
                 )
                 response.raise_for_status()
 
-    async def _import_sdm(
-        self, semantic_model: dict[str, Any], agent_id: str | None, source_key: str
-    ) -> str:
+    async def _import_sdm(self, semantic_model: dict[str, Any], agent_id: str | None, source_key: str) -> str:
         cache_key = (source_key, agent_id)
         cached = self._import_cache.get(cache_key)
         if cached:
@@ -218,7 +210,7 @@ class SDMSetup:
             )
             response.raise_for_status()
 
-    async def _ensure_data_connection(  # noqa: C901, PLR0912, PLR0915
+    async def _ensure_data_connection(
         self,
         name: str,
         engine: str,
@@ -377,9 +369,7 @@ class SDMSetup:
                 try:
                     return int(env_value)
                 except ValueError as e:
-                    raise ValueError(
-                        f"Invalid port value from env '{env_var_name}': {env_value}"
-                    ) from e
+                    raise ValueError(f"Invalid port value from env '{env_var_name}': {env_value}") from e
             return env_value
 
         # Handle literal values
@@ -400,9 +390,7 @@ class SDMSetup:
 
         data_connection = data.get("data_connection") or {}
         if not isinstance(data_connection, dict):
-            raise ValueError(
-                f"Invalid config.yml at {config_path}: data_connection must be a mapping"
-            )
+            raise ValueError(f"Invalid config.yml at {config_path}: data_connection must be a mapping")
         engine_raw = data_connection.get("engine")
         engine = engine_raw.lower() if isinstance(engine_raw, str) else engine_raw
         name = data_connection.get("name")
@@ -422,9 +410,7 @@ class SDMSetup:
         missing_required = [field for field in required_keys if field not in config_kwargs]
         if missing_required:
             missing_str = ", ".join(missing_required)
-            raise ValueError(
-                f"Missing required data connection fields in config.yml: {missing_str}"
-            )
+            raise ValueError(f"Missing required data connection fields in config.yml: {missing_str}")
 
         return {
             "engine": engine,
@@ -446,7 +432,7 @@ class SDMSetup:
             sslmode=connection_info.sslmode,
         )
 
-    def _build_postgres_configuration(  # noqa: PLR0913
+    def _build_postgres_configuration(
         self,
         *,
         host: str,

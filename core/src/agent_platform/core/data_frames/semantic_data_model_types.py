@@ -84,9 +84,7 @@ class ValidationMessage(TypedDict):
     """A validation message."""
 
     message: Annotated[str, "A human-readable message describing the validation error or warning"]
-    level: Annotated[
-        ValidationMessageLevel, "The level of the validation message (error or warning)"
-    ]
+    level: Annotated[ValidationMessageLevel, "The level of the validation message (error or warning)"]
     kind: Annotated[ValidationMessageKind, "The kind of the validation message"]
 
 
@@ -94,13 +92,10 @@ class CortexSearchService(TypedDict, total=False):
     """Configuration for Cortex Search Service integration."""
 
     service: Annotated[str, "The name of the Cortex Search Service"]
-    literal_column: Annotated[
-        str | None, "The column in the Cortex Search Service that contains the literal values"
-    ]
+    literal_column: Annotated[str | None, "The column in the Cortex Search Service that contains the literal values"]
     database: Annotated[
         str | None,
-        "The database where the Cortex Search Service is located. "
-        "Defaults to base_table's database",
+        "The database where the Cortex Search Service is located. Defaults to base_table's database",
     ]
     schema: Annotated[
         str | None,
@@ -141,12 +136,8 @@ class Dimension(TypedDict, total=False):
         """A list of other terms/phrases used to refer to this dimension.
         Must be unique across all synonyms in this semantic model""",
     ]
-    description: Annotated[
-        str | None, "A brief description about this dimension, including what data it has"
-    ]
-    unique: Annotated[
-        bool | None, "A boolean value that indicates this dimension has unique values"
-    ]
+    description: Annotated[str | None, "A brief description about this dimension, including what data it has"]
+    unique: Annotated[bool | None, "A boolean value that indicates this dimension has unique values"]
     sample_values: Annotated[
         list[str | int | float | bool | NoneType] | None,
         """Sample values of this column, if any. Add any value that is likely to be
@@ -161,9 +152,7 @@ class Dimension(TypedDict, total=False):
         the full list of possible values, and the model only chooses from those values when
         filtering on that column""",
     ]
-    errors: Annotated[
-        list[ValidationMessage] | None, "Validation errors for this dimension, if any"
-    ]
+    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this dimension, if any"]
 
 
 class TimeDimension(TypedDict, total=False):
@@ -211,9 +200,7 @@ class TimeDimension(TypedDict, total=False):
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
-    errors: Annotated[
-        list[ValidationMessage] | None, "Validation errors for this time dimension, if any"
-    ]
+    errors: Annotated[list[ValidationMessage] | None, "Validation errors for this time dimension, if any"]
 
 
 class Fact(TypedDict, total=False):
@@ -251,9 +238,7 @@ class Fact(TypedDict, total=False):
         """A list of other terms/phrases used to refer to this measure.
         Must be unique across all synonyms in this semantic model""",
     ]
-    description: Annotated[
-        str | None, "A brief description about this measure, including what data this column has"
-    ]
+    description: Annotated[str | None, "A brief description about this measure, including what data this column has"]
     unique: Annotated[bool | None, "A boolean value that indicates this column has unique values"]
     sample_values: Annotated[
         list[str | int | float | bool | NoneType] | None,
@@ -278,8 +263,7 @@ class Filter(TypedDict, total=False):
     ]
     description: Annotated[
         str | None,
-        "A brief description about this filter, including details of what this filter is "
-        "typically used for",
+        "A brief description about this filter, including details of what this filter is typically used for",
     ]
     errors: Annotated[list[ValidationMessage] | None, "Validation errors for this filter, if any"]
 
@@ -319,13 +303,10 @@ class Metric(TypedDict, total=False):
         "A list of other terms/phrases used to refer to this metric. "
         "It must be unique across all synonyms in this semantic model",
     ]
-    description: Annotated[
-        str | None, "A brief description of this metric, including what data this column has"
-    ]
+    description: Annotated[str | None, "A brief description of this metric, including what data this column has"]
     sample_values: Annotated[
         list[str | int | float | bool | NoneType] | None,
-        "Sample values of this column, if any. Add any values that are likely to be "
-        "referenced in the user questions",
+        "Sample values of this column, if any. Add any values that are likely to be referenced in the user questions",
     ]
     errors: Annotated[list[ValidationMessage] | None, "Validation errors for this metric, if any"]
 
@@ -471,12 +452,8 @@ class BaseTable(TypedDict, total=False):
     # For data connections the data_connection_id is required
     data_connection_id: Annotated[str | None, "ID of the data connection"]
     # For portable exports, data_connection_name is used instead of ID
-    data_connection_name: Annotated[
-        str | None, "Name of the data connection (portable export/import)"
-    ]
-    file_reference: Annotated[
-        FileReference | None, "File reference (thread_id, file_ref, sheet_name) for a file"
-    ]
+    data_connection_name: Annotated[str | None, "Name of the data connection (portable export/import)"]
+    file_reference: Annotated[FileReference | None, "File reference (thread_id, file_ref, sheet_name) for a file"]
 
 
 class PrimaryKey(TypedDict):
@@ -510,8 +487,7 @@ class Relationship(TypedDict):
     ]
     relationship_columns: Annotated[
         list[RelationshipColumn],
-        "A list of equal columns from each of the left table and right table "
-        "representing the join path",
+        "A list of equal columns from each of the left table and right table representing the join path",
     ]
     join_type: Annotated[str, "Either left_outer or inner"]
     relationship_type: Annotated[str, "Either many_to_one or one_to_one"]
@@ -529,9 +505,7 @@ class LogicalTable(TypedDict, total=False):
         reserved keywords""",
         ]
     ]
-    base_table: Required[
-        Annotated[BaseTable, "A fully qualified name of the underlying base table in the database"]
-    ]
+    base_table: Required[Annotated[BaseTable, "A fully qualified name of the underlying base table in the database"]]
 
     # Optional fields
     synonyms: Annotated[
@@ -545,9 +519,7 @@ class LogicalTable(TypedDict, total=False):
         "The primary key columns for this table. Required if you're defining relationships",
     ]
     dimensions: Annotated[list[Dimension] | None, "A list of dimension columns in this table"]
-    time_dimensions: Annotated[
-        list[TimeDimension] | None, "A list of time dimension columns in this table"
-    ]
+    time_dimensions: Annotated[list[TimeDimension] | None, "A list of time dimension columns in this table"]
     facts: Annotated[list[Fact] | None, "A list of fact columns in this table"]
     metrics: Annotated[list[Metric] | None, "A list of metrics in this table"]
     filters: Annotated[list[Filter] | None, "Predefined filters on this table, if any"]
@@ -567,23 +539,18 @@ CATEGORIES: tuple[CategoriesType, CategoriesType, CategoriesType, CategoriesType
 class VerifiedQuery(TypedDict, total=False):
     """A verified query represents a validated SQL query saved from a data frame."""
 
-    name: Required[
-        Annotated[str, "The name of the data frame that was saved as a validated query."]
-    ]
+    name: Required[Annotated[str, "The name of the data frame that was saved as a validated query."]]
     nlq: Required[
         Annotated[
             str,
-            "The NLQ (Natural Language Question) that the validated query answers "
-            "(from the data frame description).",
+            "The NLQ (Natural Language Question) that the validated query answers (from the data frame description).",
         ]
     ]
     verified_at: Required[Annotated[str, "The ISO date-time string when the query was verified."]]
     verified_by: Required[Annotated[str, "The user ID of the user who verified the query."]]
     sql: Required[Annotated[str, "The full SQL query that was used to create the data frame."]]
 
-    sql_errors: Annotated[
-        list[ValidationMessage] | None, "Validation errors for the SQL query, if any"
-    ]
+    sql_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the SQL query, if any"]
     nlq_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the NLQ, if any"]
     name_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the name, if any"]
 
@@ -604,18 +571,14 @@ class SemanticDataModel(TypedDict, total=False):
     # Optional fields
     description: Annotated[
         str | None,
-        "A description of this semantic model, including details of what kind of analysis "
-        "it's useful for",
+        "A description of this semantic model, including details of what kind of analysis it's useful for",
     ]
     tables: Annotated[list[LogicalTable], "A list of logical tables in this semantic model"]
     relationships: Annotated[list[Relationship] | None, "A list of joins between logical tables"]
-    errors: Annotated[
-        list[ValidationMessage], "Validation errors for this semantic data model, if any"
-    ]
+    errors: Annotated[list[ValidationMessage], "Validation errors for this semantic data model, if any"]
     verified_queries: Annotated[
         list[VerifiedQuery] | None,
-        "A list of validated queries that were saved from data frames "
-        "created from SQL computations.",
+        "A list of validated queries that were saved from data frames created from SQL computations.",
     ]
     metadata: Annotated[
         SemanticDataModelMetadata | None,

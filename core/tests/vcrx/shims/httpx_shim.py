@@ -87,9 +87,7 @@ def _create_async_send_shim(cassette: Any, real_async_send: Callable) -> Callabl
             return response
 
         if cassette.write_protected and cassette.filter_request(vcr_request):
-            raise CannotOverwriteExistingCassetteException(
-                cassette=cassette, failed_request=vcr_request
-            )
+            raise CannotOverwriteExistingCassetteException(cassette=cassette, failed_request=vcr_request)
 
         real_response = await real_async_send(*args, **kwargs)
         t1 = time.monotonic()
@@ -137,9 +135,7 @@ def _create_sync_send_shim(cassette: Any, real_sync_send: Callable) -> Callable:
             return response
 
         if cassette.write_protected and cassette.filter_request(vcr_request):
-            raise CannotOverwriteExistingCassetteException(
-                cassette=cassette, failed_request=vcr_request
-            )
+            raise CannotOverwriteExistingCassetteException(cassette=cassette, failed_request=vcr_request)
 
         real_response = real_sync_send(*args, **kwargs)
         t1 = time.monotonic()
@@ -179,9 +175,7 @@ def install_httpx_shim() -> None:
         return  # VCR or httpx not available
 
     # Replace VCR's default send functions with our custom shims
-    httpx_stubs.async_vcr_send = lambda c, r_send: _create_async_send_shim(
-        c, _HttpxAsyncClient_send
-    )
+    httpx_stubs.async_vcr_send = lambda c, r_send: _create_async_send_shim(c, _HttpxAsyncClient_send)
     httpx_stubs.sync_vcr_send = lambda c, r_send: _create_sync_send_shim(c, _HttpxSyncClient_send)
 
     _HTTPX_SHIM_INSTALLED = True

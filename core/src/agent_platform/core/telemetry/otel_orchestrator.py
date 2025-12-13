@@ -223,9 +223,7 @@ class OtelOrchestrator(SpanProcessor):
                 integration_id_to_processor[integration.id] = processor
 
         # Build routing map and swap
-        new_map, new_global = build_routing_map(
-            agent_ids, integration_id_to_processor, integration_scopes
-        )
+        new_map, new_global = build_routing_map(agent_ids, integration_id_to_processor, integration_scopes)
 
         with self._lock:
             # Collect all old processors (global + per-agent, deduplicated)

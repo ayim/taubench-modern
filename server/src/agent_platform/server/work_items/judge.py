@@ -40,9 +40,7 @@ def _load_judge_prompt() -> str:
     if IS_FROZEN:
         # PyInstaller bundle - use sys._MEIPASS
         base_path = Path(getattr(sys, "_MEIPASS"))  # noqa: B009
-        judge_prompt_path = (
-            base_path / "agent_platform" / "server" / "work_items" / "judge_prompt.txt"
-        )
+        judge_prompt_path = base_path / "agent_platform" / "server" / "work_items" / "judge_prompt.txt"
         content = judge_prompt_path.read_text(encoding="utf-8")
     else:
         # Development environment - use importlib.resources
@@ -120,18 +118,14 @@ async def _validate_success(item: WorkItem) -> WorkItemStatus:
                     try:
                         return WorkItemStatus(classification)
                     except ValueError:
-                        logger.warning(
-                            f"Work item validation failed: invalid classification: {classification}"
-                        )
+                        logger.warning(f"Work item validation failed: invalid classification: {classification}")
                         break
 
             # Fallback: try to parse the entire response as before (for backward compatibility)
             try:
                 return WorkItemStatus(response_text.strip())
             except ValueError:
-                logger.warning(
-                    f"Work item validation failed: could not parse response: {response_text!r}"
-                )
+                logger.warning(f"Work item validation failed: could not parse response: {response_text!r}")
                 pass
     # If we get here, the work item validation failed; return INDETERMINATE
     return WorkItemStatus.INDETERMINATE

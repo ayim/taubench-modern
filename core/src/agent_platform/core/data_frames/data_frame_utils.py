@@ -80,9 +80,7 @@ def validate_verified_query_name(name: str) -> str:
 
     # Check that name contains only alphanumeric characters and spaces
     if not all(c.isalnum() or c.isspace() for c in cleaned):
-        raise VerifiedQueryNameError(
-            "Verified query name can only contain letters, numbers, and spaces."
-        )
+        raise VerifiedQueryNameError("Verified query name can only contain letters, numbers, and spaces.")
 
     return cleaned
 
@@ -95,7 +93,5 @@ def make_data_frame_name_valid(name: str) -> str:
     if not is_valid_data_frame_name(valid_name):
         valid_name = slugify(valid_name).replace("-", "_")
         if not is_valid_data_frame_name(valid_name):
-            raise DataFrameNameError(
-                f"Unable to create a valid data frame name from the provided name ({name!r})."
-            )
+            raise DataFrameNameError(f"Unable to create a valid data frame name from the provided name ({name!r}).")
     return valid_name

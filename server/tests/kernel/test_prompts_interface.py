@@ -24,13 +24,9 @@ async def test_format_prompt_renders_state_and_kwargs(sqlite_storage, tmp_path) 
     kernel = await model_creator.create_agent_server_kernel()
 
     prompt = Prompt(
-        system_instruction=(
-            "User {{ kernel.user.cr_user_id }} custom {{ custom_value }} state {{ state.status }}"
-        ),
+        system_instruction=("User {{ kernel.user.cr_user_id }} custom {{ custom_value }} state {{ state.status }}"),
         messages=[
-            PromptUserMessage(
-                content=[PromptTextContent(text="Echo {{ custom_value }} for {{ state.status }}")]
-            )
+            PromptUserMessage(content=[PromptTextContent(text="Echo {{ custom_value }} for {{ state.status }}")])
         ],
     )
 

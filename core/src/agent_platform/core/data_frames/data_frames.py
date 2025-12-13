@@ -71,10 +71,7 @@ class DataFrameSource:
 
         elif source_type == "semantic_data_model":
             if not base_table or not logical_table_name:
-                raise KeyError(
-                    "base_table and logical_table_name must be set when source_type is "
-                    "semantic_data_model"
-                )
+                raise KeyError("base_table and logical_table_name must be set when source_type is semantic_data_model")
         else:
             raise ValueError(
                 f"Invalid value for 'source_type': {source_type!r}. "
@@ -261,7 +258,7 @@ class PlatformDataFrame:
     def __post_init__(self) -> None:
         self.verify()
 
-    def verify(self) -> None:  # noqa: C901
+    def verify(self) -> None:
         """
         If changes are made outside, this method can be called to verify the data frame is valid.
         """
@@ -278,16 +275,13 @@ class PlatformDataFrame:
         assert_literal_value_valid(self, "input_id_type")
 
         if self.input_id_type == "sql_computation":
-            assert self.computation is not None, (
-                "SQL computation must have the computation field set"
-            )
+            assert self.computation is not None, "SQL computation must have the computation field set"
 
         column_headers = self.column_headers
         assert isinstance(column_headers, list)
         for header in column_headers:
             assert isinstance(header, str), (
-                f"Column header must be a list of strings. Got element {header} "
-                f"of type {type(header)}"
+                f"Column header must be a list of strings. Got element {header} of type {type(header)}"
             )
 
         assert isinstance(self.data_frame_id, str)
@@ -380,8 +374,7 @@ class PlatformDataFrame:
                 created_at = datetime.datetime.fromisoformat(created_at)
             except ValueError as e:
                 raise ValueError(
-                    f"Unable to parse created_at: {created_at!r} (must be a date with a "
-                    "string in ISO format)"
+                    f"Unable to parse created_at: {created_at!r} (must be a date with a string in ISO format)"
                 ) from e
         else:
             raise ValueError(f"created_at must be a string. Got {type(created_at)}")

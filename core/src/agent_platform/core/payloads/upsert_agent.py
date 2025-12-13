@@ -259,11 +259,7 @@ class UpsertAgentPayload:
             self.agent_architecture = AgentArchitecture.model_validate(
                 {
                     "name": architecture,
-                    "version": (
-                        "1.0.0"
-                        if architecture == "agent_platform.architectures.default"
-                        else "2.0.0"
-                    ),
+                    "version": ("1.0.0" if architecture == "agent_platform.architectures.default" else "2.0.0"),
                 }
             )
 
@@ -326,12 +322,8 @@ class UpsertAgentPayload:
                 del self.metadata["question_groups"]
             return
 
-        if "question_groups" in self.metadata and isinstance(
-            self.metadata["question_groups"], list
-        ):
-            self.question_groups = [
-                QuestionGroup.model_validate(group) for group in self.metadata["question_groups"]
-            ]
+        if "question_groups" in self.metadata and isinstance(self.metadata["question_groups"], list):
+            self.question_groups = [QuestionGroup.model_validate(group) for group in self.metadata["question_groups"]]
             del self.metadata["question_groups"]
 
     def _legacy_model_dict_to_allowlist(
@@ -398,9 +390,7 @@ class UpsertAgentPayload:
 
     def _split_azure_url(self, url: str) -> tuple[str, str, str]:
         """Split an Azure URL into endpoint, deployment name, and api version."""
-        assert "/openai/deployments/" in url, (
-            f"Invalid azure url, must contain /openai/deployments/: {url}"
-        )
+        assert "/openai/deployments/" in url, f"Invalid azure url, must contain /openai/deployments/: {url}"
         assert "chat/completions" in url or "embeddings" in url, (
             f"Invalid azure url, must contain chat/completions or embeddings: {url}"
         )
@@ -686,9 +676,7 @@ class UpsertAgentPayload:
         for idx, cfg in enumerate(platform_configs):
             raw_cfg = self.platform_configs[idx] if idx < len(self.platform_configs) else {}
             explicit_allowlist = isinstance(raw_cfg, dict) and ("models" in raw_cfg)
-            platform_sets.append(
-                ArchPlatformCandidateSet(config=cfg, explicit_allowlist=explicit_allowlist)
-            )
+            platform_sets.append(ArchPlatformCandidateSet(config=cfg, explicit_allowlist=explicit_allowlist))
 
         # Type guard: ensured non-None in __post_init__
         assert self.agent_architecture is not None
@@ -716,8 +704,7 @@ class UpsertAgentPayload:
         # Make sure agent_architecture is present after potential legacy conversion
         if self.agent_architecture is None:
             raise ValueError(
-                "agent_architecture is required but was not provided: "
-                "or derived from legacy fields.",
+                "agent_architecture is required but was not provided: or derived from legacy fields.",
             )
 
         # Ensure runbook text is valid
@@ -747,13 +734,9 @@ class UpsertAgentPayload:
             "version": self.version,
             "user_id": self.user_id,
             "platform_configs": self.platform_configs,
-            "agent_architecture": (
-                self.agent_architecture.model_dump() if self.agent_architecture else None
-            ),
+            "agent_architecture": (self.agent_architecture.model_dump() if self.agent_architecture else None),
             "runbook": self.runbook,
-            "structured_runbook": (
-                self.structured_runbook.model_dump() if self.structured_runbook else None
-            ),
+            "structured_runbook": (self.structured_runbook.model_dump() if self.structured_runbook else None),
             "action_packages": [pkg.model_dump() for pkg in self.action_packages],
             "mcp_servers": [server.model_dump() for server in self.mcp_servers],
             "mcp_server_ids": self.mcp_server_ids,
@@ -782,7 +765,7 @@ class UpsertAgentPayload:
         return as_dict
 
     @classmethod
-    def to_agent(  # noqa: C901
+    def to_agent(
         cls,
         payload: Self,
         user_id: str,
@@ -801,9 +784,7 @@ class UpsertAgentPayload:
         # If for any of the platform configs, there's an allowlist
         # Check to see if any of the models in the allowlist have an
         # architecture requirement that is not met by the agent_architecture
-        validated_architecture = payload._validate_architecture_based_on_platform_configs(
-            platform_configs
-        )
+        validated_architecture = payload._validate_architecture_based_on_platform_configs(platform_configs)
 
         def _get_mode(payload: Self) -> Literal["conversational", "worker"] | None:
             try:
@@ -832,9 +813,7 @@ class UpsertAgentPayload:
             extra = {}
 
         if payload.runbook:
-            runbook_structured = Runbook(
-                raw_text=payload.runbook, content=[], updated_at=datetime.now(UTC)
-            )
+            runbook_structured = Runbook(raw_text=payload.runbook, content=[], updated_at=datetime.now(UTC))
         elif payload.structured_runbook:
             runbook_structured = payload.structured_runbook.to_structured_runbook()
         else:
@@ -908,25 +887,19 @@ class UpsertAgentPayload:
         validated_data = data.copy() if isinstance(data, dict) else {}
 
         # Convert agent_architecture from dict to AgentArchitecture object if needed
-        if "agent_architecture" in validated_data and isinstance(
-            validated_data["agent_architecture"], dict
-        ):
+        if "agent_architecture" in validated_data and isinstance(validated_data["agent_architecture"], dict):
             validated_data["agent_architecture"] = AgentArchitecture.model_validate(
                 validated_data["agent_architecture"]
             )
 
         # Convert structured_runbook from dict to Runbook object if needed
-        if "structured_runbook" in validated_data and isinstance(
-            validated_data["structured_runbook"], dict
-        ):
+        if "structured_runbook" in validated_data and isinstance(validated_data["structured_runbook"], dict):
             validated_data["structured_runbook"] = StructuredRunbookPayload.model_validate(
                 validated_data["structured_runbook"],
             )
 
         # Convert action_packages from list of dicts to list of ActionPackage objects
-        if "action_packages" in validated_data and isinstance(
-            validated_data["action_packages"], list
-        ):
+        if "action_packages" in validated_data and isinstance(validated_data["action_packages"], list):
             validated_data["action_packages"] = [
                 ActionPackage.model_validate(pkg) if isinstance(pkg, dict) else pkg
                 for pkg in validated_data["action_packages"]
@@ -940,29 +913,21 @@ class UpsertAgentPayload:
             ]
 
         # Convert question_groups from list of dicts to list of QuestionGroup objects
-        if "question_groups" in validated_data and isinstance(
-            validated_data["question_groups"], list
-        ):
+        if "question_groups" in validated_data and isinstance(validated_data["question_groups"], list):
             validated_data["question_groups"] = [
                 QuestionGroup.model_validate(group) if isinstance(group, dict) else group
                 for group in validated_data["question_groups"]
             ]
 
         # Convert observability_configs from list of dicts to list of ObservabilityConfig objects
-        if "observability_configs" in validated_data and isinstance(
-            validated_data["observability_configs"], list
-        ):
+        if "observability_configs" in validated_data and isinstance(validated_data["observability_configs"], list):
             validated_data["observability_configs"] = [
                 ObservabilityConfig.model_validate(config) if isinstance(config, dict) else config
                 for config in validated_data["observability_configs"]
             ]
 
         # Convert selected_tools from dict to SelectedTools object
-        if "selected_tools" in validated_data and isinstance(
-            validated_data["selected_tools"], dict
-        ):
-            validated_data["selected_tools"] = SelectedTools.model_validate(
-                validated_data["selected_tools"]
-            )
+        if "selected_tools" in validated_data and isinstance(validated_data["selected_tools"], dict):
+            validated_data["selected_tools"] = SelectedTools.model_validate(validated_data["selected_tools"])
 
         return cls(**validated_data)

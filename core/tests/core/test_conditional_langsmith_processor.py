@@ -67,9 +67,7 @@ class TestConditionalLangSmithProcessor:
 
     @patch("agent_platform.core.conditional_langsmith_processor.OTLPSpanExporter")
     @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
-    def test_add_or_update_config_success(
-        self, mock_batch_processor, mock_exporter, processor, langsmith_config_a
-    ):
+    def test_add_or_update_config_success(self, mock_batch_processor, mock_exporter, processor, langsmith_config_a):
         """Test successfully adding a LangSmith config."""
         result = processor.add_or_update_config("agent_123", langsmith_config_a)
 
@@ -112,9 +110,7 @@ class TestConditionalLangSmithProcessor:
 
     @patch("agent_platform.core.conditional_langsmith_processor.OTLPSpanExporter")
     @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
-    def test_add_or_update_config_unchanged(
-        self, mock_batch_processor, mock_exporter, processor, langsmith_config_a
-    ):
+    def test_add_or_update_config_unchanged(self, mock_batch_processor, mock_exporter, processor, langsmith_config_a):
         """Test adding identical config returns False on second call."""
         # Add config first time
         result1 = processor.add_or_update_config("agent_123", langsmith_config_a)
@@ -129,9 +125,7 @@ class TestConditionalLangSmithProcessor:
 
     @patch("agent_platform.core.conditional_langsmith_processor.OTLPSpanExporter")
     @patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor")
-    def test_agent_id_routing(
-        self, mock_batch_processor, mock_exporter, processor, langsmith_config_a, mock_span
-    ):
+    def test_agent_id_routing(self, mock_batch_processor, mock_exporter, processor, langsmith_config_a, mock_span):
         """Test routing spans by agent_id."""
         # Setup
         processor.add_or_update_config("agent_123", langsmith_config_a)
@@ -270,9 +264,7 @@ class TestConditionalLangSmithProcessor:
         """Test that shutdown properly shuts down all processors."""
         with (
             patch("agent_platform.core.conditional_langsmith_processor.OTLPSpanExporter"),
-            patch(
-                "agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor"
-            ) as mock_batch,
+            patch("agent_platform.core.conditional_langsmith_processor.BatchSpanProcessor") as mock_batch,
         ):
             mock_processor_a = MagicMock()
             mock_processor_b = MagicMock()

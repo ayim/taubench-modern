@@ -24,9 +24,7 @@ class EnvironmentSecretManager(BaseSecretManager):
         key = self._load_key_from_environment()
 
         # Always create fallback envelope encryption instance
-        self._fallback_envelope_encryption = StaticKeyEnvelopeEncryption(
-            self.FALLBACK_KEY, key_id="fallback"
-        )
+        self._fallback_envelope_encryption = StaticKeyEnvelopeEncryption(self.FALLBACK_KEY, key_id="fallback")
 
         # Use fallback only if environment variable is not set or empty
         if key is None or key.strip() == "":
@@ -59,19 +57,14 @@ class EnvironmentSecretManager(BaseSecretManager):
         """Convert hex-encoded string key to bytes."""
         decoded = bytes.fromhex(key)
         if len(decoded) != AESGCM2.VALID_KEY_SIZE:
-            raise ValueError(
-                f"Key must be exactly {AESGCM2.VALID_KEY_SIZE} bytes, got {len(decoded)} bytes"
-            )
+            raise ValueError(f"Key must be exactly {AESGCM2.VALID_KEY_SIZE} bytes, got {len(decoded)} bytes")
         return decoded
 
     def _load_key_from_environment(self) -> str | None:
         """Load key from environment variable, return None if not set."""
         key = os.getenv("SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY")
         if key is None:
-            logger.warning(
-                "SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY environment variable not set. "
-                "Using fallback key."
-            )
+            logger.warning("SEMA4AI_AGENT_SERVER_ENCRYPTION_KEY environment variable not set. Using fallback key.")
         return key
 
     def _use_fallback_key(self):

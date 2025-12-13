@@ -39,8 +39,7 @@ class ServerLifecycleManager:
             SystemPaths.data_dir.mkdir(parents=True, exist_ok=True)
             pretty_permissions = oct(SystemPaths.data_dir.stat().st_mode)
             logger.info(
-                f"Data directory available at: {SystemPaths.data_dir} "
-                f"(permissions: {pretty_permissions})",
+                f"Data directory available at: {SystemPaths.data_dir} (permissions: {pretty_permissions})",
             )
         except Exception as e:
             logger.exception(f"Failed to create data directory: {SystemPaths.data_dir}")
@@ -53,8 +52,7 @@ class ServerLifecycleManager:
             SystemPaths.log_dir.mkdir(parents=True, exist_ok=True)
             pretty_permissions = oct(SystemPaths.log_dir.stat().st_mode)
             logger.info(
-                f"Log directory available at: {SystemPaths.log_dir} "
-                f"(permissions: {pretty_permissions})",
+                f"Log directory available at: {SystemPaths.log_dir} (permissions: {pretty_permissions})",
             )
         except Exception as e:
             logger.exception(f"Failed to create log directory: {SystemPaths.log_dir}")
@@ -157,14 +155,12 @@ class ServerLifecycleManager:
         """Handle the differences between requested and actual bound hosts."""
         if self.host == "0.0.0.0" and actual_host != self.host:
             logger.info(
-                "Socket bound to all interfaces (0.0.0.0) but "
-                f"actual socket reports: {actual_host}",
+                f"Socket bound to all interfaces (0.0.0.0) but actual socket reports: {actual_host}",
             )
             self.bound_host = self.host
         elif self.host == "::" and actual_host != self.host:
             logger.info(
-                "Socket bound to all IPv6 interfaces (::) but "
-                f"actual socket reports: {actual_host}",
+                f"Socket bound to all IPv6 interfaces (::) but actual socket reports: {actual_host}",
             )
             self.bound_host = self.host
         elif actual_host != self.host and self.host not in ["localhost", "127.0.0.1"]:
@@ -231,9 +227,7 @@ class ServerLifecycleManager:
             if run_server:
                 self.server.run(sockets=[self.socket])
             else:
-                logger.info(
-                    "'run_server' is False, skipping server run (only expected in testing)!"
-                )
+                logger.info("'run_server' is False, skipping server run (only expected in testing)!")
             logger.debug("Uvicorn server completed normally")
             return 0
         except KeyboardInterrupt:
@@ -313,21 +307,13 @@ def _custom_bind_socket(config: uvicorn.Config) -> socket.socket:
 
         message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
         sock_name_format = "%s"
-        color_message = (
-            "Uvicorn running on "
-            + click.style(sock_name_format, bold=True)
-            + " (Press CTRL+C to quit)"
-        )
+        color_message = "Uvicorn running on " + click.style(sock_name_format, bold=True) + " (Press CTRL+C to quit)"
         logger_args = [config.uds]
     elif config.fd:  # pragma: py-win32
         sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
         message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
         fd_name_format = "%s"
-        color_message = (
-            "Uvicorn running on "
-            + click.style(fd_name_format, bold=True)
-            + " (Press CTRL+C to quit)"
-        )
+        color_message = "Uvicorn running on " + click.style(fd_name_format, bold=True) + " (Press CTRL+C to quit)"
         logger_args = [sock.getsockname()]
     else:
         family = socket.AF_INET
@@ -350,9 +336,7 @@ def _custom_bind_socket(config: uvicorn.Config) -> socket.socket:
             sys.exit(1)
 
         message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
-        color_message = (
-            "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
-        )
+        color_message = "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
         protocol_name = "https" if config.is_ssl else "http"
         logger_args = [protocol_name, config.host, sock.getsockname()[1]]
     logger.info(message, *logger_args, extra={"color_message": color_message})

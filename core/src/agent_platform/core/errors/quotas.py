@@ -10,10 +10,7 @@ class AgentQuotaExceededError(PlatformHTTPError):
     def __init__(self, current_count: int, quota_limit: int):
         super().__init__(
             error_code=ErrorCode.TOO_MANY_REQUESTS,
-            message=(
-                f"Maximum number of agents ({quota_limit}) has been reached. "
-                f"Current count: {current_count}"
-            ),
+            message=(f"Maximum number of agents ({quota_limit}) has been reached. Current count: {current_count}"),
             data={
                 "current_count": current_count,
                 "quota_limit": quota_limit,
@@ -28,10 +25,7 @@ class MCPServerQuotaExceededError(PlatformHTTPError):
     def __init__(self, current_count: int, quota_limit: int):
         super().__init__(
             error_code=ErrorCode.TOO_MANY_REQUESTS,
-            message=(
-                f"Maximum number of MCP servers ({quota_limit}) has been reached. "
-                f"Current count: {current_count}"
-            ),
+            message=(f"Maximum number of MCP servers ({quota_limit}) has been reached. Current count: {current_count}"),
             data={
                 "current_count": current_count,
                 "quota_limit": quota_limit,

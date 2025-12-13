@@ -77,8 +77,7 @@ def copy_tmpdir_on_failure(request, tmpdir, logs_dir):
 def assert_status(response, message: str = "", valid_statuses: tuple[int, ...] = (200,)):
     if response.status not in valid_statuses:
         raise AssertionError(
-            f"{message}\nExpected status: {valid_statuses}\n"
-            f"Actual status: {response.status}\nBody: {response.data!r}"
+            f"{message}\nExpected status: {valid_statuses}\nActual status: {response.status}\nBody: {response.data!r}"
         )
 
 
@@ -135,9 +134,7 @@ def action_server_process(tmpdir, action_server_executable_path: Path):
                     timeout=5,
                     check=False,
                 )
-                subprocess.run(
-                    ["kill", "-9", str(pid)], capture_output=True, timeout=5, check=False
-                )
+                subprocess.run(["kill", "-9", str(pid)], capture_output=True, timeout=5, check=False)
             except Exception as e:
                 log.error(f"Failed to forcefully kill action server process: {e}")
 

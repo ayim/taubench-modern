@@ -29,9 +29,7 @@ class PromptToolResultContent(PromptMessageContent):
     )
     """Identifier linking this result to its original tool call"""
 
-    content: list[
-        PromptTextContent | PromptImageContent | PromptAudioContent | PromptDocumentContent
-    ] = field(
+    content: list[PromptTextContent | PromptImageContent | PromptAudioContent | PromptDocumentContent] = field(
         metadata={
             "description": "List of content items produced by the tool execution",
         },
@@ -88,9 +86,7 @@ class PromptToolResultContent(PromptMessageContent):
         """Create a tool result content from a dictionary."""
         data = data.copy()
         if "content" in data:
-            data["content"] = [
-                PromptMessageContent.model_validate(item) for item in data["content"]
-            ]
+            data["content"] = [PromptMessageContent.model_validate(item) for item in data["content"]]
         return cls(**data)
 
 

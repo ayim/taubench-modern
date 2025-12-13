@@ -106,7 +106,7 @@ class LiteLLMClient(OpenAIClient):
             error_type = StreamingError if stream else PlatformHTTPError
             raise self._handle_litellm_error(e, model, error_type) from e
 
-    def _handle_litellm_error(  # noqa: C901, PLR0911
+    def _handle_litellm_error(
         self, error: Exception, model: str, error_type: type[PlatformError] = PlatformError
     ) -> PlatformError:
         from openai import (
@@ -135,18 +135,13 @@ class LiteLLMClient(OpenAIClient):
             case AuthenticationError():
                 return error_type(
                     error_code=ErrorCode.UNAUTHORIZED,
-                    message=(
-                        "Authentication failed for LiteLLM. "
-                        "Please check your API key and credentials."
-                    ),
+                    message=("Authentication failed for LiteLLM. Please check your API key and credentials."),
                     data={"model": model},
                 )
             case PermissionDeniedError():
                 return error_type(
                     error_code=ErrorCode.FORBIDDEN,
-                    message=(
-                        f"Access denied for LiteLLM model '{model}'. Please check your permissions."
-                    ),
+                    message=(f"Access denied for LiteLLM model '{model}'. Please check your permissions."),
                     data={"model": model},
                 )
             case BadRequestError():
@@ -186,17 +181,14 @@ class LiteLLMClient(OpenAIClient):
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
                     message=(
-                        "Unable to connect to the LiteLLM service. Please check your network "
-                        "connection and try again."
+                        "Unable to connect to the LiteLLM service. Please check your network connection and try again."
                     ),
                     data={"model": model},
                 )
             case InternalServerError():
                 return error_type(
                     error_code=ErrorCode.UNEXPECTED,
-                    message=(
-                        "LiteLLM returned an internal server error while processing the request."
-                    ),
+                    message=("LiteLLM returned an internal server error while processing the request."),
                     data={"model": model},
                 )
             case NotFoundError():

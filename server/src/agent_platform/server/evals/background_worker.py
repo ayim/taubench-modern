@@ -52,9 +52,7 @@ class TaskRepository(Protocol[T]):
 
     async def get_tasks_by_ids(self, task_ids: Sequence[str]) -> Sequence[T]: ...
 
-    async def mark_incomplete_tasks_as_error(
-        self, task_ids: Sequence[str], error: str | None = None
-    ) -> None: ...
+    async def mark_incomplete_tasks_as_error(self, task_ids: Sequence[str], error: str | None = None) -> None: ...
 
     async def get_task(self, task: T) -> T | None:
         """Return the latest persisted task, if available.
@@ -158,10 +156,7 @@ class WorkQueue(Generic[T]):
         if results:
             summary = self._summarize_batch_results(results)
             logger.info(
-                (
-                    "Completed batch: total=%d succeeded=%d failed=%d "
-                    "rescheduled=%d canceled=%d timeouts=%d"
-                ),
+                ("Completed batch: total=%d succeeded=%d failed=%d rescheduled=%d canceled=%d timeouts=%d"),
                 summary["total"],
                 summary["succeeded"],
                 summary["failed"],
@@ -172,7 +167,7 @@ class WorkQueue(Generic[T]):
         else:
             logger.info("Completed 0 eval tasks")
 
-    async def _run_batch(  # noqa: C901, PLR0912, PLR0915
+    async def _run_batch(
         self,
         task_ids: Sequence[str],
         batch_timeout: float,
@@ -212,9 +207,7 @@ class WorkQueue(Generic[T]):
         )
 
         done, pending = await asyncio.shield(
-            asyncio.wait(
-                task_map.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED
-            )
+            asyncio.wait(task_map.values(), timeout=batch_timeout, return_when=asyncio.ALL_COMPLETED)
         )
 
         results: list[bool | str | BaseException] = []
@@ -264,9 +257,7 @@ class WorkQueue(Generic[T]):
                 logger.error("Task %s timed out, marking as ERROR", task_id)
 
         if len(incomplete_ids) > 0:
-            await self.repo.mark_incomplete_tasks_as_error(
-                incomplete_ids, TASK_TIMEOUT_ERROR_MESSAGE
-            )
+            await self.repo.mark_incomplete_tasks_as_error(incomplete_ids, TASK_TIMEOUT_ERROR_MESSAGE)
 
         return results
 
@@ -298,9 +289,7 @@ class WorkQueue(Generic[T]):
             delay = self.settings.retry_after_seconds
 
             try:
-                retry_after_at = self._compute_retry_after_at(
-                    base_delay=delay, next_attempt=next_attempt
-                )
+                retry_after_at = self._compute_retry_after_at(base_delay=delay, next_attempt=next_attempt)
                 logger.info(
                     "Task %s requeued immediately, delay %.2fs (next run at %s)",
                     task.get_unique_identifier(),
@@ -330,9 +319,7 @@ class WorkQueue(Generic[T]):
     def _is_rate_limited_task(self, task: T) -> bool:
         return task.get_reschedule_attempts() > 0
 
-    def _summarize_batch_results(
-        self, results: Sequence[bool | str | BaseException]
-    ) -> dict[str, int]:
+    def _summarize_batch_results(self, results: Sequence[bool | str | BaseException]) -> dict[str, int]:
         summary = {
             "total": len(results),
             "succeeded": 0,
@@ -358,7 +345,7 @@ class WorkQueue(Generic[T]):
 
         return summary
 
-    async def _execute_task(self, task_obj: T) -> bool | str:  # noqa: PLR0915, C901, PLR0912
+    async def _execute_task(self, task_obj: T) -> bool | str:
         """Run the task, compute final status, persist, and trigger callbacks."""
         ran_ok = False
         rate_limited_error: TrialRateLimitedError | None = None
@@ -417,9 +404,7 @@ class WorkQueue(Generic[T]):
 
             custom_delay = rate_limited_error.retry_after_seconds
             delay = custom_delay if custom_delay is not None else self.settings.retry_after_seconds
-            retry_after_at = self._compute_retry_after_at(
-                base_delay=delay, next_attempt=next_attempt
-            )
+            retry_after_at = self._compute_retry_after_at(base_delay=delay, next_attempt=next_attempt)
 
             try:
                 await self.repo.requeue_task(
@@ -462,9 +447,7 @@ class WorkQueue(Generic[T]):
 
         # Persist final status
         try:
-            await self.repo.set_status_if_not_canceled(
-                refreshed_task, final_status, final_error_message
-            )
+            await self.repo.set_status_if_not_canceled(refreshed_task, final_status, final_error_message)
 
             logger.info("Finalized task with status: %s", final_status)
 

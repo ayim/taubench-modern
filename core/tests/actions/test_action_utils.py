@@ -348,9 +348,7 @@ async def test_request_body_schema_with_complex_nested_structure(mock_client_ses
     mock_session = MockHttpxClient(complex_spec)
     mock_client_session.return_value = mock_session
 
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", []
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 1
     tool = tool_definitions[0]
@@ -431,9 +429,7 @@ async def test_request_body_schema_with_refs(mock_client_session):
                                             "type": "object",
                                             "properties": {
                                                 "source": {"type": "string"},
-                                                "nested_contact": {
-                                                    "$ref": "#/components/schemas/ContactInfo"
-                                                },
+                                                "nested_contact": {"$ref": "#/components/schemas/ContactInfo"},
                                             },
                                         },
                                     },
@@ -451,9 +447,7 @@ async def test_request_body_schema_with_refs(mock_client_session):
     mock_session = MockHttpxClient(spec_with_refs)
     mock_client_session.return_value = mock_session
 
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", []
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 1
     tool = tool_definitions[0]
@@ -547,9 +541,7 @@ async def test_request_body_schema_preserves_all_json_schema_features(mock_clien
     mock_session = MockHttpxClient(comprehensive_spec)
     mock_client_session.return_value = mock_session
 
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", []
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 1
     tool = tool_definitions[0]
@@ -617,9 +609,7 @@ async def test_request_body_schema_empty_or_missing(mock_client_session):
     mock_session = MockHttpxClient(minimal_spec)
     mock_client_session.return_value = mock_session
 
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", []
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 2
 
@@ -789,9 +779,7 @@ async def test_openapi_spec_connection_error_retry():
         spec = response.json()
 
     # Verify retry happened and we got the right result
-    assert call_count == 3, (
-        f"Expected 3 calls (2 connection failures + 1 success), got {call_count}"
-    )
+    assert call_count == 3, f"Expected 3 calls (2 connection failures + 1 success), got {call_count}"
     assert spec == {"openapi": "3.0.0", "info": {"title": "Test"}}
 
 

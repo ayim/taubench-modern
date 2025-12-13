@@ -106,9 +106,7 @@ class TestLiteLLMClient:
             new=_passthrough_retry_decorator,
         ):
             with pytest.raises(PlatformHTTPError) as excinfo:
-                await lite_llm_client._call_with_retries(
-                    failing_call, model="cortex/openai/o4-mini-low"
-                )
+                await lite_llm_client._call_with_retries(failing_call, model="cortex/openai/o4-mini-low")
 
         assert excinfo.value.response.code == "too_many_requests"
         assert excinfo.value.data["model"] == "cortex/openai/o4-mini-low"

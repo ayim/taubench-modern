@@ -51,9 +51,7 @@ def _strip_file_attachments(messages: list[Message]) -> list[Message]:
     stripped_messages: list[Message] = []
     for message in messages:
         filtered_content = [
-            content_item
-            for content_item in message.content
-            if not isinstance(content_item, FileAttachment)
+            content_item for content_item in message.content if not isinstance(content_item, FileAttachment)
         ]
         if filtered_content:
             stripped_messages.append(
@@ -65,7 +63,7 @@ def _strip_file_attachments(messages: list[Message]) -> list[Message]:
     return stripped_messages
 
 
-def _format_http_error(error: httpx.HTTPStatusError) -> str:  # noqa: C901
+def _format_http_error(error: httpx.HTTPStatusError) -> str:
     """Build a concise error string from an HTTPStatusError."""
 
     status = error.response.status_code if error.response is not None else "unknown"
@@ -143,9 +141,7 @@ def build_agent_platform_message(message: Message, uploaded_files: dict[str, Any
             ):
                 file_metadata = None
                 if uploaded_files:
-                    file_metadata = uploaded_files.get(file_name) or uploaded_files.get(
-                        Path(file_name).name
-                    )
+                    file_metadata = uploaded_files.get(file_name) or uploaded_files.get(Path(file_name).name)
 
                 if file_metadata and file_metadata.get("file_id"):
                     api_content.append(
@@ -218,9 +214,7 @@ async def wait_for_completion(server_url, workitem_id, poll_interval=5, timeout_
         while True:
             elapsed = time.monotonic() - start_time_sec
             if elapsed > timeout_sec:
-                raise RuntimeError(
-                    f"Workitem {workitem_id} did not complete within {timeout_sec} seconds"
-                )
+                raise RuntimeError(f"Workitem {workitem_id} did not complete within {timeout_sec} seconds")
 
             response = await client.get(f"{server_url}/api/public/v1/work-items/{workitem_id}")
             response.raise_for_status()
@@ -241,7 +235,7 @@ class AgentRunner:
     def __init__(self, server_url: str):
         self.server_url = server_url.rstrip("/")
 
-    async def run_test_case(  # noqa: C901, PLR0912, PLR0915
+    async def run_test_case(
         self,
         agent_id: str,
         test_case: TestCase,
@@ -250,15 +244,11 @@ class AgentRunner:
     ) -> TestRunResult:
         """Run a test case against an agent and return agent messages."""
         if test_case.workitem is not None:
-            logger.info(
-                f"Running test case {test_case.name} (dryrun={test_case.workitem.is_preview_only})"
-            )
+            logger.info(f"Running test case {test_case.name} (dryrun={test_case.workitem.is_preview_only})")
 
             if test_case.workitem.is_preview_only:
                 stripped_messages = _strip_file_attachments(test_case.workitem.messages)
-                api_messages = [
-                    build_agent_platform_message(message) for message in stripped_messages
-                ]
+                api_messages = [build_agent_platform_message(message) for message in stripped_messages]
                 payload = {
                     "messages": api_messages,
                     "payload": test_case.workitem.payload,
@@ -317,9 +307,7 @@ class AgentRunner:
                         workitem_id = upload_response.get("work_item_id", workitem_id)
 
             messages_without_attachments = _strip_file_attachments(test_case.workitem.messages)
-            api_messages = [
-                build_agent_platform_message(message) for message in messages_without_attachments
-            ]
+            api_messages = [build_agent_platform_message(message) for message in messages_without_attachments]
             payload = {
                 "messages": api_messages,
                 "payload": test_case.workitem.payload,
@@ -347,9 +335,7 @@ class AgentRunner:
 
                 thread_data = response.json()
 
-            agent_message_data = [
-                msg for msg in thread_data.get("messages", []) if msg["role"] == "agent"
-            ]
+            agent_message_data = [msg for msg in thread_data.get("messages", []) if msg["role"] == "agent"]
             agent_messages = from_api_response_to_messages(agent_message_data)
 
             logger.info(f"Agent responded with {len(agent_messages)} messages")
@@ -479,9 +465,7 @@ class AgentRunner:
 
                 logger.info(f"Agent responded with {len(agent_messages)} messages")
 
-                return TestRunResult(
-                    agent_messages=agent_messages, thread_id=thread_id, workitem_result=None
-                )
+                return TestRunResult(agent_messages=agent_messages, thread_id=thread_id, workitem_result=None)
 
         raise ValueError("Test case should contain either thread or workitem, found none")
 

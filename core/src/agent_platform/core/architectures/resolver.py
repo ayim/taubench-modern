@@ -43,9 +43,7 @@ def _arch_requirement_matches(arch: AgentArchitecture, requirement: str) -> bool
     try:
         specs = SpecifierSet(spec)
     except Exception as e:
-        raise ArchitectureResolutionError(
-            f"Invalid architecture requirement specifier: {requirement}"
-        ) from e
+        raise ArchitectureResolutionError(f"Invalid architecture requirement specifier: {requirement}") from e
     return specs.contains(Version(arch.version), prereleases=True)
 
 

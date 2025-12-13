@@ -171,11 +171,7 @@ def test_get_user_interfaces():
         version="1.0.0",
         platform_configs=[],
         agent_architecture=AgentArchitecture(name="base", version="1"),
-        extra={
-            "agent_settings": {
-                "user_interfaces": "di-parse-only,invalid-interface,di-create-data-model"
-            }
-        },
+        extra={"agent_settings": {"user_interfaces": "di-parse-only,invalid-interface,di-create-data-model"}},
     )
     assert agent.get_user_interfaces() == [
         AgentUserInterface.DOCUMENT_INTELLIGENCE_PARSE_ONLY,

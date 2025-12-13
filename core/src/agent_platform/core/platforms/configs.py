@@ -293,45 +293,21 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "text-embedding-3-small",
             "azure/openai/text-embedding-3-large": "text-embedding-3-large",
             # Amazon Bedrock (does have date/version pinning)
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": (
-                "anthropic.claude-sonnet-4-5-20250929-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": (
-                "anthropic.claude-sonnet-4-5-20250929-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": (
-                "anthropic.claude-sonnet-4-5-20250929-v1:0"
-            ),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": ("anthropic.claude-sonnet-4-5-20250929-v1:0"),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": ("anthropic.claude-sonnet-4-5-20250929-v1:0"),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": ("anthropic.claude-sonnet-4-5-20250929-v1:0"),
             "bedrock/anthropic/claude-4-5-sonnet": "anthropic.claude-sonnet-4-5-20250929-v1:0",
-            "bedrock/anthropic/claude-4-5-haiku-thinking-high": (
-                "anthropic.claude-haiku-4-5-20251001-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": (
-                "anthropic.claude-haiku-4-5-20251001-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-5-haiku-thinking-low": (
-                "anthropic.claude-haiku-4-5-20251001-v1:0"
-            ),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": ("anthropic.claude-haiku-4-5-20251001-v1:0"),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": ("anthropic.claude-haiku-4-5-20251001-v1:0"),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-low": ("anthropic.claude-haiku-4-5-20251001-v1:0"),
             "bedrock/anthropic/claude-4-5-haiku": "anthropic.claude-haiku-4-5-20251001-v1:0",
-            "bedrock/anthropic/claude-4-sonnet-thinking-high": (
-                "anthropic.claude-sonnet-4-20250514-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-sonnet-thinking-medium": (
-                "anthropic.claude-sonnet-4-20250514-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-sonnet-thinking-low": (
-                "anthropic.claude-sonnet-4-20250514-v1:0"
-            ),
+            "bedrock/anthropic/claude-4-sonnet-thinking-high": ("anthropic.claude-sonnet-4-20250514-v1:0"),
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": ("anthropic.claude-sonnet-4-20250514-v1:0"),
+            "bedrock/anthropic/claude-4-sonnet-thinking-low": ("anthropic.claude-sonnet-4-20250514-v1:0"),
             "bedrock/anthropic/claude-4-sonnet": "anthropic.claude-sonnet-4-20250514-v1:0",
-            "bedrock/anthropic/claude-4-1-opus-thinking-high": (
-                "anthropic.claude-opus-4-1-20250805-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-1-opus-thinking-medium": (
-                "anthropic.claude-opus-4-1-20250805-v1:0"
-            ),
-            "bedrock/anthropic/claude-4-1-opus-thinking-low": (
-                "anthropic.claude-opus-4-1-20250805-v1:0"
-            ),
+            "bedrock/anthropic/claude-4-1-opus-thinking-high": ("anthropic.claude-opus-4-1-20250805-v1:0"),
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": ("anthropic.claude-opus-4-1-20250805-v1:0"),
+            "bedrock/anthropic/claude-4-1-opus-thinking-low": ("anthropic.claude-opus-4-1-20250805-v1:0"),
             "bedrock/anthropic/claude-4-1-opus": "anthropic.claude-opus-4-1-20250805-v1:0",
             "bedrock/anthropic/claude-4-opus": "anthropic.claude-opus-4-20250514-v1:0",
             "bedrock/anthropic/claude-3-7-sonnet": "anthropic.claude-3-7-sonnet-20250219-v1:0",
@@ -913,53 +889,31 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/gpt-5-mini": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "openai/openai/gpt-5-nano": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # Bedrock
-            "bedrock/anthropic/claude-4-5-haiku-thinking-high": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
-            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-haiku-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-5-haiku-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-5-haiku": list(DEFAULT_ARCHITECTURE_OVERRIDES),
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
-            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-5-sonnet": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
-            "bedrock/anthropic/claude-4-sonnet-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "bedrock/anthropic/claude-4-sonnet-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-1-opus-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
-            "bedrock/anthropic/claude-4-1-opus-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "bedrock/anthropic/claude-4-1-opus-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-1-opus-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # Cortex
             "cortex/anthropic/claude-4-1-opus": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/anthropic/claude-4-1-opus-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
-            "cortex/anthropic/claude-4-1-opus-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "cortex/anthropic/claude-4-1-opus-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/anthropic/claude-4-1-opus-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/anthropic/claude-4-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
-            "cortex/anthropic/claude-4-sonnet-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "cortex/anthropic/claude-4-sonnet-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/anthropic/claude-4-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/anthropic/claude-4-5-sonnet": list(DEFAULT_ARCHITECTURE_OVERRIDES),
-            "cortex/anthropic/claude-4-5-sonnet-thinking-high": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
-            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": list(
-                DEFAULT_ARCHITECTURE_OVERRIDES
-            ),
+            "cortex/anthropic/claude-4-5-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "cortex/anthropic/claude-4-5-sonnet-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/anthropic/claude-4-5-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/openai/gpt-5-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "cortex/openai/gpt-5-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
@@ -1021,7 +975,7 @@ def resolve_provider_from_model_name(
     raise ValueError(f"No provider found for {model_name}")
 
 
-async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901, PLR0912
+async def resolve_generic_model_id_to_platform_specific_model_id(
     platform_client: PlatformClient,
     model_id: str,
 ) -> str:
@@ -1048,7 +1002,7 @@ async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901,
 
     # Next, let's parse the model_id into a platform/provider/model
     platform, provider, model = (platform_client.parameters.kind, None, model_id)
-    if model_id.count("/") == 2:  # noqa: PLR2004 (platform/provider/model)
+    if model_id.count("/") == 2:
         platform, provider, model = model_id.split("/")
     elif model_id.count("/") == 1:
         platform, model = model_id.split("/")
@@ -1119,9 +1073,7 @@ async def resolve_generic_model_id_to_platform_specific_model_id(  # noqa: C901,
         )
 
     if qualified_model_id in PlatformModelConfigs.models_to_platform_specific_model_ids:
-        platform_specific_model_id = PlatformModelConfigs.models_to_platform_specific_model_ids[
-            qualified_model_id
-        ]
+        platform_specific_model_id = PlatformModelConfigs.models_to_platform_specific_model_ids[qualified_model_id]
         if platform_specific_model_id in provider_models:
             return platform_specific_model_id
         # This is a case that really should never happen, but we'll handle it

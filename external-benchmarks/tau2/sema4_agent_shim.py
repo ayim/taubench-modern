@@ -77,9 +77,7 @@ ARCHITECTURE_VERSION_OVERRIDES: dict[str, str] = {
 
 
 def _normalize_architecture_name(name: str | None) -> str:
-    candidate = (
-        name or os.getenv("TAU2_AGENT_ARCHITECTURE") or _env_str("SEMA4AI_TAU2_ARCHITECTURE")
-    )
+    candidate = name or os.getenv("TAU2_AGENT_ARCHITECTURE") or _env_str("SEMA4AI_TAU2_ARCHITECTURE")
     candidate = candidate.strip() if candidate else ""
     key = candidate.lower().replace(" ", "_").replace("-", "_") if candidate else ""
     resolved = ARCHITECTURE_ALIAS_MAP.get(key)
@@ -91,9 +89,7 @@ def _normalize_architecture_name(name: str | None) -> str:
 
 
 def _architecture_version(name: str) -> str:
-    env_override = os.getenv("TAU2_AGENT_ARCHITECTURE_VERSION") or _env_str(
-        "SEMA4AI_TAU2_ARCHITECTURE_VERSION"
-    )
+    env_override = os.getenv("TAU2_AGENT_ARCHITECTURE_VERSION") or _env_str("SEMA4AI_TAU2_ARCHITECTURE_VERSION")
     if env_override:
         return env_override
     return ARCHITECTURE_VERSION_OVERRIDES.get(name, DEFAULT_ARCHITECTURE_VERSION)
@@ -122,7 +118,7 @@ def _ws_base_to_http_base(ws_base: str) -> str:
     return ws_base
 
 
-def _build_agent_payload_for_post(  # noqa: PLR0913
+def _build_agent_payload_for_post(
     runbook_text: str,
     agent_name: str,
     agent_description: str,
@@ -147,9 +143,7 @@ def _build_agent_payload_for_post(  # noqa: PLR0913
                 "kind": "openai",
                 "openai_api_key": openai_api_key,
                 "models": {
-                    "openai": [
-                        model or _env_first("SEMA4AI_TAU2_MODEL", "OPENAI_MODEL", default="gpt-5")
-                    ],
+                    "openai": [model or _env_first("SEMA4AI_TAU2_MODEL", "OPENAI_MODEL", default="gpt-5")],
                 },
             }
         )
@@ -248,7 +242,7 @@ def _http_put_json(
     return resp.json()
 
 
-def _get_or_create_agent_id(  # noqa: PLR0913
+def _get_or_create_agent_id(
     http_base: str,
     runbook_text: str,
     tools: list[dict[str, Any]],
@@ -335,9 +329,7 @@ def _make_initiate_stream_payload(
     }
 
 
-def _make_client_tool_result(
-    tool_call_id: str, output: Any, error: str | None = None
-) -> dict[str, Any]:
+def _make_client_tool_result(tool_call_id: str, output: Any, error: str | None = None) -> dict[str, Any]:
     return {
         "event_type": "client_tool_result",
         "tool_call_id": tool_call_id,
@@ -630,9 +622,7 @@ def _await_agent_ready(state: Sema4AIState, timeout: float = 15.0):
             state.run_id = ev.get("run_id")
             state.thread_id = ev.get("thread_id") or state.thread_id
             state.agent_id = ev.get("agent_id") or state.agent_id
-            logger.debug(
-                f"Agent ready: run={state.run_id}, thread={state.thread_id}, agent={state.agent_id}"
-            )
+            logger.debug(f"Agent ready: run={state.run_id}, thread={state.thread_id}, agent={state.agent_id}")
             return
         else:
             # Not ready yet; buffer back (rare) so downstream can consume it
@@ -661,7 +651,7 @@ class Sema4AIAgent(LLMAgent):
          send client_tool_result over the SAME open WS
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         tools: list[Tool],
         domain_policy: str,
@@ -729,7 +719,7 @@ class Sema4AIAgent(LLMAgent):
             http_base_url=self.http_base,
         )
 
-    def generate_next_message(  # noqa: C901, PLR0912
+    def generate_next_message(
         self,
         message: ValidAgentInputMessage,
         state: Sema4AIState,
@@ -790,18 +780,14 @@ class Sema4AIAgent(LLMAgent):
             elif isinstance(message, MultiToolMessage):
                 # Continue an in-flight run: send each tool result in order
                 if not state.connected or state.closed:
-                    raise RuntimeError(
-                        f"No active run to receive tool results: {state.close_reason}"
-                    )
+                    raise RuntimeError(f"No active run to receive tool results: {state.close_reason}")
                 for tm in message.tool_messages:
                     self._send_tool_result_to_server(tm, state)
                 return self._wait_for_decision(state)
 
             elif isinstance(message, ToolMessage):
                 if not state.connected or state.closed:
-                    raise RuntimeError(
-                        f"No active run to receive tool results: {state.close_reason}"
-                    )
+                    raise RuntimeError(f"No active run to receive tool results: {state.close_reason}")
                 self._send_tool_result_to_server(message, state)
                 return self._wait_for_decision(state)
 
@@ -825,9 +811,7 @@ class Sema4AIAgent(LLMAgent):
         # Wait for the socket to open before sending initial payload
         if not state.ws_open_event.wait(timeout=30.0):
             _reset_ws(state)
-            raise TimeoutError(
-                "Timed out waiting for WebSocket to open before sending initial payload."
-            )
+            raise TimeoutError("Timed out waiting for WebSocket to open before sending initial payload.")
 
         payload = _make_initiate_stream_payload(
             agent_id=state.agent_id or "",
@@ -846,9 +830,7 @@ class Sema4AIAgent(LLMAgent):
         state.pending_tool_request = None
         logger.debug("Initial payload sent and agent is ready.")
 
-    def _wait_for_decision(  # noqa: C901, PLR0912, PLR0915
-        self, state: Sema4AIState
-    ) -> tuple[AssistantMessage, Sema4AIState]:
+    def _wait_for_decision(self, state: Sema4AIState) -> tuple[AssistantMessage, Sema4AIState]:
         """
         Consume events until either:
           - request_tool_execution -> return tool-call
@@ -980,13 +962,7 @@ def _parse_agent_spec(agent_spec: str) -> tuple[str | None, str | None, str | No
 
 
 def _sanitize_class_fragment(value: str) -> str:
-    result = (
-        value.replace("/", "_")
-        .replace(":", "_")
-        .replace("-", "_")
-        .replace("@", "_")
-        .replace("|", "_")
-    )
+    result = value.replace("/", "_").replace(":", "_").replace("-", "_").replace("@", "_").replace("|", "_")
     return "".join(ch for ch in result if ch.isalnum() or ch == "_")
 
 

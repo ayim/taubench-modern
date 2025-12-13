@@ -114,15 +114,11 @@ class TestBadRequestErrorResponse:
         response = ErrorResponse(ErrorCode.BAD_REQUEST)
 
         assert response.code == "bad_request"
-        assert (
-            response.message == "The request was invalid. Please check the request and try again."
-        )
+        assert response.message == "The request was invalid. Please check the request and try again."
 
     def test_custom_message(self) -> None:
         """Test BadRequestErrorResponse with custom message."""
-        response = ErrorResponse(
-            ErrorCode.BAD_REQUEST, message_override="Custom bad request message"
-        )
+        response = ErrorResponse(ErrorCode.BAD_REQUEST, message_override="Custom bad request message")
 
         assert response.code == "bad_request"
         assert response.message == "Custom bad request message"
@@ -143,15 +139,11 @@ class TestUnprocessableEntityErrorResponse:
         response = ErrorResponse(ErrorCode.UNPROCESSABLE_ENTITY)
 
         assert response.code == "unprocessable_entity"
-        assert (
-            response.message == "Request validation failed. Please check the request and try again."
-        )
+        assert response.message == "Request validation failed. Please check the request and try again."
 
     def test_custom_message(self) -> None:
         """Test UnprocessableEntityErrorResponse with custom message."""
-        response = ErrorResponse(
-            ErrorCode.UNPROCESSABLE_ENTITY, message_override="Validation failed for field X"
-        )
+        response = ErrorResponse(ErrorCode.UNPROCESSABLE_ENTITY, message_override="Validation failed for field X")
 
         assert response.code == "unprocessable_entity"
         assert response.message == "Validation failed for field X"
@@ -241,9 +233,7 @@ class TestMethodNotAllowedErrorResponse:
 
     def test_custom_message(self) -> None:
         """Test MethodNotAllowedErrorResponse with custom message."""
-        response = ErrorResponse(
-            ErrorCode.METHOD_NOT_ALLOWED, message_override="POST not allowed on this endpoint"
-        )
+        response = ErrorResponse(ErrorCode.METHOD_NOT_ALLOWED, message_override="POST not allowed on this endpoint")
 
         assert response.code == "method_not_allowed"
         assert response.message == "POST not allowed on this endpoint"

@@ -67,11 +67,7 @@ def prompt_with_conversation():
         messages=[
             PromptUserMessage([PromptTextContent(text="Hello, how are you?")]),
             PromptAgentMessage(
-                [
-                    PromptTextContent(
-                        text="I'm doing well, thank you for asking. How can I help you today?"
-                    )
-                ]
+                [PromptTextContent(text="I'm doing well, thank you for asking. How can I help you today?")]
             ),
             PromptUserMessage([PromptTextContent(text="What's the weather like?")]),
         ],
@@ -147,16 +143,12 @@ def tool_use_content():
     )
 
 
-def test_count_tokens_approx_with_system_instruction(
-    prompt_with_system: Prompt, simple_prompt: Prompt
-):
+def test_count_tokens_approx_with_system_instruction(prompt_with_system: Prompt, simple_prompt: Prompt):
     """System instruction should increase tokens over a simple prompt."""
     assert prompt_with_system.count_tokens_approx() > simple_prompt.count_tokens_approx()
 
 
-def test_count_tokens_approx_conversation(
-    prompt_with_conversation: Prompt, prompt_with_system: Prompt
-):
+def test_count_tokens_approx_conversation(prompt_with_conversation: Prompt, prompt_with_system: Prompt):
     """Multi-turn conversation should exceed system+single message."""
     assert prompt_with_conversation.count_tokens_approx() > prompt_with_system.count_tokens_approx()
 
@@ -253,9 +245,7 @@ def test_reasoning_skipped_before_latest_user():
             PromptTextContent(text="old_reply"),
         ]
     )
-    prompt_with_old_reason = Prompt(
-        messages=[m0_user, m1_agent_with_old_reason, m2_user, m3_agent_no_reason]
-    )
+    prompt_with_old_reason = Prompt(messages=[m0_user, m1_agent_with_old_reason, m2_user, m3_agent_no_reason])
     count_with_old_reason = prompt_with_old_reason.count_tokens_approx()
 
     assert count_with_old_reason == base_count, "Old (pre-latest-user) reasoning should be skipped"
@@ -268,9 +258,7 @@ def test_reasoning_skipped_before_latest_user():
             PromptTextContent(text="new_reply"),
         ]
     )
-    prompt_with_new_reason = Prompt(
-        messages=[m0_user, m1_agent_no_reason, m2_user, m3_agent_with_new_reason]
-    )
+    prompt_with_new_reason = Prompt(messages=[m0_user, m1_agent_no_reason, m2_user, m3_agent_with_new_reason])
     count_with_new_reason = prompt_with_new_reason.count_tokens_approx()
 
     assert count_with_new_reason > base_count
@@ -283,9 +271,7 @@ def test_tools_increase_token_count_by_at_least_rendered_tool_text():
     least the tokens of the rendered tool metadata string (leaving any fixed
     per-tool fudge factors unconstrained).
     """
-    prompt_no_tools = Prompt(
-        messages=[PromptUserMessage(content=[PromptTextContent(text="hello")])]
-    )
+    prompt_no_tools = Prompt(messages=[PromptUserMessage(content=[PromptTextContent(text="hello")])])
     count_no_tools = prompt_no_tools.count_tokens_approx()
 
     tool = FakeTool(
@@ -304,9 +290,7 @@ def test_tools_increase_token_count_by_at_least_rendered_tool_text():
     count_with_tool = prompt_with_tool.count_tokens_approx()
 
     tool_str = (
-        f"Tool: {tool.name}\n"
-        f"Description: {tool.description}\n"
-        f"Parameters: {json.dumps(tool.input_schema, indent=2)}"
+        f"Tool: {tool.name}\nDescription: {tool.description}\nParameters: {json.dumps(tool.input_schema, indent=2)}"
     )
 
     assert count_with_tool > count_no_tools
@@ -348,9 +332,7 @@ def test_tool_result_content_contributes_its_own_token_cost():
         content=[PromptTextContent(text="abc 123")],
         is_error=False,
     )
-    with_result = Prompt(
-        messages=[PromptUserMessage(content=[PromptTextContent(text="hello"), tool_result])]
-    )
+    with_result = Prompt(messages=[PromptUserMessage(content=[PromptTextContent(text="hello"), tool_result])])
     with_result_count = with_result.count_tokens_approx()
 
     assert with_result_count > base_count
@@ -372,9 +354,7 @@ def test_multiple_text_contents_add_up_at_least_sum_of_their_tokens():
     with_three = Prompt(messages=[PromptUserMessage(content=[t1, t2, t3])])
     with_three_count = with_three.count_tokens_approx()
 
-    expected_min_delta = (
-        t1.count_tokens_approx() + t2.count_tokens_approx() + t3.count_tokens_approx()
-    )
+    expected_min_delta = t1.count_tokens_approx() + t2.count_tokens_approx() + t3.count_tokens_approx()
 
     assert with_three_count > base_count
     assert (with_three_count - base_count) >= expected_min_delta

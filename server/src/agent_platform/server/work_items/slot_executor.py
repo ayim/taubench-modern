@@ -101,9 +101,7 @@ async def _cancel_tasks_with_timeout(
             timeout=timeout_seconds,
         )
     except TimeoutError:
-        logger.warning(
-            f"Timeout waiting for {len(tasks)} tasks to complete cancellation ({timeout_seconds}s)"
-        )
+        logger.warning(f"Timeout waiting for {len(tasks)} tasks to complete cancellation ({timeout_seconds}s)")
 
 
 class SlotExecutor:
@@ -217,9 +215,7 @@ class SlotExecutor:
         """
         from agent_platform.server.work_items.settings import WORK_ITEMS_SETTINGS
 
-        task = asyncio.create_task(
-            self._database_reader(executor_shutdown_event, WORK_ITEMS_SETTINGS.worker_interval)
-        )
+        task = asyncio.create_task(self._database_reader(executor_shutdown_event, WORK_ITEMS_SETTINGS.worker_interval))
         task.set_name("work-items-db-reader")
         return task
 
@@ -277,8 +273,7 @@ class SlotExecutor:
         # for it to complete is for an uncaught Exception to be raised.
         exception = crashed_task.exception()
         logger.error(
-            f"WorkItems: Database reader task crashed "
-            f"(restart #{self._reader_crash_count}): {exception}",
+            f"WorkItems: Database reader task crashed (restart #{self._reader_crash_count}): {exception}",
             exc_info=exception,
         )
 
@@ -315,8 +310,7 @@ class SlotExecutor:
         # Exception to be raised.
         exception = crashed_task.exception()
         logger.error(
-            f"WorkItems: Slot {slot_id} task crashed "
-            f"(restart #{slot_state.crash_count}): {exception}",
+            f"WorkItems: Slot {slot_id} task crashed (restart #{slot_state.crash_count}): {exception}",
             exc_info=exception,
         )
 
@@ -492,9 +486,7 @@ class SlotExecutor:
 
         return tasks_to_cancel
 
-    async def _resize_slots(
-        self, new_num_slots: int, executor_shutdown_event: asyncio.Event
-    ) -> None:
+    async def _resize_slots(self, new_num_slots: int, executor_shutdown_event: asyncio.Event) -> None:
         """
         Resize the slots to the new number of slots.
 
@@ -545,10 +537,7 @@ class SlotExecutor:
 
             # Await all cancelled tasks concurrently
             if tasks_to_cancel:
-                logger.info(
-                    f"Waiting for {len(tasks_to_cancel)} slot cancellations to complete "
-                    "before cleanup"
-                )
+                logger.info(f"Waiting for {len(tasks_to_cancel)} slot cancellations to complete before cleanup")
                 # Intentionally ignoring the return.
                 await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
 
@@ -613,9 +602,7 @@ class SlotExecutor:
         slot_state.work_item_id = item.work_item_id
         slot_id = slot_state.slot_id
 
-        logger.info(
-            f"Slot {slot_id} executing work item {item.work_item_id} (timeout {work_item_timeout}s)"
-        )
+        logger.info(f"Slot {slot_id} executing work item {item.work_item_id} (timeout {work_item_timeout}s)")
 
         try:
             # Create the execution task and store it for potential cancellation
@@ -627,9 +614,7 @@ class SlotExecutor:
             logger.info(f"Slot {slot_id} completed work item {item.work_item_id} normally")
 
         except asyncio.CancelledError:
-            logger.info(
-                "Slot %s cancelled work item %s during execution", slot_id, item.work_item_id
-            )
+            logger.info("Slot %s cancelled work item %s during execution", slot_id, item.work_item_id)
             # Ensure cooperative cancellation completes before continuing
             if slot_state.work_item_task and not slot_state.work_item_task.done():
                 with suppress(asyncio.CancelledError):
@@ -638,8 +623,7 @@ class SlotExecutor:
         except TimeoutError:
             # Work item timed out
             logger.error(
-                f"Slot {slot_id} work item {item.work_item_id} timed out after "
-                f"{work_item_timeout}s, marking as ERROR"
+                f"Slot {slot_id} work item {item.work_item_id} timed out after {work_item_timeout}s, marking as ERROR"
             )
 
             # Cancel the task
@@ -727,9 +711,7 @@ class SlotExecutor:
                 get_task = asyncio.create_task(self._work_queue.get())
                 shutdown_task = asyncio.create_task(shutdown_event.wait())
 
-                done, pending = await asyncio.wait(
-                    [get_task, shutdown_task], return_when=asyncio.FIRST_COMPLETED
-                )
+                done, pending = await asyncio.wait([get_task, shutdown_task], return_when=asyncio.FIRST_COMPLETED)
                 work_item: WorkItem | None = None
 
                 if get_task in done and not get_task.cancelled():
@@ -750,9 +732,7 @@ class SlotExecutor:
                         try:
                             await self._return_work_item_to_pool_on_shutdown(work_item, slot_id)
                         except Exception as exc:
-                            logger.error(
-                                f"Slot {slot_id} error picking up item: {exc}", exc_info=exc
-                            )
+                            logger.error(f"Slot {slot_id} error picking up item: {exc}", exc_info=exc)
                         finally:
                             slot_state.status = "idle"
                             slot_state.work_item_id = None
@@ -771,18 +751,14 @@ class SlotExecutor:
             except asyncio.CancelledError:
                 # _slot_executor_task was cancelled, make sure we clean up the tasks
                 # that we might have.
-                tasks_to_cancel = [
-                    t for t in [get_task, shutdown_task] if t is not None and not t.done()
-                ]
+                tasks_to_cancel = [t for t in [get_task, shutdown_task] if t is not None and not t.done()]
                 await self._handle_slot_cancelled(slot_id, slot_state, tasks_to_cancel)
                 return
             except Exception as exc:
                 logger.error(f"Slot {slot_id} unexpected error: {exc}", exc_info=exc)
                 # Mark as error in database if it's still in PENDING/EXECUTING state
                 if slot_state.work_item_id:
-                    await self._storage.mark_incomplete_work_items_as_error(
-                        [slot_state.work_item_id]
-                    )
+                    await self._storage.mark_incomplete_work_items_as_error([slot_state.work_item_id])
 
                 # Continue running even if there's an error
                 slot_state.status = "idle"
@@ -822,13 +798,9 @@ class SlotExecutor:
         max_processing_seconds = work_item_timeout_seconds * 1.2
 
         try:
-            stale_count = await self._storage.mark_stuck_processing_work_items_as_error(
-                max_processing_seconds
-            )
+            stale_count = await self._storage.mark_stuck_processing_work_items_as_error(max_processing_seconds)
         except Exception as exc:
-            logger.error(
-                "Error marking stale processing work items as ERROR: %s", exc, exc_info=exc
-            )
+            logger.error("Error marking stale processing work items as ERROR: %s", exc, exc_info=exc)
             return
 
         if stale_count:
@@ -845,9 +817,7 @@ class SlotExecutor:
             work_item_ids = await self._storage.get_pending_work_item_ids(slots_to_fill)
 
             if work_item_ids:
-                logger.info(
-                    f"Database reader found {len(work_item_ids)} work items: {work_item_ids!r}"
-                )
+                logger.info(f"Database reader found {len(work_item_ids)} work items: {work_item_ids!r}")
                 # Fetch full work item objects
                 items = await self._storage.get_work_items_by_ids(work_item_ids)
 
@@ -881,9 +851,7 @@ class SlotExecutor:
             # First, mark any work items that are still in EXECUTING state after the timeout window
             # as ERROR. This is to prevent work items from being stuck in EXECUTING state
             # without a corresponding Slot executing them.
-            await self._mark_stale_processing_work_items(
-                quotas_service.get_work_item_timeout_seconds()
-            )
+            await self._mark_stale_processing_work_items(quotas_service.get_work_item_timeout_seconds())
 
             # Next, before each loop to fill the work queue, check if we need to resize first.
             # We want to resize _before_ we fill the work queue. This ensures that we

@@ -31,9 +31,7 @@ class VioletDocumentsInterface:
     Exposes document tools (parse, extract, infer) to the Agent.
     """
 
-    def __init__(
-        self, kernel: Kernel, state: VioletState, message: ThreadMessageWithThreadState
-    ) -> None:
+    def __init__(self, kernel: Kernel, state: VioletState, message: ThreadMessageWithThreadState) -> None:
         self.kernel = kernel
         self.state = state
         self.message = message
@@ -68,9 +66,7 @@ class VioletDocumentsInterface:
 
         if has_docs:
             self._enabled = True
-            self._impl = _DocumentToolImplementations(
-                self.kernel, self.state, storage, self.message
-            )
+            self._impl = _DocumentToolImplementations(self.kernel, self.state, storage, self.message)
 
     @property
     def documents_system_prompt(self) -> str:
@@ -95,7 +91,7 @@ class VioletDocumentsInterface:
             size_str = "Unknown size"
             if card.size_bytes:
                 kb = card.size_bytes / 1024
-                if kb < 1024:  # noqa: PLR2004
+                if kb < 1024:
                     size_str = f"{kb:.1f} KB"
                 else:
                     size_str = f"{kb / 1024:.1f} MB"
@@ -110,9 +106,7 @@ class VioletDocumentsInterface:
         summary.append("\n**Tools Guidance:**")
         summary.append("- Use `extract_document_with_schema` for files with 'Schema Ready'.")
         summary.append("- Use `parse_document` for raw text access if extraction fails.")
-        summary.append(
-            "- If a schema is missing or poor, you can use `infer_schema` to generate one."
-        )
+        summary.append("- If a schema is missing or poor, you can use `infer_schema` to generate one.")
 
         return "\n".join(summary) + "\n\n"
 
@@ -170,9 +164,7 @@ class _DocumentToolImplementations:
             return response.model_dump()
 
         except Exception as exc:
-            logger.exception(
-                f"Tool execution failed: parse_document file_ref={file_ref} error={exc!s}"
-            )
+            logger.exception(f"Tool execution failed: parse_document file_ref={file_ref} error={exc!s}")
             return {"error": f"Parse failed: {exc!s}"}
 
     async def extract_document_with_schema(
@@ -189,8 +181,7 @@ class _DocumentToolImplementations:
             if not card or not card.json_schema:
                 return {
                     "error": (
-                        f"No schema found for {file_ref}. "
-                        "Please use `infer_schema` or wait for markup to complete."
+                        f"No schema found for {file_ref}. Please use `infer_schema` or wait for markup to complete."
                     )
                 }
 
@@ -198,9 +189,7 @@ class _DocumentToolImplementations:
             client, uploaded_doc = await self._upload_to_reducto(file_ref)
 
             # 3. Extract
-            extract_opts = self._build_extract_options(
-                schema=card.json_schema, citations=generate_citations
-            )
+            extract_opts = self._build_extract_options(schema=card.json_schema, citations=generate_citations)
 
             raw_response = await client.extract(
                 extract_options=extract_opts,
@@ -226,10 +215,7 @@ class _DocumentToolImplementations:
             }
 
         except Exception as exc:
-            logger.exception(
-                "Tool execution failed: extract_document_with_schema"
-                f" file_ref={file_ref} error={exc!s}"
-            )
+            logger.exception(f"Tool execution failed: extract_document_with_schema file_ref={file_ref} error={exc!s}")
             return {"error": f"Extraction failed: {exc!s}"}
 
     async def infer_schema(
@@ -248,9 +234,7 @@ class _DocumentToolImplementations:
         # 2. Delegate to the Generator we built earlier
         generator = SchemaGenerator(self.kernel, self.state)
 
-        return await generator.infer_and_apply(
-            card, message=self.message, instructions=instructions
-        )
+        return await generator.infer_and_apply(card, message=self.message, instructions=instructions)
 
     # --- Helpers ---
 
@@ -272,9 +256,7 @@ class _DocumentToolImplementations:
             raise ValueError("Invalid Reducto configuration")
 
         api_key = (
-            settings.api_key.get_secret_value()
-            if isinstance(settings.api_key, SecretString)
-            else str(settings.api_key)
+            settings.api_key.get_secret_value() if isinstance(settings.api_key, SecretString) else str(settings.api_key)
         )
 
         client = VioletReductoClient(api_url=settings.endpoint, api_key=api_key)
@@ -307,7 +289,7 @@ class _DocumentToolImplementations:
                 return first
         return payload
 
-    async def _create_data_frames_from_arrays(  # noqa: C901
+    async def _create_data_frames_from_arrays(
         self,
         extraction_result: dict[str, Any],
         *,
@@ -347,9 +329,7 @@ class _DocumentToolImplementations:
                 candidate = base_name
                 suffix = 1
                 storage = self.storage
-                existing_names = {
-                    df.name for df in await storage.list_data_frames(thread_id=self.thread_id)
-                }
+                existing_names = {df.name for df in await storage.list_data_frames(thread_id=self.thread_id)}
                 while candidate in existing_names:
                     candidate = f"{base_name}_{suffix:02d}"
                     suffix += 1

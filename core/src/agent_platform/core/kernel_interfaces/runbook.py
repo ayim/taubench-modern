@@ -15,7 +15,6 @@ class RunbookInterface(ABC):
         Returns:
             The runbook object.
         """
-        pass
 
     @abstractmethod
     async def runbook_has_steps(self) -> bool:
@@ -25,7 +24,6 @@ class RunbookInterface(ABC):
         Returns:
             True if the runbook has steps, False otherwise.
         """
-        pass
 
     @abstractmethod
     async def get_runbook_steps(self) -> RunbookStepsContent:
@@ -34,4 +32,3 @@ class RunbookInterface(ABC):
         Returns:
             The runbook steps content.
         """
-        pass

@@ -104,7 +104,7 @@ def _create_platform_interface_and_get_model(
 
 
 @router.post("/generate", response_model=ResponseMessage)
-async def prompt_generate(  # noqa: PLR0913
+async def prompt_generate(
     prompt: Prompt,
     user: AuthedUser,
     request: Request,
@@ -196,7 +196,7 @@ async def prompt_generate(  # noqa: PLR0913
 
 
 @router.post("/stream")
-async def prompt_stream(  # noqa: PLR0913
+async def prompt_stream(
     prompt: Prompt,
     user: AuthedUser,
     request: Request,

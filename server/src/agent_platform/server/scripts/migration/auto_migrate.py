@@ -79,9 +79,7 @@ async def run_automatic_migration() -> bool:
         # Create and connect to storage once for both migrations
         db_type = SystemConfig.db_type
         dsn = PostgresConfig.dsn
-        storage = get_storage(
-            db_type=db_type, db_path=str(SystemPaths.domain_database_path), db_url=dsn
-        )
+        storage = get_storage(db_type=db_type, db_path=str(SystemPaths.domain_database_path), db_url=dsn)
         await storage.connect()
 
         try:
@@ -114,7 +112,7 @@ async def run_automatic_migration() -> bool:
         total_migration_time = time.time() - migration_start_time
         logger.info(
             f"Automatic migration completed successfully in {total_migration_time:.2f} seconds "
-            f"(agents: {agents_duration:.2f}s, users: {users_duration:.2f}s, threads: {threads_duration:.2f}s)"  # noqa: E501
+            f"(agents: {agents_duration:.2f}s, users: {users_duration:.2f}s, threads: {threads_duration:.2f}s)"
         )
         return True
 

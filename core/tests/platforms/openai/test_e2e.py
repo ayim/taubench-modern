@@ -17,9 +17,7 @@ from core.tests.vcrx import patched_vcr
 # MODEL LISTS
 # -------------------------------------------------------------------------
 MODELS_TO_TEST = [
-    model
-    for model in PlatformModelConfigs.models_capable_of_driving_agents
-    if model.startswith("openai/openai/")
+    model for model in PlatformModelConfigs.models_capable_of_driving_agents if model.startswith("openai/openai/")
 ]
 
 # -------------------------------------------------------------------------
@@ -107,9 +105,7 @@ async def test_openai_generate_responses(request, openai_client, case, model_id)
     expected_response = request.getfixturevalue(case["response_fixture"])
 
     # Unique cassette per test
-    cassette_path = (
-        f"platforms/openai/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/openai/test_e2e/test_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         openai_prompt = await openai_client.converters.convert_prompt(
@@ -137,9 +133,7 @@ async def test_openai_stream_responses(request, openai_client, case, model_id):
     await prompt.finalize_messages()
     expected_response = request.getfixturevalue(case["response_fixture"])
 
-    cassette_path = (
-        f"platforms/openai/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
-    )
+    cassette_path = f"platforms/openai/test_e2e/test_stream_response_{case['cassette_suffix']}__{model_id}.yaml"
 
     with patched_vcr(cassette_path):
         openai_prompt = await openai_client.converters.convert_prompt(

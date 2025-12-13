@@ -254,9 +254,7 @@ async def apply_thread_message_metadata_ops(
             ops=ops_dicts,
         )
     except Exception as exc:
-        logger.exception(
-            "Failed to apply metadata ops", thread_id=tid, message_id=message_id, error=str(exc)
-        )
+        logger.exception("Failed to apply metadata ops", thread_id=tid, message_id=message_id, error=str(exc))
         raise HTTPException(status_code=500, detail="Failed to apply metadata ops") from exc
 
     return {
@@ -713,9 +711,7 @@ async def request_remote_file_upload(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    response = await file_manager.request_remote_file_upload(
-        owner=thread, file_name=payload.file_name
-    )
+    response = await file_manager.request_remote_file_upload(owner=thread, file_name=payload.file_name)
     return response
 
 
@@ -770,9 +766,7 @@ async def validate_thread_semantic_data_models(
     thread = await storage.get_thread(user.user_id, tid)
     semantic_data_models = await storage.get_thread_semantic_data_models(thread.thread_id)
     if not semantic_data_models:
-        raise PlatformHTTPError(
-            error_code=ErrorCode.NOT_FOUND, message="No semantic data models found for thread"
-        )
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="No semantic data models found for thread")
 
     from agent_platform.core.data_frames.semantic_data_model_types import (
         SemanticDataModel,
@@ -787,9 +781,7 @@ async def validate_thread_semantic_data_models(
     results: list[ValidateSemanticDataModelResultItem] = []
     for semantic_data_model_info in semantic_data_models:
         semantic_data_model_id = semantic_data_model_info["semantic_data_model_id"]
-        semantic_data_model = cast(
-            SemanticDataModel, semantic_data_model_info["semantic_data_model"]
-        )
+        semantic_data_model = cast(SemanticDataModel, semantic_data_model_info["semantic_data_model"])
         try:
             validator = SemanticDataModelValidator(
                 semantic_data_model=cast(SemanticDataModel, semantic_data_model),

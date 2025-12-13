@@ -134,12 +134,8 @@ def main():
     """Main function to run the webhook receiver."""
     parser = argparse.ArgumentParser(description="Webhook receiver for Sema4AI work item callbacks")
     parser.add_argument("--secret", type=str, help="Secret key for signature verification")
-    parser.add_argument(
-        "--port", type=int, default=44444, help="Port to listen on (default: 44444)"
-    )
-    parser.add_argument(
-        "--host", type=str, default="localhost", help="Host to bind to (default: localhost)"
-    )
+    parser.add_argument("--port", type=int, default=44444, help="Port to listen on (default: 44444)")
+    parser.add_argument("--host", type=str, default="localhost", help="Host to bind to (default: localhost)")
 
     args = parser.parse_args()
 

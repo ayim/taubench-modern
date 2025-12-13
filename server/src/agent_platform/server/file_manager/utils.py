@@ -14,7 +14,7 @@ RE_DRIVE_LETTER_PATH = re.compile(r"^\/[a-zA-Z]:")
 
 def normalize_drive(path: str) -> str:
     """Normalize windows drive letters to lowercase."""
-    if len(path) >= 2 and path[0].isalpha() and path[1] == ":":  # noqa: PLR2004
+    if len(path) >= 2 and path[0].isalpha() and path[1] == ":":
         return path[0].lower() + path[1:]
     return path
 
@@ -61,7 +61,7 @@ def url_to_fs_path(file_url: str) -> str:
 # TODO: review/refactor this code once time permits.
 
 
-def guess_mimetype(file_name: str, file_bytes: bytes) -> str:  # noqa: PLR0911
+def guess_mimetype(file_name: str, file_bytes: bytes) -> str:
     """Guess the mime-type of a file based on its name or bytes."""
     # First, check for known extensions explicitly (more reliable than mimetypes module)
     file_lower = file_name.lower()
@@ -89,9 +89,7 @@ def guess_mimetype(file_name: str, file_bytes: bytes) -> str:  # noqa: PLR0911
 
     # Check for CSV-like plain text content (commas, tabs, newlines)
     decoded = file_bytes[:1024].decode("utf-8", errors="ignore")
-    if all(char in decoded for char in (",", "\n")) or all(
-        char in decoded for char in ("\t", "\n")
-    ):
+    if all(char in decoded for char in (",", "\n")) or all(char in decoded for char in ("\t", "\n")):
         return "text/csv"
     elif decoded.isprintable() or decoded == "":
         return "text/plain"

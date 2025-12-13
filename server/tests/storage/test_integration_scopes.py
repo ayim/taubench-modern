@@ -267,9 +267,7 @@ async def test_delete_nonexistent_scope_fails(storage):
     """Test that deleting a nonexistent scope fails."""
     nonexistent_integration_id = str(uuid4())
     with pytest.raises(IntegrationScopeNotFoundError):
-        await storage.delete_integration_scope(
-            nonexistent_integration_id, scope="global", agent_id=None
-        )
+        await storage.delete_integration_scope(nonexistent_integration_id, scope="global", agent_id=None)
 
 
 @pytest.mark.asyncio
@@ -348,9 +346,7 @@ async def test_get_observability_integrations_for_agent_basic_scopes(
 
 
 @pytest.mark.asyncio
-async def test_get_observability_integrations_additive_no_deduplication_by_provider(
-    storage, sample_agent
-):
+async def test_get_observability_integrations_additive_no_deduplication_by_provider(storage, sample_agent):
     """Test additive model with no de-duplication: same provider at multiple levels/scopes.
 
     Note: upsert_integration auto-assigns global scope to new integrations.

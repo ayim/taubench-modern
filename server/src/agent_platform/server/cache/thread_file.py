@@ -168,9 +168,7 @@ class ThreadFileCache(Generic[T, P]):
 
         try:
             # Read and parse the cached data
-            file_contents = await self._file_manager.read_file_contents(
-                cached_file.file_id, user_id
-            )
+            file_contents = await self._file_manager.read_file_contents(cached_file.file_id, user_id)
             cached_model = model_class.model_validate_json(file_contents)
 
             # Validate if validation function provided
@@ -228,9 +226,7 @@ class ThreadFileCache(Generic[T, P]):
         )
 
         # Upload to thread storage
-        uploaded_files = await self._file_manager.upload(
-            [UploadFilePayload(file=cache_file)], thread, user_id
-        )
+        uploaded_files = await self._file_manager.upload([UploadFilePayload(file=cache_file)], thread, user_id)
 
         logger.debug(f"Cache set for {cache_file_name}", cache_file=cache_file_name)
         return uploaded_files[0]

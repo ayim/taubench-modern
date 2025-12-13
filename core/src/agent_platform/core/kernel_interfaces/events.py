@@ -15,7 +15,6 @@ class EventsInterface(ABC, Generic[T]):
         Arguments:
             event: The event to dispatch.
         """
-        pass
 
     @abstractmethod
     def stream(self) -> AsyncGenerator[T, None]:
@@ -24,7 +23,6 @@ class EventsInterface(ABC, Generic[T]):
         Returns:
             An asynchronous iterator of events.
         """
-        pass
 
     @abstractmethod
     async def wait_for_event(self, predicate: Callable[[T], bool]) -> T:
@@ -36,4 +34,3 @@ class EventsInterface(ABC, Generic[T]):
         Returns:
             The first event for which predicate returns True.
         """
-        pass

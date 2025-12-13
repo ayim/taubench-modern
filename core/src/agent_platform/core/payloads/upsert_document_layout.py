@@ -86,8 +86,7 @@ class _TranslationSchema:
         else:
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
-                message="Translation schema must be an object with a `rules` key made of "
-                "an array of rules.",
+                message="Translation schema must be an object with a `rules` key made of an array of rules.",
             )
 
     def to_compact_dict(self) -> dict[str, Any]:
@@ -187,9 +186,7 @@ class DocumentLayoutPayload:
 
         extraction_schema_dict = None
         if self.extraction_schema is not None:
-            extraction_schema_dict = self.extraction_schema.model_dump(
-                mode="json", exclude_none=True
-            )
+            extraction_schema_dict = self.extraction_schema.model_dump(mode="json", exclude_none=True)
 
         return DocumentLayout(
             name=self.name,

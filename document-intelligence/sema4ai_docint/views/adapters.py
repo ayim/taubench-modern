@@ -27,7 +27,6 @@ class DBAdapter(ABC):
         Returns:
             A database-specific JSON path expression
         """
-        pass
 
     @abstractmethod
     def build_array_accessor(self, current_path: str, component: str) -> str:
@@ -41,7 +40,6 @@ class DBAdapter(ABC):
         Returns:
             A database-specific array accessor expression
         """
-        pass
 
     @abstractmethod
     def apply_type_cast(
@@ -61,7 +59,6 @@ class DBAdapter(ABC):
         Returns:
             A database-specific type-cast expression
         """
-        pass
 
     # TODO: Fix lint issues in this function
     def parse_type(  # noqa: PLR0911

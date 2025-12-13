@@ -66,9 +66,7 @@ class ConditionalLangSmithProcessor(SpanProcessor):
         cfg = self._env_cfg_from_vars()
         if cfg:
             self._global_processor = self._build_processor(cfg)
-            logger.info(
-                "Using Global LangSmith config from environment; per-agent configs will be ignored."
-            )
+            logger.info("Using Global LangSmith config from environment; per-agent configs will be ignored.")
         logger.debug("ConditionalLangSmithProcessor initialized")
 
     @staticmethod
@@ -192,10 +190,7 @@ class ConditionalLangSmithProcessor(SpanProcessor):
         In global mode (env vars set), this is a no-op and returns False.
         """
         if self._global_processor:
-            logger.info(
-                f"Global LangSmith config is active; "
-                f"ignoring per-agent config for agent {agent_id}."
-            )
+            logger.info(f"Global LangSmith config is active; ignoring per-agent config for agent {agent_id}.")
             return True
         if not agent_id or not cfg or not cfg.api_key:
             logger.debug(f"Skipping LangSmith config for agent {agent_id}: missing required fields")
@@ -232,9 +227,7 @@ class ConditionalLangSmithProcessor(SpanProcessor):
             try:
                 self._processors[agent_id] = self._build_processor(cfg)
                 self._signatures[agent_id] = new_sig
-                logger.info(
-                    f"Registered/updated LangSmith config: agent {agent_id} → project {project}"
-                )
+                logger.info(f"Registered/updated LangSmith config: agent {agent_id} → project {project}")
                 return True
             except Exception as e:
                 logger.error(f"Failed to create LangSmith processor for agent {agent_id}: {e}")

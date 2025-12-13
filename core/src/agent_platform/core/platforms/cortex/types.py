@@ -150,7 +150,7 @@ class CortexPromptContent:
     )
     """The tool results for the content block."""
 
-    def __post_init__(self) -> None:  # noqa: C901
+    def __post_init__(self) -> None:
         if self.type == "text":
             if self.text is None:
                 raise ValueError(

@@ -45,7 +45,7 @@ def extract_column_name_to_expr(table: "LogicalTable") -> dict[str, str]:
     return logical_column_name_to_expr
 
 
-async def create_data_frame_from_sql_computation_api(  # noqa
+async def create_data_frame_from_sql_computation_api(
     data_frames_kernel: "DataFramesKernel",
     storage: "BaseStorage",
     new_data_frame_name: str,
@@ -121,9 +121,7 @@ async def create_data_frame_from_sql_computation_api(  # noqa
         # models (which would allow us to get data directly from a file or database).
         semantic_data_models_infos = await data_frames_kernel.get_semantic_data_models()
         for semantic_data_model_and_refs in semantic_data_models_infos:
-            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info[
-                "semantic_data_model"
-            ]
+            semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
             tables: list[LogicalTable] = semantic_data_model.get("tables") or []
             if not tables:
                 continue
@@ -153,9 +151,7 @@ async def create_data_frame_from_sql_computation_api(  # noqa
                     source_type="semantic_data_model",
                     base_table=base_table,
                     logical_table_name=table_info.get("name"),
-                    logical_column_names_to_expr=logical_column_names_to_expr
-                    if logical_column_names_to_expr
-                    else None,
+                    logical_column_names_to_expr=logical_column_names_to_expr if logical_column_names_to_expr else None,
                 )
                 required_table_names.remove(name)
 
@@ -163,12 +159,8 @@ async def create_data_frame_from_sql_computation_api(  # noqa
             # We need to compute it based on the found dialects (update it with the data
             # connections found and set it accordingly)
             if data_connection_ids:
-                data_connections = await data_frames_kernel.get_data_connections(
-                    data_connection_ids
-                )
-                dialects_found.update(
-                    data_connection.engine for data_connection in data_connections
-                )
+                data_connections = await data_frames_kernel.get_data_connections(data_connection_ids)
+                dialects_found.update(data_connection.engine for data_connection in data_connections)
 
             dialects_found.discard(None)
             if len(dialects_found) == 1:

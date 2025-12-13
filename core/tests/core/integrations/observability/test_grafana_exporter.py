@@ -88,9 +88,7 @@ class TestGrafanaExporter:
 
     @patch("agent_platform.core.integrations.observability.models.build_network_session")
     @patch("agent_platform.core.integrations.observability.models.OTLPSpanExporter")
-    def test_multiple_exporters_get_separate_sessions(
-        self, mock_exporter_class, mock_build_session
-    ):
+    def test_multiple_exporters_get_separate_sessions(self, mock_exporter_class, mock_build_session):
         """Test that each exporter gets its own session (not shared).
 
         This is critical - if exporters share a session, headers from one will

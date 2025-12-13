@@ -78,19 +78,13 @@ def test_data_frames_integration_with_date(base_url_agent_server, datadir, file_
         )
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
-        file_id_ods, found_data_frames = _upload_file_to_thread(
-            agent_client, thread_id, datadir / "example.ods"
-        )
+        file_id_ods, found_data_frames = _upload_file_to_thread(agent_client, thread_id, datadir / "example.ods")
         assert len(found_data_frames) == 1, "Expected exactly one data frame in the response"
 
-        created = agent_client.create_data_frame_from_file(
-            thread_id, file_id_ods, sheet_name="Sheet1"
-        )
+        created = agent_client.create_data_frame_from_file(thread_id, file_id_ods, sheet_name="Sheet1")
         assert created["sheet_name"] == "Sheet1"
         remove_changed_fields(created)
-        file_regression.check(
-            json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1_ods"
-        )
+        file_regression.check(json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1_ods")
 
         # Now, create a data frame from computation using both data frames (join by the name)
         agent_client.create_data_frame_from_sql_computation(
@@ -150,9 +144,7 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, fil
             ],
         )
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
-        file_id_xlsx, found_data_frames = _upload_file_to_thread(
-            agent_client, thread_id, datadir / "sample.xlsx"
-        )
+        file_id_xlsx, found_data_frames = _upload_file_to_thread(agent_client, thread_id, datadir / "sample.xlsx")
 
         # We should be able to inspect the file as a data frame (to get the sheets, columns and
         # even some sample data).
@@ -160,40 +152,26 @@ def test_data_frames_integration_multi_sheet(base_url_agent_server, datadir, fil
         data_frame = found_data_frames[0]
         assert data_frame["sheet_name"] == "Sheet1"
         remove_changed_fields(data_frame)
-        file_regression.check(
-            json.dumps(convert_bytes_to_base64(data_frame), indent=2), basename="inspect_sheet1"
-        )
+        file_regression.check(json.dumps(convert_bytes_to_base64(data_frame), indent=2), basename="inspect_sheet1")
 
         data_frame = found_data_frames[1]
         assert data_frame["sheet_name"] == "Sheet2"
         remove_changed_fields(data_frame)
-        file_regression.check(
-            json.dumps(convert_bytes_to_base64(data_frame), indent=2), basename="inspect_sheet2"
-        )
+        file_regression.check(json.dumps(convert_bytes_to_base64(data_frame), indent=2), basename="inspect_sheet2")
 
         # And later if the inspection is fine, we can create a data frame from the file id
         # and sheet name.
-        created = agent_client.create_data_frame_from_file(
-            thread_id, file_id_xlsx, sheet_name="Sheet1"
-        )
+        created = agent_client.create_data_frame_from_file(thread_id, file_id_xlsx, sheet_name="Sheet1")
         assert created["sheet_name"] == "Sheet1"
         remove_changed_fields(created)
-        file_regression.check(
-            json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1"
-        )
+        file_regression.check(json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet1")
 
-        created = agent_client.create_data_frame_from_file(
-            thread_id, file_id_xlsx, sheet_name="Sheet2"
-        )
+        created = agent_client.create_data_frame_from_file(thread_id, file_id_xlsx, sheet_name="Sheet2")
         assert created["sheet_name"] == "Sheet2"
         remove_changed_fields(created)
-        file_regression.check(
-            json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet2"
-        )
+        file_regression.check(json.dumps(convert_bytes_to_base64(created), indent=2), basename="created_sheet2")
 
-        with pytest.raises(
-            Exception, match="Multiple data frames found in file. Please specify sheet_name."
-        ):
+        with pytest.raises(Exception, match="Multiple data frames found in file. Please specify sheet_name."):
             agent_client.create_data_frame_from_file(thread_id, file_id_xlsx)
 
         # Now, get the data frames in the thread
@@ -369,9 +347,7 @@ def test_data_frames_with_data_sources(base_url_agent_server_with_data_frames, r
 
 
 @pytest.mark.integration
-def test_data_frames_computation_integration_success(
-    base_url_agent_server_with_data_frames, openai_api_key
-):
+def test_data_frames_computation_integration_success(base_url_agent_server_with_data_frames, openai_api_key):
     """Test creating a data frame from computation with valid SQL query."""
     import json
 
@@ -518,9 +494,7 @@ def test_inspect_file_as_data_connection(base_url_agent_server):
         # Test with a simple CSV file
         csv_content = b"name,age,city\nJohn,25,New York\nJane,30,London\nBob,35,Paris"
 
-        result = agent_client.inspect_file_as_data_connection(
-            file_contents=csv_content, file_name="test_data.csv"
-        )
+        result = agent_client.inspect_file_as_data_connection(file_contents=csv_content, file_name="test_data.csv")
 
         # Verify the response structure
         assert "tables" in result

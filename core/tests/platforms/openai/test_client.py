@@ -290,10 +290,7 @@ class TestOpenAIClient:
             assert client.name == "openai"
             assert isinstance(client._parameters, OpenAIPlatformParameters)
             assert client._parameters.openai_api_key is not None
-            assert (
-                mock_openai.call_args.kwargs["api_key"]
-                == client._parameters.openai_api_key.get_secret_value()
-            )
+            assert mock_openai.call_args.kwargs["api_key"] == client._parameters.openai_api_key.get_secret_value()
 
     def test_init_clients(self, parameters: OpenAIPlatformParameters) -> None:
         """Test client initialization with OpenAI client."""
@@ -301,10 +298,7 @@ class TestOpenAIClient:
         with patch("openai.AsyncOpenAI", return_value=mock_client) as mock_openai:
             client = OpenAIClient(parameters=parameters)
             assert parameters.openai_api_key is not None
-            assert (
-                mock_openai.call_args.kwargs["api_key"]
-                == parameters.openai_api_key.get_secret_value()
-            )
+            assert mock_openai.call_args.kwargs["api_key"] == parameters.openai_api_key.get_secret_value()
             assert client._openai_client is mock_client
 
     def test_init_parameters_with_updates(

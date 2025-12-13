@@ -57,7 +57,7 @@ class ExtractDocumentPayload:
     generate_citations: bool | None = True
 
     @classmethod
-    def model_validate(cls, data: Any) -> ExtractDocumentPayload:  # noqa: C901
+    def model_validate(cls, data: Any) -> ExtractDocumentPayload:
         # Complexity warning comes from number of if branches for validation and is not
         # worth refactoring for.
         if isinstance(data, dict):
@@ -105,8 +105,7 @@ class ExtractDocumentPayload:
             if not isinstance(document_layout, dict | DocumentLayoutPayload):
                 raise PlatformHTTPError(
                     error_code=ErrorCode.BAD_REQUEST,
-                    message="The 'document_layout' field must be a dictionary or "
-                    "DocumentLayoutPayload",
+                    message="The 'document_layout' field must be a dictionary or DocumentLayoutPayload",
                 )
             # Validate the document layout
             if isinstance(document_layout, dict):

@@ -87,8 +87,7 @@ def test_edge_case_tables_load(
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         tables_to_inspect=[
-            {"name": table, "database": None, "schema": None, "columns_to_inspect": None}
-            for table in EDGE_CASE_TABLES
+            {"name": table, "database": None, "schema": None, "columns_to_inspect": None} for table in EDGE_CASE_TABLES
         ],
     )
 
@@ -124,8 +123,7 @@ def edge_case_semantic_model(
     inspect_response = client.inspect_data_connection(
         connection_id=data_connection.id,
         tables_to_inspect=[
-            {"name": table, "database": None, "schema": None, "columns_to_inspect": None}
-            for table in EDGE_CASE_TABLES
+            {"name": table, "database": None, "schema": None, "columns_to_inspect": None} for table in EDGE_CASE_TABLES
         ],
     )
 
@@ -174,9 +172,7 @@ def test_edge_case_semantic_model_generation(
         for column in columns:
             assert column["name"] is not None, f"Expected name for column {column['name']}"
             assert column["expr"] is not None, f"Expected expr for column {column['name']}"
-            assert column["description"] is not None, (
-                f"Expected description for column {column['name']}"
-            )
+            assert column["description"] is not None, f"Expected description for column {column['name']}"
             assert column["synonyms"] is not None, f"Expected synonyms for column {column['name']}"
 
 
@@ -225,8 +221,7 @@ def test_edge_case_model_persistence(
     ("query", "expected_table"),
     [
         (
-            "What are the specifications and tags for the Smart Watch Pro and "
-            "Gaming Laptop products",
+            "What are the specifications and tags for the Smart Watch Pro and Gaming Laptop products",
             "products_with_json",
         ),
         (
@@ -240,8 +235,7 @@ def test_edge_case_model_persistence(
             "event_logs",
         ),
         (
-            "List all locations with their coordinates arrays showing the warehouse "
-            "and distribution center locations",
+            "List all locations with their coordinates arrays showing the warehouse and distribution center locations",
             "locations",
         ),
         (
@@ -282,9 +276,7 @@ def test_agent_queries_edge_cases(
 
     result, tool_calls = client.send_message_to_agent_thread(agent_id, thread_id, query)
 
-    print(
-        f"Query: {query}\n\nResult: {result}\n\nTool calls: {[tc.tool_name for tc in tool_calls]}"
-    )
+    print(f"Query: {query}\n\nResult: {result}\n\nTool calls: {[tc.tool_name for tc in tool_calls]}")
 
     # Verify data_frames_create_from_sql was called
     assert any(tc.tool_name == "data_frames_create_from_sql" for tc in tool_calls), (

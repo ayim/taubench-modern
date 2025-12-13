@@ -22,12 +22,8 @@ class InlineWidget:
     thinking: str = ""
     result: dict[str, Any] | None = None
     error: str | None = None
-    created_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
-    )
-    updated_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds")
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds"))
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="milliseconds"))
 
     def to_metadata(self) -> dict[str, Any]:
         return {
@@ -213,7 +209,5 @@ class InlineWidgetManager:
     def get_widget(self, widget_id: str) -> InlineWidget | None:
         return self._widgets.get(widget_id)
 
-    def get_content(
-        self, widget_id: str
-    ) -> ThreadVegaChartContent | ThreadQuickActionsContent | None:
+    def get_content(self, widget_id: str) -> ThreadVegaChartContent | ThreadQuickActionsContent | None:
         return self._widget_content.get(widget_id)

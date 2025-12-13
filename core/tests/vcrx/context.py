@@ -19,9 +19,7 @@ from core.tests.vcrx.vcr_builder import build_vcr
 def _cassette_exists(relative_path: str) -> bool:
     """Check if a cassette exists in a zip archive or on the filesystem."""
     # Check zip archive first
-    archive_path, rel_member = ZipArchivePersister._select_archive(
-        os.path.join(CASSETTE_ROOT_DIR, relative_path)
-    )
+    archive_path, rel_member = ZipArchivePersister._select_archive(os.path.join(CASSETTE_ROOT_DIR, relative_path))
     if os.path.exists(archive_path):
         try:
             with zipfile.ZipFile(archive_path, mode="r") as zf:
@@ -36,10 +34,7 @@ def _cassette_exists(relative_path: str) -> bool:
 
 def _handle_missing_cassette(cassette_path: str) -> None:
     """Raises or skips the test if a cassette is missing in replay-only mode."""
-    msg = (
-        f"Missing cassette '{cassette_path}'. To record it, run with "
-        f"VCR_RECORD=new_episodes and re-run this test."
-    )
+    msg = f"Missing cassette '{cassette_path}'. To record it, run with VCR_RECORD=new_episodes and re-run this test."
     if env_bool("VCR_STRICT", False):
         raise FileNotFoundError(msg)
     try:

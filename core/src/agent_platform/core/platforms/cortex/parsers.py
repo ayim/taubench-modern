@@ -211,7 +211,7 @@ class CortexParsers(PlatformParsers):
         for delta in deltas:
             yield delta
 
-    def _handle_delta_content_list(  # noqa: C901, PLR0912
+    def _handle_delta_content_list(
         self,
         event: dict,
         message: dict,
@@ -273,9 +273,7 @@ class CortexParsers(PlatformParsers):
                     message["content"][-1]["tool_name"] = content_item["name"]
                 if "tool_input_raw" not in message["content"][-1]:
                     message["content"][-1]["tool_input_raw"] = ""
-                message["content"][-1]["tool_input_raw"] += (
-                    content_item["input"] if "input" in content_item else ""
-                )
+                message["content"][-1]["tool_input_raw"] += content_item["input"] if "input" in content_item else ""
 
     def _handle_delta_usage(self, event: dict, message: dict) -> None:
         """Handle a delta usage event.

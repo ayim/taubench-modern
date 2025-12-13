@@ -104,9 +104,7 @@ class TestWorkItemPayloadValidation:
             await check_work_item_payload_size(mock_request)
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_payload_check_empty_payload(
-        self, mock_get_quotas_instance, mock_request, mock_quotas_service
-    ):
+    async def test_payload_check_empty_payload(self, mock_get_quotas_instance, mock_request, mock_quotas_service):
         """Test empty payload."""
         # Setup mocks
         mock_get_quotas_instance.return_value = mock_quotas_service
@@ -118,9 +116,7 @@ class TestWorkItemPayloadValidation:
         assert result is None
 
     @patch("agent_platform.core.configurations.quotas.QuotasService.get_instance")
-    async def test_payload_check_large_quota_limit(
-        self, mock_get_quotas_instance, mock_request, mock_quotas_service
-    ):
+    async def test_payload_check_large_quota_limit(self, mock_get_quotas_instance, mock_request, mock_quotas_service):
         """Test with large quota limits."""
         # Setup mocks
         mock_get_quotas_instance.return_value = mock_quotas_service
