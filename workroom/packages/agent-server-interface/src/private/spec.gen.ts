@@ -12743,6 +12743,8 @@ export const spec = {
         type: 'object',
         required: ['data_connection_id', 'tables_info'],
         title: 'DataConnectionInfo',
+        description:
+          'Information about a data connection with its tables.\n\nOptionally includes the original inspection request/response for metadata tracking.',
       },
       DataConnectionSnapshotMetadata: {
         properties: {
@@ -14354,6 +14356,8 @@ export const spec = {
         type: 'object',
         required: ['thread_id', 'file_ref', 'tables_info'],
         title: 'FileInfo',
+        description:
+          'Information about a file with its tables.\n\nOptionally includes the original inspection response for metadata tracking.',
       },
       FileSnapshotMetadata: {
         properties: {
@@ -14655,6 +14659,8 @@ export const spec = {
               },
             ],
             title: 'Existing Semantic Data Model',
+            description:
+              'The existing semantic data model to enhance. Can be provided as a dict/object or just its id. If not provided, a new semantic data model will be generated based on the data_connections_info and files_info.',
           },
         },
         type: 'object',
@@ -14665,6 +14671,7 @@ export const spec = {
           'files_info',
         ],
         title: 'GenerateSemanticDataModelPayload',
+        description: 'Payload for generating a semantic data model.',
       },
       GenerateSemanticDataModelResponse: {
         properties: {
@@ -14684,6 +14691,7 @@ export const spec = {
         type: 'object',
         required: ['semantic_model'],
         title: 'GenerateSemanticDataModelResponse',
+        description: 'Response for generating a semantic data model.',
       },
       GooglePlatformParameters: {
         properties: {
@@ -24649,6 +24657,7 @@ export const spec = {
           type: 'object',
           required: ['name'],
           title: 'ColumnInfo',
+          description: 'Information about a column in a table.',
         },
       agent_platform__core__payloads__semantic_data_model_payloads__FileReference:
         {
@@ -24688,6 +24697,7 @@ export const spec = {
               $ref: '#/components/schemas/agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo',
             },
             type: 'array',
+            minItems: 1,
             title: 'Columns',
           },
           database: {
@@ -24727,6 +24737,7 @@ export const spec = {
         type: 'object',
         required: ['name', 'columns'],
         title: 'TableInfo',
+        description: 'Information about a table.',
       },
       PlatformModelConfigs: {
         properties: {

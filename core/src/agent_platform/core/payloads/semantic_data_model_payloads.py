@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from typing import Annotated, Any
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     ValidationMessage,
@@ -66,9 +68,10 @@ class DeleteSemanticDataModelPayload:
         )
 
 
-@dataclass(frozen=True)
-class ColumnInfo:
+class ColumnInfo(BaseModel):
     """Information about a column in a table."""
+
+    model_config = ConfigDict(extra="ignore")
 
     name: str
     data_type: str = "unknown"
@@ -77,23 +80,25 @@ class ColumnInfo:
     synonyms: list[str] | None = None
 
 
-@dataclass(frozen=True)
-class TableInfo:
+class TableInfo(BaseModel):
     """Information about a table."""
 
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
     name: str
-    columns: list[ColumnInfo]
+    columns: list[ColumnInfo] = Field(..., min_length=1)
     database: str | None = None
-    schema: str | None = None
+    schema_: str | None = Field(default=None, alias="schema")
     description: str | None = None
 
 
-@dataclass(frozen=True)
-class DataConnectionInfo:
+class DataConnectionInfo(BaseModel):
     """Information about a data connection with its tables.
 
     Optionally includes the original inspection request/response for metadata tracking.
     """
+
+    model_config = ConfigDict(extra="ignore")
 
     data_connection_id: str
     tables_info: list[TableInfo]
@@ -101,12 +106,13 @@ class DataConnectionInfo:
     inspect_response: DataConnectionsInspectResponse | None = None
 
 
-@dataclass(frozen=True)
-class FileInfo:
+class FileInfo(BaseModel):
     """Information about a file with its tables.
 
     Optionally includes the original inspection response for metadata tracking.
     """
+
+    model_config = ConfigDict(extra="ignore")
 
     thread_id: str
     file_ref: str
@@ -115,24 +121,30 @@ class FileInfo:
     inspect_response: DataConnectionsInspectResponse | None = None
 
 
-@dataclass(frozen=True)
-class GenerateSemanticDataModelPayload:
+class GenerateSemanticDataModelPayload(BaseModel):
     """Payload for generating a semantic data model."""
+
+    model_config = ConfigDict(extra="ignore")
 
     name: str
     description: str | None
     data_connections_info: list[DataConnectionInfo]
     files_info: list[FileInfo]
     agent_id: str | None = None
-    existing_semantic_data_model: SemanticDataModel | dict | None | str = None
-    """The existing semantic data model to enhance. Can be provided as a dict/object or just its id.
-    If not provided, a new semantic data model will be generated based on the data_connections_info
-    and files_info."""
+    existing_semantic_data_model: SemanticDataModel | dict | None | str = Field(
+        default=None,
+        description=(
+            "The existing semantic data model to enhance. Can be provided as a dict/object "
+            "or just its id. If not provided, a new semantic data model will be generated "
+            "based on the data_connections_info and files_info."
+        ),
+    )
 
 
-@dataclass(frozen=True)
-class GenerateSemanticDataModelResponse:
+class GenerateSemanticDataModelResponse(BaseModel):
     """Response for generating a semantic data model."""
+
+    model_config = ConfigDict(extra="ignore")
 
     semantic_model: SemanticDataModel | dict
 

@@ -1,4 +1,3 @@
-# ruff: noqa: PLR0915
 """Integration tests for semantic data model API endpoints."""
 
 import pytest
@@ -1270,3 +1269,34 @@ def test_no_description_allows_llm_generated_description(base_url_agent_server_s
         actual_description = generated_model["semantic_model"].get("description")
         assert actual_description is not None, "Expected LLM to generate a description when user provides none"
         assert len(actual_description) > 0, "Expected non-empty description from LLM"
+
+
+@pytest.mark.integration
+def test_generate_semantic_data_model_rejects_empty_columns(base_url_agent_server):
+    """Test that generating SDM fails with 422 when TableInfo.columns is empty."""
+    from urllib.parse import urljoin
+
+    import requests
+
+    generate_payload = {
+        "name": "test_model",
+        "description": "Test model",
+        "data_connections_info": [
+            {
+                "data_connection_id": "fake-id",
+                "tables_info": [{"name": "test_table", "columns": []}],
+            }
+        ],
+        "files_info": [],
+    }
+
+    base_url = urljoin(base_url_agent_server + "/", "api/v2")
+    url = urljoin(base_url + "/", "semantic-data-models/generate")
+    response = requests.post(url, json=generate_payload)
+
+    assert response.status_code == 422, (
+        f"Expected 422 Unprocessable Entity when columns is empty, got {response.status_code}: {response.text}"
+    )
+    # Verify the error is about columns min length
+    response_text = response.text.lower()
+    assert "columns" in response_text, f"Expected error message to mention 'columns', got: {response.text}"

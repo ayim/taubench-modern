@@ -12711,7 +12711,8 @@
         },
         "type": "object",
         "required": ["data_connection_id", "tables_info"],
-        "title": "DataConnectionInfo"
+        "title": "DataConnectionInfo",
+        "description": "Information about a data connection with its tables.\n\nOptionally includes the original inspection request/response for metadata tracking."
       },
       "DataConnectionSnapshotMetadata": {
         "properties": {
@@ -14314,7 +14315,8 @@
         },
         "type": "object",
         "required": ["thread_id", "file_ref", "tables_info"],
-        "title": "FileInfo"
+        "title": "FileInfo",
+        "description": "Information about a file with its tables.\n\nOptionally includes the original inspection response for metadata tracking."
       },
       "FileSnapshotMetadata": {
         "properties": {
@@ -14613,7 +14615,8 @@
                 "type": "null"
               }
             ],
-            "title": "Existing Semantic Data Model"
+            "title": "Existing Semantic Data Model",
+            "description": "The existing semantic data model to enhance. Can be provided as a dict/object or just its id. If not provided, a new semantic data model will be generated based on the data_connections_info and files_info."
           }
         },
         "type": "object",
@@ -14623,7 +14626,8 @@
           "data_connections_info",
           "files_info"
         ],
-        "title": "GenerateSemanticDataModelPayload"
+        "title": "GenerateSemanticDataModelPayload",
+        "description": "Payload for generating a semantic data model."
       },
       "GenerateSemanticDataModelResponse": {
         "properties": {
@@ -14642,7 +14646,8 @@
         },
         "type": "object",
         "required": ["semantic_model"],
-        "title": "GenerateSemanticDataModelResponse"
+        "title": "GenerateSemanticDataModelResponse",
+        "description": "Response for generating a semantic data model."
       },
       "GooglePlatformParameters": {
         "properties": {
@@ -24471,7 +24476,8 @@
         },
         "type": "object",
         "required": ["name"],
-        "title": "ColumnInfo"
+        "title": "ColumnInfo",
+        "description": "Information about a column in a table."
       },
       "agent_platform__core__payloads__semantic_data_model_payloads__FileReference": {
         "properties": {
@@ -24510,6 +24516,7 @@
               "$ref": "#/components/schemas/agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo"
             },
             "type": "array",
+            "minItems": 1,
             "title": "Columns"
           },
           "database": {
@@ -24548,7 +24555,8 @@
         },
         "type": "object",
         "required": ["name", "columns"],
-        "title": "TableInfo"
+        "title": "TableInfo",
+        "description": "Information about a table."
       },
       "PlatformModelConfigs": {
         "properties": {

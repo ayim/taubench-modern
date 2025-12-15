@@ -5017,7 +5017,12 @@ export interface components {
        */
       tags?: string[];
     };
-    /** DataConnectionInfo */
+    /**
+     * DataConnectionInfo
+     * @description Information about a data connection with its tables.
+     *
+     *     Optionally includes the original inspection request/response for metadata tracking.
+     */
     DataConnectionInfo: {
       /** Data Connection Id */
       data_connection_id: string;
@@ -5624,7 +5629,12 @@ export interface components {
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][] | null;
     };
-    /** FileInfo */
+    /**
+     * FileInfo
+     * @description Information about a file with its tables.
+     *
+     *     Optionally includes the original inspection response for metadata tracking.
+     */
     FileInfo: {
       /** Thread Id */
       thread_id: string;
@@ -5744,7 +5754,10 @@ export interface components {
         [key: string]: unknown;
       };
     };
-    /** GenerateSemanticDataModelPayload */
+    /**
+     * GenerateSemanticDataModelPayload
+     * @description Payload for generating a semantic data model.
+     */
     GenerateSemanticDataModelPayload: {
       /** Name */
       name: string;
@@ -5756,7 +5769,10 @@ export interface components {
       files_info: components['schemas']['FileInfo'][];
       /** Agent Id */
       agent_id?: string | null;
-      /** Existing Semantic Data Model */
+      /**
+       * Existing Semantic Data Model
+       * @description The existing semantic data model to enhance. Can be provided as a dict/object or just its id. If not provided, a new semantic data model will be generated based on the data_connections_info and files_info.
+       */
       existing_semantic_data_model?:
         | components['schemas']['SemanticDataModel']
         | {
@@ -5765,7 +5781,10 @@ export interface components {
         | string
         | null;
     };
-    /** GenerateSemanticDataModelResponse */
+    /**
+     * GenerateSemanticDataModelResponse
+     * @description Response for generating a semantic data model.
+     */
     GenerateSemanticDataModelResponse: {
       /** Semantic Model */
       semantic_model:
@@ -10563,7 +10582,10 @@ export interface components {
       /** Columns */
       columns: components['schemas']['agent_platform__core__payloads__data_connection__ColumnInfo'][];
     };
-    /** ColumnInfo */
+    /**
+     * ColumnInfo
+     * @description Information about a column in a table.
+     */
     agent_platform__core__payloads__semantic_data_model_payloads__ColumnInfo: {
       /** Name */
       name: string;
@@ -10588,7 +10610,10 @@ export interface components {
       /** Sheet Name */
       sheet_name?: string | null;
     };
-    /** TableInfo */
+    /**
+     * TableInfo
+     * @description Information about a table.
+     */
     agent_platform__core__payloads__semantic_data_model_payloads__TableInfo: {
       /** Name */
       name: string;

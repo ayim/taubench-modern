@@ -103,7 +103,7 @@ class SemanticDataModelGenerator:
         base_table: BaseTable = {
             "data_connection_id": data_connection_id,
             "database": table_info.database,
-            "schema": table_info.schema,
+            "schema": table_info.schema_,
             "table": table_info.name,
         }
 
