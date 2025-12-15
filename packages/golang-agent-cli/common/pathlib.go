@@ -10,10 +10,23 @@ import (
 	"github.com/Sema4AI/rcc/pathlib"
 )
 
+// FileExists checks if a file or directory exists at the given path.
+// Returns true if the path exists, false if it doesn't exist.
+// For other errors (e.g., permission denied), returns true since the path
+// likely exists but is inaccessible.
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	// Only return false if we're certain the file doesn't exist
+	return !os.IsNotExist(err)
+}
+
 // If destination file exists, a unique name is generated for the file.
 func CopyFileWithUniqueName(source, target string) (string, error) {
 	var err error
-	if pathlib.Exists(target) {
+	if FileExists(target) {
 		target, err = getUniquePath(target)
 		if err != nil {
 			return "", err
@@ -32,7 +45,7 @@ func WriteFileWithUniqueName(
 	target string, data []byte, mode os.FileMode,
 ) (string, error) {
 	var err error
-	if pathlib.Exists(target) {
+	if FileExists(target) {
 		target, err = getUniquePath(target)
 		if err != nil {
 			return "", err
@@ -47,7 +60,7 @@ func WriteFileWithUniqueName(
 }
 
 func getUniquePath(target string) (string, error) {
-	if !pathlib.Exists(target) {
+	if !FileExists(target) {
 		return target, nil
 	}
 	ext := filepath.Ext(target)
@@ -58,7 +71,7 @@ func getUniquePath(target string) (string, error) {
 			return "", err
 		}
 		newTarget := fmt.Sprintf("%s_%s%s", name, randomStr, ext)
-		if !pathlib.Exists(newTarget) {
+		if !FileExists(newTarget) {
 			return newTarget, nil
 		}
 	}

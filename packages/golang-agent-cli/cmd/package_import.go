@@ -12,7 +12,6 @@ import (
 	"github.com/Sema4AI/agent-platform/packages/golang-agent-cli/common"
 	"github.com/Sema4AI/agent-platform/packages/golang-agent-cli/pretty"
 	rccCommon "github.com/Sema4AI/rcc/common"
-	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 )
 
@@ -170,7 +169,7 @@ func getLangsmithConfig(langsmithConfig string) (*AgentServer.LangSmithConfig, e
 
 func prepareActionPackages(metadata []*common.AgentPackageMetadata, agentPackageDestPath string) error {
 	galleryRootDir := common.S4SActionsGalleryLocation()
-	if !pathlib.Exists(galleryRootDir) {
+	if !common.FileExists(galleryRootDir) {
 		pretty.LogIfVerbose("[prepareActionPackages] skipping the Action Packages preparation as Sema4.ai Studio Gallery was not found")
 		return nil
 	}
@@ -195,7 +194,7 @@ func prepareActionPackages(metadata []*common.AgentPackageMetadata, agentPackage
 		// (source) calculate where the action packages need to be copied from
 		actionPackageSourcePath := filepath.Join(agentPackageDestPath, common.AGENT_PROJECT_ACTIONS_DIR, actionPackageOrganization, actionPackagePackageName)
 		pretty.LogIfVerbose("Action Package Path from the extracted Agent Package: %+v", actionPackageSourcePath)
-		if !pathlib.Exists(actionPackageSourcePath) {
+		if !common.FileExists(actionPackageSourcePath) {
 			return fmt.Errorf("[prepareActionPackages] calculated source path does not exist")
 		}
 

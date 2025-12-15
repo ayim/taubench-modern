@@ -12,7 +12,6 @@ import (
 	"github.com/Sema4AI/agent-platform/packages/golang-agent-cli/common"
 	"github.com/Sema4AI/agent-platform/packages/golang-agent-cli/pretty"
 	rccCommon "github.com/Sema4AI/rcc/common"
-	"github.com/Sema4AI/rcc/pathlib"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ var (
 
 // ReadRunbook reads the contents of a runbook file.
 func ReadRunbook(runbookPath string) (string, error) {
-	if !pathlib.Exists(runbookPath) {
+	if !common.FileExists(runbookPath) {
 		return "", errors.New("runbook does not exist")
 	}
 	runbookContent, err := os.ReadFile(runbookPath)

@@ -1,0 +1,33 @@
+agent-package:
+  spec-version: v2
+  agents:
+  - name: Issue in CR
+    description: Action package name does not match in the metadata
+    model:
+      provider: OpenAI
+      name: gpt-5-medium
+    version: 0.0.2
+    architecture: agent_platform.architectures.experimental_1
+    reasoning: disabled
+    runbook: runbook.md
+    action-packages:
+    - name: Test-ServiceNow-Local
+      organization: CI1 Platform Team
+      version: 0.0.1
+      path: CI1 Platform Team/test-service-now-local
+      type: folder
+      whitelist: ''
+    knowledge: []
+    metadata:
+      mode: conversational
+  exclude:
+  - ./.git/**
+  - ./.vscode/**
+  - ./devdata/**
+  - ./output/**
+  - ./venv/**
+  - ./.venv/**
+  - ./**/.env
+  - ./**/.DS_Store
+  - ./**/*.pyc
+  - ./*.zip

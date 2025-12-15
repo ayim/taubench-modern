@@ -85,7 +85,7 @@ func extractActionPackages(spec *common.AgentSpec, agentProjectActionsPath strin
 }
 
 func extractAgentPackage(agentPackagePath, outputDir string, overwriteAgentProject bool) error {
-	if pathlib.Exists(outputDir) && !pathlib.IsEmptyDir(outputDir) && !overwriteAgentProject {
+	if common.FileExists(outputDir) && !pathlib.IsEmptyDir(outputDir) && !overwriteAgentProject {
 		return fmt.Errorf("[extractAgentPackage] directory already exists and is not empty")
 	}
 

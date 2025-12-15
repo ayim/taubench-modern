@@ -79,21 +79,46 @@ func generateAgentPackageActionPackageMetadata(
 
 	packagePath := filepath.Join(common.AgentProjectActionsLocation(projectPath), actionPackage.Path)
 	icon := ""
-	iconPath := filepath.Join(packagePath, common.ACTION_PACKAGE_ICON_FILE)
-	// if the icon file doesn't exist, continue
-	if pathlib.Exists(iconPath) {
-		icon, err = convertImageToBase64(
-			filepath.Join(packagePath, common.ACTION_PACKAGE_ICON_FILE),
-		)
+
+	// Handle icon extraction based on whether the action package is a zip file or folder
+	if strings.HasSuffix(packagePath, ".zip") {
+		// Read icon from inside the zip file
+		icon, err = readIconFromActionPackageZip(packagePath)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		// Read icon from the folder
+		iconPath := filepath.Join(packagePath, common.ACTION_PACKAGE_ICON_FILE)
+		// if the icon file doesn't exist, continue
+		if common.FileExists(iconPath) {
+			icon, err = convertImageToBase64(iconPath)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
+
+	/**
+	 * Due to an issue with creating the metadata file before the action packages were built,
+	 * the action package path was always pointing to the a folder instead of a zip file.
+	 * Due to this the ACE always expected to have a folder path in the metadata for the
+	 * action packages, even if the agent package actually contained action packages (.zips).
+	 * Make sure to keep the old behavior for ACE backwards compatibility.
+	 *
+	 * https://linear.app/sema4ai/issue/DEV-2422/fix-metadata-generation-in-agent-cli-paths-broken-by-slugifying
+	 */
+	// Only drop the filename if the path is to a file (has an extension), otherwise keep it as-is.
+	actionPath := actionPackage.Path
+	if filepath.Ext(actionPackage.Path) != "" {
+		actionPath = filepath.Dir(actionPackage.Path)
+	}
+	actionPath = filepath.ToSlash(actionPath)
 
 	return &common.AgentPackageActionPackageMetadata{
 		ActionPackageMetadata: actionPackageMetadata,
 		Whitelist:             actionPackage.Whitelist,
-		Path:                  filepath.ToSlash(actionPackage.Path),
+		Path:                  actionPath,
 		Icon:                  icon,
 	}, nil
 }
@@ -199,6 +224,54 @@ func readActionPackageMetadataFromZip(zipPath string) ([]byte, error) {
 	}
 
 	return metadataBytes, nil
+}
+
+// readIconFromActionPackageZip reads the package.png icon from inside a zip file
+// and returns it as a base64-encoded data URL. Returns empty string if icon doesn't exist.
+func readIconFromActionPackageZip(zipPath string) (string, error) {
+	zipFile, err := zip.OpenReader(zipPath)
+	if err != nil {
+		pretty.LogIfVerbose("[readIconFromActionPackageZip] failed to open the action package zip, err: %s", err)
+		return "", fmt.Errorf("failed to open the action package zip: %s, err: %w", zipPath, err)
+	}
+	defer zipFile.Close()
+
+	var iconFile *zip.File
+	for _, file := range zipFile.File {
+		if file.Name == common.ACTION_PACKAGE_ICON_FILE {
+			iconFile = file
+			break
+		}
+	}
+
+	// Icon is optional, return empty string if not found
+	if iconFile == nil {
+		pretty.LogIfVerbose("[readIconFromActionPackageZip] icon file not found in zip: %s", zipPath)
+		return "", nil
+	}
+
+	reader, err := iconFile.Open()
+	if err != nil {
+		pretty.LogIfVerbose("[readIconFromActionPackageZip] failed to open the icon file in the zip: %s, err: %+v", zipPath, err)
+		return "", err
+	}
+	defer reader.Close()
+
+	iconBytes, err := io.ReadAll(reader)
+	if err != nil {
+		pretty.LogIfVerbose("[readIconFromActionPackageZip] failed to read the icon content from zip: %s, err: %+v", zipPath, err)
+		return "", err
+	}
+
+	// Determine MIME type from the icon file name extension
+	ext := filepath.Ext(common.ACTION_PACKAGE_ICON_FILE)
+	mimeType := mime.TypeByExtension(ext)
+	if mimeType == "" {
+		return "", fmt.Errorf("[readIconFromActionPackageZip] unsupported file type: %s", ext)
+	}
+
+	base64String := base64.StdEncoding.EncodeToString(iconBytes)
+	return fmt.Sprintf("data:%s;base64,%s", mimeType, base64String), nil
 }
 
 // Return a map of raw (unprocessed) action package metadata for each unique action package path.

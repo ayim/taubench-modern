@@ -461,7 +461,7 @@ func (state *SpecState) CreateConversationGuideFile(assistants []AgentServer.Age
 
 func (state *SpecState) removeConversationGuide(projectPath string) error {
 	conversationGuidePath := common.AgentProjectConversationGuideFileLocation(projectPath)
-	if pathlib.Exists(conversationGuidePath) {
+	if common.FileExists(conversationGuidePath) {
 		if err := os.Remove(conversationGuidePath); err != nil {
 			return fmt.Errorf("failed to remove conversation guide file: %w", err)
 		}
@@ -663,7 +663,7 @@ func createAgentProject(assistants []AgentServer.Agent, projectPath string) erro
 	}
 
 	pretty.LogIfVerbose("[createAgentProject] creating agent project to path: %s", projectPath)
-	if pathlib.Exists(projectPath) && !pathlib.IsEmptyDir(projectPath) {
+	if common.FileExists(projectPath) && !pathlib.IsEmptyDir(projectPath) {
 		return fmt.Errorf("[createAgentProject] project directory %s already exists and is not empty", projectPath)
 	}
 

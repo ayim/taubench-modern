@@ -145,10 +145,14 @@ func buildActionPackage(sourceDir, targetZip string) error {
 	err = cmd.Run()
 
 	pretty.LogIfVerbose("[Action Server stdout]: %+v", stdout.String())
-	pretty.LogIfVerbose("[Action Server stderr]:\n%+v", stderr.String())
+
 	if err != nil {
-		return fmt.Errorf("[buildActionPackage] failed to build action package: %w", err)
+		return fmt.Errorf("[buildActionPackage] failed to build action package. err: %+v, stderr: %s", err, stderr.String())
 	}
+
+	// Just log stderr if there were no errors (otherwise it will be shown twice,
+	// which is a bit too much).
+	pretty.LogIfVerbose("[Action Server stderr]:\n%+v", stderr.String())
 
 	zipFiles, err := filepath.Glob(filepath.Join(tempDir, "*.zip"))
 	if err != nil || len(zipFiles) == 0 {
@@ -335,12 +339,12 @@ func WriteSpec(spec *common.AgentSpec, agentPackageDir string) error {
 
 func BuildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage bool) error {
 	// if the input dir does not exist, return an error
-	if !pathlib.Exists(inputDir) {
+	if !common.FileExists(inputDir) {
 		return fmt.Errorf("[BuildAgentPackage] unable to build agent package because input directory %s does not exist", inputDir)
 	}
 
 	packagePath := filepath.Join(outputDir, name)
-	if pathlib.Exists(packagePath) {
+	if common.FileExists(packagePath) {
 		if overwriteAgentPackage {
 			if err := os.Remove(packagePath); err != nil {
 				return fmt.Errorf("[BuildAgentPackage] failed to remove existing package: %w", err)
@@ -366,12 +370,6 @@ func BuildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage b
 
 	pretty.Log("[BuildAgentPackage] destination temp directory for package: %+v", tempDir)
 
-	pretty.Log("[BuildAgentPackage] creating agent package metadata file...")
-	if err := createAgentPackageMetadataFile(tempDir); err != nil {
-		return fmt.Errorf("[BuildAgentPackage] failed to create agent package metadata file: %w", err)
-	}
-	pretty.Log("[BuildAgentPackage] agent package metadata file created")
-
 	if err = buildActionPackages(spec, common.AgentProjectActionsLocation(tempDir)); err != nil {
 		return fmt.Errorf("[BuildAgentPackage] failed to build action packages: %w", err)
 	}
@@ -379,6 +377,15 @@ func BuildAgentPackage(inputDir, outputDir, name string, overwriteAgentPackage b
 	if err := WriteSpec(spec, tempDir); err != nil {
 		return fmt.Errorf("[BuildAgentPackage] failed to create write spec: %w", err)
 	}
+
+	// Always build the metadata file after the agent spec has been finalized.
+	// This was previously done before building action packages, which meant that
+	// the metadata file could be out of date if action packages modified the spec.
+	pretty.Log("[BuildAgentPackage] creating agent package metadata file...")
+	if err := createAgentPackageMetadataFile(tempDir); err != nil {
+		return fmt.Errorf("[BuildAgentPackage] failed to create agent package metadata file: %w", err)
+	}
+	pretty.Log("[BuildAgentPackage] agent package metadata file created")
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("[BuildAgentPackage] failed to create output directory: %w", err)

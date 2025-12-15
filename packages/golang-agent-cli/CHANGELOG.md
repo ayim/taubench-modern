@@ -1,5 +1,10 @@
 # agent.cli changelog
 
+## 2.3.3
+
+- Fixed an issue where incorrect action package path was written to the metadata
+- Print the action server stderr when the action server fails to build a package to get the valid error message instead of an error code
+
 ## 2.3.1
 
 - Fixed an issue where agent creation failed due to selected tools being null in created agent payload
