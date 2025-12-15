@@ -10,6 +10,10 @@ export interface LogAttributes {
   authSkip: boolean;
   contentDispositionType: string;
   count: number;
+  /**
+   * Time taken for an operation, in milliseconds
+   */
+  duration: number;
   dbHost: string;
   dbName: string;
   dbPort: number;

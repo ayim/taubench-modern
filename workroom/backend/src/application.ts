@@ -6,10 +6,8 @@ import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
 import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
-import { migrateAgentServerUserSubs } from './agentServerDatabaseMigration/index.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
-import { upsertSnowflakeUser } from './auth/utils/snowflakeUserRegistration.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
 import { createFilesManager } from './files/filesManagement.js';
@@ -41,7 +39,7 @@ import { createSessionMiddleware } from './session/middleware.js';
 import { createSessionManager } from './session/sessionManager.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
-import { SNOWFLAKE_AUTHORITY } from './utils/snowflake.js';
+import { migrateAgentServerUsersForSPCS } from './utils/snowflake.js';
 
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
@@ -88,20 +86,10 @@ export const createApplication = async ({
 
   if (configuration.auth.type === 'snowflake') {
     // Try to migrate existing users to new system
-    await migrateAgentServerUserSubs({
+    await migrateAgentServerUsersForSPCS({
       agentServerDatabase,
       configuration,
-      createUserHandler: async ({ agentServerUserIdentityValue, database, monitoring }) =>
-        upsertSnowflakeUser({
-          database,
-          monitoring,
-          snowflake: {
-            currentUserContextHeader: agentServerUserIdentityValue,
-          },
-        }),
       database,
-      identityAuthority: SNOWFLAKE_AUTHORITY,
-      identityType: 'snowflake_user_header',
       monitoring,
     });
   }

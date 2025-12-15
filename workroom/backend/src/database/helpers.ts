@@ -22,7 +22,10 @@ export const createPool = async ({
     const client = await sslPool.connect();
     client.release();
 
-    monitoring.logger.info('Database connection established with SSL');
+    monitoring.logger.info('Database connection established with SSL', {
+      dbHost: poolConfig.host,
+      dbName: poolConfig.database,
+    });
 
     return sslPool;
   } catch (error) {
@@ -30,7 +33,11 @@ export const createPool = async ({
     await sslPool.end();
 
     if (error instanceof Error && error.message.includes('does not support SSL')) {
-      monitoring.logger.info('Database does not support SSL: connecting without');
+      monitoring.logger.info('Database does not support SSL: connecting without', {
+        dbHost: poolConfig.host,
+        dbName: poolConfig.database,
+      });
+
       const noSslPool = new Pool({
         ...poolConfig,
         ssl: false,

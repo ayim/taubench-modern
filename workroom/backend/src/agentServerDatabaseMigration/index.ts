@@ -37,6 +37,12 @@ export const migrateAgentServerUserSubs = async ({
   }
   const agentServerUsers = agentServerUsersResult.data;
 
+  if (agentServerUsers.length === 0) {
+    monitoring.logger.info('Skipping users migration: No users in agent server database');
+
+    return;
+  }
+
   // Get all SPAR users
   const sparUsersResult = await database.findUserIdentities({
     authority: identityAuthority,

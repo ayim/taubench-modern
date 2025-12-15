@@ -141,6 +141,11 @@ const getMockAgentServerDatabase = (): AgentServerDatabaseClient => {
         success: true,
         data: undefined,
       } satisfies Awaited<ReturnType<AgentServerDatabaseClient['setUserSub']>>),
+    userTableMigratedAndReady: () =>
+      Promise.resolve({
+        success: true,
+        data: true,
+      }),
   } as unknown as AgentServerDatabaseClient;
 };
 

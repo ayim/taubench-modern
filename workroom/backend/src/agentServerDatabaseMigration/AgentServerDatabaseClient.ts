@@ -46,6 +46,14 @@ export class AgentServerDatabaseClient {
       this.database.updateTable('user').set('sub', sub).where('user_id', '=', userId).execute().then(NOOP),
     );
   }
+
+  async userTableMigratedAndReady(): Promise<Result<boolean>> {
+    return asResult(async () => {
+      const tables = await this.database.introspection.getTables();
+
+      return tables.some((table) => table.name === 'user');
+    });
+  }
 }
 
 export const createAgentServerDatabaseClient = async ({
