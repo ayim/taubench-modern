@@ -72,16 +72,16 @@ class ToolsRegistry:
 
     async def _get_action_tools(self, *, refresh: bool) -> tuple[Sequence[ToolDefinition], list[str]]:
         if refresh or not self.state.action_tools:
-            tools, issues = await self.kernel.tools.from_action_packages(self.kernel.agent.action_packages)
-            self.state.action_tools = tools
-            self.state.action_issues = issues
+            action_result = await self.kernel.tools.from_action_packages(self.kernel.agent.action_packages)
+            self.state.action_tools = action_result.tools
+            self.state.action_issues = action_result.issues
         return self.state.action_tools, self.state.action_issues
 
     async def _get_mcp_tools(self, *, refresh: bool) -> tuple[Sequence[ToolDefinition], list[str]]:
         if refresh or not self.state.mcp_tools:
-            tools, issues = await self.kernel.tools.from_mcp_servers(self.kernel.agent.mcp_servers)
-            self.state.mcp_tools = tools
-            self.state.mcp_issues = issues
+            mcp_result = await self.kernel.tools.from_mcp_servers(self.kernel.agent.mcp_servers)
+            self.state.mcp_tools = mcp_result.tools
+            self.state.mcp_issues = mcp_result.issues
         return self.state.mcp_tools, self.state.mcp_issues
 
     async def gather(

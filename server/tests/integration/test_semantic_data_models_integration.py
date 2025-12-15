@@ -1136,9 +1136,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
 
 
 @pytest.mark.integration
-def test_user_description_preserved_after_generation(
-    base_url_agent_server_session, resources_dir, openai_api_key
-):
+def test_user_description_preserved_after_generation(base_url_agent_server_session, resources_dir, openai_api_key):
     """Test that user-provided description is preserved after semantic data model generation.
 
     This test verifies that when a user provides a description (business context)
@@ -1204,15 +1202,12 @@ def test_user_description_preserved_after_generation(
         # Verify user description is preserved after enhancement
         actual_description = generated_model["semantic_model"].get("description")
         assert actual_description == user_description, (
-            f"Expected user description '{user_description}' to be preserved, "
-            f"but got '{actual_description}'"
+            f"Expected user description '{user_description}' to be preserved, but got '{actual_description}'"
         )
 
 
 @pytest.mark.integration
-def test_no_description_allows_llm_generated_description(
-    base_url_agent_server_session, resources_dir, openai_api_key
-):
+def test_no_description_allows_llm_generated_description(base_url_agent_server_session, resources_dir, openai_api_key):
     """Test that when no description is provided, the generated model has some description.
 
     This test verifies that when a user does NOT provide a description,
@@ -1273,7 +1268,5 @@ def test_no_description_allows_llm_generated_description(
 
         # When no user description is provided, LLM should generate one
         actual_description = generated_model["semantic_model"].get("description")
-        assert actual_description is not None, (
-            "Expected LLM to generate a description when user provides none"
-        )
+        assert actual_description is not None, "Expected LLM to generate a description when user provides none"
         assert len(actual_description) > 0, "Expected non-empty description from LLM"

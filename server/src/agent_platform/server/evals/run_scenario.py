@@ -332,8 +332,13 @@ async def _gather_agent_tools(agent: Agent, context: AgentServerContext) -> Tool
     iface = AgentServerToolsInterface()
     iface.attach_kernel(kernel)
 
-    action_tools, action_issues = await iface.from_action_packages(agent.action_packages)
-    mcp_tools, mcp_issues = await iface.from_mcp_servers(agent.mcp_servers)
+    action_result = await iface.from_action_packages(agent.action_packages)
+    action_tools = action_result.tools
+    action_issues = action_result.issues
+
+    mcp_result = await iface.from_mcp_servers(agent.mcp_servers)
+    mcp_tools = mcp_result.tools
+    mcp_issues = mcp_result.issues
 
     issues = [*action_issues, *mcp_issues]
 

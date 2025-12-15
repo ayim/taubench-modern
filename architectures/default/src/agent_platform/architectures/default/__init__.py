@@ -222,16 +222,20 @@ async def _process_conversation_step(
 
     # First, let's attempt to get any relevant tools from
     # our action packages and MCP servers
-    action_tools, action_issues = await kernel.tools.from_action_packages(
+    action_result = await kernel.tools.from_action_packages(
         kernel.agent.action_packages,
     )
+    action_tools = action_result.tools
+    action_issues = action_result.issues
 
     global_mcp_servers = await _resolve_global_mcp_servers(kernel)
     all_mcp_servers = [*global_mcp_servers, *kernel.agent.mcp_servers]
 
-    mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(
+    mcp_result = await kernel.tools.from_mcp_servers(
         all_mcp_servers,
     )
+    mcp_tools = mcp_result.tools
+    mcp_issues = mcp_result.issues
 
     # Note: always call (it should check if enabled internally -- same as exp1 does)
     await kernel.data_frames.step_initialize(state=state)

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import json
-from collections import Counter
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import structlog
@@ -11,17 +13,16 @@ from agent_platform.core.actions import ActionPackage
 from agent_platform.core.actions.action_utils import ActionResponse, InternalToolResponse
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.kernel import ToolsInterface
-from agent_platform.core.kernel_interfaces.thread_state import (
-    ThreadMessageWithThreadState,
-)
+from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.streaming.delta import StreamingDeltaRequestToolExecution
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
-from agent_platform.server.kernel.tools_caching import (
-    ToolDefinitionCache,
-)
+from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
+
+if TYPE_CHECKING:
+    from agent_platform.core.tools.collected_tools import CollectedTools
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 
@@ -241,63 +242,6 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             "status": "success" if result.error is None else "error",
         }
 
-    @classmethod
-    def _deduplicate_tool_names(
-        cls,
-        tools: list[ToolDefinition],
-    ) -> tuple[list[ToolDefinition], list[str]]:
-        """
-        Checks for duplicate tool names. The first occurrence of each name
-        remains unchanged, while any subsequent occurrences of that same name
-        are renamed with a numeric suffix (e.g., "MyTool", "MyTool_2", "MyTool_3", ...).
-
-        Returns:
-            A tuple of:
-                - The updated list of ToolDefinitions (potentially renamed).
-                - A list of messages explaining any renaming that occurred.
-        """
-        # Count how many times each name appears
-        name_counter = Counter(tool.name for tool in tools)
-        # We'll track how many times we've assigned a new name
-        rename_count = Counter()
-
-        updated_tools: list[ToolDefinition] = []
-        issues: list[str] = []
-
-        for tool in tools:
-            # If no duplicates for this name, just append as-is
-            if name_counter[tool.name] <= 1:
-                updated_tools.append(tool)
-                continue
-
-            # There's a duplicate for this name. We always allow the first occurrence
-            # to keep its name, and rename subsequent occurrences.
-            rename_count[tool.name] += 1
-            occurrence_index = rename_count[tool.name]
-
-            if occurrence_index == 1:
-                # This is the first time we see it in the loop,
-                # so keep its original name
-                updated_tools.append(tool)
-            else:
-                # Rename the second or subsequent time, e.g.
-                # "toolname_2", "toolname_3", ...
-                new_name = f"{tool.name}_{occurrence_index}"
-                issues.append(
-                    f"Tool with name '{tool.name}' is duplicated. Renaming occurrence "
-                    f"#{occurrence_index} to '{new_name}'."
-                )
-                updated_tools.append(
-                    ToolDefinition(
-                        name=new_name,
-                        description=tool.description,
-                        input_schema=tool.input_schema,
-                        function=tool.function,
-                    )
-                )
-
-        return updated_tools, issues
-
     async def execute_pending_tool_calls(
         self,
         pending_tool_calls: list[PendingToolCall],
@@ -448,15 +392,15 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         self,
         action_packages: list[ActionPackage],
         additional_headers: dict | None = None,
-    ) -> tuple[list[ToolDefinition], list[str]]:
+    ) -> CollectedTools:
         """Downloads & returns tool defs."""
-        tools: list[ToolDefinition] = []
-        issues: list[str] = []
+        from agent_platform.core.tools.collected_tools import CollectedTools
 
         async def safe(ap: ActionPackage):
             try:
                 logger.info(f"Fetching tool definitions from action package: {ap.url}")
-                return await ap.to_tool_definitions(additional_headers), None
+                tools = await ap.to_tool_definitions(additional_headers)
+                return CollectedTools(tools=tools, issues=[])
             except Exception as exc:
                 detailed = (
                     "Error acquiring tool definitions from action package:"
@@ -466,7 +410,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 logger.warning(
                     f"Error fetching tool definitions from action package: {detailed}",
                 )
-                return [], detailed
+                return CollectedTools(tools=[], issues=[detailed])
 
         tasks = []
         for pkg in action_packages:
@@ -474,23 +418,22 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 continue
             tasks.append(asyncio.create_task(safe(pkg)))
 
-        for tdefs, issue in await asyncio.gather(*tasks):
-            tools.extend(tdefs)
-            if issue:
-                issues.append(issue)
+        collected_tools = CollectedTools(tools=[], issues=[])
 
-        return tools, issues
+        collected: CollectedTools
+        for collected in await asyncio.gather(*tasks):
+            collected_tools.merge(collected)
+
+        return collected_tools
 
     async def _fetch_mcp_tools(
         self,
         mcp_servers: list[MCPServer],
         additional_headers: dict | None = None,
-    ) -> tuple[list[ToolDefinition], list[str]]:
+    ) -> CollectedTools:
         """Same contract as _fetch_action_tools()."""
+        from agent_platform.core.tools.collected_tools import CollectedTools
         from agent_platform.server.storage.option import StorageService
-
-        tools: list[ToolDefinition] = []
-        issues: list[str] = []
 
         # Get data server details for MCP context
         data_server_details = None
@@ -520,13 +463,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         async def safe(srv: MCPServer):
             try:
                 logger.info(f"Fetching tool definitions from MCP server: {srv.url}")
-                return await srv.to_tool_definitions(
+                tools = await srv.to_tool_definitions(
                     user_id=self.kernel.user.user_id,
                     storage=base_storage,
                     additional_headers=additional_headers,
                     data_server_details=data_server_details,
                     mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
-                ), None
+                )
+                return CollectedTools(tools=tools, issues=[])
             except Exception as exc:
                 detailed = (
                     "Error acquiring tool definitions from MCP server:"
@@ -537,15 +481,15 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     f"Error fetching tool definitions from MCP server: {detailed}",
                     exc_info=exc,
                 )
-                return [], detailed
+                return CollectedTools(tools=[], issues=[detailed])
 
+        collected_tools = CollectedTools(tools=[], issues=[])
         tasks = [asyncio.create_task(safe(srv)) for srv in mcp_servers]
-        for tdefs, issue in await asyncio.gather(*tasks):
-            tools.extend(tdefs)
-            if issue:
-                issues.append(issue)
 
-        return tools, issues
+        for collected in await asyncio.gather(*tasks):
+            collected_tools.merge(collected)
+
+        return collected_tools
 
     # --------------------------------------------- public cache-aware methods
 
@@ -556,9 +500,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
-    ) -> tuple[list[ToolDefinition], list[str]]:
-        all_tools: list[ToolDefinition] = []
-        all_issues: list[str] = []
+    ) -> CollectedTools:
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
+        all_collected_tools = CollectedTools(tools=[], issues=[])
 
         # Group packages by URL so we only fetch from each server once but still
         # respect differing allowed_actions across packages that share a URL.
@@ -590,7 +535,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 allowed_actions=[],
             )
 
-            subtools, subissues = await self._cache.get_or_fetch(
+            collected_tools = await self._cache.get_or_fetch(
                 kind="action_packages",
                 key=url,
                 fetch_coro=_fetch(template, additional_headers=additional_headers),
@@ -600,15 +545,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             allow_all = any(len(p.allowed_actions) == 0 for p in pkgs)
             if not allow_all:
                 allowed = {action for p in pkgs for action in p.allowed_actions}
-                subtools = [td for td in subtools if td.name in allowed]
+                collected_tools.filter_tools(allowed)
+            all_collected_tools.merge(collected_tools)
 
-            all_tools.extend(subtools)
-            all_issues.extend(subissues)
-
-        # Now deduplicate any conflicting tool names across all packages
-        all_tools, dups = self._deduplicate_tool_names(all_tools)
-        all_issues.extend(dups)
-        return all_tools, all_issues
+        return all_collected_tools
 
     async def from_mcp_servers(
         self,
@@ -617,9 +557,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
-    ) -> tuple[list[ToolDefinition], list[str]]:
-        all_tools = []
-        all_issues = []
+    ) -> CollectedTools:
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
+        all_collected_tools = CollectedTools(tools=[], issues=[])
         seen_urls = set()
 
         async def _fetch(srv: MCPServer, additional_headers: dict | None = None):
@@ -627,6 +568,13 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 [srv],
                 additional_headers=additional_headers,
             )
+
+        # Apply agent-level selected_tools filtering
+        agent_selected_tools_set: set[str] | None = None
+        if self.kernel.agent.selected_tools is not None:
+            agent_selected_tools = self.kernel.agent.selected_tools.tool_names
+            if agent_selected_tools and len(agent_selected_tools) > 0:
+                agent_selected_tools_set = set(tool.tool_name for tool in agent_selected_tools)
 
         for srv in mcp_servers:
             if srv.url and srv.url in seen_urls:
@@ -636,23 +584,13 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if srv.url:
                 seen_urls.add(srv.url)
 
-            subtools, subissues = await self._cache.get_or_fetch(
+            collected_tools = await self._cache.get_or_fetch(
                 kind="mcp_servers",
                 key=srv.cache_key,
                 fetch_coro=_fetch(srv, additional_headers=additional_headers),
             )
+            if agent_selected_tools_set:
+                collected_tools.filter_tools(agent_selected_tools_set)
+            all_collected_tools.merge(collected_tools)
 
-            all_tools.extend(subtools)
-            all_issues.extend(subissues)
-
-        # Apply agent-level selected_tools filtering
-        if self.kernel.agent.selected_tools is not None:
-            agent_selected_tools = self.kernel.agent.selected_tools.tool_names
-            if agent_selected_tools and len(agent_selected_tools) > 0:
-                agent_selected_tools_set = set(tool.tool_name for tool in agent_selected_tools)
-                all_tools = [td for td in all_tools if td.name in agent_selected_tools_set]
-
-        # Deduplicate
-        all_tools, dups = self._deduplicate_tool_names(all_tools)
-        all_issues.extend(dups)
-        return all_tools, all_issues
+        return all_collected_tools

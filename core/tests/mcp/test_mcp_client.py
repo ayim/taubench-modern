@@ -3,7 +3,6 @@ import contextlib
 import time
 from contextlib import asynccontextmanager
 
-import anyio
 import anyio.from_thread
 import httpx
 import mcp.types as mtypes
@@ -106,6 +105,37 @@ async def live_streamable_server(unused_tcp_port_factory):
         server.should_exit = True
 
 
+@pytest.fixture(scope="session")
+async def live_custom_mcp_server_with_auth(unused_tcp_port_factory):
+    import io
+    import sys
+
+    from core.tests.mcp import custom_mcp
+
+    port = unused_tcp_port_factory()
+    from sema4ai.common.process import Process
+
+    custom_mcp_file = custom_mcp.__file__
+    process = Process([sys.executable, custom_mcp_file, str(port), "dummy-token"])
+    stream = io.StringIO()
+    process.stream_to(stream)
+    process.start()
+    url = f"http://127.0.0.1:{port}"
+
+    # Wait until the server is ready
+    timeout = 30.0
+    try:
+        await _wait_until(url, timeout=timeout)
+    except Exception as e:
+        process.stop()
+        raise RuntimeError(
+            f"Server didn't become ready after {timeout} seconds.\nProcess output:\n{stream.getvalue()}"
+        ) from e
+
+    yield url
+    process.stop()
+
+
 @pytest.fixture
 async def live_sse_server(unused_tcp_port_factory):
     port = unused_tcp_port_factory()
@@ -163,6 +193,68 @@ async def test_connect_streamable_http(live_streamable_server):
     assert client.chosen_transport == "streamable"
 
     await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "auth-failure",
+        "success",
+        "wrong-url",
+    ],
+)
+async def test_connect_custom_mcp(live_custom_mcp_server_with_auth, scenario):
+    """Connect to explicit streamable-http endpoint."""
+    from httpx._exceptions import HTTPStatusError
+
+    client = MCPClient(
+        target_server=MCPServer(
+            name="test",
+            url=(
+                live_custom_mcp_server_with_auth + "/mcp"
+                if scenario != "wrong-url"
+                else live_custom_mcp_server_with_auth  # use base url for 404
+            ),
+            transport="streamable-http",
+            headers={"Authorization": "Bearer dummy-token"} if scenario != "auth-failure" else None,
+        )
+    )
+    if scenario == "auth-failure":
+        with pytest.raises(HTTPStatusError) as e:
+            await client.connect()
+        assert "401" in str(e.value)
+
+    elif scenario == "wrong-url":
+        with pytest.raises(ConnectionError) as e:
+            await client.connect()
+        assert "MCP session 'initialize' failed" in str(e.value)
+
+    elif scenario == "success":
+        await client.connect()
+
+        assert client.is_connected
+        assert client.chosen_transport == "streamable"
+
+        await client.close()
+
+    else:
+        raise ValueError(f"Unknown scenario: {scenario}")
+
+
+def test_convert_exception_group_to_single_exception():
+    from agent_platform.core.mcp.mcp_client import _convert_exception_group_to_single_exception
+
+    exc = ExceptionGroup("test", [Exception("test1"), Exception("test2")])
+    assert isinstance(exc, ExceptionGroup)
+    assert isinstance(_convert_exception_group_to_single_exception(exc), Exception)
+    assert str(_convert_exception_group_to_single_exception(exc)) == "Multiple exceptions occurred: test1, test2"
+
+    # Test with a single exception
+    exc = Exception("test1")
+    assert isinstance(exc, Exception)
+    assert isinstance(_convert_exception_group_to_single_exception(exc), Exception)
+    assert str(_convert_exception_group_to_single_exception(exc)) == "test1"
 
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
@@ -356,47 +448,6 @@ def test_normalise_url():
     s, e = MCPClient._normalise("http://host/mcp")
     assert s == "http://host/mcp"
     assert e == "http://host/sse"
-
-
-@pytest.mark.asyncio
-async def test_single_transport(monkeypatch):
-    """Client only spawns one transport when transport is explicit."""
-
-    async def probe_ok(*_a, **_kw):
-        return True
-
-    monkeypatch.setattr(MCPClient, "_probe_endpoint", probe_ok)
-
-    # Dummy transport generating instant handshake
-    @asynccontextmanager
-    async def dummy_transport():
-        # anyio.create_memory_object_stream returns (send, receive)
-        # but ClientSession expects (receive, send)
-        _send1, _recv1 = anyio.create_memory_object_stream(0)
-        _send2, _recv2 = anyio.create_memory_object_stream(0)
-        rs, ws = _recv1, _send2
-
-        # Fake initialize(): immediately return valid result
-        async def fake_init(self):
-            return mtypes.InitializeResult(
-                protocolVersion="dummy",
-                capabilities=mtypes.ServerCapabilities(),
-                serverInfo=mtypes.Implementation(name="dummy", version="0"),
-            )
-
-        monkeypatch.setattr(ClientSession, "initialize", fake_init, raising=True)
-        yield rs, ws, (lambda: "sid-123")
-
-    monkeypatch.setattr(
-        "agent_platform.core.mcp.mcp_client.streamablehttp_client",
-        lambda *_a, **_kw: dummy_transport(),
-    )
-
-    client = MCPClient(MCPServer("single", url="http://x", transport="streamable-http"))
-    await client.connect()
-    assert client.chosen_transport == "streamable"
-    assert len(client._transport_tasks) == 1
-    await client.close()
 
 
 @pytest.mark.asyncio

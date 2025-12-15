@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import asyncio
 import inspect
 import time
 from collections.abc import Coroutine
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import structlog
 from cachetools import TTLCache
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.configurations import Configuration, FieldMetadata
-from agent_platform.core.tools import ToolDefinition
+from agent_platform.core.configurations.parsers import BoolParser
+
+if TYPE_CHECKING:
+    from agent_platform.core.tools.collected_tools import CollectedTools
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -33,6 +38,7 @@ class ToolCacheConfig(Configuration):
             env_vars=[
                 "SEMA4AI_AGENT_SERVER_TOOL_CACHE_ENABLED",
             ],
+            parser=BoolParser,
         ),
     )
     """Enable/disable tool-definition caching"""
@@ -90,7 +96,7 @@ class CachedToolDefinitionsReport:
 class ToolDefinitionCache:
     """Singleton managing successful & negative TTL caches for tool definitions."""
 
-    _instance: "ToolDefinitionCache | None" = None
+    _instance: ToolDefinitionCache | None = None
 
     # ------------------------------------------------------------------ creation
 
@@ -109,7 +115,7 @@ class ToolDefinitionCache:
     # ------------------------------------------------------------------ init-once
 
     def _init_once(self) -> None:
-        self._success_cache: TTLCache[str, tuple[list[ToolDefinition], list[str]]] = TTLCache(
+        self._success_cache: TTLCache[str, CollectedTools] = TTLCache(
             maxsize=ToolCacheConfig.max_cache_size,
             ttl=ToolCacheConfig.ttl_seconds,
         )
@@ -159,13 +165,13 @@ class ToolDefinitionCache:
         self,
         kind: Literal["action_packages", "mcp_servers"],
         key: str,
-        fetch_coro: Coroutine[Any, Any, tuple[list[ToolDefinition], list[str]]],
-    ) -> tuple[list[ToolDefinition], list[str]]:
+        fetch_coro: Coroutine[Any, Any, CollectedTools],
+    ) -> CollectedTools:
         start = time.perf_counter()
-        tools, issues = await fetch_coro
+        collected_tools = await fetch_coro
         self._fetch_times_by_kind[kind].append(time.perf_counter() - start)
         self._keys_by_kind[kind].append(key)
-        return tools, issues
+        return collected_tools
 
     # ------------ public ---------------------------------------------------
 
@@ -173,8 +179,10 @@ class ToolDefinitionCache:
         self,
         kind: Literal["action_packages", "mcp_servers"],
         key: str,
-        fetch_coro: Coroutine[Any, Any, tuple[list[ToolDefinition], list[str]]],
-    ) -> tuple[list[ToolDefinition], list[str]]:
+        fetch_coro: Coroutine[Any, Any, CollectedTools],
+    ) -> CollectedTools:
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         # ------------------------------------------------ fast path (no lock)
         if ToolCacheConfig.enabled:
             if (val := self._success_cache.get(key)) is not None:
@@ -187,7 +195,7 @@ class ToolDefinitionCache:
                 self._hit(negative=True)
                 if inspect.iscoroutine(fetch_coro):
                     fetch_coro.close()
-                return [], issues
+                return CollectedTools(tools=[], issues=issues)
 
         # ------------------------------------------------ critical section
         # If someone else is fetching the same key right at this moment,
@@ -207,23 +215,23 @@ class ToolDefinitionCache:
                     self._hit(negative=True)
                     if inspect.iscoroutine(fetch_coro):
                         fetch_coro.close()
-                    return [], issues
+                    return CollectedTools(tools=[], issues=issues)
 
             # cache miss --> fetch
-            tools, issues = await self._fetch_record(kind, key, fetch_coro)
-            self._miss(negative=bool(issues))
+            collected_tools = await self._fetch_record(kind, key, fetch_coro)
+            self._miss(negative=bool(collected_tools.issues))
 
             if not ToolCacheConfig.enabled:
                 # No caching, return immediately
-                return tools, issues
+                return collected_tools
 
             # store taking TTL differences into account
-            if issues:
-                self._negative_cache[key] = issues
+            if collected_tools.issues:
+                self._negative_cache[key] = collected_tools.issues
             else:
-                self._success_cache[key] = (tools, issues)
+                self._success_cache[key] = collected_tools
 
-            return tools, issues
+            return collected_tools
 
     # --------------------------- maintenance / diagnostics --------------------
 
@@ -261,10 +269,10 @@ class ToolDefinitionCache:
             return {
                 "key": key,
                 "cache_type": "success" if in_success_cache else "negative",
-                "definitions": [definition.model_dump() for definition in self._success_cache[key][0]]
+                "definitions": [definition.model_dump() for definition in self._success_cache[key].tools]
                 if in_success_cache
                 else [],
-                "issues": (self._success_cache[key][1] if in_success_cache else self._negative_cache[key]),
+                "issues": (self._success_cache[key].issues if in_success_cache else self._negative_cache[key]),
             }
 
         total_success_cache_interactions = self._success_hits + self._success_misses

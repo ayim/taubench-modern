@@ -8,21 +8,12 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from types import UnionType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Literal,
-    get_args,
-    get_origin,
-)
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, get_args, get_origin
 
 import structlog
 
 from agent_platform.core.configurations.errors import ConfigurationDiscriminatorError
-from agent_platform.core.configurations.utils import (
-    is_union_of_dataclasses_type,
-)
+from agent_platform.core.configurations.utils import is_union_of_dataclasses_type
 
 if TYPE_CHECKING:
     from agent_platform.core.configurations.base import Configuration

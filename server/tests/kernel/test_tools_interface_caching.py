@@ -196,11 +196,13 @@ def _reset_config_service():
 
 
 def test_deduplicate_tool_names() -> None:
+    from agent_platform.core.tools.collected_tools import CollectedTools
+
     t1 = ToolDefinition(name="Echo", description="d1", input_schema={}, function=lambda **_: None)
     t2 = ToolDefinition(name="Echo", description="d2", input_schema={}, function=lambda **_: None)
     t3 = ToolDefinition(name="Add", description="d3", input_schema={}, function=lambda **_: None)
 
-    renamed, issues = AgentServerToolsInterface._deduplicate_tool_names([t1, t2, t3])
+    renamed, issues = CollectedTools._deduplicate_tool_names([t1, t2, t3])
     names = [t.name for t in renamed]
 
     assert names == ["Echo", "Echo_2", "Add"]
@@ -374,19 +376,21 @@ async def test_cache_hit_after_first_fetch(
     fetch_counter = {"n": 0}
 
     async def fake_fetch(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
         collected_tools = []
         for pkg in pkgs:
             collected_tools.append(_dummy_tool(name=f"T{pkg.url[-1]}"))
 
         # one tool per package
-        return (collected_tools, [])
+        return CollectedTools(tools=collected_tools, issues=[])
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
 
     pkg = _StubActionPackage("https://pkg1")
-    tools1, _ = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
-    tools2, _ = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+    tools1 = (await iface.from_action_packages([pkg])).tools  # type: ignore[arg-type]
+    tools2 = (await iface.from_action_packages([pkg])).tools  # type: ignore[arg-type]
 
     # fetch happened exactly once, second call read from cache
     assert fetch_counter["n"] == 1
@@ -419,10 +423,12 @@ async def test_cache_refresh_after_ttl_expiry(
     fetch_counter = {"n": 0}
 
     async def fake_fetch(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
         suffix = f"{fetch_counter['n']}"
-        return (
-            [
+        return CollectedTools(
+            tools=[
                 ToolDefinition(
                     name=f"T{suffix}",
                     description="",
@@ -430,15 +436,15 @@ async def test_cache_refresh_after_ttl_expiry(
                     function=lambda **_: None,
                 )
             ],
-            [],
+            issues=[],
         )
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
 
     pkg = _StubActionPackage("https://pkg2")
-    tools1, _ = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+    tools1 = (await iface.from_action_packages([pkg])).tools  # type: ignore[arg-type]
 
-    tools2, _ = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+    tools2 = (await iface.from_action_packages([pkg])).tools  # type: ignore[arg-type]
 
     # second call forced a re-fetch
     assert fetch_counter["n"] == 2
@@ -468,17 +474,19 @@ async def test_negative_cache_ttl(iface: AgentServerToolsInterface, monkeypatch)
     fetch_counter = {"n": 0}
 
     async def fake_fetch_failure(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
-        return ([], ["boom"])
+        return CollectedTools(tools=[], issues=["boom"])
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch_failure)
 
     pkg = _StubActionPackage("https://pkg3")
 
     # 1) initial failure --> cached (negative)
-    _, issues1 = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+    issues1 = (await iface.from_action_packages([pkg])).issues  # type: ignore[arg-type]
     # 2) cache expired immediately, triggers second fetch
-    _, issues2 = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+    issues2 = (await iface.from_action_packages([pkg])).issues  # type: ignore[arg-type]
 
     assert fetch_counter["n"] == 2
     assert issues1
@@ -509,9 +517,11 @@ async def test_cache_waits_for_refresh(
     fetch_counter = {"n": 0}
 
     async def slow_fetch(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
         await asyncio.sleep(0.2)  # pretend network latency
-        return ([_dummy_tool("Slow")], [])
+        return CollectedTools(tools=[_dummy_tool("Slow")], issues=[])
 
     monkeypatch.setattr(iface, "_fetch_action_tools", slow_fetch)
 
@@ -528,8 +538,8 @@ async def test_cache_waits_for_refresh(
     task1 = asyncio.create_task(first_call())
     await asyncio.sleep(0.05)  # let task1 acquire the lock
 
-    tools2, _ = await second_call()  # no tiny timeout: we expect to wait
-    tools1, _ = await task1  # fetch completes
+    tools2 = (await second_call()).tools  # no tiny timeout: we expect to wait
+    tools1 = (await task1).tools  # fetch completes
 
     assert fetch_counter["n"] == 1  # only one real fetch
     assert [t.name for t in tools1] == ["Slow"]
@@ -561,17 +571,19 @@ async def test_cache_disabled_via_env_var(
     fetch_counter = {"n": 0}
 
     async def fake_fetch(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
         collected_tools = []
         for pkg in pkgs:
             collected_tools.append(_dummy_tool(name=f"T{pkg.url[-1]}"))
-        return (collected_tools, [])
+        return CollectedTools(tools=collected_tools, issues=[])
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
 
     pkg = _StubActionPackage("https://pkg-cache-disabled")
-    tools1, _ = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
-    tools2, _ = await iface.from_action_packages([pkg])  # type: ignore[arg-type]
+    tools1 = (await iface.from_action_packages([pkg])).tools  # type: ignore[arg-type]
+    tools2 = (await iface.from_action_packages([pkg])).tools  # type: ignore[arg-type]
 
     # Fetch should happen twice because caching is disabled
     assert fetch_counter["n"] == 2
@@ -604,10 +616,12 @@ async def test_merge_allowed_actions_same_url(
     fetch_counter = {"n": 0}
 
     async def fake_fetch(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
         captured["pkgs"] = pkgs
-        return (
-            [
+        return CollectedTools(
+            tools=[
                 ToolDefinition(
                     name="foo",
                     description="",
@@ -621,7 +635,7 @@ async def test_merge_allowed_actions_same_url(
                     function=lambda **_: None,
                 ),
             ],
-            [],
+            issues=[],
         )
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
@@ -641,7 +655,7 @@ async def test_merge_allowed_actions_same_url(
         allowed_actions=[],
     )
 
-    tools, _ = await iface.from_action_packages([pkg1, pkg2])
+    tools = (await iface.from_action_packages([pkg1, pkg2])).tools
 
     assert fetch_counter["n"] == 1
     assert len(captured.get("pkgs", [])) == 1
@@ -651,7 +665,7 @@ async def test_merge_allowed_actions_same_url(
 
     # Second call with only the restricted package should use the cached
     # full list but filter down to the allowed actions.
-    tools2, _ = await iface.from_action_packages([pkg1])
+    tools2 = (await iface.from_action_packages([pkg1])).tools
     assert fetch_counter["n"] == 1  # cache hit
     assert [t.name for t in tools2] == ["foo"]
 
@@ -661,6 +675,8 @@ async def test_merge_allowed_actions_same_url_union(
     iface: AgentServerToolsInterface,
     monkeypatch,
 ):
+    from agent_platform.core.tools.collected_tools import CollectedTools
+
     # Enable caching for this test
     manager = ConfigurationService.get_instance()
     manager.update_configuration(
@@ -677,8 +693,8 @@ async def test_merge_allowed_actions_same_url_union(
     async def fake_fetch(pkgs, additional_headers=None):
         fetch_counter["n"] += 1
         captured["pkgs"] = pkgs
-        return (
-            [
+        return CollectedTools(
+            tools=[
                 ToolDefinition(
                     name="foo",
                     description="",
@@ -692,7 +708,7 @@ async def test_merge_allowed_actions_same_url_union(
                     function=lambda **_: None,
                 ),
             ],
-            [],
+            issues=[],
         )
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
@@ -712,7 +728,7 @@ async def test_merge_allowed_actions_same_url_union(
         allowed_actions=["bar"],
     )
 
-    tools, _ = await iface.from_action_packages([pkg1, pkg2])
+    tools = (await iface.from_action_packages([pkg1, pkg2])).tools
 
     assert fetch_counter["n"] == 1
     assert len(captured.get("pkgs", [])) == 1
@@ -721,7 +737,7 @@ async def test_merge_allowed_actions_same_url_union(
     assert {t.name for t in tools} == {"foo", "bar"}
 
     # Subsequent call with only one package should filter down.
-    tools2, _ = await iface.from_action_packages([pkg1])
+    tools2 = (await iface.from_action_packages([pkg1])).tools
     assert fetch_counter["n"] == 1
     assert [t.name for t in tools2] == ["foo"]
 
@@ -753,8 +769,10 @@ async def test_no_unawaited_coroutines_on_cache_hit(
     fetch_counter = {"n": 0}
 
     async def fake_fetch(pkgs, additional_headers=None):
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
         fetch_counter["n"] += 1
-        return [_dummy_tool(name="Echo")], []
+        return CollectedTools(tools=[_dummy_tool(name="Echo")], issues=[])
 
     monkeypatch.setattr(iface, "_fetch_action_tools", fake_fetch)
 

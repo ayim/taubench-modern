@@ -39,8 +39,8 @@ import os
 import random
 import re
 import time
-from collections.abc import Callable
-from contextlib import AsyncExitStack, asynccontextmanager
+from collections.abc import Callable, Iterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Final
@@ -59,11 +59,7 @@ from structlog.stdlib import BoundLogger, get_logger
 
 from agent_platform.core.configurations import Configuration, FieldMetadata
 from agent_platform.core.data_server.data_server import DataServerDetails, DataServerEndpointKind
-from agent_platform.core.mcp.mcp_types import (
-    MCPVariables,
-    MCPVariableTypeOAuth2Secret,
-    MCPVariableTypeSecret,
-)
+from agent_platform.core.mcp.mcp_types import MCPVariables, MCPVariableTypeOAuth2Secret, MCPVariableTypeSecret
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
@@ -263,12 +259,11 @@ class MCPClient:
 
         self._connected = False
         self._chosen_transport: str | None = None
-        self._winner_task: asyncio.Task[None] | None = None
-        self._close_evt: asyncio.Event | None = None
+        self._spawn_transport_task: asyncio.Task[None] | None = None
+        self._spawn_finished_future: asyncio.Future[None] = asyncio.Future()
+        self._close_evt: asyncio.Event = asyncio.Event()
 
         self._connect_lock = asyncio.Lock()
-        self._transport_tasks: list[asyncio.Task[None]] = []
-        self._race_lock = asyncio.Lock()
 
         # Tool-call concurrency
         self._serialize_calls = target_server.force_serial_tool_calls
@@ -386,14 +381,11 @@ class MCPClient:
         if target_headers is None:
             return
 
-        existing_action_context = None
+        # Check if X-Action-Context header already exists (case-insensitive)
         for header_name in target_headers:
             if header_name.lower() == "x-action-context":
-                existing_action_context = header_name
+                # Header already exists, don't create a new one
                 return
-
-        if existing_action_context:
-            return
 
         # Only process headers that are MCP secret types
         secrets = {}
@@ -466,7 +458,11 @@ class MCPClient:
 
     async def connect(self) -> None:
         """
-        Establish connection with racing & probe strategy.
+        Establish connection to the MCP server.
+
+        Creates a transport task (stdio or HTTP-based) and waits for it to complete.
+        The transport task will either set the connection state on success or
+        set an exception on the future on failure.
 
         Idempotent --- if already connected, it's a no-op.
         """
@@ -474,20 +470,19 @@ class MCPClient:
             if self.is_connected:
                 return
 
+            # Create the transport task (stdio or HTTP-based)
             if self.target_server.is_stdio:
                 await self._connect_stdio()
             else:
                 await self._connect_remote()
 
+            # Should throw an exception if the transport failed to connect
+            # (either that or its result should be set).
+            await self._spawn_finished_future
+
             if not self.is_connected:
-                # Accessing ``t.exception()`` on a pending task raises
-                # ``InvalidStateError``.  Filter to completed tasks first.
-                first_exc = next(
-                    (t.exception() for t in self._transport_tasks if t.done() and t.exception()),
-                    None,
-                )
-                target = self.target_server.command or self.target_server.url
-                raise ConnectionError(f"Could not connect to '{target}'") from first_exc
+                # This should never happen
+                raise RuntimeError(f"Internal error: Could not connect to '{self.target_server.url}'")
 
             logger.info(
                 "Connected - name=%s transport=%s session_id=%s",
@@ -500,33 +495,32 @@ class MCPClient:
         """
         Graceful shutdown.
 
-        Cancels loser transports, lets the winning transport's context-manager
-        clean up its resources (subprocess / HTTP connections).
+        Closes the connection to the MCP server (which should
+        be waiting on the _close_evt to exit and clean up its resources).
         """
 
-        if not self._transport_tasks and not self._connected:
+        transport_task = self._spawn_transport_task
+        if not self._connected and not transport_task:
             return
 
-        # Wake the winner so its context manager can exit
-        if self._close_evt:
-            self._close_evt.set()
+        # Wake the transport task so its context manager can exit
+        self._close_evt.set()
 
-        # Wait for winner to finish, then cancel others
-        if self._winner_task:
-            await self._winner_task
-
-        for t in self._transport_tasks:
-            if not t.done():
-                t.cancel()
-        if self._transport_tasks:
-            await asyncio.gather(*self._transport_tasks, return_exceptions=True)
+        # Wait for the transport task to finish (with timeout to avoid hanging)
+        if transport_task:
+            try:
+                await asyncio.wait_for(transport_task, timeout=self._cfg.cleanup_timeout_seconds)
+            except Exception:
+                logger.exception("Error while waiting for transport task to finish")
 
         # Reset
-        self._transport_tasks.clear()
         self._session = None
         self._connected = False
         self._chosen_transport = None
-        self._winner_task = None
+        self._spawn_transport_task = None
+        self._get_session_id_cb = None
+        self._spawn_finished_future = asyncio.Future()
+        self._close_evt.clear()
         logger.info("Disconnected from MCP server '%s'", self.target_server.url)
 
     # ------------------------------------------------------------------ #
@@ -567,18 +561,12 @@ class MCPClient:
                 f"Stdio-based MCP servers are disabled by default; set {_ALLOW_STDIO_ENV_VAR}=1 to enable."
             )
 
-        winner_evt = asyncio.Event()
-        task = asyncio.create_task(
+        self._spawn_transport_task = asyncio.create_task(
             self._spawn_transport(
                 name="stdio",
                 factory=self._stdio_factory,
-                winner_evt=winner_evt,
-                fail_counter={"n": 0},
-                total=1,
             )
         )
-        self._transport_tasks.append(task)
-        await winner_evt.wait()
 
     # --- remote (HTTP) ---------------------------------------------- #
     async def _connect_remote(self) -> None:
@@ -631,19 +619,12 @@ class MCPClient:
                 httpx_client_factory=_retrying_httpx_client_factory,
             )
 
-        winner_evt = asyncio.Event()
-        task = asyncio.create_task(
+        self._spawn_transport_task = asyncio.create_task(
             self._spawn_transport(
                 name,
                 factory,
-                winner_evt,
-                fail_counter={"n": 0},
-                total=1,
             )
         )
-        self._transport_tasks.append(task)
-
-        await winner_evt.wait()
 
     # ------------------------------------------------------------------ #
     #  Transport worker                                                  #
@@ -653,21 +634,22 @@ class MCPClient:
         self,
         name: str,
         factory: Callable[[], Any],
-        winner_evt: asyncio.Event,
-        fail_counter: dict[str, int],
-        total: int,
     ) -> None:
         """
         Run a transport inside its own context manager.
 
-        If the handshake succeeds and we are *first*, mark victory
-        (store session, signal `winner_evt`).  All non-winners shut down
-        quietly.
+        Creates the client session and then waits for the _close_evt
+        to be set to unblock.
+
+        Should be run as a task. Externally the `_spawn_finished_future`
+        should be awaited to get the result of the task (either None or an exception
+        if the transport failed to connect).
         """
+        from mcp.shared.exceptions import McpError
+
         start_time = time.monotonic()
-        async with AsyncExitStack() as stack:
-            try:
-                streams = await stack.enter_async_context(factory())
+        try:
+            async with factory() as streams:
                 if name == "streamable":
                     read, write, self._get_session_id_cb = streams
                 else:
@@ -678,59 +660,50 @@ class MCPClient:
                     # Things can be _much slower_ if we're starting an stdio
                     # server... use a more lenient timeout
                     handshake_timeout_seconds = self._cfg.stdio_handshake_timeout_seconds
-                sess = await stack.enter_async_context(
-                    ClientSession(
-                        read,
-                        write,
-                        read_timeout_seconds=timedelta(seconds=handshake_timeout_seconds),
+                client_session = ClientSession(
+                    read,
+                    write,
+                    read_timeout_seconds=timedelta(seconds=handshake_timeout_seconds),
+                )
+
+                async with client_session:
+                    try:
+                        init_result = await asyncio.wait_for(
+                            client_session.initialize(),
+                            timeout=handshake_timeout_seconds,
+                        )
+                    except McpError as e:
+                        raise ConnectionError(
+                            f"MCP session 'initialize' failed (url {self.target_server.url!r} may be invalid): {e!r}"
+                        ) from e
+
+                    latency = time.monotonic() - start_time
+                    logger.info(
+                        f"{name} handshake ok  ({latency * 1000:.0f} ms, protocol={init_result.protocolVersion})"
                     )
-                )
 
-                init_result = await asyncio.wait_for(
-                    sess.initialize(),
-                    timeout=handshake_timeout_seconds,
-                )
-                latency = time.monotonic() - start_time
-                logger.info(f"{name} handshake ok  ({latency * 1000:.0f} ms, protocol={init_result.protocolVersion})")
+                    assert not self._connected, "Internal error: transport already connected"
 
-                # Victory?
-                async with self._race_lock:
-                    if not self._connected:
-                        self._session = sess
-                        self._connected = True
-                        self._chosen_transport = name
-                        self._winner_task = asyncio.current_task()
-                        self._close_evt = asyncio.Event()
-                        winner_evt.set()
-                        logger.debug("%s transport marked as winner", name)
+                    self._session = client_session
+                    self._connected = True
+                    self._chosen_transport = name
+                    self._spawn_finished_future.set_result(None)
+                    logger.debug("%s transport connected successfully", name)
 
-                # Park until close()
-                if self._winner_task is asyncio.current_task() and self._close_evt:
+                    # Park until close()
                     await self._close_evt.wait()
 
-            except Exception as exc:
-                logger.debug("%s transport error: %r", name, exc)
-                async with self._race_lock:
-                    fail_counter["n"] += 1
-                    if fail_counter["n"] == total:
-                        winner_evt.set()
-                    # If we were the winner and we failed, unblock close()
-                    if self._close_evt and self._winner_task is asyncio.current_task():
-                        self._close_evt.set()
-                # Exceptions are propagated only for the first winner-waiter
-                raise
+        except BaseException as exc:
+            logger.debug("%s transport error: %r", name, exc)
 
-            finally:
-                # Give the stack a bounded time to clean up
-                try:
-                    await asyncio.wait_for(stack.aclose(), timeout=self._cfg.cleanup_timeout_seconds)
-                except TimeoutError:
-                    logger.warning(
-                        f"{name} cleanup exceeded {self._cfg.cleanup_timeout_seconds}s",
-                    )
-                except Exception as exc:
-                    # Cleanup should never crash the caller --- log and swallow.
-                    logger.debug("%s cleanup raised: %r", name, exc)
+            self._spawn_finished_future.set_exception(_convert_exception_group_to_single_exception(exc))
+            # Don't raise here - the exception is communicated via _spawn_finished_future
+            # and will be raised when connect() awaits it.
+        finally:
+            if not self._spawn_finished_future.done():
+                self._spawn_finished_future.cancel(
+                    "Internal error: at this point either the result or the exception should've been set already."
+                )
 
     # ------------------------------------------------------------------ #
     #  Probing helpers                                                   #
@@ -917,3 +890,31 @@ class MCPClient:
             )
         logger.info("Loaded %d tools from %s", len(definitions), self.target_server.url)
         return definitions
+
+
+def _iter_exceptions_from_exception_group(exc: ExceptionGroup) -> Iterator[Exception]:
+    """
+    Iterate over all exceptions in an ExceptionGroup.
+    """
+    for exception in exc.exceptions:
+        if isinstance(exception, ExceptionGroup):
+            yield from _iter_exceptions_from_exception_group(exception)
+        else:
+            yield exception
+
+
+def _convert_exception_group_to_single_exception(exc: BaseException) -> BaseException:
+    """
+    Convert an ExceptionGroup to a single exception.
+    """
+    if isinstance(exc, ExceptionGroup):
+        exceptions = list(_iter_exceptions_from_exception_group(exc))
+
+        if len(exceptions) == 1:
+            return exceptions[0]
+        else:
+            msgs = [str(exception) for exception in exceptions]
+            exc = ConnectionError(f"Multiple exceptions occurred: {', '.join(msgs)}")
+            return exc
+    else:
+        return exc

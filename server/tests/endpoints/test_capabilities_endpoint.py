@@ -5,9 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from agent_platform.core.user import User
-from agent_platform.server.api.private_v2.capabilities import (
-    router as capabilities_router,
-)
+from agent_platform.server.api.private_v2.capabilities import router as capabilities_router
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
 
@@ -47,10 +45,16 @@ def client(fastapi_app: FastAPI) -> TestClient:
 
 @pytest.mark.asyncio
 async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.MonkeyPatch):
-    dummy_tool = DummyTool(name="echo", description="", input_schema={})
+    import typing
+
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+
+    dummy_tool: ToolDefinition = typing.cast(ToolDefinition, DummyTool(name="echo", description="", input_schema={}))
 
     async def fake_from_mcp_servers(self, servers, additional_headers=None):
-        return [dummy_tool], []
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
+        return CollectedTools(tools=[dummy_tool], issues=[])
 
     monkeypatch.setattr(AgentServerToolsInterface, "from_mcp_servers", fake_from_mcp_servers)
 
@@ -84,10 +88,16 @@ async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.M
 
 @pytest.mark.asyncio
 async def test_list_mcp_tools_endpoint_with_different_transport(client: TestClient, monkeypatch: pytest.MonkeyPatch):
-    dummy_tool = DummyTool(name="echo", description="", input_schema={})
+    import typing
+
+    from agent_platform.core.tools.tool_definition import ToolDefinition
+
+    dummy_tool: ToolDefinition = typing.cast(ToolDefinition, DummyTool(name="echo", description="", input_schema={}))
 
     async def fake_from_mcp_servers(self, servers, additional_headers=None):
-        return [dummy_tool], []
+        from agent_platform.core.tools.collected_tools import CollectedTools
+
+        return CollectedTools(tools=[dummy_tool], issues=[])
 
     monkeypatch.setattr(AgentServerToolsInterface, "from_mcp_servers", fake_from_mcp_servers)
 

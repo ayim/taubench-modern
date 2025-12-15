@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
+
+if TYPE_CHECKING:
+    from agent_platform.core.tools.collected_tools import CollectedTools
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 
@@ -41,11 +47,11 @@ class ToolsInterface(ABC):
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
-    ) -> tuple[list[ToolDefinition], list[str]]:
+    ) -> CollectedTools:
         """Converts a list of action packages into a list of tool definitions.
 
         Returns:
-            A tuple containing a list of tool definitions and a list of
+            A CollectedTools containing a list of tool definitions and a list of
             configuration issues.
         """
 
@@ -57,10 +63,10 @@ class ToolsInterface(ABC):
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
-    ) -> tuple[list[ToolDefinition], list[str]]:
+    ) -> CollectedTools:
         """Converts a list of MCP servers into a list of tool definitions.
 
         Returns:
-            A tuple containing a list of tool definitions and a list of
+            A CollectedTools containing a list of tool definitions and a list of
             configuration issues.
         """

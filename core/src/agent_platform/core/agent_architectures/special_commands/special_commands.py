@@ -333,7 +333,9 @@ async def _handle_debug(
 
     # Action tool defs
     try:
-        action_tools, action_issues = await kernel.tools.from_action_packages(kernel.agent.action_packages)
+        action_result = await kernel.tools.from_action_packages(kernel.agent.action_packages)
+        action_tools = action_result.tools
+        action_issues = action_result.issues
         names = [f"`{t.name}`" for t in action_tools]
         _append_tool_group(message, "action", names, len(action_tools))
         await message.stream_delta()
@@ -346,7 +348,9 @@ async def _handle_debug(
 
     # MCP tool defs
     try:
-        mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+        mcp_result = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+        mcp_tools = mcp_result.tools
+        mcp_issues = mcp_result.issues
         names = [f"`{t.name}`" for t in mcp_tools]
         _append_tool_group(message, "mcp", names, len(mcp_tools))
         await message.stream_delta()

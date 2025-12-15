@@ -54,6 +54,17 @@ pkg-config --exists mysqlclient && echo "✅ MySQL client found" || echo "❌ My
 
 ---
 
+Alternative without brew:
+
+Download mysql for Mac OS (from https://dev.mysql.com/downloads/mysql/), extract it
+and set the env vars below (pointing to the location where the package was extracted):
+
+export MYSQL_HOME=/usr/local/mysql-9.5.0-macos15-arm64/include
+export MYSQLCLIENT_CFLAGS="-I/usr/local/mysql-9.5.0-macos15-arm64/include"
+export MYSQLCLIENT_LDFLAGS="-L/usr/local/mysql-9.5.0-macos15-arm64/lib -lmysqlclient"
+
+---
+
 ## Linux Setup
 
 ### Ubuntu / Debian

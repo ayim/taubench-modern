@@ -6,6 +6,7 @@ import pytest
 
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.selected_tools import SelectedToolConfig
+from agent_platform.core.tools.collected_tools import CollectedTools
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
 
@@ -33,7 +34,7 @@ class TestMCPToolFiltering:
         # Mock the tools interface with empty selected_tools
         tools_interface = AgentServerToolsInterface()
         tools_interface._cache = MagicMock()
-        tools_interface._cache.get_or_fetch = AsyncMock(return_value=(all_tools, []))
+        tools_interface._cache.get_or_fetch = AsyncMock(return_value=CollectedTools(tools=all_tools, issues=[]))
 
         # Mock kernel and agent with empty selected_tools
         mock_agent = MagicMock()
@@ -43,7 +44,9 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        filtered_tools, issues = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        filtered_tools = mcp_result.tools
+        issues = mcp_result.issues
 
         # Should return all tools (no filtering when selected_tools is empty)
         assert len(filtered_tools) == 3
@@ -72,7 +75,7 @@ class TestMCPToolFiltering:
         # Mock the tools interface
         tools_interface = AgentServerToolsInterface()
         tools_interface._cache = MagicMock()
-        tools_interface._cache.get_or_fetch = AsyncMock(return_value=(all_tools, []))
+        tools_interface._cache.get_or_fetch = AsyncMock(return_value=CollectedTools(tools=all_tools, issues=[]))
 
         # Mock kernel and agent with specific selected_tools
         mock_agent = MagicMock()
@@ -85,7 +88,9 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        filtered_tools, issues = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        filtered_tools = mcp_result.tools
+        issues = mcp_result.issues
 
         # Should only return tool1 and tool3
         assert len(filtered_tools) == 2
@@ -125,9 +130,9 @@ class TestMCPToolFiltering:
         # Mock different responses for different servers
         async def mock_get_or_fetch(kind, key, fetch_coro):
             if "example1.com" in str(key):
-                return tools_from_server1, []
+                return CollectedTools(tools=tools_from_server1, issues=[])
             else:
-                return tools_from_server2, []
+                return CollectedTools(tools=tools_from_server2, issues=[])
 
         tools_interface._cache.get_or_fetch = mock_get_or_fetch
 
@@ -142,7 +147,9 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        filtered_tools, issues = await tools_interface.from_mcp_servers([mcp_server1, mcp_server2])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server1, mcp_server2])
+        filtered_tools = mcp_result.tools
+        issues = mcp_result.issues
 
         # Should only return tool1 and tool3 (agent-level filtering applied)
         assert len(filtered_tools) == 2
@@ -170,7 +177,7 @@ class TestMCPToolFiltering:
         # Mock the tools interface
         tools_interface = AgentServerToolsInterface()
         tools_interface._cache = MagicMock()
-        tools_interface._cache.get_or_fetch = AsyncMock(return_value=(all_tools, []))
+        tools_interface._cache.get_or_fetch = AsyncMock(return_value=CollectedTools(tools=all_tools, issues=[]))
 
         # Mock kernel and agent with empty selected_tools
         mock_agent = MagicMock()
@@ -180,7 +187,9 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        filtered_tools, issues = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        filtered_tools = mcp_result.tools
+        issues = mcp_result.issues
 
         # Should return all tools (no filtering)
         assert len(filtered_tools) == 2

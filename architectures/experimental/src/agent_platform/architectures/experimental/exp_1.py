@@ -7,20 +7,12 @@ from datetime import UTC, datetime
 from importlib.metadata import version
 from typing import Literal
 
-from agent_platform.architectures.experimental.checkpoint import (
-    CheckpointTxn,
-    is_transient_stream_error,
-)
+from agent_platform.architectures.experimental.checkpoint import CheckpointTxn, is_transient_stream_error
 from agent_platform.architectures.experimental.common import get_internal_tools
-from agent_platform.architectures.experimental.thread_conversion import (
-    thread_messages_to_prompt_messages,
-)
+from agent_platform.architectures.experimental.thread_conversion import thread_messages_to_prompt_messages
 from agent_platform.core import Kernel
 from agent_platform.core import agent_architectures as aa
-from agent_platform.core.agent_architectures.special_commands import (
-    handle_special_command,
-    parse_special_command,
-)
+from agent_platform.core.agent_architectures.special_commands import handle_special_command, parse_special_command
 from agent_platform.core.agent_architectures.state import PendingToolCall
 from agent_platform.core.kernel_interfaces.model_platform import PlatformInterface
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
@@ -336,15 +328,15 @@ async def _gather_tools(
 
     if not state.action_tools or force_refresh:
         logger.info("Gathering action tools from remote servers")
-        action_tools, action_issues = await kernel.tools.from_action_packages(kernel.agent.action_packages)
-        state.action_tools = action_tools
-        state.action_issues = action_issues
+        action_result = await kernel.tools.from_action_packages(kernel.agent.action_packages)
+        state.action_tools = action_result.tools
+        state.action_issues = action_result.issues
 
     if not state.mcp_tools or force_refresh:
         logger.info("Gathering MCP tools from remote servers")
-        mcp_tools, mcp_issues = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
-        state.mcp_tools = mcp_tools
-        state.mcp_issues = mcp_issues
+        mcp_result = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+        state.mcp_tools = mcp_result.tools
+        state.mcp_issues = mcp_result.issues
 
     internal = get_internal_tools(kernel, state)
     client = kernel.client_tools

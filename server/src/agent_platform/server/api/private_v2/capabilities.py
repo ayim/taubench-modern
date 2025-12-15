@@ -348,7 +348,9 @@ async def list_mcp_tools(
         task = asyncio.create_task(iface.from_mcp_servers([server]))
 
         try:
-            tools, issues = await asyncio.wait_for(task, timeout=timeout)
+            mcp_result = await asyncio.wait_for(task, timeout=timeout)
+            tools = mcp_result.tools
+            issues = mcp_result.issues
         except TimeoutError:
             logger.warning(f"Timed out listing tools from MCP server {server.url}")
             # Cancel the task gracefully
