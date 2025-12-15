@@ -35,7 +35,7 @@ class TestAgentServerDataFramesInterface:
         [
             ("legacy", SqlGeneration.LEGACY),
             ("agentic", SqlGeneration.AGENTIC),
-            ("", SqlGeneration.LEGACY),
+            ("", SqlGeneration.AGENTIC),
             ("AGENTIC", SqlGeneration.AGENTIC),
             ("LEGACY", SqlGeneration.LEGACY),
             ("invalid", ValueError()),

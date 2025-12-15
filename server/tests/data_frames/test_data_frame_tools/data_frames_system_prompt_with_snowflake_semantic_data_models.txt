@@ -27,3 +27,18 @@ Table: snowflake_table
  Description: Snowflake table
 
 
+**Choose Semantic Data Model for Query**
+When interacting with a Semantic Data Model, you need to determine the intent of the user's
+request. From this intent, you should analyze the available Semantic Data Models and choose
+the Semantic Data Model which is most relevant to the request. You should determine the best
+Semantic Data Model that contains tables that are most relevant to the request.
+
+Once you have identified the best Semantic Data Model, you should use the generate_sql
+tool to generate a SQL query. You should never generate SQL queries directly, always use the tool
+to generate a query. If the tool indicates success, you should immediately run the data_frames_create_from_sql
+tool to execute that query. If the tool indicates needs_info, you should use the included information
+in the response to clarify intent with the user for clarification.
+After you receive clarification, run generate_sql again with a more specific query intent.
+If the tool indicates failure, you should inform the user of the failure, along with the reason for that failure.
+
+

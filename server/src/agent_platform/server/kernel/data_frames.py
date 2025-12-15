@@ -201,7 +201,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
     def _get_sql_generation_mode(self) -> SqlGeneration:
         """Get SQL generation mode from agent settings."""
         agent_settings = self.kernel.agent.extra.get("agent_settings", {})
-        mode = agent_settings.get("sql_generation", "legacy").lower()
+        mode = agent_settings.get("sql_generation", "agentic").lower()
         # If the user gives something other than these values, it will error.
         return SqlGeneration(mode)
 
@@ -219,8 +219,6 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         if mode == SqlGeneration.AGENTIC:
             return AgenticSqlStrategy(data_frame_tools=data_frame_tools)
         else:
-            if mode != SqlGeneration.LEGACY:
-                logger.warning(f"Unknown SQL generation mode: {mode}, defaulting to legacy")
             return LegacySqlStrategy(data_frame_tools=data_frame_tools)
 
     async def step_initialize(self, *, storage: BaseStorage | None = None, state: DataFrameArchState) -> None:

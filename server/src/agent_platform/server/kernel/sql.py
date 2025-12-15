@@ -471,31 +471,29 @@ class AgenticSqlStrategy(SqlGenerationStrategy):
         if not semantic_models_and_engines:
             return ""
 
-        from textwrap import dedent
-
         from agent_platform.server.kernel.data_frames import DF_GENERATE_SQL_TOOL_NAME
         from agent_platform.server.kernel.semantic_data_model import summarize_data_models
 
         # Only provide WHAT data is available, not HOW to write SQL.
         # The specialized SQL agent will handle the HOW.
         # Include coaching as to how to use generate_sql in conjunction with create_data_frame_from_sql.
-        return dedent(f"""
-        {summarize_data_models(semantic_models_and_engines)}
+        return f"""
+{summarize_data_models(semantic_models_and_engines)}
 
-        **Choose Semantic Data Model for Query**
-        When interacting with a Semantic Data Model, you need to determine the intent of the user's
-        request. From this intent, you should analyze the available Semantic Data Models and choose
-        the Semantic Data Model which is most relevant to the request. You should determine the best
-        Semantic Data Model that contains tables that are most relevant to the request.
+**Choose Semantic Data Model for Query**
+When interacting with a Semantic Data Model, you need to determine the intent of the user's
+request. From this intent, you should analyze the available Semantic Data Models and choose
+the Semantic Data Model which is most relevant to the request. You should determine the best
+Semantic Data Model that contains tables that are most relevant to the request.
 
-        Once you have identified the best Semantic Data Model, you should use the {DF_GENERATE_SQL_TOOL_NAME}
-        tool to generate a SQL query. You should never generate SQL queries directly, always use the tool
-        to generate a query. If the tool indicates success, you should immediately run the {DF_CREATE_FROM_SQL_TOOL_NAME}
-        tool to execute that query. If the tool indicates needs_info, you should use the included information
-        in the response to clarify intent with the user for clarification.
-        After you receive clarification, run generate_sql again with a more specific query intent.
-        If the tool indicates failure, you should inform the user of the failure, along with the reason for that failure.
-        """)
+Once you have identified the best Semantic Data Model, you should use the {DF_GENERATE_SQL_TOOL_NAME}
+tool to generate a SQL query. You should never generate SQL queries directly, always use the tool
+to generate a query. If the tool indicates success, you should immediately run the {DF_CREATE_FROM_SQL_TOOL_NAME}
+tool to execute that query. If the tool indicates needs_info, you should use the included information
+in the response to clarify intent with the user for clarification.
+After you receive clarification, run generate_sql again with a more specific query intent.
+If the tool indicates failure, you should inform the user of the failure, along with the reason for that failure.
+"""
 
     def get_tools(self) -> tuple[ToolDefinition, ...]:
         """Agentic mode provides both generate_sql and create_data_frame_from_sql tools."""

@@ -206,6 +206,7 @@ async def test_data_frames_interface_state(file_regression):
         DF_CREATE_FROM_JSON_TOOL_NAME,
         DF_CREATE_FROM_SQL_TOOL_NAME,
         DF_DELETE_TOOL_NAME,
+        DF_GENERATE_SQL_TOOL_NAME,
         DF_SLICE_TOOL_NAME,
         AgentServerDataFramesInterface,
     )
@@ -241,6 +242,7 @@ async def test_data_frames_interface_state(file_regression):
         DF_SLICE_TOOL_NAME,
         DF_DELETE_TOOL_NAME,
         DF_CREATE_FROM_SQL_TOOL_NAME,
+        DF_GENERATE_SQL_TOOL_NAME,
     }
     tools = interface.get_data_frame_tools()
     assert {t.name for t in tools} == all_tools
