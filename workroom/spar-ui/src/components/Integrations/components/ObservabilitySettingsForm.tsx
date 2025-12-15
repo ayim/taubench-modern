@@ -1,5 +1,7 @@
 import { useFormContext } from 'react-hook-form';
-import { Divider, Form, Select, Switch } from '@sema4ai/components';
+import { Banner, Divider, Form, Select, Switch } from '@sema4ai/components';
+import { IconSnowflake } from '@sema4ai/icons/logos';
+import { useSparUIContext } from '../../../api/context';
 import { ObservabilitySettings } from '../../../queries/integrations';
 import { ObservabilitySettingsFormSchema } from './observabilitySettingsSchema';
 import { InputControlled } from '../../../common/form/InputControlled';
@@ -51,8 +53,10 @@ type Props = {
 };
 
 export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
+  const { platformConfig } = useSparUIContext();
   const { watch, reset, setValue } = useFormContext<ObservabilitySettingsFormSchema>();
   const { provider, is_enabled: isEnabled } = watch();
+  const snowflakeEAIUrl = platformConfig?.snowflakeEAIUrl ?? null;
 
   return (
     <Form.Fieldset>
@@ -73,6 +77,23 @@ export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
           setValue('is_enabled', enabled);
         }}
       />
+
+      {defaultValues?.is_enabled && isEnabled && snowflakeEAIUrl && (
+        <Banner
+          message="Snowflake EAI Update Necessary"
+          description={
+            <span>
+              Specifying an observability data destination will require updating EAI rules for this application. Follow{' '}
+              <a href={snowflakeEAIUrl} target="_blank" rel="noreferrer">
+                these instructions
+              </a>{' '}
+              to update your EAI configuration.
+            </span>
+          }
+          variant="info"
+          icon={IconSnowflake}
+        />
+      )}
 
       <Select
         aria-label="Vendor"

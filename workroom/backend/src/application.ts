@@ -225,7 +225,7 @@ export const createApplication = async ({
       monitoring,
       sessionManager,
     }),
-    createGetWorkroomMeta({ configuration }),
+    createGetWorkroomMeta({ configuration, monitoring }),
   );
 
   tenantRouter.get(

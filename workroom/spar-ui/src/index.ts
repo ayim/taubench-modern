@@ -1,5 +1,6 @@
 export { SparUIFeatureFlag, SparAPIClient, AnalyticsEvent } from './api';
 export { SparUIContext, useSparUIContext } from './api/context';
+export type { SparUIPlatformConfig } from './api/context';
 export { SparUIRoutes } from './api/routes';
 
 export * from './components/Agents';

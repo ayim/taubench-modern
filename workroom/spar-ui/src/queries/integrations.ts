@@ -95,6 +95,8 @@ export const useCreateObservabilityIntegrationMutation = createSparMutation<
         return [observabilityIntegration, ...(observabilityIntegrations || [])];
       },
     );
+
+    queryClient.setQueryData(observabilityIntegrationQueryKey(observabilityIntegration.id), observabilityIntegration);
   },
 }));
 
@@ -139,5 +141,6 @@ export const useUpdateObservabilityIntegrationMutation = createSparMutation<
         return observabilityIntegrations.map((curr) => (curr.id === integrationId ? observabilityIntegration : curr));
       },
     );
+    queryClient.setQueryData(observabilityIntegrationQueryKey(integrationId), observabilityIntegration);
   },
 }));

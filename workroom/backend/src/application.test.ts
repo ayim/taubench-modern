@@ -55,6 +55,8 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
       },
     },
   },
+  eaiLinkUrl: null,
+  featuresUrl: null,
   files: {
     mode: 'disabled',
   },

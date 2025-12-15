@@ -4,14 +4,18 @@ import { trpc, type RouterContext } from './trpc.js';
 import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
+import * as externalConfigurationRoutes from './routes/externalConfiguration.js';
+import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/sessionManager.js';
 import * as profileRoutes from './routes/profile.js';
 import * as userManagementRoutes from './routes/userManagement.js';
-import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import { extractHeadersFromRequest } from '../utils/request.js';
 
 export const sparRouter = trpc.router({
+  externalConfiguration: {
+    ...externalConfigurationRoutes,
+  },
   profile: {
     ...profileRoutes,
   },
@@ -66,44 +70,44 @@ export const createRouterContext =
 
     const requiresUserIdentifier = configuration.auth.roleManagement;
 
-    if (!userIdentityResult.data.userId || !userIdentityResult.data.userRole) {
-      if (requiresUserIdentifier) {
-        monitoring.logger.error('TRPC authentication failed: Incomplete user information', {
-          requestUrl: req.originalUrl,
-          userId: userIdentityResult.data.userId ?? '',
-          userRole: userIdentityResult.data.userRole ?? '',
-        });
+    const user: RouterContext['user'] = (() => {
+      if (!userIdentityResult.data.userId || !userIdentityResult.data.userRole) {
+        if (requiresUserIdentifier) {
+          monitoring.logger.error('TRPC authentication failed: Incomplete user information', {
+            requestUrl: req.originalUrl,
+            userId: userIdentityResult.data.userId ?? '',
+            userRole: userIdentityResult.data.userRole ?? '',
+          });
 
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or missing authorization',
-        });
-      } else {
-        // No user identification required for this auth setup, so simply mark
-        // the current user as an administrator
-        return {
-          authManager,
-          authType: configuration.auth.type,
-          database,
-          monitoring,
-          sessionManager,
-          user: {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'Invalid or missing authorization',
+          });
+        } else {
+          // No user identification required for this auth setup, so simply mark
+          // the current user as an administrator
+          return {
             id: null,
             role: 'admin',
-          },
-        };
+          };
+        }
       }
-    }
+
+      return {
+        id: userIdentityResult.data.userId,
+        role: userIdentityResult.data.userRole,
+      };
+    })();
 
     return {
       authManager,
       authType: configuration.auth.type,
       database,
       monitoring,
-      sessionManager,
-      user: {
-        id: userIdentityResult.data.userId,
-        role: userIdentityResult.data.userRole,
+      platform: {
+        snowflakeEAIUrl: configuration.eaiLinkUrl,
       },
+      sessionManager,
+      user,
     };
   };

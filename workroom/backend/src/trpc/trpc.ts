@@ -12,6 +12,9 @@ export type RouterContext = {
   authType: Configuration['auth']['type'];
   database: DatabaseClient;
   monitoring: MonitoringContext;
+  platform: {
+    snowflakeEAIUrl: string | null;
+  };
   sessionManager: SessionManager;
   user: Readonly<{
     id: string | null;

@@ -455,8 +455,10 @@ export function VioletChatPage({ tenantId, agentAPIClient, loaderData }: VioletC
   };
 
   return (
-    <PackageSparUIContext.Provider value={{ sparAPIClient: sparApiOverride }}>
-      <SrcSparUIContext.Provider value={{ sparAPIClient: srcSparApiClient }}>
+    <PackageSparUIContext.Provider
+      value={{ platformConfig: { snowflakeEAIUrl: null }, sparAPIClient: sparApiOverride }}
+    >
+      <SrcSparUIContext.Provider value={{ platformConfig: { snowflakeEAIUrl: null }, sparAPIClient: srcSparApiClient }}>
         <div
           style={{
             position: 'relative',

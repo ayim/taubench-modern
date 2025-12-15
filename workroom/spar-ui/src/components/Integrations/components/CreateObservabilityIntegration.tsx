@@ -1,7 +1,7 @@
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-
 import { Box, Button, Form, useSnackbar } from '@sema4ai/components';
+
 import { useCreateObservabilityIntegrationMutation } from '../../../queries';
 import { ObservabilitySettingsForm } from './ObservabilitySettingsForm';
 import {

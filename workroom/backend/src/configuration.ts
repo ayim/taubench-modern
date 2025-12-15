@@ -80,6 +80,8 @@ export interface Configuration {
       };
     };
   };
+  eaiLinkUrl: string | null;
+  featuresUrl: string | null;
   files:
     | { mode: 'disabled' }
     | {
@@ -255,6 +257,8 @@ export const getConfiguration = (): Configuration => {
     }
   })();
 
+  const eaiLinkUrl = process.env.SEMA4AI_WORKROOM_EAI_URL ? parseEnvVariable('SEMA4AI_WORKROOM_EAI_URL') : null;
+
   const logLevel = ((): LogSeverity => {
     if (process.env.SEMA4AI_WORKROOM_LOG_LEVEL) {
       return LogSeverity.parse(parseEnvVariable('SEMA4AI_WORKROOM_LOG_LEVEL'));
@@ -263,6 +267,9 @@ export const getConfiguration = (): Configuration => {
     return 'INFO';
   })();
 
+  const featuresUrl = process.env.SEMA4AI_WORKROOM_FEATURES_URL
+    ? parseEnvVariable('SEMA4AI_WORKROOM_FEATURES_URL')
+    : null;
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
 
   const session = ((): Configuration['session'] => {
@@ -363,6 +370,8 @@ export const getConfiguration = (): Configuration => {
         },
       },
     },
+    eaiLinkUrl,
+    featuresUrl,
     files,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
     legacyRoutingUrl,
@@ -390,6 +399,8 @@ export const getConfiguration = (): Configuration => {
         documentIntelligence: sparOnlyFeature,
         semanticDataModels: sparOnlyFeature,
         workerAgents: sparOnlyFeature,
+        userManagement: sparOnlyFeature,
+        agentConfiguration: sparOnlyFeature,
         developerMode: {
           enabled: true,
           reason: null,
@@ -398,8 +409,6 @@ export const getConfiguration = (): Configuration => {
           enabled: true,
           reason: null,
         },
-        userManagement: sparOnlyFeature,
-        agentConfiguration: sparOnlyFeature,
       },
     },
   };

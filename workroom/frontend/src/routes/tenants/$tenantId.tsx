@@ -38,13 +38,19 @@ function View() {
   const profileData = trpc.profile.getProfile.useQuery();
   const profilePicture = (profileData.isSuccess && profileData.data.user.profilePicture) || undefined;
 
+  const extConfigStatus = trpc.externalConfiguration.getExternalConfigurationStatus.useQuery();
+  const snowflakeEAIUrl = extConfigStatus.isSuccess ? extConfigStatus.data.snowflakeEAIUrl : null;
+
   const sparUIContext = useMemo(() => {
     return tenantMeta
       ? {
           sparAPIClient: createSparAPIClient(tenantId, tenantMeta, agentAPIClient, router),
+          platformConfig: {
+            snowflakeEAIUrl,
+          },
         }
       : undefined;
-  }, [agentAPIClient, tenantId, tenantMeta]);
+  }, [agentAPIClient, tenantId, tenantMeta, snowflakeEAIUrl]);
 
   if (!tenantMeta || !sparUIContext) {
     return (
