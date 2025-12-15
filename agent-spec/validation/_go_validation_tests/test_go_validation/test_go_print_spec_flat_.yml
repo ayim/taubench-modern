@@ -199,10 +199,11 @@ agent-package/agents/docker-mcp-gateway/servers/tools:
   Required: false
 agent-package/agents/document-intelligence:
   Deprecated: false
-  Description: 'Document intelligence version to use. Example: "v2"'
+  Description: 'Document intelligence version to use. Example: "v2" or "v2.1"'
   ExpectedType:
     EnumValues:
     - v2
+    - v2.1
     ExpectedType: enum
     RecommendedValues: null
     RelativeTo: ''

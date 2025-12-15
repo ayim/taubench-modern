@@ -23,6 +23,16 @@ func TestReadSpecV2_1Empty(t *testing.T) {
 	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version")
 }
 
+func TestReadSpecV2_1WithDocumentIntelligenceV2_1(t *testing.T) {
+	common.Verbose = true
+	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1-di2.1")
+	if err != nil {
+		t.Errorf("error: %+v", err)
+	}
+	assert.Equal(t, "v2", spec.AgentPackage.SpecVersion, "agent metadata should have correct Version")
+	assert.Equal(t, AgentServer.DocumentIntelligenceVersionV2_1, spec.AgentPackage.Agents[0].DocumentIntelligence, "agent should have correct document-intelligence version v2.1")
+}
+
 func TestReadSpecV2_1(t *testing.T) {
 	common.Verbose = true
 	spec, err := cmd.ReadSpec("./fixtures/agent-specs/agent-spec-v2.1")
@@ -299,6 +309,108 @@ func TestFilterMcpServerSecretValuesFromSpec_EmptyCases(t *testing.T) {
 	filtered3 := cmd.FilterMcpServerSecretValuesFromSpec(spec3)
 	assert.Equal(t, 1, len(filtered3.AgentPackage.Agents))
 	assert.Equal(t, 1, len(filtered3.AgentPackage.Agents[0].McpServers))
+}
+
+func TestSpecAgentIsEqualDocumentIntelligenceV2_1(t *testing.T) {
+	baseSpec := common.SpecAgent{
+		Name:                 "agent1",
+		Description:          "desc",
+		Model:                common.SpecAgentModel{Provider: "OpenAI", Name: "gpt-4"},
+		Version:              "1.0.0",
+		Runbook:              "runbook.md",
+		Architecture:         "agent",
+		Reasoning:            "disabled",
+		DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2_1,
+		Metadata:             AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+		ActionPackages: []common.SpecAgentActionPackage{{
+			Name:         "ap1",
+			Organization: "MyActions",
+			Type:         "folder",
+			Version:      "0.1.0",
+			Whitelist:    "",
+		}},
+		McpServers: []common.SpecMcpServer{{
+			Name:      "mcp1",
+			Transport: AgentServer.MCPTransportAuto,
+			URL:       "http://",
+		}},
+	}
+	baseDeployed := AgentServer.Agent{
+		Name:        baseSpec.Name,
+		Description: baseSpec.Description,
+		Model:       AgentServer.AgentModel{Provider: "OpenAI", Name: "gpt-4"},
+		Version:     baseSpec.Version,
+		Runbook:     baseSpec.Runbook,
+		AdvancedConfig: AgentServer.AgentAdvancedConfig{
+			Architecture: "agent",
+			Reasoning:    "disabled",
+		},
+		Metadata: AgentServer.AgentMetadata{Mode: AgentServer.ConversationalMode},
+		Extra: AgentServer.AgentExtra{
+			DocumentIntelligence: AgentServer.DocumentIntelligenceVersionV2_1,
+		},
+		ActionPackages: []AgentServer.AgentActionPackage{{
+			Name:         "ap1",
+			Organization: "MyActions",
+			Version:      "0.1.0",
+			Whitelist:    "",
+		}},
+		McpServers: []AgentServer.McpServer{{
+			Name:      "mcp1",
+			Transport: AgentServer.MCPTransportAuto,
+			URL:       common.Ptr("http://"),
+		}},
+	}
+
+	tests := []struct {
+		name     string
+		spec     common.SpecAgent
+		deployed AgentServer.Agent
+		expectEq bool
+		expectCh []string
+	}{
+		{
+			name:     "document intelligence v2.1 equal",
+			spec:     baseSpec,
+			deployed: baseDeployed,
+			expectEq: true,
+			expectCh: nil,
+		},
+		{
+			name: "document intelligence v2.1 vs v2 differs",
+			spec: baseSpec,
+			deployed: func() AgentServer.Agent {
+				d := baseDeployed
+				d.Extra.DocumentIntelligence = AgentServer.DocumentIntelligenceVersionV2
+				return d
+			}(),
+			expectEq: false,
+			expectCh: []string{"documentIntelligence"},
+		},
+		{
+			name: "document intelligence v2 vs v2.1 differs",
+			spec: func() common.SpecAgent {
+				s := baseSpec
+				s.DocumentIntelligence = AgentServer.DocumentIntelligenceVersionV2
+				return s
+			}(),
+			deployed: baseDeployed,
+			expectEq: false,
+			expectCh: []string{"documentIntelligence"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			eq, changes := tt.spec.IsEqual(&common.AgentProject{}, &tt.deployed)
+			assert.Equal(t, tt.expectEq, eq)
+			if tt.expectCh != nil {
+				assert.ElementsMatch(t, tt.expectCh, changes)
+			} else {
+				assert.Empty(t, changes)
+			}
+		})
+	}
 }
 
 func TestSpecAgentIsEqual(t *testing.T) {

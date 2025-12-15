@@ -33,7 +33,8 @@ const (
 )
 
 const (
-	DocumentIntelligenceVersionV2 DocumentIntelligenceVersion = "v2"
+	DocumentIntelligenceVersionV2   DocumentIntelligenceVersion = "v2"
+	DocumentIntelligenceVersionV2_1 DocumentIntelligenceVersion = "v2.1"
 )
 
 type AgentModel struct {
