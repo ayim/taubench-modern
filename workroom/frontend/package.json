@@ -30,7 +30,7 @@
     "@sema4ai/layouts": "^2.8.2",
     "@sema4ai/oauth-client": "^0.4.5",
     "@sema4ai/robocloud-shared-utils": "^2.0.0",
-    "@sema4ai/robocloud-ui-utils": "^1.4.0",
+    "@sema4ai/robocloud-ui-utils": "^1.5.1",
     "@sema4ai/spar-ui": "*",
     "@sema4ai/theme": "^2.2.0",
     "@tanstack/react-query": "^5.71.1",
