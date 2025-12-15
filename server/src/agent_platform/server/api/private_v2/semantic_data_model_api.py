@@ -375,6 +375,8 @@ async def generate_semantic_data_model(
         # Store the existing model's name and description to preserve after enhancement
         existing_model_name: str | None = None
         existing_model_description: str | None = None
+        # For new models: preserve user-provided description (let LLM enhance name)
+        preserve_description: str | None = payload.description if payload.description else None
 
         if payload.existing_semantic_data_model:
             from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
@@ -394,7 +396,9 @@ async def generate_semantic_data_model(
             # When regenerating an existing semantic model, preserve its name and description
             # because we're updating the existing model, not creating a new one
             semantic_model["name"] = existing_model_name or semantic_model.get("name", "")
-            if "description" in existing_semantic_model:
+            if existing_model_description:
+                # For regeneration, use existing model's description
+                preserve_description = existing_model_description
                 semantic_model["description"] = existing_model_description
 
             # Now, we need to copy from the existing semantic model to the new semantic model
@@ -464,8 +468,9 @@ async def generate_semantic_data_model(
                 # when regenerating an existing model
                 if existing_model_name is not None:
                     semantic_model["name"] = existing_model_name
-                if existing_model_description is not None:
-                    semantic_model["description"] = existing_model_description
+                # Restore description (either user-provided for new models or from existing model)
+                if preserve_description is not None:
+                    semantic_model["description"] = preserve_description
             else:
                 logger.critical(
                     "No agent ID provided when generating semantic data model, "

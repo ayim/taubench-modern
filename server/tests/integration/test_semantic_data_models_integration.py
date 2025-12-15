@@ -1133,3 +1133,147 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         assert original_rows_sorted == new_rows_sorted, (
             "Expected the new data frame contents to match the original data frame contents"
         )
+
+
+@pytest.mark.integration
+def test_user_description_preserved_after_generation(
+    base_url_agent_server_session, resources_dir, openai_api_key
+):
+    """Test that user-provided description is preserved after semantic data model generation.
+
+    This test verifies that when a user provides a description (business context)
+    for a new semantic data model, it is preserved in the generated model - even if
+    the LLM enhancement process runs.
+
+    The system should:
+    - Accept user-provided description in the generate payload
+    - Run LLM enhancement (if agent_id provided)
+    - Preserve the user-provided description in the final model
+    """
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create an agent (needed for LLM enhancement)
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+        )
+
+        # Setup data connection
+        db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-description-preservation",
+            description="Test connection for description preservation",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file_path),
+            },
+        )
+
+        # Inspect the connection
+        inspect_response = agent_client.inspect_data_connection(
+            connection_id=data_connection["id"],
+        )
+
+        # User-provided description (business context)
+        user_description = "This semantic model contains AI systems data for Q4 2024 analysis."
+
+        # Generate semantic data model WITH user description and agent_id (triggers enhancement)
+        generate_payload = {
+            "name": "test_model_with_description",
+            "description": user_description,
+            "data_connections_info": [
+                {
+                    "data_connection_id": data_connection["id"],
+                    "tables_info": inspect_response["tables"],
+                }
+            ],
+            "files_info": [],
+            "agent_id": agent_id,  # This triggers LLM enhancement
+        }
+
+        generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        assert "semantic_model" in generated_model
+
+        # Verify user description is preserved after enhancement
+        actual_description = generated_model["semantic_model"].get("description")
+        assert actual_description == user_description, (
+            f"Expected user description '{user_description}' to be preserved, "
+            f"but got '{actual_description}'"
+        )
+
+
+@pytest.mark.integration
+def test_no_description_allows_llm_generated_description(
+    base_url_agent_server_session, resources_dir, openai_api_key
+):
+    """Test that when no description is provided, the generated model has some description.
+
+    This test verifies that when a user does NOT provide a description,
+    the system still generates a semantic data model (potentially with LLM-generated
+    description or default description).
+    """
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create an agent
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-5-low"]},
+                },
+            ],
+        )
+
+        # Setup data connection
+        db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-no-description",
+            description="Test connection for no description test",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file_path),
+            },
+        )
+
+        # Inspect the connection
+        inspect_response = agent_client.inspect_data_connection(
+            connection_id=data_connection["id"],
+        )
+
+        # Generate semantic data model WITHOUT user description
+        generate_payload = {
+            "name": "test_model_no_description",
+            "description": None,  # No user description
+            "data_connections_info": [
+                {
+                    "data_connection_id": data_connection["id"],
+                    "tables_info": inspect_response["tables"],
+                }
+            ],
+            "files_info": [],
+            "agent_id": agent_id,
+        }
+
+        generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        assert "semantic_model" in generated_model
+
+        # Verify model was generated successfully with LLM-generated description
+        assert generated_model["semantic_model"] is not None
+        assert "tables" in generated_model["semantic_model"]
+
+        # When no user description is provided, LLM should generate one
+        actual_description = generated_model["semantic_model"].get("description")
+        assert actual_description is not None, (
+            "Expected LLM to generate a description when user provides none"
+        )
+        assert len(actual_description) > 0, "Expected non-empty description from LLM"
