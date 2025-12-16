@@ -100,9 +100,11 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     extractedDataWithCitations,
     isGeneratingSchema,
     isExtracting,
+    isFetchingCachedSchema,
     error,
     hasInitialized,
     handleGenerateSchema,
+    handleFetchCachedSchema,
     handleExtract,
     handleReExtract,
     handleSchemaChange,
@@ -116,15 +118,16 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     extractResult,
   });
 
-  // Prevent switching to Results tab while generating or extracting
+  const isResultsStepDisabled = isFetchingCachedSchema || isGeneratingSchema || isExtracting;
+
   const handleTabChange = useCallback(
     (newTab: number) => {
-      if (newTab === 1 && (isGeneratingSchema || isExtracting)) {
-        return; // Don't allow switching to Results tab during processing
+      if (newTab === 1 && isResultsStepDisabled) {
+        return;
       }
       setActiveTab(newTab);
     },
-    [isGeneratingSchema, isExtracting],
+    [isResultsStepDisabled],
   );
 
   const canReExtract = useMemo(
@@ -273,7 +276,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     [handleGenerateSchema, handleExtract],
   );
 
-  // Initialize data once on mount: use provided initial data or generate fresh
+  // Initialize data once on mount: check for cached schema, or generate fresh
   useEffect(() => {
     if (hasInitialized.current) {
       return;
@@ -285,8 +288,18 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
       return;
     }
 
-    if (file && !currentSchema && !isGeneratingSchema) {
-      handleGenerateSchemaAndExtract();
+    if (file && !currentSchema && !isGeneratingSchema && !isFetchingCachedSchema) {
+      // First try to fetch a cached schema from the server
+      handleFetchCachedSchema().then((cachedSchema) => {
+        if (cachedSchema) {
+          // Cached schema found, use it and run extraction
+          hasInitialized.current = true;
+          handleExtract(cachedSchema);
+        } else {
+          // No cached schema, generate a new one
+          handleGenerateSchemaAndExtract();
+        }
+      });
     }
   }, [
     file,
@@ -294,6 +307,9 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     schema,
     extractResult,
     isGeneratingSchema,
+    isFetchingCachedSchema,
+    handleFetchCachedSchema,
+    handleExtract,
     handleGenerateSchemaAndExtract,
     initializeFromExisting,
   ]);
@@ -304,7 +320,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     threadId,
     fileName: file.name,
   });
-  const shouldAllowRegenerating = activeTab === 0 && !isGeneratingSchema && !isExtracting;
+  const shouldAllowRegenerating = activeTab === 0 && !isResultsStepDisabled;
   const shouldAllowSendingToThread = activeTab === 1 && !isExtracting && sendingResultsEnabled;
 
   const onShowResultsInThread = useCallback(() => {
@@ -389,7 +405,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                         Configuration
                       </Typography>
                     </Steps.Step>
-                    <Steps.Step stepIcon={IconCheckCircle} disabled={isGeneratingSchema || isExtracting}>
+                    <Steps.Step stepIcon={IconCheckCircle} disabled={isResultsStepDisabled}>
                       <Typography fontSize="$14" fontWeight="medium">
                         Results
                       </Typography>
@@ -418,7 +434,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                       aria-labelledby="show-raw-json"
                       checked={showRawJson}
                       onChange={(e) => setShowRawJson(e.target.checked)}
-                      disabled={isGeneratingSchema || isExtracting}
+                      disabled={isResultsStepDisabled}
                     />
                     <Typography>View as JSON</Typography>
 

@@ -30,6 +30,10 @@ The Work Room folder is an app that comprises of 4 main pieces:
 - ALL errors thrown in `QueryError` should be customer-facing. If unsure about how technical you should get, ask the operator
 - ALL mutations must have an `onError` handler defined. It uses the `addSnackbar` and `getSnackbarContent`
 
+### Document Intelligence
+
+For detailed documentation on the Document Intelligence (DocIntel) feature, see [DocIntel README](spar-ui/src/components/DocIntel/README.md).
+
 ## Working in workroom
 
 ### Scripts

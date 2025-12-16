@@ -4,6 +4,7 @@ import type { components } from '@sema4ai/agent-server-interface';
 import {
   useGenerateExtractionSchemaMutation,
   useExtractDocumentMutation,
+  useGetSchemaQuery,
 } from '../../../../queries/documentIntelligence';
 import type { ExtractSchemaResponse, ExtractResponse, ExtractionSchemaPayload } from '../../shared/types';
 import { extractFieldPathsFromSchema, filterDataBySchema, filterCitationsBySchema } from '../utils/schemaUtils';
@@ -40,6 +41,12 @@ export const useExtractDialogState = ({
 
   // Counter incremented on each extraction to force PDF viewer re-render with new annotations
   const [extractRevision, setExtractRevision] = useState(0);
+
+  // Fetch cached schema
+  const { isLoading: isFetchingCachedSchema, refetch: refetchCachedSchema } = useGetSchemaQuery(
+    { fileName: file.name, agentId, threadId },
+    { enabled: false, retry: false },
+  );
 
   const {
     mutateAsync: generateSchema,
@@ -89,6 +96,16 @@ export const useExtractDialogState = ({
     },
     [file, threadId, agentId, generateSchema, addSnackbar],
   );
+
+  // Fetch cached schema from the server if one already exists for this file
+  const handleFetchCachedSchema = useCallback(async (): Promise<ExtractSchemaResponse | null> => {
+    try {
+      const result = await refetchCachedSchema();
+      return (result.data as ExtractSchemaResponse) ?? null;
+    } catch {
+      return null; // 404 or error - fall back to generation
+    }
+  }, [refetchCachedSchema]);
 
   const handleExtract = useCallback(
     async (schemaResponse: ExtractSchemaResponse) => {
@@ -171,11 +188,13 @@ export const useExtractDialogState = ({
     extractedDataWithCitations,
     isGeneratingSchema,
     isExtracting,
+    isFetchingCachedSchema,
     error,
     hasInitialized,
 
     // Actions
     handleGenerateSchema,
+    handleFetchCachedSchema,
     handleExtract,
     handleReExtract,
     handleSchemaChange,
