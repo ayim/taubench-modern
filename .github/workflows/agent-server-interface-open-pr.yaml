@@ -15,6 +15,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ inputs.agent_server_version }}
 
+permissions:
+  contents: write
+  packages: read
+
 env:
   BRANCH_PREFIX: 'ci/interface-release-v'
   PRIVATE_OPENAPI_JSON: 'workroom/packages/agent-server-interface/private.openapi.json'
@@ -33,7 +37,6 @@ jobs:
         id: checkout
         with:
           ref: ${{ inputs.base_branch }}
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup `uv`
         uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
@@ -44,29 +47,23 @@ jobs:
             uv.lock
             **/uv.lock
 
-      - name: Setup Node.js 20.x
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: '20.19.4'
-
-      - name: Create .npmrc
-        shell: bash
-        run: |
-          cat << EOF > ~/.npmrc
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-          @sema4ai:registry=https://npm.pkg.github.com/
-          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
-          EOF
+          cache: 'npm'
+          cache-dependency-path: workroom/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
 
       - name: Update OpenAPI Specs, Generate Types
         id: update-openapi-specs
         working-directory: workroom
-        env:
-          NPM_TOKEN: ${{ secrets.NPMJS_READ_ONLY_TOKEN }}
         run: |
           npm ci
           npm run sync:agent-server-interface
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump Package Version
         id: bump-package-version

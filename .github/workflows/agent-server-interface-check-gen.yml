@@ -7,6 +7,10 @@ on:
       - reopened
       - synchronize
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   check-interface-gen:
     runs-on: ubuntu-22.04
@@ -23,17 +27,18 @@ jobs:
             uv.lock
             **/uv.lock
 
-      - name: Create .npmrc file
-        shell: bash
-        run: |
-          cat << EOF > "${HOME}/.npmrc"
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-          @sema4ai:registry=https://npm.pkg.github.com/
-          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
-          EOF
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: workroom/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
 
       - name: Check
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           # Generate interface ##########################################################

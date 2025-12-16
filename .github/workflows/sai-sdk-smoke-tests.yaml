@@ -12,6 +12,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   smoke-tests:
     name: Sai SDK Smoke Tests
@@ -24,8 +28,6 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup `uv`
         uses: astral-sh/setup-uv@1bf14936647e2742afe170d7d7fd95f45bfe4fc7
@@ -36,31 +38,22 @@ jobs:
             uv.lock
             **/uv.lock
 
-      - name: Setup Node.js 20.x
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: '20.18.1'
-
-      - name: Creating .npmrc
-        run: |
-          cat << EOF > "./.npmrc"
-            registry=https://registry.npmjs.org/
-            //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-            @robocorp:registry=https://npm.pkg.github.com/
-            @sema4ai:registry=https://npm.pkg.github.com/
-            //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
-          EOF
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          NPM_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          cache: 'npm'
+          cache-dependency-path: packages/typescript-sai-sdk/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
 
       - name: Install Dependencies
         run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          NPM_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
         id: run-tests
-        run: |
-          npm run test:as
+        run: npm run test:as
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

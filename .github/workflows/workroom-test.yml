@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   test-specs:
@@ -28,38 +29,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - &create_npmrc
-        name: Create .npmrc file
-        shell: bash
-        run: |
-          cat << EOF > .npmrc
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-          @sema4ai:registry=https://npm.pkg.github.com/
-          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_PACKAGE_READ_TOKEN }}
-          EOF
-
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: './workroom/package-lock.json'
+          cache-dependency-path: workroom/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
 
       - name: Install dependencies
-        shell: bash
         run: |
           npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build projects
-        shell: bash
-        run: |
-          npm run build
+        run: npm run build
 
       - name: Run tests
-        shell: bash
-        run: |
-          npm run test
+        run: npm run test
 
   lint:
     runs-on: ubuntu-24.04
@@ -73,21 +62,22 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: './workroom/package-lock.json'
-      - *create_npmrc
+          cache-dependency-path: workroom/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
+
       - name: Install dependencies
-        shell: bash
         run: |
           npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run lint
-        shell: bash
-        run: |
-          npm run lint
+        run: npm run lint
 
   format-check:
     runs-on: ubuntu-24.04
@@ -101,18 +91,18 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: './workroom/package-lock.json'
-      - *create_npmrc
+          cache-dependency-path: workroom/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
+
       - name: Install dependencies
-        shell: bash
         run: |
           npm ci
-
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run formatting check
-        shell: bash
-        run: |
-          npm run format:check
+        run: npm run format:check

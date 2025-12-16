@@ -10,6 +10,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   release:
     name: Sai SDK Release
@@ -20,32 +24,20 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js 20.x
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: '20.18.1'
-
-      - name: Creating .npmrc
-        run: |
-          cat << EOF > "./.npmrc"
-            registry=https://registry.npmjs.org/
-            //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-            @robocorp:registry=https://npm.pkg.github.com/
-            @sema4ai:registry=https://npm.pkg.github.com/
-            //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
-          EOF
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          NPM_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          cache: 'npm'
+          cache-dependency-path: packages/typescript-sai-sdk/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
 
       - name: Install Dependencies
         run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          NPM_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Sai SDK
         run: npm run build
@@ -54,4 +46,3 @@ jobs:
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -7,6 +7,7 @@ on:
       - opened
     paths: &workflow-paths
       - '.github/workflows/mcp-runtime-build.yaml'
+      - '.github/.npmrc-ci'
       - 'workroom/mcp-runtime/**'
   push:
     paths: *workflow-paths
@@ -20,6 +21,7 @@ concurrency:
 permissions:
   contents: read
   id-token: write
+  packages: read
   pull-requests: write
 
 env:
@@ -87,15 +89,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Create .npmrc file
-        shell: bash
-        run: |
-          cat << EOF > .npmrc
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${{ secrets.NPMJS_READ_ONLY_TOKEN }}
-          @sema4ai:registry=https://npm.pkg.github.com/
-          //npm.pkg.github.com/:_authToken=${{ secrets.SEMA4_CI_USER_READ_PACKAGES }}
-          EOF
+      - name: Get .npmrc file in place for Docker build
+        run: envsubst < .github/.npmrc-ci > .npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         id: build
