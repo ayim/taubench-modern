@@ -78,7 +78,7 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         """
         doc_int_agent_setting = self.kernel.agent.extra.get("document_intelligence", "")
 
-        if doc_int_agent_setting:
+        if doc_int_agent_setting != "v2.1":
             logger.warning(
                 "Agent is already using document intelligence",
                 current_value=doc_int_agent_setting,

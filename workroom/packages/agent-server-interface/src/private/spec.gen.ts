@@ -10474,7 +10474,7 @@ export const spec = {
             anyOf: [
               {
                 type: 'string',
-                const: 'v2',
+                enum: ['v2', 'v2.1'],
               },
               {
                 type: 'null',
@@ -10763,7 +10763,7 @@ export const spec = {
             anyOf: [
               {
                 type: 'string',
-                const: 'v2',
+                enum: ['v2', 'v2.1'],
               },
               {
                 type: 'null',
@@ -22846,7 +22846,7 @@ export const spec = {
             anyOf: [
               {
                 type: 'string',
-                const: 'v2',
+                enum: ['v2', 'v2.1'],
               },
               {
                 type: 'null',

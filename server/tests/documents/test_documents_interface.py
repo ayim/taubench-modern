@@ -130,7 +130,51 @@ async def test_is_enabled_disabled_when_external_system_configured():
 
 
 @pytest.mark.asyncio
-async def test_step_initialize_creates_tools_when_documents_present():
+async def test_step_initialize_no_tools_when_document_intelligence_is_v2():
+    """Test that step_initialize does not enable tools when document_intelligence is v2."""
+    from agent_platform.server.kernel.documents import AgentServerDocumentsInterface
+
+    interface = AgentServerDocumentsInterface()
+
+    # Create mock kernel with document_intelligence set to "v2" (not "v2.1")
+    mock_kernel = Mock()
+    mock_kernel.thread_state = Mock()
+    mock_kernel.thread_state.thread_id = "thread-123"
+    mock_kernel.user = Mock()
+    mock_kernel.user.user_id = "user-456"
+    mock_kernel.agent = Mock()
+    mock_kernel.agent.extra = {"document_intelligence": "v2"}
+
+    # Mock storage with Reducto integration and documents
+    mock_storage = AsyncMock()
+    mock_integration = Mock()
+    mock_integration.id = "integration-123"
+    mock_storage.get_integration_by_kind = AsyncMock(return_value=mock_integration)
+
+    # Mock document file
+    mock_doc = Mock()
+    mock_doc.file_ref = "test.pdf"
+    mock_doc.file_id = "file-123"
+    mock_doc.mime_type = "application/pdf"
+    mock_doc.file_size_raw = 1024
+
+    mock_storage.get_thread_files = AsyncMock(return_value=[mock_doc])
+    mock_kernel.storage = mock_storage
+
+    interface.attach_kernel(mock_kernel)
+
+    state = _DefaultDocumentArchState()
+
+    await interface.step_initialize(state=state, storage=mock_storage)
+
+    # Should not have created tools even though documents are present
+    tools = interface.get_document_tools()
+    assert len(tools) == 0
+    assert state.documents_tools_state == ""
+
+
+@pytest.mark.asyncio
+async def test_step_initialize_no_tools_when_documents_present_and_empty_agent_settings():
     """Test that step_initialize creates tools when documents are present."""
     from agent_platform.server.kernel.documents import AgentServerDocumentsInterface
 
@@ -144,7 +188,7 @@ async def test_step_initialize_creates_tools_when_documents_present():
     mock_kernel.user.user_id = "user-456"
     mock_kernel.agent = Mock()
     # Don't set document_intelligence - leave it empty to enable internal processing
-    mock_kernel.agent.extra = {"agent_settings": {}}
+    mock_kernel.agent.extra = {"document_intelligence": "v2"}
 
     # Mock storage with Reducto integration
     mock_storage = AsyncMock()
@@ -170,12 +214,7 @@ async def test_step_initialize_creates_tools_when_documents_present():
 
     # Should have created tools
     tools = interface.get_document_tools()
-    assert len(tools) > 0
-    assert state.documents_tools_state == "enabled"
-
-    # Verify the parse_document tool exists
-    tool_names = [tool.name for tool in tools]
-    assert "parse_document" in tool_names
+    assert len(tools) == 0
 
 
 @pytest.mark.asyncio
@@ -193,7 +232,7 @@ async def test_step_initialize_no_tools_when_no_documents():
     mock_kernel.user.user_id = "user-456"
     mock_kernel.agent = Mock()
     # Don't set document_intelligence - leave it empty to enable internal processing
-    mock_kernel.agent.extra = {"agent_settings": {}}
+    mock_kernel.agent.extra = {"agent_settings": {"document_intelligence": "v2.1"}}
 
     # Mock storage with Reducto integration but no documents
     mock_storage = AsyncMock()

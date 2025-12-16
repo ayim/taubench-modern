@@ -3912,7 +3912,7 @@ export interface components {
        * Document Intelligence
        * @description The document intelligence version to use.
        */
-      document_intelligence?: 'v2' | null;
+      document_intelligence?: ('v2' | 'v2.1') | null;
       /** @description Configuration for tools selected for this agent. */
       selected_tools?: components['schemas']['SelectedTools'];
       /** @description Information about the uploaded package file, if applicable. */
@@ -4115,7 +4115,7 @@ export interface components {
        * Document Intelligence
        * @description The document intelligence version to use.
        */
-      document_intelligence?: 'v2' | null;
+      document_intelligence?: ('v2' | 'v2.1') | null;
       /** @description Configuration for tools selected for this agent. */
       selected_tools?: components['schemas']['SelectedTools'];
     };
@@ -9814,7 +9814,7 @@ export interface components {
        * Document Intelligence
        * @description The document intelligence version to use.
        */
-      document_intelligence?: 'v2' | null;
+      document_intelligence?: ('v2' | 'v2.1') | null;
       /**
        * Id
        * @description The ID of the agent (alias of agent_id for backwards compatibility).

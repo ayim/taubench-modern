@@ -827,7 +827,7 @@ class AgentPackageMetadata:
     agent_settings: dict[str, Any] | None = field(default_factory=dict, metadata={"description": "Agent settings."})
     """Agent settings."""
 
-    document_intelligence: Literal["v2"] | None = field(
+    document_intelligence: Literal["v2", "v2.1"] | None = field(
         default=None, metadata={"description": "The document intelligence version to use."}
     )
     """The document intelligence version to use."""

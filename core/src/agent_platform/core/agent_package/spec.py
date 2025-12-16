@@ -15,7 +15,7 @@ SpecMCPTransport = Literal["auto", "streamable-http", "sse", "stdio"]
 SpecActionPackageType = Literal["zip", "folder"]
 SpecWorkerMode = Literal["conversational", "worker"]
 SpecVersion = Literal["v2", "v2.1", "v3"]
-SpecDocumentIntelligence = Literal["v2"]
+SpecDocumentIntelligence = Literal["v2", "v2.1"]
 
 
 class SpecAgentModel(BaseModel):
