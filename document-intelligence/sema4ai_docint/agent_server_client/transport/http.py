@@ -6,7 +6,6 @@ import os
 import platform
 from collections.abc import Callable
 from http import HTTPStatus
-from math import e
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urljoin
@@ -78,7 +77,7 @@ class HTTPTransport(TransportBase):
                     if isinstance(server_info, dict) and (base_url := server_info.get("base_url")):
                         logger.info(f"Using base URL found from PID file: {base_url}")
                         return TransportBase._build_agent_server_v2_url(base_url)
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Error reading PID file: {pid_file_path}, {e!s}")
             pass
 

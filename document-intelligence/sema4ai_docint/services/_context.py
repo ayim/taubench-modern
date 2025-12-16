@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from sema4ai.data import DataSource
 
 from sema4ai_docint.agent_server_client.transport.base import TransportBase
+from sema4ai_docint.agent_server_client.transport.direct import DirectTransport
 from sema4ai_docint.agent_server_client.transport.http import HTTPTransport
 from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient
 from sema4ai_docint.extraction.reducto.sync import SyncExtractionClient
@@ -29,8 +30,8 @@ class _DIContext:
     extraction_service: SyncExtractionClient | None = None
     extraction_service_async: AsyncExtractionClient | None = None
 
-    # Optional agent server transport
-    agent_server_transport: TransportBase | None = None
+    # Optional agent server transport (can be either full transport or minimal direct transport)
+    agent_server_transport: TransportBase | DirectTransport | None = None
 
     # Lazy-loaded agent client to avoid initialization requests
     _agent_client: AgentServerClient | None = None
@@ -55,7 +56,7 @@ class _DIContext:
         sema4_api_key: str | None = None,
         disable_ssl_verification: bool = False,
         *,
-        agent_server_transport: TransportBase | None = None,
+        agent_server_transport: TransportBase | DirectTransport | None = None,
         pg_vector: DataSource | None = None,
         sema4_backend_url: str | None = None,
         persistence_service: DocumentPersistence | None = None,

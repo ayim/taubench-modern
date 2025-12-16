@@ -8,15 +8,14 @@ from structlog import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
-from agent_platform.core.model_selector.default import DefaultModelSelector
-from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
-from agent_platform.core.platforms.base import PlatformClient, PlatformParameters
 from agent_platform.core.prompts import Prompt
 from agent_platform.core.responses import ResponseMessage
 from agent_platform.server.api.dependencies import StorageDependency
-from agent_platform.server.api.private_v2.utils import create_minimal_kernel
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.kernel.model_platform import AgentServerPlatformInterface
+from agent_platform.server.services.prompts_service import (
+    create_platform_interface_and_get_model,
+    generate_prompt_response,
+)
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -68,41 +67,6 @@ async def _get_agent_and_observability_config(
     return agent, observability_config, platform_config_raw
 
 
-def _create_platform_interface_and_get_model(
-    platform_config_raw: dict,
-    context: AgentServerContext,
-    model: str | None = None,
-    model_type: ModelType = "llm",
-):
-    platform_config = PlatformParameters.model_validate(platform_config_raw)
-
-    # Pass the context to create_minimal_kernel
-    kernel = create_minimal_kernel(context)
-    platform_client = PlatformClient.from_platform_config(
-        kernel=kernel,
-        config=platform_config,
-    )
-
-    # Attach the platform client to the kernel
-    platform_client.attach_kernel(kernel)
-
-    # Create the platform interface with proper tracing capabilities
-    platform_interface = AgentServerPlatformInterface(platform_client)
-    platform_interface.attach_kernel(kernel)
-
-    # Test the platform client
-    model_selector = DefaultModelSelector()
-    model = model_selector.select_model(
-        platform=platform_client,
-        request=ModelSelectionRequest(
-            model_type=model_type,
-            direct_model_name=model,
-        ),
-    )
-
-    return platform_interface, model
-
-
 @router.post("/generate", response_model=ResponseMessage)
 async def prompt_generate(
     prompt: Prompt,
@@ -139,60 +103,19 @@ async def prompt_generate(
         agent_id=agent_id,
     )
 
-    with server_context.start_span("prompt_generate") as span:
-        # Set LangSmith metadata attributes similar to sync_run
-        if agent_id:
-            span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
-        if agent:
-            span.set_attribute("langsmith.metadata.agent_name", agent.name)
-        if thread_id:
-            span.set_attribute("langsmith.metadata.thread_id", str(thread_id))
-        span.set_attribute(
-            "langsmith.metadata.user_id",
-            server_context.user_context.user.cr_user_id
-            if server_context.user_context.user.cr_user_id
-            else server_context.user_context.user.sub,
-        )
-        span.set_attribute("langsmith.metadata.model_type", model_type)
-        if model:
-            span.set_attribute("langsmith.metadata.model", model)
+    # Use shared prompts service (spans are created inside)
+    response = await generate_prompt_response(
+        prompt=prompt,
+        platform_config_raw=platform_config_raw,
+        server_context=server_context,
+        model=model,
+        model_type=model_type,
+        agent_id=agent_id,
+        agent=agent,
+        thread_id=thread_id,
+    )
 
-        with server_context.start_span("configure_platform") as platform_span:
-            platform_span.set_attribute(
-                "input.value",
-                json.dumps(
-                    {
-                        "model": model,
-                        "model_type": model_type,
-                    }
-                ),
-            )
-
-            platform_interface, model = _create_platform_interface_and_get_model(
-                platform_config_raw=platform_config_raw,
-                context=server_context,
-                model=model,
-                model_type=model_type,
-            )
-
-            platform_span.set_attribute(
-                "output.value",
-                json.dumps(
-                    {
-                        "selected_model": model,
-                    }
-                ),
-            )
-
-        response = await platform_interface.generate_response(
-            prompt=prompt,  # Use original prompt, not platform_specific_prompt
-            model=model,
-        )
-
-        # Update span name with model info
-        span.update_name(f"prompt_generate[{model}]")
-
-        return response.excluding_raw_response()
+    return response.excluding_raw_response()
 
 
 @router.post("/stream")
@@ -258,7 +181,7 @@ async def prompt_stream(
                 ),
             )
 
-            platform_interface, model = _create_platform_interface_and_get_model(
+            platform_interface, model = create_platform_interface_and_get_model(
                 platform_config_raw=platform_config_raw,
                 context=server_context,
                 model=model,

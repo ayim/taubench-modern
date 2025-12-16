@@ -4,7 +4,7 @@ DIService facade that namespaces document and layout operations.
 
 from sema4ai.data import DataSource
 
-from sema4ai_docint.agent_server_client.transport import TransportBase
+from sema4ai_docint.agent_server_client.transport import DirectTransport, TransportBase
 from sema4ai_docint.extraction.reducto import AsyncExtractionClient, SyncExtractionClient
 from sema4ai_docint.services.persistence import ParsedDocumentPersistence
 
@@ -66,7 +66,7 @@ def build_di_service(
     sema4_api_key: str | None = None,
     disable_ssl_verification: bool = False,
     *,
-    agent_server_transport: TransportBase | None = None,
+    agent_server_transport: TransportBase | DirectTransport | None = None,
     pg_vector: DataSource | None = None,
     sema4_backend_url: str | None = None,
     persistence_service: ParsedDocumentPersistence | None = None,
@@ -77,8 +77,10 @@ def build_di_service(
         datasource: The datasource to use
         sema4_api_key: The sema4 api key to use for the extraction service
         disable_ssl_verification: Whether to disable ssl verification for the extraction service
-        agent_server_transport: The transport to use for the agent server client, will default to a
-            HTTP transport if not provided.
+        agent_server_transport: The transport to use for the agent server client. Can be either:
+            - TransportBase: Full transport for HTTP/Memory communication
+            - DirectTransport: Minimal transport for direct in-process communication
+            If not provided, will default to HTTP transport.
         pg_vector: PGVector datasource (only required for using the knowledge base service)
         sema4_backend_url: The URL of the Sema4.ai backend services.
         persistence_service: Optional persistence layer for caching extraction results.

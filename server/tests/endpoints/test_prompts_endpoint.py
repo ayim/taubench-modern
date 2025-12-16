@@ -30,11 +30,13 @@ from agent_platform.core.thread import Thread
 from agent_platform.core.user import User
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.private_v2.prompt import (
-    _create_platform_interface_and_get_model,
     prompt_generate,
     prompt_stream,
 )
 from agent_platform.server.kernel.model_platform import AgentServerPlatformInterface
+from agent_platform.server.services.prompts_service import (
+    create_platform_interface_and_get_model,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -216,7 +218,7 @@ def test_create_platform_client_for_every_kind(raw_config):
     """Given different `platform_config.kind`, the correct client is returned."""
     config_copy = raw_config.copy()
 
-    platform_interface, model = _create_platform_interface_and_get_model(
+    platform_interface, model = create_platform_interface_and_get_model(
         platform_config_raw=raw_config,
         context=_DUMMY_CTX,
         model="dummy-model",
@@ -235,24 +237,33 @@ def test_create_platform_client_for_every_kind(raw_config):
 @pytest.mark.asyncio
 async def test_generate_endpoint_serialises(monkeypatch):
     """The /generate route should emit exactly what the dummy client returns."""
+    expected = {
+        "content": [{"kind": "text", "text": "Madison."}],
+        "role": "agent",
+        "stop_reason": None,
+        "usage": {},
+        "model": "some-override-model",
+    }
 
-    # Create a properly mocked finalize_messages method
-    async def mock_finalize(*args, **kwargs):
-        return None
+    class _FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self._payload = payload
 
-    fake_prompt = SimpleNamespace(
-        finalize_messages=AsyncMock(side_effect=mock_finalize),
-        messages=[],  # Add messages attribute that the implementation expects
-    )
+        def excluding_raw_response(self) -> dict:
+            return self._payload
 
-    # Mock _create_platform_interface_and_get_model to help with the test
+    async def _fake_generate_prompt_response(**kwargs):
+        # We only assert the config selection separately in other tests; here we just
+        # verify endpoint serialization behavior.
+        return _FakeResponse(expected)
+
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
-        lambda **kwargs: (_DummyPlatformClient("openai"), "some-override-model"),
+        "agent_platform.server.api.private_v2.prompt.generate_prompt_response",
+        _fake_generate_prompt_response,
     )
 
     response = await prompt_generate(
-        prompt=fake_prompt,  # type: ignore
+        prompt=Prompt(messages=[]),  # minimal prompt; generation is mocked
         platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
         user=User(user_id="testing", sub="testing"),
         model="some-override-model",
@@ -265,17 +276,6 @@ async def test_generate_endpoint_serialises(monkeypatch):
         ),
         storage=_DummyStorage(),  # type: ignore
     )
-
-    # Verify finalize_messages was called (with no arguments)
-    fake_prompt.finalize_messages.assert_called_once_with()
-
-    expected = {
-        "content": [{"kind": "text", "text": "Madison."}],
-        "role": "agent",
-        "stop_reason": None,
-        "usage": {},
-        "model": "some-override-model",
-    }
     assert response == expected
 
 
@@ -287,23 +287,20 @@ async def test_stream_endpoint_serialises(monkeypatch):
     """/stream should forward each delta as `data:` lines in SSE format."""
     sent_events: list[str] = []
 
-    # Create a properly mocked finalize_messages method
-    async def mock_finalize(*args, **kwargs):
-        return None
+    async def _passthrough_raw_stream(self, prompt, model: str):
+        async for delta in self.client.stream_raw_response(prompt=prompt, model=model):
+            yield delta
 
-    # Mock _create_platform_interface_and_get_model to help with the test
+    # Avoid needing a real Kernel object inside AgentServerPlatformInterface
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
-        lambda **kwargs: (_DummyPlatformClient("openai"), "dummy-model"),
+        AgentServerPlatformInterface,
+        "stream_raw_response",
+        _passthrough_raw_stream,
     )
 
     # Fire the endpoint ---------------------------------------------------------
-    fake_prompt = SimpleNamespace(
-        finalize_messages=AsyncMock(side_effect=mock_finalize),
-        messages=[],  # Add messages attribute that the implementation expects
-    )
     resp = await prompt_stream(
-        prompt=fake_prompt,  # type: ignore
+        prompt=Prompt(messages=[]),
         platform_config_raw={"kind": "openai", "openai_api_key": "testing"},
         user=User(user_id="testing", sub="testing"),
         request=Request(
@@ -315,9 +312,6 @@ async def test_stream_endpoint_serialises(monkeypatch):
         ),
         storage=_DummyStorage(),  # type: ignore
     )
-
-    # Verify finalize_messages was called (with no arguments)
-    fake_prompt.finalize_messages.assert_called_once_with()
 
     # Consume the events the endpoint produced ----------------------------------
     async for event in resp.body_iterator:
@@ -482,18 +476,17 @@ async def test_truncation_finalizer_prioritizes_tool_content_over_text():
 async def test_generate_endpoint_uses_agent_id(monkeypatch):
     called: dict = {}
 
-    def spy(**kwargs):
+    class _FakeResponse:
+        def excluding_raw_response(self) -> dict:
+            return {"ok": True}
+
+    async def spy(**kwargs):
         called["cfg"] = kwargs["platform_config_raw"]
-        return _DummyPlatformClient("openai"), "dummy-model"
+        return _FakeResponse()
 
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
+        "agent_platform.server.api.private_v2.prompt.generate_prompt_response",
         spy,
-    )
-
-    fake_prompt = SimpleNamespace(
-        finalize_messages=AsyncMock(return_value=None),
-        messages=[],  # Add messages attribute that the implementation expects
     )
 
     agent = Agent(
@@ -509,7 +502,7 @@ async def test_generate_endpoint_uses_agent_id(monkeypatch):
     storage = _DummyStorage(agent)
 
     await prompt_generate(
-        prompt=fake_prompt,  # type: ignore
+        prompt=Prompt(messages=[]),
         user=User(user_id="testing", sub="testing"),
         request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
         storage=storage,  # type: ignore
@@ -523,18 +516,17 @@ async def test_generate_endpoint_uses_agent_id(monkeypatch):
 async def test_generate_endpoint_uses_thread_id(monkeypatch):
     called: dict = {}
 
-    def spy(**kwargs):
+    class _FakeResponse:
+        def excluding_raw_response(self) -> dict:
+            return {"ok": True}
+
+    async def spy(**kwargs):
         called["cfg"] = kwargs["platform_config_raw"]
-        return _DummyPlatformClient("openai"), "dummy-model"
+        return _FakeResponse()
 
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
+        "agent_platform.server.api.private_v2.prompt.generate_prompt_response",
         spy,
-    )
-
-    fake_prompt = SimpleNamespace(
-        finalize_messages=AsyncMock(return_value=None),
-        messages=[],  # Add messages attribute that the implementation expects
     )
 
     agent = Agent(
@@ -556,7 +548,7 @@ async def test_generate_endpoint_uses_thread_id(monkeypatch):
     storage = _DummyStorage(agent, thread)
 
     await prompt_generate(
-        prompt=fake_prompt,  # type: ignore
+        prompt=Prompt(messages=[]),
         user=User(user_id="testing", sub="testing"),
         request=Request(scope={"type": "http", "method": "POST", "path": "/"}),
         storage=storage,  # type: ignore
@@ -575,10 +567,28 @@ async def test_generate_endpoint_with_document_content(monkeypatch):
     test_document_content = b"This is a test PDF document content"
     base64_content = base64.b64encode(test_document_content).decode("utf-8")
 
-    # Mock _create_platform_interface_and_get_model to help with the test
+    expected = {
+        "content": [{"kind": "text", "text": "Madison."}],
+        "role": "agent",
+        "stop_reason": None,
+        "usage": {},
+        "model": "some-override-model",
+    }
+
+    class _FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self._payload = payload
+
+        def excluding_raw_response(self) -> dict:
+            return self._payload
+
+    async def _fake_generate_prompt_response(**kwargs):
+        return _FakeResponse(expected)
+
+    # Mock prompts_service boundary (the generate endpoint delegates to it)
     monkeypatch.setattr(
-        "agent_platform.server.api.private_v2.prompt._create_platform_interface_and_get_model",
-        lambda **kwargs: (_DummyPlatformClient("openai"), "some-override-model"),
+        "agent_platform.server.api.private_v2.prompt.generate_prompt_response",
+        _fake_generate_prompt_response,
     )
 
     # Create a prompt with document content following the spar-prompt-generate.py pattern
@@ -614,13 +624,6 @@ async def test_generate_endpoint_with_document_content(monkeypatch):
     )
 
     # Verify the response structure matches expected format
-    expected = {
-        "content": [{"kind": "text", "text": "Madison."}],
-        "role": "agent",
-        "stop_reason": None,
-        "usage": {},
-        "model": "some-override-model",
-    }
     assert response == expected
 
     # Verify the document content was properly included in the prompt
@@ -782,6 +785,19 @@ async def test_generate_endpoint_respects_minimize_reasoning(monkeypatch):
         _DummyPlatformClient,
         "generate_response",
         _record_generate,
+    )
+
+    async def _interface_generate_response(self, prompt, model: str):
+        await prompt.finalize_messages()
+        converted_prompt = await self.client.converters.convert_prompt(prompt, model_id=model)
+        return await self.client.generate_response(converted_prompt, model)
+
+    # Avoid needing a real Kernel object inside AgentServerPlatformInterface, but keep the
+    # "convert_prompt -> generate_response" flow intact for this test.
+    monkeypatch.setattr(
+        AgentServerPlatformInterface,
+        "generate_response",
+        _interface_generate_response,
     )
 
     prompt = Prompt(

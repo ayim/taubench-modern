@@ -1,10 +1,9 @@
-from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import ParseResult
 
-from pydantic import BaseModel, ConfigDict
-
+from sema4ai_docint.agent_server_client.transport._utils import call_transport_method_async
 from sema4ai_docint.agent_server_client.transport.base import TransportBase
+from sema4ai_docint.agent_server_client.transport.direct import DirectTransport
 
 from .chat_file_accessor import ChatFileAccessor
 
@@ -80,69 +79,40 @@ async def _fetch_file(file_url: str) -> bytes:
 
 
 class AgentServerChatFileAccessor(ChatFileAccessor):
-    """File accessor backed by the REST calls to Agent Server. Not intended
-    for use by Sema4.ai Actions and Agents. Use ActionsChatFileAccessor instead."""
+    """File accessor backed by Agent Server.
 
-    def __init__(self, thread_id: str, transport: TransportBase):
+    Supports both TransportBase (HTTP-based) and DirectTransport (direct storage access).
+    Not intended for use by Sema4.ai Actions and Agents. Use ActionsChatFileAccessor instead.
+    """
+
+    def __init__(self, thread_id: str, transport: TransportBase | DirectTransport):
         self._thread_id = thread_id
         self._transport = transport
 
     async def write_text(self, name: str, content: bytes) -> None:
-        resp = self._transport.request(
-            method="POST",
-            path=f"threads/{self._thread_id}/files",
-            files={
-                "files": (name, content, "text/plain"),
-            },
+        await call_transport_method_async(
+            self._transport,
+            "upload_file_bytes",
+            thread_id=self._thread_id,
+            file_ref=name,
+            content=content,
+            mime_type="text/plain",
         )
-        resp.raise_for_status()
 
     async def read_text(self, name: str) -> bytes | None:
-        # Return AgentServer "UploadedFile" object.
-        response = self._transport.request(
-            method="GET",
-            path=f"threads/{self._thread_id}/file-by-ref",
-            params={"file_ref": name},
+        file_url = await call_transport_method_async(
+            self._transport,
+            "get_file_url",
+            thread_id=self._thread_id,
+            file_ref=name,
         )
-        # no such file
-        if response.status_code == HTTPStatus.NOT_FOUND:
+        if file_url is None:
             return None
-
-        response.raise_for_status()
-
-        uploaded_file = response.json()
-        if "file_url" not in uploaded_file:
-            raise ValueError(f"File URL not found in response: {uploaded_file}")
-
-        file_url = uploaded_file["file_url"]
-
         return await _fetch_file(file_url)
 
     async def list(self) -> list[str]:
-        resp = self._transport.request(method="GET", path=f"threads/{self._thread_id}/files")
-        resp.raise_for_status()
-
-        # Verify we got a list of UploadedFile
-        raw_json = resp.json()
-        if not isinstance(raw_json, list):
-            raise ValueError(f"expected list of files but got {type(raw_json)}")
-        files = [_UploadedFile.model_validate(f) for f in raw_json]
-
-        # Send back just the file names
-        return [f.file_ref for f in files]
-
-
-class _UploadedFile(BaseModel):
-    """Represents an uploaded file."""
-
-    # Ignore extra attributes from agent-server, we don't care about them.
-    model_config = ConfigDict(extra="ignore")
-
-    file_id: str
-    """A unique ID of the file."""
-
-    file_url: str
-    """The path of the file."""
-
-    file_ref: str
-    """The file name."""
+        return await call_transport_method_async(
+            self._transport,
+            "list_file_refs",
+            thread_id=self._thread_id,
+        )

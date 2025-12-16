@@ -27,7 +27,13 @@ from .prompts import (
     VALIDATION_RULES_SYSTEM_PROMPT,
     get_schema_prompt,
 )
-from .transport import HTTPTransport, ResponseMessage, TransportBase
+from .transport import (
+    DirectTransport,
+    HTTPTransport,
+    ResponseMessage,
+    TransportBase,
+)
+from .transport._utils import call_transport_method
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +63,20 @@ class CategorizedSummary:
 
 
 class AgentServerClient:
-    def __init__(self, agent_id: str | None = None, transport: TransportBase | None = None):
+    def __init__(
+        self,
+        agent_id: str | None = None,
+        transport: TransportBase | DirectTransport | None = None,
+    ):
         """Initialize the AgentServerClient.
 
         Args:
             agent_id: Optional agent_id to use. If not provided, will attempt to get from
                 transport context.
-            transport: Optional transport implementation. If not provided, HTTPTransport will
-                be used.
+            transport: Optional transport implementation. Can be either:
+                - TransportBase: Full transport for HTTP/Memory communication
+                - DirectTransport: Minimal transport for direct in-process communication
+                If not provided, HTTPTransport will be used.
         """
         # Initialize transport first
         if transport is None:
@@ -75,9 +87,11 @@ class AgentServerClient:
 
         # TODO: Does anyone use api_url or is_cloud outside of the client and tests?
 
-        # Initialize the transport
+        # Initialize the transport (only if it has connect method)
+        # DirectTransport doesn't need connect/disconnect
         # TODO: Should we do this more lazily?
-        self.transport.connect()
+        if isinstance(self.transport, TransportBase):
+            self.transport.connect()
 
     @staticmethod
     def extract_text_content(response: ResponseMessage) -> str:
@@ -748,7 +762,7 @@ class AgentServerClient:
         Raises:
             ValueError: If the file type is not supported or processing fails
         """
-        file_path = self.transport.get_file(file_name)
+        file_path = call_transport_method(self.transport, "get_file", file_name)
         if self._is_excel_file(file_name):
             return self._excel_to_text(file_path, start_page=start_page, end_page=end_page)
         elif self._is_docx_file(file_name):
@@ -898,6 +912,7 @@ exist in the source schema.
                         "role": "user",
                         "content": [
                             {
+                                "kind": "text",
                                 "text": f"""
 Source Schema:
 {extraction_schema}
@@ -914,7 +929,7 @@ Target Schema:
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
         return AgentServerClient.extract_text_content(response_msg)
 
     @classmethod
@@ -951,7 +966,7 @@ Target Schema:
         Raises:
             ValueError: If the file type is not supported for image conversion
         """
-        file_path = self.transport.get_file(file_name)
+        file_path = call_transport_method(self.transport, "get_file", file_name)
         if self._is_pdf_file(file_name):
             return self._pdf_to_images(file_path, start_page=start_page, end_page=end_page)
         elif self._is_image_file(file_name):
@@ -1235,7 +1250,7 @@ schema name, respond with "UNKNOWN".
                 "max_output_tokens": 10240,
             },
         }
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         # basic normalization (strip and lower)
         schema_name = AgentServerClient.extract_text_content(response_msg).strip().lower()
@@ -1306,7 +1321,7 @@ schema name, respond with "UNKNOWN".
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         # basic normalization (strip and lower)
         layout_name = AgentServerClient.extract_text_content(response_msg).strip().lower()
@@ -1367,7 +1382,7 @@ schema name, respond with "UNKNOWN".
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         response_text = AgentServerClient.extract_text_content(response_msg).strip()
         response_text = _trim_json_markup(response_text)
@@ -1512,7 +1527,7 @@ schema name, respond with "UNKNOWN".
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         return AgentServerClient.extract_text_content(response_msg)
 
@@ -1551,7 +1566,7 @@ schema name, respond with "UNKNOWN".
             }
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         return AgentServerClient.extract_text_content(response_msg)
 
@@ -1605,7 +1620,7 @@ schema name, respond with "UNKNOWN".
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         raw_relevancies = AgentServerClient.extract_text_content(response_msg)
 
@@ -1656,7 +1671,7 @@ schema name, respond with "UNKNOWN".
                 payload = payload_generator(temperature, error_feedback)
 
                 # Make the request
-                response_msg = self.transport.prompts_generate(payload)
+                response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
                 # Extract and validate the response
                 llm_resp = AgentServerClient.extract_text_content(response_msg)
@@ -1825,7 +1840,7 @@ Output should only contain existing layout names.
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         response_text = AgentServerClient.extract_text_content(response_msg).strip()
         response_text = _trim_json_markup(response_text)
@@ -1930,7 +1945,7 @@ Output should only contain existing layout names.
             },
         }
 
-        response_msg = self.transport.prompts_generate(payload)
+        response_msg = call_transport_method(self.transport, "prompts_generate", payload)
 
         response_text = AgentServerClient.extract_text_content(response_msg).strip()
         response_text = _trim_json_markup(response_text)

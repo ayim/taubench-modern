@@ -311,17 +311,17 @@ class _DocumentTools:
                 else str(reducto_settings.api_key)
             )
 
-            # Build transport for DIService
-            from sema4ai_docint.agent_server_client.transport.memory import MemoryTransport
+            from agent_platform.server.document_intelligence import DirectKernelTransport
+            from agent_platform.server.file_manager import FileManagerService
 
-            base_url = str(kernel.ctx.http.request.base_url).rstrip("/")
-            base_url = base_url.replace("ws://", "http://").replace("wss://", "https://")
-
-            transport = MemoryTransport(
-                base_url=base_url,
-                agent_id=kernel.agent.agent_id,
+            file_manager = FileManagerService.get_instance(self._storage)
+            transport = DirectKernelTransport(
+                storage=self._storage,
+                file_manager=file_manager,
                 thread_id=kernel.thread.thread_id,
-                app=kernel.ctx.http.request.app,
+                agent_id=kernel.agent.agent_id,
+                user_id=self._user.user_id,
+                server_context=kernel.ctx,
             )
 
             # Build DIService with file-based persistence (same as UI endpoint)
@@ -435,17 +435,17 @@ class _DocumentTools:
                 else str(reducto_settings.api_key)
             )
 
-            # Build transport for DIService
-            from sema4ai_docint.agent_server_client.transport.memory import MemoryTransport
+            from agent_platform.server.document_intelligence import DirectKernelTransport
+            from agent_platform.server.file_manager import FileManagerService
 
-            base_url = str(kernel.ctx.http.request.base_url).rstrip("/")
-            base_url = base_url.replace("ws://", "http://").replace("wss://", "https://")
-
-            transport = MemoryTransport(
-                base_url=base_url,
-                agent_id=kernel.agent.agent_id,
+            file_manager = FileManagerService.get_instance(self._storage)
+            transport = DirectKernelTransport(
+                storage=self._storage,
+                file_manager=file_manager,
                 thread_id=kernel.thread.thread_id,
-                app=kernel.ctx.http.request.app,
+                agent_id=kernel.agent.agent_id,
+                user_id=self._user.user_id,
+                server_context=kernel.ctx,
             )
 
             # Build DIService with file-based persistence (same as parse_document)

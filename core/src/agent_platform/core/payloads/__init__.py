@@ -21,6 +21,7 @@ from agent_platform.core.payloads.mcp_server_response import (
     MCPServerType,
     MCPTransport,
 )
+from agent_platform.core.payloads.prompts_generate import PromptsGeneratePayload
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     DeleteSemanticDataModelPayload,
     EmptyFileReference,
@@ -72,6 +73,7 @@ __all__ = [
     "MCPServerType",
     "MCPTransport",
     "PatchAgentPayload",
+    "PromptsGeneratePayload",
     "SelectedToolConfig",
     "SelectedTools",
     "SemanticDataModelWithAssociations",

@@ -282,3 +282,90 @@ class TransportBase(ABC):
         Raises:
             TransportConnectionError: If the file cannot be retrieved
         """
+
+    def upload_file_bytes(
+        self,
+        *,
+        thread_id: str,
+        file_ref: str,
+        content: bytes,
+        mime_type: str = "text/plain",
+    ) -> None:
+        """Upload file bytes into a thread.
+
+        Args:
+            thread_id: The thread ID to upload to
+            file_ref: The file reference/name
+            content: The file content as bytes
+            mime_type: The MIME type of the file
+
+        Raises:
+            TransportConnectionError: If the upload fails
+        """
+        response = self.request(
+            method="POST",
+            path=f"threads/{thread_id}/files",
+            files={"files": (file_ref, content, mime_type)},
+        )
+        response.raise_for_status()
+
+    def list_file_refs(self, *, thread_id: str) -> list[str]:
+        """List file references for a thread.
+
+        Args:
+            thread_id: The thread ID
+
+        Returns:
+            List of file references
+
+        Raises:
+            TransportConnectionError: If the request fails
+        """
+        response = self.request(
+            method="GET",
+            path=f"threads/{thread_id}/files",
+        )
+        response.raise_for_status()
+        raw_json = response.json()
+        if not isinstance(raw_json, list):
+            raise ValueError(f"expected list of files but got {type(raw_json)}")
+
+        # Extract file_ref from each file dict
+        refs: list[str] = []
+        for item in raw_json:
+            if isinstance(item, dict) and isinstance(item.get("file_ref"), str):
+                refs.append(item["file_ref"])
+        return refs
+
+    def get_file_url(self, *, thread_id: str, file_ref: str) -> str | None:
+        """Get file URL by reference.
+
+        Args:
+            thread_id: The thread ID
+            file_ref: The file reference
+
+        Returns:
+            File URL/URI or None if not found
+
+        Raises:
+            TransportConnectionError: If the request fails (except 404)
+        """
+        response = self.request(
+            method="GET",
+            path=f"threads/{thread_id}/file-by-ref",
+            params={"file_ref": file_ref},
+        )
+
+        if response.status_code == HTTPStatus.NOT_FOUND:
+            return None
+
+        response.raise_for_status()
+        uploaded_file = response.json()
+        if not isinstance(uploaded_file, dict):
+            raise ValueError(f"expected dict but got {type(uploaded_file)}")
+
+        file_url = uploaded_file.get("file_url") or uploaded_file.get("file_path")
+        if not isinstance(file_url, str) or not file_url:
+            raise ValueError(f"File URL not found in response: {uploaded_file}")
+
+        return file_url

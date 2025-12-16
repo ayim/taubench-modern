@@ -11,6 +11,7 @@ from sema4ai_docint.models.constants import (
 )
 from sema4ai_docint.utils import compute_document_id
 
+from ..agent_server_client.transport._utils import call_transport_method
 from ._context import _DIContext
 from ._setup_kb import _setup_kb
 from .dto import KnowledgeBaseQueryResult
@@ -177,7 +178,9 @@ class _KnowledgeBaseService:
         assert self._context.agent_server_transport is not None, "AgentServer is not available"
         assert self._context.pg_vector is not None, "PGVector datasource was not provided"
 
-        file_path = self._context.agent_server_transport.get_file(document_name)
+        file_path = call_transport_method(
+            self._context.agent_server_transport, "get_file", document_name
+        )
 
         _setup_kb(self._context.datasource, self._context.pg_vector)
 

@@ -3,7 +3,6 @@ import json
 from pathlib import PurePath
 
 from reducto.types import ParseResponse
-from sema4ai.actions.chat import list_files
 
 from sema4ai_docint.models.document_v2 import DocumentV2
 from sema4ai_docint.services._context import _DIContext
@@ -41,15 +40,26 @@ class _DocumentServiceV2:
         Returns:
             A Document object.
         """
-        assert self._context.agent_server_transport is not None, (
-            "Agent server transport is required."
+        transport = self._context.agent_server_transport
+        from sema4ai_docint.agent_server_client.transport._utils import (
+            call_transport_method_async,
         )
+
+        assert transport is not None, "Agent server transport is required."
         normalized_file_name = PurePath(file_name).name
         try:
-            local_path = self._context.agent_server_transport.get_file(normalized_file_name)
+            local_path = await call_transport_method_async(
+                transport, "get_file", normalized_file_name
+            )
         except Exception as e:
+            available_files_msg = ""
+            if transport.thread_id:
+                available_files = await call_transport_method_async(
+                    transport, "list_file_refs", thread_id=transport.thread_id
+                )
+                available_files_msg = f" Available files: {available_files}"
             raise DocumentServiceError(
-                f"File not found: {normalized_file_name}. Available files: {list_files()}"
+                f"File not found: {normalized_file_name}.{available_files_msg}"
             ) from e
 
         return DocumentV2(
@@ -80,7 +90,7 @@ class _DocumentServiceV2:
                 return ParseResponse.model_validate_json(cached)
 
         reducto_id = await self._context.extraction_service_async.upload(
-            document.get_local_path(self._context.agent_server_transport)
+            await document.get_local_path(self._context.agent_server_transport)
         )
         response = await self._context.extraction_service_async.parse(reducto_id, config=config)
         await self._context.persistence_service.save(cache_key, response.model_dump_json().encode())

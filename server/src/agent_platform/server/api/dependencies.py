@@ -8,12 +8,13 @@ from sema4ai.data import DataSource
 from sema4ai.data._data_source import ConnectionNotSetupError
 from sema4ai_docint import DIService, build_di_service
 from sema4ai_docint.agent_server_client import AgentServerClient
-from sema4ai_docint.agent_server_client.transport import MemoryTransport
+from sema4ai_docint.agent_server_client.transport.direct import DirectTransport
 from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient
 from starlette.concurrency import run_in_threadpool
 
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.configurations.quotas import QuotasService
+from agent_platform.core.context import AgentServerContext
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors import ErrorCode
 from agent_platform.core.errors.base import PlatformHTTPError
@@ -297,31 +298,44 @@ DocIntDatasourceDependency = Annotated[DataSource, Depends(get_docint_datasource
 
 
 async def get_agent_server_transport(
-    request: Request, agent_id: str | None = None, thread_id: str | None = None
-) -> MemoryTransport:
-    """Get an agent server transport from the sema4ai-docint package for use in DIv2.
+    request: Request,
+    user: AuthedUser,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    agent_id: str | None = None,
+    thread_id: str | None = None,
+) -> DirectTransport:
+    """Get an agent server transport for use in DIv2.
 
     Args:
+        request: The FastAPI request object
+        user: The authenticated user
+        storage: The storage service instance
+        file_manager: The file manager service instance
         agent_id: The agent ID to attach to the transport instance as context
-        thread_id: The thread ID to attach to the transport instance as context, this is
-            required for transport file operations.
+        thread_id: The thread ID to attach to the transport instance as context,
+            this is required for transport file operations.
     """
-    # Get the authorization header if it exists so it can be added to the transport
-    additional_headers = None
-    if "Authorization" in request.headers:
-        additional_headers = {"Authorization": request.headers["Authorization"]}
+    from agent_platform.server.document_intelligence import DirectKernelTransport
 
-    return MemoryTransport(
-        base_url=str(request.base_url),
-        base_path="",
+    server_context = AgentServerContext.from_request(
+        request=request,
+        user=user,
         agent_id=agent_id,
-        thread_id=thread_id,
-        app=request.app,
-        additional_headers=additional_headers,
+    )
+
+    # Use DirectKernelTransport for direct access to storage/file manager
+    return DirectKernelTransport(
+        storage=storage,
+        file_manager=file_manager,
+        thread_id=thread_id or "",
+        agent_id=agent_id or "",
+        user_id=user.user_id,
+        server_context=server_context,
     )
 
 
-AgentServerTransportDependency = Annotated[MemoryTransport, Depends(get_agent_server_transport)]
+AgentServerTransportDependency = Annotated[DirectTransport, Depends(get_agent_server_transport)]
 
 
 async def get_agent_server_client(transport: AgentServerTransportDependency) -> AgentServerClient:

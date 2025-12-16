@@ -7,9 +7,11 @@ from .base import (
     TransportBase,
     TransportResponseWrapper,
 )
+from .direct import DirectTransport
 from .http import HTTPTransport
 
 __all__ = [
+    "DirectTransport",
     "HTTPTransport",
     "ResponseMessage",
     "TransportBase",

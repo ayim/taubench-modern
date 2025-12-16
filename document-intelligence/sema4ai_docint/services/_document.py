@@ -17,6 +17,7 @@ from sema4ai_docint.utils import compute_document_id, normalize_name
 from sema4ai_docint.validation.models import ValidationRule, ValidationSummary
 from sema4ai_docint.validation.validate import validate_document_extraction
 
+from ..agent_server_client.transport._utils import call_transport_method
 from ..models import DataModel, Document, DocumentLayout, initialize_dataserver
 from ..models.constants import DEFAULT_LAYOUT_NAME, PROJECT_NAME
 from ._context import _DIContext
@@ -89,7 +90,9 @@ class _DocumentService:
         if self._context.agent_server_transport is None:
             raise DocumentServiceError("AgentServer not configured")
 
-        file_path = self._context.agent_server_transport.get_file(file_name)
+        file_path = call_transport_method(
+            self._context.agent_server_transport, "get_file", file_name
+        )
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
 
@@ -480,7 +483,9 @@ class _DocumentService:
 
         try:
             # Generate document ID
-            pdf_path = self._context.agent_server_transport.get_file(file_name)
+            pdf_path = call_transport_method(
+                self._context.agent_server_transport, "get_file", file_name
+            )
 
             document_id = compute_document_id(pdf_path)
             logger.info(f"Generated document ID: {document_id}")

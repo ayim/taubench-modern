@@ -5,11 +5,11 @@ Integration tests using testcontainers to verify view generation with a real dat
 import json
 import uuid
 
-from conftest import VIEWS_SAMPLE_SCHEMA, load_document
 from sema4ai.data import DataSource
 
 from sema4ai_docint.models.initialize import initialize_database
 from sema4ai_docint.views import ViewGenerator
+from tests.conftest import VIEWS_SAMPLE_SCHEMA, load_document
 
 
 def clear_tables(ds: DataSource):

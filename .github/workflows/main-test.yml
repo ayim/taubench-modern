@@ -267,7 +267,7 @@ jobs:
         run: chmod +x ./dist/agent-server
 
       - name: Run Integration tests
-        timeout-minutes: 35
+        timeout-minutes: 40
         env:
           SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE: ${{ runner.os == 'Windows' && '.\\dist\\agent-server.exe' || './dist/agent-server' }}
         run: make test-integration PYTEST_PARALLEL=0

@@ -96,7 +96,7 @@ class MockTransport(TransportBase):
         """
         self._file_responses = file_responses
 
-    def get_file(self, name: str) -> Path:
+    def get_file(self, name: str, thread_id: str | None = None) -> Path:
         return self._file_responses.get(name, Path(f"/mock/path/{name}"))
 
     def prompts_generate(self, payload: dict[str, Any]) -> ResponseMessage:

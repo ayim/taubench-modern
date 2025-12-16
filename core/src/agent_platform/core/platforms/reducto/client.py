@@ -261,6 +261,12 @@ class ReductoClient(
 
         return self.parsers.parse_response(extract_resp)
 
+    async def close(self) -> None:
+        """Close the extraction service and clean up resources."""
+        if self._extraction_service is not None:
+            await self._extraction_service.close()
+            self._extraction_service = None
+
     async def _classify(self, prompt: ReductoPrompt) -> ResponseMessage:
         """Classify a document by parsing it first, then using LLM delegation."""
         from pathlib import Path
