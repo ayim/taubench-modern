@@ -13,6 +13,10 @@ export const Layout = styled.section<{ workItemListOnly?: boolean }>`
     grid-area: header;
   }
 
+  &:has(> div) > header {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
+  }
+
   > aside {
     grid-area: workitems;
     overflow-x: hidden;
