@@ -109,7 +109,6 @@ def edge_case_semantic_model(
     Returns:
         dict: Generated semantic data model response
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -140,7 +139,7 @@ def edge_case_semantic_model(
         agent_id=agent_id,
     )
 
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 def test_edge_case_semantic_model_generation(

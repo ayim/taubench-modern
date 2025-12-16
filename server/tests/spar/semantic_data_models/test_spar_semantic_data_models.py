@@ -159,7 +159,6 @@ def test_generate_semantic_data_model_basic(
     test_generated_semantic_data_model_structure - see that test's docstring for details.
     """
     import uuid
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -203,7 +202,7 @@ def test_generate_semantic_data_model_basic(
         tables_info=inspect_response["tables"],
     )
     # Validate the DataConnectionInfo structure
-    assert_data_connection_info_structure(asdict(data_connection_info))
+    assert_data_connection_info_structure(data_connection_info.model_dump())
 
     payload = GenerateSemanticDataModelPayload(
         name="test_model",  # Enhancement should improve this
@@ -214,7 +213,7 @@ def test_generate_semantic_data_model_basic(
     )
 
     # Generate the semantic data model
-    result = client.generate_semantic_data_model(asdict(payload))
+    result = client.generate_semantic_data_model(payload.model_dump())
 
     # Verify the result
     assert result is not None
@@ -281,7 +280,6 @@ def _generate_full_semantic_data_model(
     Returns:
         dict: Generated semantic data model response with 'semantic_model' key
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -344,7 +342,7 @@ def _generate_full_semantic_data_model(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 @pytest.fixture(scope="module")
@@ -572,7 +570,6 @@ def test_data_frame_column_headers_populated(
     case sensitivity with quoted lowercase identifiers in the main schema.
     """
     import uuid
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -627,7 +624,7 @@ def test_data_frame_column_headers_populated(
             files_info=[],
             agent_id=agent_id,
         )
-        generated_model = client.generate_semantic_data_model(asdict(payload))
+        generated_model = client.generate_semantic_data_model(payload.model_dump())
         created_model = client.create_semantic_data_model(generated_model)
         model_id = created_model["semantic_data_model_id"]
 
@@ -746,7 +743,6 @@ def initial_sdm_with_one_table(
 
     Customers table starts with only id and name columns.
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -788,7 +784,7 @@ def initial_sdm_with_one_table(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 @pytest.fixture(scope="module")
@@ -804,7 +800,6 @@ def sdm_after_column_change(
     Orders table has all columns.
     This should trigger full mode enhancement (both new table and new columns).
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -853,7 +848,7 @@ def sdm_after_column_change(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 @pytest.fixture(scope="module")
@@ -868,7 +863,6 @@ def sdm_after_table_added(
     This should trigger tables mode enhancement.
     Products table starts with only id and name columns.
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -923,7 +917,7 @@ def sdm_after_table_added(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 @pytest.fixture(scope="module")
@@ -938,7 +932,6 @@ def sdm_after_more_columns(
     Products table now has id, name, price, category (more than before).
     This should trigger columns mode enhancement.
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -994,7 +987,7 @@ def sdm_after_more_columns(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 def assert_table_metadata_unchanged(initial_table_value: LogicalTable, updated_table_value: LogicalTable):

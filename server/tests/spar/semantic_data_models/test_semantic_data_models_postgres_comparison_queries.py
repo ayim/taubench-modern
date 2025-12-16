@@ -257,7 +257,6 @@ def comparison_semantic_data_model(
     Returns:
         dict: Generated semantic data model response with 'semantic_model' key
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -302,7 +301,7 @@ def comparison_semantic_data_model(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 def test_comparison_semantic_data_model_structure(

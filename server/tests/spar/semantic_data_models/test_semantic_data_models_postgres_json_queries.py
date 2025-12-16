@@ -66,9 +66,17 @@ def get_last_successful_sql_call(tool_calls: list) -> Any:
         AssertionError: If no successful SQL calls found
     """
     sql_tool_calls = [tc for tc in tool_calls if tc.tool_name == "data_frames_create_from_sql"]
-    assert len(sql_tool_calls) > 0, (
-        f"Expected data_frames_create_from_sql call. Got: {[tc.tool_name for tc in tool_calls]}"
-    )
+
+    # Check if generate_sql failed (which would prevent SQL execution)
+    generate_sql_calls = [tc for tc in tool_calls if tc.tool_name == "generate_sql"]
+    generate_sql_errors = [tc.error for tc in generate_sql_calls if tc.error]
+
+    if len(sql_tool_calls) == 0:
+        error_msg = f"Expected data_frames_create_from_sql call. Got: {[tc.tool_name for tc in tool_calls]}"
+        if generate_sql_errors:
+            error_msg += f"\nSQL generation failed with errors: {generate_sql_errors}"
+            error_msg += "\nThis indicates the SQL generation agent did not produce valid SQL, preventing execution."
+        raise AssertionError(error_msg)
 
     # Filter for successful calls (no errors)
     successful_sql_calls = [tc for tc in sql_tool_calls if tc.error is None]
@@ -214,7 +222,6 @@ def documents_semantic_data_model(
     Returns:
         dict: Generated semantic data model response with 'semantic_model' key
     """
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -259,7 +266,7 @@ def documents_semantic_data_model(
     )
 
     # Generate the semantic data model
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 def test_documents_semantic_data_model_structure(

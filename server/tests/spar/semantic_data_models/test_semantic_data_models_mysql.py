@@ -168,7 +168,6 @@ def test_mysql_basic_query_generation(
     mysql_agent: str,
 ) -> None:
     """Test basic SQL query generation for MySQL."""
-    from dataclasses import asdict
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
@@ -199,7 +198,7 @@ def test_mysql_basic_query_generation(
         agent_id=agent_id,
     )
 
-    result = client.generate_semantic_data_model(asdict(payload))
+    result = client.generate_semantic_data_model(payload.model_dump())
 
     # Verify the result
     assert result is not None

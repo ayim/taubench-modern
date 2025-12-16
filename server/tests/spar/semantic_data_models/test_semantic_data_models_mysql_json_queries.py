@@ -70,8 +70,6 @@ def mysql_json_semantic_model(
     if engine != "mysql":
         pytest.skip("MySQL-specific fixture")
 
-    from dataclasses import asdict
-
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         DataConnectionInfo,
         GenerateSemanticDataModelPayload,
@@ -144,7 +142,7 @@ def mysql_json_semantic_model(
         agent_id=agent_id,
     )
 
-    return client.generate_semantic_data_model(asdict(payload))
+    return client.generate_semantic_data_model(payload.model_dump())
 
 
 def test_mysql_json_tables_loaded(
