@@ -110,6 +110,32 @@ export const useEvalSidebarData = ({
       (totalScenarios > 0 ? Math.max(1, Math.round(totalTrials / Math.max(totalScenarios, 1))) : 1);
     const metadata: ScenarioBatchRunMetadata | null = batchRun.metadata ?? null;
 
+    const scenarioIssues: Record<
+      string,
+      {
+        name: string;
+        stalled: number;
+        slow: number;
+      }
+    > = {};
+
+    const scenarioById = new Map(batchRun.scenario_ids.map((id) => [id, scenarioMap.get(id)]));
+
+    (batchRun.trial_statuses ?? []).forEach((status) => {
+      const scenarioId = status.scenario_id;
+      const scenario = scenarioById.get(scenarioId);
+      const name = scenario?.name ?? scenarioId;
+      const entry = scenarioIssues[scenarioId] ?? { name, stalled: 0, slow: 0 };
+      status.trials?.forEach((trial) => {
+        if (trial.progress_classification === 'stalled') {
+          entry.stalled += 1;
+        } else if (trial.progress_classification === 'slow') {
+          entry.slow += 1;
+        }
+      });
+      scenarioIssues[scenarioId] = entry;
+    });
+
     return {
       batchRunId: batchRun.batch_run_id,
       createdAt: batchRun.created_at,
@@ -117,6 +143,7 @@ export const useEvalSidebarData = ({
       statistics: batchRun.statistics,
       numTrials: inferredNumTrials,
       metadata,
+      scenarioIssues,
     };
   }, []);
   useEffect(() => {

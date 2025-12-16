@@ -9,6 +9,7 @@ import yaml
 from fastapi import UploadFile
 
 from agent_platform.core.evals.types import (
+    ExecutionState,
     FlowAdherenceResult,
     ResponseAccuracyResult,
     Scenario,
@@ -67,6 +68,8 @@ def _assert_trial_statuses(payload: dict, expected_runs: int, expected_trials: i
             assert trial["trial_id"]
             assert isinstance(trial["index_in_run"], int)
             assert trial["status"] in {status.value for status in TrialStatus}
+            assert "progress_classification" in trial
+            assert "last_progress_at" in trial
 
 
 async def test_export_agent_scenarios_returns_zip_with_payload(client, storage, seed_agents, stub_user):
@@ -998,6 +1001,34 @@ async def test_retry_after_at_persists_through_api(client, storage, seed_agents,
     assert trial_payload["reschedule_attempts"] == 3
     assert trial_payload["error_message"] == "Rate limited"
     assert trial_payload["metadata"] == metadata
+
+
+async def test_latest_scenario_run_includes_progress_classification(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    scenario = await _create_scenario(storage, stub_user.user_id, agent.agent_id, name="Stalled run")
+
+    run_response = client.post(
+        f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs",
+        json={"num_trials": 1},
+    )
+    assert run_response.status_code == 200
+    run_payload = run_response.json()
+    trial_id = run_payload["trials"][0]["trial_id"]
+
+    await storage.update_trial_status(
+        trial_id,
+        stub_user.user_id,
+        TrialStatus.EXECUTING,
+    )
+
+    execution_state = ExecutionState()
+    execution_state.last_progress_at = datetime.now(UTC) - timedelta(seconds=1_200)
+    await storage.update_trial_execution(trial_id, execution_state)
+
+    latest_run_response = client.get(f"/api/v2/evals/scenarios/{scenario.scenario_id}/runs/latest")
+    assert latest_run_response.status_code == 200
+    trial_payload = latest_run_response.json()["trials"][0]
+    assert trial_payload["progress_classification"] == "stalled"
 
 
 async def test_cancel_agent_batch_run_marks_trials_canceled(client, storage, seed_agents, stub_user):

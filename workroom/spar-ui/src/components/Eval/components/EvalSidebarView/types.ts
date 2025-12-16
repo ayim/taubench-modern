@@ -32,4 +32,12 @@ export interface BatchSummary {
   statistics: ScenarioBatchRunStatistics;
   numTrials: number;
   metadata: ScenarioBatchRunMetadata | null;
+  scenarioIssues?: Record<
+    string,
+    {
+      name: string;
+      stalled: number;
+      slow: number;
+    }
+  >;
 }

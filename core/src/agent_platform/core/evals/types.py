@@ -177,6 +177,9 @@ def parse_execution_state(data: dict) -> "ExecutionState":
     if "finished_at" in data and isinstance(data["finished_at"], str):
         data["finished_at"] = datetime.fromisoformat(data["finished_at"])
 
+    if "last_progress_at" in data and isinstance(data["last_progress_at"], str):
+        data["last_progress_at"] = datetime.fromisoformat(data["last_progress_at"])
+
     return ExecutionState(**data)
 
 
@@ -249,6 +252,9 @@ class ExecutionState:
 
     started_at: datetime = field(default_factory=datetime.now)
     finished_at: datetime | None = None
+    last_progress_at: datetime | None = None
+    current_phase: str | None = None
+    current_worker_id: str | None = None
 
     def model_dump(self) -> dict:
         return {
@@ -259,6 +265,9 @@ class ExecutionState:
             "error_message": self.error_message,
             "started_at": self.started_at.isoformat(),
             "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+            "last_progress_at": self.last_progress_at.isoformat() if self.last_progress_at else None,
+            "current_phase": self.current_phase,
+            "current_worker_id": self.current_worker_id,
         }
 
 
@@ -289,6 +298,7 @@ class Trial:
     )
     retry_after_at: datetime | None = None
     reschedule_attempts: int = 0
+    progress_classification: Literal["running", "slow", "stalled"] | None = None
 
     def __repr__(self) -> str:
         base = (
@@ -361,6 +371,11 @@ class Trial:
 
         if "status" in data and isinstance(data["status"], str):
             data["status"] = TrialStatus(data["status"])
+
+        progress_classification = data.get("progress_classification")
+        if progress_classification is not None and not isinstance(progress_classification, str):
+            progress_classification = str(progress_classification)
+        data["progress_classification"] = progress_classification
 
         return cls(
             **data,
@@ -450,6 +465,11 @@ class ScenarioBatchRunTrialStatusEntry:
     status_updated_at: datetime | None = None
     execution_started_at: datetime | None = None
     execution_finished_at: datetime | None = None
+    last_progress_at: datetime | None = None
+    current_phase: str | None = None
+    worker_id: str | None = None
+    progress_classification: Literal["running", "slow", "stalled"] | None = None
+    seconds_since_progress: float | None = None
 
     def model_dump(self) -> dict:
         return {
@@ -459,6 +479,11 @@ class ScenarioBatchRunTrialStatusEntry:
             "status_updated_at": self.status_updated_at,
             "execution_started_at": self.execution_started_at,
             "execution_finished_at": self.execution_finished_at,
+            "last_progress_at": self.last_progress_at,
+            "current_phase": self.current_phase,
+            "worker_id": self.worker_id,
+            "progress_classification": self.progress_classification,
+            "seconds_since_progress": self.seconds_since_progress,
         }
 
     @classmethod
@@ -470,6 +495,8 @@ class ScenarioBatchRunTrialStatusEntry:
             parsed["execution_started_at"] = datetime.fromisoformat(parsed["execution_started_at"])
         if "execution_finished_at" in parsed and isinstance(parsed["execution_finished_at"], str):
             parsed["execution_finished_at"] = datetime.fromisoformat(parsed["execution_finished_at"])
+        if "last_progress_at" in parsed and isinstance(parsed["last_progress_at"], str):
+            parsed["last_progress_at"] = datetime.fromisoformat(parsed["last_progress_at"])
         status = parsed.get("status")
         if isinstance(status, str):
             parsed["status"] = TrialStatus(status)
@@ -480,6 +507,11 @@ class ScenarioBatchRunTrialStatusEntry:
             status_updated_at=parsed.get("status_updated_at"),
             execution_started_at=parsed.get("execution_started_at"),
             execution_finished_at=parsed.get("execution_finished_at"),
+            last_progress_at=parsed.get("last_progress_at"),
+            current_phase=parsed.get("current_phase"),
+            worker_id=parsed.get("worker_id"),
+            progress_classification=parsed.get("progress_classification"),
+            seconds_since_progress=parsed.get("seconds_since_progress"),
         )
 
 

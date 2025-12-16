@@ -5513,6 +5513,12 @@ export interface components {
       started_at?: string;
       /** Finished At */
       finished_at?: string | null;
+      /** Last Progress At */
+      last_progress_at?: string | null;
+      /** Current Phase */
+      current_phase?: string | null;
+      /** Current Worker Id */
+      current_worker_id?: string | null;
     };
     /**
      * ExportSemanticDataModelResponse
@@ -8432,6 +8438,16 @@ export interface components {
       execution_started_at?: string | null;
       /** Execution Finished At */
       execution_finished_at?: string | null;
+      /** Last Progress At */
+      last_progress_at?: string | null;
+      /** Current Phase */
+      current_phase?: string | null;
+      /** Worker Id */
+      worker_id?: string | null;
+      /** Progress Classification */
+      progress_classification?: ('running' | 'slow' | 'stalled') | null;
+      /** Seconds Since Progress */
+      seconds_since_progress?: number | null;
     };
     /** ScenarioRun */
     ScenarioRun: {
@@ -9630,6 +9646,8 @@ export interface components {
        * @default 0
        */
       reschedule_attempts: number;
+      /** Progress Classification */
+      progress_classification?: ('running' | 'slow' | 'stalled') | null;
     };
     /**
      * TrialStatus

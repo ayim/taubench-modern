@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -53,10 +55,42 @@ from agent_platform.server.evals.evaluations.response_accuracy import evaluate_r
 from agent_platform.server.file_manager import FileManagerService
 from agent_platform.server.kernel.kernel import AgentServerKernel
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
+from agent_platform.server.storage.base import BaseStorage
 from agent_platform.server.storage.errors import ThreadNotFoundError
 from agent_platform.server.storage.option import StorageService
 
 logger = logging.getLogger(__name__)
+_WORKER_LABEL = "evals"
+
+
+def _resolve_worker_token() -> str:
+    task = asyncio.current_task()
+    task_name = task.get_name() if task and task.get_name() else None
+    pid = os.getpid()
+    if task_name:
+        return f"{_WORKER_LABEL}:{task_name}"
+    return f"{_WORKER_LABEL}:pid-{pid}"
+
+
+async def _record_trial_progress(
+    storage: BaseStorage,
+    *,
+    trial_id: str,
+    state: ExecutionState,
+    phase: str,
+    worker_id: str,
+) -> None:
+    state.current_phase = phase
+    state.current_worker_id = worker_id
+    state.last_progress_at = datetime.now()
+    try:
+        await storage.update_trial_execution(trial_id, state)
+    except Exception:
+        logger.debug(
+            "Failed to record trial progress",
+            extra={"trial_id": trial_id, "phase": phase},
+            exc_info=True,
+        )
 
 
 async def _delete_existing_trial_thread(
@@ -417,6 +451,14 @@ async def run_scenario(task: Trial) -> bool:
                 drift_policy_overrides = filtered_policy
 
     state = ExecutionState(execution_mode)
+    worker_token = _resolve_worker_token()
+    await _record_trial_progress(
+        storage,
+        trial_id=task.trial_id,
+        state=state,
+        phase="initializing",
+        worker_id=worker_token,
+    )
 
     runbook_updated_at = scenario_run.configuration.get("runbook_updated_at", None)
     architecture_version = scenario_run.configuration.get("architecture_version", None)
@@ -523,8 +565,19 @@ async def run_scenario(task: Trial) -> bool:
                 state.status = "COMPLETED"
                 state.drift_events = drifts
                 state.finished_at = datetime.now()
+                state.current_phase = "completed"
+                state.current_worker_id = worker_token
+                state.last_progress_at = datetime.now()
 
                 return True
+
+            await _record_trial_progress(
+                storage,
+                trial_id=task.trial_id,
+                state=state,
+                phase=f"turn:{current_turn}:preparing",
+                worker_id=worker_token,
+            )
 
             offset = current_user_message_index
             user_messages_from_scenario, next_user_message_index = _list_scenario_next_user_messages(
@@ -570,6 +623,9 @@ async def run_scenario(task: Trial) -> bool:
                     )
                     state.drift_events = [*drifts, *additional_drifts]
                     state.finished_at = datetime.now()
+                    state.current_phase = "error:tool-mismatch"
+                    state.current_worker_id = worker_token
+                    state.last_progress_at = datetime.now()
 
                     return False
             else:
@@ -607,6 +663,13 @@ async def run_scenario(task: Trial) -> bool:
             logger.info(f"[turn={current_turn}] Waiting for agent response")
 
             try:
+                await _record_trial_progress(
+                    storage,
+                    trial_id=task.trial_id,
+                    state=state,
+                    phase=f"turn:{current_turn}:executing",
+                    worker_id=worker_token,
+                )
                 await agent_client.run_once()
                 tool_executor.finalize()
             except Exception as e:
@@ -632,6 +695,9 @@ async def run_scenario(task: Trial) -> bool:
                 additional_drifts = _collect_tool_executor_drifts(tool_executor) if tool_executor is not None else []
                 state.drift_events = [*drifts, *additional_drifts]
                 state.finished_at = datetime.now()
+                state.current_phase = "error:turn"
+                state.current_worker_id = worker_token
+                state.last_progress_at = datetime.now()
 
                 return False
 
@@ -639,7 +705,18 @@ async def run_scenario(task: Trial) -> bool:
             current_user_message_index = next_user_message_index
             if tool_executor is not None:
                 drifts.extend(_collect_tool_executor_drifts(tool_executor))
+
+            await _record_trial_progress(
+                storage,
+                trial_id=task.trial_id,
+                state=state,
+                phase=f"turn:{current_turn - 1}:completed",
+                worker_id=worker_token,
+            )
     except TrialRateLimitedError:
+        state.current_phase = "rate_limited"
+        state.current_worker_id = worker_token
+        state.last_progress_at = datetime.now()
         raise
     except Exception as e:
         logger.error(f"Unexpected error when processing evals: {e}.")
@@ -651,6 +728,9 @@ async def run_scenario(task: Trial) -> bool:
         state.drift_events = drifts
         state.status = "ERROR"
         state.finished_at = datetime.now()
+        state.current_phase = "error:unexpected"
+        state.current_worker_id = worker_token
+        state.last_progress_at = datetime.now()
 
         return False
     finally:
@@ -669,6 +749,8 @@ async def run_scenario(task: Trial) -> bool:
 
 async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str | None]:
     storage = StorageService.get_instance()
+    worker_token = _resolve_worker_token()
+    state = task.execution_state
 
     if task.execution_state.status == "ERROR" and task.execution_state.termination != "REPLAY_DRIFT_ERROR":
         return TrialStatus.ERROR.value, task.execution_state.error_message
@@ -688,9 +770,23 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
         raise RuntimeError(f"Cannot find thread {task.thread_id}")
 
     preferences = _resolve_scenario_evaluation_preferences(scenario)
+    await _record_trial_progress(
+        storage,
+        trial_id=task.trial_id,
+        state=state,
+        phase="evaluations:start",
+        worker_id=worker_token,
+    )
 
     action_calling: ActionCallingResult | None = None
     if preferences.action_calling:
+        await _record_trial_progress(
+            storage,
+            trial_id=task.trial_id,
+            state=state,
+            phase="evaluations:action_calling",
+            worker_id=worker_token,
+        )
         action_calling = ActionCallingResult(
             issues=[event.message for event in task.execution_state.drift_events],
             passed=task.execution_state.status == "COMPLETED",
@@ -709,10 +805,24 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
         evaluations.append(action_calling)
 
     if preferences.flow_adherence:
+        await _record_trial_progress(
+            storage,
+            trial_id=task.trial_id,
+            state=state,
+            phase="evaluations:flow_adherence",
+            worker_id=worker_token,
+        )
         flow_adherence = await evaluate_flow_adherence(thread, scenario, system_user, storage)
         evaluations.append(flow_adherence)
 
     if preferences.response_accuracy:
+        await _record_trial_progress(
+            storage,
+            trial_id=task.trial_id,
+            state=state,
+            phase="evaluations:response_accuracy",
+            worker_id=worker_token,
+        )
         response_accuracy = await evaluate_response_accuracy(
             thread,
             scenario,
@@ -723,6 +833,13 @@ async def run_evaluations(task: Trial, ran_successfully: bool) -> tuple[str, str
         evaluations.append(response_accuracy)
 
     await storage.update_trial_evaluation_results(task.trial_id, evaluations)
+    await _record_trial_progress(
+        storage,
+        trial_id=task.trial_id,
+        state=state,
+        phase="evaluations:completed",
+        worker_id=worker_token,
+    )
 
     status = TrialStatus.COMPLETED.value if all(e.passed for e in evaluations) else TrialStatus.ERROR.value
 

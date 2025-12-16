@@ -7,6 +7,7 @@ import {
   IconClose,
   IconQuestionMarkCircle,
   IconCloseCircle,
+  IconAlertCircle,
 } from '@sema4ai/icons';
 import type { BatchSummary } from '../types';
 
@@ -72,6 +73,9 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
     ? `Updated at ${runbookDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}, ${runbookDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
     : null;
 
+  const scenarioIssues = batchSummary?.scenarioIssues ?? {};
+  const stalledScenarios = Object.values(scenarioIssues).filter((issue) => issue.stalled > 0);
+  const slowScenarios = Object.values(scenarioIssues).filter((issue) => issue.slow > 0 && issue.stalled === 0);
   const isExecutionLocked = isAnyTestRunning || isBatchRunning;
 
   const runTestsMenu = (
@@ -167,20 +171,45 @@ export const UserFacingMetrics: FC<UserFacingMetricsProps> = ({
         </Banner>
       )}
 
-      {!showRunbookWarning && (modelsText || runbookText) && (
-        <Box display="flex" flexDirection="column" gap="$8">
-          {modelsText && (
-            <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
-              • Model: {modelsText}
-            </Typography>
-          )}
-          {runbookText && (
-            <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
-              • Runbook: {runbookText}
-            </Typography>
-          )}
-        </Box>
-      )}
+      {!showRunbookWarning &&
+        (modelsText || runbookText || stalledScenarios.length > 0 || slowScenarios.length > 0) && (
+          <Box display="flex" flexDirection="column" gap="$8">
+            {modelsText && (
+              <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
+                • Model: {modelsText}
+              </Typography>
+            )}
+            {runbookText && (
+              <Typography variant="body-small" color="content.primary" style={{ userSelect: 'text' }}>
+                • Runbook: {runbookText}
+              </Typography>
+            )}
+            {stalledScenarios.length > 0 && (
+              <Box display="flex" alignItems="center" gap="$2">
+                <IconAlertCircle size={14} color="content.error" />
+                <Typography variant="body-small" color="content.error" style={{ userSelect: 'text' }}>
+                  {stalledScenarios.length === 1
+                    ? `Scenario ${stalledScenarios[0].name} has ${stalledScenarios[0].stalled} stalled ${
+                        stalledScenarios[0].stalled === 1 ? 'run' : 'runs'
+                      }`
+                    : `${stalledScenarios.length} scenarios have stalled runs`}
+                </Typography>
+              </Box>
+            )}
+            {slowScenarios.length > 0 && (
+              <Box display="flex" alignItems="center" gap="$2">
+                <IconQuestionMarkCircle size={14} />
+                <Typography variant="body-small" style={{ userSelect: 'text' }}>
+                  {slowScenarios.length === 1
+                    ? `Scenario ${slowScenarios[0].name} has ${slowScenarios[0].slow} slow ${
+                        slowScenarios[0].slow === 1 ? 'run' : 'runs'
+                      }`
+                    : `${slowScenarios.length} scenarios have slow runs`}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
 
       {/* Run All Tests Button - Bottom Row */}
       {hasEvaluations && (

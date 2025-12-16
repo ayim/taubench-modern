@@ -15,7 +15,6 @@ from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.evals.types import (
     EvaluationAggregate,
     Scenario,
-    ScenarioBatchRun,
     ScenarioBatchRunStatistics,
     ScenarioBatchRunStatus,
     ScenarioBatchRunTrialStatus,
@@ -40,11 +39,14 @@ from agent_platform.server.evals.archive import (
     create_scenarios_from_bundles,
     load_scenarios_bundles,
 )
+from agent_platform.server.storage.base import ScenarioBatchRun
 
 from .evals_files import copy_thread_files_to_scenario
 
 router = APIRouter()
 logger = get_logger(__name__)
+PROGRESS_SLOW_THRESHOLD_SECONDS = 300
+PROGRESS_STALLED_THRESHOLD_SECONDS = 900
 
 
 def _build_run_configuration(agent: Agent) -> dict[str, Any]:
@@ -454,6 +456,7 @@ async def get_latest_scenario_run(scenario_id: str, user: AuthedUser, storage: S
 
     run = runs[0]
     trials = await storage.list_scenario_run_trials(scenario_run_id=run.scenario_run_id)
+    trials = _annotate_trials_with_progress(list(trials))
 
     # TODO run.trials[i].messages could be removed to avoid too big payloads
     return run.with_trials(trials)
@@ -471,7 +474,8 @@ async def get_scenario_run(scenario_id: str, scenario_run_id: str, user: AuthedU
     if run is None:
         raise HTTPException(status_code=404, detail="Scenario run not found")
 
-    return run
+    trials = _annotate_trials_with_progress(list(run.trials))
+    return run.with_trials(trials)
 
 
 @router.get("/scenarios/{scenario_id}/runs", response_model=list[ScenarioRun])
@@ -799,6 +803,46 @@ def _calculate_batch_statistics(
     return statistics, derived_status
 
 
+def _ensure_datetime_has_tzinfo(reference: datetime | None) -> datetime | None:
+    if reference is None:
+        return None
+    if reference.tzinfo is None:
+        return reference.replace(tzinfo=UTC)
+    return reference
+
+
+def _classify_trial_progress(
+    trial: Trial,
+) -> tuple[Literal["running", "slow", "stalled"] | None, float | None]:
+    if trial.status != TrialStatus.EXECUTING:
+        return None, None
+
+    state = trial.execution_state
+    reference = _ensure_datetime_has_tzinfo(state.last_progress_at or state.finished_at or state.started_at)
+    if reference is None:
+        return None, None
+
+    now = datetime.now(reference.tzinfo)
+    seconds_since = max((now - reference).total_seconds(), 0.0)
+
+    if seconds_since >= PROGRESS_STALLED_THRESHOLD_SECONDS:
+        return "stalled", seconds_since
+    if seconds_since >= PROGRESS_SLOW_THRESHOLD_SECONDS:
+        return "slow", seconds_since
+    return "running", seconds_since
+
+
+def _annotate_trials_with_progress(trials: list[Trial]) -> list[Trial]:
+    annotated: list[Trial] = []
+    for trial in trials:
+        classification, _ = _classify_trial_progress(trial)
+        if classification is None or classification == trial.progress_classification:
+            annotated.append(trial)
+        else:
+            annotated.append(replace(trial, progress_classification=classification))
+    return annotated
+
+
 def _build_batch_trial_statuses(
     trials_per_run: dict[str, list[Trial]],
     scenario_runs_by_id: dict[str, ScenarioRun],
@@ -807,17 +851,25 @@ def _build_batch_trial_statuses(
     for scenario_run_id, trials in trials_per_run.items():
         run = scenario_runs_by_id.get(scenario_run_id)
         scenario_id = run.scenario_id if run is not None else (trials[0].scenario_id if trials else "")
-        entries = [
-            ScenarioBatchRunTrialStatusEntry(
-                trial_id=trial.trial_id,
-                index_in_run=trial.index_in_run,
-                status=trial.status,
-                status_updated_at=trial.status_updated_at,
-                execution_started_at=getattr(trial.execution_state, "started_at", None),
-                execution_finished_at=getattr(trial.execution_state, "finished_at", None),
+        entries: list[ScenarioBatchRunTrialStatusEntry] = []
+        for trial in trials:
+            classification, seconds_since = _classify_trial_progress(trial)
+            execution_state = trial.execution_state
+            entries.append(
+                ScenarioBatchRunTrialStatusEntry(
+                    trial_id=trial.trial_id,
+                    index_in_run=trial.index_in_run,
+                    status=trial.status,
+                    status_updated_at=trial.status_updated_at,
+                    execution_started_at=getattr(execution_state, "started_at", None),
+                    execution_finished_at=getattr(execution_state, "finished_at", None),
+                    last_progress_at=getattr(execution_state, "last_progress_at", None),
+                    current_phase=getattr(execution_state, "current_phase", None),
+                    worker_id=getattr(execution_state, "current_worker_id", None),
+                    progress_classification=classification,
+                    seconds_since_progress=seconds_since,
+                )
             )
-            for trial in trials
-        ]
         statuses.append(
             ScenarioBatchRunTrialStatus(
                 scenario_id=scenario_id,

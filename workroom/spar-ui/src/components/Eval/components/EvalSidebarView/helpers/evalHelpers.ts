@@ -74,6 +74,104 @@ export const getRunAverageTrialDuration = (trials: Trial[]): number | null => {
   return totalDuration / durations.length;
 };
 
+export interface TrialProgressSummary {
+  trialId: string;
+  trialIndex: number;
+  lastProgressAt: string;
+  currentPhase: string | null;
+  status: Trial['status'];
+}
+
+export const getLatestTrialProgressSummary = (trials: Trial[]): TrialProgressSummary | null => {
+  if (!trials || trials.length === 0) {
+    return null;
+  }
+
+  let latest: TrialProgressSummary | null = null;
+  let latestTimestamp: number | null = null;
+
+  const pickTimestamp = (trial: Trial): { timestamp: number; value: string } | null => {
+    const candidateValues: (string | undefined | null)[] = [
+      trial.execution_state?.last_progress_at,
+      trial.execution_state?.finished_at,
+      trial.status_updated_at,
+      trial.updated_at,
+    ];
+
+    for (let idx = 0; idx < candidateValues.length; idx += 1) {
+      const candidate = candidateValues[idx];
+      const parsed = parseTimestamp(candidate);
+      if (parsed !== null) {
+        return { timestamp: parsed, value: candidate ?? new Date(parsed).toISOString() };
+      }
+    }
+
+    return null;
+  };
+
+  trials.forEach((trial) => {
+    const picked = pickTimestamp(trial);
+    if (!picked) {
+      return;
+    }
+
+    if (latestTimestamp === null || picked.timestamp > latestTimestamp) {
+      latestTimestamp = picked.timestamp;
+      latest = {
+        trialId: trial.trial_id,
+        trialIndex: trial.index_in_run,
+        lastProgressAt: picked.value,
+        currentPhase: trial.execution_state?.current_phase ?? null,
+        status: trial.status,
+      };
+    }
+  });
+
+  return latest;
+};
+
+export interface TrialStatusBreakdown {
+  throttled: number;
+  running: number;
+  pending: number;
+  completed: number;
+  failed: number;
+  canceled: number;
+}
+
+export const getTrialStatusBreakdown = (trials: Trial[]): TrialStatusBreakdown => {
+  return trials.reduce<TrialStatusBreakdown>(
+    (acc, trial) => {
+      if (trial.retry_after_at) {
+        acc.throttled += 1;
+      }
+
+      switch (trial.status) {
+        case 'EXECUTING':
+          acc.running += 1;
+          break;
+        case 'PENDING':
+          acc.pending += 1;
+          break;
+        case 'COMPLETED':
+          acc.completed += 1;
+          break;
+        case 'ERROR':
+          acc.failed += 1;
+          break;
+        case 'CANCELED':
+          acc.canceled += 1;
+          break;
+        default:
+          break;
+      }
+
+      return acc;
+    },
+    { throttled: 0, running: 0, pending: 0, completed: 0, failed: 0, canceled: 0 },
+  );
+};
+
 export const formatDuration = (durationMs: number): string => {
   if (!Number.isFinite(durationMs) || durationMs < 0) {
     return 'N/A';

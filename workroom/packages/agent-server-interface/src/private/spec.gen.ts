@@ -14028,6 +14028,40 @@ export const spec = {
             ],
             title: 'Finished At',
           },
+          last_progress_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Last Progress At',
+          },
+          current_phase: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Current Phase',
+          },
+          current_worker_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Current Worker Id',
+          },
         },
         type: 'object',
         title: 'ExecutionState',
@@ -20164,6 +20198,63 @@ export const spec = {
             ],
             title: 'Execution Finished At',
           },
+          last_progress_at: {
+            anyOf: [
+              {
+                type: 'string',
+                format: 'date-time',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Last Progress At',
+          },
+          current_phase: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Current Phase',
+          },
+          worker_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Worker Id',
+          },
+          progress_classification: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['running', 'slow', 'stalled'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Progress Classification',
+          },
+          seconds_since_progress: {
+            anyOf: [
+              {
+                type: 'number',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Seconds Since Progress',
+          },
         },
         type: 'object',
         required: ['trial_id', 'index_in_run', 'status'],
@@ -22459,6 +22550,18 @@ export const spec = {
             type: 'integer',
             title: 'Reschedule Attempts',
             default: 0,
+          },
+          progress_classification: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['running', 'slow', 'stalled'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Progress Classification',
           },
         },
         type: 'object',

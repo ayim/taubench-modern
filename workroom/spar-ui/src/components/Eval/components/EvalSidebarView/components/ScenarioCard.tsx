@@ -16,11 +16,13 @@ import {
   IconArrowRightCircle,
   IconEdit,
   IconClock,
+  IconAlertCircle,
 } from '@sema4ai/icons';
 import { getRunStatus, hasTerminalTrials, isRunThrottled } from '../utils';
-import { getPassFailCounts } from '../helpers/evalHelpers';
-import type { Scenario, ScenarioRun } from '../types';
+import { getPassFailCounts, getLatestTrialProgressSummary } from '../helpers/evalHelpers';
+import type { Scenario, ScenarioRun, Trial } from '../types';
 import { useAnalytics } from '../../../../../queries';
+import { formatShortDateTime } from '../../../../../common/helpers';
 
 export interface ScenarioCardProps {
   scenario: Scenario;
@@ -57,6 +59,26 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
 }) => {
   const { track } = useAnalytics();
   const runStatus = isRunning ? 'EXECUTING' : currentRun?.trials && getRunStatus(currentRun.trials);
+  const trials = currentRun?.trials ?? [];
+  const progressSummary = trials.length > 0 ? getLatestTrialProgressSummary(trials) : null;
+  const stalledTrials = trials.filter((trial: Trial) => trial.progress_classification === 'stalled');
+  const slowTrials = trials.filter((trial: Trial) => trial.progress_classification === 'slow');
+
+  const formatTrialLabel = (trial: Trial): string => `Trial #${trial.index_in_run + 1}`;
+
+  const summarizeWarnings = (warningTrials: Trial[]): string | null => {
+    if (warningTrials.length === 0) {
+      return null;
+    }
+    const label = formatTrialLabel(warningTrials[0]);
+    if (warningTrials.length === 1) {
+      return label;
+    }
+    return `${label} and ${warningTrials.length - 1} more`;
+  };
+
+  const stalledWarning = summarizeWarnings(stalledTrials);
+  const slowWarning = summarizeWarnings(slowTrials);
 
   const handleResultsToggle = () => {
     if (!expandedResults && currentRun) {
@@ -202,6 +224,35 @@ export const ScenarioCard: FC<ScenarioCardProps> = ({
             </Box>
           )}
         </Box>
+
+        {progressSummary && progressSummary.lastProgressAt && (
+          <Box display="flex" alignItems="center" gap="$2" color="content.subtle">
+            <IconClock size={14} />
+            <Typography variant="body-small" color="content.subtle" style={{ userSelect: 'text' }}>
+              Latest update {formatShortDateTime(progressSummary.lastProgressAt)} from trial #
+              {progressSummary.trialIndex + 1}
+              {progressSummary.currentPhase ? ` • Phase ${progressSummary.currentPhase}` : ''}
+            </Typography>
+          </Box>
+        )}
+
+        {stalledWarning && (
+          <Box display="flex" alignItems="center" gap="$2">
+            <IconAlertCircle size={14} />
+            <Typography variant="body-small" color="content.error" style={{ userSelect: 'text' }}>
+              Warning: {stalledWarning} {stalledTrials.length > 1 ? 'are' : 'is'} stalled
+            </Typography>
+          </Box>
+        )}
+
+        {slowWarning && (
+          <Box display="flex" alignItems="center" gap="$2">
+            <IconInformation size={14} />
+            <Typography variant="body-small" style={{ userSelect: 'text' }}>
+              Heads up: {slowWarning} {slowTrials.length > 1 ? 'are' : 'is'} running slowly
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {children}

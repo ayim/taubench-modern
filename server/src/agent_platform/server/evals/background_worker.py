@@ -192,7 +192,7 @@ class WorkQueue(Generic[T]):
                 continue
             logger.info("Dispatching task (batch run) %s", t)
             task_id = t.get_unique_identifier()
-            task_map[task_id] = asyncio.create_task(self._execute_task(t))
+            task_map[task_id] = asyncio.create_task(self._execute_task(t), name=f"eval-task-{task_id}")
 
         stop_event = asyncio.Event()
         canceled_by_db: set[str] = set()

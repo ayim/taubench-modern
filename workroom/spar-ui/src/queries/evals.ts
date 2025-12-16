@@ -31,6 +31,7 @@ export interface ScenarioBatchRunTrialStatusEntry {
   status_updated_at?: string | null;
   execution_started_at?: string | null;
   execution_finished_at?: string | null;
+  progress_classification?: ('running' | 'slow' | 'stalled') | null;
 }
 
 export interface ScenarioBatchRunTrialStatus {
