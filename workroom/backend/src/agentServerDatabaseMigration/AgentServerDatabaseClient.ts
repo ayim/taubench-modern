@@ -10,10 +10,20 @@ const NOOP = () => {};
 export class AgentServerDatabaseClient {
   private agentServerSubPrefix: string;
   private database: Kysely<AgentServerDatabase>;
+  private schema: string;
 
-  constructor({ configuration, database }: { configuration: Configuration; database: Kysely<AgentServerDatabase> }) {
+  constructor({
+    database,
+    schema,
+    tenantId,
+  }: {
+    database: Kysely<AgentServerDatabase>;
+    schema: string;
+    tenantId: string;
+  }) {
     this.database = database;
-    this.agentServerSubPrefix = `tenant:${configuration.tenant.tenantId}:user:`;
+    this.schema = schema;
+    this.agentServerSubPrefix = `tenant:${tenantId}:user:`;
   }
 
   async getAllUsers(): Promise<
@@ -51,7 +61,7 @@ export class AgentServerDatabaseClient {
     return asResult(async () => {
       const tables = await this.database.introspection.getTables();
 
-      return tables.some((table) => table.name === 'user');
+      return tables.some((table) => table.schema === this.schema && table.name === 'user');
     });
   }
 }
@@ -83,5 +93,9 @@ export const createAgentServerDatabaseClient = async ({
     dialect,
   }).withSchema(configuration.database.agentServerSchema);
 
-  return new AgentServerDatabaseClient({ configuration, database });
+  return new AgentServerDatabaseClient({
+    database,
+    schema: configuration.database.agentServerSchema,
+    tenantId: configuration.tenant.tenantId,
+  });
 };

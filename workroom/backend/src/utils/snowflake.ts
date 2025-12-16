@@ -40,7 +40,7 @@ export const migrateAgentServerUsersForSPCS = async ({
   try {
     await backOff(
       async () => {
-        monitoring.logger.info('Checking if agent server database is ready', {
+        monitoring.logger.info('Checking if agent server database is ready for user migration', {
           count: ++attempts,
         });
 
@@ -53,6 +53,8 @@ export const migrateAgentServerUsersForSPCS = async ({
         if (!databaseReadyResult.data) {
           throw new Error('Agent server database not yet ready');
         }
+
+        monitoring.logger.info('Agent server database ready for user migration');
       },
       {
         jitter: 'none',
