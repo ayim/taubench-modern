@@ -589,7 +589,16 @@ update-interface:
 	) && \
 	( \
 		cd ./workroom/packages/agent-server-interface && \
-		if ! git diff --quiet .; then \
+		OPENAPI_VERSION=$$(jq -r '.info.version' public.openapi.json) && \
+		PACKAGE_VERSION=$$(jq -r '.version' package.json) && \
+		PACKAGE_BASE_VERSION=$${PACKAGE_VERSION%%-*} && \
+		if [ "$$OPENAPI_VERSION" != "$$PACKAGE_BASE_VERSION" ]; then \
+			echo "Version mismatch detected: OpenAPI=$$OPENAPI_VERSION, package base=$$PACKAGE_BASE_VERSION"; \
+			echo "Bumping package version to match OpenAPI spec..."; \
+			npm version "$$OPENAPI_VERSION-unreleased-$$(git rev-parse HEAD | cut -c 1-7).0" \
+				--no-git-tag-version; \
+		elif ! git diff --quiet .; then \
+			echo "Interface changes detected, bumping prerelease version..."; \
 			npm version prerelease \
 				--preid "unreleased-$$(git rev-parse HEAD | cut -c 1-7)" \
 				--force 2> /dev/null; \
