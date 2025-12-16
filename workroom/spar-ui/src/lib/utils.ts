@@ -72,3 +72,12 @@ export const downloadFile = (data: Blob, fileName: string) => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+export const safeParseJson = (text: string | null | undefined) => {
+  if (typeof text !== 'string') return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};

@@ -6,6 +6,7 @@ import { snakeCaseToTitleCase } from '../../../common/helpers';
 import { getGroupedMessageContent } from '../components/renderer/Message';
 import { getActionGroupStateDetails } from '../components/ToolCall';
 import { formatThoughtTitle } from '../components/renderer/Thinking';
+import { safeParseJson } from '../../../lib/utils';
 
 type ThreadMessageContent = ThreadMessage['content'][number];
 
@@ -43,15 +44,6 @@ const STATUS_EMOJI_MAP: Record<Extract<ThreadMessageContent, { kind: 'tool_call'
   streaming: EMOJI_MAP.tool_call_state.in_progress,
   finished: EMOJI_MAP.tool_call_state.done,
   failed: EMOJI_MAP.tool_call_state.failed,
-};
-
-const safeParseJson = (text: string | null | undefined) => {
-  if (typeof text !== 'string') return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
 };
 
 const parseContentItem = (item: ThreadMessage['content'][number], platform: string | undefined): string => {

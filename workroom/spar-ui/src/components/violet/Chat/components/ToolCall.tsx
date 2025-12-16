@@ -1,29 +1,19 @@
 import { FC, Fragment, ReactNode, useMemo, useRef } from 'react';
 import { ThreadContent, ThreadThoughtContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
-import { Box, Button, Chat, ChatActionRefType, useClipboard, useSnackbar } from '@sema4ai/components';
-import { IconCheck2, IconCode, IconCopy } from '@sema4ai/icons';
+import { Box, Button, Chat, ChatActionRefType, useSnackbar } from '@sema4ai/components';
+import { IconCode } from '@sema4ai/icons';
 
 import { snakeCaseToTitleCase } from '../../../../common/helpers';
-import { Code } from '../../../../common/code';
 import { SparUIFeatureFlag } from '../../../../api';
 import { useFeatureFlag, useParams, useStateTransitionCallback } from '../../../../hooks';
 import { DataFrameClientTools } from '../../../DataFrame/tools/Definitions';
-import { DataFramesQueryOutput } from '../../../DataFrame/DataFramesQueryOutput';
 import { useShowActionLogsMutation } from '../../../../queries';
 import { formatThoughtTitle } from './renderer/Thinking';
+import { ToolCallResult } from '../../../Chat/components/ToolCallResult';
 
 type ActionState = 'in_progress' | 'done' | 'failed';
 type Props = {
   content: ThreadToolUsageContent;
-};
-
-const safeParseJson = (text: string | null | undefined) => {
-  if (typeof text !== 'string') return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
 };
 
 const formatGroupTitleDetails = (contentItem?: { name: string }, count = 0) => {
@@ -173,53 +163,10 @@ const isActionServerToolCall = (content: ThreadToolUsageContent) => {
 export const ToolCall: FC<Props> = ({ content }) => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const { enabled: showActionLogs } = useFeatureFlag(SparUIFeatureFlag.showActionLogs);
-  const { onCopyToClipboard: onCopyInput, copiedToClipboard: inputCopied } = useClipboard();
-  const { onCopyToClipboard: onCopyOutput, copiedToClipboard: outputCopied } = useClipboard();
   const { addSnackbar } = useSnackbar();
   const { mutateAsync, isPending } = useShowActionLogsMutation({});
 
-  const isError = content.status === 'failed';
   const state = getActionState(content.status, content.complete);
-
-  const input = content.arguments_raw;
-  const output = isError ? (content.error ?? content.result) : content.result;
-
-  const toolbar = useMemo(() => {
-    return (
-      <>
-        {input ? (
-          <Button
-            aria-label="Copy to clipboard"
-            variant="inverted"
-            size="small"
-            icon={inputCopied ? IconCheck2 : IconCopy}
-            onClick={onCopyInput(input)}
-          >
-            Input
-          </Button>
-        ) : null}
-        {output ? (
-          <Button
-            aria-label="Copy to clipboard"
-            variant="inverted"
-            size="small"
-            icon={outputCopied ? IconCheck2 : IconCopy}
-            onClick={onCopyOutput(output)}
-          >
-            Output
-          </Button>
-        ) : null}
-      </>
-    );
-  }, [input, output, inputCopied, outputCopied]);
-
-  const result = useMemo(() => {
-    const parsedInput = safeParseJson(input);
-    const parsedOutput = safeParseJson(output);
-    if (!parsedInput && !parsedOutput) return null;
-    if (!parsedOutput) return JSON.stringify({ Input: parsedInput }, null, 2);
-    return JSON.stringify({ Input: parsedInput, Output: parsedOutput }, null, 2);
-  }, [input, output]);
 
   const onShowLogs = async () => {
     await mutateAsync(
@@ -246,8 +193,7 @@ export const ToolCall: FC<Props> = ({ content }) => {
         running={state === 'in_progress'}
         error={state === 'failed'}
       >
-        <DataFramesQueryOutput content={content} isDone={state === 'done'} />
-        {result ? <Code title="Tool call" value={result} toolbar={toolbar} lang="json" maxRows={10} /> : null}
+        <ToolCallResult content={content} isDone={state === 'done'} />
         <Box display="flex" gap="$8">
           {showActionLogs && isActionServerToolCall(content) && (
             <Button

@@ -15,6 +15,9 @@ export interface CodeProps extends Omit<ComponentProps<typeof BaseCode>, 'extens
 
 const CodeStyled = styled(BaseCode)`
   min-height: 44px;
+  > div {
+    overflow: hidden;
+  }
 `;
 
 export const Code: FC<CodeProps> = ({ lang = 'raw', ...restProps }) => {
@@ -40,3 +43,5 @@ export const Code: FC<CodeProps> = ({ lang = 'raw', ...restProps }) => {
 
   return <CodeStyled extensions={extensions} lineNumbers={false} aria-labelledby="code" {...restProps} />;
 };
+
+export const CodeGroup = BaseCode.Group;

@@ -4,25 +4,30 @@ import { Box, Button } from '@sema4ai/components';
 import { IconPlus } from '@sema4ai/icons';
 import { format as formatSQLQuery } from 'sql-formatter';
 
-import { DATA_FRAME_TOOL_PREFIX } from './tools/Definitions';
-import { Code } from '../../common/code';
-import { useParams } from '../../hooks/useParams';
-import { CreateVerifiedQueryFromDataFrameDialog } from './CreateVerifiedQueryFromDataFrameDialog';
+import { DATA_FRAME_TOOL_PREFIX } from '../../DataFrame/tools/Definitions';
+import { Code } from '../../../common/code';
+import { safeParseJson } from '../../../lib/utils';
+import { useParams } from '../../../hooks/useParams';
+import { CreateVerifiedQueryFromDataFrameDialog } from '../../DataFrame/CreateVerifiedQueryFromDataFrameDialog';
 
 type Props = {
   content: ThreadToolUsageContent;
   isDone: boolean;
 };
 
-export const DataFramesQueryOutput: FC<Props> = ({ content, isDone }) => {
+export const ToolCallResult: FC<Props> = ({ content, isDone }) => {
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
   const [isCreateVerifiedQueryDialogOpen, setIsCreateVerifiedQueryDialogOpen] = useState(false);
 
-  const { query, dataFrameName } = useMemo(() => {
+  const isError = content.status === 'failed';
+  const input = content.arguments_raw;
+  const output = isError ? (content.error ?? content.result) : content.result;
+
+  const { dataFrameQuery, dataFrameName } = useMemo(() => {
     const { name, arguments_raw: argumentsRaw } = content;
 
     const result = {
-      query: '',
+      dataFrameQuery: '',
       dataFrameName: '',
     };
 
@@ -32,14 +37,14 @@ export const DataFramesQueryOutput: FC<Props> = ({ content, isDone }) => {
 
     try {
       const toolCall = JSON.parse(argumentsRaw);
-      result.query = toolCall.sql_query;
+      result.dataFrameQuery = toolCall.sql_query;
       result.dataFrameName = toolCall.new_data_frame_name;
     } catch {
       // do nothing and don't show result on parsing failure
     }
 
     try {
-      result.query = formatSQLQuery(result.query);
+      result.dataFrameQuery = formatSQLQuery(result.dataFrameQuery);
     } catch {
       // do nothing and don't show query output on parsing failure
     }
@@ -47,7 +52,16 @@ export const DataFramesQueryOutput: FC<Props> = ({ content, isDone }) => {
     return result;
   }, [content]);
 
-  const toolbar = useMemo(() => {
+  const { inputContent, outputContent } = useMemo(() => {
+    const parsedInput = safeParseJson(input);
+    const parsedOutput = safeParseJson(output);
+    return {
+      inputContent: parsedInput ? JSON.stringify({ Input: parsedInput }, null, 2) : null,
+      outputContent: parsedOutput ? JSON.stringify({ Output: parsedOutput }, null, 2) : null,
+    };
+  }, [input, output]);
+
+  const verifiedQueryToolbar = useMemo(() => {
     return (
       <Box display="flex" gap="$6" justifyContent="center" minWidth={40}>
         {dataFrameName && isDone && (
@@ -62,15 +76,17 @@ export const DataFramesQueryOutput: FC<Props> = ({ content, isDone }) => {
         )}
       </Box>
     );
-  }, [query]);
-
-  if (!query) {
-    return null;
-  }
+  }, [dataFrameQuery]);
 
   return (
-    <Box mb="$8">
-      <Code title="Input Query" toolbar={toolbar} value={query} lang="sql" />
+    <>
+      <Code.Group>
+        {dataFrameQuery && (
+          <Code open title="Input Query" toolbar={verifiedQueryToolbar} value={dataFrameQuery} lang="sql" />
+        )}
+        {inputContent && <Code open={!dataFrameQuery} title="Inputs" value={inputContent} lang="json" maxRows={10} />}
+        {outputContent && <Code title="Outputs" value={outputContent} lang="json" maxRows={10} />}
+      </Code.Group>
       {isCreateVerifiedQueryDialogOpen && (
         <CreateVerifiedQueryFromDataFrameDialog
           open
@@ -80,6 +96,6 @@ export const DataFramesQueryOutput: FC<Props> = ({ content, isDone }) => {
           dataFrameName={dataFrameName}
         />
       )}
-    </Box>
+    </>
   );
 };
