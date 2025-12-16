@@ -1,28 +1,9 @@
-import { IconPlus } from '@sema4ai/icons';
-import { styled } from '@sema4ai/theme';
+import { IconPlusSmall } from '@sema4ai/icons';
+import { List } from '@sema4ai/components';
 import { useLinkProps } from '../../../common/link';
 import { useFeatureFlag, useParams } from '../../../hooks';
 import { SparUIFeatureFlag } from '../../../api';
-
-const Container = styled.a`
-  padding: 0 ${({ theme }) => theme.space.$8};
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.$6};
-  height: ${({ theme }) => theme.sizes.$36};
-  width: 100%;
-  background: none;
-  color: ${({ theme }) => theme.colors.content.subtle.light.color};
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.content.primary.color};
-  }
-
-  &:disabled {
-    pointer-events: none;
-    color: ${({ theme }) => theme.colors.content.subtle.light.color};
-  }
-`;
+import { ThreadListItemContainer, ThreadListLinkContainer } from '../../Thread/components/ThreadsList/styles';
 
 export const NewWorkItem = () => {
   const { agentId } = useParams('/workItem/$agentId');
@@ -32,17 +13,19 @@ export const NewWorkItem = () => {
 
   if (!isChatInteractive) {
     return (
-      <Container as="button" disabled>
-        <IconPlus />
-        New Work Item
-      </Container>
+      <ThreadListItemContainer>
+        <List.Item icon={IconPlusSmall} disabled>
+          New Work Item
+        </List.Item>
+      </ThreadListItemContainer>
     );
   }
 
   return (
-    <Container {...linkProps}>
-      <IconPlus />
-      New Work Item
-    </Container>
+    <ThreadListLinkContainer>
+      <List.Link icon={IconPlusSmall} {...linkProps}>
+        New Work Item
+      </List.Link>
+    </ThreadListLinkContainer>
   );
 };

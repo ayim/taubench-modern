@@ -1,57 +1,24 @@
 import { FC, useState } from 'react';
-import { Box, Button, Menu, Progress, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
-import { IconChemicalBottle, IconDotsHorizontal } from '@sema4ai/icons';
+import { Box, Button, Menu, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
+import { IconChemicalBottle, IconDotsHorizontal, IconLoading } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
-import { styled } from '@sema4ai/theme';
 
 import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
-import { SidebarLink } from '../../../common/link';
+import { ListItemLink } from '../../../common/link';
 import { useFeatureFlag, useNavigate, useParams } from '../../../hooks';
 import { ServerResponse } from '../../../queries/shared';
 import { useDeleteThreadMutation, useThreadMessagesQuery, useUpdateThreadMutation } from '../../../queries/threads';
 import { SparUIFeatureFlag } from '../../../api';
 import { ThreadNameDisplay } from './ThreadNameDisplay';
 import { getThreadMakrdown } from '../../Chat/utils/threadContentMarkdown';
+import { ThreadListLinkContainer } from './ThreadsList/styles';
 
 type ThreadItemProps = {
   item: ServerResponse<'get', '/api/v2/threads/'>[number] & {
     scenarioId?: string;
   };
 };
-
-const Container = styled(Box)`
-  > a {
-    overflow: hidden;
-    display: block;
-    flex: 1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  > button {
-    display: none;
-  }
-
-  &:hover > a {
-    color: ${({ theme }) => theme.colors.content.primary.color};
-  }
-
-  &:has([aria-expanded='true']) {
-    > button {
-      display: block;
-    }
-    > a {
-      color: ${({ theme }) => theme.colors.content.primary.color};
-    }
-  }
-
-  &:hover {
-    > button {
-      display: block;
-    }
-  }
-`;
 
 const downloadMarkdown = (filename: string, content: string) => {
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
@@ -170,50 +137,53 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
     }
   };
 
+  const ItemIcon = thread.scenarioId ? IconChemicalBottle : undefined;
   return (
-    <Tooltip text={<ToolTipContent name={thread.name} createdAt={thread?.created_at} />} placement="bottom-end" $nowrap>
-      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
-        {isDeleting && <Progress variant="page" />}
-
-        <SidebarLink to="/thread/$agentId/$threadId" params={{ threadId: thread.thread_id || '', agentId }}>
-          {isManualThreadRenameSuccess ? (
-            <Box display="flex" alignItems="center" gap="$8">
-              {thread.scenarioId && <IconChemicalBottle size={20} />}
-              {thread.name}
-            </Box>
-          ) : (
-            <ThreadNameDisplay
-              name={thread.name}
-              threadId={thread.thread_id}
-              icon={thread.scenarioId ? <IconChemicalBottle size={20} /> : undefined}
-            />
-          )}
-        </SidebarLink>
-
-        <Menu
-          trigger={
-            <Button
-              variant="ghost-subtle"
-              size="small"
-              icon={IconDotsHorizontal}
-              aria-label="Thread actions"
-              disabled={!isChatInteractive}
-            />
-          }
-        >
-          <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
-          <Menu.Item onClick={onThreadTranscriptDownload}>Download</Menu.Item>
-          <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
-        </Menu>
-        {isRenaming && (
-          <RenameDialog
-            onClose={() => setIsRenaming(false)}
-            onRename={onThreadRename}
-            entityName={thread.name}
-            entityType="Thread"
-          />
-        )}
-      </Container>
-    </Tooltip>
+    <>
+      <Tooltip
+        text={<ToolTipContent name={thread.name} createdAt={thread?.created_at} />}
+        placement="bottom-end"
+        $nowrap
+      >
+        <ThreadListLinkContainer>
+          <ListItemLink
+            to="/thread/$agentId/$threadId"
+            params={{ threadId: thread.thread_id || '', agentId }}
+            icon={isDeleting ? IconLoading : ItemIcon}
+            hotkey={
+              <Menu
+                trigger={
+                  <Button
+                    variant="ghost-subtle"
+                    size="small"
+                    icon={IconDotsHorizontal}
+                    aria-label="Thread actions"
+                    disabled={!isChatInteractive}
+                  />
+                }
+              >
+                <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+                <Menu.Item onClick={onThreadTranscriptDownload}>Download</Menu.Item>
+                <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
+              </Menu>
+            }
+          >
+            {isManualThreadRenameSuccess ? (
+              thread.name
+            ) : (
+              <ThreadNameDisplay name={thread.name} threadId={thread.thread_id} />
+            )}
+          </ListItemLink>
+        </ThreadListLinkContainer>
+      </Tooltip>
+      {isRenaming && (
+        <RenameDialog
+          onClose={() => setIsRenaming(false)}
+          onRename={onThreadRename}
+          entityName={thread.name}
+          entityType="Thread"
+        />
+      )}
+    </>
   );
 };

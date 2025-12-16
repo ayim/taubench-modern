@@ -8,9 +8,31 @@ import { useParams } from '../../../../hooks';
 import { useThreadsQuery } from '../../../../queries/threads';
 import { NewThreadItem } from '../NewThreadItem';
 import { ThreadItem } from '../ThreadItem';
-import { Header, ScrollableContainer } from './styles';
+import { Header } from './styles';
 import { VirtualList } from '../../../../common/VirtualList';
 import { SIDEBAR_STARTING_WIDTH_PX } from '../../../../lib/constants';
+
+const Container = styled(Box)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 -${({ theme }) => theme.space.$12};
+  padding: 0 ${({ theme }) => theme.space.$12};
+`;
+
+const VirtualListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  margin: 0 -${({ theme }) => theme.space.$12};
+
+  > div {
+    height: 100%;
+    padding: 0 ${({ theme }) => theme.space.$12};
+  }
+`;
 
 const ThreadSearchButton = styled(Button)<{ $expanded: boolean }>`
   position: absolute;
@@ -71,62 +93,64 @@ export const ThreadsList: FC = () => {
       initialWidth={SIDEBAR_STARTING_WIDTH_PX}
       minWidth={SIDEBAR_STARTING_WIDTH_PX}
     >
-      <Box display="flex" flexDirection="column" height="100%" overflow="hidden">
-        <Header>
-          <Typography variant="body-medium" fontWeight="bold">
-            History
-          </Typography>
-        </Header>
-        {!filteringThread && (
-          <ThreadSearchButton
-            $expanded={threadsListExpanded}
-            variant="ghost-subtle"
-            icon={IconSearch}
-            onClick={startThreadFilter}
-            aria-label="thread-search"
-          />
-        )}
-        {filteringThread && (
-          <Box px={1}>
-            <Input
-              autoFocus
-              aria-label="thread-search-input"
-              iconLeft={IconSearch}
-              placeholder="Seach Chats"
-              value={threadFilterText}
-              onChange={(e) => setThreadFilterText(e.target.value)}
-              iconRight={IconCloseSmall}
-              onIconRightClick={stopThreadFilter}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') stopThreadFilter();
-              }}
-              onBlur={() => {
-                if (!threadFilterText.trim()) stopThreadFilter();
-              }}
-              iconRightLabel="close-search"
-              round
-            />
+      <Container>
+        <Box display="flex" flexDirection="column" gap="$16">
+          <Header>
+            <Typography variant="body-large" fontWeight="500">
+              History
+            </Typography>
+          </Header>
+          <Box display="flex" flexDirection="column">
+            {!filteringThread && (
+              <ThreadSearchButton
+                $expanded={threadsListExpanded}
+                variant="ghost-subtle"
+                icon={IconSearch}
+                onClick={startThreadFilter}
+                aria-label="thread-search"
+              />
+            )}
+            {filteringThread && (
+              <Box px={1} pb="$8">
+                <Input
+                  autoFocus
+                  aria-label="thread-search-input"
+                  iconLeft={IconSearch}
+                  placeholder="Seach Chats"
+                  value={threadFilterText}
+                  onChange={(e) => setThreadFilterText(e.target.value)}
+                  iconRight={IconCloseSmall}
+                  onIconRightClick={stopThreadFilter}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') stopThreadFilter();
+                  }}
+                  onBlur={() => {
+                    if (!threadFilterText.trim()) stopThreadFilter();
+                  }}
+                  iconRightLabel="close-search"
+                  round
+                />
+              </Box>
+            )}
+            <NewThreadItem />
           </Box>
-        )}
-        <NewThreadItem />
-        <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
-          {filteredUserInitiatedThreads && (
+        </Box>
+        {filteredUserInitiatedThreads && (
+          <VirtualListContainer>
             <VirtualList
               items={filteredUserInitiatedThreads}
               renderComponent={ThreadItem}
               itemHeight={36}
               itemKey="thread_id"
             />
-          )}
-          {filteredUserInitiatedThreads?.length === 0 && (
-            <ScrollableContainer>
-              <Box p="$12">
-                <Typography variant="body-small">{filteringThread ? 'No threads found' : 'No messages yet'}</Typography>
-              </Box>
-            </ScrollableContainer>
-          )}
-        </Box>
-      </Box>
+          </VirtualListContainer>
+        )}
+        {filteredUserInitiatedThreads?.length === 0 && (
+          <Box p="$12">
+            <Typography variant="body-small">{filteringThread ? 'No threads found' : 'No messages yet'}</Typography>
+          </Box>
+        )}
+      </Container>
     </SidebarMenu>
   );
 };

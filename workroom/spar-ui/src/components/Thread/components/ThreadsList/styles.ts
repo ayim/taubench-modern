@@ -31,8 +31,9 @@ export const Header = styled(Box)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.space.$8};
+  padding: ${({ theme }) => theme.space.$6} ${({ theme }) => theme.space.$8} ${({ theme }) => theme.space.$12};
   gap: ${({ theme }) => theme.space.$8};
+  margin-top: 1px;
 
   button {
     padding: 0;
@@ -107,4 +108,41 @@ export const AnimatedEvalSection = styled(Box)<{
   flex-direction: column;
   min-height: 0;
   transform-origin: top;
+`;
+
+export const ThreadListLinkContainer = styled.div`
+  button {
+    display: none;
+  }
+
+  &:hover button,
+  button[aria-expanded='true'] {
+    display: block;
+  }
+
+  li a {
+    color: ${({ theme }) => theme.colors.content.subtle.color};
+
+    &:hover {
+      color: ${({ theme }) => theme.colors.content.subtle.hovered.color};
+    }
+  }
+
+  li[aria-current='true'] a {
+    color: ${({ theme }) => theme.colors.content.primary.color};
+  }
+`;
+
+export const ThreadListItemContainer = styled.div`
+  li button {
+    color: ${({ theme }) => theme.colors.content.subtle.color};
+
+    &:hover {
+      color: ${({ theme }) => theme.colors.content.subtle.hovered.color};
+    }
+  }
+
+  li[aria-current='true'] button {
+    color: ${({ theme }) => theme.colors.content.primary.color};
+  }
 `;

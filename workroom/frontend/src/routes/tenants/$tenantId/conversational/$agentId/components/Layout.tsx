@@ -4,10 +4,14 @@ export const Layout = styled.section`
   display: grid;
   grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
   grid-template-rows: auto 1fr;
-  grid-template-areas: 'header header header' 'threads section sidebar';
+  grid-template-areas: 'threads header header' 'threads section sidebar';
 
   > header {
     grid-area: header;
+  }
+
+  &:has(> div) > header {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
   }
 
   > aside {

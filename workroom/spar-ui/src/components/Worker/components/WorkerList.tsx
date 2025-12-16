@@ -9,6 +9,29 @@ import { useWorkItemsInfiniteQuery } from '../../../queries/workItems';
 import { NewWorkItem } from './NewWorkItem';
 import { WorkerItem } from './WorkerItem';
 import { VirtualList } from '../../../common/VirtualList';
+import { Header } from '../../Thread/components/ThreadsList/styles';
+
+const Container = styled(Box)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 -${({ theme }) => theme.space.$12};
+  padding: 0 ${({ theme }) => theme.space.$12};
+`;
+
+const VirtualListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  margin: 0 -${({ theme }) => theme.space.$12};
+
+  > div {
+    height: 100%;
+    padding: 0 ${({ theme }) => theme.space.$12};
+  }
+`;
 
 const WorkItemSearchButton = styled(Button)<{ $expanded: boolean }>`
   position: absolute;
@@ -46,47 +69,48 @@ export const WorkerList: FC = () => {
 
   return (
     <SidebarMenu name="work-items-list" title="Work Items">
-      <Box display="flex" flexDirection="column" height="100%" overflow="hidden">
-        <Box>
-          <Box display="flex" alignItems="center" justifyContent="space-between" p="$8">
-            <Typography variant="body-medium" fontWeight="medium">
+      <Container>
+        <Box display="flex" flexDirection="column" gap="$16">
+          <Header>
+            <Typography variant="body-large" fontWeight="500">
               Work Items
             </Typography>
-          </Box>
-          {!filteringWorkItem ? (
-            <WorkItemSearchButton
-              $expanded={workItemsListExpanded}
-              variant="ghost-subtle"
-              icon={IconSearch}
-              onClick={startWorkItemFilter}
-              aria-label="work-item-search"
-            />
-          ) : (
-            <Box px={1}>
-              <Input
-                autoFocus
-                aria-label="work-item-search-input"
-                iconLeft={IconSearch}
-                placeholder="Seach Chats"
-                value={workItemFilterText}
-                onChange={(e) => setWorkItemFilterText(e.target.value)}
-                iconRight={IconCloseSmall}
-                onIconRightClick={stopWorkItemFilter}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') stopWorkItemFilter();
-                }}
-                onBlur={() => {
-                  if (!workItemFilterText.trim()) stopWorkItemFilter();
-                }}
-                iconRightLabel="close-search"
-                round
+          </Header>
+          <Box display="flex" flexDirection="column">
+            {!filteringWorkItem ? (
+              <WorkItemSearchButton
+                $expanded={workItemsListExpanded}
+                variant="ghost-subtle"
+                icon={IconSearch}
+                onClick={startWorkItemFilter}
+                aria-label="work-item-search"
               />
-            </Box>
-          )}
-
-          <NewWorkItem />
+            ) : (
+              <Box px={1} pb="$8">
+                <Input
+                  autoFocus
+                  aria-label="work-item-search-input"
+                  iconLeft={IconSearch}
+                  placeholder="Seach Chats"
+                  value={workItemFilterText}
+                  onChange={(e) => setWorkItemFilterText(e.target.value)}
+                  iconRight={IconCloseSmall}
+                  onIconRightClick={stopWorkItemFilter}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') stopWorkItemFilter();
+                  }}
+                  onBlur={() => {
+                    if (!workItemFilterText.trim()) stopWorkItemFilter();
+                  }}
+                  iconRightLabel="close-search"
+                  round
+                />
+              </Box>
+            )}
+            <NewWorkItem />
+          </Box>
         </Box>
-        <Box display="flex" flexDirection="column" flex="1" minHeight="0" overflow="hidden">
+        <VirtualListContainer>
           <VirtualList
             items={allWorkItems}
             itemKey="thread_id"
@@ -98,8 +122,8 @@ export const WorkerList: FC = () => {
               onLoadMore: () => fetchNextPage(),
             }}
           />
-        </Box>
-      </Box>
+        </VirtualListContainer>
+      </Container>
     </SidebarMenu>
   );
 };

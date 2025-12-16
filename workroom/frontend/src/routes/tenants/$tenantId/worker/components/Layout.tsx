@@ -4,7 +4,7 @@ export const Layout = styled.section<{ workItemListOnly?: boolean }>`
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-rows: auto 1fr;
-  grid-template-areas: 'header header header' 'workitems section sidebar';
+  grid-template-areas: 'workitems header header' 'workitems section sidebar';
 
   overflow: hidden;
   max-height: 100vh;

@@ -17,23 +17,6 @@ type Props<T extends object> = {
 const Container = styled.div`
   height: auto;
   overflow-y: auto;
-  overflow-anchor: none;
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-
-  &:hover {
-    scrollbar-width: var(--scrollbar-width);
-    -ms-overflow-style: auto;
-
-    &::-webkit-scrollbar {
-      display: block;
-    }
-  }
 `;
 
 const ScrollContainer = styled.div`

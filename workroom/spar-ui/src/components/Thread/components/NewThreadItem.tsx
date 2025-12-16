@@ -1,29 +1,10 @@
-import { IconPlus } from '@sema4ai/icons';
-import { styled } from '@sema4ai/theme';
 import { FC } from 'react';
+import { IconWriteNote } from '@sema4ai/icons';
+import { List } from '@sema4ai/components';
 import { useFeatureFlag } from '../../../hooks';
 import { useCreateThread } from '../../../hooks/useCreateThread';
 import { SparUIFeatureFlag } from '../../../api';
-
-const Container = styled.button`
-  padding: 0 ${({ theme }) => theme.space.$8};
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.$6};
-  height: ${({ theme }) => theme.sizes.$36};
-  width: 100%;
-  background: none;
-  color: ${({ theme }) => theme.colors.content.subtle.light.color};
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.content.primary.color};
-  }
-
-  &:disabled {
-    pointer-events: none;
-    color: ${({ theme }) => theme.colors.content.subtle.light.color};
-  }
-`;
+import { ThreadListItemContainer } from './ThreadsList/styles';
 
 export const NewThreadItem: FC = () => {
   const { onNewThread, isCreatingThread } = useCreateThread();
@@ -31,9 +12,10 @@ export const NewThreadItem: FC = () => {
 
   const isNewThreadDisabled = isCreatingThread || !isChatInteractive;
   return (
-    <Container disabled={isNewThreadDisabled} onClick={onNewThread}>
-      <IconPlus />
-      New Chat
-    </Container>
+    <ThreadListItemContainer>
+      <List.Item icon={IconWriteNote} disabled={isNewThreadDisabled} onClick={onNewThread}>
+        New Chat
+      </List.Item>
+    </ThreadListItemContainer>
   );
 };

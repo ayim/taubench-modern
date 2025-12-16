@@ -1,5 +1,5 @@
-import { Box, Button, SideNavigation, Tooltip, Typography } from '@sema4ai/components';
-import { IconLayoutRight, IconWriteNote } from '@sema4ai/icons';
+import { Box, Button, SideNavigation, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
+import { IconClock, IconMenu, IconWriteNote } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
@@ -16,7 +16,11 @@ type Props = {
   children: ReactNode;
 };
 
-const ThreadsToggle = styled(Button)<{ $expanded?: boolean }>`
+export const MenuToggleButton = styled(Button)`
+  position: relative;
+`;
+
+const ThreadsToggleButton = styled(Button)<{ $expanded?: boolean }>`
   display: ${({ $expanded }) => ($expanded ? 'none' : 'block')};
   position: relative;
 `;
@@ -27,19 +31,54 @@ export const Container = styled.header<{ $sidebarExpanded: boolean }>`
   gap: ${({ theme }) => theme.space.$16};
   height: ${({ theme }) => theme.sizes.$64};
   padding: ${({ theme }) => theme.space.$14} ${({ theme }) => theme.space.$20};
-  padding-left: ${({ theme, $sidebarExpanded }) => (!$sidebarExpanded ? theme.space.$64 : theme.space.$20)};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
 
   ${({ theme }) => theme.screen.m} {
     height: 52px;
-    padding-left: 52px;
   }
 `;
+
+const MenuToggle = () => {
+  const { expanded, triggerProps, triggerRef } = useSidebarMenu('main-menu');
+  const isMobile = useScreenSize('m');
+
+  const showMenuToggle = !expanded || isMobile;
+  if (!showMenuToggle) {
+    return null;
+  }
+
+  return (
+    <MenuToggleButton
+      ref={triggerRef}
+      {...triggerProps}
+      icon={IconMenu}
+      variant="ghost-subtle"
+      aria-label="Toggle main menu"
+      aria-expanded={false}
+    />
+  );
+};
+
+const ThreadsToggle = () => {
+  const { expanded, triggerProps, triggerRef } = useSidebarMenu('threads-list');
+  const isMobile = useScreenSize('m');
+
+  const showThreadsToggle = !expanded || isMobile;
+  return (
+    <ThreadsToggleButton
+      variant="ghost-subtle"
+      icon={IconClock}
+      aria-label="Toggle thread view"
+      {...triggerProps}
+      ref={triggerRef}
+      $expanded={!showThreadsToggle}
+      aria-expanded={false}
+    />
+  );
+};
 
 export const ThreadHeader: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
-  const { triggerProps, triggerRef } = useSidebarMenu('threads-list');
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { onNewThread, isCreatingThread } = useCreateThread();
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
@@ -61,18 +100,14 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
   const isNewThreadDisabled = isCreatingThread || !isChatInteractive;
   return (
     <Container $sidebarExpanded={mainMenuExpanded}>
+      <MenuToggle />
+
       {/* Hide threads list toggle for evaluation threads - navigation only through eval sidebar */}
-      {!isEvaluationThread && (
-        <ThreadsToggle
-          variant="ghost-subtle"
-          icon={IconLayoutRight}
-          aria-label="Toggle thread view"
-          {...triggerProps}
-          ref={triggerRef}
-        />
-      )}
+      {!isEvaluationThread && <ThreadsToggle />}
       <Box display="flex" alignItems="center" gap="$12" minWidth={0}>
-        <AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />
+        <Box flexShrink={0}>
+          <AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />
+        </Box>
         <Box maxWidth="100%" overflow="hidden">
           <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
             {agent.name}

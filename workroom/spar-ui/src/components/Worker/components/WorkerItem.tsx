@@ -7,10 +7,11 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import { useSparUIContext } from '../../../api/context';
 import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
-import { SidebarLink } from '../../../common/link';
+import { ListItemLink } from '../../../common/link';
 import { useParams } from '../../../hooks';
 import { useUpdateWorkItemMutation, useWorkItemQuery } from '../../../queries/workItems';
 import { WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
+import { ThreadListLinkContainer } from '../../Thread/components/ThreadsList/styles';
 
 type WorkItem = components['schemas']['WorkItem'];
 
@@ -205,47 +206,51 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
   }
 
   return (
-    <Tooltip
-      text={
-        <ToolTipContent
-          name={displayName}
-          created_at={workItem?.created_at}
-          updated_at={workItem?.updated_at}
-          status={workItem?.status}
-        />
-      }
-      placement="bottom-end"
-      $nowrap
-    >
-      <Container display="flex" justifyContent="space-between" gap="$8" alignItems="center">
-        {iconForStatus}
-        <Box flex={1}>
-          <Typography $nowrap truncate={1}>
-            <SidebarLink
-              to="/workItem/$agentId/$workItemId/$threadId"
-              params={{ agentId, workItemId: workItem.work_item_id, threadId }}
-            >
-              {displayName}
-            </SidebarLink>
-          </Typography>
-        </Box>
-
-        <Menu
-          trigger={
-            <Button variant="ghost-subtle" size="small" icon={IconDotsHorizontal} aria-label="Work item actions" />
-          }
-        >
-          <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
-        </Menu>
-        {isRenaming && (
-          <RenameDialog
-            onClose={() => setIsRenaming(false)}
-            onRename={onWorkItemRename}
-            entityName={displayName}
-            entityType="Work Item"
+    <>
+      <Tooltip
+        text={
+          <ToolTipContent
+            name={displayName}
+            created_at={workItem?.created_at}
+            updated_at={workItem?.updated_at}
+            status={workItem?.status}
           />
-        )}
-      </Container>
-    </Tooltip>
+        }
+        placement="bottom-end"
+        $nowrap
+      >
+        <ThreadListLinkContainer>
+          <ListItemLink
+            to="/workItem/$agentId/$workItemId/$threadId"
+            params={{ agentId, workItemId: workItem?.work_item_id, threadId }}
+            icon={iconForStatus ?? undefined}
+            hotkey={
+              <Menu
+                trigger={
+                  <Button
+                    variant="ghost-subtle"
+                    size="small"
+                    icon={IconDotsHorizontal}
+                    aria-label="Work item actions"
+                  />
+                }
+              >
+                <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+              </Menu>
+            }
+          >
+            {displayName}
+          </ListItemLink>
+        </ThreadListLinkContainer>
+      </Tooltip>
+      {isRenaming && (
+        <RenameDialog
+          onClose={() => setIsRenaming(false)}
+          onRename={onWorkItemRename}
+          entityName={displayName}
+          entityType="Work Item"
+        />
+      )}
+    </>
   );
 };

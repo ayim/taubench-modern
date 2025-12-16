@@ -1,11 +1,9 @@
-import { FC, ReactNode, useEffect, useRef, useState } from 'react';
-import { Box } from '@sema4ai/components';
+import { FC, useEffect, useRef, useState } from 'react';
 import { styled } from '@sema4ai/theme';
 
 type ThreadNameDisplayProps = {
   name?: string | null;
   threadId?: string | null;
-  icon?: ReactNode;
 };
 
 const renameRevealKeyframes = `
@@ -36,22 +34,18 @@ const caretBlinkKeyframes = `
   }
 `;
 
-const AnimatedThreadName = styled(Box)`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.$8};
-`;
-
-const AnimatedThreadNameLabel = styled(Box)`
+const AnimatedThreadNameLabel = styled.span`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.$4};
+  max-width: 100%;
 `;
 
 const AnimatedThreadNameText = styled('span')<{ $animate: boolean }>`
   ${renameRevealKeyframes}
-  display: inline-block;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   ${({ $animate }) =>
     $animate
@@ -69,6 +63,7 @@ const AnimatedCaret = styled('span')<{ $visible: boolean }>`
   background-color: ${({ theme }) => theme.colors.content.primary.color};
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transform-origin: center;
+  flex-shrink: 0;
   ${({ $visible }) =>
     $visible
       ? `
@@ -81,7 +76,7 @@ const isSameName = (left: string, right: string) => {
   return left.trim() === right.trim();
 };
 
-export const ThreadNameDisplay: FC<ThreadNameDisplayProps> = ({ name, threadId, icon }) => {
+export const ThreadNameDisplay: FC<ThreadNameDisplayProps> = ({ name, threadId }) => {
   const initialName = name ?? '';
   const previousNameRef = useRef<string>(initialName);
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -134,12 +129,9 @@ export const ThreadNameDisplay: FC<ThreadNameDisplayProps> = ({ name, threadId, 
   }, [initialName, showRenameAnimation]);
 
   return (
-    <AnimatedThreadName>
-      {icon}
-      <AnimatedThreadNameLabel>
-        <AnimatedThreadNameText $animate={showRenameAnimation}>{currentName}</AnimatedThreadNameText>
-        <AnimatedCaret $visible={showRenameAnimation} />
-      </AnimatedThreadNameLabel>
-    </AnimatedThreadName>
+    <AnimatedThreadNameLabel>
+      <AnimatedThreadNameText $animate={showRenameAnimation}>{currentName}</AnimatedThreadNameText>
+      <AnimatedCaret $visible={showRenameAnimation} />
+    </AnimatedThreadNameLabel>
   );
 };

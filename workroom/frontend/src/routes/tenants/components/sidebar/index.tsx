@@ -1,8 +1,17 @@
 import { FC, useMemo } from 'react';
 import { Box, Button, Link, useScreenSize } from '@sema4ai/components';
-import { IconAgents, IconMenu, IconSettings2, IconMcp, IconUsers, IconDatabase, IconPoll } from '@sema4ai/icons';
+import {
+  IconAgents,
+  IconSettings2,
+  IconMcp,
+  IconUsers,
+  IconDatabase,
+  IconPoll,
+  IconLayoutLeft,
+  IconMenu,
+} from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
-import { useParams, useRouteContext } from '@tanstack/react-router';
+import { useMatch, useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
 import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
 
@@ -39,35 +48,56 @@ const ScrollContainer = styled.div`
   flex: 1;
 `;
 
+const MenuToggle = () => {
+  const { width, expanded, triggerProps, triggerRef } = useSidebarMenu('main-menu');
+  const isMobile = useScreenSize('m');
+
+  const isConversationalMatch = useMatch({ from: '/tenants/$tenantId/conversational/$agentId', shouldThrow: false });
+  const isWorkerMatch = useMatch({ from: '/tenants/$tenantId/worker/$agentId', shouldThrow: false });
+
+  /**
+   * On these routes the header toggle is displayed in the chat header
+   */
+  const isChatHeaderToggle = isConversationalMatch || isWorkerMatch;
+
+  const menuStyle = useMemo(() => {
+    if (isMobile) {
+      return { left: 8 };
+    }
+
+    if (!isChatHeaderToggle && !expanded) {
+      return { left: 20 };
+    }
+
+    return { left: width - 48 };
+  }, [width, isMobile, isChatHeaderToggle, expanded]);
+
+  if ((isChatHeaderToggle && !expanded) || (isMobile && isChatHeaderToggle)) {
+    return null;
+  }
+
+  return (
+    <MenuOuterToggle
+      ref={triggerRef}
+      {...triggerProps}
+      icon={expanded ? IconLayoutLeft : IconMenu}
+      variant="ghost-subtle"
+      aria-label="Toggle main menu"
+      style={menuStyle}
+      $expanded={expanded}
+      aria-expanded={false}
+    />
+  );
+};
+
 export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
   const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
-  const { width, expanded, triggerProps, triggerRef } = useSidebarMenu('main-menu');
-  const isMobile = useScreenSize('m');
-
-  const menuStyle = useMemo(() => {
-    if (isMobile) {
-      return {
-        left: 8,
-      };
-    }
-    return {
-      left: expanded ? width - 48 : 20,
-    };
-  }, [width, expanded, isMobile]);
 
   return (
     <>
-      <MenuOuterToggle
-        ref={triggerRef}
-        {...triggerProps}
-        icon={IconMenu}
-        variant="ghost-subtle"
-        aria-label="Toggle main menu"
-        style={menuStyle}
-        $expanded={expanded}
-      />
+      <MenuToggle />
 
       <SidebarMenu
         name="main-menu"
@@ -77,7 +107,6 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
         primary
       >
         <TenantMenu />
-
         <ScrollContainer>
           <Box as="nav">
             <RouterSideNavigationLink icon={<IconAgents />} to="/tenants/$tenantId/home" params={{ tenantId }}>

@@ -62,7 +62,7 @@ export const TenantMenu = () => {
           <Trigger>
             {applicationIcon}
             <Box maxWidth={96} px="$8" overflow="hidden">
-              <Typography $nowrap truncate>
+              <Typography variant="body-medium" fontWeight="500" $nowrap truncate>
                 {currentTenant?.name}
               </Typography>
             </Box>
