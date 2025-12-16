@@ -1,3 +1,13 @@
+# Sema4.ai Agent Server 2.2.8 (2025-12-16)
+
+* Enable document internal tools only for document-intelligence v2.1 [#1930](https://github.com/Sema4AI/agent-platform/pull/1930)
+* [SDM-255] Copy thread files associated with SDM before sqlgen [#1933](https://github.com/Sema4AI/agent-platform/pull/1933)
+* [ENG-25] Adjust Python Ruff rules based on team feedback [#1906](https://github.com/Sema4AI/agent-platform/pull/1906)
+* [SDM-209] [SDM-192] Update GenerateSemanticDataModelPayload to require at least 1 column for every TableInfo [#1824](https://github.com/Sema4AI/agent-platform/pull/1824)
+* [PRD-1174]: Preserved Model's business context if user provided [#1834](https://github.com/Sema4AI/agent-platform/pull/1834)
+* [ENG-28] Validation errors on MCP should be forwarded to the client [#1905](https://github.com/Sema4AI/agent-platform/pull/1905)
+* [SDM-245] Turn on agentic sql by default [#1914](https://github.com/Sema4AI/agent-platform/pull/1914)
+
 # Sema4.ai Agent Server 2.2.7 (2025-12-11)
 
 * SDM-234 Embed the sql generation agent's thread in the tool response (#1911)

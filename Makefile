@@ -597,6 +597,50 @@ update-interface:
 	)
 
 # --------------------------------------------------------------------
+# Changelog
+# --------------------------------------------------------------------
+# Steps:
+# 1. Parse latest version from CHANGELOG.md header
+# 2. Parse current version from server/pyproject.toml
+# 3. Fail if versions match (user must bump version first)
+# 4. Get commits since last release tag for server/ and core/
+# 5. Format PR references as GitHub links
+# 6. Prepend new entry to CHANGELOG.md
+get-changelog:  ## Generate changelog from git commits since last release
+	@CHANGELOG_VERSION=$$(grep -m1 "^# Sema4.ai Agent Server" server/CHANGELOG.md | sed -E 's/.*Server ([0-9]+\.[0-9]+\.[0-9]+).*/\1/'); \
+	CURRENT_VERSION=$$(grep -m1 "^version" server/pyproject.toml | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/'); \
+	if [ "$$CHANGELOG_VERSION" = "$$CURRENT_VERSION" ]; then \
+		echo ""; \
+		echo "------------------------------------------------------------"; \
+		echo "Error: Current version ($$CURRENT_VERSION) matches changelog"; \
+		echo "Bump the version in server/pyproject.toml first"; \
+		echo "------------------------------------------------------------"; \
+		echo ""; \
+		exit 1; \
+	fi; \
+	TAG="agent-server-v$$CHANGELOG_VERSION"; \
+	if ! git rev-parse "$$TAG" >/dev/null 2>&1; then \
+		echo "Error: Tag $$TAG does not exist!"; \
+		echo "Available agent-server tags:"; \
+		git tag -l "agent-server-v*" | tail -10; \
+		exit 1; \
+	fi; \
+	echo "Generating changelog for $$CURRENT_VERSION (since $$CHANGELOG_VERSION)..."; \
+	DATE=$$(date +"%Y-%m-%d"); \
+	TEMP_FILE=$$(mktemp); \
+	echo "# Sema4.ai Agent Server $$CURRENT_VERSION ($$DATE)" > "$$TEMP_FILE"; \
+	echo "" >> "$$TEMP_FILE"; \
+	{ git log --oneline "$$TAG..HEAD" -- server; git log --oneline "$$TAG..HEAD" -- core; } | sort -u | while read -r line; do \
+		message=$$(echo "$$line" | cut -d' ' -f2-); \
+		formatted=$$(echo "$$message" | sed -E 's/\(#([0-9]+)\)/[#\1](https:\/\/github.com\/Sema4AI\/agent-platform\/pull\/\1)/g'); \
+		echo "* $$formatted" >> "$$TEMP_FILE"; \
+	done; \
+	echo "" >> "$$TEMP_FILE"; \
+	cat server/CHANGELOG.md >> "$$TEMP_FILE"; \
+	mv "$$TEMP_FILE" server/CHANGELOG.md; \
+	echo "Changelog updated in server/CHANGELOG.md"
+
+# --------------------------------------------------------------------
 # All
 # --------------------------------------------------------------------
 all: clean sync lint typecheck test build  ## Perform a clean build of everything
