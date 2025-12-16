@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import type { NextFunction, Request, Response } from 'express';
 import { pathToRegexp } from 'path-to-regexp';
 import { extractOIDCUserIdentity, handleOIDCAuthCheck, refreshOIDCToken } from './oidc.js';

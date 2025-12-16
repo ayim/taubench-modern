@@ -1,4 +1,4 @@
-import { exhaustiveCheck, sequentialMap } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck, sequentialMap } from '@sema4ai/shared-utils';
 import { TRPCError } from '@trpc/server';
 import z from 'zod';
 import { AllPermissions, RoleIDs, Roles, type Permission } from '../../auth/permissions.js';

@@ -3,7 +3,7 @@ import { Form, Box, Input, Button, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
-import { notNil } from '@sema4ai/robocloud-shared-utils';
+import { notNil } from '@sema4ai/shared-utils';
 import { AgentServerConfigType } from '~/lib/AgentAPIClient';
 
 const beautifyConfigType = (key: string): string => {

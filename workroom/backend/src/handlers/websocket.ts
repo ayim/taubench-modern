@@ -1,6 +1,6 @@
 import type http from 'node:http';
 import Stream from 'node:stream';
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { WebSocket, WebSocketServer } from 'ws';
 import { parseAgentRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';

@@ -3,7 +3,7 @@ import {
   parseEnvVariable,
   parseEnvVariableBoolean,
   parseEnvVariableInteger,
-} from '@sema4ai/robocloud-shared-utils';
+} from '@sema4ai/shared-utils';
 import type { operations } from '@sema4ai/workroom-interface';
 import { LogSeverity } from './monitoring/index.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';

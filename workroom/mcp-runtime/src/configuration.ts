@@ -1,4 +1,4 @@
-import { parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/robocloud-shared-utils';
+import { parseEnvVariable, parseEnvVariableInteger } from '@sema4ai/shared-utils';
 import type { PoolConfig } from 'pg';
 
 const HTTP_API_PORT = 8003;

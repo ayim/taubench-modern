@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { upsertOIDCUser } from '../../auth/utils/oidcUserRegistration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';

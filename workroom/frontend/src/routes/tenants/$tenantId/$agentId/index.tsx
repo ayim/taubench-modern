@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 import { AgentNotFound } from '~/components/AgentNotFound';

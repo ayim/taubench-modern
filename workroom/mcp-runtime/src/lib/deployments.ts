@@ -1,4 +1,4 @@
-import type { AsyncResult } from '@sema4ai/robocloud-shared-utils';
+import type { AsyncResult } from '@sema4ai/shared-utils';
 import { exec, spawn, type ChildProcess } from 'node:child_process';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';

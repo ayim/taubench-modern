@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { extractRoutePermissions } from './helpers/permissions.js';
 import { upsertSnowflakeUser } from '../../auth/utils/snowflakeUserRegistration.js';
 import type { Configuration } from '../../configuration.js';

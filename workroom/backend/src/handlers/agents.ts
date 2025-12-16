@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream';
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { parseAgentRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';

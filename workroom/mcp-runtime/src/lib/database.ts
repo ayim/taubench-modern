@@ -1,4 +1,4 @@
-import { asResult, type AsyncResult } from '@sema4ai/robocloud-shared-utils';
+import { asResult, type AsyncResult } from '@sema4ai/shared-utils';
 import { promises as fs } from 'fs';
 import { FileMigrationProvider, Kysely, Migrator, PostgresDialect } from 'kysely';
 import * as path from 'path';

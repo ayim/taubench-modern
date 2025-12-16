@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { validateWorkRoomToken } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';

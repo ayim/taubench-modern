@@ -1,7 +1,7 @@
 import { queryOptions, useMutation } from '@tanstack/react-query';
 import { QueryProps } from './shared';
 import { useRouteContext } from '@tanstack/react-router';
-import { sequentialMap } from '@sema4ai/robocloud-shared-utils';
+import { sequentialMap } from '@sema4ai/shared-utils';
 import { AgentServerConfigType } from '~/lib/AgentAPIClient';
 
 export const getGetConfigQueryKey = (tenantId: string) => [tenantId, 'config'];

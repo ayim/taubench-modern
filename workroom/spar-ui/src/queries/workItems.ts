@@ -1,5 +1,5 @@
 import { components } from '@sema4ai/agent-server-interface';
-import { asyncForLoop } from '@sema4ai/robocloud-shared-utils';
+import { asyncForLoop } from '@sema4ai/shared-utils';
 import { InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';

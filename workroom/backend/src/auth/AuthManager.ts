@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import { OIDCClient } from './OIDCClient.js';
 import { createGetACEUser, type GetACEUser, type UserFrom } from './sema4OIDC.js';

@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import type { Store } from 'express-session';
 import type { ExpressRequest } from '../interfaces.js';
 import { DatabaseSessionStore } from './DatabaseSessionStore.js';
