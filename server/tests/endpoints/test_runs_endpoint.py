@@ -795,7 +795,11 @@ def test_stream_run_applies_auto_thread_naming(
         # Return only runs for the thread; will include the active run
         return [r for r in stub_storage.runs.values() if r.thread_id == thread_id]
 
-    async def list_threads_for_agent(user_id: str, agent_id: str):
+    async def list_threads_for_agent(
+        user_id: str,
+        agent_id: str,
+        include_trial_threads: bool = False,
+    ):
         return [t for t in stub_storage.threads.values() if t.agent_id == agent_id]
 
     # Attach the missing methods to the stub storage

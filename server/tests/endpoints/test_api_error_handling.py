@@ -88,7 +88,11 @@ class MockErrorStorage:
             raise ThreadNotFoundError()
         del self.threads[thread_id]
 
-    async def list_threads(self, user_id: str) -> list[Thread]:
+    async def list_threads(
+        self,
+        user_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         if self.error_to_raise:
             error = self.error_to_raise
             self.error_to_raise = None

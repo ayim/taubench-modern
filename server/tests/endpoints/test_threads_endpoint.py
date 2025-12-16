@@ -45,11 +45,20 @@ class MockStorage:
                     content.complete = True
         return thread
 
-    async def list_threads(self, user_id: str) -> list[Thread]:
+    async def list_threads(
+        self,
+        user_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         self.call_count["list_threads"] += 1
         return list(self.threads.values())
 
-    async def list_threads_for_agent(self, user_id: str, agent_id: str) -> list[Thread]:
+    async def list_threads_for_agent(
+        self,
+        user_id: str,
+        agent_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         return [t for t in self.threads.values() if t.agent_id == agent_id]
 
     async def upsert_thread(self, user_id: str, thread: Thread) -> None:

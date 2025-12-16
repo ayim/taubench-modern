@@ -110,7 +110,11 @@ class AbstractStorage(ABC):
     # Methods for threads
     # -------------------------
     @abstractmethod
-    async def list_threads(self, user_id: str) -> list[Thread]:
+    async def list_threads(
+        self,
+        user_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         """List all threads for the given user."""
 
     @abstractmethod
@@ -118,6 +122,7 @@ class AbstractStorage(ABC):
         self,
         user_id: str,
         agent_id: str,
+        include_trial_threads: bool = False,
     ) -> list[Thread]:
         """List all threads for the given agent."""
 

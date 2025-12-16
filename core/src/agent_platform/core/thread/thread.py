@@ -80,6 +80,12 @@ class Thread(TolerantDataclass):
     )
     """Arbitrary thread-level metadata."""
 
+    trial_id: str | None = field(
+        default=None,
+        metadata={"description": "Evaluation trial that originated this thread, if any."},
+    )
+    """Evaluation trial that originated this thread, if any."""
+
     work_item_id: str | None = field(
         default=None,
         metadata={"description": "The work item ID associated with this thread."},
@@ -111,6 +117,7 @@ class Thread(TolerantDataclass):
             created_at=self.created_at,
             updated_at=self.updated_at,
             metadata=self.metadata,
+            trial_id=self.trial_id,
             work_item_id=self.work_item_id,
         )
 
@@ -124,6 +131,7 @@ class Thread(TolerantDataclass):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "metadata": self.metadata,
+            "trial_id": self.trial_id,
             "work_item_id": self.work_item_id,
             "messages": [msg.model_dump() for msg in self.messages],
         }
@@ -294,4 +302,6 @@ class Thread(TolerantDataclass):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if "updated_at" in data and isinstance(data["updated_at"], str):
             data["updated_at"] = datetime.fromisoformat(data["updated_at"])
+        if "trial_id" in data and isinstance(data["trial_id"], UUID):
+            data["trial_id"] = str(data["trial_id"])
         return cls(**data, messages=messages)

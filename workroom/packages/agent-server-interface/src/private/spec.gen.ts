@@ -21319,6 +21319,19 @@ export const spec = {
             title: 'Metadata',
             description: 'Arbitrary thread-level metadata.',
           },
+          trial_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Trial Id',
+            description:
+              'Evaluation trial that originated this thread, if any.',
+          },
           work_item_id: {
             anyOf: [
               {
@@ -23040,6 +23053,19 @@ export const spec = {
             type: 'object',
             title: 'Metadata',
             description: 'Arbitrary thread-level metadata.',
+          },
+          trial_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Trial Id',
+            description:
+              'Evaluation trial that originated this thread, if any.',
           },
           work_item_id: {
             anyOf: [

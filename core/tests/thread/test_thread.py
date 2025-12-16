@@ -190,3 +190,12 @@ class TestThread:
             msg7,
             msg8,
         ]
+
+    def test_trial_id_round_trip(self):
+        thread = Thread(user_id="dummy", agent_id="dummy", name="test-thread", trial_id="trial-1")
+
+        serialized = thread.model_dump()
+        assert serialized["trial_id"] == "trial-1"
+
+        restored = Thread.model_validate(serialized)
+        assert restored.trial_id == "trial-1"

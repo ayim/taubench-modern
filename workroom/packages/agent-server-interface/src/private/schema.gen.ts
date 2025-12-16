@@ -8942,6 +8942,11 @@ export interface components {
         [key: string]: unknown;
       };
       /**
+       * Trial Id
+       * @description Evaluation trial that originated this thread, if any.
+       */
+      trial_id?: string | null;
+      /**
        * Work Item Id
        * @description The work item ID associated with this thread.
        */
@@ -9924,6 +9929,11 @@ export interface components {
       metadata?: {
         [key: string]: unknown;
       };
+      /**
+       * Trial Id
+       * @description Evaluation trial that originated this thread, if any.
+       */
+      trial_id?: string | null;
       /**
        * Work Item Id
        * @description The work item ID associated with this thread.

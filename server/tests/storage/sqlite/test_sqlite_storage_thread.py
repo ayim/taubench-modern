@@ -14,6 +14,7 @@ from agent_platform.server.storage.errors import (
     UserPermissionError,
 )
 from agent_platform.server.storage.sqlite import SQLiteStorage
+from server.tests.storage.thread_trial_helpers import create_trial_with_thread
 
 
 @pytest.mark.asyncio
@@ -303,6 +304,80 @@ async def test_thread_listing_with_multiple_agents(
 
 
 @pytest.mark.asyncio
+async def test_list_threads_filters_trial_threads(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    await storage.upsert_agent(sample_user_id, sample_agent)
+
+    regular_thread = Thread(
+        thread_id=str(uuid4()),
+        user_id=sample_user_id,
+        agent_id=sample_agent.agent_id,
+        name="Regular Thread",
+        messages=[],
+    )
+    await storage.upsert_thread(sample_user_id, regular_thread)
+
+    _, _, trial, trial_thread = await create_trial_with_thread(
+        storage,
+        sample_user_id,
+        sample_agent,
+    )
+
+    threads = await storage.list_threads(sample_user_id)
+    assert [t.thread_id for t in threads] == [regular_thread.thread_id]
+
+    threads_with_trials = await storage.list_threads(
+        sample_user_id,
+        include_trial_threads=True,
+    )
+    assert {t.thread_id for t in threads_with_trials} == {
+        regular_thread.thread_id,
+        trial_thread.thread_id,
+    }
+    persisted_trial = await storage.get_trial(trial.trial_id)
+    assert persisted_trial is not None
+    assert persisted_trial.thread_id == trial_thread.thread_id
+
+
+@pytest.mark.asyncio
+async def test_list_threads_for_agent_can_include_trials(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    await storage.upsert_thread(
+        sample_user_id,
+        Thread(
+            thread_id=str(uuid4()),
+            user_id=sample_user_id,
+            agent_id=sample_agent.agent_id,
+            name="Visible Thread",
+            messages=[],
+        ),
+    )
+
+    _, _, trial, _ = await create_trial_with_thread(
+        storage,
+        sample_user_id,
+        sample_agent,
+    )
+
+    threads = await storage.list_threads_for_agent(sample_user_id, sample_agent.agent_id)
+    assert all(t.trial_id is None for t in threads)
+
+    with_trials = await storage.list_threads_for_agent(
+        sample_user_id,
+        sample_agent.agent_id,
+        include_trial_threads=True,
+    )
+    assert any(t.trial_id == trial.trial_id for t in with_trials)
+
+
+@pytest.mark.asyncio
 async def test_thread_deletion_nonexistent(
     storage: SQLiteStorage,
     sample_user_id: str,
@@ -393,6 +468,48 @@ async def test_thread_add_message_to_nonexistent(
             non_existent_thread_id,
             additional_message,
         )
+
+
+@pytest.mark.asyncio
+async def test_trial_threads_are_removed_with_trial(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    scenario, _, trial, trial_thread = await create_trial_with_thread(
+        storage,
+        sample_user_id,
+        sample_agent,
+    )
+
+    await storage.delete_scenario(scenario.scenario_id)
+
+    with pytest.raises(ThreadNotFoundError):
+        await storage.get_thread(sample_user_id, trial_thread.thread_id)
+
+    deleted_trial = await storage.get_trial(trial.trial_id)
+    assert deleted_trial is None
+
+
+@pytest.mark.asyncio
+async def test_deleting_trial_thread_does_not_remove_trial(
+    storage: SQLiteStorage,
+    sample_user_id: str,
+    sample_agent: Agent,
+) -> None:
+    await storage.upsert_agent(sample_user_id, sample_agent)
+    _, _, trial, trial_thread = await create_trial_with_thread(
+        storage,
+        sample_user_id,
+        sample_agent,
+    )
+
+    await storage.delete_thread(sample_user_id, trial_thread.thread_id)
+
+    persisted_trial = await storage.get_trial(trial.trial_id)
+    assert persisted_trial is not None
+    assert persisted_trial.thread_id is None
 
 
 @pytest.mark.asyncio

@@ -16,7 +16,11 @@ from agent_platform.server.storage.postgres.storage_messages import (
 class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
     """Mixin for PostgreSQL thread operations."""
 
-    async def list_threads(self, user_id: str) -> list[Thread]:
+    async def list_threads(
+        self,
+        user_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         """List all threads for the given user."""
         # 1. Validate the uuid
         self._validate_uuid(user_id)
@@ -32,12 +36,17 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.name,
                     t.created_at,
                     t.updated_at,
+                    t.trial_id,
                     t.metadata,
                     t.work_item_id
                    FROM v2.thread t
                    WHERE v2.check_user_access(t.user_id, %(user_id)s::uuid)
+                     AND (%(include_trial_threads)s OR t.trial_id IS NULL)
                    ORDER BY t.created_at DESC""",
-                {"user_id": user_id},
+                {
+                    "user_id": user_id,
+                    "include_trial_threads": include_trial_threads,
+                },
             )
 
             # 3. No threads found?
@@ -51,6 +60,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         self,
         user_id: str,
         agent_id: str,
+        include_trial_threads: bool = False,
     ) -> list[Thread]:
         """List all threads for the given agent."""
         # 1. Validate the uuids
@@ -68,14 +78,20 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.name,
                     t.created_at,
                     t.updated_at,
+                    t.trial_id,
                     t.metadata,
                     t.work_item_id
                 FROM v2.thread t
                 WHERE t.agent_id = %(agent_id)s::uuid
                 AND v2.check_user_access(t.user_id, %(user_id)s::uuid)
+                AND (%(include_trial_threads)s OR t.trial_id IS NULL)
                 ORDER BY t.created_at DESC
                 """,
-                {"agent_id": agent_id, "user_id": user_id},
+                {
+                    "agent_id": agent_id,
+                    "user_id": user_id,
+                    "include_trial_threads": include_trial_threads,
+                },
             )
 
             # 3. No threads found?
@@ -101,6 +117,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.name,
                     t.created_at,
                     t.updated_at,
+                    t.trial_id,
                     t.metadata,
                     t.work_item_id,
                     v2.check_user_access(t.user_id, %(user_id)s::uuid) as has_access
@@ -157,17 +174,18 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 await cur.execute(
                     """INSERT INTO v2.thread
                     (thread_id, name, user_id, agent_id,
-                    created_at, updated_at, metadata, work_item_id)
+                    created_at, updated_at, metadata, work_item_id, trial_id)
                     VALUES (%(thread_id)s::uuid, %(name)s, %(user_id)s::uuid,
                             %(agent_id)s::uuid, %(created_at)s, %(updated_at)s,
-                            %(metadata)s, %(work_item_id)s)
+                            %(metadata)s, %(work_item_id)s, %(trial_id)s::uuid)
                     ON CONFLICT (thread_id)
                     DO UPDATE SET
                         name = EXCLUDED.name,
                         agent_id = EXCLUDED.agent_id,
                         updated_at = EXCLUDED.updated_at,
                         metadata = EXCLUDED.metadata,
-                        work_item_id = EXCLUDED.work_item_id
+                        work_item_id = EXCLUDED.work_item_id,
+                        trial_id = EXCLUDED.trial_id
                     WHERE v2.check_user_access(v2.thread.user_id, %(user_id)s::uuid)""",
                     thread_dict,
                 )

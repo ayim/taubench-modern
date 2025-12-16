@@ -34,7 +34,12 @@ class MockStorage:
             return self.users[sub], True
         return self.users[sub], False
 
-    async def list_threads_for_agent(self, user_id: str, agent_id: str) -> list[Thread]:
+    async def list_threads_for_agent(
+        self,
+        user_id: str,
+        agent_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         """List all threads for a specific agent."""
         return [thread for thread in self.threads.values() if thread.agent_id == agent_id and thread.user_id == user_id]
 

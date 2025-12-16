@@ -53,9 +53,23 @@ from agent_platform.server.evals.evaluations.response_accuracy import evaluate_r
 from agent_platform.server.file_manager import FileManagerService
 from agent_platform.server.kernel.kernel import AgentServerKernel
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
+from agent_platform.server.storage.errors import ThreadNotFoundError
 from agent_platform.server.storage.option import StorageService
 
 logger = logging.getLogger(__name__)
+
+
+async def _delete_existing_trial_thread(
+    storage: StorageDependency,
+    user_id: str,
+    thread_id: str | None,
+) -> None:
+    if not thread_id:
+        return
+    try:
+        await storage.delete_thread(user_id, thread_id)
+    except ThreadNotFoundError:
+        logger.debug("Existing trial thread %s already removed", thread_id)
 
 
 def _list_scenario_next_user_messages(scenario: Scenario, start_index: int) -> tuple[list[ThreadMessage], int | None]:
@@ -465,6 +479,8 @@ async def run_scenario(task: Trial) -> bool:
     if agent_tools.issues:
         thread_metadata["tool_gathering_issues"] = list(agent_tools.issues)
 
+    await _delete_existing_trial_thread(storage, system_user.user_id, task.thread_id)
+
     new_thread = Thread(
         name=(
             f'"{scenario.name}" - '
@@ -476,6 +492,7 @@ async def run_scenario(task: Trial) -> bool:
         thread_id=str(uuid4()),
         messages=initial_agent_messages,
         metadata=thread_metadata,
+        trial_id=task.trial_id,
     )
     await storage.upsert_thread(system_user.user_id, new_thread)
 

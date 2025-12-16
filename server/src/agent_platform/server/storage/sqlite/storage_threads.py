@@ -25,7 +25,11 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
     # -------------------------------------------------------------------------
     # Threads
     # -------------------------------------------------------------------------
-    async def list_threads(self, user_id: str) -> list[Thread]:
+    async def list_threads(
+        self,
+        user_id: str,
+        include_trial_threads: bool = False,
+    ) -> list[Thread]:
         """List all threads for a given user."""
         self._validate_uuid(user_id)
         async with self._cursor() as cur:
@@ -38,13 +42,18 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.name,
                     t.created_at,
                     t.updated_at,
+                    t.trial_id,
                     t.metadata,
                     t.work_item_id
                 FROM v2_thread t
                 WHERE v2_check_user_access(t.user_id, :user_id) = 1
+                  AND (:include_trial_threads = 1 OR t.trial_id IS NULL)
                 ORDER BY t.created_at DESC
                 """,
-                {"user_id": user_id},
+                {
+                    "user_id": user_id,
+                    "include_trial_threads": int(include_trial_threads),
+                },
             )
             rows = await cur.fetchall()
 
@@ -56,6 +65,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
         self,
         user_id: str,
         agent_id: str,
+        include_trial_threads: bool = False,
     ) -> list[Thread]:
         """List all threads for a specific agent if user has access."""
         self._validate_uuid(user_id)
@@ -70,14 +80,20 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.name,
                     t.created_at,
                     t.updated_at,
+                    t.trial_id,
                     t.metadata,
                     t.work_item_id
                 FROM v2_thread t
                 WHERE t.agent_id = :agent_id
                   AND v2_check_user_access(t.user_id, :user_id) = 1
+                  AND (:include_trial_threads = 1 OR t.trial_id IS NULL)
                 ORDER BY t.created_at DESC
                 """,
-                {"agent_id": agent_id, "user_id": user_id},
+                {
+                    "agent_id": agent_id,
+                    "user_id": user_id,
+                    "include_trial_threads": int(include_trial_threads),
+                },
             )
             rows = await cur.fetchall()
 
@@ -106,6 +122,7 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.created_at,
                     t.updated_at,
                     t.metadata,
+                    t.trial_id,
                     t.work_item_id,
                     v2_check_user_access(t.user_id, :user_id) AS has_access
                 FROM v2_thread t
@@ -148,18 +165,19 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     """
                     INSERT INTO v2_thread (
                         thread_id, name, user_id, agent_id,
-                        created_at, updated_at, metadata, work_item_id
+                        created_at, updated_at, metadata, work_item_id, trial_id
                     )
                     VALUES (
                         :thread_id, :name, :user_id, :agent_id,
-                        :created_at, :updated_at, :metadata, :work_item_id
+                        :created_at, :updated_at, :metadata, :work_item_id, :trial_id
                     )
                     ON CONFLICT(thread_id) DO UPDATE SET
                         name = excluded.name,
                         agent_id = excluded.agent_id,
                         updated_at = excluded.updated_at,
                         metadata = excluded.metadata,
-                        work_item_id = excluded.work_item_id
+                        work_item_id = excluded.work_item_id,
+                        trial_id = excluded.trial_id
                     WHERE v2_check_user_access(v2_thread.user_id, :requester_user_id) = 1
                     RETURNING thread_id
                     """,
