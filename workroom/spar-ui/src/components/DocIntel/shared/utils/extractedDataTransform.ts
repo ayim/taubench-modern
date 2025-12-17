@@ -85,6 +85,48 @@ const shouldRenderAsTable = (arr: unknown[]): boolean => {
   });
 };
 
+type TableWrapperItem = { table_name?: string; rows: unknown[] };
+
+/**
+ * Check if an array is a "table wrapper" structure
+ * e.g., [{ table_name: "...", rows: [...] }] where rows contains the actual table data
+ *
+ * Without this, we'd render "table_name" and "rows" as columns instead of the actual row data.
+ */
+const isTableWrapperArray = (arr: unknown[]): boolean => {
+  if (arr.length === 0) return false;
+
+  // Check if all items are objects with a 'rows' property that is an array
+  return arr.every((item) => {
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) return false;
+    const obj = item as Record<string, unknown>;
+    return Array.isArray(obj.rows) && shouldRenderAsTable(obj.rows as unknown[]);
+  });
+};
+
+/**
+ * Returns typed table wrapper array, or empty array if not valid.
+ * Keeps casting in one place.
+ */
+const getParsedTableWrapperArray = (arr: unknown[]): TableWrapperItem[] => {
+  if (!isTableWrapperArray(arr)) return [];
+  return arr as TableWrapperItem[];
+};
+
+/**
+ * Convert a value to a string suitable for table cell display
+ */
+const valueToString = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'object') {
+    // For objects/arrays, use JSON.stringify for readable output
+    return JSON.stringify(value);
+  }
+  return String(value);
+};
+
 /**
  * Convert array of objects to table format
  */
@@ -109,7 +151,7 @@ const arrayToTableData = (
     const row: Record<string, string> = {};
     keys.forEach((key) => {
       const value = (item as Record<string, unknown>)[key];
-      row[key] = value !== null && value !== undefined ? String(value) : '';
+      row[key] = valueToString(value);
     });
     return row;
   });
@@ -134,6 +176,39 @@ const flattenExtractedData = (
 
   // Handle arrays
   if (Array.isArray(result)) {
+    // Handle table wrapper arrays (e.g., [{ table_name: "...", rows: [...] }])
+    // Render each item's 'rows' as a table with 'table_name' as header
+    const tableWrappers = getParsedTableWrapperArray(result);
+    if (tableWrappers.length > 0) {
+      tableWrappers.forEach(({ table_name: tableName, rows }, index) => {
+        const itemPath = `${path}[${index}]`;
+
+        // Add table name as section header if present
+        if (tableName) {
+          const sectionBlockId = `extract-${itemPath}-section`;
+          blocks.push({
+            id: sectionBlockId,
+            type: 'Section Header',
+            content: tableName,
+            page: undefined,
+          });
+        }
+
+        // Render the actual rows as a table
+        const blockId = `extract-${itemPath}.rows-table`;
+        const tableData = arrayToTableData(rows);
+
+        blocks.push({
+          id: blockId,
+          type: 'Table',
+          content: '', // Not used for tables
+          tableData,
+          page: undefined,
+        });
+      });
+      return;
+    }
+
     // Check if this array should be rendered as a table
     if (shouldRenderAsTable(result)) {
       const blockId = `extract-${path}-table`;
