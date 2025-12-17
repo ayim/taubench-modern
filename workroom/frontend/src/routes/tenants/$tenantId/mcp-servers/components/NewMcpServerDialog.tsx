@@ -12,32 +12,38 @@ import {
   useSnackbar,
 } from '@sema4ai/components';
 import { IconLightBulb, IconPlus, IconTrash } from '@sema4ai/icons';
-import { useParams } from '@tanstack/react-router';
 import { FC, useState } from 'react';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
-import { getCreateMcpServerBody } from '~/lib/mcpServersUtils';
+import { useParams } from '@tanstack/react-router';
 import { useCreateMcpServerMutation, useCreateHostedMcpServerMutation } from '~/queries/mcpServers';
 import { InputControlled } from '~/components/InputControlled';
-import { ActionPackageItem } from './ActionPackageItem.tsx';
+import { ActionPackageItem } from './ActionPackageItem';
 import { useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
 import { useSparUIContext } from '@sema4ai/spar-ui';
-import { newMcpServerFormSchema, NewMcpServerFormInput, NewMcpServerFormValues } from '~/lib/mcpServersUtils';
-
-type Props = { open: boolean; onClose: () => void };
-
-type AgentActionPackages = NonNullable<
-  NonNullable<ReturnType<typeof useInspectAgentPackageMutation>['data']>['action_packages']
->;
+import {
+  newMcpServerFormSchema,
+  NewMcpServerFormInput,
+  NewMcpServerFormValues,
+  buildCreateMcpServerPayload,
+  mcpTypeSelectItemsWithHosted,
+  mcpTransportSelectItems,
+  headerTypeSelectItems,
+} from '~/lib/mcpServersUtils';
+import { components } from '@sema4ai/agent-server-interface';
 
 type UploadState =
   | { type: 'pending_upload' }
   | { type: 'uploading'; file: { name: string } }
   | { type: 'uploaded'; file: { name: string } }
-  | { type: 'introspection_succeeded'; file: { name: string }; data: AgentActionPackages }
+  | {
+      type: 'introspection_succeeded';
+      file: { name: string };
+      data: components['schemas']['AgentPackageInspectionResponse'];
+    }
   | { type: 'uploading_failed'; error: Error }
   | { type: 'introspection_failed'; error: Error };
 
-export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
+export const NewMcpServerDialog: FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const createMutation = useCreateMcpServerMutation();
   const createHostedMutation = useCreateHostedMcpServerMutation();
@@ -90,16 +96,26 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
       formData.append('name', file.name.replace(/\.zip$/i, ''));
       formData.append('description', 'Agent package uploaded from UI');
 
-      const inspectData = await inspectAgentPackageMutation.mutateAsync({ formData });
+      const inspectionResult = await inspectAgentPackageMutation.mutateAsync({ formData });
+
+      if (inspectionResult.status === 'failure' || !inspectionResult.data) {
+        setUploadState({
+          type: 'introspection_failed',
+          error: new Error('Failed to inspect agent package: no data returned'),
+        });
+        return;
+      }
+
+      const inspectionData = inspectionResult.data;
 
       setUploadState({
         type: 'introspection_succeeded',
         file: { name: file.name },
-        data: inspectData.action_packages,
+        data: inspectionData,
       });
 
       if (!form.getValues('name')) {
-        form.setValue('name', `MCP server for ${inspectData.name}`);
+        form.setValue('name', `MCP server for ${inspectionData.name ?? ''}`);
       }
     } catch (err) {
       const error =
@@ -113,16 +129,19 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
   };
 
   const onSubmit = form.handleSubmit((values) => {
-    console.log('values', values);
-    const body = getCreateMcpServerBody(values);
+    const body = buildCreateMcpServerPayload(values);
 
     if (values.type === 'hosted' && values.agentPackageFile) {
+      const mcpServerMetadata =
+        uploadState.type === 'introspection_succeeded' && uploadState.data ? { ...uploadState.data } : undefined;
+
       createHostedMutation.mutate(
         {
           tenantId,
           name: body.name,
           file: values.agentPackageFile,
           headers: body.headers,
+          mcpServerMetadata,
         },
         {
           onSuccess: () => {
@@ -171,17 +190,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                 <Controller
                   control={form.control}
                   name="type"
-                  render={({ field }) => (
-                    <Select
-                      label="Type"
-                      items={[
-                        { value: 'generic_mcp', label: 'Generic MCP' },
-                        { value: 'sema4ai_action_server', label: 'Sema4.ai Action Server' },
-                        { value: 'hosted', label: 'Hosted Action Server' },
-                      ]}
-                      {...field}
-                    />
-                  )}
+                  render={({ field }) => <Select label="Type" items={[...mcpTypeSelectItemsWithHosted]} {...field} />}
                 />
                 {typeValue !== 'hosted' && (
                   <>
@@ -189,16 +198,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                       control={form.control}
                       name="transport"
                       render={({ field }) => (
-                        <Select
-                          label="Transport"
-                          items={[
-                            { value: 'auto', label: 'Auto (Default)' },
-                            { value: 'streamable-http', label: 'STREAMABLE-HTTP' },
-                            { value: 'sse', label: 'SSE' },
-                            { value: 'stdio', label: 'STDIO' },
-                          ]}
-                          {...field}
-                        />
+                        <Select label="Transport" items={[...mcpTransportSelectItems]} {...field} />
                       )}
                     />
                     <Box style={{ gridColumn: '1 / -1' }}>
@@ -228,14 +228,7 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                               control={form.control}
                               name={`headersKV.${idx}.type` as const}
                               render={({ field }) => (
-                                <Select
-                                  label="Type"
-                                  items={[
-                                    { value: 'string', label: 'Plain Text' },
-                                    { value: 'secret', label: 'Secret' },
-                                  ]}
-                                  {...field}
-                                />
+                                <Select label="Type" items={[...headerTypeSelectItems]} {...field} />
                               )}
                             />
                             <InputControlled
@@ -346,13 +339,15 @@ export const NewMcpServerDialog: FC<Props> = ({ open, onClose }) => {
                       )}
                     </Box>
 
-                    {uploadState.type === 'introspection_succeeded' && uploadState.data.length > 0 && (
-                      <Box display="grid" gap="$16" mt="$16">
-                        {uploadState.data.map((actionPackage, idx) => (
-                          <ActionPackageItem key={`${actionPackage.name}-${idx}`} actionPackage={actionPackage} />
-                        ))}
-                      </Box>
-                    )}
+                    {uploadState.type === 'introspection_succeeded' &&
+                      uploadState.data?.action_packages &&
+                      uploadState.data?.action_packages.length > 0 && (
+                        <Box display="grid" gap="$16" mt="$16">
+                          {uploadState.data.action_packages?.map((actionPackage, idx) => (
+                            <ActionPackageItem key={`${actionPackage.name}-${idx}`} actionPackage={actionPackage} />
+                          ))}
+                        </Box>
+                      )}
                   </Box>
                 )}
               </Box>

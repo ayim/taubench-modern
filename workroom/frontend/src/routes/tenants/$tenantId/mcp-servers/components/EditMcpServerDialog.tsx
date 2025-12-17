@@ -1,99 +1,75 @@
-import { FC, useMemo } from 'react';
+import { FC } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Dialog, Form, Input, Select, Typography, useSnackbar } from '@sema4ai/components';
 import { IconPlus, IconTrash } from '@sema4ai/icons';
-import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
-
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
-import { z } from 'zod';
 
-import { buildUpdateMcpBody, headersToEntries } from '~/lib/utils';
-import { useUpdateMcpServerMutation, type MCPServer, type MCPServerEdit } from '~/queries/mcpServers';
-import { isValidHeaders } from '~/queries/agent-interface-patches';
+import { McpServer, useUpdateMcpServerMutation } from '~/queries/mcpServers';
 import { InputControlled } from '~/components/InputControlled';
+import { ActionPackageItem } from './ActionPackageItem';
+import {
+  editMcpServerFormSchema,
+  EditMcpServerFormInput,
+  EditMcpServerFormValues,
+  apiHeadersToFormEntries,
+  buildUpdateMcpServerPayload,
+  mcpTypeSelectItemsWithHosted,
+  mcpTransportSelectItems,
+  headerTypeSelectItems,
+} from '~/lib/mcpServersUtils';
 
-type Props = {
+export const EditMcpServerDialog: FC<{
   open: boolean;
   onClose: () => void;
-  initial: MCPServer & {
-    type: 'generic_mcp' | 'sema4ai_action_server';
-    transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
-  };
-};
-
-const keyValueSchema = z.object({
-  key: z.string().min(1, 'Key is required'),
-  value: z.string().optional().default(''),
-  type: z.enum(['string', 'secret']).optional().default('string'),
-});
-
-// TODO: [fix-type] Create strict edit schema once backend guarantees non-null values for editing
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  type: z.enum(['generic_mcp', 'sema4ai_action_server']).default('generic_mcp'),
-  transport: z.enum(['auto', 'streamable-http', 'sse', 'stdio']).default('auto'),
-  url: z.string().optional(),
-  headersKV: z.array(keyValueSchema).default([]),
-  command: z.string().optional(),
-  argsText: z.string().optional(),
-  cwd: z.string().optional(),
-});
-
-type FormInput = z.input<typeof formSchema>;
-type FormValues = z.output<typeof formSchema>;
-
-export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
+  initial: McpServer;
+}> = ({ open, onClose, initial }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
-  const queryClient = useQueryClient();
   const mutation = useUpdateMcpServerMutation();
   const { addSnackbar } = useSnackbar();
 
-  const defaultHeadersKV = useMemo(() => {
-    const headers = isValidHeaders(initial.headers) ? initial.headers : null;
-    return headersToEntries(headers);
-  }, [initial]);
+  const isHosted = initial.is_hosted === true;
+  const hostedMetadata = initial.mcp_server_metadata;
+  const actionPackages = hostedMetadata?.action_packages ?? [];
+  const isHostedWithMetadata = isHosted && actionPackages.length > 0;
 
-  const form = useForm<FormInput, unknown, FormValues>({
-    resolver: zodResolver(formSchema),
+  const { entries: allEntries, secrets } = apiHeadersToFormEntries(initial.headers);
+
+  const defaultHeadersKV = isHostedWithMetadata ? allEntries.filter((e) => e.type !== 'secret') : allEntries;
+  const defaultAgentPackageSecrets = isHostedWithMetadata ? secrets : {};
+
+  const initialType = isHosted ? 'hosted' : initial.type;
+
+  const form = useForm<EditMcpServerFormInput, unknown, EditMcpServerFormValues>({
+    resolver: zodResolver(editMcpServerFormSchema),
     defaultValues: {
       name: initial.name,
-      type: initial.type,
+      type: initialType,
       transport: initial.transport,
       url: initial.url ?? undefined,
       headersKV: defaultHeadersKV,
       command: initial.command ?? undefined,
       argsText: initial.args?.join(' ') ?? undefined,
       cwd: initial.cwd ?? undefined,
+      agentPackageSecrets: defaultAgentPackageSecrets,
     },
     mode: 'onChange',
   });
 
   const transportValue = form.watch('transport');
-
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
-  const onSubmit = form.handleSubmit((values: FormValues) => {
-    const body: MCPServerEdit = buildUpdateMcpBody(
-      {
-        name: values.name,
-        type: values.type,
-        transport: values.transport,
-        url: values.url,
-        headerEntries: values.headersKV,
-        command: values.command,
-        argsText: values.argsText,
-        cwd: values.cwd,
-      },
-      initial,
+  const onSubmit = form.handleSubmit((values: EditMcpServerFormValues) => {
+    const body = buildUpdateMcpServerPayload(
+      values,
+      { force_serial_tool_calls: initial.force_serial_tool_calls, env: initial.env },
+      { isHostedWithMetadata },
     );
-    const mcpServerId = initial.mcp_server_id ?? '';
 
     mutation.mutate(
-      { tenantId, mcpServerId, body },
+      { tenantId, mcpServerId: initial.mcp_server_id, body },
       {
-        onSuccess: async (data) => {
-          queryClient.setQueryData(['mcp-server', tenantId, mcpServerId], data);
+        onSuccess: () => {
           addSnackbar({ message: 'MCP server updated', variant: 'success' });
           onClose();
         },
@@ -104,7 +80,7 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
   });
 
   return (
-    <Dialog open={open} size="medium" width={900} onClose={onClose}>
+    <Dialog open={open} size={isHostedWithMetadata ? 'x-large' : 'medium'} width={900} onClose={onClose}>
       <Form onSubmit={onSubmit} gap="$12" busy={mutation.isPending} width="100%">
         <FormProvider {...form}>
           <Dialog.Header>
@@ -124,32 +100,12 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
                 <Controller
                   control={form.control}
                   name="type"
-                  render={({ field }) => (
-                    <Select
-                      label="Type"
-                      items={[
-                        { value: 'generic_mcp', label: 'Generic MCP' },
-                        { value: 'sema4ai_action_server', label: 'Sema4 Action Server' },
-                      ]}
-                      {...field}
-                    />
-                  )}
+                  render={({ field }) => <Select label="Type" items={[...mcpTypeSelectItemsWithHosted]} {...field} />}
                 />
                 <Controller
                   control={form.control}
                   name="transport"
-                  render={({ field }) => (
-                    <Select
-                      label="Transport"
-                      items={[
-                        { value: 'auto', label: 'Auto (Default)' },
-                        { value: 'streamable-http', label: 'STREAMABLE-HTTP' },
-                        { value: 'sse', label: 'SSE' },
-                        { value: 'stdio', label: 'STDIO' },
-                      ]}
-                      {...field}
-                    />
-                  )}
+                  render={({ field }) => <Select label="Transport" items={[...mcpTransportSelectItems]} {...field} />}
                 />
                 <Box style={{ gridColumn: '1 / -1' }}>
                   <Input
@@ -184,8 +140,19 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
                 )}
               </Box>
 
+              {isHostedWithMetadata && actionPackages.length > 0 && (
+                <Box p="$4" display="flex" flexDirection="column" gap="$12">
+                  <Typography fontWeight="medium">Action Packages</Typography>
+                  <Box display="grid" gap="$16">
+                    {actionPackages.map((actionPackage, idx) => (
+                      <ActionPackageItem key={`${actionPackage.name}-${idx}`} actionPackage={actionPackage} />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
               <Box p="$4">
-                <Box mb="$8">Headers</Box>
+                <Box mb="$8">{isHostedWithMetadata ? 'Additional Headers' : 'Headers'}</Box>
                 <Box display="grid" gap="$8">
                   {headersArray.fields.map((f, idx) => (
                     <Box key={f.id} display="grid" style={{ gridTemplateColumns: '1fr 160px 1fr auto', gap: '0.5rem' }}>
@@ -196,10 +163,7 @@ export const EditMcpServerDialog: FC<Props> = ({ open, onClose, initial }) => {
                         render={({ field }) => (
                           <Select
                             label="Type"
-                            items={[
-                              { value: 'string', label: 'Plain Text' },
-                              { value: 'secret', label: 'Secret' },
-                            ]}
+                            items={[...headerTypeSelectItems]}
                             value={field.value}
                             onChange={field.onChange}
                             onBlur={field.onBlur}

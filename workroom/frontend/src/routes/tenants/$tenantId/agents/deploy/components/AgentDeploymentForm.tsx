@@ -11,11 +11,11 @@ import { StepNavigation } from './StepNavigation';
 import { AgentConfigurationStep } from './AgentConfigurationStep';
 import { AgentOverviewStep } from './AgentOverviewStep';
 import { McpConfigurationStep } from './McpConfigurationStep';
-import { AgentPackageResponse } from '../../../home/components/AgentUploadForm';
+import { components } from '@sema4ai/agent-server-interface';
 
 type Props = {
   defaultValues: AgentDeploymentFormSchema;
-  agentTemplate: AgentPackageResponse['agentTemplate'];
+  agentTemplate: components['schemas']['AgentPackageInspectionResponse'];
   onSubmit: (payload: AgentDeploymentFormSchema) => void;
   isPending: boolean;
   title: string;
@@ -33,8 +33,8 @@ export const AgentDeploymentForm: FC<Props> = ({
   const [wizardStep, setWizardStep] = useState<AgentDeploymentStep>(AgentDeploymentStep.AgentOverview);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const withActions = agentTemplate.action_packages.length > 0;
-  const withMcpServers = agentTemplate.mcpServers.length > 0;
+  const withActions = (agentTemplate.action_packages?.length ?? 0) > 0;
+  const withMcpServers = (agentTemplate.mcp_servers?.length ?? 0) > 0;
   const withDataSources = false;
 
   const isFinalStep = wizardStep === AgentDeploymentStep.ActionSettings;

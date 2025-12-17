@@ -1,7 +1,5 @@
-import type { MCPServer, MCPServerEdit } from '~/queries/mcpServers';
 import { ListPlatformsResponse } from '~/queries/platforms';
 import { UserTenant } from '~/queries/tenants';
-import type { MCPHeaderValue } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 import { getBasePath } from '~/utils/base';
 
 export const snakeCaseToCamelCase = (str: string): string => {
@@ -147,86 +145,6 @@ export const resolveWorkroomURL = (
   path: string,
   baseUrl: string = `${window.location.protocol}//${window.location.host}`,
 ): string => joinURL(baseUrl, getBasePath(), path);
-
-type HeaderEntry = { key: string; value?: string; type: MCPHeaderValue['type'] };
-
-function entriesToHeaders(
-  entries: HeaderEntry[] | undefined | null,
-): Record<string, string | { type: 'secret'; value: string }> {
-  const out: Record<string, string | { type: 'secret'; value: string }> = {};
-  for (const { key, value = '', type } of entries || []) {
-    if (!key || key.trim().length === 0) continue;
-    out[key] = type === 'secret' ? { type: 'secret', value } : value;
-  }
-  return out;
-}
-
-export function headersToEntries(
-  headers?: Record<string, string | { type?: string; value?: string } | undefined> | null,
-): HeaderEntry[] {
-  if (!headers) return [];
-  return Object.entries(headers).map(([key, value]) => {
-    if (value && typeof value === 'object' && (value as { type?: string }).type?.toLowerCase() === 'secret') {
-      return { key, value: (value as { value?: string }).value ?? '', type: 'secret' };
-    }
-    return { key, value: (value as string | undefined) ?? '', type: 'string' };
-  });
-}
-
-export function mcpHeadersFromRecord(
-  headers?: Record<string, MCPHeaderValue | string | null> | null,
-): Record<string, string | { type: 'secret'; value: string }> | undefined {
-  if (!headers) return undefined;
-  const out: Record<string, string | { type: 'secret'; value: string }> = {};
-  for (const [key, raw] of Object.entries(headers)) {
-    if (!key || key.trim().length === 0) continue;
-    if (raw && typeof raw === 'object' && 'type' in (raw as MCPHeaderValue)) {
-      const v = raw as MCPHeaderValue;
-      out[key] = v.type === 'secret' ? { type: 'secret', value: v.value ?? '' } : (v.value ?? '');
-    } else {
-      out[key] = (raw as string | undefined) ?? '';
-    }
-  }
-  return Object.keys(out).length ? out : undefined;
-}
-
-export function buildUpdateMcpBody(
-  values: {
-    name: string;
-    type: MCPServerEdit['type'];
-    transport: MCPServerEdit['transport'];
-    url?: string;
-    headerEntries?: HeaderEntry[];
-    command?: string;
-    argsText?: string;
-    cwd?: string;
-  },
-  initial: MCPServer,
-): MCPServerEdit {
-  const headers = entriesToHeaders(values.headerEntries);
-  const base: MCPServerEdit = {
-    name: values.name,
-    type: values.type ?? 'generic_mcp',
-    transport: values.transport,
-    url: values.transport === 'stdio' ? null : values.url || null,
-    headers: Object.keys(headers).length ? (headers as MCPServerEdit['headers']) : null,
-  } as MCPServerEdit;
-
-  if (values.transport === 'stdio') {
-    const parsedArgs = (values.argsText || '')
-      .split(/\s+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    (base as unknown as { command?: string }).command = values.command || undefined;
-    (base as unknown as { args?: string[] | null }).args = parsedArgs.length ? parsedArgs : null;
-    (base as unknown as { cwd?: string | null }).cwd = values.cwd ?? null;
-    (base as unknown as { env?: Record<string, unknown> | null }).env =
-      ((initial as unknown as { env?: Record<string, unknown> | null }).env ?? null) || null;
-  }
-
-  return base;
-}
 
 export const downloadJSON = (
   data: unknown,

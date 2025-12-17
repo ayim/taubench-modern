@@ -1,23 +1,17 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import type { AgentPackageResponse } from '~/routes/tenants/$tenantId/home/components/AgentUploadForm';
-import { QueryProps } from './shared';
+import { components } from '@sema4ai/agent-server-interface';
+import { AgentDeploymentFormSchema } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
 
 const AGENT_PACKAGE_CACHE_KEY = 'agent-package-upload';
 
 export type AgentPackageUploadData = {
   file: File;
-  fileContent: AgentPackageResponse;
+  fileContent: {
+    agentTemplate: components['schemas']['AgentPackageInspectionResponse'];
+    defaultValues: AgentDeploymentFormSchema;
+  };
 };
-
-export const getAgentPackageUploadQueryOptions = ({ tenantId }: QueryProps<{ tenantId: string }>) =>
-  queryOptions({
-    queryKey: [AGENT_PACKAGE_CACHE_KEY, tenantId],
-    queryFn: async (): Promise<AgentPackageUploadData | null> => {
-      return null;
-    },
-    enabled: false,
-  });
 
 export const useUploadAgentPackageMutation = () => {
   const queryClient = useQueryClient();

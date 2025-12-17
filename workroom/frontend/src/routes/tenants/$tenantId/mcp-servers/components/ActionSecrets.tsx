@@ -2,39 +2,20 @@ import type { FC } from 'react';
 import { Box, Input } from '@sema4ai/components';
 import { useFormContext, Controller } from 'react-hook-form';
 
-import type { AgentActionPackage } from '@sema4ai/spar-ui/queries';
+import { parseWhitelist, getUniqueSecretsMap } from './actionPackageUtils';
+import { components } from '@sema4ai/agent-server-interface';
 
-type Props = {
-  actionPackage: AgentActionPackage;
-};
-
-export const ActionSecrets: FC<Props> = ({ actionPackage }) => {
+export const ActionSecrets: FC<{
+  actionPackage: components['schemas']['AgentPackageActionPackageMetadata'];
+}> = ({ actionPackage }) => {
   const { control, formState } = useFormContext();
 
   if (!actionPackage.secrets) {
     return null;
   }
 
-  // Use pre-parsed whitelistArray from the parse function
-  const whitelist = actionPackage.whitelistArray;
-
-  const uniqueSecretsMap = new Map<string, { description?: string; actions: string[] }>();
-
-  Object.values(actionPackage.secrets).forEach((secretsConfig) => {
-    if (whitelist && !whitelist.includes(secretsConfig.action)) {
-      return;
-    }
-
-    Object.entries(secretsConfig.secrets).forEach(([secretName, secretDef]) => {
-      if (!uniqueSecretsMap.has(secretName)) {
-        uniqueSecretsMap.set(secretName, {
-          description: secretDef.description,
-          actions: [],
-        });
-      }
-      uniqueSecretsMap.get(secretName)!.actions.push(secretsConfig.action);
-    });
-  });
+  const whitelist = parseWhitelist(actionPackage.whitelist);
+  const uniqueSecretsMap = getUniqueSecretsMap(actionPackage, whitelist);
 
   if (uniqueSecretsMap.size === 0) {
     return null;

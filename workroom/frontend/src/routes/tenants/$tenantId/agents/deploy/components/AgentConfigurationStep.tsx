@@ -4,13 +4,13 @@ import { useNavigate, useParams, useRouteContext } from '@tanstack/react-router'
 import { FC, useMemo } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { getListPlatformsQueryOptions } from '~/queries/platforms';
-import { AgentPackageResponse } from '../../../home/components/AgentUploadForm';
 import { AgentDeploymentFormSchema } from './context';
 import { IconActions } from '@sema4ai/icons';
 import { AgentIcon } from '@sema4ai/layouts';
+import { components } from '@sema4ai/agent-server-interface';
 
 type Props = {
-  agentTemplate: AgentPackageResponse['agentTemplate'];
+  agentTemplate: components['schemas']['AgentPackageInspectionResponse'];
 };
 
 export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
@@ -28,7 +28,9 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
   );
 
   const providerItems = useMemo(() => {
-    const recommendedModel = `${agentTemplate.model.provider.toLowerCase()}${agentTemplate.model.name}`;
+    const provider = agentTemplate.model.provider ?? '';
+    const modelName = agentTemplate.model.name ?? '';
+    const recommendedModel = `${provider.toLowerCase()}${modelName}`;
     const llmOptions = (configuredLLMModels ?? []).map(({ name, kind, platform_id, models }) => {
       const modelsFromPlatform = models ?? {};
       const flattenedModelsForConfiguredPlatform = Object.entries(modelsFromPlatform).flatMap(

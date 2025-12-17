@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import type { components } from '@sema4ai/agent-server-interface';
-
-export type McpServerType = components['schemas']['MCPServer']['type'];
-export type McpTransport = components['schemas']['MCPServer']['transport'];
+import { headerEntrySchema, mcpTransportSchema, mcpServerTypeSchema, mcpUrlSchema } from '~/lib/mcpServersUtils';
 
 export enum AgentDeploymentStep {
   AgentOverview = 'AgentOverview',
@@ -10,22 +7,20 @@ export enum AgentDeploymentStep {
   ActionSettings = 'ActionSettings',
 }
 
+const MCPServerSettingsSchema = z.object({
+  name: z.string().min(1),
+  type: mcpServerTypeSchema,
+  transport: mcpTransportSchema,
+  url: mcpUrlSchema,
+  headersKV: z.array(headerEntrySchema).default([]),
+  command: z.string().nullable().optional(),
+  args: z.array(z.string()).nullable().optional(),
+  cwd: z.string().nullable().optional(),
+  force_serial_tool_calls: z.boolean(),
+  mcpServerId: z.string().optional(),
+});
+
 export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAgentNames: string[] }) => {
-  const MCPVariableTypeStringSchema = z.object({
-    type: z.literal('string'),
-    description: z.string().nullable().optional(),
-    value: z.string().nullable().optional(),
-  });
-  const MCPVariableTypeSecretSchema = z.object({
-    type: z.literal('secret'),
-    description: z.string().nullable().optional(),
-    value: z.string().nullable().optional(),
-  });
-
-  const MCPVarSchema = z.union([MCPVariableTypeStringSchema, MCPVariableTypeSecretSchema]);
-
-  const MCPServerHeaders = z.record(z.string(), MCPVarSchema).nullable();
-
   const agentConfigurationSchema = z.object({
     name: z
       .string()
@@ -42,32 +37,8 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
         },
       ),
     description: z.string().min(1),
-
     llmId: z.string().min(1, 'LLM setting is required'),
     apiKey: z.string().optional(),
-  });
-
-  const MCPServerSettingsSchema = z.object({
-    name: z.string().min(1),
-    type: z.enum(['generic_mcp', 'sema4ai_action_server']).default('generic_mcp'),
-    url: z.string().min(1).nullable().optional(),
-    transport: z.enum(['auto', 'streamable-http', 'sse', 'stdio']),
-    headers: MCPServerHeaders.optional().refine(
-      (headers) => {
-        if (!headers) return true;
-        return Object.keys(headers).every((k) => k.trim().length > 0);
-      },
-      { path: ['headers'], message: 'Header keys must be non-empty' },
-    ),
-    command: z.string().nullable().optional(),
-    args: z.array(z.string()).nullable().optional(),
-    env: z
-      .record(z.string(), z.union([z.string(), MCPVarSchema]))
-      .nullable()
-      .optional(),
-    cwd: z.string().nullable().optional(),
-    force_serial_tool_calls: z.boolean(),
-    mcpServerId: z.string().optional(),
   });
 
   const mcpConfigurationSchema = z.object({
@@ -88,7 +59,3 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
 };
 
 export type AgentDeploymentFormSchema = z.input<ReturnType<typeof buildAgentDeploymentSchema>>;
-export type MCPServerSettings = NonNullable<AgentDeploymentFormSchema['mcpServerSettings']>[number];
-export type MCPHeaderValue =
-  | { type: 'string'; description?: string | null; value?: string | null }
-  | { type: 'secret'; description?: string | null; value?: string | null };

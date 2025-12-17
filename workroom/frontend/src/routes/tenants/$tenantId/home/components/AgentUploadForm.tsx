@@ -1,69 +1,14 @@
-import { ReactNode } from 'react';
 import { Box, Button, useSnackbar } from '@sema4ai/components';
 import { useParams } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileRejection, useDropzone } from 'react-dropzone';
-import type { AgentDeploymentFormSchema } from '../../agents/deploy/components/context';
 import { IconPlus } from '@sema4ai/icons';
 import { useUploadAgentPackageMutation } from '~/queries/agentPackageUpload';
 import { useTenantContext } from '~/lib/tenantContext';
 import { useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
 import { useSparUIContext } from '@sema4ai/spar-ui';
-
-export type LLMFromIntrospection = {
-  provider: 'OpenAI';
-  name:
-    | 'gpt-4o'
-    | 'gpt-3.5-turbo-1106'
-    | 'gpt-4-turbo'
-    | 'gpt-4-1'
-    | 'gpt-4-1-mini'
-    | 'o3-low'
-    | 'o3-high'
-    | 'o4-mini-high';
-};
-
-export type AgentPackageResponse = {
-  agentTemplate: {
-    name: string;
-    description: string;
-    version: string;
-    icon?: string;
-    metadata: { mode: 'worker' | 'conversational' };
-    mcpServers: Array<{
-      config: {
-        name: string;
-        url: string;
-        transport: 'sse' | 'streamable-http';
-        headers: unknown;
-      };
-    }>;
-    action_packages: Array<{
-      name: string;
-      description: string;
-      action_package_version: string;
-      actions?: Array<{
-        name: string;
-        description: string;
-        summary: string;
-      }>;
-      icon?: ReactNode;
-      queries?: Array<{
-        name: string;
-        description?: string;
-      }>;
-      mcpTools?: Array<{
-        name: string;
-        description?: string;
-      }>;
-    }>;
-    dataSources: Array<{ id: string; engine: string; name: string }>;
-    model: LLMFromIntrospection;
-  };
-  defaultValues: AgentDeploymentFormSchema;
-};
 
 export const AgentUploadForm = () => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
@@ -109,68 +54,45 @@ export const AgentUploadForm = () => {
       formData.append('name', file.name.replace(/\.zip$/i, ''));
       formData.append('description', 'Package uploaded from UI');
 
-      const data = await inspectAgentPackageMutation.mutateAsync({ formData });
+      const inspectionResult = await inspectAgentPackageMutation.mutateAsync({ formData });
 
-      const mcpServers = data.mcp_servers.map((srv) => ({
-        config: {
-          name: srv.name,
-          type: srv.type,
-          url: srv.url,
-          transport: srv.transport as 'sse' | 'streamable-http',
-          headers: srv.headers,
-          tools: [],
-        },
+      if (inspectionResult.status === 'failure' || !inspectionResult.data) {
+        throw new Error('Failed to inspect agent package: no data returned');
+      }
+
+      const inspectionData = inspectionResult.data;
+
+      const mcpServerSettings = (inspectionData.mcp_servers ?? []).map((srv) => ({
+        name: srv.name,
+        type: 'sema4ai_action_server' as const,
+        transport: srv.transport,
+        url: srv.url ?? null,
+        headers: srv.headers
+          ? Object.fromEntries(
+              Object.entries(srv.headers).map(([key, val]) => [
+                key,
+                { type: val.type as 'string' | 'secret', description: val.description, value: val.value },
+              ]),
+            )
+          : null,
+        force_serial_tool_calls: srv.force_serial_tool_calls,
       }));
 
-      const agentTemplate: AgentPackageResponse['agentTemplate'] = {
-        name: data.name,
-        description: data.description,
-        metadata: { mode: data.metadata.mode },
-        version: data.version,
-        action_packages: data.action_packages,
-        mcpServers,
-        dataSources: data.datasources.map((ds, i) => ({
-          id: `${ds.engine}-${i}`,
-          engine: ds.engine,
-          name: ds.customer_facing_name,
-        })),
-        model: data.model as LLMFromIntrospection,
-      };
-
-      const defaultValues: AgentDeploymentFormSchema = {
-        name: agentTemplate.name,
-        description: agentTemplate.description,
-        llmId: '',
-        apiKey: '',
-        mcpServerSettings: mcpServers.map((s) => ({
-          name: s.config.name,
-          type: s.config.type,
-          url: s.config.url,
-          transport: s.config.transport === 'sse' ? 'sse' : 'streamable-http',
-          headers: null,
-          command: null,
-          args: null,
-          env: null,
-          cwd: null,
-          force_serial_tool_calls: false,
-        })),
-        selected_tools:
-          'selected_tools' in data &&
-          data.selected_tools &&
-          typeof data.selected_tools === 'object' &&
-          'tool_names' in data.selected_tools
-            ? (data.selected_tools as { tool_names: Array<{ tool_name: string }> })
-            : { tool_names: [] },
-      };
-
-      const extracted: AgentPackageResponse = { agentTemplate, defaultValues };
-
-      // Store the agent package data in React Query cache and navigate
       await uploadAgentPackageMutation.mutateAsync({
         tenantId,
         data: {
           file,
-          fileContent: extracted,
+          fileContent: {
+            agentTemplate: inspectionData,
+            defaultValues: {
+              name: inspectionData.name,
+              description: inspectionData.description,
+              llmId: '',
+              apiKey: '',
+              mcpServerSettings,
+              selected_tools: { tool_names: inspectionData.selected_tools?.tool_names ?? [] },
+            },
+          },
         },
       });
     } catch (err) {

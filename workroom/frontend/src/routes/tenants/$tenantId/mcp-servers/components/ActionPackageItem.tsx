@@ -5,11 +5,8 @@ import { useFormContext } from 'react-hook-form';
 import { styled } from '@sema4ai/theme';
 
 import { ActionSecrets } from './ActionSecrets';
-import { AgentActionPackage } from '@sema4ai/spar-ui/queries';
-
-type Props = {
-  actionPackage: AgentActionPackage;
-};
+import { parseWhitelist, getUniqueSecretNames } from './actionPackageUtils';
+import { components } from '@sema4ai/agent-server-interface';
 
 const Container = styled.div`
   display: grid;
@@ -90,12 +87,13 @@ const StatusIcon = styled.div<{ $ready?: boolean }>`
   color: ${({ $ready, theme }) => ($ready ? theme.colors.green80 : theme.colors.yellow80)};
 `;
 
-export const ActionPackageItem: FC<Props> = ({ actionPackage }) => {
+export const ActionPackageItem: FC<{
+  actionPackage: components['schemas']['AgentPackageActionPackageMetadata'];
+}> = ({ actionPackage }) => {
   const { watch } = useFormContext();
   const { agentPackageSecrets } = watch();
 
-  // Use pre-parsed whitelistArray from the parse function
-  const whitelist = actionPackage.whitelistArray;
+  const whitelist = parseWhitelist(actionPackage.whitelist);
 
   // Filter actions based on whitelist
   const displayedActions =
@@ -105,18 +103,7 @@ export const ActionPackageItem: FC<Props> = ({ actionPackage }) => {
     }) || [];
 
   // Get unique secret names from this action package (only for whitelisted actions)
-  const uniqueSecrets = new Set<string>();
-  if (actionPackage.secrets) {
-    Object.values(actionPackage.secrets).forEach((secretsConfig) => {
-      // Only include secrets for whitelisted actions
-      if (whitelist && !whitelist.includes(secretsConfig.action)) {
-        return;
-      }
-      Object.keys(secretsConfig.secrets).forEach((secretName) => {
-        uniqueSecrets.add(secretName);
-      });
-    });
-  }
+  const uniqueSecrets = getUniqueSecretNames(actionPackage, whitelist);
 
   // Check if all secrets for this package are filled
   const isValid = Array.from(uniqueSecrets).every((secretName) => {
@@ -159,9 +146,7 @@ export const ActionPackageItem: FC<Props> = ({ actionPackage }) => {
               >
                 {actionPackage.name}
               </Box>
-              {actionPackage.action_package_version && (
-                <Badge variant="info" label={`v${actionPackage.action_package_version}`} />
-              )}
+              {actionPackage.version && <Badge variant="info" label={`v${actionPackage.version}`} />}
             </Box>
             {actionPackage.description && (
               <Box style={{ fontSize: '0.875rem', opacity: 0.7 }}>{actionPackage.description}</Box>

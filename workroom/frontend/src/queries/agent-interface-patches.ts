@@ -1,29 +1,5 @@
-import type { MCPServer } from './mcpServers';
 import type { GetPlatformResponse } from './platforms';
 import { PLATFORMS, type Platform } from '../components/platforms/llms/components/llmSchemas';
-
-/**
- * @deprecated MCPServer now has strict types - this alias is no longer needed
- */
-export type MCPServerForEditing = MCPServer;
-
-/**
- * @deprecated Use proper typing from agent-server-interface instead of manual validation
- * Type guard for MCP server headers validation
- */
-export const isValidHeaders = (
-  headers: unknown,
-): headers is Record<string, string | { type?: string; value?: string } | undefined> | null | undefined => {
-  return headers === null || headers === undefined || typeof headers === 'object';
-};
-
-/**
- * @deprecated MCPServer now has strict types - this transform is a no-op
- * Kept for backwards compatibility with existing call sites
- */
-export const transformMcpServerForEditing = (server: MCPServer): MCPServerForEditing => {
-  return server;
-};
 
 /**
  * @deprecated Use proper typing from agent-server-interface instead of manual validation
@@ -39,7 +15,7 @@ export type PlatformForEditing = GetPlatformResponse & {
  * @deprecated Use proper typing from agent-server-interface instead of manual validation
  * Type guard for supported platform providers
  */
-export const isSupportedPlatform = (platform: string): platform is Platform => {
+const isSupportedPlatform = (platform: string): platform is Platform => {
   return PLATFORMS.some((p) => p === platform);
 };
 

@@ -5,7 +5,7 @@ import { useAgentsQuery, agentsQueryKey } from '@sema4ai/spar-ui/queries';
 
 import { AgentDeploymentForm } from './deploy/components/AgentDeploymentForm';
 import { AgentDeploymentFormSchema } from './deploy/components/context';
-import { mcpHeadersFromRecord } from '~/lib/utils';
+import { formHeadersToApiHeaders } from '~/lib/mcpServersUtils';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
 import { useGetAgentPackageUpload } from '~/queries/agentPackageUpload';
 import { IconFileError } from '@sema4ai/icons';
@@ -29,7 +29,7 @@ function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
       type: server.type ?? 'generic_mcp',
       transport: server.transport,
       url: server.url ?? null,
-      headers: mcpHeadersFromRecord(server.headers),
+      headers: formHeadersToApiHeaders(server.headersKV ?? []),
       force_serial_tool_calls: server.force_serial_tool_calls,
     }));
 

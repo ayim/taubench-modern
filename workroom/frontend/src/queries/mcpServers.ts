@@ -1,27 +1,54 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { components, paths } from '@sema4ai/agent-server-interface';
-import { QueryProps } from './shared';
+import { components, paths } from '@sema4ai/agent-server-interface';
 import { useRouteContext } from '@tanstack/react-router';
-import { transformMcpServerForEditing } from './agent-interface-patches';
+import { QueryProps } from './shared';
 
-// Semantic type aliases for better naming
-export type MCPServer = components['schemas']['MCPServerResponse'];
-export type MCPServerCreate = paths['/api/v2/mcp-servers/']['post']['requestBody']['content']['application/json'];
-export type MCPServerEdit =
-  paths['/api/v2/mcp-servers/{mcp_server_id}']['put']['requestBody']['content']['application/json'];
-export type ListMCPServersResponse =
-  paths['/api/v2/mcp-servers/']['get']['responses']['200']['content']['application/json'];
+export type McpServer = components['schemas']['MCPServerResponse'];
+type CreateMcpServerBody = paths['/api/v2/mcp-servers/']['post']['requestBody']['content']['application/json'];
 
-export const getListMcpServersQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
+const mcpServersQueryKey = (tenantId: string) => ['mcp-servers', tenantId];
+const mcpServerQueryKey = (tenantId: string, mcpServerId: string) => ['mcp-server', tenantId, mcpServerId];
+
+export const getListMcpServersQueryOptions = ({
+  tenantId,
+  agentAPIClient,
+}: QueryProps<{
+  tenantId: string;
+}>) =>
   queryOptions({
-    queryKey: ['mcp-servers', tenantId],
+    queryKey: mcpServersQueryKey(tenantId),
     queryFn: async () => {
       const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/', {
-        silent: true,
+        params: {},
+        errorMsg: 'Failed to fetch MCP servers',
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        throw new Error(response.message || 'Failed to fetch MCP servers');
+      }
+
+      return response.data;
+    },
+  });
+
+export const getMcpServerQueryOptions = ({
+  tenantId,
+  mcpServerId,
+  agentAPIClient,
+}: QueryProps<{
+  tenantId: string;
+  mcpServerId: string;
+}>) =>
+  queryOptions({
+    queryKey: mcpServerQueryKey(tenantId, mcpServerId),
+    queryFn: async () => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/{mcp_server_id}', {
+        params: { path: { mcp_server_id: mcpServerId } },
+        errorMsg: 'Failed to fetch MCP server',
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch MCP server');
       }
 
       return response.data;
@@ -39,13 +66,19 @@ export const useDeleteMcpServerMutation = () => {
 
   return useMutation({
     mutationFn: async ({ tenantId, mcpServerId }: { tenantId: string; mcpServerId: string }) => {
-      await agentAPIClient.agentFetch(tenantId, 'delete', '/api/v2/mcp-servers/{mcp_server_id}', {
+      const response = await agentAPIClient.agentFetch(tenantId, 'delete', '/api/v2/mcp-servers/{mcp_server_id}', {
         params: { path: { mcp_server_id: mcpServerId } },
         errorMsg: 'Failed to delete MCP server',
       });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to delete MCP server');
+      }
+
+      return response.data;
     },
-    onSuccess: async (_data, { tenantId }) => {
-      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
+    onSuccess: (_data, { tenantId }) => {
+      queryClient.invalidateQueries({ queryKey: mcpServersQueryKey(tenantId) });
     },
   });
 };
@@ -55,38 +88,25 @@ export const useCreateMcpServerMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tenantId, body }: { tenantId: string; body: MCPServerCreate }) => {
-      return await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/mcp-servers/', {
+    mutationFn: async ({ tenantId, body }: { tenantId: string; body: CreateMcpServerBody }) => {
+      const response = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/mcp-servers/', {
         body,
-        silent: true,
-      });
-    },
-    onSuccess: async (_data, { tenantId }) => {
-      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
-    },
-  });
-};
-
-export const getMcpServerQueryOptions = ({
-  tenantId,
-  mcpServerId,
-  agentAPIClient,
-}: QueryProps<{ tenantId: string; mcpServerId: string }>) =>
-  queryOptions({
-    queryKey: ['mcp-server', tenantId, mcpServerId],
-    queryFn: async () => {
-      const response = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/mcp-servers/{mcp_server_id}', {
-        params: { path: { mcp_server_id: mcpServerId } },
-        silent: true,
+        errorMsg: 'Failed to create MCP server',
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        throw new Error(response.message || 'Failed to create MCP server');
       }
 
-      return transformMcpServerForEditing(response.data);
+      return response.data;
+    },
+    onSuccess: (mcpServer, { tenantId }) => {
+      queryClient.setQueryData(mcpServersQueryKey(tenantId), (mcpServers: Record<string, McpServer> | undefined) => {
+        return { ...(mcpServers ?? {}), [mcpServer.mcp_server_id]: mcpServer };
+      });
     },
   });
+};
 
 export const useUpdateMcpServerMutation = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
@@ -100,7 +120,7 @@ export const useUpdateMcpServerMutation = () => {
     }: {
       tenantId: string;
       mcpServerId: string;
-      body: MCPServerEdit;
+      body: paths['/api/v2/mcp-servers/{mcp_server_id}']['put']['requestBody']['content']['application/json'];
     }) => {
       const response = await agentAPIClient.agentFetch(tenantId, 'put', '/api/v2/mcp-servers/{mcp_server_id}', {
         params: { path: { mcp_server_id: mcpServerId } },
@@ -109,19 +129,19 @@ export const useUpdateMcpServerMutation = () => {
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        throw new Error(response.message || 'Failed to update MCP server');
       }
 
-      return transformMcpServerForEditing(response.data);
+      return response.data;
     },
-    onSuccess: async (_data, { tenantId, mcpServerId }) => {
-      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
-      await queryClient.invalidateQueries({ queryKey: ['mcp-server', tenantId, mcpServerId] });
+    onSuccess: (mcpServer, { tenantId, mcpServerId }) => {
+      queryClient.setQueryData(mcpServersQueryKey(tenantId), (mcpServers: Record<string, McpServer> | undefined) => {
+        return { ...(mcpServers ?? {}), [mcpServer.mcp_server_id]: mcpServer };
+      });
+      queryClient.invalidateQueries({ queryKey: mcpServerQueryKey(tenantId, mcpServerId) });
     },
   });
 };
-
-type FIX_ME = any;
 
 export const useCreateHostedMcpServerMutation = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
@@ -133,11 +153,13 @@ export const useCreateHostedMcpServerMutation = () => {
       name,
       file,
       headers,
+      mcpServerMetadata,
     }: {
       tenantId: string;
       name: string;
       file: File;
-      headers: MCPServerCreate['headers'];
+      headers?: CreateMcpServerBody['headers'];
+      mcpServerMetadata?: Record<string, unknown>;
     }) => {
       const formData = new FormData();
       formData.append('file', file);
@@ -145,20 +167,26 @@ export const useCreateHostedMcpServerMutation = () => {
       if (headers) {
         formData.append('headers', JSON.stringify(headers));
       }
+      if (mcpServerMetadata) {
+        formData.append('mcp_server_metadata', JSON.stringify(mcpServerMetadata));
+      }
 
       const response = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/mcp-servers/mcp-servers-hosted', {
-        body: formData as FIX_ME,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        body: formData as any,
         errorMsg: 'Failed to create hosted MCP server',
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        throw new Error(response.message || 'Failed to create hosted MCP server');
       }
 
       return response.data;
     },
-    onSuccess: async (_data, { tenantId }) => {
-      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
+    onSuccess: (mcpServer, { tenantId }) => {
+      queryClient.setQueryData(mcpServersQueryKey(tenantId), (mcpServers: Record<string, McpServer> | undefined) => {
+        return { ...(mcpServers ?? {}), [mcpServer.mcp_server_id]: mcpServer };
+      });
     },
   });
 };

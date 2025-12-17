@@ -4,9 +4,9 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { IconDotsHorizontal } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
-import { MCPServer, useDeleteMcpServerMutation } from '~/queries/mcpServers';
+import { McpServer, useDeleteMcpServerMutation } from '~/queries/mcpServers';
 
-export const Row: FC<TableRowProps<MCPServer>> = ({ rowData }) => {
+export const Row: FC<TableRowProps<McpServer>> = ({ rowData }) => {
   const navigate = useNavigate();
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { addSnackbar } = useSnackbar();
