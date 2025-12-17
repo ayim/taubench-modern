@@ -1,3 +1,14 @@
+# Sema4.ai Agent Server 2.2.9 (2025-12-17)
+
+* GPT-1634 Introduce an "alias" read-only property for Platform Parameters [#1936](https://github.com/Sema4AI/agent-platform/pull/1936)
+* Improve visibility on running evals [#1946](https://github.com/Sema4AI/agent-platform/pull/1946)
+* update upsert agent to handle vertex with legacy config [#1961](https://github.com/Sema4AI/agent-platform/pull/1961)
+* [SDM-154] Make SDM enhancement set concise human-readable for the model name [#1953](https://github.com/Sema4AI/agent-platform/pull/1953)
+* GPT-1436 remove threads when trials are deleted [#1797](https://github.com/Sema4AI/agent-platform/pull/1797)
+* SDM-221: fix handle datetime objects in SDM storage for agent package import [#1922](https://github.com/Sema4AI/agent-platform/pull/1922)
+* Add utility to read action package from gallery [#1904](https://github.com/Sema4AI/agent-platform/pull/1904)
+* SDM-256 Remove instructions about "do not call tools" [#1959](https://github.com/Sema4AI/agent-platform/pull/1959)
+
 # Sema4.ai Agent Server 2.2.8 (2025-12-16)
 
 * Enable document internal tools only for document-intelligence v2.1 [#1930](https://github.com/Sema4AI/agent-platform/pull/1930)
