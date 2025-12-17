@@ -781,8 +781,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                         return dedent(f"""
                             Note: a data frame named `{created_data_frame.name}` was created from
                             this file. Follow the runbook if it has instructions
-                            related to the data frame or uploaded files, otherwise, do not call any tools at this point
-                            and provide options of what information can be answered based on it.
+                            related to the data frame or uploaded files. Provide options about
+                            what information can be answered based on it.
                             """).strip()
                 else:
                     # Multiple sheets found - ask LLM to show options
@@ -798,8 +798,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                             Note: This file has the following sheets: {sheet_names!r}.
                             Please follow the runbook if it has instructions related to data frames
                             or uploaded files, otherwise, provide options for the user to create data
-                            frames from all or individual sheets, but don't call any tools at this point,
-                            just provide options to the user based on the sheets found in the file.
+                            frames from all or individual sheets. Provide options to the user based on
+                            the sheets found in the file.
                             """).strip()
 
             # No data frames found, provide details saying so to the user.
@@ -811,8 +811,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             else:
                 return dedent("""
                     Note: although this is a tabular data file, no data frames can be extracted from it.
-                    Please follow the runbook if it has instructions related to uploaded files,
-                    otherwise, do not call any tools at this point and ask the user how to proceed to process it.
+                    Please follow the runbook if it has instructions related to uploaded files or ask
+                    the user how to proceed.
                     """).strip()
 
         except Exception as e:
@@ -828,7 +828,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     Note: although this is a tabular data file, it was not possible to automatically
                     extract data frame information from it (the following error happened: {e}).
                     Please follow the runbook if it has instructions related to uploaded files,
-                    otherwise, do not call any tools at this point and ask the user how to proceed.
+                    otherwise, ask the user how to proceed.
                     """).strip()
 
         raise RuntimeError("Should not get here, something went wrong with the file inspection")

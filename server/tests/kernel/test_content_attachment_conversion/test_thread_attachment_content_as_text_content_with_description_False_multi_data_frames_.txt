@@ -9,7 +9,7 @@ Generated prompt contents:
 Note: This file has the following sheets: ['Sheet1', 'Sheet2'].
 Please follow the runbook if it has instructions related to data frames
 or uploaded files, otherwise, provide options for the user to create data
-frames from all or individual sheets, but don't call any tools at this point,
-just provide options to the user based on the sheets found in the file."
+frames from all or individual sheets. Provide options to the user based on
+the sheets found in the file."
   }
 ]
