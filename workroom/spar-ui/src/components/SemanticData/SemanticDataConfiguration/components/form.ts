@@ -127,9 +127,10 @@ export enum ConfigurationStep {
   DataSelection = 1,
   ModelEdition = 2,
   ImportDataConnection = 3,
-  Success = 4,
-  Processing = 5,
-  ImportWithErrors = 6,
+  SuccessCreation = 4,
+  SuccessImport = 6,
+  Processing = 7,
+  ImportWithErrors = 8,
 }
 
 type ConfigurationStepProps = {

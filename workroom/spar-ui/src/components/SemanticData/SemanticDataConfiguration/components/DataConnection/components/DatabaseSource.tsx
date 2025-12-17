@@ -14,6 +14,8 @@ import {
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
 import { CreateDataConnection } from '../../../../../DataConnection/DataConnectionConfiguration/components/Create';
+import { useFeatureFlag } from '../../../../../../hooks';
+import { SparUIFeatureFlag } from '../../../../../../api';
 
 export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const {
@@ -23,6 +25,7 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
   const { data: supportedSemanticDataEngines = [], isLoading: isLoadingSupportedSemanticDataEngines } =
     useSupportedSemanticDataEnginesQuery({});
   const [showInspectionMismatches, setShowInspectionMismatches] = useState(false);
+  const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
 
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
@@ -105,13 +108,19 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
       </Dialog.Content>
 
       <Dialog.Actions>
-        <Button
-          onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
-          disabled={!dataConnectionId || !inspectionResult || inspectionResult.tables.length === 0}
-          round
-        >
-          Continue
-        </Button>
+        {canCreateAgents ? (
+          <Button
+            onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
+            disabled={!dataConnectionId || !inspectionResult || inspectionResult.tables.length === 0}
+            round
+          >
+            Continue
+          </Button>
+        ) : (
+          <Button type="submit" round>
+            Save
+          </Button>
+        )}
         <Button variant="secondary" onClick={onClose} round>
           Cancel
         </Button>

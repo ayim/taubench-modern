@@ -7,6 +7,7 @@ import { ModelScore } from './ModelEdition/components/ModelScore';
 
 type Props = {
   modelName?: string;
+  currentStep: ConfigurationStep;
 };
 
 const SuccessIcon = styled(Box)`
@@ -19,7 +20,7 @@ const SuccessIcon = styled(Box)`
   align-items: center;
 `;
 
-export const SuccessView: ConfigurationStepView<Props> = ({ onClose, modelName, setActiveStep }) => {
+export const SuccessView: ConfigurationStepView<Props> = ({ onClose, modelName, currentStep, setActiveStep }) => {
   const onModelReview = () => {
     setActiveStep(ConfigurationStep.ModelEdition);
   };
@@ -30,7 +31,7 @@ export const SuccessView: ConfigurationStepView<Props> = ({ onClose, modelName, 
         <IconCheckCircle2 size={42} color="neutral" />
       </SuccessIcon>
       <Typography variant="display-small" mb="$8">
-        Data Model Created
+        {currentStep === ConfigurationStep.SuccessCreation ? 'Data Model Created' : 'Data Model Imported'}
       </Typography>
       <Typography variant="body-medium-loose" color="content.subtle" mb="$24" textAlign="center">
         {`${modelName ? `"${modelName}"` : 'Your'} model is ready to be used with an agent! You can always come back to edit it for more precision.`}

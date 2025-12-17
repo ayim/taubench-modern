@@ -399,6 +399,16 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
       tables = generateResponse.data.semantic_model.tables as SemanticModel['tables'];
     }
 
+    tables = tables?.map((table) => {
+      return {
+        ...table,
+        base_table: {
+          ...table.base_table,
+          data_connection_id: payload.dataConnectionId,
+        },
+      };
+    });
+
     const response = await sparAPIClient.queryAgentServer(
       'put',
       '/api/v2/semantic-data-models/{semantic_data_model_id}',

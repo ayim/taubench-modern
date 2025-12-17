@@ -4,7 +4,8 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useConfirmAction } from '@sema4ai/layouts';
 
-import { useParams } from '../../../hooks';
+import { useFeatureFlag, useParams } from '../../../hooks';
+import { SparUIFeatureFlag } from '../../../api';
 import {
   useCreateSemanticDataMutation,
   useSemanticModelQuery,
@@ -79,6 +80,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   const { mutate: updateSemanticData, isPending: isUpdatePending } = useUpdateSemanticDataModelMutation({});
   const { mutateAsync: inspectDataConnection } = useDataConnectionDatabaseInspectMutation({});
   const { mutateAsync: importSemanticDataModel } = useImportSemanticDataModelMutation({});
+  const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
 
   const isPending = isCreatePending || isUpdatePending;
 
@@ -129,7 +131,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
             if (result.withErrors) {
               setActiveStep(ConfigurationStep.ImportWithErrors);
             } else {
-              setActiveStep(ConfigurationStep.Success);
+              setActiveStep(ConfigurationStep.SuccessImport);
             }
 
             setModelId(result.semanticModelId);
@@ -146,7 +148,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         { ...values, agentId, inspectionResult: databaseInspectionState.inspectionResult },
         {
           onSuccess: (result) => {
-            setActiveStep(ConfigurationStep.Success);
+            setActiveStep(ConfigurationStep.SuccessCreation);
             setModelId(result.semantic_data_model_id);
           },
           onError: (error) => {
@@ -264,7 +266,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
   })();
 
   const onCloseWithConfirmation = () => {
-    if (activeStep === ConfigurationStep.Success) {
+    if (activeStep === ConfigurationStep.SuccessCreation || activeStep === ConfigurationStep.SuccessImport) {
       onClose();
     } else if (activeStep === ConfigurationStep.DataConnection && !dataSourceType) {
       onClose();
@@ -319,15 +321,17 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       <Form busy={isPending} onSubmit={onSubmit}>
         <FormProvider {...formMethods}>
           <DataConnectionFormContext.Provider value={formContextValue}>
-            {activeStep !== ConfigurationStep.Success && (
-              <Dialog.Bar onBackClick={onBackCallback}>
-                <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
-                  <Steps.Step {...connectionStepProps}>{connectionStepProps.label}</Steps.Step>
-                  <Steps.Step {...dataSelectionStepProps}>{dataSelectionStepProps.label}</Steps.Step>
-                  <Steps.Step {...modelEditionStepProps}>{modelEditionStepProps.label}</Steps.Step>
-                </Steps>
-              </Dialog.Bar>
-            )}
+            {canCreateAgents &&
+              activeStep !== ConfigurationStep.SuccessCreation &&
+              activeStep !== ConfigurationStep.SuccessImport && (
+                <Dialog.Bar onBackClick={onBackCallback}>
+                  <Steps activeStep={activeStep} setActiveStep={setActiveStep}>
+                    <Steps.Step {...connectionStepProps}>{connectionStepProps.label}</Steps.Step>
+                    <Steps.Step {...dataSelectionStepProps}>{dataSelectionStepProps.label}</Steps.Step>
+                    <Steps.Step {...modelEditionStepProps}>{modelEditionStepProps.label}</Steps.Step>
+                  </Steps>
+                </Dialog.Bar>
+              )}
             {activeStep === ConfigurationStep.Processing && <Processing />}
             {activeStep === ConfigurationStep.ImportWithErrors && (
               <ImportWithErrors onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} />
@@ -346,11 +350,12 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
             {activeStep === ConfigurationStep.ModelEdition && modelId && (
               <ModelEdition onClose={onCloseWithConfirmation} setActiveStep={setActiveStep} modelId={modelId} />
             )}
-            {activeStep === ConfigurationStep.Success && (
+            {(activeStep === ConfigurationStep.SuccessCreation || activeStep === ConfigurationStep.SuccessImport) && (
               <SuccessView
                 onClose={onCloseWithConfirmation}
                 setActiveStep={setActiveStep}
                 modelName={semanticModel?.name}
+                currentStep={activeStep}
               />
             )}
           </DataConnectionFormContext.Provider>
