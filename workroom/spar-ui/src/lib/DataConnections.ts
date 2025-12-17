@@ -1,5 +1,5 @@
 import { DataConnection } from '@sema4ai/data-interface';
-import { exhaustiveCheck } from '@sema4ai/robocloud-shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 
 export const getGeneralDataConnectionDetails = (dataConnection: DataConnection): Record<string, string> => {
   switch (dataConnection.engine) {
