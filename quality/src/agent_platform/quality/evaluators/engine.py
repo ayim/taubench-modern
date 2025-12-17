@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import structlog
@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
     from agent_platform.quality.models import (
         CountMessagesEvaluation,
+        DataFrameGoldenComparisonEvaluation,
         Evaluation,
         LLMEvalEvaluation,
         Message,
@@ -52,6 +53,8 @@ class EvaluatorEngine:
         agent_messages: list[Message],
         workitem: WorkitemResult | None,
         thread_files: list[UploadedFile],
+        thread_id: str | None = None,
+        test_directory: Any | None = None,
     ) -> TestResult:
         """Run a single evaluation against agent messages.
 
@@ -60,9 +63,12 @@ class EvaluatorEngine:
             agent_messages: Messages from the agent.
             workitem: Optional workitem result for workitem evaluations.
             thread_files: Optional list of UploadedFile objects from the thread.
+            thread_id: Optional thread ID for evaluations that need it.
+            test_directory: Optional test directory Path for filesystem-based evaluations.
         """
         from agent_platform.quality.models import (
             CountMessagesEvaluation,
+            DataFrameGoldenComparisonEvaluation,
             LLMEvalEvaluation,
             SQLGenerationResultEvaluation,
             SQLGoldenComparisonEvaluation,
@@ -85,6 +91,8 @@ class EvaluatorEngine:
                 result = await self._evaluate_sql_generation_result(evaluation, thread_files)
             elif isinstance(evaluation, SQLGoldenComparisonEvaluation):
                 result = await self._evaluate_sql_golden_comparison(evaluation, thread_files)
+            elif isinstance(evaluation, DataFrameGoldenComparisonEvaluation):
+                result = await self._evaluate_dataframe_golden_comparison(evaluation, thread_id, test_directory)
             elif isinstance(evaluation, WorkitemResultEvaluation):
                 if workitem is None:
                     raise ValueError("Workitem is missing, cannot be evaluated")
@@ -641,3 +649,22 @@ Respond with a JSON object:
         except Exception as e:
             logger.error("Semantic SQL comparison failed", error=str(e))
             return False, f"Semantic comparison failed: {e!s}"
+
+    async def _evaluate_dataframe_golden_comparison(
+        self,
+        evaluation: DataFrameGoldenComparisonEvaluation,
+        thread_id: str | None,
+        test_directory: Any | None,
+    ) -> TestResult:
+        """Compare agent-produced dataframes against a golden dataset.
+
+        Delegates to DataFrameGoldenComparisonEvaluator for implementation.
+        """
+        from agent_platform.quality.evaluators.dataframe import DataFrameGoldenComparisonEvaluator
+
+        evaluator = DataFrameGoldenComparisonEvaluator(
+            evaluation=evaluation,
+            client=self.client,
+            server_url=self.server_url,
+        )
+        return await evaluator.evaluate(thread_id=thread_id, test_directory=test_directory)

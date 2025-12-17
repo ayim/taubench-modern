@@ -18,7 +18,7 @@ import yaml
 
 from agent_platform.core.platforms.configs import PlatformModelConfigs
 from agent_platform.quality.agent_runner import AgentRunner
-from agent_platform.quality.evaluators import EvaluatorEngine
+from agent_platform.quality.evaluators.engine import EvaluatorEngine
 from agent_platform.quality.models import (
     ActionPackageSecret,
     ActionSecret,
@@ -39,6 +39,8 @@ from agent_platform.quality.sdm_setup import SDMSetup
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 PREINSTALLED_AGENT_PREFIX = "@preinstalled-"
+YML_FILE_EXTENSION = "yml"
+THREAD_YML_FILE = f"thread.{YML_FILE_EXTENSION}"
 
 
 @dataclass(frozen=True)
@@ -212,6 +214,10 @@ class QualityTestRunner:
     ) -> list[TestCase]:
         """Discover test cases, optionally filtered by agent name and test names.
 
+        Supports two structures:
+        1. Direct YAML files: test-threads/agent-name/001-test.yml
+        2. Directory-based: test-threads/agent-name/001-test/thread.yml (with additional files)
+
         When tests_filter is provided, YAML files whose 'name' does not match are skipped
         without full parsing to avoid loading unrelated auth config (e.g., Snowflake).
         """
@@ -224,7 +230,8 @@ class QualityTestRunner:
                 if agent_name and test_dir.name != agent_name:
                     continue
 
-                for yml_path in test_dir.glob("*.yml"):
+                # First, look for direct .yml files
+                for yml_path in test_dir.glob(f"*.{YML_FILE_EXTENSION}"):
                     if tests_filter:
                         try:
                             with open(yml_path, encoding="utf-8") as f:
@@ -238,6 +245,24 @@ class QualityTestRunner:
 
                     test_case = TestCase.from_file(yml_path)
                     test_cases.append(test_case)
+
+                # Second, look for subdirectories containing thread.yml
+                for sub_dir in test_dir.iterdir():
+                    if sub_dir.is_dir():
+                        thread_yml = sub_dir / THREAD_YML_FILE
+                        if thread_yml.exists():
+                            if tests_filter:
+                                try:
+                                    with open(thread_yml, encoding="utf-8") as f:
+                                        raw = yaml.safe_load(f)
+                                    test_name = raw.get("name")
+                                    if test_name not in tests_filter:
+                                        continue
+                                except Exception:
+                                    pass
+
+                            test_case = TestCase.from_file(thread_yml)
+                            test_cases.append(test_case)
 
         logger.info(f"Found {len(test_cases)} test cases")
         return test_cases
@@ -950,6 +975,8 @@ class QualityTestRunner:
                         test_run.agent_messages,
                         test_run.workitem_result,
                         thread_files,
+                        test_run.thread_id,
+                        test_case.test_directory,
                     )
                     evaluation_results.append(result)
                 except Exception as e:

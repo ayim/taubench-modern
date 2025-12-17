@@ -1,0 +1,46 @@
+name: energy-top-oil-producers-keyed-comparison
+description: Top 5 wells by total oil production with keyed dataframe comparison
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/energy_content_analytics
+    description: Multidomain energy and content analytics dataset
+
+thread:
+  - name: top-oil-producers-keyed
+    description: Return top 5 wells by total oil production with keyed validation
+    messages:
+      - role: user
+        content: >
+          Generate SQL to list the top 5 wells by total oil production using the well_production_reports
+          table. Include well_name, operating_company_name, and the sum of oil_produced_volume_bbl 
+          as total_oil_bbl. Only include wells that have non-null oil production values. Group by 
+          well_name and operating_company_name, order by total_oil_bbl in descending order, and 
+          limit to 5 rows. Keep the query straightforward without joins or extra fields.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+    description: Verify SQL subagent generates a query for top oil producers
+
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_top_oil_producers_keyed.csv
+      match_mode: keyed
+      keys: ['well_name', 'operating_company_name']
+      relative_tolerance: 0.01
+      columns_optional: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset using keyed comparison.
+      Rows are matched by well_name and operating_company_name, allowing the agent to return
+      them in any order (e.g., sorted by total_oil_bbl DESC or in a different order).
+      Numeric columns allow 1% tolerance.

@@ -272,7 +272,7 @@ class AgentRunner:
 
             workitem_id = None
 
-            test_case_folder = Path(test_case.file_path).parent
+            test_case_folder = test_case.test_directory
             attachments = [
                 attachment
                 for message in test_case.workitem.messages
@@ -368,7 +368,7 @@ class AgentRunner:
             if on_thread_created is not None:
                 await on_thread_created(thread_id)
 
-            test_case_folder = Path(test_case.file_path).parent
+            test_case_folder = test_case.test_directory
             thread_files: list[tuple[str, tuple[str, Any, str]]] = []
             thread_attachments: list[FileAttachment] = []
             open_file_handles = []

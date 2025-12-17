@@ -1,0 +1,43 @@
+name: churn-dataframe-golden-comparison
+description: Count churned accounts by plan tier and compare against golden dataset
+timeout_seconds: 600
+
+sdms:
+  - kind: excel
+    sdm_path: sdms/saas_customer_churn
+    description: SaaS customer churn Excel dataset
+
+thread:
+  - name: churn-by-plan-tier-with-golden-data
+    description: Count churned accounts grouped by plan tier with golden result set
+    messages:
+      - role: user
+        content: >
+          Generate SQL against the churn semantic model to count churned accounts by plan tier.
+          Use the accounts table and churn_flag to filter churned customers, group by plan_tier,
+          return plan_tier and churned_accounts, order by churned_accounts descending.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+    description: Verify SQL subagent generates a query for churn by plan tier
+
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_churn_by_tier.csv
+      match_mode: all_columns_sorted
+      relative_tolerance: 0.01
+      strict_columns: true
+    description: >
+      Validate that at least one dataframe produced by the agent matches the golden dataset.
+      Row order doesn't matter, numeric columns allow 1% tolerance, and column names/counts must match exactly.

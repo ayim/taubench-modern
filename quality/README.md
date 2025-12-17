@@ -89,8 +89,12 @@ quality/
 │   ├── 001-quality-basic-browsing.zip
 │   ├── 002-snowflake-cortex-analyst.zip
 │   └── 003-call-center-planner.zip
-├── test-threads/               # Test definitions
+├── test-threads/               # Test definitions (two formats supported)
 │   ├── 001-quality-basic-browsing/
+│   │   ├── 001-simple-test.yml           # Direct YAML format
+│   │   └── 002-complex-test/             # Directory format (with additional files)
+│   │       ├── thread.yml                # Test definition
+│   │       └── golden_results.csv        # Golden dataset for evaluation
 │   ├── 002-snowflake-cortex-analyst/
 │   └── 003-call-center-planner/
 └── ui/                         # React web dashboard
@@ -108,6 +112,35 @@ quality/
 - **Dashboard**: Real-time web interface for monitoring and analysis
 
 ## 📝 Test Definition Format
+
+Tests support two organizational formats:
+
+### Format 1: Direct YAML Files
+
+Simple tests can be defined as YAML files directly in the agent directory:
+
+```
+test-threads/
+└── my-agent/
+    ├── 001-simple-test.yml
+    └── 002-another-test.yml
+```
+
+### Format 2: Directory-Based Tests (with Additional Files)
+
+For tests that need additional files (like golden datasets), create a directory containing `thread.yml`:
+
+```
+test-threads/
+└── @preinstalled-sql-generation/
+    └── 006-churn-dataframe-golden/
+        ├── thread.yml                 # Test definition
+        └── golden_churn_by_tier.csv   # Golden dataset
+```
+
+The test runner automatically discovers both formats.
+
+### YAML Structure
 
 Tests are defined in YAML files with a specific structure:
 
@@ -200,6 +233,7 @@ If any targeted model is invalid or unavailable, the test will **fail fast** wit
 3. **`tool-call-evaluation`**: Validates tool usage and parameters
 4. **`sql-generation-result`**: Validates SQL generation subagent output.json file and it's schema. Specifically, it validates the status, has_sql, sql_contains, and sql_not_contains fields. It is not designed for complex SQL comparisons.
 5. **`sql-golden-comparison`**: Compares generated SQL against expected "golden" SQL using an LLM. This is a more powerful evaluator that can compare SQL queries for semantic equivalence.
+6. **`dataframe-golden-comparison`**: Compares agent-produced dataframes against a golden dataset with configurable tolerance and ordering
 
 #### SQL Generation Evaluations
 
@@ -243,6 +277,75 @@ Comparison modes:
 - **exact**: Direct string comparison (case-sensitive, whitespace-sensitive)
 - **normalized**: Strips comments, collapses whitespace, lowercases before comparing
 - **semantic**: Uses LLM to determine if queries are semantically equivalent
+
+**`dataframe-golden-comparison`** - Compares agent-produced dataframes against golden dataset:
+
+```yaml
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_churn_by_tier.csv # File in test directory
+      match_mode: ignore_order # "ignore_order" | "keyed"
+      keys: ['customer_id'] # Required if match_mode is "keyed"
+      relative_tolerance: 0.01 # 1% tolerance for numeric columns (default)
+      columns_optional: false # Allow actual to have superset of columns
+    description: >
+      Validate that at least one dataframe produced by the agent matches the golden dataset.
+```
+
+**Match Modes:**
+
+1. **`ignore_order`** (default): Treats dataframes as unordered sets of rows
+
+   - Sorts both dataframes by ALL columns, then compares row-by-row
+   - Use when: Row order doesn't matter and rows are unique by all their values
+   - Example: Top 5 products by sales (no natural key, just unique combinations)
+
+2. **`keyed`**: Matches rows by specific identifier columns
+   - Sorts both dataframes by the specified key columns, then compares row-by-row
+   - Use when: You have natural identifiers (customer_id, well_name, etc.)
+   - Example: Customer records matched by customer_id, wells matched by well_name
+   - **Important**: Key columns must uniquely identify rows for accurate matching
+
+**Examples:**
+
+_Ignore order mode (no natural key):_
+
+```yaml
+- kind: dataframe-golden-comparison
+  expected:
+    golden_file: golden_top_5_wells.csv
+    match_mode: ignore_order # Sorts by all columns
+```
+
+_Keyed mode (match by identifier):_
+
+```yaml
+- kind: dataframe-golden-comparison
+  expected:
+    golden_file: golden_customer_metrics.csv
+    match_mode: keyed
+    keys: ['customer_id', 'month'] # Match rows by these columns
+```
+
+**Directory structure for dataframe tests:**
+
+```
+test-threads/
+└── @preinstalled-sql-generation/
+    └── 006-churn-dataframe-golden/
+        ├── thread.yml              # Test definition
+        └── golden_churn_by_tier.csv  # Golden dataset
+```
+
+Key features:
+
+- **Pass-if-any-match**: Evaluates all dataframes produced in the thread; passes if any matches
+- **Two matching strategies**: Use `ignore_order` for set-based comparison or `keyed` for identifier-based matching
+- **Numeric tolerance**: Configurable relative tolerance (default 1%) for floating-point comparisons
+- **Column flexibility**: Optionally allow actual dataframes to have extra columns beyond golden set
+- **Multi-format support**: Loads golden files from CSV, TSV, Excel, JSON, or Parquet formats
+- **Filesystem-based**: Golden datasets live alongside test definitions for easy version control
 
 ## 🔧 Command Reference
 

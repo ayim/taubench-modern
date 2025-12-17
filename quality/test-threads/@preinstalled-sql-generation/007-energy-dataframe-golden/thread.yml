@@ -1,0 +1,48 @@
+name: energy-top-oil-producers-dataframe-golden
+description: Top 5 wells by total oil production with dataframe golden comparison
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/energy_content_analytics
+    description: Multidomain energy and content analytics dataset
+
+thread:
+  - name: top-oil-producers-dataframe
+    description: Return top 5 wells by total oil production with dataframe validation
+    messages:
+      - role: user
+        # TODO: We need to think about if we should include non-null prompting in the Runbook, not user prompt
+        content: >
+          Generate SQL to list the top 5 wells by total oil production using the well_production_reports
+          table. Include well_name, operating_company_name, and the sum of oil_produced_volume_bbl 
+          as total_oil_bbl. Only include wells that have non-null oil production values. Group by 
+          well_name and operating_company_name, order by total_oil_bbl in descending order, and 
+          limit to 5 rows. Keep the query straightforward without joins or extra fields.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+    description: Verify SQL subagent generates a query for top oil producers
+
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_top_oil_producers.csv
+      match_mode: all_columns_sorted # Sorts by all columns to match rows
+      relative_tolerance: 0.01
+      strict_columns: true
+    description: >
+      Validate that the resulting dataframe matches the golden dataset using all columns sorted comparison.
+      Rows are matched by sorting all columns (well_name, operating_company_name, total_oil_bbl).
+      This works well for this test since the combination of all values uniquely identifies each row.
+      Numeric columns allow 1% tolerance. For comparison using specific key columns, see test 008.

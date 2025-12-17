@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel
 
 from agent_platform.core.utils import SecretString
+from agent_platform.quality.dataframes import DataFrameMatchMode
 
 if TYPE_CHECKING:
     from agent_platform.core.files.files import UploadedFile
@@ -181,6 +182,20 @@ class SQLGoldenComparisonExpected(BaseModel):
     golden_sql: str
 
 
+class DataFrameGoldenComparisonExpected(BaseModel):
+    """Expected structure for dataframe-golden-comparison evaluation.
+
+    Compares agent-produced dataframes against a golden dataset.
+    """
+
+    golden_file: str  # Reference to thread-uploaded file (e.g., "golden_results.csv")
+    # String literals for YAML compatibility (ordered, all_columns_sorted, keyed)
+    match_mode: DataFrameMatchMode = DataFrameMatchMode.ALL_COLUMNS_SORTED
+    keys: list[str] | None = None  # Required if match_mode is "keyed"
+    relative_tolerance: float = 0.01  # Default 1% tolerance for numeric columns
+    strict_columns: bool = False  # If True, require exact column match; else allow superset
+
+
 class ToolCallExpected(BaseModel):
     """Expected structure for tool-call-evaluation."""
 
@@ -235,6 +250,14 @@ class WorkitemResultEvaluation(BaseModel):
     description: str = ""
 
 
+class DataFrameGoldenComparisonEvaluation(BaseModel):
+    """Evaluation comparing agent-produced dataframes against golden dataset."""
+
+    kind: Literal["dataframe-golden-comparison"]
+    expected: DataFrameGoldenComparisonExpected
+    description: str = ""
+
+
 # Discriminated union of all evaluation types
 Evaluation = (
     CountMessagesEvaluation
@@ -243,6 +266,7 @@ Evaluation = (
     | SQLGenerationResultEvaluation
     | SQLGoldenComparisonEvaluation
     | WorkitemResultEvaluation
+    | DataFrameGoldenComparisonEvaluation
 )
 
 
@@ -346,6 +370,21 @@ class TestCase:
     trials: int = field(default=1)
     metrics: list[Metric] = field(default_factory=list)
     timeout_seconds: float | None = None
+
+    @property
+    def test_directory(self) -> Path:
+        """Get the directory containing this test case.
+
+        If the test is defined in a thread.yml file within a directory,
+        returns that directory. Otherwise, returns the parent directory
+        of the YAML file.
+        """
+        if self.file_path.name == "thread.yml":
+            # Directory-based test: /path/to/001-test/thread.yml -> /path/to/001-test
+            return self.file_path.parent
+        else:
+            # Direct YAML test: /path/to/001-test.yml -> /path/to
+            return self.file_path.parent
 
     @classmethod
     def from_file(cls, file_path: Path) -> TestCase:
