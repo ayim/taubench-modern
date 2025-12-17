@@ -61,6 +61,50 @@ def build_executable(  # noqa: PLR0913
     import shutil
     import sys
 
+    def _format_size(num_bytes: int) -> str:
+        units = ["B", "KiB", "MiB", "GiB", "TiB"]
+        value = float(num_bytes)
+        for unit in units:
+            if value < 1024.0:
+                return f"{value:.2f} {unit}"
+            value /= 1024.0
+        return f"{value:.2f} PiB"
+
+    def _dir_size_bytes(path: Path) -> int:
+        return sum(file.stat().st_size for file in path.rglob("*") if file.is_file())
+
+    def _log_dir_size(path: Path, label: str) -> None:
+        if not path.exists():
+            print(f"[{label}] missing (path: {path})")
+            return
+
+        size_bytes = _dir_size_bytes(path)
+        print(f"[{label}] size: {_format_size(size_bytes)} (path: {path})")
+
+    def _log_largest_files(root_dir: Path, heading: str, limit: int = 20) -> None:
+        if not root_dir.exists():
+            print(f"[{heading}] missing (path: {root_dir})")
+            return
+
+        entries = []
+
+        for file_path in root_dir.rglob("*"):
+            if file_path.is_file():
+                try:
+                    entries.append((file_path.stat().st_size, file_path))
+                except OSError:
+                    continue
+
+        if not entries:
+            print(f"[{heading}] no files found under {root_dir}")
+            return
+
+        entries.sort(reverse=True, key=lambda item: item[0])
+        print(f"[{heading}] top {limit} files by size:")
+        for size_bytes, file_path in entries[:limit]:
+            rel_path = file_path.relative_to(root_dir)
+            print(f"  {_format_size(size_bytes):>10}  {rel_path}")
+
     os.chdir(server_dir)
 
     if is_in_github_actions():
@@ -85,6 +129,19 @@ def build_executable(  # noqa: PLR0913
         go_wrapper=go_wrapper,
         version=version,
     )
+
+    dist_root = server_dir / dist_path
+    pyinstaller_build_dir = server_dir / "build" / "agent-server"
+    pyinstaller_dist_dir = dist_root / "agent-server"
+    final_dist_dir = dist_root / "final"
+
+    print("PyInstaller build artifacts size summary:")
+    _log_dir_size(pyinstaller_build_dir, "build/agent-server (PyInstaller build cache)")
+    _log_dir_size(pyinstaller_dist_dir, "dist/agent-server (PyInstaller bundle)")
+    _log_dir_size(final_dist_dir, "dist/final (packaged assets + Go wrapper)")
+
+    print("PyInstaller largest bundled files (dist/agent-server):")
+    _log_largest_files(pyinstaller_dist_dir, "dist/agent-server", limit=25)
 
     # to check if signed:  spctl -a -vvv -t install /server/dist/final/agent-server
 

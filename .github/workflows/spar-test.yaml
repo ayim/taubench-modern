@@ -42,6 +42,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Free up GitHub runner space and report disk usage
+        run: |
+          echo "::group::Removing unused SDKs/tooling"
+
+          echo "Disk usage before:"
+          df -h /
+
+          sudo rm -rf /opt/hostedtoolcache/CodeQL # CodeQL
+          sudo rm -rf /usr/lib/jvm # Java
+          sudo rm -rf /usr/lib/llvm-* # LLVM
+          sudo rm -rf /usr/local/.ghcup # Haskell
+          sudo rm -rf /usr/local/julia* # Julia
+          sudo rm -rf /usr/local/share/powershell # PowerShell
+          sudo rm -rf /usr/share/dotnet # .NET
+          sudo rm -rf /usr/share/swift # Swift
+
+          echo "Disk usage after:"
+          df -h /
+
+          echo "::endgroup::"
+
       - uses: astral-sh/setup-uv@v5
         id: uv
         with:
@@ -71,9 +92,15 @@ jobs:
           mkdir -p observability/dev/otlp-output
 
       - name: Start SPAR stack
+        env:
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          DOCKER_BUILDKIT: 1
+          BUILDKIT_PROGRESS: plain
         run: |
           # Start the SPAR stack in the background
-          COMPOSE_PROFILES=spar docker compose up --build -d
+          export COMPOSE_PROFILES=spar
+          docker compose build --no-cache
+          docker compose up -d
 
       - name: Wait for SPAR stack to be healthy
         run: ./scripts/wait-for-spar-health.sh
@@ -96,6 +123,13 @@ jobs:
         run: |
           docker compose down -v
           docker compose ps
+
+      - name: Report final disk usage
+        if: always()
+        run: |
+          echo "::group::Filesystem usage"
+          df -h
+          echo "::endgroup::"
 
       - name: Show logs on failure
         if: failure()
