@@ -66,8 +66,10 @@ Please improve the following semantic data model by improving table and column i
 **Enhancement Requirements:**
 
 **For the semantic model:**
-   - Choose a domain-specific name that reflects what the data represents
-     (e.g., 'Product Catalog', 'Sales Transactions', 'Customer Database')
+   - Choose a concise, domain-specific, human-readable name (generally < 25 characters)
+     that reflects what the data represents (e.g., 'Product Catalog', 'Sales Transactions',
+     'Customer Database')
+   - Do NOT use underscores or snake_case in the model name
    - Do NOT use generic names like 'Semantic Data Model' or 'Data Model'
    - Add/improve the description explaining the business purpose and analytical use cases
 
@@ -90,5 +92,6 @@ Please improve the following semantic data model by improving table and column i
 
 **Important:**
 - Ensure all synonyms are unique across the model
-- Make names SQL-safe (no spaces, special characters)
+- For table/column logical names: make them SQL-safe (no spaces, special characters)
+- For the semantic model name: keep it human-readable (spaces allowed), generally < 25 characters, and do not use underscores
 - The tool will validate your output against the expected JSON schema

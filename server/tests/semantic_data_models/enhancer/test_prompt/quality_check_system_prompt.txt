@@ -16,8 +16,10 @@ Only check for quality the following fields:
 **Special attention for the semantic model name:**
 The model's top-level name MUST be domain-specific and describe what business data it represents.
 REJECT generic names like "Semantic Data Model", "Data Model", or just "Model".
-ACCEPT names that clearly indicate the domain like "Product_Catalog", "Sales_Analytics",
-"Customer_Orders".
+The model name should be concise (generally < 25 characters) and human-readable.
+REJECT model names that use underscores or snake_case.
+ACCEPT names that clearly indicate the domain like "Product Catalog", "Sales Analytics",
+"Customer Orders".
 
 All the other fields MUST NOT be checked for quality (as they are immutable and just
 presented as information to build the fields above).

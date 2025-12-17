@@ -587,6 +587,11 @@ def test_generate_semantic_data_model_generation_integration(
         # We cannot use data_regression here as the generated model is different on each run
         # (as the LLM is used to enhance the model).
         # As such, just verify that the generated model tables/columns are present.
+        assert semantic_model["name"] is not None, "Model name is expected"
+        assert "_" not in semantic_model["name"], "Model name should not contain underscores"
+        # We check for 35 characters because the LLM is not perfect and sometimes generates
+        # names that are too long even though it's encouraged to less than 25 in the prompt.
+        assert len(semantic_model["name"]) <= 35, "Model name should be less than 35 characters"
         assert "tables" in semantic_model, "Tables are expected"
         assert len(semantic_model["tables"]) > 0, "At least one table is expected"
         for table in semantic_model["tables"]:

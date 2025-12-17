@@ -178,11 +178,11 @@ class SemanticDataModelForLLM(BaseModel):
     name: Annotated[
         str,
         """A descriptive, domain-specific name for this semantic model that clearly indicates
-        what business domain or data subject it represents. Must be unique and follow the
-        unquoted identifiers requirements. It also cannot conflict with SQL reserved keywords.
+        what business domain or data subject it represents. The name should be human-readable,
+        concise (generally < 25 characters), and should NOT use underscores or snake_case.
 
-        Examples of GOOD names: 'Product_Catalog', 'Sales_Analytics', 'Customer_Orders'
-        Examples of BAD names: 'Semantic_Data_Model', 'Data_Model', 'Model'
+        Examples of GOOD names: 'Product Catalog', 'Sales Analytics', 'Customer Orders'
+        Examples of BAD names: 'Semantic_Data_Model', 'Data_Model', 'Model', 'Product_Catalog'
 
         Can be changed if the current name can be improved to better reflect the domain.""",
     ]

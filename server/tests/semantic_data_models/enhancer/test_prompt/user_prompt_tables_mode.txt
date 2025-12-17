@@ -79,6 +79,6 @@ Please improve ONLY the table metadata for table "sales_data" within the followi
 
 **Important:**
 - Ensure all synonyms are unique across the model
-- Make names SQL-safe (no spaces, special characters)
+- For table/column logical names: make them SQL-safe (no spaces, special characters)
 - Output ONLY the enhanced table metadata (no column information)
 - The tool will validate your output against the expected JSON schema

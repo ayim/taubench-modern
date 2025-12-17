@@ -49,9 +49,12 @@ def render_system_prompt(
     # Add model-level information section
     if mode == "full":
         parts.append("\n**Model-Level Information:**\n")
-        parts.append("   - A descriptive, domain-specific name for the semantic model that clearly indicates\n")
-        parts.append("     what business domain or data subject it represents (e.g., 'Product Catalog',\n")
-        parts.append("     'Sales Analytics', 'Customer Orders', NOT generic names like 'Semantic Data Model')\n")
+        parts.append("   - A concise, domain-specific, and human-readable name for the semantic model\n")
+        parts.append("     (generally < 25 characters)\n")
+        parts.append("     that clearly indicates what business domain or data subject it represents.\n")
+        parts.append("     Do NOT use underscores or snake_case in the model name.\n")
+        parts.append("     Examples: 'Product Catalog', 'Sales Analytics', 'Customer Orders' (NOT generic\n")
+        parts.append("     names like 'Semantic Data Model')\n")
         parts.append("   - An improved description that explains the business purpose and use cases\n")
 
     # Add table information section

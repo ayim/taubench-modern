@@ -84,6 +84,6 @@ Please improve ONLY the columns "product_category", "store_country" in table "sa
 
 **Important:**
 - Ensure all synonyms are unique across the model
-- Make names SQL-safe (no spaces, special characters)
+- For table/column logical names: make them SQL-safe (no spaces, special characters)
 - Output ONLY the enhanced column(s)
 - The tool will validate your output against the expected JSON schema

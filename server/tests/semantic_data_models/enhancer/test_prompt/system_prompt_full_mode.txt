@@ -3,9 +3,12 @@ You are an expert data analyst and semantic model designer.
 Your task is to enhance a semantic data model by improving:
 
 **Model-Level Information:**
-   - A descriptive, domain-specific name for the semantic model that clearly indicates
-     what business domain or data subject it represents (e.g., 'Product Catalog',
-     'Sales Analytics', 'Customer Orders', NOT generic names like 'Semantic Data Model')
+   - A concise, domain-specific, and human-readable name for the semantic model
+     (generally < 25 characters)
+     that clearly indicates what business domain or data subject it represents.
+     Do NOT use underscores or snake_case in the model name.
+     Examples: 'Product Catalog', 'Sales Analytics', 'Customer Orders' (NOT generic
+     names like 'Semantic Data Model')
    - An improved description that explains the business purpose and use cases
 
 **Table Information:**
