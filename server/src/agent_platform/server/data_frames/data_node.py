@@ -120,11 +120,15 @@ def _convert_pyarrow_slice_to_format(
         selected_columns = _find_columns_case_insensitive(column_names, available_columns)
         result = result.select(selected_columns)
 
-    # Apply row slicing using ibis operations
+    # Apply row slicing
     if offset is not None or limit is not None:
         if offset is None:
             offset = 0
-        if limit is None:
+        # Handle limit=-1 (fetch all rows) specially to avoid negative indexing bug
+        if limit == -1:
+            # Fetch all rows from offset onwards
+            result = result[offset:] if offset else result
+        elif limit is None:
             result = result[offset:]
         else:
             result = result[offset : offset + limit]
@@ -213,7 +217,11 @@ async def _convert_ibis_slice_to_format(
 
     # Apply row slicing using ibis operations
     if offset is not None or limit is not None:
-        if limit is None:
+        # Handle limit=-1 (fetch all rows) specially to avoid negative indexing bug
+        if limit == -1:
+            # Fetch all rows from offset onwards
+            result = result[offset:] if offset else result
+        elif limit is None:
             result = result[offset:]
         else:
             result = result[offset : offset + limit]
