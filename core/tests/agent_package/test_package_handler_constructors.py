@@ -1,16 +1,60 @@
 import zipfile
 from io import BytesIO
 from pathlib import Path
+from tempfile import SpooledTemporaryFile
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
 from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
+from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 
-class TestPackageFetch:
+class TestPackageHandlerConstructors:
+    @pytest.mark.asyncio
+    async def test_agent_package_handler_from_bytes(self, test_agent_package_provider):
+        zip_data = test_agent_package_provider("pass-call-center-planner.zip")
+
+        with await AgentPackageHandler.from_bytes(zip_data) as handler:
+            assert handler is not None
+            await handler.check_if_zip()
+
+    @pytest.mark.asyncio
+    async def test_agent_package_handler_from_spooled_file(self, test_agent_package_provider):
+        zip_data = test_agent_package_provider("pass-call-center-planner.zip")
+
+        spooled = SpooledTemporaryFile(mode="wb+")
+        spooled.write(zip_data)
+        spooled.flush()
+        spooled.seek(0)
+
+        with await AgentPackageHandler.from_spooled_file(spooled) as handler:
+            assert handler is not None
+            await handler.check_if_zip()
+
+    @pytest.mark.asyncio
+    async def test_agent_package_handler_from_stream(self, test_agent_package_provider):
+        zip_data = test_agent_package_provider("pass-call-center-planner.zip")
+
+        async def _stream(chunk_size: int = 64 * 1024):
+            for i in range(0, len(zip_data), chunk_size):
+                yield zip_data[i : i + chunk_size]
+
+        with await AgentPackageHandler.from_stream(_stream()) as handler:
+            assert handler is not None
+            await handler.check_if_zip()
+
+    @pytest.mark.asyncio
+    async def test_agent_package_handler_invalid_zip(self, test_agent_package_provider):
+        zip_data = test_agent_package_provider("fail-incorrect-zip.zip")
+
+        with pytest.raises(PlatformHTTPError, match="not a valid ZIP file"):
+            await AgentPackageHandler.from_bytes(zip_data)
+
+
+class TestURIPackageHandlerConstructors:
     @pytest.mark.asyncio
     async def test_fetch_local_action_package(self, tmp_path: Path):
         """Test fetching a local action package from the file system."""

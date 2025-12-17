@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from agent_platform.core.mcp.mcp_types import MCPDiscriminatedUnion
+from agent_platform.core.mcp.mcp_types import MCPUnionOfVariableTypes
 
 # @TODO:
 # Consider bringing types and models from other core packages.
@@ -47,9 +47,9 @@ class SpecMCPServer(BaseModel):
     transport: SpecMCPTransport | None = None
     description: str | None = None
     url: str | None = None
-    headers: dict[str, MCPDiscriminatedUnion] | None = None
+    headers: dict[str, MCPUnionOfVariableTypes] | None = None
     command_line: list[str] | None = Field(default=None, alias="command-line")
-    env: dict[str, MCPDiscriminatedUnion] | None = None
+    env: dict[str, MCPUnionOfVariableTypes] | None = None
     cwd: str | None = None
     force_serial_tool_calls: bool | None = Field(default=False, alias="force-serial-tool-calls")
 
