@@ -91,6 +91,7 @@ class TestBedrockPlatformParameters:
             "name": "bedrock-parameters",
             "models": {"anthropic": ["claude-3-5-sonnet"]},
             "description": None,
+            "alias": None,
         }
 
     def test_model_copy(self) -> None:

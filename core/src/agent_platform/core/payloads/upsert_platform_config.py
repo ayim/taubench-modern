@@ -107,6 +107,7 @@ class UpsertPlatformConfigPayload:
         models = params_dict.pop("models", None)
 
         # Remove other PlatformParameters fields that aren't credentials
+        params_dict.pop("alias", None)
         params_dict.pop("created_at", None)
         params_dict.pop("updated_at", None)
         params_dict.pop("platform_id", None)

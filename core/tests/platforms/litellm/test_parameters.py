@@ -9,6 +9,11 @@ from agent_platform.core.utils import SecretString
 class TestLiteLLMPlatformParameters:
     """Behavioural tests covering LiteLLM parameter validation and helpers."""
 
+    def test_init_defaults_alias(self) -> None:
+        """Ensure LiteLLM parameters default the alias for display/UI use."""
+        params = LiteLLMPlatformParameters(litellm_api_key=SecretString("secret"))
+        assert params.alias == "Sema4.ai"
+
     def test_init_requires_api_key_when_env_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure we fail fast when neither the constructor nor
         the environment provides an API key."""

@@ -4281,6 +4281,11 @@ export interface components {
        */
       name: string;
       /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
+      /**
        * Description
        * @description The description of the platform parameters.
        */
@@ -4417,6 +4422,11 @@ export interface components {
        * @default
        */
       name: string;
+      /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
       /**
        * Description
        * @description The description of the platform parameters.
@@ -4797,6 +4807,11 @@ export interface components {
        * @default
        */
       name: string;
+      /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
       /**
        * Description
        * @description The description of the platform parameters.
@@ -5815,6 +5830,11 @@ export interface components {
        */
       name: string;
       /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
+      /**
        * Description
        * @description The description of the platform parameters.
        */
@@ -5918,6 +5938,11 @@ export interface components {
        * @default
        */
       name: string;
+      /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
       /**
        * Description
        * @description The description of the platform parameters.
@@ -6215,6 +6240,12 @@ export interface components {
        * @default
        */
       name: string;
+      /**
+       * Alias
+       * @description Display alias for LiteLLM.
+       * @default Sema4.ai
+       */
+      alias: string;
       /**
        * Description
        * @description The description of the platform parameters.
@@ -6988,6 +7019,11 @@ export interface components {
        */
       name: string;
       /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
+      /**
        * Description
        * @description The description of the platform parameters.
        */
@@ -7620,6 +7656,11 @@ export interface components {
        * @default
        */
       name: string;
+      /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
       /**
        * Description
        * @description The description of the platform parameters.

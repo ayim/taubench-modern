@@ -47,6 +47,46 @@ def sample_bedrock_platform_payload():
     }
 
 
+@pytest.fixture
+def sample_litellm_platform_payload():
+    """Sample LiteLLM platform payload for API requests."""
+    return {
+        "kind": "litellm",
+        "name": "Test LiteLLM Platform",
+        "description": "Test LiteLLM platform configuration",
+        "credentials": {"litellm_api_key": "test-litellm-key"},
+        "models": {"openai": ["gpt-4-1", "o3-high"]},
+    }
+
+
+def test_create_platform_litellm(client: TestClient, sample_litellm_platform_payload: dict):
+    """Test creating a LiteLLM platform configuration and response format."""
+    import uuid
+
+    response = client.post("/api/v2/private/platforms/", json=sample_litellm_platform_payload)
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Test response format - check required fields are present
+    required_fields = ["platform_id", "kind", "name", "models", "alias"]
+    for field in required_fields:
+        assert field in data, f"Required field '{field}' missing from response"
+
+    # Test response format - check that platform_id is a valid UUID
+    assert "platform_id" in data
+    assert isinstance(uuid.UUID(data["platform_id"]), uuid.UUID)
+
+    # Test content matches input payload
+    assert data["kind"] == sample_litellm_platform_payload["kind"]
+    assert data["name"] == sample_litellm_platform_payload["name"]
+    assert data["description"] == sample_litellm_platform_payload["description"]
+    assert data["models"] == sample_litellm_platform_payload["models"]
+    assert "litellm_api_key" in data
+    # Backend should define an alias for LiteLLM
+    assert data["alias"] == "Sema4.ai"
+
+
 def test_create_platform_openai(client: TestClient, sample_openai_platform_payload: dict):
     """Test creating an OpenAI platform configuration and response format."""
     response = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)

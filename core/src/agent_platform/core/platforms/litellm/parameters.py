@@ -4,6 +4,8 @@ from typing import Literal
 from agent_platform.core.platforms.base import PlatformParameters
 from agent_platform.core.utils import SecretString
 
+LITELLM_PLATFORM_ALIAS = "Sema4.ai"
+
 
 @dataclass(frozen=True, kw_only=True)
 class LiteLLMPlatformParameters(PlatformParameters):
@@ -12,6 +14,12 @@ class LiteLLMPlatformParameters(PlatformParameters):
     kind: Literal["litellm"] = field(
         default="litellm",
         metadata={"description": "The kind of platform parameters."},
+        init=False,
+    )
+
+    alias: str = field(
+        default=LITELLM_PLATFORM_ALIAS,
+        metadata={"description": "Display alias for LiteLLM."},
         init=False,
     )
 
@@ -73,6 +81,8 @@ class LiteLLMPlatformParameters(PlatformParameters):
     def model_validate(cls, obj: dict) -> "LiteLLMPlatformParameters":
         obj = dict(obj)
         cls._convert_datetime_fields(obj)
+        # Alias is a constant for LiteLLM; ignore any stored/serialized value.
+        obj.pop("alias", None)
         return cls(**obj)
 
 

@@ -64,6 +64,12 @@ class PlatformParameters(ABC):
     )
     """The name of the platform parameters."""
 
+    alias: str | None = field(
+        default=None,
+        metadata={"description": "Optional display alias for the platform parameters."},
+    )
+    """Optional display alias for the platform parameters."""
+
     description: str | None = field(
         default=None,
         metadata={"description": "The description of the platform parameters."},
@@ -147,6 +153,7 @@ class PlatformParameters(ABC):
         result = {
             "kind": self.kind,
             "name": self.name,
+            "alias": self.alias,
             "description": self.description,
             "models": self.models,
             "created_at": (

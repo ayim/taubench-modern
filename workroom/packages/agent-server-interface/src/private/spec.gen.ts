@@ -11050,6 +11050,18 @@ export const spec = {
             description: 'The name of the platform parameters.',
             default: '',
           },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
+          },
           description: {
             anyOf: [
               {
@@ -11325,6 +11337,18 @@ export const spec = {
             title: 'Name',
             description: 'The name of the platform parameters.',
             default: '',
+          },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
           },
           description: {
             anyOf: [
@@ -12223,6 +12247,18 @@ export const spec = {
             title: 'Name',
             description: 'The name of the platform parameters.',
             default: '',
+          },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
           },
           description: {
             anyOf: [
@@ -14742,6 +14778,18 @@ export const spec = {
             description: 'The name of the platform parameters.',
             default: '',
           },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
+          },
           description: {
             anyOf: [
               {
@@ -14923,6 +14971,18 @@ export const spec = {
             title: 'Name',
             description: 'The name of the platform parameters.',
             default: '',
+          },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
           },
           description: {
             anyOf: [
@@ -15465,6 +15525,12 @@ export const spec = {
             title: 'Name',
             description: 'The name of the platform parameters.',
             default: '',
+          },
+          alias: {
+            type: 'string',
+            title: 'Alias',
+            description: 'Display alias for LiteLLM.',
+            default: 'Sema4.ai',
           },
           description: {
             anyOf: [
@@ -17378,6 +17444,18 @@ export const spec = {
             description: 'The name of the platform parameters.',
             default: '',
           },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
+          },
           description: {
             anyOf: [
               {
@@ -18731,6 +18809,18 @@ export const spec = {
             title: 'Name',
             description: 'The name of the platform parameters.',
             default: '',
+          },
+          alias: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Alias',
+            description: 'Optional display alias for the platform parameters.',
           },
           description: {
             anyOf: [

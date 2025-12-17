@@ -96,6 +96,7 @@ class TestCortexPlatformParameters:
         assert result == {
             "kind": "cortex",
             "name": "cortex-parameters",
+            "alias": None,
             "description": None,
             "models": {"anthropic": ["claude-3-5-sonnet"]},
             "created_at": params.created_at.isoformat(),
