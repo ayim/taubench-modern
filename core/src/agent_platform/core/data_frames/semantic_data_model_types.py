@@ -6,6 +6,10 @@ which describe collections of tables with their relationships and metadata.
 
 from __future__ import annotations
 
+import copy
+import json
+import typing
+from datetime import date, datetime
 from enum import StrEnum
 from types import NoneType
 from typing import Annotated, Any, Literal, Required, TypedDict
@@ -585,3 +589,155 @@ class SemanticDataModel(TypedDict, total=False):
         """Metadata container for inspection snapshots, schemas, and other metadata.
         Stores data directly within the SDM JSON payload without extra storage tables.""",
     ]
+
+
+# ============================================================================
+# Public API for SemanticDataModel
+# ============================================================================
+
+
+# TODO SemanticDataModel needs to be rewritten to be a DataClass/Pydantic model.
+# We have details which should be encapsulated on the class which cannot be because
+# of the choice of base type.
+def model_dump_sdm(sdm: SemanticDataModel, *, exclude_none: bool = False) -> dict:
+    """Public API for serializing SemanticDataModel to dict.
+
+    Converts datetime objects to ISO format strings to make the SDM JSON-serializable.
+    This is needed because YAML parsers (like ruamel.yaml) auto-convert ISO date strings
+    to Python datetime objects, which are not JSON serializable by default.
+
+    Args:
+        sdm: The SemanticDataModel to serialize
+        exclude_none: If True, exclude fields with None values
+
+    Returns:
+        A dict with datetime objects converted to ISO strings, ready for JSON serialization
+    """
+
+    def convert_datetimes_for_json(obj: Any) -> Any:
+        """Recursively convert datetime objects to ISO format strings for JSON serialization."""
+        if isinstance(obj, dict):
+            return {k: convert_datetimes_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_datetimes_for_json(item) for item in obj]
+        elif isinstance(obj, datetime | date):
+            return obj.isoformat()
+        return obj
+
+    # Deep copy to avoid mutating the original
+    sdm_dict = copy.deepcopy(dict(sdm))
+
+    # Optionally exclude None values
+    if exclude_none:
+        sdm_dict = {k: v for k, v in sdm_dict.items() if v is not None}
+
+    # Convert datetime objects to ISO strings
+    return convert_datetimes_for_json(sdm_dict)
+
+
+def model_validate_sdm(data: dict) -> SemanticDataModel:
+    """Public API for deserializing dict to SemanticDataModel.
+
+    Validates and converts a dict to SemanticDataModel TypedDict.
+
+    Args:
+        data: Dictionary containing semantic data model fields
+
+    Returns:
+        Validated SemanticDataModel
+    """
+    # Type checker will validate the structure
+    return typing.cast(SemanticDataModel, data)
+
+
+def to_json_string_for_comparison(sdm: SemanticDataModel, *, exclude_metadata: bool = True) -> str:
+    """Convert SDM to sorted JSON string for comparison.
+
+    This ensures consistent comparison regardless of dict ordering.
+    The SDM is normalized (environment-specific fields stripped) before serialization.
+
+    Args:
+        sdm: The SemanticDataModel to convert
+        exclude_metadata: If True, also excludes metadata from comparison (default: False)
+
+    Returns:
+        A sorted JSON string representation of the normalized SDM
+    """
+    # Step 1: Normalize (strip environment-specific fields)
+    normalized = _normalize_for_comparison(sdm, exclude_metadata=exclude_metadata)
+
+    # Step 2: Convert to dict and handle datetime conversion
+    normalized_dict = model_dump_sdm(normalized, exclude_none=False)
+
+    # Step 3: Convert to sorted JSON string for consistent comparison
+    return json.dumps(normalized_dict, sort_keys=True)
+
+
+# ============================================================================
+# Private helpers for SemanticDataModel normalization
+# ============================================================================
+
+
+def _strip_environment_specific_fields(sdm: SemanticDataModel) -> SemanticDataModel:
+    """Private helper: Remove environment-specific fields from SDM.
+
+    Environment-specific fields that are stripped:
+    - data_connection_id in base_table (environment-specific UUID)
+    - data_connection_name in base_table (resolved to ID during import)
+    - file references (thread_id, file_ref) (environment-specific)
+
+    Preserved fields (portable across environments):
+    - database and schema in base_table (part of the SDM definition)
+    - table name (part of the SDM definition)
+
+    Args:
+        sdm: The SemanticDataModel to clean
+
+    Returns:
+        A new SemanticDataModel with environment-specific fields removed
+    """
+    # Deep copy to avoid mutating the original
+    sdm_clean: dict[str, Any] = copy.deepcopy(dict(sdm))
+
+    # Remove only environment-specific IDs and names (keep database/schema)
+    tables = sdm_clean.get("tables", [])
+    if isinstance(tables, list):
+        for table in tables:
+            if isinstance(table, dict):
+                if "base_table" in table:
+                    base_table = table.get("base_table")
+                    if isinstance(base_table, dict):
+                        base_table.pop("data_connection_id", None)
+                        base_table.pop("data_connection_name", None)
+                        # Remove file references from base_table
+                        base_table.pop("file_reference", None)
+                        # Note: database and schema are NOT stripped - they are part of the SDM definition
+
+                if "file" in table:
+                    table.pop("file", None)
+
+    return typing.cast(SemanticDataModel, sdm_clean)
+
+
+def _normalize_for_comparison(sdm: SemanticDataModel, *, exclude_metadata: bool = True) -> SemanticDataModel:
+    """Normalize SDM for comparison.
+
+    Strips environment-specific fields to enable comparison of semantic structure only.
+
+    Args:
+        sdm: The SemanticDataModel to normalize
+        exclude_metadata: If True, also removes metadata field (default: False)
+
+    Returns:
+        A normalized SemanticDataModel suitable for comparison
+    """
+    # Strip environment-specific fields (data_connection_id, data_connection_name, file)
+    normalized = _strip_environment_specific_fields(sdm)
+
+    # Optionally remove metadata from comparison (it's provenance/documentation, not semantic structure)
+    if exclude_metadata:
+        normalized_dict = dict(normalized)
+        normalized_dict.pop("metadata", None)
+        normalized = typing.cast(SemanticDataModel, normalized_dict)
+
+    return normalized

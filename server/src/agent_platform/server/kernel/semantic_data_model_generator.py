@@ -19,6 +19,7 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     SemanticDataModelMetadata,
     TimeDimension,
+    model_validate_sdm,
 )
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     ColumnInfo,
@@ -82,7 +83,7 @@ class SemanticDataModelGenerator:
                 )
                 tables.append(logical_table)
 
-        semantic_model: SemanticDataModel = {
+        semantic_model_dict: dict = {
             "name": name,
             "description": description,
             "tables": tables,
@@ -92,9 +93,10 @@ class SemanticDataModelGenerator:
         if include_metadata:
             metadata = await self._create_metadata_snapshot(data_connections_info, files_info)
             if metadata:
-                semantic_model["metadata"] = metadata
+                semantic_model_dict["metadata"] = metadata
 
-        return semantic_model
+        # Convert to SemanticDataModel TypedDict
+        return model_validate_sdm(semantic_model_dict)
 
     def _create_logical_table_from_data_connection(
         self, table_info: TableInfo, data_connection_id: str

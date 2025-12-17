@@ -1,58 +1,21 @@
+from __future__ import annotations
+
+import typing
+
 from structlog import get_logger
 
+from agent_platform.core.data_frames.semantic_data_model_types import (
+    SemanticDataModel,
+    model_dump_sdm,
+    to_json_string_for_comparison,
+)
 from agent_platform.server.api.dependencies import StorageDependency
 
 logger = get_logger(__name__)
 
 
-def _strip_environment_specific_fields(sdm: dict) -> dict:
-    """
-    Remove environment-specific fields from SDM before storing.
-
-    Environment-specific fields that are stripped:
-    - data_connection_id in base_table (environment-specific UUID)
-    - data_connection_name in base_table (resolved to ID during import)
-    - file references (thread_id, file_ref) (environment-specific)
-
-    Preserved fields (portable across environments):
-    - database and schema in base_table (part of the SDM definition)
-    - table name (part of the SDM definition)
-    """
-    import copy
-
-    sdm_clean = copy.deepcopy(sdm)
-
-    # Remove only environment-specific IDs and names (keep database/schema)
-    for table in sdm_clean.get("tables", []):
-        if "base_table" in table:
-            table["base_table"].pop("data_connection_id", None)
-            table["base_table"].pop("data_connection_name", None)
-            # Note: database and schema are NOT stripped - they are part of the SDM definition
-
-        # Remove file references
-        if "file" in table:
-            table.pop("file", None)
-
-    return sdm_clean
-
-
-def _normalize_sdm_for_comparison(sdm: dict) -> str:
-    """
-    Normalize SDM for comparison by converting to sorted JSON string.
-
-    This ensures consistent comparison regardless of dict ordering.
-    """
-    import json
-
-    # Strip environment fields first
-    normalized = _strip_environment_specific_fields(sdm)
-
-    # Convert to sorted JSON string for consistent comparison
-    return json.dumps(normalized, sort_keys=True)
-
-
 def find_matching_sdm(
-    new_sdm: dict,
+    new_sdm: SemanticDataModel | dict,
     existing_sdms: list[dict],
 ) -> str | None:
     """
@@ -63,26 +26,42 @@ def find_matching_sdm(
     2. Same content (after normalizing both)
 
     Args:
-        new_sdm: New SDM content from package
+        new_sdm: New SDM content from package (can be SemanticDataModel or dict)
         existing_sdms: List of existing SDMs in format [{sdm_id: sdm_content}, ...]
 
     Returns:
         existing SDM ID if match found, None otherwise
     """
-    new_name = new_sdm.get("name", "").lower()
-    new_normalized = _normalize_sdm_for_comparison(new_sdm)
+    # Convert to SemanticDataModel if needed (for type checking)
+    # TypedDict is just a type annotation, so dicts are already SemanticDataModel
+    if isinstance(new_sdm, dict):
+        new_sdm_typed = typing.cast(SemanticDataModel, new_sdm)
+    else:
+        new_sdm_typed = new_sdm
+
+    new_name = new_sdm_typed.get("name", "").lower() if new_sdm_typed.get("name") else ""
+    # Exclude metadata from comparison (it's provenance/inspection data, not semantic structure)
+    new_normalized_str = to_json_string_for_comparison(new_sdm_typed, exclude_metadata=True)
 
     for existing_sdm_entry in existing_sdms:
         # existing_sdm_entry format: {sdm_id: sdm_content}
-        for sdm_id, existing_sdm in existing_sdm_entry.items():
-            existing_name = existing_sdm.get("name", "").lower()
+        for sdm_id, existing_sdm_dict in existing_sdm_entry.items():
+            # Convert to SemanticDataModel if needed (for type checking)
+            # TypedDict is just a type annotation, so dicts are already SemanticDataModel
+            if isinstance(existing_sdm_dict, dict):
+                existing_sdm_typed = typing.cast(SemanticDataModel, existing_sdm_dict)
+            else:
+                existing_sdm_typed = existing_sdm_dict
+
+            existing_name = existing_sdm_typed.get("name", "").lower() if existing_sdm_typed.get("name") else ""
 
             # Check name match
             if new_name == existing_name:
-                existing_normalized = _normalize_sdm_for_comparison(existing_sdm)
+                # Exclude metadata from comparison (it's provenance/inspection data, not semantic structure)
+                existing_normalized_str = to_json_string_for_comparison(existing_sdm_typed, exclude_metadata=True)
 
-                # Check content match
-                if new_normalized == existing_normalized:
+                # Check content match (compare JSON strings for consistency)
+                if new_normalized_str == existing_normalized_str:
                     logger.info(
                         f"Found matching SDM: {sdm_id} for '{new_name}'",
                         sdm_id=sdm_id,
@@ -94,9 +73,9 @@ def find_matching_sdm(
 
 
 async def resolve_data_connection_names(
-    sdm_content: dict,
+    sdm_content: SemanticDataModel | dict,
     storage: StorageDependency,
-) -> dict:
+) -> SemanticDataModel:
     """
     Resolve data_connection_name to data_connection_id in SDM.
 
@@ -104,17 +83,24 @@ async def resolve_data_connection_names(
     attempts to find the connection by name (case-insensitive).
 
     Args:
-        sdm_content: SDM content from package
+        sdm_content: SDM content from package (can be SemanticDataModel or dict)
         storage: Storage dependency
 
     Returns:
-        Updated SDM content with data_connection_id resolved (if found)
+        Updated SDM with data_connection_id resolved (if found)
     """
-    import copy
+    # Convert to SemanticDataModel if needed (for type checking)
+    # TypedDict is just a type annotation, so dicts are already SemanticDataModel
+    if isinstance(sdm_content, dict):
+        sdm_typed = typing.cast(SemanticDataModel, sdm_content)
+    else:
+        sdm_typed = sdm_content
 
-    sdm = copy.deepcopy(sdm_content)
+    # Convert to dict for manipulation, then back to SemanticDataModel
+    # model_dump() already performs a deep copy, so no need for additional copy.deepcopy()
+    sdm_dict = model_dump_sdm(sdm_typed, exclude_none=False)
 
-    for table in sdm.get("tables", []):
+    for table in sdm_dict.get("tables", []):
         base_table = table.get("base_table", {})
 
         # If name is present but ID is not
@@ -137,4 +123,5 @@ async def resolve_data_connection_names(
                     connection_name=name,
                 )
 
-    return sdm
+    # Convert back to SemanticDataModel (TypedDict is just a type annotation)
+    return typing.cast(SemanticDataModel, sdm_dict)

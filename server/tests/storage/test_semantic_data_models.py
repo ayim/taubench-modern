@@ -535,3 +535,168 @@ async def test_semantic_data_model_metadata(
 
     model_creator = SampleModelCreator(storage, tmpdir)
     await check_semantic_data_model_metadata(model_creator)
+
+
+@pytest.mark.asyncio
+async def test_semantic_data_model_datetime_serialization_integration(
+    storage: "SQLiteStorage|PostgresStorage",
+    tmpdir: Path,
+) -> None:
+    """Integration test: SDM storage/retrieval with datetime objects.
+
+    This is an end-to-end integration test that verifies the full flow:
+    1. Creating SDMs with datetime objects (as parsed from YAML)
+    2. Storing them in the database (which requires datetime serialization)
+    3. Retrieving and verifying they were properly serialized
+
+    This is a regression test for the bug where importing agent packages with
+    SDM YAML files containing ISO date strings would fail with:
+    'TypeError: Object of type datetime is not JSON serializable'
+
+    The issue occurs because ruamel.yaml auto-converts ISO date strings
+    (like '2024-10-16T00:00:00') to Python datetime objects.
+    """
+    from datetime import UTC, date, datetime
+
+    from tests.storage.sample_model_creator import SampleModelCreator
+
+    model_creator = SampleModelCreator(storage, tmpdir)
+
+    await model_creator.setup()
+
+    # Create sample data connection
+    data_connection = await model_creator.obtain_sample_data_connection("test_connection")
+
+    # Create datetime objects (simulating what happens when YAML parses ISO dates)
+    signup_date = datetime(2024, 10, 16, 0, 0, 0, tzinfo=UTC)
+    churn_date = datetime(2024, 6, 25, 0, 0, 0, tzinfo=UTC)
+    simple_date = date(2024, 1, 15)
+
+    # Create a semantic model with datetime objects in sample_values
+    # This simulates what happens when ruamel.yaml parses an SDM YAML file
+    # with unquoted ISO date strings like "2024-10-16T00:00:00"
+    semantic_model_with_datetimes = {
+        "name": "customer_churn_with_datetimes",
+        "description": "SDM with datetime objects in sample_values",
+        "tables": [
+            {
+                "name": "customer_accounts",
+                "base_table": {
+                    "data_connection_id": data_connection.id,
+                    "database": "test_db",
+                    "schema": "public",
+                    "table": "accounts",
+                },
+                "dimensions": [
+                    {
+                        "name": "account_id",
+                        "expr": "account_id",
+                        "data_type": "string",
+                        "sample_values": ["A-2e4581", "A-43a9e3", "A-0a282f"],
+                    },
+                ],
+                "time_dimensions": [
+                    {
+                        "name": "signup_date",
+                        "expr": "signup_date",
+                        "data_type": "string",
+                        "description": "Date the account signed up",
+                        # These are datetime objects (as parsed by ruamel.yaml)
+                        "sample_values": [
+                            signup_date,  # datetime object
+                            datetime(2023, 8, 17, 0, 0, 0, tzinfo=UTC),
+                            datetime(2024, 8, 27, 0, 0, 0, tzinfo=UTC),
+                        ],
+                    },
+                ],
+            },
+            {
+                "name": "churn_events",
+                "base_table": {
+                    "data_connection_id": data_connection.id,
+                    "database": "test_db",
+                    "schema": "public",
+                    "table": "churn_events",
+                },
+                "time_dimensions": [
+                    {
+                        "name": "churn_date",
+                        "expr": "churn_date",
+                        "data_type": "string",
+                        # Mix of datetime and date objects
+                        "sample_values": [
+                            churn_date,  # datetime object
+                            simple_date,  # date object (not datetime)
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    # This should NOT raise "TypeError: Object of type datetime is not JSON serializable"
+    model_id = await model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_with_datetimes,
+        data_connection_ids=[data_connection.id],
+        file_references=[],
+    )
+
+    # Verify model was stored successfully
+    assert model_id is not None
+
+    # Retrieve and verify the stored model
+    retrieved_model = await model_creator.storage.get_semantic_data_model(model_id)
+    assert retrieved_model is not None
+    assert retrieved_model["name"] == "customer_churn_with_datetimes"
+
+    # Verify datetime objects were converted to ISO strings
+    signup_samples = retrieved_model["tables"][0]["time_dimensions"][0]["sample_values"]
+    assert isinstance(signup_samples[0], str)  # Should be string, not datetime
+    assert "2024-10-16" in signup_samples[0]  # Should contain the date
+
+    churn_samples = retrieved_model["tables"][1]["time_dimensions"][0]["sample_values"]
+    assert isinstance(churn_samples[0], str)  # datetime -> string
+    assert isinstance(churn_samples[1], str)  # date -> string
+    assert "2024-06-25" in churn_samples[0]
+    assert "2024-01-15" in churn_samples[1]
+
+    # Test update_semantic_data_model also handles datetime objects
+    updated_model = {
+        "name": "updated_model_with_datetimes",
+        "description": "Updated SDM with datetime",
+        "tables": [
+            {
+                "name": "updated_table",
+                "base_table": {
+                    "data_connection_id": data_connection.id,
+                    "database": "test_db",
+                    "schema": "public",
+                    "table": "updated",
+                },
+                "time_dimensions": [
+                    {
+                        "name": "updated_date",
+                        "expr": "updated_date",
+                        "data_type": "string",
+                        "sample_values": [
+                            datetime(2025, 1, 1, 12, 30, 45, tzinfo=UTC),
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    # This should also NOT raise TypeError
+    await model_creator.storage.update_semantic_data_model(
+        semantic_data_model_id=model_id,
+        semantic_model=updated_model,
+    )
+
+    # Verify update worked
+    retrieved_updated = await model_creator.storage.get_semantic_data_model(model_id)
+    assert retrieved_updated["name"] == "updated_model_with_datetimes"
+    updated_samples = retrieved_updated["tables"][0]["time_dimensions"][0]["sample_values"]
+    assert isinstance(updated_samples[0], str)
+    assert "2025-01-01" in updated_samples[0]

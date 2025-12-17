@@ -18,6 +18,7 @@ from agent_platform.core.agent_package.read import (
     read_semantic_data_models,
 )
 from agent_platform.core.agent_package.utils import read_package_bytes
+from agent_platform.core.data_frames.semantic_data_model_types import model_validate_sdm
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
 from agent_platform.core.payloads import AgentPackagePayload, UpsertAgentPayload
@@ -39,7 +40,6 @@ from agent_platform.server.api.package_content_handler import (
     handle_json_or_binary_zip,
 )
 from agent_platform.server.api.package_payload_utils import (
-    _strip_environment_specific_fields,
     find_matching_sdm,
     resolve_data_connection_names,
 )
@@ -617,13 +617,17 @@ async def upsert_semantic_data_models(
     # Process each SDM from package
     for filename, sdm_content in sdms.items():
         # Resolve data connection names to IDs (if possible)
-        sdm_resolved = await resolve_data_connection_names(sdm_content, storage)
+        # Convert dict to SemanticDataModel if needed (for type checking)
+        # TypedDict is just a type annotation, so dicts are already SemanticDataModel
+        if isinstance(sdm_content, dict):
+            sdm_instance = model_validate_sdm(sdm_content)
+        else:
+            sdm_instance = sdm_content
 
-        # Strip environment-specific fields for comparison only
-        sdm_for_comparison = _strip_environment_specific_fields(sdm_resolved)
+        sdm_resolved = await resolve_data_connection_names(sdm_instance, storage)
 
-        # Check for match
-        matching_id = find_matching_sdm(sdm_for_comparison, existing_sdms)
+        # Check for match (find_matching_sdm uses class methods for normalization)
+        matching_id = find_matching_sdm(sdm_resolved, existing_sdms)
 
         if matching_id:
             logger.info(

@@ -29,3 +29,6 @@ workroom/**/routeTree.gen.ts
 workroom/**/node_modules/
 workroom/**/dist/
 workroom/**/build/
+
+# Local Claude settings
+.claude/**

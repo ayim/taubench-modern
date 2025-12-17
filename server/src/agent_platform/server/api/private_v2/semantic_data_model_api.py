@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import copy
 import typing
 from typing import TypedDict
 
@@ -16,6 +15,7 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     ValidationMessageKind,
     ValidationMessageLevel,
+    model_dump_sdm,
 )
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
@@ -66,12 +66,12 @@ async def _replace_data_connection_id_with_name(
     if connection_cache is None:
         connection_cache = {}
 
-    # Work with dict for manipulation (semantic_model is a dict at runtime)
-    # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
-    modified_model: typing.Any = copy.deepcopy(semantic_model)
+    # Convert to dict for manipulation, then back to SemanticDataModel
+    # model_dump() already performs a deep copy, so no need for additional copy.deepcopy()
+    modified_dict = model_dump_sdm(semantic_model, exclude_none=False)
 
-    if "tables" in modified_model:
-        for table in modified_model["tables"]:
+    if "tables" in modified_dict:
+        for table in modified_dict["tables"]:
             if "base_table" in table and isinstance(table["base_table"], dict):
                 base_table = table["base_table"]
 
@@ -98,6 +98,8 @@ async def _replace_data_connection_id_with_name(
                         base_table["data_connection_name"] = connection_cache[dc_id]
                         del base_table["data_connection_id"]
 
+    # Convert back to SemanticDataModel (TypedDict is just a type annotation)
+    modified_model = typing.cast(SemanticDataModel, modified_dict)
     return modified_model, connection_cache
 
 
@@ -119,14 +121,14 @@ async def _replace_data_connection_name_with_id(
         Tuple of (modified semantic model, resolved_connections dict,
         unresolved_connections list)
     """
-    # Work with dict for manipulation (semantic_model is a dict at runtime)
-    # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
-    modified_model: typing.Any = copy.deepcopy(semantic_model)
+    # Convert to dict for manipulation, then back to SemanticDataModel
+    # model_dump() already performs a deep copy, so no need for additional copy.deepcopy()
+    modified_dict = model_dump_sdm(semantic_model, exclude_none=False)
     resolved_connections: dict[str, str] = {}
     unresolved_connections: list[str] = []
 
-    if "tables" in modified_model:
-        for table in modified_model["tables"]:
+    if "tables" in modified_dict:
+        for table in modified_dict["tables"]:
             if "base_table" in table and isinstance(table["base_table"], dict):
                 base_table = table["base_table"]
 
@@ -190,6 +192,8 @@ async def _replace_data_connection_name_with_id(
                     unresolved_connections.append(f"<missing table name in base_table: {base_table}>")
                     logger.error(f"Missing table name in base_table: {base_table}")
 
+    # Convert back to SemanticDataModel (TypedDict is just a type annotation)
+    modified_model = typing.cast(SemanticDataModel, modified_dict)
     return modified_model, resolved_connections, unresolved_connections
 
 
@@ -316,6 +320,7 @@ async def get_semantic_data_model(
 ) -> dict:
     """Get a semantic data model by ID."""
     try:
+        # Storage returns dict, return as-is
         return await storage.get_semantic_data_model(semantic_data_model_id)
     except PlatformHTTPError as e:
         raise e
@@ -386,6 +391,9 @@ async def generate_semantic_data_model(
 
             if isinstance(payload.existing_semantic_data_model, str):
                 existing_semantic_model = await storage.get_semantic_data_model(payload.existing_semantic_data_model)
+            elif isinstance(payload.existing_semantic_data_model, dict):
+                # Convert dict to SemanticDataModel if needed (for type checking)
+                existing_semantic_model = typing.cast(SemanticDataModel, payload.existing_semantic_data_model)
             else:
                 existing_semantic_model = payload.existing_semantic_data_model
 
@@ -395,11 +403,14 @@ async def generate_semantic_data_model(
 
             # When regenerating an existing semantic model, preserve its name and description
             # because we're updating the existing model, not creating a new one
-            semantic_model["name"] = existing_model_name or semantic_model.get("name", "")
+            # Convert to dict for manipulation, then back to SemanticDataModel
+            semantic_model_dict = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model), exclude_none=False)
+            semantic_model_dict["name"] = existing_model_name or semantic_model.get("name", "")
             if existing_model_description:
                 # For regeneration, use existing model's description
                 preserve_description = existing_model_description
-                semantic_model["description"] = existing_model_description
+                semantic_model_dict["description"] = existing_model_description
+            semantic_model = typing.cast(SemanticDataModel, semantic_model_dict)
 
             # Now, we need to copy from the existing semantic model to the new semantic model
             # the synonyms and descriptions that are not present in the new semantic model.
@@ -466,11 +477,13 @@ async def generate_semantic_data_model(
                 # After enhancement, restore the existing model's name and description
                 # The enhancer may have modified these, but we want to preserve the original
                 # when regenerating an existing model
+                semantic_model_dict = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model), exclude_none=False)
                 if existing_model_name is not None:
-                    semantic_model["name"] = existing_model_name
+                    semantic_model_dict["name"] = existing_model_name
                 # Restore description (either user-provided for new models or from existing model)
                 if preserve_description is not None:
-                    semantic_model["description"] = preserve_description
+                    semantic_model_dict["description"] = preserve_description
+                semantic_model = typing.cast(SemanticDataModel, semantic_model_dict)
             else:
                 logger.critical(
                     "No agent ID provided when generating semantic data model, "
@@ -588,17 +601,19 @@ async def export_semantic_data_model(
     """
     try:
         # Get the semantic data model
-        semantic_model_dict = await storage.get_semantic_data_model(semantic_data_model_id)
+        semantic_model = await storage.get_semantic_data_model(semantic_data_model_id)
 
         # Replace data_connection_id with data_connection_name
-        # Cast to SemanticDataModel for type safety
         portable_model, _ = await _replace_data_connection_id_with_name(
-            typing.cast(SemanticDataModel, semantic_model_dict), storage
+            typing.cast(SemanticDataModel, semantic_model), storage
         )
+
+        # Convert to dict for YAML serialization (model_dump handles datetime conversion)
+        portable_model_dict = model_dump_sdm(portable_model, exclude_none=False)
 
         # Convert to YAML
         yaml_content = yaml.dump(
-            portable_model,
+            portable_model_dict,
             default_flow_style=False,
             allow_unicode=True,
             sort_keys=False,
@@ -608,7 +623,7 @@ async def export_semantic_data_model(
 
         # Return JSON response with YAML content as string
         # Use the model name for the filename if available, slugify for safety
-        base_name = portable_model.get("name", semantic_data_model_id)
+        base_name = portable_model.get("name") if portable_model.get("name") else semantic_data_model_id
         filename = f"{slugify(base_name)}.yaml"
 
         return ExportSemanticDataModelResponse(
@@ -622,74 +637,6 @@ async def export_semantic_data_model(
     except Exception as e:
         logger.error(f"Error exporting semantic data model {semantic_data_model_id}: {e}")
         raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message="Error exporting semantic data model") from e
-
-
-def _normalize_sdm_for_comparison(sdm: SemanticDataModel) -> SemanticDataModel:
-    """
-    Normalize SDM for comparison.
-
-    Strips environment-specific fields (data_connection_id, data_connection_name, file, metadata)
-    to enable comparison of semantic structure only.
-
-    Metadata is excluded from comparison because:
-    - It contains provenance/snapshot information that varies by environment
-    - It's documentation/inspection data, not part of the semantic model structure
-    - Two SDMs with the same structure but different metadata should be considered duplicates
-    """
-    # Cast to Any to allow dynamic manipulation while preserving type safety at boundaries
-    sdm_clean: typing.Any = copy.deepcopy(sdm)
-
-    # Remove environment-specific fields from base_table
-    for table in sdm_clean.get("tables", []):
-        if "base_table" in table:
-            table["base_table"].pop("data_connection_id", None)
-            table["base_table"].pop("data_connection_name", None)
-        # Remove file references (environment-specific)
-        if "file" in table:
-            table.pop("file", None)
-
-    # Remove metadata from comparison (it's provenance/documentation, not semantic structure)
-    sdm_clean.pop("metadata", None)
-
-    return sdm_clean
-
-
-def _find_matching_sdm(
-    new_sdm: SemanticDataModel,
-    existing_sdms: list[dict],
-) -> str | None:
-    """
-    Find existing SDM that matches the new SDM being imported.
-
-    Matching criteria:
-    1. Same name (case-insensitive)
-    2. Same content (after normalizing both)
-
-    Args:
-        new_sdm: New SDM content from import
-        existing_sdms: List of existing SDMs in format [{sdm_id: sdm_content}, ...]
-
-    Returns:
-        Existing SDM ID if match found, None otherwise
-    """
-    new_name = new_sdm.get("name", "").lower()
-    new_normalized = _normalize_sdm_for_comparison(new_sdm)
-
-    for existing_sdm_entry in existing_sdms:
-        # existing_sdm_entry format: {sdm_id: sdm_content}
-        for sdm_id, existing_sdm in existing_sdm_entry.items():
-            existing_name = existing_sdm.get("name", "").lower()
-
-            # Check name match
-            if new_name == existing_name:
-                existing_normalized = _normalize_sdm_for_comparison(typing.cast(SemanticDataModel, existing_sdm))
-
-                # Check content match
-                if new_normalized == existing_normalized:
-                    logger.info(f"Found matching SDM for deduplication: {sdm_id} (name: {new_name})")
-                    return sdm_id  # Perfect match - reuse this SDM
-
-    return None  # No match found - need to create new
 
 
 @router.post("/import")
@@ -870,7 +817,11 @@ async def _collect_single_sdm(
 ) -> list[tuple[str | None, SemanticDataModel | dict]]:
     if payload.semantic_data_model:
         sdm_id = None
-        sdm_to_validate = payload.semantic_data_model
+        # Convert dict to SemanticDataModel if needed (for type checking)
+        if isinstance(payload.semantic_data_model, dict):
+            sdm_to_validate = typing.cast(SemanticDataModel, payload.semantic_data_model)
+        else:
+            sdm_to_validate = payload.semantic_data_model
 
     elif payload.semantic_data_model_id:
         try:
@@ -887,7 +838,8 @@ async def _collect_single_sdm(
             storage, typing.cast(SemanticDataModel, sdm_to_validate)
         )
 
-    if len(sdm_to_validate) == 0:
+    # Check if SDM has tables (not empty)
+    if not sdm_to_validate.get("tables"):
         return []
 
     return [(sdm_id, sdm_to_validate)]
@@ -1286,7 +1238,7 @@ async def verify_verified_query(
             if name != payload.accept_initial_name:
                 # Check if name is unique within the semantic data model
                 # (excluding current query if it exists)
-                verified_queries = semantic_data_model.get("verified_queries", [])
+                verified_queries = semantic_data_model.get("verified_queries") or []
                 if verified_queries:
                     for existing_query in verified_queries:
                         if isinstance(existing_query, dict):

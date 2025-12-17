@@ -20,7 +20,7 @@ from structlog.stdlib import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, model_dump_sdm
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.evals.types import (
     EvaluationResult,
@@ -1734,10 +1734,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
         won't change (so, references tables will not be updated, just the semantic model itself)."""
         semantic_data_models = self._get_table("semantic_data_model")
 
+        # Convert SemanticDataModel TypedDict to dict (model_dump() handles datetime conversion)
+        semantic_model_clean = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model))
+
         # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
         # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
         semantic_model_value = (
-            json.dumps(semantic_model) if self._sa_engine.dialect.name == "sqlite" else semantic_model
+            json.dumps(semantic_model_clean) if self._sa_engine.dialect.name == "sqlite" else semantic_model_clean
         )
         async with self._write_connection() as conn:
             await conn.execute(
@@ -1763,10 +1766,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Note: there's currently no validation at all here!
         async with self._write_connection() as conn:
+            # Convert SemanticDataModel TypedDict to dict (model_dump() handles datetime conversion)
+            semantic_model_clean = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model))
+
             # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
             # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
             semantic_model_value = (
-                json.dumps(semantic_model) if self._sa_engine.dialect.name == "sqlite" else semantic_model
+                json.dumps(semantic_model_clean) if self._sa_engine.dialect.name == "sqlite" else semantic_model_clean
             )
 
             if semantic_data_model_id is None:
@@ -1863,13 +1869,14 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # PostgreSQL: SQLAlchemy returns JSONB as dict (no parsing needed)
         # SQLite: SQLAlchemy returns TEXT as string (needs json.loads)
-        semantic_model = row["semantic_model"]
+        semantic_model_dict = row["semantic_model"]
 
         # Parse if string (SQLite normal, or PostgreSQL legacy double-serialized)
-        if isinstance(semantic_model, str):
-            semantic_model = json.loads(semantic_model)
+        if isinstance(semantic_model_dict, str):
+            semantic_model_dict = json.loads(semantic_model_dict)
 
-        return semantic_model
+        # Return as dict (TypedDict is just a type annotation, compatible with dict)
+        return dict(typing.cast(SemanticDataModel, semantic_model_dict))
 
     async def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
         """Delete a semantic data model by ID."""
