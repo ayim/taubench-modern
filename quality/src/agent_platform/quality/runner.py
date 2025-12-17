@@ -16,6 +16,7 @@ import httpx
 import structlog
 import yaml
 
+from agent_platform.core.platforms.configs import PlatformModelConfigs
 from agent_platform.quality.agent_runner import AgentRunner
 from agent_platform.quality.evaluators import EvaluatorEngine
 from agent_platform.quality.models import (
@@ -393,6 +394,10 @@ class QualityTestRunner:
 
             agent_package_metadata = await agent_package.extract_package_metadata()
             target_platforms = self._collect_target_platforms(test_cases, platform_filter, agent_package.name)
+
+            # Validate all targeted models before proceeding
+            self._validate_targeted_models(test_cases)
+
             package_oauth_secrets = await self._build_package_oauth_secrets(agent_package_metadata)
 
             logger.info(
@@ -455,24 +460,87 @@ class QualityTestRunner:
         platforms_accepted = set(platform_filter.split(","))
         return [p for p in test_case.target_platforms if p.name in platforms_accepted]
 
+    def _validate_targeted_models(self, test_cases: list[TestCase]) -> None:
+        """Validate all targeted models exist in the platform catalog.
+
+        Raises:
+            ValueError: If any targeted model is not in the catalog
+        """
+        config = PlatformModelConfigs()
+        all_catalog_models = set(config.models_to_platform_specific_model_ids.keys())
+
+        for test_case in test_cases:
+            for platform_name, model_ids in test_case.target_models.items():
+                for model_id in model_ids:
+                    if model_id not in all_catalog_models:
+                        raise ValueError(
+                            f"Invalid targeted model in test case '{test_case.name}' "
+                            f"(file: {test_case.file_path}):\n"
+                            f"  Platform: {platform_name}\n"
+                            f"  Model ID: {model_id}\n"
+                            f"  Reason: Model ID not found in platform catalog.\n"
+                            f"  Available models for platform '{platform_name}' start with '{platform_name}/'."
+                        )
+
     def _collect_target_platforms(
         self,
         test_cases: list[TestCase],
         platform_filter: str | None,
         agent_name: str,
     ) -> list[Platform]:
-        """Aggregate and validate platforms for the provided test cases."""
-        all_platforms = set()
+        """Collect platforms from test cases with their model allowlists."""
+        all_platforms_raw = set()
         for test_case in test_cases:
-            all_platforms.update(self._get_platforms_for_test_case(test_case, platform_filter))
+            all_platforms_raw.update(self._get_platforms_for_test_case(test_case, platform_filter))
 
-        if platform_filter and not all_platforms:
+        if platform_filter and not all_platforms_raw:
             raise ValueError(f"No test targets found for platform '{platform_filter}' in agent '{agent_name}'.")
 
-        if not all_platforms:
+        if not all_platforms_raw:
             raise ValueError(f"No target platforms defined for tests associated with agent '{agent_name}'.")
 
-        return list(all_platforms)
+        allowlists_by_platform = self._build_model_allowlists(test_cases, platform_filter)
+
+        return [
+            Platform(
+                name=platform.name,
+                models_allowlist=allowlists_by_platform.get(platform.name),
+            )
+            for platform in all_platforms_raw
+        ]
+
+    def _build_model_allowlists(
+        self,
+        test_cases: list[TestCase],
+        platform_filter: str | None,
+    ) -> dict[str, dict[str, list[str]]]:
+        """Build per-platform model allowlists from targeted models across test cases.
+
+        When test cases specify targeted models (e.g. "openai/gpt-4o"), we build an
+        allowlist so only those models are used. If no models are targeted for a
+        platform, it won't appear in the returned dict (meaning use default behavior).
+
+        Returns:
+            Mapping of platform_name -> provider -> list of model names.
+            Example: {"platform_a": {"openai": ["gpt-4o", "gpt-4o-mini"]}}
+        """
+        # Accumulate targeted models: platform -> provider -> set of model names
+        accumulated: dict[str, dict[str, set[str]]] = {}
+
+        for test_case in test_cases:
+            for platform in self._get_platforms_for_test_case(test_case, platform_filter):
+                targeted_models = test_case.target_models.get(platform.name, [])
+                for model_id in targeted_models:
+                    # model_id format: "platform/provider/model_name"
+                    _, provider, model_name = model_id.split("/")
+
+                    accumulated.setdefault(platform.name, {}).setdefault(provider, set()).add(model_name)
+
+        # Convert sets to sorted lists for deterministic ordering
+        return {
+            platform_name: {provider: sorted(models) for provider, models in providers.items()}
+            for platform_name, providers in accumulated.items()
+        }
 
     async def _run_test_case_with_optional_override(
         self,
@@ -551,7 +619,6 @@ class QualityTestRunner:
         """Run a single test case across all of its target platforms."""
 
         all_results: list[ThreadResult] = []
-        platform_tasks = []
 
         # For preinstalled agents with SDMs, create unique agent clones per test case
         # to avoid SDM bleeding between tests (SDMs are agent-scoped, not thread-scoped)
@@ -576,6 +643,8 @@ class QualityTestRunner:
             test_case_agent_ids = run_context.platform_agent_ids
 
         try:
+            # Build platform x model matrix
+            platform_model_tasks = []
             for platform in platforms:
                 agent_id = test_case_agent_ids[platform.name]
 
@@ -585,18 +654,28 @@ class QualityTestRunner:
                     run_context.action_server_url,
                 )
 
-                self.results_manager.start_test(agent_package.name, test_case, platform)
+                # Determine which models to run for this platform
+                target_models_for_platform = test_case.target_models.get(platform.name, [])
+                if target_models_for_platform:
+                    # Run once per targeted model
+                    models_to_run: list[str | None] = target_models_for_platform  # type: ignore[assignment]
+                else:
+                    # Run once with no override (platform default)
+                    models_to_run = [None]
 
-                task = self._run_test_case_on_platform(agent_id, test_case, platform)
-                platform_tasks.append(task)
+                # Schedule tasks for each model
+                for model_id in models_to_run:
+                    self.results_manager.start_test(agent_package.name, test_case, platform, model_id)
+                    task = self._run_test_case_on_platform(agent_id, test_case, platform, model_id)
+                    platform_model_tasks.append((platform, model_id, task))
 
-            test_results = await asyncio.gather(*platform_tasks, return_exceptions=True)
+            test_results = await asyncio.gather(*[task for _, _, task in platform_model_tasks], return_exceptions=True)
 
             for i, result in enumerate(test_results):
+                platform, model_id, _ = platform_model_tasks[i]
                 if isinstance(result, Exception):
-                    platform = platforms[i]
                     logger.error(
-                        f"Test case failed: {test_case.file_path} on platform {platform.name}",
+                        f"Test case failed: {test_case.file_path} on platform {platform.name} model {model_id}",
                         error=str(result),
                     )
                     error_result = ThreadResult(
@@ -606,6 +685,7 @@ class QualityTestRunner:
                         evaluation_results=[],
                         success=False,
                         agent_id=test_case_agent_ids.get(platform.name),
+                        model_id=model_id,
                         error=str(result),
                     )
                     all_results.append(error_result)
@@ -617,18 +697,29 @@ class QualityTestRunner:
 
         except Exception as e:
             logger.error(f"Failed to execute test case {test_case.name} in parallel: {e}")
+            # Report errors for all platform/model combinations that were supposed to run
             for platform in platforms:
-                error_result = ThreadResult(
-                    test_case=test_case,
-                    platform=platform,
-                    agent_messages=[],
-                    evaluation_results=[],
-                    success=False,
-                    agent_id=test_case_agent_ids.get(platform.name),
-                    error=str(e),
-                )
-                all_results.append(error_result)
-                self.results_manager.complete_test(agent_package.name, error_result, 1)
+                target_models_for_platform = test_case.target_models.get(platform.name, [])
+                if target_models_for_platform:
+                    # Had targeted models - report one error per model
+                    models_for_errors: list[str | None] = target_models_for_platform  # type: ignore[assignment]
+                else:
+                    # No targeted models - report one error with platform default (model_id=None)
+                    models_for_errors = [None]
+
+                for model_id in models_for_errors:
+                    error_result = ThreadResult(
+                        test_case=test_case,
+                        platform=platform,
+                        agent_messages=[],
+                        evaluation_results=[],
+                        success=False,
+                        agent_id=test_case_agent_ids.get(platform.name),
+                        model_id=model_id,
+                        error=str(e),
+                    )
+                    all_results.append(error_result)
+                    self.results_manager.complete_test(agent_package.name, error_result, 1)
 
         finally:
             # Clean up test-case-specific agent clones
@@ -786,18 +877,37 @@ class QualityTestRunner:
         agent_id: str,
         test_case: TestCase,
         platform: Platform,
+        model_id: str | None = None,
     ) -> TestResultGroup:
-        """Run a single test case on a specific platform with all setup."""
+        """Run a single test case on a specific platform with optional model override.
 
+        Args:
+            agent_id: Agent to test
+            test_case: Test case to run
+            platform: Platform to run on
+            model_id: Optional model ID to override (format: platform/provider/model)
+
+        Returns:
+            TestResultGroup containing results from all trials
+        """
         # TODO we could average over the evaluations
-        tasks = [self._run_single_test(agent_id, test_case, platform) for _ in range(test_case.trials)]
+        tasks = [self._run_single_test(agent_id, test_case, platform, model_id) for _ in range(test_case.trials)]
         results = await asyncio.gather(*tasks)
 
         return TestResultGroup(thread_results=results)
 
-    async def _run_single_test(self, agent_id: str, test_case: TestCase, platform: Platform) -> ThreadResult:
-        """Run a single test case on a specific platform."""
-        logger.info(f"Running test on platform: {platform.name}")
+    async def _run_single_test(
+        self,
+        agent_id: str,
+        test_case: TestCase,
+        platform: Platform,
+        model_id: str | None = None,
+    ) -> ThreadResult:
+        """Run a single test case on a specific platform with optional model override."""
+        log_msg = f"Running test on platform: {platform.name}"
+        if model_id:
+            log_msg += f" with model: {model_id}"
+        logger.info(log_msg)
 
         try:
             if test_case.sdms and test_case.thread is None:
@@ -821,6 +931,7 @@ class QualityTestRunner:
                 test_case,
                 platform.name,
                 on_thread_created=on_thread_created,
+                override_model_id=model_id,
             )
 
             # Fetch thread files before evaluations so evaluators can access file attachments
@@ -856,6 +967,7 @@ class QualityTestRunner:
                 success=success,
                 agent_id=agent_id,
                 thread_id=test_run.thread_id,
+                model_id=model_id,
                 thread_files=thread_files,
             )
 
@@ -865,6 +977,7 @@ class QualityTestRunner:
                 extra={
                     "test_case": test_case.name,
                     "platform": platform.name,
+                    "model_id": model_id,
                     "agent_id": agent_id,
                     "error": str(e),
                     "traceback": traceback.format_exc(),
@@ -878,6 +991,7 @@ class QualityTestRunner:
                 evaluation_results=[],
                 success=False,
                 agent_id=agent_id,
+                model_id=model_id,
                 error=str(e),
             )
 

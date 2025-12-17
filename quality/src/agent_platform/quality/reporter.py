@@ -76,6 +76,13 @@ class QualityReporter:
                 # Get test case name from the result
                 test_case_name = result.test_case.name
 
+                # Add model info if present
+                if result.model_id:
+                    # Extract just the model name (last part of platform/provider/model)
+                    model_name = result.model_id.split("/")[-1]
+                    # Use parentheses instead of brackets (Rich Console uses [] for markup)
+                    test_case_name = f"{test_case_name} ({model_name})"
+
                 # Status
                 if result.error:
                     status = "[red]FAILED[/red]"
@@ -133,7 +140,11 @@ class QualityReporter:
         # Test header with platform information
         status_color = "green" if result.success else "red"
         test_title = f"[{status_color}]Test: {result.test_case.name} "
-        test_title += f"(Platform: {result.platform.name})[/{status_color}]"
+        test_title += f"(Platform: {result.platform.name}"
+        if result.model_id:
+            model_name = result.model_id.split("/")[-1]
+            test_title += f", Model: {model_name}"
+        test_title += f")[/{status_color}]"
 
         # Create panel content
         content = []
@@ -142,8 +153,11 @@ class QualityReporter:
         if result.test_case.description:
             content.append(f"[dim]Description: {result.test_case.description}[/dim]")
 
-        # Platform information
-        content.append(f"[bold]Platform:[/bold] {result.platform.name}")
+        # Platform and model information
+        platform_info = f"[bold]Platform:[/bold] {result.platform.name}"
+        if result.model_id:
+            platform_info += f" | [bold]Model:[/bold] {result.model_id}"
+        content.append(platform_info)
 
         # Agent messages summary
         if result.agent_messages:

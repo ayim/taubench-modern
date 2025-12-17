@@ -1,10 +1,8 @@
-name: smoke-test
+name: basic-browsing-smoke-test
 description: 'Smoke test'
 
-trials: 2
-
 thread:
-  - name: smoke-test
+  - name: basic-browsing-smoke-test
     description: 'Smoke test'
     messages:
       - role: user
@@ -13,11 +11,29 @@ thread:
 
 target-platforms:
   - name: openai
+    models:
+      - openai/openai/gpt-5-2-low
+      - openai/openai/gpt-4o
   - name: azure
+    models:
+      - azure/openai/gpt-5-2-low
+      - azure/openai/gpt-4o
   - name: bedrock
+    models:
+      - bedrock/anthropic/claude-4-5-sonnet-thinking-low
+      - bedrock/anthropic/claude-3-5-sonnet
   - name: cortex
+    models:
+      - cortex/anthropic/claude-4-sonnet
+      - cortex/openai/gpt-4-1
   - name: groq
+    models:
+      - groq/openai/gpt-oss-120b
+      - groq/meta/llama-4-scout
   - name: google
+    models:
+      - google/google/gemini-3-pro-low
+      - google/google/gemini-2-5-flash-lite
 
 evaluations:
   - kind: llm-eval-of-last-agent-turn

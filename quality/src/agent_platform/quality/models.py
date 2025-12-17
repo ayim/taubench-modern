@@ -27,6 +27,7 @@ class Platform:
     """A platform for testing."""
 
     name: str
+    models_allowlist: dict[str, list[str]] | None = None
 
     def as_platform_config(self) -> dict:
         """Convert the platform to a platform config."""
@@ -34,14 +35,18 @@ class Platform:
             case "openai":
                 from agent_platform.core.platforms.openai import OpenAIPlatformParameters
 
+                # Use allowlist if provided, otherwise fall back to default
+                models = self.models_allowlist if self.models_allowlist is not None else {"openai": ["gpt-5-2-low"]}
+
                 return OpenAIPlatformParameters(
                     openai_api_key=SecretString(os.environ["OPENAI_API_KEY"]),
-                    # TODO: read this from yaml configs, just trying to run on gpt-5 as a kind
-                    # of integration test for now, but should be configurable
-                    models={"openai": ["gpt-5-2-low"]},
+                    models=models,
                 ).model_dump()
             case "azure":
                 from agent_platform.core.platforms.azure import AzureOpenAIPlatformParameters
+
+                # Use allowlist if provided, otherwise fall back to default
+                models = self.models_allowlist if self.models_allowlist is not None else {"openai": ["gpt-5-2-low"]}
 
                 return AzureOpenAIPlatformParameters(
                     azure_api_key=SecretString(os.environ["AZURE_API_KEY"]),
@@ -49,19 +54,23 @@ class Platform:
                     azure_deployment_name=os.environ["AZURE_DEPLOYMENT_NAME"],
                     azure_deployment_name_embeddings=os.environ["AZURE_DEPLOYMENT_NAME_EMBEDDINGS"],
                     azure_api_version=os.environ["AZURE_API_VERSION"],
-                    # We should be upgrading the eval harness, now that we have this filtering
-                    # ability, to have explicit models set (instead of taking platform defaults)
-                    models={"openai": ["o3-high"]},
+                    models=models,
                 ).model_dump()
             case "bedrock":
                 from agent_platform.core.platforms.bedrock import BedrockPlatformParameters
+
+                # Use allowlist if provided, otherwise fall back to default
+                models = (
+                    self.models_allowlist
+                    if self.models_allowlist is not None
+                    else {"anthropic": ["claude-4-5-sonnet-thinking-medium"]}
+                )
 
                 return BedrockPlatformParameters(
                     aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
                     aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
                     region_name=os.environ["AWS_DEFAULT_REGION"],
-                    # Force to sonnet 4 thinking medium
-                    models={"anthropic": ["claude-4-sonnet-thinking-medium"]},
+                    models=models,
                 ).model_dump()
             case "cortex":
                 from agent_platform.core.platforms.cortex import CortexPlatformParameters
@@ -70,9 +79,14 @@ class Platform:
             case "groq":
                 from agent_platform.core.platforms.groq import GroqPlatformParameters
 
+                # Use allowlist if provided, otherwise fall back to default
+                models = (
+                    self.models_allowlist if self.models_allowlist is not None else {"groq": ["openai/gpt-oss-120b"]}
+                )
+
                 return GroqPlatformParameters(
                     groq_api_key=SecretString(os.environ["GROQ_API_KEY"]),
-                    models={"groq": ["openai/gpt-oss-120b"]},
+                    models=models,
                 ).model_dump()
             case "google":
                 from agent_platform.core.platforms.google import GooglePlatformParameters
@@ -326,6 +340,7 @@ class TestCase:
     evaluations: list[Evaluation]
     file_path: Path
     action_secrets: list[ActionPackageSecret]
+    target_models: dict[str, list[str]] = field(default_factory=dict)
     sdms: list[SDMConfig] = field(default_factory=list)
     sf_auth_override: SFAuthorizationOverride | None = None
     trials: int = field(default=1)
@@ -380,15 +395,63 @@ class TestCase:
                 ],
             )
 
-        # Parse target platforms, if none are present we'll default to just
-        # openai
-        target_platforms = [
-            Platform(name=platform["name"])
-            for platform in data.get(
-                "target-platforms",  # Use hyphen to match YAML format
-                [{"name": "openai"}],  # Default to openai if none are present
-            )
-        ]
+        # Parse target platforms with optional models
+        target_platforms_raw = data.get(
+            "target-platforms",  # Use hyphen to match YAML format
+            [{"name": "openai"}],  # Default to openai if none are present
+        )
+
+        target_platforms = []
+        target_models: dict[str, list[str]] = {}
+
+        # Extract platforms and any embedded models
+        for platform in target_platforms_raw:
+            # Support both dict format {"name": "openai"} and simple string "openai"
+            if isinstance(platform, str):
+                target_platforms.append(Platform(name=platform))
+            elif isinstance(platform, dict):
+                platform_name = platform["name"]
+                target_platforms.append(Platform(name=platform_name))
+
+                # Check for optional models list
+                if "models" in platform:
+                    models_list = platform["models"]
+                    if not isinstance(models_list, list):
+                        raise ValueError(
+                            f"Invalid target-platforms entry in {file_path}: "
+                            f"'models' for platform '{platform_name}' must be a list"
+                        )
+
+                    # Validate each model ID
+                    for model_id in models_list:
+                        if not isinstance(model_id, str):
+                            raise ValueError(
+                                f"Invalid model ID in {file_path}: "
+                                f"model ID must be a string, got {type(model_id).__name__}"
+                            )
+
+                        # Validate format: platform/provider/model
+                        parts = model_id.split("/")
+                        if len(parts) != 3:
+                            raise ValueError(
+                                f"Invalid model ID '{model_id}' in {file_path}: "
+                                f"must be in format 'platform/provider/model'"
+                            )
+
+                        # Validate platform prefix matches the platform name
+                        model_platform = parts[0]
+                        if model_platform != platform_name:
+                            raise ValueError(
+                                f"Invalid model ID '{model_id}' for platform '{platform_name}' in {file_path}: "
+                                f"model platform prefix '{model_platform}' does not match '{platform_name}'"
+                            )
+
+                    target_models[platform_name] = models_list
+            else:
+                raise ValueError(
+                    f"Invalid target-platforms entry in {file_path}: "
+                    f"expected string or dict with 'name', got {type(platform).__name__}"
+                )
 
         # Parse evaluations using Pydantic
         from pydantic import TypeAdapter
@@ -484,6 +547,7 @@ class TestCase:
             timeout_seconds=timeout_seconds,
             thread=thread,
             target_platforms=target_platforms,
+            target_models=target_models,
             evaluations=evaluations,
             file_path=file_path,
             action_secrets=action_secrets,
@@ -578,6 +642,7 @@ class ThreadResult:
     success: bool
     agent_id: str | None = None
     thread_id: str | None = None
+    model_id: str | None = None
     error: str | None = None
     thread_files: list[UploadedFile] = field(default_factory=list)
 

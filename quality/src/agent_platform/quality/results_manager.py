@@ -63,6 +63,33 @@ class QualityResultsManager:
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         self.current_run_dir.mkdir(parents=True, exist_ok=True)
 
+    def _build_test_id(
+        self,
+        test_case_name: str,
+        platform_name: str,
+        model_id: str | None = None,
+        index: int | None = None,
+    ) -> str:
+        """Build a test ID from test case, platform, optional model, and optional index.
+
+        Args:
+            test_case_name: Name of the test case
+            platform_name: Name of the platform
+            model_id: Optional model ID (will be sanitized for filename safety)
+            index: Optional trial index to append
+
+        Returns:
+            Test ID string with components joined by underscores
+        """
+        parts = [test_case_name, platform_name]
+        if model_id:
+            # Sanitize model_id for filename safety (replace / with __)
+            safe_model_id = model_id.replace("/", "__")
+            parts.append(safe_model_id)
+        if index is not None:
+            parts.append(str(index))
+        return "_".join(parts)
+
     def _write_status(self):
         """Write current status to status.json."""
         status_file = self.results_dir / "status.json"
@@ -125,8 +152,15 @@ class QualityResultsManager:
                 return list(test_case.target_platforms)
             return [p for p in test_case.target_platforms if p.name == platform_filter]
 
-        # Calculate total tests for this agent (respecting platform filter)
-        total_tests = sum(len(filtered_platforms(tc)) * tc.trials for tc in test_cases)
+        # Calculate total tests for this agent (respecting platform filter and models)
+        # For each test case: sum(for each platform: num_models * trials)
+        total_tests = 0
+        for tc in test_cases:
+            for platform in filtered_platforms(tc):
+                # Count models for this platform
+                target_models_for_platform = tc.target_models.get(platform.name, [])
+                num_models = len(target_models_for_platform) if target_models_for_platform else 1
+                total_tests += num_models * tc.trials
 
         # Initialize agent status
         self.current_status["agents"][agent_package.name] = {
@@ -177,25 +211,38 @@ class QualityResultsManager:
         self._write_status()
         self._write_summary()
 
-    def start_test(self, agent_name: str, test_case: TestCase, platform: Platform):
+    def start_test(self, agent_name: str, test_case: TestCase, platform: Platform, model_id: str | None = None):
         """Mark the start of a specific test."""
-        test_id = f"{test_case.name}_{platform.name}"
+        # Build test_id that includes model if present
+        test_id = self._build_test_id(test_case.name, platform.name, model_id)
+
         logger.info(f"Starting test: {agent_name}/{test_id}")
 
         if agent_name in self.current_status["agents"]:
-            self.current_status["agents"][agent_name]["current_test"] = {
+            current_test_info = {
                 "test_name": test_case.name,
                 "platform": platform.name,
                 "started_at": datetime.now().isoformat(),
                 "status": "running",
             }
+            if model_id:
+                current_test_info["model_id"] = model_id
+
+            self.current_status["agents"][agent_name]["current_test"] = current_test_info
 
             self._write_status()
 
     def complete_test(self, agent_name: str, result: ThreadResult, index: int):
         """Record completion of a specific test."""
-        test_id = f"{result.test_case.name}_{result.platform.name}_{index}"
-        logger.info(f"Completing test: {agent_name}/{test_id}/{index} - Success: {result.success}")
+        # Build test_id that includes model if present and index
+        test_id = self._build_test_id(
+            result.test_case.name,
+            result.platform.name,
+            result.model_id,
+            index,
+        )
+
+        logger.info(f"Completing test: {agent_name}/{test_id} - Success: {result.success}")
 
         # Thread-safe test completion - use status lock for shared state updates
         with self._status_lock:
@@ -221,6 +268,7 @@ class QualityResultsManager:
                     "trial_id": index,
                     "test_name": result.test_case.name,
                     "platform": result.platform.name,
+                    "model_id": result.model_id,
                     "success": result.success,
                     "started_at": started_at,
                     "completed_at": datetime.now().isoformat(),

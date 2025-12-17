@@ -122,11 +122,14 @@ thread:
 
 target-platforms:
   - name: openai
+    models: # Optional: specify models to test
+      - openai/openai/gpt-5-medium
+      - openai/openai/gpt-4o
   - name: azure
-  - name: bedrock
-  - name: cortex
+    models:
+      - azure/openai/gpt-4o
+  - name: bedrock # No models = uses platform default
   - name: groq
-  - name: google
 
 evaluations:
   - kind: llm-eval-of-last-agent-turn
@@ -157,6 +160,38 @@ evaluations:
 | `cortex`  | Snowflake Cortex      | (Uses Snowflake auth)                                              |
 | `groq`    | Groq (fast inference) | `GROQ_API_KEY`                                                     |
 | `google`  | Google Gemini         | `GOOGLE_API_KEY`                                                   |
+
+### Targeting Specific Models
+
+By default, tests run with each platform's default model. You can specify multiple models to test per platform directly in the `target-platforms` section:
+
+```yaml
+target-platforms:
+  - name: openai
+    models: # Optional models list
+      - openai/openai/gpt-5-medium
+      - openai/openai/gpt-4o
+  - name: azure
+    models:
+      - azure/openai/gpt-4o
+  - name: bedrock # No models = uses platform default
+```
+
+**Model ID Format**: `platform/provider/model` (generic model ID)
+
+**Execution Matrix**:
+
+- With `models` specified: test runs once per model for that platform
+- Without `models`: test runs once with platform default
+- Total executions: `sum(models per platform) × trials`
+
+**Strict Validation**: Model IDs must:
+
+1. Exist in the platform catalog
+2. Match the format `platform/provider/model`
+3. Have platform prefix matching the platform name (e.g., models for `openai` must start with `openai/`)
+
+If any targeted model is invalid or unavailable, the test will **fail fast** with a clear error message indicating which test case, platform, and model ID caused the failure.
 
 ### Evaluation Types
 

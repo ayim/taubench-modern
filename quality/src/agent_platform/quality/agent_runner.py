@@ -241,6 +241,7 @@ class AgentRunner:
         test_case: TestCase,
         platform_name: str,
         on_thread_created: Callable[[str], Awaitable[None]] | None = None,
+        override_model_id: str | None = None,
     ) -> TestRunResult:
         """Run a test case against an agent and return agent messages."""
         if test_case.workitem is not None:
@@ -445,6 +446,10 @@ class AgentRunner:
                 "messages": api_messages,
                 "thread_id": thread_id,
             }
+
+            # Add override_model_id if provided
+            if override_model_id:
+                payload["override_model_id"] = override_model_id
 
             request_timeout = test_case.timeout_seconds or 60.0 * 5
 
