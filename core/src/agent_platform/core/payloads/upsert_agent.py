@@ -569,6 +569,10 @@ class UpsertAgentPayload:
 
         params_to_keep = [
             "google_api_key",
+            "google_use_vertex_ai",
+            "google_cloud_project_id",
+            "google_cloud_location",
+            "google_vertex_service_account_json",
         ]
         params = {
             "google_api_key": "UNSET",
