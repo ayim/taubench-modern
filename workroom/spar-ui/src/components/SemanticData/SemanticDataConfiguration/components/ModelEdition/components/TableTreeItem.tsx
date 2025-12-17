@@ -83,12 +83,14 @@ export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionI
             />
           </Cell>
           <Cell>
-            <SynonymField tableIndex={tableIndex} dimensionIndex={dimensionIndex} initialValue={dimension.synonyms} />
+            <SynonymField
+              fieldName={`tables.${tableIndex}.${type}.${dimensionIndex}.synonyms`}
+              initialValue={dimension.synonyms}
+            />
           </Cell>
           <Cell>
             <SampleValuesField
-              tableIndex={tableIndex}
-              dimensionIndex={dimensionIndex}
+              fieldName={`tables.${tableIndex}.${type}.${dimensionIndex}.sample_values`}
               initialValue={dimension.sample_values}
             />
           </Cell>
