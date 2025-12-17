@@ -1,13 +1,18 @@
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from structlog import get_logger
 
+from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.handler.base import BasePackageHandler
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
 from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
+from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+
+if TYPE_CHECKING:
+    from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
 
 logger = get_logger(__name__)
 
@@ -91,6 +96,51 @@ class AgentPackageHandler(BasePackageHandler):
 
         return await self.read_file(spec_agent.conversation_guide)
 
+    async def read_conversation_guide(self) -> list[QuestionGroup]:
+        from ruamel.yaml import YAML
+
+        from agent_platform.core.agent.question_group import QuestionGroup
+
+        _yaml = YAML(typ="safe")
+
+        spec_agent = await self.get_spec_agent()
+        if not spec_agent.conversation_guide:
+            return []
+
+        try:
+            guide_bytes = await self.read_conversation_guide_raw()
+            if not guide_bytes:
+                return []
+            guide_yaml = _yaml.load(guide_bytes.decode("utf-8"))
+
+            if not isinstance(guide_yaml, dict):
+                return []
+
+            qg_list = guide_yaml.get("question-groups", [])
+            return [QuestionGroup.model_validate(qg) for qg in qg_list if isinstance(qg, dict)]
+        except Exception as e:
+            logger.warning(
+                "Failed to read conversation guide",
+                path=spec_agent.conversation_guide,
+                error=str(e),
+            )
+            return []
+
+    async def list_action_package_paths(self) -> list[str]:
+        """List all Action Package paths from the agent package."""
+        spec_agent = await self.get_spec_agent()
+        return [ap.path for ap in spec_agent.action_packages if ap.path]
+
+    async def get_action_packages_handlers(self) -> list[tuple[str, "ActionPackageHandler"]]:
+        """Get all Action Package handlers from the agent package."""
+        from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
+
+        action_package_paths = await self.list_action_package_paths()
+        return [
+            (path, await ActionPackageHandler.from_bytes(await self.read_action_package_zip_raw(path)))
+            for path in action_package_paths
+        ]
+
     async def read_action_package_zip_raw(self, action_package_zip_path: str) -> bytes:
         path = f"{AgentPackageConfig.actions_dirname}/{action_package_zip_path}"
         return await self.read_file(path)
@@ -98,3 +148,80 @@ class AgentPackageHandler(BasePackageHandler):
     async def read_semantic_data_model_raw(self, semantic_data_model_filename: str) -> bytes:
         path = f"{AgentPackageConfig.semantic_data_models_dirname}/{semantic_data_model_filename}"
         return await self.read_file(path)
+
+    async def load_agent_package_icon(self) -> str:
+        """Load and convert the agent package icon to base64.
+
+        Looks for the icon file at the root of the agent package.
+
+        Returns:
+            Base64 data URI string if icon exists, empty string otherwise.
+        """
+        icon_filename = AgentPackageConfig.agent_package_icon_filename
+
+        if not await self.file_exists(icon_filename):
+            logger.debug(f"Agent icon not found: {icon_filename}")
+            return ""
+
+        try:
+            icon_bytes = await self.read_file(icon_filename)
+            icon_base64 = convert_image_bytes_to_base64(icon_bytes, icon_filename)
+            logger.debug("Agent icon loaded successfully")
+            return icon_base64
+        except Exception as e:
+            logger.warning(
+                "Failed to load agent package icon",
+                icon_filename=icon_filename,
+                error=str(e),
+            )
+            return ""
+
+    async def load_changelog(self) -> str:
+        """Load the changelog file content from the agent package.
+
+        Returns:
+            Changelog content as string if exists, empty string otherwise.
+        """
+        changelog_filename = AgentPackageConfig.agent_package_changelog_filename
+
+        if not await self.file_exists(changelog_filename):
+            logger.debug(f"Changelog not found: {changelog_filename}")
+            return ""
+
+        try:
+            changelog_bytes = await self.read_file(changelog_filename)
+            changelog_content = changelog_bytes.decode("utf-8")
+            logger.debug("Changelog loaded successfully")
+            return changelog_content
+        except Exception as e:
+            logger.warning(
+                "Failed to load changelog",
+                changelog_filename=changelog_filename,
+                error=str(e),
+            )
+            return ""
+
+    async def load_readme(self) -> str:
+        """Load the readme file content from the agent package.
+
+        Returns:
+            Readme content as string if exists, empty string otherwise.
+        """
+        readme_filename = AgentPackageConfig.agent_package_readme_filename
+
+        if not await self.file_exists(readme_filename):
+            logger.debug(f"Readme not found: {readme_filename}")
+            return ""
+
+        try:
+            readme_bytes = await self.read_file(readme_filename)
+            readme_content = readme_bytes.decode("utf-8")
+            logger.debug("Readme loaded successfully")
+            return readme_content
+        except Exception as e:
+            logger.warning(
+                "Failed to load readme",
+                readme_filename=readme_filename,
+                error=str(e),
+            )
+            return ""

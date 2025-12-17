@@ -161,7 +161,7 @@ async def convert_binary_to_base64(zip_content: bytes) -> str:
     return base64.b64encode(zip_content).decode("utf-8")
 
 
-async def _parse_json_payload(request: Request, payload_model: type[T]) -> T:
+async def _parse_json_payload[T](request: Request, payload_model: type[T]) -> T:
     """Parse JSON from request body and create payload object."""
     body = await request.body()
     if not body:
@@ -206,10 +206,22 @@ async def _parse_json_payload(request: Request, payload_model: type[T]) -> T:
     return payload_model(**json_data)  # type: ignore[call-arg]
 
 
-async def _create_payload_from_form_data(payload_model: type[T], form_data: dict) -> T:
-    """Create payload from multipart form data."""
+async def _create_payload_from_form_data[T](
+    payload_model: type[T], form_data: dict, has_zip_content: bool = False
+) -> T:
+    """Create payload from multipart form data.
+
+    Args:
+        payload_model: The model class to create
+        form_data: The form data dictionary
+        has_zip_content: Whether a ZIP file was provided in the multipart request.
+                         When True, provides defaults for required fields if missing.
+    """
     # Try Pydantic BaseModel first
     if hasattr(payload_model, "model_validate"):
+        # Provide defaults when ZIP content is provided (user-provided values override)
+        if has_zip_content:
+            form_data = {"name": "Uploaded Package", "description": "Package uploaded as ZIP file", **form_data}
         return payload_model.model_validate(form_data)  # type: ignore[attr-defined]
 
     # Fallback to dataclass
@@ -218,6 +230,13 @@ async def _create_payload_from_form_data(payload_model: type[T], form_data: dict
     if dataclasses.is_dataclass(payload_model):
         field_names = {f.name for f in dataclasses.fields(payload_model)}  # type: ignore[arg-type]
         filtered_data = {k: v for k, v in form_data.items() if k in field_names}
+
+        # Provide defaults when ZIP content is provided (user-provided values override)
+        if has_zip_content:
+            defaults = {"name": "Uploaded Package"}
+            if "description" in field_names:
+                defaults["description"] = "Package uploaded as ZIP file"
+            filtered_data = {**defaults, **filtered_data}
 
         # Handle selected_tools deserialization
         if "selected_tools" in filtered_data:
@@ -251,7 +270,7 @@ async def _create_payload_from_form_data(payload_model: type[T], form_data: dict
     return payload_model(**form_data)  # type: ignore[call-arg]
 
 
-async def _create_minimal_payload(payload_model: type[T]) -> T:
+async def _create_minimal_payload[T](payload_model: type[T]) -> T:
     """Create minimal payload for binary ZIP uploads."""
     # Try Pydantic BaseModel first
     if hasattr(payload_model, "model_validate"):
@@ -272,10 +291,15 @@ async def _create_minimal_payload(payload_model: type[T]) -> T:
     return payload_model(name="Uploaded Package")  # type: ignore[call-arg]
 
 
-async def handle_json_or_binary_zip(request: Request, payload_model: type[T] | None = None) -> tuple[T, bytes | None]:
+async def parse_request_payload_contents[T](
+    request: Request, payload_model: type[T] | None = None
+) -> tuple[T, bytes | None]:
     """
     Handle application/json, multipart/form-data, and binary ZIP content types.
     Returns a tuple of (payload, zip_content).
+
+    Note: ZIP files are detected by magic bytes, so even if content-type is
+    incorrect (e.g., application/json for a ZIP file), it will be handled correctly.
     """
     if payload_model is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="payload_model is required")
@@ -293,7 +317,7 @@ async def handle_json_or_binary_zip(request: Request, payload_model: type[T] | N
 
     elif content_type.startswith("multipart/form-data"):
         zip_content, form_data = await _extract_multipart_zip_and_data(request)
-        payload = await _create_payload_from_form_data(payload_model, form_data)
+        payload = await _create_payload_from_form_data(payload_model, form_data, has_zip_content=bool(zip_content))
         return cast(T, payload), zip_content
 
     else:

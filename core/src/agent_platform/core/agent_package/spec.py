@@ -1,6 +1,7 @@
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
+from ruamel.yaml import YAML
 
 from agent_platform.core.mcp.mcp_types import MCPUnionOfVariableTypes
 
@@ -10,6 +11,7 @@ from agent_platform.core.mcp.mcp_types import MCPUnionOfVariableTypes
 # so it needs to be assessed properly first.
 # Note that for simplicity, we are already pulling in MCPDiscriminatedUnion - this can be replaced
 # with a dedicated type later if needs be.
+SpecAgentModelProvider = str
 SpecAgentReasoning = Literal["disabled", "enabled", "verbose"]
 SpecMCPTransport = Literal["auto", "streamable-http", "sse", "stdio"]
 SpecActionPackageType = Literal["zip", "folder"]
@@ -54,13 +56,9 @@ class SpecMCPServer(BaseModel):
     force_serial_tool_calls: bool | None = Field(default=False, alias="force-serial-tool-calls")
 
 
-class SpecDockerMcpServerConfig(BaseModel):
-    tools: list[str] | None = None
-
-
 class SpecDockerMcpGateway(BaseModel):
     catalog: str | None = None
-    servers: dict[str, SpecDockerMcpServerConfig]
+    servers: dict[str, dict[str, Any]]
 
 
 class SpecAgentMetadata(BaseModel):
@@ -122,8 +120,6 @@ class AgentSpec(BaseModel):
 
     @classmethod
     def from_yaml(cls, data: bytes) -> "AgentSpec":
-        from ruamel.yaml import YAML
-
         yaml = YAML(typ="safe")
 
         data = yaml.load(data)

@@ -1,19 +1,27 @@
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 import structlog
+from pydantic import BaseModel
 
 from agent_platform.core.agent.question_group import QuestionGroup
+from agent_platform.core.agent_package.spec import (
+    SpecAgentModel,
+    SpecAgentReasoning,
+    SpecDockerMcpGateway,
+    SpecDocumentIntelligence,
+    SpecKnowledge,
+    SpecMCPServer,
+    SpecMCPTransport,
+)
+from agent_platform.core.mcp.mcp_types import (
+    MCPVariableTypeOAuth2Secret,
+    MCPVariableTypeSecret,
+    MCPVariableTypeString,
+)
 from agent_platform.core.selected_tools import SelectedTools
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
-
-
-# Type aliases to match Go AgentServer types
-AgentArchitecture = Literal["agent", "plan_execute"]
-AgentReasoning = Literal["disabled", "enabled", "verbose"]
-AgentModelProvider = Literal["OpenAI", "Azure", "Anthropic", "Google", "Amazon", "Ollama"]
-MCPTransport = Literal["auto", "streamable-http", "sse", "stdio"]
 
 
 @dataclass(frozen=True)
@@ -82,41 +90,6 @@ class ActionSecretsConfig:
 
 
 @dataclass(frozen=True)
-class SpecAgentModel:
-    """Agent model specification matching SpecAgentModel from Go."""
-
-    provider: AgentModelProvider | None = field(default=None, metadata={"description": "The LLM provider."})
-    """The LLM provider."""
-
-    name: str | None = field(default=None, metadata={"description": "The LLM model name."})
-    """The LLM model name."""
-
-    def model_dump(self) -> dict[str, Any]:
-        """Serialize to dictionary."""
-        return {
-            "provider": self.provider,
-            "name": self.name,
-        }
-
-    @classmethod
-    def model_validate(cls, data: dict[str, Any] | None) -> "SpecAgentModel":
-        """Create from dictionary or return existing instance."""
-        if data is None:
-            return cls(provider=None, name=None)
-
-        # If data is already a SpecAgentModel instance, return it as-is
-        if isinstance(data, cls):
-            return data
-
-        # If data is a dictionary, create a new instance
-        if isinstance(data, dict):
-            return cls(
-                provider=data.get("provider", None),
-                name=data.get("name", None),
-            )
-
-
-@dataclass(frozen=True)
 class AgentPackageMetadataKnowledge:
     """Knowledge metadata for agent packages."""
 
@@ -150,6 +123,15 @@ class AgentPackageMetadataKnowledge:
             embedded=data.get("embedded", False),
             name=data.get("name", ""),
             digest=data.get("digest", ""),
+        )
+
+    @classmethod
+    def from_spec(cls, spec: SpecKnowledge) -> "AgentPackageMetadataKnowledge":
+        """Create from SpecKnowledge."""
+        return cls(
+            embedded=spec.embedded,
+            name=spec.name,
+            digest=spec.digest or "",
         )
 
 
@@ -264,7 +246,9 @@ class AgentPackageMcpServer:
     name: str = field(metadata={"description": "The name of the MCP server."})
     """The name of the MCP server."""
 
-    transport: MCPTransport = field(default="auto", metadata={"description": "Transport protocol for the MCP server."})
+    transport: SpecMCPTransport = field(
+        default="auto", metadata={"description": "Transport protocol for the MCP server."}
+    )
     """Transport protocol for the MCP server."""
 
     description: str = field(default="", metadata={"description": "Description of the MCP server."})
@@ -362,28 +346,141 @@ class AgentPackageMcpServer:
             headers=data.get("headers", {}),
         )
 
+    @classmethod
+    def from_spec(cls, spec: SpecMCPServer) -> "AgentPackageMcpServer":
+        """Generate metadata for an MCP server from spec.
 
-@dataclass(frozen=True)
-class DockerCatalogRegistryEntries:
-    """Docker catalog registry entries."""
+        Translates MCP server specification from agent-spec.yaml into
+        AgentPackageMcpServer. Handles transport type detection and
+        validation for URL vs stdio transports.
 
-    tools: list[str] = field(default_factory=list, metadata={"description": "List of tools."})
-    """List of tools."""
+        Args:
+            mcp_spec: MCP server specification from agent spec.
 
-    def model_dump(self) -> dict[str, Any]:
-        """Serialize to dictionary."""
-        return {"tools": self.tools}
+        Returns:
+            AgentPackageMcpServer with processed configuration.
+
+        Raises:
+            ValueError: If both URL and command are set, or transport doesn't match config.
+        """
+        name = spec.name
+        description = spec.description or ""
+        transport: SpecMCPTransport = spec.transport or "auto"
+        url = spec.url or ""
+        command_line = spec.command_line or []
+        cwd = spec.cwd or ""
+        force_serial_tool_calls = spec.force_serial_tool_calls or False
+
+        # Calculate the transport type based on the url and command line
+        is_url_transport = transport in ("streamable-http", "sse")
+
+        # Split the command line into command + arguments
+        command = command_line[0] if command_line else ""
+
+        if transport == "auto":
+            if url:
+                is_url_transport = True
+            elif command:
+                is_url_transport = False
+
+        if is_url_transport:
+            # Process headers for URL-based transport
+            headers: dict[str, AgentPackageMcpServerVariable] = {}
+            raw_headers = spec.headers or {}
+            for key, value in raw_headers.items():
+                headers[key] = cls._build_mcp_server_variable(value)
+
+            return cls(
+                name=name,
+                description=description,
+                transport=transport,
+                url=url,
+                headers=headers,
+                command="",
+                arguments=[],
+                env={},
+                cwd="",
+                force_serial_tool_calls=force_serial_tool_calls,
+            )
+
+        # STDIO transport
+        args = command_line[1:] if len(command_line) > 1 else []
+
+        # Process environment variables
+        env: dict[str, AgentPackageMcpServerVariable] = {}
+        raw_env = spec.env or {}
+        for key, value in raw_env.items():
+            env[key] = cls._build_mcp_server_variable(value)
+
+        return cls(
+            name=name,
+            description=description,
+            transport=transport,
+            url="",
+            headers={},
+            command=command,
+            arguments=args,
+            env=env,
+            cwd=cwd,
+            force_serial_tool_calls=force_serial_tool_calls,
+        )
 
     @classmethod
-    def model_validate(cls, data: dict[str, Any] | None) -> "DockerCatalogRegistryEntries":
-        """Create from dictionary."""
-        if data is None:
-            return cls(tools=[])
+    def _build_mcp_server_variable(
+        cls,
+        value: str | BaseModel | dict[str, Any],
+    ) -> AgentPackageMcpServerVariable:
+        """Build an AgentPackageMcpServerVariable from spec value.
 
-        if isinstance(data, cls):
-            return data
+        Handles both scalar string values and object values with type/description/etc.
 
-        return cls(**data)
+        Args:
+            value: Either a string value, a Pydantic model, or dict with type/description.
+
+        Returns:
+            AgentPackageMcpServerVariable instance.
+        """
+        if isinstance(value, str):
+            return AgentPackageMcpServerVariable(value=value)
+
+        # Handle Pydantic MCP variable types
+        if isinstance(value, MCPVariableTypeOAuth2Secret):
+            return AgentPackageMcpServerVariable(
+                value=value.value,
+                type=value.type,
+                description=value.description or "",
+                provider=value.provider,
+                scopes=value.scopes,
+            )
+
+        if isinstance(value, MCPVariableTypeString | MCPVariableTypeSecret):
+            return AgentPackageMcpServerVariable(
+                value=value.value,
+                type=value.type,
+                description=value.description or "",
+                provider="",
+                scopes=[],
+            )
+
+        # Handle other Pydantic BaseModel types
+        if isinstance(value, BaseModel):
+            data = value.model_dump()
+            return AgentPackageMcpServerVariable(
+                value=data.get("value"),
+                type=data.get("type", ""),
+                description=data.get("description", ""),
+                provider=data.get("provider", ""),
+                scopes=data.get("scopes", []),
+            )
+
+        # Handle dict fallback
+        return AgentPackageMcpServerVariable(
+            value=value.get("value"),
+            type=value.get("type", ""),
+            description=value.get("description", ""),
+            provider=value.get("provider", ""),
+            scopes=value.get("scopes", []),
+        )
 
 
 @dataclass(frozen=True)
@@ -393,62 +490,44 @@ class AgentPackageDockerMcpGateway:
     catalog: str | None = field(default=None, metadata={"description": "Path to the catalog file."})
     """Path to the catalog file."""
 
-    servers: DockerCatalogRegistryEntries = field(
-        default_factory=DockerCatalogRegistryEntries,
+    servers: dict[str, dict] = field(
+        default_factory=dict,
         metadata={"description": "Server configurations."},
     )
-    """Server configurations."""
+    """Server configurations. Kept loose because the servers should borrow from the catalog entries."""
 
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "catalog": self.catalog,
-            "servers": self.servers.model_dump(),
+            "servers": self.servers,
         }
 
     @classmethod
     def model_validate(cls, data: dict[str, Any] | None) -> "AgentPackageDockerMcpGateway":
         """Create from dictionary."""
         if data is None:
-            return cls(catalog=None, servers=DockerCatalogRegistryEntries())
+            return cls(catalog=None, servers={})
 
         if isinstance(data, cls):
             return data
 
         data = data.copy()
-        if "servers" in data:
-            data["servers"] = DockerCatalogRegistryEntries.model_validate(data["servers"])
         return cls(
             catalog=data.get("catalog", None),
-            servers=data.get("servers", DockerCatalogRegistryEntries()),
+            servers=data.get("servers", {}),
         )
 
-
-@dataclass(frozen=True)
-class DockerMcpGatewayChanges:
-    """Changes to Docker MCP Gateway configuration."""
-
-    # This is a placeholder - the exact structure would depend on the Go definition
-    # which wasn't fully visible in the provided code
-    changes: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Changes to the Docker MCP Gateway."}
-    )
-    """Changes to the Docker MCP Gateway."""
-
-    def model_dump(self) -> dict[str, Any]:
-        """Serialize to dictionary."""
-        return self.changes
-
     @classmethod
-    def model_validate(cls, data: dict[str, Any] | None) -> "DockerMcpGatewayChanges":
-        """Create from dictionary."""
-        if data is None:
-            return cls(changes={})
+    def from_spec(cls, spec: SpecDockerMcpGateway | None) -> "AgentPackageDockerMcpGateway | None":
+        """Create from spec."""
+        if spec is None:
+            return None
 
-        if isinstance(data, cls):
-            return data
-
-        return cls(changes=data.get("changes", {}))
+        return cls(
+            catalog=spec.catalog,
+            servers=spec.servers,
+        )
 
 
 @dataclass(frozen=True)
@@ -603,13 +682,22 @@ class ActionPackageMetadata:
     )
     """External endpoints."""
 
+    action_package_version: str = field(
+        default="",
+        metadata={"description": "Version of the action package (for backwards compatibility)."},
+    )
+    """Version of the action package (for backwards compatibility)."""
+
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
+        # Use action_package_version if set, otherwise fall back to version
+        effective_version = self.action_package_version or self.version
         return {
             "name": self.name,
             "description": self.description,
             "secrets": {k: v.model_dump() for k, v in self.secrets.items()},
-            "action_package_version": self.version,
+            "version": effective_version,
+            "action_package_version": effective_version,  # Kept for backwards compatibility
             "actions": [action.model_dump() for action in self.actions],
             "external-endpoints": [endpoint.model_dump() for endpoint in self.external_endpoints],
         }
@@ -618,16 +706,23 @@ class ActionPackageMetadata:
     def model_validate(cls, data: dict[str, Any] | None) -> "ActionPackageMetadata":
         """Create from dictionary."""
         if data is None:
-            return cls(name="", description="", version="", secrets={}, actions=[], external_endpoints=[])
+            return cls(
+                name="",
+                description="",
+                version="",
+                secrets={},
+                actions=[],
+                external_endpoints=[],
+                action_package_version="",
+            )
 
         if isinstance(data, cls):
             return data
 
         data = data.copy()
 
-        # Handle version field naming
-        if "action_package_version" in data:
-            data["version"] = data.pop("action_package_version")
+        # Extract version fields before any modifications
+        version = data.get("action_package_version", data.get("version", ""))
 
         # Handle external endpoints naming
         if "external-endpoints" in data:
@@ -647,10 +742,11 @@ class ActionPackageMetadata:
         return cls(
             name=data.get("name", ""),
             description=data.get("description", ""),
-            version=data.get("version", ""),
+            version=version,
             secrets=secrets,
             actions=data.get("actions", []),
-            external_endpoints=data.get("external-endpoints", []),
+            external_endpoints=data.get("external_endpoints", []),
+            action_package_version=version,
         )
 
 
@@ -694,34 +790,55 @@ class AgentPackageActionPackageMetadata:
     path: str = field(default="", metadata={"description": "Path to the action package."})
     """Path to the action package."""
 
+    full_path: str = field(default="", metadata={"description": "Full path to the action package."})
+    """Full path to the action package, including the package name - for the zip file."""
+
+    action_package_version: str = field(
+        default="",
+        metadata={"description": "Version of the action package (for backwards compatibility)."},
+    )
+    """Version of the action package (for backwards compatibility)."""
+
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
+        # Use action_package_version if set, otherwise fall back to version
+        effective_version = self.action_package_version or self.version
         return {
             "name": self.name,
             "description": self.description,
             "secrets": {k: v.model_dump() for k, v in self.secrets.items()},
-            "action_package_version": self.version,
+            "version": effective_version,
+            "action_package_version": effective_version,
             "actions": [action.model_dump() for action in self.actions],
             "external-endpoints": [endpoint.model_dump() for endpoint in self.external_endpoints],
             "whitelist": self.whitelist,
             "icon": self.icon,
             "path": self.path,
+            "full_path": self.full_path,
         }
 
     @classmethod
     def model_validate(cls, data: dict[str, Any] | None) -> "AgentPackageActionPackageMetadata":
         """Create from dictionary."""
         if data is None:
-            return cls(name="", description="", version="", secrets={}, actions=[], external_endpoints=[])
+            return cls(
+                name="",
+                description="",
+                version="",
+                secrets={},
+                actions=[],
+                external_endpoints=[],
+                action_package_version="",
+            )
 
         if isinstance(data, cls):
             return data
 
         data = data.copy()
 
-        # Handle version field naming
-        if "action_package_version" in data:
-            data["version"] = data.pop("action_package_version")
+        # Extract version fields before any modifications
+        version = data.get("version", "")
+        action_package_version = data.get("action_package_version", "")
 
         # Handle external endpoints naming
         if "external-endpoints" in data:
@@ -741,13 +858,15 @@ class AgentPackageActionPackageMetadata:
         return cls(
             name=data.get("name", ""),
             description=data.get("description", ""),
-            version=data.get("version", ""),
+            version=version,
             secrets=secrets,
             actions=data.get("actions", []),
-            external_endpoints=data.get("external-endpoints", []),
+            external_endpoints=data.get("external_endpoints", []),
             whitelist=data.get("whitelist", ""),
             icon=data.get("icon", ""),
             path=data.get("path", ""),
+            full_path=data.get("full_path", ""),
+            action_package_version=action_package_version,
         )
 
 
@@ -761,23 +880,25 @@ class AgentPackageMetadata:
     version: str = field(metadata={"description": "Version of the agent package."})
     """Version of the agent package."""
 
-    icon: str = field(metadata={"description": "Icon for the agent package."})
-    """Icon for the agent package."""
-
     name: str = field(metadata={"description": "Name of the agent package."})
     """Name of the agent package."""
 
     description: str = field(metadata={"description": "Description of the agent package."})
     """Description of the agent package."""
 
-    model: SpecAgentModel = field(metadata={"description": "Model configuration for the agent."})
+    reasoning: SpecAgentReasoning = field(metadata={"description": "Reasoning level of the agent."})
+    """Reasoning level of the agent."""
+
+    # --- Fields with defaults must come after fields without defaults ---
+
+    model: SpecAgentModel | None = field(default=None, metadata={"description": "Model configuration for the agent."})
     """Model configuration for the agent."""
 
-    architecture: AgentArchitecture = field(metadata={"description": "Architecture type of the agent."})
+    architecture: str | None = field(default=None, metadata={"description": "Architecture type of the agent."})
     """Architecture type of the agent."""
 
-    reasoning: AgentReasoning = field(metadata={"description": "Reasoning level of the agent."})
-    """Reasoning level of the agent."""
+    icon: str = field(default="", metadata={"description": "Icon for the agent package."})
+    """Icon for the agent package."""
 
     knowledge: list[AgentPackageMetadataKnowledge] = field(
         default_factory=list, metadata={"description": "Knowledge configurations."}
@@ -818,16 +939,10 @@ class AgentPackageMetadata:
     )
     """Docker MCP Gateway configuration."""
 
-    docker_mcp_gateway_changes: DockerMcpGatewayChanges = field(
-        default_factory=DockerMcpGatewayChanges,
-        metadata={"description": "Changes to Docker MCP Gateway."},
-    )
-    """Changes to Docker MCP Gateway."""
-
     agent_settings: dict[str, Any] | None = field(default_factory=dict, metadata={"description": "Agent settings."})
     """Agent settings."""
 
-    document_intelligence: Literal["v2", "v2.1"] | None = field(
+    document_intelligence: SpecDocumentIntelligence | None = field(
         default=None, metadata={"description": "The document intelligence version to use."}
     )
     """The document intelligence version to use."""
@@ -838,6 +953,21 @@ class AgentPackageMetadata:
     )
     """Configuration for tools selected for this agent."""
 
+    changelog: str = field(default="", metadata={"description": "Changelog for the agent package."})
+    """Changelog for the agent package."""
+
+    readme: str = field(default="", metadata={"description": "Readme for the agent package."})
+    """Readme for the agent package."""
+
+    agent_platform_version: str = field(
+        default="",
+        metadata={"description": "Version of the agent platform with which the metadata was generated."},
+    )
+    """Version of the agent platform with which the metadata was generated."""
+
+    created_at: int = field(default=0, metadata={"description": "Timestamp of when the metadata was created."})
+    """Timestamp of when the metadata was created."""
+
     def model_dump(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         result = {
@@ -846,18 +976,19 @@ class AgentPackageMetadata:
             "icon": self.icon,
             "name": self.name,
             "description": self.description,
-            "model": self.model.model_dump(),
-            "architecture": self.architecture,
+            "model": self.model.model_dump() if self.model else None,
+            "architecture": self.architecture if self.architecture else None,
             "reasoning": self.reasoning,
             "knowledge": [k.model_dump() for k in self.knowledge],
             "datasources": [d.model_dump() for d in self.datasources],
             "metadata": self.metadata,
             "action_packages": [ap.model_dump() for ap in self.action_packages],
             "docker_mcp_gateway": self.docker_mcp_gateway.model_dump() if self.docker_mcp_gateway else None,
-            "docker_mcp_gateway_changes": self.docker_mcp_gateway_changes.model_dump(),
             "agent_settings": self.agent_settings,
             "document_intelligence": self.document_intelligence,
             "selected_tools": self.selected_tools.model_dump(),
+            "agent_platform_version": self.agent_platform_version,
+            "created_at": self.created_at,
         }
 
         # Handle optional fields
@@ -875,6 +1006,12 @@ class AgentPackageMetadata:
 
         if self.docker_mcp_gateway:
             result["docker_mcp_gateway"] = self.docker_mcp_gateway.model_dump()
+
+        if self.changelog:
+            result["changelog"] = self.changelog
+
+        if self.readme:
+            result["readme"] = self.readme
 
         return result
 
@@ -904,22 +1041,19 @@ class AgentPackageMetadata:
         if "docker_mcp_gateway" in data and data["docker_mcp_gateway"] is not None:
             data["docker_mcp_gateway"] = AgentPackageDockerMcpGateway.model_validate(data["docker_mcp_gateway"])
 
-        if "docker_mcp_gateway_changes" in data:
-            data["docker_mcp_gateway_changes"] = DockerMcpGatewayChanges.model_validate(
-                data["docker_mcp_gateway_changes"]
-            )
-
     @classmethod
     def model_validate(cls, data: dict[str, Any] | None) -> "AgentPackageMetadata":
         """Create from dictionary."""
+
         if data is None:
+            default_empty_model = SpecAgentModel(name="", provider="")
             return cls(
                 release_note="",
                 version="",
                 icon="",
                 name="",
                 description="",
-                model=SpecAgentModel(),
+                model=default_empty_model,
                 architecture="agent",
                 reasoning="disabled",
                 knowledge=[],
@@ -931,10 +1065,13 @@ class AgentPackageMetadata:
                 action_packages=[],
                 mcp_servers=[],
                 docker_mcp_gateway=None,
-                docker_mcp_gateway_changes=DockerMcpGatewayChanges(),
                 agent_settings=None,
                 document_intelligence=None,
                 selected_tools=SelectedTools(),
+                changelog="",
+                readme="",
+                agent_platform_version="",
+                created_at=0,
             )
 
         if isinstance(data, cls):
@@ -961,8 +1098,11 @@ class AgentPackageMetadata:
             action_packages=data.get("action_packages", []),
             mcp_servers=data.get("mcp_servers", []),
             docker_mcp_gateway=data.get("docker_mcp_gateway", None),
-            docker_mcp_gateway_changes=data.get("docker_mcp_gateway_changes", DockerMcpGatewayChanges()),
             agent_settings=data.get("agent_settings", None),
             document_intelligence=data.get("document_intelligence", None),
             selected_tools=SelectedTools.model_validate(data.get("selected_tools", {})),
+            changelog=data.get("changelog", ""),
+            readme=data.get("readme", ""),
+            agent_platform_version=data.get("agent_platform_version", ""),
+            created_at=data.get("created_at", 0),
         )

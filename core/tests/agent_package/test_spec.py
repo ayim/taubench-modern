@@ -375,10 +375,8 @@ agent-package:
     docker-mcp-gateway:
       catalog: ./custom-catalog.yml
       servers:
-        postgres:
-          tools: [query, describe]
-        slack:
-          tools: []
+        postgres: {}
+        slack: {}
     metadata:
       mode: conversational
 """
@@ -399,9 +397,8 @@ agent-package:
     assert agent.docker_mcp_gateway.catalog == raw_agent["docker-mcp-gateway"]["catalog"]
     assert agent.docker_mcp_gateway.servers is not None
     assert len(agent.docker_mcp_gateway.servers) == 2
-    assert agent.docker_mcp_gateway.servers["postgres"].tools is not None
-    assert len(agent.docker_mcp_gateway.servers["postgres"].tools) == 2
-    assert agent.docker_mcp_gateway.servers["slack"].tools == []
+    assert agent.docker_mcp_gateway.servers["postgres"] is not None
+    assert agent.docker_mcp_gateway.servers["slack"] is not None
 
 
 def test_agent_spec_missing_root_key() -> None:

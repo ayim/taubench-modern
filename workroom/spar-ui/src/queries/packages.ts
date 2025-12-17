@@ -1,4 +1,4 @@
-import { Agent } from '@sema4ai/agent-server-interface';
+import { Agent, components } from '@sema4ai/agent-server-interface';
 
 import { createSparMutation, QueryError, ResourceType } from './shared';
 
@@ -17,5 +17,23 @@ export const useReadPackageMutation = createSparMutation<object, { formData: For
     }
 
     return response.data as Agent;
+  },
+}));
+
+export const usePackageMetadataMutation = createSparMutation<object, { formData: FormData }>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ formData }): Promise<components['schemas']['AgentPackageMetadata']> => {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/package/metadata', {
+      params: {},
+      body: formData as never,
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to generate package metadata', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
+    }
+
+    return response.data.data as components['schemas']['AgentPackageMetadata'];
   },
 }));

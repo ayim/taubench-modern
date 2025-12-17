@@ -38,7 +38,7 @@ class TestMCPToolFiltering:
 
         # Mock kernel and agent with empty selected_tools
         mock_agent = MagicMock()
-        mock_agent.selected_tools.tool_names = []  # Empty list means no filtering
+        mock_agent.selected_tools.tools = []  # Empty list means no filtering
         mock_kernel = MagicMock()
         mock_kernel.agent = mock_agent
         tools_interface.attach_kernel(mock_kernel)
@@ -79,9 +79,9 @@ class TestMCPToolFiltering:
 
         # Mock kernel and agent with specific selected_tools
         mock_agent = MagicMock()
-        mock_agent.selected_tools.tool_names = [
-            SelectedToolConfig(tool_name="tool1"),
-            SelectedToolConfig(tool_name="tool3"),
+        mock_agent.selected_tools.tools = [
+            SelectedToolConfig(name="tool1"),
+            SelectedToolConfig(name="tool3"),
         ]
         mock_kernel = MagicMock()
         mock_kernel.agent = mock_agent
@@ -138,9 +138,9 @@ class TestMCPToolFiltering:
 
         # Mock kernel and agent with specific selected_tools
         mock_agent = MagicMock()
-        mock_agent.selected_tools.tool_names = [
-            SelectedToolConfig(tool_name="tool1"),
-            SelectedToolConfig(tool_name="tool3"),
+        mock_agent.selected_tools.tools = [
+            SelectedToolConfig(name="tool1"),
+            SelectedToolConfig(name="tool3"),
         ]  # Agent only allows these
         mock_kernel = MagicMock()
         mock_kernel.agent = mock_agent
@@ -181,7 +181,7 @@ class TestMCPToolFiltering:
 
         # Mock kernel and agent with empty selected_tools
         mock_agent = MagicMock()
-        mock_agent.selected_tools.tool_names = []  # Empty list means no filtering
+        mock_agent.selected_tools.tools = []  # Empty list means no filtering
         mock_kernel = MagicMock()
         mock_kernel.agent = mock_agent
         tools_interface.attach_kernel(mock_kernel)

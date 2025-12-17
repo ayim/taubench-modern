@@ -18,16 +18,16 @@ from agent_platform.core.payloads.agent_package import (
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.user import User
 from agent_platform.core.utils import SecretString
-from agent_platform.server.api.package_content_handler import (
-    _create_payload_from_form_data,
-    _parse_json_payload,
-)
 from agent_platform.server.api.private_v2.agents import (
     create_agent_from_package,
     update_agent_from_package,
 )
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.api.private_v2.package import upsert_agent_from_package
+from agent_platform.server.api.private_v2.package.content_handler import (
+    _create_payload_from_form_data,
+    _parse_json_payload,
+)
 from agent_platform.server.storage.errors import AgentNotFoundError
 
 # Test data directory
@@ -138,7 +138,7 @@ def sample_agent_package_payload_base64():
 async def test_parse_json_payload_selected_tools_dict():
     body_json = {
         "name": "Selected Tools JSON Agent",
-        "selected_tools": {"tool_names": [{"tool_name": "weather"}]},
+        "selected_tools": {"tools": [{"name": "weather"}]},
     }
     body_bytes = json.dumps(body_json).encode()
 
@@ -161,20 +161,20 @@ async def test_parse_json_payload_selected_tools_dict():
     payload = await _parse_json_payload(request, AgentPackagePayload)
 
     assert isinstance(payload.selected_tools, SelectedTools)
-    assert [tool.tool_name for tool in payload.selected_tools.tool_names] == ["weather"]
+    assert [tool.name for tool in payload.selected_tools.tools] == ["weather"]
 
 
 @pytest.mark.asyncio
 async def test_create_payload_from_form_data_selected_tools_str():
     form_data = {
         "name": "Selected Tools Form Agent",
-        "selected_tools": json.dumps({"tool_names": ["calendar"]}),
+        "selected_tools": json.dumps({"tools": ["calendar"]}),
     }
 
     payload = await _create_payload_from_form_data(AgentPackagePayload, form_data)
 
     assert isinstance(payload.selected_tools, SelectedTools)
-    assert [tool.tool_name for tool in payload.selected_tools.tool_names] == ["calendar"]
+    assert [tool.name for tool in payload.selected_tools.tools] == ["calendar"]
 
 
 @pytest.mark.asyncio
@@ -187,7 +187,7 @@ async def test_create_payload_from_form_data_selected_tools_null():
     payload = await _create_payload_from_form_data(AgentPackagePayload, form_data)
 
     assert isinstance(payload.selected_tools, SelectedTools)
-    assert payload.selected_tools.tool_names == []
+    assert payload.selected_tools.tools == []
 
 
 @pytest.mark.asyncio
@@ -217,7 +217,7 @@ async def test_parse_json_payload_selected_tools_null():
     payload = await _parse_json_payload(request, AgentPackagePayload)
 
     assert isinstance(payload.selected_tools, SelectedTools)
-    assert payload.selected_tools.tool_names == []
+    assert payload.selected_tools.tools == []
 
 
 @pytest.mark.asyncio
@@ -289,12 +289,12 @@ class TestCreateAgentFromPackage:
         """Direct function call path with dataclass payload should accept MCPServer objects."""
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.read_package_bytes",
+            "agent_platform.core.agent_package.utils.read_package_bytes",
             AsyncMock(return_value=b"package-bytes"),
         )
 
@@ -353,12 +353,12 @@ class TestCreateAgentFromPackage:
         """
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.read_package_bytes",
+            "agent_platform.core.agent_package.utils.read_package_bytes",
             AsyncMock(return_value=b"package-bytes"),
         )
 
@@ -427,12 +427,12 @@ class TestCreateAgentFromPackage:
         """
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.read_package_bytes",
+            "agent_platform.core.agent_package.utils.read_package_bytes",
             AsyncMock(return_value=b"package-bytes"),
         )
 
@@ -467,7 +467,7 @@ class TestCreateAgentFromPackage:
                     "project_name": "proj",
                 }
             ),
-            "selected_tools": json.dumps({"tool_names": ["calendar"]}),
+            "selected_tools": json.dumps({"tools": ["calendar"]}),
         }
 
         # Compose raw multipart payload
@@ -505,7 +505,7 @@ class TestCreateAgentFromPackage:
         # action server propagated
         assert created_agent.action_packages[0].url == "https://actions.example.com"
         assert isinstance(created_agent.selected_tools, SelectedTools)
-        assert [tool.tool_name for tool in created_agent.selected_tools.tool_names] == ["calendar"]
+        assert [tool.name for tool in created_agent.selected_tools.tools] == ["calendar"]
 
     async def test_create_agent_from_real_package_openai(
         self,
@@ -818,7 +818,10 @@ class TestCreateAgentFromPackage:
         mock_storage.upsert_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_create_agent_from_package_url_success(
         self,
         mock_read_package_bytes,
@@ -831,7 +834,7 @@ class TestCreateAgentFromPackage:
         """Test successful agent creation from package URL."""
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -856,7 +859,10 @@ class TestCreateAgentFromPackage:
         )
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_create_agent_from_package_base64_success(
         self,
         mock_read_package_bytes,
@@ -868,7 +874,7 @@ class TestCreateAgentFromPackage:
     ):
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -893,7 +899,10 @@ class TestCreateAgentFromPackage:
         )
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_create_agent_from_package_with_action_servers(
         self,
         mock_read_package_bytes,
@@ -922,7 +931,7 @@ class TestCreateAgentFromPackage:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -951,7 +960,10 @@ class TestCreateAgentFromPackage:
         assert isinstance(action_package.api_key, SecretString)
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_create_agent_from_package_with_langsmith(
         self,
         mock_read_package_bytes,
@@ -974,7 +986,7 @@ class TestCreateAgentFromPackage:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -1000,7 +1012,10 @@ class TestCreateAgentFromPackage:
         assert as_legacy.advanced_config["langsmith"]["api_key"] == "langsmith-123"
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_create_agent_package_extraction_error(
         self,
         mock_read_package_bytes,
@@ -1066,7 +1081,10 @@ class TestUpdateAgentFromPackage:
         assert created_agent.agent_id == aid
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_update_agent_from_package_success(
         self,
         mock_read_package_bytes,
@@ -1081,7 +1099,7 @@ class TestUpdateAgentFromPackage:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -1110,8 +1128,11 @@ class TestCreateOrUpdateAgentFromPackageHelper:
     """Test cases for the _create_or_update_agent_from_package helper function."""
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
-    @patch("agent_platform.server.api.private_v2.package.ToolDefinitionCache")
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
+    @patch("agent_platform.server.api.private_v2.package.upserts.ToolDefinitionCache")
     async def test_tools_cache_cleared(
         self,
         mock_cache_class,
@@ -1129,7 +1150,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -1149,7 +1170,10 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         mock_cache_instance.clear_for_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_complex_agent_spec_processing(
         self,
         mock_read_package_bytes,
@@ -1206,7 +1230,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=agent_package_handler_factory(complex_spec)),
         )
 
@@ -1236,7 +1260,10 @@ class TestCreateOrUpdateAgentFromPackageHelper:
             assert action_package.api_key.get_secret_value() == "complex-key-123"
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_agent_architecture_mapping(
         self,
         mock_read_package_bytes,
@@ -1249,7 +1276,7 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         """Test that agent architecture is always mapped to default for v2."""
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=mock_agent_package_handler),
         )
 
@@ -1274,7 +1301,10 @@ class TestConversationFields:
     """Test cases for conversation-related fields in agent specifications."""
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_agent_spec_with_conversation_fields(
         self,
         mock_read_package_bytes,
@@ -1332,7 +1362,7 @@ class TestConversationFields:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=agent_package_handler_factory(agent_spec_with_conversation)),
         )
 
@@ -1385,7 +1415,10 @@ class TestConversationFields:
         assert created_agent.extra["agent_settings"] == expected_settings
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_agent_spec_with_minimal_conversation_fields(
         self,
         mock_read_package_bytes,
@@ -1434,7 +1467,7 @@ class TestConversationFields:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=agent_package_handler_factory(minimal_conversation_spec)),
         )
 
@@ -1472,7 +1505,10 @@ class TestConversationFields:
         assert created_agent.question_groups == []
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_agent_spec_with_complex_agent_settings(
         self,
         mock_read_package_bytes,
@@ -1559,7 +1595,7 @@ class TestConversationFields:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=agent_package_handler_factory(complex_settings_spec)),
         )
 
@@ -1627,7 +1663,10 @@ class TestConversationFields:
         assert created_agent.extra["agent_settings"] == expected_complex_settings
 
     @pytest.mark.asyncio
-    @patch("agent_platform.server.api.private_v2.package.read_package_bytes", new_callable=AsyncMock)
+    @patch(
+        "agent_platform.core.agent_package.utils.read_package_bytes",
+        new_callable=AsyncMock,
+    )
     async def test_agent_spec_with_conversation_guide_question_groups(
         self,
         mock_read_package_bytes,
@@ -1698,13 +1737,13 @@ class TestConversationFields:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=agent_package_handler_factory(conversation_guide_spec)),
         )
 
         # Mock Question Groups reading.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.read_question_groups",
+            "agent_platform.server.api.private_v2.package.upserts.read_question_groups",
             AsyncMock(return_value=conversation_guide_spec["question_groups"]),
         )
 

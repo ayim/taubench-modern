@@ -1,5 +1,6 @@
 """Payload types for the various API endpoints of the agent-server."""
 
+from agent_platform.core.agent_package.spec import SpecMCPTransport as MCPTransport
 from agent_platform.core.payloads.action_server_config import ActionServerConfigPayload
 from agent_platform.core.payloads.add_thread_message import AddThreadMessagePayload
 from agent_platform.core.payloads.agent_data_connections import (
@@ -19,7 +20,6 @@ from agent_platform.core.payloads.initiate_stream import InitiateStreamPayload
 from agent_platform.core.payloads.mcp_server_response import (
     MCPServerResponse,
     MCPServerType,
-    MCPTransport,
 )
 from agent_platform.core.payloads.prompts_generate import PromptsGeneratePayload
 from agent_platform.core.payloads.semantic_data_model_payloads import (

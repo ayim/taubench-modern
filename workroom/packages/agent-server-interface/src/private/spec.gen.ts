@@ -6476,7 +6476,80 @@ export const spec = {
             description: 'Successful Response',
             content: {
               'application/json': {
-                schema: {},
+                schema: {
+                  $ref: '#/components/schemas/StatusResponse_dict_',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/package/metadata': {
+      post: {
+        tags: ['package'],
+        summary: 'Generate agent package metadata',
+        description:
+          'Generate agent package metadata. Accepts JSON and binary ZIP files.',
+        operationId: 'generate_agent_package_metadata_package_metadata_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AgentPackagePayload',
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                allOf: [
+                  {
+                    $ref: '#/components/schemas/AgentPackagePayload',
+                  },
+                  {
+                    properties: {
+                      package_zip_file: {
+                        type: 'string',
+                        format: 'binary',
+                        description: 'ZIP file',
+                      },
+                    },
+                    type: 'object',
+                    required: ['package_zip_file'],
+                  },
+                ],
+              },
+              encoding: {
+                package_zip_file: {
+                  contentType: 'application/zip',
+                },
+              },
+              description:
+                "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
+            },
+            'application/zip': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+            'application/octet-stream': {
+              schema: {
+                type: 'string',
+                format: 'binary',
+              },
+              description: 'Binary ZIP file containing the package',
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/StatusResponse_AgentPackageMetadata_',
+                },
               },
             },
           },
@@ -10286,6 +10359,19 @@ export const spec = {
             description: 'Path to the action package.',
             default: '',
           },
+          full_path: {
+            type: 'string',
+            title: 'Full Path',
+            description: 'Full path to the action package.',
+            default: '',
+          },
+          action_package_version: {
+            type: 'string',
+            title: 'Action Package Version',
+            description:
+              'Version of the action package (for backwards compatibility).',
+            default: '',
+          },
         },
         type: 'object',
         required: ['name', 'description', 'version'],
@@ -10334,7 +10420,12 @@ export const spec = {
             description: 'Path to the catalog file.',
           },
           servers: {
-            $ref: '#/components/schemas/DockerCatalogRegistryEntries',
+            additionalProperties: {
+              additionalProperties: true,
+              type: 'object',
+            },
+            type: 'object',
+            title: 'Servers',
             description: 'Server configurations.',
           },
         },
@@ -10353,11 +10444,6 @@ export const spec = {
             title: 'Version',
             description: 'Version of the agent package.',
           },
-          icon: {
-            type: 'string',
-            title: 'Icon',
-            description: 'Icon for the agent package.',
-          },
           name: {
             type: 'string',
             title: 'Name',
@@ -10368,21 +10454,40 @@ export const spec = {
             title: 'Description',
             description: 'Description of the agent package.',
           },
-          model: {
-            $ref: '#/components/schemas/SpecAgentModel',
-            description: 'Model configuration for the agent.',
-          },
-          architecture: {
-            type: 'string',
-            enum: ['agent', 'plan_execute'],
-            title: 'Architecture',
-            description: 'Architecture type of the agent.',
-          },
           reasoning: {
             type: 'string',
             enum: ['disabled', 'enabled', 'verbose'],
             title: 'Reasoning',
             description: 'Reasoning level of the agent.',
+          },
+          model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SpecAgentModel',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description: 'Model configuration for the agent.',
+          },
+          architecture: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Architecture',
+            description: 'Architecture type of the agent.',
+          },
+          icon: {
+            type: 'string',
+            title: 'Icon',
+            description: 'Icon for the agent package.',
+            default: '',
           },
           knowledge: {
             items: {
@@ -10453,10 +10558,6 @@ export const spec = {
             ],
             description: 'Docker MCP Gateway configuration.',
           },
-          docker_mcp_gateway_changes: {
-            $ref: '#/components/schemas/DockerMcpGatewayChanges',
-            description: 'Changes to Docker MCP Gateway.',
-          },
           agent_settings: {
             anyOf: [
               {
@@ -10487,6 +10588,31 @@ export const spec = {
             $ref: '#/components/schemas/SelectedTools',
             description: 'Configuration for tools selected for this agent.',
           },
+          changelog: {
+            type: 'string',
+            title: 'Changelog',
+            description: 'Changelog for the agent package.',
+            default: '',
+          },
+          readme: {
+            type: 'string',
+            title: 'Readme',
+            description: 'Readme for the agent package.',
+            default: '',
+          },
+          agent_platform_version: {
+            type: 'string',
+            title: 'Agent Platform Version',
+            description:
+              'Version of the agent platform with which the metadata was generated.',
+            default: '',
+          },
+          created_at: {
+            type: 'integer',
+            title: 'Created At',
+            description: 'Timestamp of when the metadata was created.',
+            default: 0,
+          },
           uploaded_package: {
             anyOf: [
               {
@@ -10504,11 +10630,8 @@ export const spec = {
         required: [
           'release_note',
           'version',
-          'icon',
           'name',
           'description',
-          'model',
-          'architecture',
           'reasoning',
         ],
         title: 'AgentPackageInspectionResponse',
@@ -10642,11 +10765,6 @@ export const spec = {
             title: 'Version',
             description: 'Version of the agent package.',
           },
-          icon: {
-            type: 'string',
-            title: 'Icon',
-            description: 'Icon for the agent package.',
-          },
           name: {
             type: 'string',
             title: 'Name',
@@ -10657,21 +10775,40 @@ export const spec = {
             title: 'Description',
             description: 'Description of the agent package.',
           },
-          model: {
-            $ref: '#/components/schemas/SpecAgentModel',
-            description: 'Model configuration for the agent.',
-          },
-          architecture: {
-            type: 'string',
-            enum: ['agent', 'plan_execute'],
-            title: 'Architecture',
-            description: 'Architecture type of the agent.',
-          },
           reasoning: {
             type: 'string',
             enum: ['disabled', 'enabled', 'verbose'],
             title: 'Reasoning',
             description: 'Reasoning level of the agent.',
+          },
+          model: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SpecAgentModel',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description: 'Model configuration for the agent.',
+          },
+          architecture: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Architecture',
+            description: 'Architecture type of the agent.',
+          },
+          icon: {
+            type: 'string',
+            title: 'Icon',
+            description: 'Icon for the agent package.',
+            default: '',
           },
           knowledge: {
             items: {
@@ -10742,10 +10879,6 @@ export const spec = {
             ],
             description: 'Docker MCP Gateway configuration.',
           },
-          docker_mcp_gateway_changes: {
-            $ref: '#/components/schemas/DockerMcpGatewayChanges',
-            description: 'Changes to Docker MCP Gateway.',
-          },
           agent_settings: {
             anyOf: [
               {
@@ -10776,16 +10909,38 @@ export const spec = {
             $ref: '#/components/schemas/SelectedTools',
             description: 'Configuration for tools selected for this agent.',
           },
+          changelog: {
+            type: 'string',
+            title: 'Changelog',
+            description: 'Changelog for the agent package.',
+            default: '',
+          },
+          readme: {
+            type: 'string',
+            title: 'Readme',
+            description: 'Readme for the agent package.',
+            default: '',
+          },
+          agent_platform_version: {
+            type: 'string',
+            title: 'Agent Platform Version',
+            description:
+              'Version of the agent platform with which the metadata was generated.',
+            default: '',
+          },
+          created_at: {
+            type: 'integer',
+            title: 'Created At',
+            description: 'Timestamp of when the metadata was created.',
+            default: 0,
+          },
         },
         type: 'object',
         required: [
           'release_note',
           'version',
-          'icon',
           'name',
           'description',
-          'model',
-          'architecture',
           'reasoning',
         ],
         title: 'AgentPackageMetadata',
@@ -13520,32 +13675,6 @@ export const spec = {
         title: 'Dimension',
         description:
           "A dimension describes categorical values such as state, user_type, platform, etc.\n\nUse when it's categorical/descriptive context you'll group or filter by\n(e.g., product_name, customer_id, region).\nDimensions answer who/what/where/how and provide labels for facts.",
-      },
-      DockerCatalogRegistryEntries: {
-        properties: {
-          tools: {
-            items: {
-              type: 'string',
-            },
-            type: 'array',
-            title: 'Tools',
-            description: 'List of tools.',
-          },
-        },
-        type: 'object',
-        title: 'DockerCatalogRegistryEntries',
-      },
-      DockerMcpGatewayChanges: {
-        properties: {
-          changes: {
-            additionalProperties: true,
-            type: 'object',
-            title: 'Changes',
-            description: 'Changes to the Docker MCP Gateway.',
-          },
-        },
-        type: 'object',
-        title: 'DockerMcpGatewayChanges',
       },
       DocumentIntelligenceConfigPayload: {
         properties: {
@@ -20437,24 +20566,24 @@ export const spec = {
       },
       SelectedToolConfig: {
         properties: {
-          tool_name: {
+          name: {
             type: 'string',
-            title: 'Tool Name',
+            title: 'Name',
             description: 'The name of the selected tool.',
           },
         },
         type: 'object',
-        required: ['tool_name'],
+        required: ['name'],
         title: 'SelectedToolConfig',
       },
       SelectedTools: {
         properties: {
-          tool_names: {
+          tools: {
             items: {
               $ref: '#/components/schemas/SelectedToolConfig',
             },
             type: 'array',
-            title: 'Tool Names',
+            title: 'Tools',
             description: 'List of selected tool configurations for this agent.',
           },
         },
@@ -21188,39 +21317,16 @@ export const spec = {
       SpecAgentModel: {
         properties: {
           provider: {
-            anyOf: [
-              {
-                type: 'string',
-                enum: [
-                  'OpenAI',
-                  'Azure',
-                  'Anthropic',
-                  'Google',
-                  'Amazon',
-                  'Ollama',
-                ],
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'Provider',
-            description: 'The LLM provider.',
           },
           name: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'Name',
-            description: 'The LLM model name.',
           },
         },
         type: 'object',
+        required: ['provider', 'name'],
         title: 'SpecAgentModel',
       },
       SplitJobResult: {
@@ -21317,6 +21423,45 @@ export const spec = {
         type: 'object',
         required: ['status'],
         title: 'StatusResponse[AgentPackageInspectionResponse]',
+      },
+      StatusResponse_AgentPackageMetadata_: {
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['success', 'failure'],
+            title: 'Status',
+            description: 'Indicates whether the operation was successful',
+          },
+          data: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/AgentPackageMetadata',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description: 'The result data when successful, null when failed',
+          },
+          errors: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/StatusError',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Errors',
+            description: 'List of errors when the operation fails',
+          },
+        },
+        type: 'object',
+        required: ['status'],
+        title: 'StatusResponse[AgentPackageMetadata]',
       },
       StatusResponse_dict_: {
         properties: {

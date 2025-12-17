@@ -597,7 +597,7 @@ class TestHTTPErrorHandling:
 
         # Mock AgentPackageHandler creation.
         monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.AgentPackageHandler.from_bytes",
+            "agent_platform.server.api.private_v2.package.routes.AgentPackageHandler.from_bytes",
             AsyncMock(return_value=agent_package_handler_factory(sample_spec)),
         )
 

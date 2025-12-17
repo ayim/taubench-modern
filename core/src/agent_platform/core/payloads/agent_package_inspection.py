@@ -57,7 +57,6 @@ class AgentPackageInspectionResponse(AgentPackageMetadata):
             action_packages=metadata.action_packages,
             mcp_servers=metadata.mcp_servers,
             docker_mcp_gateway=metadata.docker_mcp_gateway,
-            docker_mcp_gateway_changes=metadata.docker_mcp_gateway_changes,
             agent_settings=metadata.agent_settings,
             document_intelligence=metadata.document_intelligence,
             selected_tools=metadata.selected_tools,

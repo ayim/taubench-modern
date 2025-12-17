@@ -572,9 +572,9 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # Apply agent-level selected_tools filtering
         agent_selected_tools_set: set[str] | None = None
         if self.kernel.agent.selected_tools is not None:
-            agent_selected_tools = self.kernel.agent.selected_tools.tool_names
+            agent_selected_tools = self.kernel.agent.selected_tools.tools
             if agent_selected_tools and len(agent_selected_tools) > 0:
-                agent_selected_tools_set = set(tool.tool_name for tool in agent_selected_tools)
+                agent_selected_tools_set = set(tool.name for tool in agent_selected_tools)
 
         for srv in mcp_servers:
             if srv.url and srv.url in seen_urls:

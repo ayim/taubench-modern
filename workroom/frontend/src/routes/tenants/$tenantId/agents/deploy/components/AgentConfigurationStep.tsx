@@ -28,8 +28,8 @@ export const AgentConfigurationStep: FC<Props> = ({ agentTemplate }) => {
   );
 
   const providerItems = useMemo(() => {
-    const provider = agentTemplate.model.provider ?? '';
-    const modelName = agentTemplate.model.name ?? '';
+    const provider = agentTemplate.model?.provider ?? '';
+    const modelName = agentTemplate.model?.name ?? '';
     const recommendedModel = `${provider.toLowerCase()}${modelName}`;
     const llmOptions = (configuredLLMModels ?? []).map(({ name, kind, platform_id, models }) => {
       const modelsFromPlatform = models ?? {};

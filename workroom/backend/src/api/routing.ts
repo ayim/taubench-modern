@@ -64,6 +64,7 @@ function getRouteMap(): {
     'post /api/v2/package/deploy/agent': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/create': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/read': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
+    'post /api/v2/package/metadata': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/build': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing

@@ -47,6 +47,7 @@ export class QueryError extends Error {
 
   constructor(message: string, details?: QueryErrorDetails) {
     super(message);
+    Object.defineProperty(this, 'message', { value: message, enumerable: true });
     this.name = 'QueryError';
     this.details = {
       type: details?.type,

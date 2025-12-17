@@ -64,3 +64,27 @@ class AgentPackageConfig:
         metadata=FieldMetadata(description="The filename of the Action Package metadata."),
     )
     """The filename of the Action Package metadata."""
+
+    action_package_icon_filename: str = field(
+        default="package.png",
+        metadata=FieldMetadata(description="The icon filename for action packages."),
+    )
+    """The icon filename for action packages."""
+
+    agent_package_icon_filename: str = field(
+        default="package.png",
+        metadata=FieldMetadata(description="The icon filename for agent packages."),
+    )
+    """The icon filename for agent packages."""
+
+    agent_package_changelog_filename: str = field(
+        default="CHANGELOG.md",
+        metadata=FieldMetadata(description="The changelog filename for agent packages."),
+    )
+    """The CHANGELOG filename for agent packages."""
+
+    agent_package_readme_filename: str = field(
+        default="README.md",
+        metadata=FieldMetadata(description="The readme filename for agent packages."),
+    )
+    """The README filename for agent packages."""

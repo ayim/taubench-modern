@@ -26,7 +26,13 @@ export const AgentOverviewStep: FC<Props> = ({ agentTemplate }) => {
             {agentTemplate.action_packages?.map((actionPackage) => (
               <AgentCard.ActionPackageList.Item
                 key={`${actionPackage.name}-${actionPackage.version}`}
-                illustration={actionPackage.icon ? actionPackage.icon : <IconActions size="m" />}
+                illustration={
+                  actionPackage.icon ? (
+                    <img src={actionPackage.icon} alt={`Icon of ${actionPackage.name}`} width={24} height={24} />
+                  ) : (
+                    <IconActions size="m" />
+                  )
+                }
                 name={actionPackage.name}
                 description={actionPackage.description}
                 version={actionPackage.version}
@@ -58,7 +64,7 @@ export const AgentOverviewStep: FC<Props> = ({ agentTemplate }) => {
 
           <Grid columns={[1, 2, 3]} gap="$24">
             <AgentCard.Kpi label="Agent Type" value={agentType} />
-            <AgentCard.Kpi label="Large Language Model" value={agentTemplate.model.name ?? 'Unknown'} />
+            <AgentCard.Kpi label="Large Language Model" value={agentTemplate.model?.name ?? 'Unknown'} />
           </Grid>
         </AgentCard.Content>
       </AgentCard>

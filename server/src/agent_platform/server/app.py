@@ -138,10 +138,12 @@ class _CustomFastAPI(FastAPI):
         # Only modify AgentAdvancedConfig if it exists
         agent_advanced_config_schema: dict = schemas.get("AgentAdvancedConfig", {})
         if agent_advanced_config_schema:
+            from typing import get_args
+
             properties: dict = agent_advanced_config_schema.get("properties", {})
             architecture_field = properties.get("architecture", {})
             if architecture_field:
-                architecture_field["enum"] = sorted(["agent", "plan_execute"])
+                architecture_field["enum"] = sorted(get_args(str))
 
         # ------------------------------------------------------------------
         # Filter out deprecated PRECREATED status from WorkItemStatus enum

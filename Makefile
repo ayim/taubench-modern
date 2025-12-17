@@ -140,7 +140,8 @@ run-server-exe:  ## Run the agent server executable
 
 run-as-studio:  ## Run the agent server as in Studio
 	@echo "Running server from agent_platform.server (as Studio)..."
-	uv run -m agent_platform.server --host "127.0.0.1" --port 58885 --use-data-dir-lock --kill-lock-holder
+	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
+		uv run -m agent_platform.server --host "127.0.0.1" --port 58885 --use-data-dir-lock --kill-lock-holder
 
 # --------------------------------------------------------------------
 # Run Server with Hot Reload

@@ -12,7 +12,7 @@ class SelectedToolConfig:
     MCP server-specific configurations.
     """
 
-    tool_name: str = field(
+    name: str = field(
         metadata={
             "description": "The name of the selected tool.",
         },
@@ -22,14 +22,14 @@ class SelectedToolConfig:
     def model_dump(self) -> dict:
         """Serialize the SelectedToolConfig to a dictionary."""
         return {
-            "tool_name": self.tool_name,
+            "name": self.name,
         }
 
     @classmethod
     def model_validate(cls, data: dict) -> "SelectedToolConfig":
         """Create a SelectedToolConfig instance from a dictionary."""
-        tool_name = data.get("tool_name", "")
-        return cls(tool_name=tool_name)
+        name = data.get("name", "")
+        return cls(name=name)
 
 
 @dataclass
@@ -41,7 +41,7 @@ class SelectedTools:
     mappings or tool-specific configurations.
     """
 
-    tool_names: list[SelectedToolConfig] = field(
+    tools: list[SelectedToolConfig] = field(
         metadata={
             "description": "List of selected tool configurations for this agent.",
         },
@@ -52,23 +52,23 @@ class SelectedTools:
     def model_dump(self) -> dict:
         """Serialize the SelectedTools to a dictionary."""
         return {
-            "tool_names": [tool.model_dump() for tool in self.tool_names],
+            "tools": [tool.model_dump() for tool in self.tools],
         }
 
     @classmethod
     def model_validate(cls, data: dict) -> "SelectedTools":
         """Create a SelectedTools instance from a dictionary."""
-        tool_names_data = data.get("tool_names", [])
+        tools_data = data.get("tools", [])
         # Handle None values by defaulting to empty list
-        if tool_names_data is None:
-            tool_names_data = []
+        if tools_data is None:
+            tools_data = []
 
         # Handle both old format (list of strings) and new format (list of objects)
         tool_configs = []
-        for item in tool_names_data:
+        for item in tools_data:
             if isinstance(item, str):
                 # Legacy format: list of strings
-                tool_configs.append(SelectedToolConfig(tool_name=item))
+                tool_configs.append(SelectedToolConfig(name=item))
             elif isinstance(item, dict):
                 # New format: list of objects
                 tool_configs.append(SelectedToolConfig.model_validate(item))
@@ -76,4 +76,4 @@ class SelectedTools:
                 # Handle SelectedToolConfig objects directly
                 tool_configs.append(item)
 
-        return cls(tool_names=tool_configs)
+        return cls(tools=tool_configs)

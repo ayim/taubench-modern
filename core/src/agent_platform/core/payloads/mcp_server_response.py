@@ -3,7 +3,9 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
+from agent_platform.core.agent_package.metadata.agent_metadata import (
+    AgentPackageMetadata,
+)
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.mcp.mcp_types import MCPVariables
 

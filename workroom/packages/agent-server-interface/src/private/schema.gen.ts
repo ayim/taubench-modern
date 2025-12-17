@@ -2365,6 +2365,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/package/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate agent package metadata
+     * @description Generate agent package metadata. Accepts JSON and binary ZIP files.
+     */
+    post: operations['generate_agent_package_metadata_package_metadata_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/platforms/': {
     parameters: {
       query?: never;
@@ -3774,6 +3794,18 @@ export interface components {
        * @default
        */
       path: string;
+      /**
+       * Full Path
+       * @description Full path to the action package.
+       * @default
+       */
+      full_path: string;
+      /**
+       * Action Package Version
+       * @description Version of the action package (for backwards compatibility).
+       * @default
+       */
+      action_package_version: string;
     };
     /** AgentPackageDatasource */
     AgentPackageDatasource: {
@@ -3807,8 +3839,15 @@ export interface components {
        * @description Path to the catalog file.
        */
       catalog?: string | null;
-      /** @description Server configurations. */
-      servers?: components['schemas']['DockerCatalogRegistryEntries'];
+      /**
+       * Servers
+       * @description Server configurations.
+       */
+      servers?: {
+        [key: string]: {
+          [key: string]: unknown;
+        };
+      };
     };
     /** AgentPackageInspectionResponse */
     AgentPackageInspectionResponse: {
@@ -3823,11 +3862,6 @@ export interface components {
        */
       version: string;
       /**
-       * Icon
-       * @description Icon for the agent package.
-       */
-      icon: string;
-      /**
        * Name
        * @description Name of the agent package.
        */
@@ -3837,20 +3871,25 @@ export interface components {
        * @description Description of the agent package.
        */
       description: string;
-      /** @description Model configuration for the agent. */
-      model: components['schemas']['SpecAgentModel'];
-      /**
-       * Architecture
-       * @description Architecture type of the agent.
-       * @enum {string}
-       */
-      architecture: 'agent' | 'plan_execute';
       /**
        * Reasoning
        * @description Reasoning level of the agent.
        * @enum {string}
        */
       reasoning: 'disabled' | 'enabled' | 'verbose';
+      /** @description Model configuration for the agent. */
+      model?: components['schemas']['SpecAgentModel'] | null;
+      /**
+       * Architecture
+       * @description Architecture type of the agent.
+       */
+      architecture?: string | null;
+      /**
+       * Icon
+       * @description Icon for the agent package.
+       * @default
+       */
+      icon: string;
       /**
        * Knowledge
        * @description Knowledge configurations.
@@ -3899,8 +3938,6 @@ export interface components {
       docker_mcp_gateway?:
         | components['schemas']['AgentPackageDockerMcpGateway']
         | null;
-      /** @description Changes to Docker MCP Gateway. */
-      docker_mcp_gateway_changes?: components['schemas']['DockerMcpGatewayChanges'];
       /**
        * Agent Settings
        * @description Agent settings.
@@ -3915,6 +3952,30 @@ export interface components {
       document_intelligence?: ('v2' | 'v2.1') | null;
       /** @description Configuration for tools selected for this agent. */
       selected_tools?: components['schemas']['SelectedTools'];
+      /**
+       * Changelog
+       * @description Changelog for the agent package.
+       * @default
+       */
+      changelog: string;
+      /**
+       * Readme
+       * @description Readme for the agent package.
+       * @default
+       */
+      readme: string;
+      /**
+       * Agent Platform Version
+       * @description Version of the agent platform with which the metadata was generated.
+       * @default
+       */
+      agent_platform_version: string;
+      /**
+       * Created At
+       * @description Timestamp of when the metadata was created.
+       * @default 0
+       */
+      created_at: number;
       /** @description Information about the uploaded package file, if applicable. */
       uploaded_package?: components['schemas']['UploadedPackageInfo'] | null;
     };
@@ -4026,11 +4087,6 @@ export interface components {
        */
       version: string;
       /**
-       * Icon
-       * @description Icon for the agent package.
-       */
-      icon: string;
-      /**
        * Name
        * @description Name of the agent package.
        */
@@ -4040,20 +4096,25 @@ export interface components {
        * @description Description of the agent package.
        */
       description: string;
-      /** @description Model configuration for the agent. */
-      model: components['schemas']['SpecAgentModel'];
-      /**
-       * Architecture
-       * @description Architecture type of the agent.
-       * @enum {string}
-       */
-      architecture: 'agent' | 'plan_execute';
       /**
        * Reasoning
        * @description Reasoning level of the agent.
        * @enum {string}
        */
       reasoning: 'disabled' | 'enabled' | 'verbose';
+      /** @description Model configuration for the agent. */
+      model?: components['schemas']['SpecAgentModel'] | null;
+      /**
+       * Architecture
+       * @description Architecture type of the agent.
+       */
+      architecture?: string | null;
+      /**
+       * Icon
+       * @description Icon for the agent package.
+       * @default
+       */
+      icon: string;
       /**
        * Knowledge
        * @description Knowledge configurations.
@@ -4102,8 +4163,6 @@ export interface components {
       docker_mcp_gateway?:
         | components['schemas']['AgentPackageDockerMcpGateway']
         | null;
-      /** @description Changes to Docker MCP Gateway. */
-      docker_mcp_gateway_changes?: components['schemas']['DockerMcpGatewayChanges'];
       /**
        * Agent Settings
        * @description Agent settings.
@@ -4118,6 +4177,30 @@ export interface components {
       document_intelligence?: ('v2' | 'v2.1') | null;
       /** @description Configuration for tools selected for this agent. */
       selected_tools?: components['schemas']['SelectedTools'];
+      /**
+       * Changelog
+       * @description Changelog for the agent package.
+       * @default
+       */
+      changelog: string;
+      /**
+       * Readme
+       * @description Readme for the agent package.
+       * @default
+       */
+      readme: string;
+      /**
+       * Agent Platform Version
+       * @description Version of the agent platform with which the metadata was generated.
+       * @default
+       */
+      agent_platform_version: string;
+      /**
+       * Created At
+       * @description Timestamp of when the metadata was created.
+       * @default 0
+       */
+      created_at: number;
     };
     /** AgentPackageMetadataKnowledge */
     AgentPackageMetadataKnowledge: {
@@ -5309,24 +5392,6 @@ export interface components {
       is_enum?: boolean | null;
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][] | null;
-    };
-    /** DockerCatalogRegistryEntries */
-    DockerCatalogRegistryEntries: {
-      /**
-       * Tools
-       * @description List of tools.
-       */
-      tools?: string[];
-    };
-    /** DockerMcpGatewayChanges */
-    DockerMcpGatewayChanges: {
-      /**
-       * Changes
-       * @description Changes to the Docker MCP Gateway.
-       */
-      changes?: {
-        [key: string]: unknown;
-      };
     };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {
@@ -8543,18 +8608,18 @@ export interface components {
     /** SelectedToolConfig */
     SelectedToolConfig: {
       /**
-       * Tool Name
+       * Name
        * @description The name of the selected tool.
        */
-      tool_name: string;
+      name: string;
     };
     /** SelectedTools */
     SelectedTools: {
       /**
-       * Tool Names
+       * Tools
        * @description List of selected tool configurations for this agent.
        */
-      tool_names?: components['schemas']['SelectedToolConfig'][];
+      tools?: components['schemas']['SelectedToolConfig'][];
     };
     /** SemaknowledgebaseDataConnection */
     SemaknowledgebaseDataConnection: {
@@ -8823,18 +8888,10 @@ export interface components {
     };
     /** SpecAgentModel */
     SpecAgentModel: {
-      /**
-       * Provider
-       * @description The LLM provider.
-       */
-      provider?:
-        | ('OpenAI' | 'Azure' | 'Anthropic' | 'Google' | 'Amazon' | 'Ollama')
-        | null;
-      /**
-       * Name
-       * @description The LLM model name.
-       */
-      name?: string | null;
+      /** Provider */
+      provider: string;
+      /** Name */
+      name: string;
     };
     /** SplitJobResult */
     SplitJobResult: {
@@ -8887,6 +8944,22 @@ export interface components {
       status: 'success' | 'failure';
       /** @description The result data when successful, null when failed */
       data?: components['schemas']['AgentPackageInspectionResponse'] | null;
+      /**
+       * Errors
+       * @description List of errors when the operation fails
+       */
+      errors?: (components['schemas']['StatusError'] | string)[];
+    };
+    /** StatusResponse[AgentPackageMetadata] */
+    StatusResponse_AgentPackageMetadata_: {
+      /**
+       * Status
+       * @description Indicates whether the operation was successful
+       * @enum {string}
+       */
+      status: 'success' | 'failure';
+      /** @description The result data when successful, null when failed */
+      data?: components['schemas']['AgentPackageMetadata'] | null;
       /**
        * Errors
        * @description List of errors when the operation fails
@@ -18723,7 +18796,43 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': unknown;
+          'application/json': components['schemas']['StatusResponse_dict_'];
+        };
+      };
+    };
+  };
+  generate_agent_package_metadata_package_metadata_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AgentPackagePayload'];
+        /** @description Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field */
+        'multipart/form-data': components['schemas']['AgentPackagePayload'] & {
+          /**
+           * Format: binary
+           * @description ZIP file
+           */
+          package_zip_file: string;
+        };
+        /** @description Binary ZIP file containing the package */
+        'application/zip': string;
+        /** @description Binary ZIP file containing the package */
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StatusResponse_AgentPackageMetadata_'];
         };
       };
     };
