@@ -65,6 +65,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     isLoading: false,
     error: undefined,
     inspectionResult: undefined,
+    requiresInspection: false,
   });
   const [forceModelRegeneration, setForceModelRegeneration] = useState(false);
   const [dataSourceType, setDataSourceType] = useState<DataSourceType | undefined>(undefined);
@@ -176,6 +177,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
           isLoading: true,
           error: undefined,
           inspectionResult: undefined,
+          requiresInspection: false,
         });
 
         await inspectDataConnection(
@@ -186,6 +188,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                 isLoading: false,
                 error: error.message,
                 inspectionResult: undefined,
+                requiresInspection: false,
               });
               if (!initialModelId) {
                 setActiveStep(ConfigurationStep.DataConnection);
@@ -197,12 +200,14 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
                   isLoading: false,
                   error: 'The selected database is missing the tables or columns mapped in the imported data model.',
                   inspectionResult,
+                  requiresInspection: false,
                 });
               } else {
                 setDatabaseInspectionState({
                   isLoading: false,
                   error: undefined,
                   inspectionResult,
+                  requiresInspection: false,
                 });
                 if (!initialModelId) {
                   formMethods.setValue('dataSelection', tablesToDataSelection(inspectionResult, semanticModel));
@@ -214,7 +219,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       }
     };
     inspect();
-  }, [dataConnectionId]);
+  }, [dataConnectionId, databaseInspectionState.requiresInspection]);
 
   const onResetImport = () => {
     formMethods.reset(defaultFormDataValues);

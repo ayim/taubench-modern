@@ -39,23 +39,26 @@ export const UpdateDataConnection: FC<Props> = ({ dataConnectionId, snowflakeLin
     }
   }, [dataConnection]);
 
-  const onSubmit = formMethods.handleSubmit(async (values) => {
-    updateDataConnectionAsync(
-      { ...values, id: dataConnectionId },
-      {
-        onSuccess: () => {
-          addSnackbar({ message: 'Data connection updated successfully', variant: 'success' });
-          onClose();
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.stopPropagation();
+    formMethods.handleSubmit(async (values) => {
+      updateDataConnectionAsync(
+        { ...values, id: dataConnectionId },
+        {
+          onSuccess: () => {
+            addSnackbar({ message: 'Data connection updated successfully', variant: 'success' });
+            onClose();
+          },
+          onError: (error: unknown) => {
+            addSnackbar({
+              message: error instanceof Error ? error.message : 'Failed to update data connection',
+              variant: 'danger',
+            });
+          },
         },
-        onError: (error: unknown) => {
-          addSnackbar({
-            message: error instanceof Error ? error.message : 'Failed to update data connection',
-            variant: 'danger',
-          });
-        },
-      },
-    );
-  });
+      );
+    })(event);
+  };
 
   if (isFetching) {
     return <Progress variant="page" />;

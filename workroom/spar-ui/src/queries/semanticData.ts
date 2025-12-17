@@ -163,8 +163,15 @@ export const useSemanticModelQuery = createSparQuery(semanticModelQueryOptions);
 /**
  * Get Agents Semantic Data Validation results
  */
-export const getAgentSemanticDataValidationQueryKey = (agentId: string, threadId?: string): (string | number)[] =>
-  threadId ? ['agent-semantic-data-validation', agentId, threadId] : ['agent-semantic-data-validation', agentId];
+export const getAgentSemanticDataValidationQueryKey = (agentId?: string, threadId?: string): (string | number)[] => {
+  if (agentId && threadId) {
+    return ['agent-semantic-data-validation', agentId, threadId];
+  }
+  if (agentId) {
+    return ['agent-semantic-data-validation', agentId];
+  }
+  return ['agent-semantic-data-validation'];
+};
 
 const agentSemanticDataValidationQueryOptions = createSparQueryOptions<{ agentId: string; threadId?: string }>()(
   ({ agentId, threadId, sparAPIClient }) => ({

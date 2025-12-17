@@ -14,6 +14,7 @@ export type DatabaseInspectionState = {
   isLoading: boolean;
   error: string | undefined;
   inspectionResult: InspectedTableInfo | undefined;
+  requiresInspection: boolean;
 };
 
 export const DataConnectionFormContext = createContext<{
@@ -29,6 +30,7 @@ export const DataConnectionFormContext = createContext<{
     isLoading: false,
     error: undefined,
     inspectionResult: undefined,
+    requiresInspection: false,
   },
   setDatabaseInspectionState: () => {},
   onSubmit: () => {},

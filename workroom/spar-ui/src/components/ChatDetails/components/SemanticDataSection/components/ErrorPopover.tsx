@@ -7,6 +7,7 @@ type Props = {
   title: string;
   description: string;
   action: React.ReactNode;
+  dataConnectionId?: string;
 };
 
 export const ErrorPopover: FC<Props> = ({ title, description, action, level }) => {

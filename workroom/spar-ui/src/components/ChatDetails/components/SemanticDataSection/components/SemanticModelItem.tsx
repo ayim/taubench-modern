@@ -1,6 +1,6 @@
-import { FC, useCallback, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { Box, Button, Typography, Menu, useSnackbar } from '@sema4ai/components';
-import { IconDotsHorizontal } from '@sema4ai/icons';
+import { IconDotsHorizontal, IconStatusDisabled, IconStatusError } from '@sema4ai/icons';
 import { IconDataAccess, IconFileBrand } from '@sema4ai/icons/logos';
 import { styled } from '@sema4ai/theme';
 import { useDeleteConfirm } from '@sema4ai/layouts';
@@ -20,6 +20,7 @@ import { parseSemanticModelErrors, requiresDataConnection } from '../../../../..
 import { ErrorPopover } from './ErrorPopover';
 import { ConfigurationStep } from '../../../../SemanticData/SemanticDataConfiguration/components/form';
 import { SparUIFeatureFlag } from '../../../../../api';
+import { DataConnectionInformation } from '../../../../DataConnection/DataConnectionInformation';
 
 type Props = {
   model: SemanticModel;
@@ -133,34 +134,59 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
     });
   };
 
-  const errors = parseSemanticModelErrors(model);
+  const semanticModelErrors = parseSemanticModelErrors(model);
+
+  const connectionError = useMemo(() => {
+    if (semanticModelErrors.hasConnectionError) {
+      return {
+        level: 'error' as const,
+        title: 'Connection Failed',
+        description: `Unable to connect to the data source. ${canConfigureAgents ? 'Please check your configuration settings.' : 'Please contact someone with the appropriate permissions.'}`,
+      };
+    }
+
+    if (semanticModelErrors.hasMissingTableReferenceError) {
+      return {
+        level: 'error' as const,
+        title: 'Missing Table Reference',
+        description:
+          'Some data could not be matched or processed. Please review your model configuration and ensure the dataset is compatible.',
+      };
+    }
+
+    return undefined;
+  }, [semanticModelErrors]);
 
   const Icon = requiresDataConnection(model) ? IconDataAccess : IconFileBrand;
+  const ErrorIcon = connectionError?.level === 'error' ? IconStatusError : IconStatusDisabled;
+  const dataConnectionId = model.tables.find((table) => table.base_table?.data_connection_id)?.base_table
+    ?.data_connection_id;
 
   return (
     <Item>
       <Box display="flex" alignItems="center" gap="$4" minWidth={0}>
         <Icon />
         <Box flex={1} minWidth={0} overflow="hidden">
-          <Typography fontWeight="bold" $nowrap truncate={1}>
-            {model.name}
-          </Typography>
-        </Box>
-        {errors.hasConnectionError && (
-          <ErrorPopover
-            title="Connection Failed"
-            description={`Unable to connect to the data source. ${canConfigureAgents ? 'Please check your configuration settings.' : 'Please contact someone with the appropriate permissions.'}`}
+          <DataConnectionInformation
+            dataConnectionId={dataConnectionId}
+            placement="top"
+            error={connectionError}
             action={
+              connectionError &&
               canConfigureAgents && (
                 <Button flex={1} round onClick={onToggleEditModel}>
                   Configure Connection
                 </Button>
               )
             }
-            level="error"
-          />
-        )}
-        {errors.hasFileReferenceWarning && (
+          >
+            <Typography fontWeight="bold" $nowrap truncate={1}>
+              {model.name}
+            </Typography>
+          </DataConnectionInformation>
+        </Box>
+        {connectionError && <ErrorIcon color="content.error" />}
+        {semanticModelErrors.hasFileReferenceWarning && (
           <ErrorPopover
             title="Missing File"
             description="This data model requires a data file to be uploaded to the chat. Once uploaded, you can use this model to work with the file’s data."
@@ -170,20 +196,6 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
               </Button>
             }
             level="warning"
-          />
-        )}
-        {errors.hasMissingTableReferenceError && (
-          <ErrorPopover
-            title="Data Unavailable"
-            description="Some data could not be matched or processed. Please review your model configuration and ensure the dataset is compatible."
-            action={
-              canConfigureAgents && (
-                <Button flex={1} round onClick={onToggleEditModel}>
-                  Review
-                </Button>
-              )
-            }
-            level="error"
           />
         )}
       </Box>
@@ -198,7 +210,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       )}
       {isConfigurationOpen && (
         <SemanticDataConfiguration
-          initialStep={errors.hasConnectionError ? ConfigurationStep.DataConnection : undefined}
+          initialStep={connectionError ? ConfigurationStep.DataConnection : undefined}
           onClose={onToggleEditModel}
           modelId={model.id}
         />

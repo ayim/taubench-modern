@@ -9,7 +9,7 @@ import {
   ServerResponse,
 } from './shared';
 
-import { SemanticModel } from './semanticData';
+import { getAgentSemanticDataValidationQueryKey, SemanticModel } from './semanticData';
 import { getTableDimensions } from '../lib/SemanticDataModels';
 
 export type DataConnection = DataConnectionBase & {
@@ -120,8 +120,9 @@ export const useUpdateDataConnectionMutation = createSparMutation<{ dataConnecti
     },
     onSuccess: (_, dataConnection) => {
       queryClient.setQueryData(dataConnectionsQueryKey(), (dataConnections: DataConnection[]) => {
-        return dataConnections.map((curr) => (curr.id === dataConnectionId ? dataConnection : curr));
+        return dataConnections?.map((curr) => (curr.id === dataConnectionId ? dataConnection : curr)) || [];
       });
+      queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey() });
     },
   }),
 );

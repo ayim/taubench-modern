@@ -32,6 +32,7 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
         isLoading: false,
         error: undefined,
         inspectionResult,
+        requiresInspection: false,
       });
       setValue('dataSelection', tablesToDataSelection(inspectionResult));
 
@@ -48,6 +49,7 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
       isLoading: false,
       error: undefined,
       inspectionResult: undefined,
+      requiresInspection: false,
     });
     setValue('fileRefId', undefined);
   };
