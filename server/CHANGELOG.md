@@ -1,3 +1,17 @@
+# Sema4.ai Agent Server 2.2.10 (2025-12-18)
+
+* gemini 3 flash in server/spar [#1977](https://github.com/Sema4AI/agent-platform/pull/1977)
+* [ENG-23] Support client credential (machine 2 machine) OAuth2 flow [#1934](https://github.com/Sema4AI/agent-platform/pull/1934)
+* DEV-2435: MCP Selected Tools - Type Mismatching - DB Migration [#1984](https://github.com/Sema4AI/agent-platform/pull/1984)
+* DIN-884: use file ref for generate and parse endpoints [#1992](https://github.com/Sema4AI/agent-platform/pull/1992)
+* PRD-1226: Connection error should be extendable to see all the info [#1965](https://github.com/Sema4AI/agent-platform/pull/1965)
+* Add extract document internal tool [#1975](https://github.com/Sema4AI/agent-platform/pull/1975)
+* feat: improving Packages ingress handling, refactoring verbose AgentPackagePayload validation, reading SelectedTools from Agent Spec [#1981](https://github.com/Sema4AI/agent-platform/pull/1981)
+* DIN-872: Custom message type with markdown rendering [#1956](https://github.com/Sema4AI/agent-platform/pull/1956)
+* [SDM-273] Fix `limit=-1` bug in Dataframe slicing logic [#1970](https://github.com/Sema4AI/agent-platform/pull/1970)
+* DEV-2397: Implement Agent Package metadata generation [#1897](https://github.com/Sema4AI/agent-platform/pull/1897)
+* include thinking_config.include_thoughts for any type of thinking level [#1987](https://github.com/Sema4AI/agent-platform/pull/1987)
+
 # Sema4.ai Agent Server 2.2.9 (2025-12-17)
 
 * GPT-1634 Introduce an "alias" read-only property for Platform Parameters [#1936](https://github.com/Sema4AI/agent-platform/pull/1936)
