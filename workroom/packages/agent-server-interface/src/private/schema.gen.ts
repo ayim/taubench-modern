@@ -4660,16 +4660,6 @@ export interface components {
       /** Instructions */
       instructions?: string | null;
     };
-    /** Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post */
-    Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post: {
-      /** File */
-      file: string;
-      /**
-       * Instructions
-       * @default
-       */
-      instructions: string;
-    };
     /** Body_generate_layout_from_file_document_intelligence_layouts_generate_post */
     Body_generate_layout_from_file_document_intelligence_layouts_generate_post: {
       /** File */
@@ -4687,16 +4677,6 @@ export interface components {
     };
     /** Body_ingest_document_document_intelligence_documents_ingest_post */
     Body_ingest_document_document_intelligence_documents_ingest_post: {
-      /** File */
-      file: string;
-    };
-    /** Body_parse_document_async_document_intelligence_documents_parse_async_post */
-    Body_parse_document_async_document_intelligence_documents_parse_async_post: {
-      /** File */
-      file: string;
-    };
-    /** Body_parse_document_document_intelligence_documents_parse_post */
-    Body_parse_document_document_intelligence_documents_parse_post: {
       /** File */
       file: string;
     };
@@ -5842,6 +5822,18 @@ export interface components {
     GenerateLayoutResponsePayload: {
       layout: components['schemas']['DocumentLayoutPayload'];
       file?: components['schemas']['UploadedFile'] | null;
+    };
+    /**
+     * GenerateSchemaPayload
+     * @description Payload for generate-schema endpoint.
+     */
+    GenerateSchemaPayload: {
+      /**
+       * Instructions
+       * @description Optional instructions for schema generation
+       * @default
+       */
+      instructions: string;
     };
     /** GenerateSchemaResponsePayload */
     GenerateSchemaResponsePayload: {
@@ -18531,6 +18523,7 @@ export interface operations {
       query: {
         agent_id: string;
         thread_id: string;
+        file_ref: string;
         /** @description Force re-generation of the schema. */
         force?: boolean;
       };
@@ -18538,9 +18531,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
+    requestBody?: {
       content: {
-        'multipart/form-data': components['schemas']['Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post'];
+        'application/json':
+          | components['schemas']['GenerateSchemaPayload']
+          | null;
       };
     };
     responses: {
@@ -18569,16 +18564,13 @@ export interface operations {
       query: {
         agent_id: string;
         thread_id: string;
+        file_ref: string;
       };
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_parse_document_document_intelligence_documents_parse_post'];
-      };
-    };
+    requestBody?: never;
     responses: {
       /** @description Successful Response */
       200: {
@@ -18604,16 +18596,13 @@ export interface operations {
     parameters: {
       query: {
         thread_id: string;
+        file_ref: string;
       };
       header?: never;
       path?: never;
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_parse_document_async_document_intelligence_documents_parse_async_post'];
-      };
-    };
+    requestBody?: never;
     responses: {
       /** @description Successful Response */
       200: {

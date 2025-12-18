@@ -30,14 +30,22 @@ class TestDocumentLayouts:
     ) -> DocumentLayoutPayload:
         response = requests.post(
             f"{base_url}/document-intelligence/layouts/generate",
-            data={"file": file},
+            files={"file": (None, file)},  # multipart keeps FastAPI's UploadFile|str happy
             params={
                 "data_model_name": data_model_name,
                 "agent_id": agent_id,
                 "thread_id": thread_id,
             },
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:  # enrich CI failures with body
+            raise AssertionError(
+                "Failed to generate layout.\n"
+                f"status={response.status_code}\n"
+                f"url={response.request.url if response.request else 'unknown'}\n"
+                f"body={response.text}"
+            ) from e
         layout_response = response.json()["layout"]
         return DocumentLayoutPayload.model_validate(layout_response)
 

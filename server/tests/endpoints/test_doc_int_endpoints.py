@@ -3404,14 +3404,14 @@ class TestGenerateExtractionSchemaFromDocument:
         fastapi_app: FastAPI,
         tmp_path: Path,
     ):
-        """Uploading a file directly should upload via file manager and return uploaded_file."""
+        """Test schema generation with file_ref query parameter."""
         storage_instance = StorageService.get_instance()
 
         sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
         await sample_model_creator.setup()
         sample_thread = await sample_model_creator.obtain_sample_thread()
 
-        fake_uploaded = UploadedFile(
+        fake_stored_file = UploadedFile(
             file_id="file-123",
             file_path="/path/to/file.pdf",
             file_ref="uploaded-ref-123",
@@ -3421,18 +3421,8 @@ class TestGenerateExtractionSchemaFromDocument:
             created_at=datetime.now(),
         )
 
-        fake_cache_file = UploadedFile(
-            file_id="cache-file-123",
-            file_path="/path/to/cache.json",
-            file_ref="cache-ref-123",
-            file_hash="cachehash",
-            file_size_raw=512,
-            mime_type="application/json",
-            created_at=datetime.now(),
-        )
-
         fake_file_manager = Mock()
-        fake_file_manager.upload = AsyncMock(return_value=[fake_uploaded, fake_cache_file])
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[fake_stored_file])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"{}")
         fake_file_manager.delete = AsyncMock()
 
@@ -3441,6 +3431,7 @@ class TestGenerateExtractionSchemaFromDocument:
 
         with (
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=sample_thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=fake_stored_file)),
             patch.object(storage_instance, "_validate_agent_exists", new=AsyncMock()),
         ):
             self._override_dependencies(fastapi_app, fake_file_manager, fake_client)
@@ -3450,14 +3441,7 @@ class TestGenerateExtractionSchemaFromDocument:
                 params={
                     "thread_id": sample_thread.thread_id,
                     "agent_id": sample_thread.agent_id,
-                },
-                data={"instructions": ""},
-                files={
-                    "file": (
-                        "sample.pdf",
-                        b"%PDF-1.4\n...",
-                        "application/pdf",
-                    )
+                    "file_ref": "uploaded-ref-123",
                 },
             )
 
@@ -3466,7 +3450,7 @@ class TestGenerateExtractionSchemaFromDocument:
         assert "schema" in body
         assert body["schema"] == {"type": "object", "properties": {}}
 
-        fake_file_manager.upload.assert_awaited()
+        fake_file_manager.refresh_file_paths.assert_awaited()
 
     async def test_generate_schema_with_file_ref(
         self,
@@ -3523,8 +3507,8 @@ class TestGenerateExtractionSchemaFromDocument:
                 params={
                     "thread_id": sample_thread.thread_id,
                     "agent_id": sample_thread.agent_id,
+                    "file_ref": "file-ref-xyz",
                 },
-                data={"file": "file-ref-xyz"},
             )
 
         assert response.status_code == 200
@@ -3542,8 +3526,6 @@ class TestGenerateExtractionSchemaFromDocument:
         tmp_path: Path,
     ):
         """Test that generating schema for the same file twice returns consistent results."""
-        from io import BytesIO
-
         storage_instance = StorageService.get_instance()
         sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
         await sample_model_creator.setup()
@@ -3595,15 +3577,9 @@ class TestGenerateExtractionSchemaFromDocument:
                 params={
                     "thread_id": sample_thread.thread_id,
                     "agent_id": sample_thread.agent_id,
+                    "file_ref": "test_invoice.pdf",
                 },
-                data={"instructions": instructions},
-                files={
-                    "file": (
-                        "test_invoice.pdf",
-                        BytesIO(b"%PDF-1.4\n%Test PDF\n%%EOF"),
-                        "application/pdf",
-                    )
-                },
+                json={"instructions": instructions},
             )
 
             # Validate first response
@@ -3618,8 +3594,9 @@ class TestGenerateExtractionSchemaFromDocument:
                 params={
                     "thread_id": sample_thread.thread_id,
                     "agent_id": sample_thread.agent_id,
+                    "file_ref": "test_invoice.pdf",
                 },
-                data={"file": "test_invoice.pdf", "instructions": instructions},
+                json={"instructions": instructions},
             )
 
             # Validate second response
@@ -4163,8 +4140,8 @@ class TestAsyncDocumentEndpoints:
 
         # Use Mock objects instead of SimpleNamespace for proper attribute access
         thread = Mock(id="thread-1")
-        uploaded = UploadedFile(
-            file_id="new-file-123",
+        stored_file = UploadedFile(
+            file_id="file-123",
             file_path="/test/path",
             file_ref="ref-123",
             file_hash="test-hash",
@@ -4174,7 +4151,7 @@ class TestAsyncDocumentEndpoints:
         )
 
         fake_file_manager = Mock()
-        fake_file_manager.upload = AsyncMock(return_value=[uploaded])
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[stored_file])
         fake_file_manager.read_file_contents = AsyncMock(return_value=b"test-content")
 
         # Create a proper Job instance (not just a Mock)
@@ -4183,11 +4160,6 @@ class TestAsyncDocumentEndpoints:
         fake_async_extraction_client = Mock()
         fake_async_extraction_client.upload = AsyncMock(return_value="doc-url-789")
         fake_async_extraction_client.start_parse = AsyncMock(return_value=mock_job)
-
-        # Mock the integration as a dict instead of SimpleNamespace
-        mock_integration = Mock()
-        mock_integration.endpoint = "https://reducto"
-        mock_integration.api_key = SecretString("key")
 
         with (
             patch.object(
@@ -4214,6 +4186,7 @@ class TestAsyncDocumentEndpoints:
                 ),
             ),
             patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=stored_file)),
             patch(
                 "agent_platform.server.api.dependencies.FileManagerService.get_instance",
                 return_value=fake_file_manager,
@@ -4225,19 +4198,18 @@ class TestAsyncDocumentEndpoints:
         ):
             resp = client.post(
                 "/api/v2/document-intelligence/documents/parse/async",
-                params={"thread_id": "thread-1"},
-                files={"file": ("test.pdf", b"pdf-content", "application/pdf")},
+                params={"thread_id": "thread-1", "file_ref": "ref-123"},
             )
 
         assert resp.status_code == 200
         body = resp.json()
         assert body["job_id"] == "parse-job-456"
         assert body["job_type"] == JobType.PARSE
-        assert "uploaded_file" in body
-        assert body["uploaded_file"]["file_id"] == "new-file-123"
+        # file_ref refers to existing file, no new upload
+        assert body["uploaded_file"] is None
 
         # Verify async methods were called
-        fake_async_extraction_client.upload.assert_awaited_once()
+        fake_file_manager.refresh_file_paths.assert_awaited_once()
         fake_async_extraction_client.start_parse.assert_awaited_once()
 
     def test_extract_async_with_layout_returns_job(self, client: TestClient):
@@ -4732,8 +4704,7 @@ class TestAsyncDocumentEndpoints:
         ):
             resp = client.post(
                 "/api/v2/document-intelligence/documents/parse/async",
-                params={"thread_id": "thread-1"},
-                data={"file": "ref-456"},
+                params={"thread_id": "thread-1", "file_ref": "ref-456"},
             )
 
         assert resp.status_code == 200

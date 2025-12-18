@@ -1073,14 +1073,14 @@ class AgentServerClient:
     def generate_extraction_schema(self, file_ref: str, thread_id: str, agent_id: str) -> GenerateSchemaResponsePayload:
         url = urljoin(
             self.base_url + "/",
-            f"document-intelligence/documents/generate-schema?thread_id={thread_id}&agent_id={agent_id}",
+            f"document-intelligence/documents/generate-schema?thread_id={thread_id}&agent_id={agent_id}&file_ref={file_ref}",
         )
 
         headers = {
             "Accept": "application/json",
         }
 
-        response = requests.post(url, headers=headers, data={"file": file_ref})
+        response = requests.post(url, headers=headers, json={"instructions": ""})
 
         try:
             response.raise_for_status()
@@ -1137,13 +1137,13 @@ class AgentServerClient:
         """
         url = urljoin(
             self.base_url + "/",
-            f"document-intelligence/documents/parse?agent_id={agent_id}&thread_id={thread_id}",
+            f"document-intelligence/documents/parse?agent_id={agent_id}&thread_id={thread_id}&file_ref={file_ref}",
         )
         headers = {
             "Accept": "application/json",
         }
 
-        response = requests.post(url, headers=headers, data={"file": file_ref})
+        response = requests.post(url, headers=headers)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -1155,12 +1155,12 @@ class AgentServerClient:
     def start_async_document_parse(self, file_ref: str, thread_id: str) -> JobStartResponsePayload:
         url = urljoin(
             self.base_url + "/",
-            f"document-intelligence/documents/parse/async?thread_id={thread_id}",
+            f"document-intelligence/documents/parse/async?thread_id={thread_id}&file_ref={file_ref}",
         )
         headers = {
             "Accept": "application/json",
         }
-        response = requests.post(url, headers=headers, data={"file": file_ref})
+        response = requests.post(url, headers=headers)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:

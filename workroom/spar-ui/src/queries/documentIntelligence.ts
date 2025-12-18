@@ -40,8 +40,12 @@ type ExecuteQualityChecksRequest = ServerRequest<
   'requestBody'
 >;
 
-// File upload types for document intelligence endpoints
-type DocumentIntelligenceFileUpload = File;
+/**
+ * File upload types for document intelligence endpoints
+ * - can be passed as File - will trigger file re-upload
+ * - can be passed as file reference - will not trigger file re-upload
+ */
+type DocumentIntelligenceFileUpload = File | string;
 
 // Layout data type from agent-server-interface
 type DocumentLayoutPayload = components['schemas']['DocumentLayoutPayload'];
@@ -128,18 +132,14 @@ export const useParseDocumentMutation = createSparMutation<
     threadId,
     formData,
   }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/parse'>> => {
+    const fileRef = typeof formData === 'string' ? formData : formData.name;
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/document-intelligence/documents/parse', {
       params: {
         query: {
           agent_id: agentId,
           thread_id: threadId,
+          file_ref: fileRef,
         },
-      },
-      body: { file: formData as unknown as string },
-      bodySerializer(body: { file: string }) {
-        const formDataSerializer = new FormData();
-        formDataSerializer.append('file', body.file);
-        return formDataSerializer;
       },
     });
     if (!response.success) {
@@ -297,12 +297,16 @@ export const useGenerateDataModelMutation = createSparMutation<
       '/api/v2/document-intelligence/data-models/generate',
       {
         params: { query: { thread_id: threadId, agent_id: agentId } },
-        body: { file: formData as unknown as string },
-        bodySerializer(body: { file: string }) {
-          const formDataSerializer = new FormData();
-          formDataSerializer.append('file', body.file);
-          return formDataSerializer;
-        },
+        ...(typeof formData === 'string'
+          ? { body: { file: formData } }
+          : {
+              body: { file: formData as unknown as string },
+              bodySerializer(body: { file: string }) {
+                const formDataSerializer = new FormData();
+                formDataSerializer.append('file', body.file);
+                return formDataSerializer;
+              },
+            }),
       },
     );
     if (!response.success) {
@@ -420,12 +424,16 @@ export const useGenerateLayoutMutation = createSparMutation<
           agent_id: agentId,
         },
       },
-      body: { file: formData as unknown as string },
-      bodySerializer(body: { file: string }) {
-        const formDataSerializer = new FormData();
-        formDataSerializer.append('file', body.file);
-        return formDataSerializer;
-      },
+      ...(typeof formData === 'string'
+        ? { body: { file: formData } }
+        : {
+            body: { file: formData as unknown as string },
+            bodySerializer(body: { file: string }) {
+              const formDataSerializer = new FormData();
+              formDataSerializer.append('file', body.file);
+              return formDataSerializer;
+            },
+          }),
     });
     if (!response.success) {
       throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
@@ -460,12 +468,16 @@ export const useIngestDocumentMutation = createSparMutation<
           agent_id: agentId,
         },
       },
-      body: { file: formData as unknown as string },
-      bodySerializer(body: { file: string }) {
-        const formDataSerializer = new FormData();
-        formDataSerializer.append('file', body.file);
-        return formDataSerializer;
-      },
+      ...(typeof formData === 'string'
+        ? { body: { file: formData } }
+        : {
+            body: { file: formData as unknown as string },
+            bodySerializer(body: { file: string }) {
+              const formDataSerializer = new FormData();
+              formDataSerializer.append('file', body.file);
+              return formDataSerializer;
+            },
+          }),
     });
     if (!response.success) {
       throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
@@ -560,20 +572,20 @@ export const useGenerateExtractionSchemaMutation = createSparMutation<
     instructions,
     force,
   }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/generate-schema'>> => {
+    const fileRef = typeof formData === 'string' ? formData : formData.name;
     const response = await sparAPIClient.queryAgentServer(
       'post',
       '/api/v2/document-intelligence/documents/generate-schema',
       {
-        params: { query: { thread_id: threadId, agent_id: agentId, force } },
-        body: { file: formData as unknown as string, instructions },
-        bodySerializer(body: { file: string; instructions?: string | null }) {
-          const formDataSerializer = new FormData();
-          formDataSerializer.append('file', body.file);
-          if (body.instructions) {
-            formDataSerializer.append('instructions', body.instructions);
-          }
-          return formDataSerializer;
+        params: {
+          query: {
+            thread_id: threadId,
+            agent_id: agentId,
+            force,
+            file_ref: fileRef,
+          },
         },
+        body: { instructions },
       },
     );
     if (!response.success) {

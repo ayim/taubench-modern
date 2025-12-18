@@ -86,7 +86,7 @@ export const useDocumentLayoutFlow = () => {
         const parseResult = await parseDocumentMutation.mutateAsync({
           agentId,
           threadId,
-          formData: fileRef,
+          formData: fileRef.name,
         });
 
         setParseData(parseResult);
@@ -106,7 +106,7 @@ export const useDocumentLayoutFlow = () => {
           const schemaResult = await generateExtractionSchemaMutation.mutateAsync({
             threadId,
             agentId,
-            formData: fileRef,
+            formData: fileRef.name,
             instructions: '', // TODO: User needs to be able to provide a system prompt.
             force: false,
           });

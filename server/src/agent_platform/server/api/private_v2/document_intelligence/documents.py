@@ -1,6 +1,6 @@
 from typing import Annotated, Any, cast
 
-from fastapi import APIRouter, Form, UploadFile
+from fastapi import APIRouter, UploadFile
 from fastapi.params import Query
 from pydantic import BaseModel, Field
 from sema4ai_docint.extraction.reducto.async_ import JobType
@@ -41,6 +41,12 @@ logger = get_logger(__name__)
 
 
 router = APIRouter()
+
+
+class GenerateSchemaPayload(BaseModel):
+    """Payload for generate-schema endpoint."""
+
+    instructions: str = Field(default="", description="Optional instructions for schema generation")
 
 
 CITATION_CORRELATION_DOCS = """The citations included with results from this endpoint can be
@@ -242,14 +248,14 @@ async def get_extraction_schema_for_document(
 @router.post("/documents/generate-schema")
 async def generate_extraction_schema_from_document(
     user: AuthedUser,
-    file: UploadFile | str,
     agent_id: str,
     thread_id: str,
+    file_ref: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     di_service_with_persistence: CachingDIServiceDependency,
     force: Annotated[bool, Query(description="Force re-generation of the schema.")] = False,
-    instructions: Annotated[str, Form(...)] = "",
+    payload: GenerateSchemaPayload | None = None,
 ) -> GenerateSchemaResponsePayload:
     """Generate an extraction schema from a document.
 
@@ -258,12 +264,14 @@ async def generate_extraction_schema_from_document(
     """
     from sema4ai_docint import DIService
 
+    instructions = payload.instructions if payload else ""
+
     # Get the thread
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
     # Always put the file in Agent thread storage
     uploaded_file, _ = await _get_or_upload_file(
-        file,
+        file_ref,
         thread=thread,
         user_id=user.user_id,
         storage=storage,
@@ -287,9 +295,9 @@ async def generate_extraction_schema_from_document(
 @router.post("/documents/parse")
 async def parse_document(
     user: AuthedUser,
-    file: UploadFile | str,  # a direct upload or a file ref
     agent_id: str,
     thread_id: str,
+    file_ref: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     di_service_with_persistence: CachingDIServiceDependency,
@@ -307,7 +315,7 @@ async def parse_document(
 
     # Always put the file in Agent thread storage
     uploaded_file, _ = await _get_or_upload_file(
-        file,
+        file_ref,
         thread=thread,
         user_id=user.user_id,
         storage=storage,
@@ -332,8 +340,8 @@ async def parse_document(
 @router.post("/documents/parse/async")
 async def parse_document_async(
     user: AuthedUser,
-    file: UploadFile | str,  # a direct upload or a file ref
     thread_id: str,
+    file_ref: str,
     storage: StorageDependency,
     file_manager: FileManagerDependency,
     extraction_client: AsyncExtractionClientDependency,
@@ -355,7 +363,7 @@ async def parse_document_async(
     thread = await _get_thread_or_404(storage, user.user_id, thread_id)
 
     uploaded_file, new_file = await _get_or_upload_file(
-        file,
+        file_ref,
         thread=thread,
         user_id=user.user_id,
         storage=storage,

@@ -5553,6 +5553,15 @@ export const spec = {
             },
           },
           {
+            name: 'file_ref',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'File Ref',
+            },
+          },
+          {
             name: 'force',
             in: 'query',
             required: false,
@@ -5566,11 +5575,18 @@ export const spec = {
           },
         ],
         requestBody: {
-          required: true,
           content: {
-            'multipart/form-data': {
+            'application/json': {
               schema: {
-                $ref: '#/components/schemas/Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post',
+                anyOf: [
+                  {
+                    $ref: '#/components/schemas/GenerateSchemaPayload',
+                  },
+                  {
+                    type: 'null',
+                  },
+                ],
+                title: 'Payload',
               },
             },
           },
@@ -5626,17 +5642,16 @@ export const spec = {
               title: 'Thread Id',
             },
           },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'multipart/form-data': {
-              schema: {
-                $ref: '#/components/schemas/Body_parse_document_document_intelligence_documents_parse_post',
-              },
+          {
+            name: 'file_ref',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'File Ref',
             },
           },
-        },
+        ],
         responses: {
           '200': {
             description: 'Successful Response',
@@ -5679,17 +5694,16 @@ export const spec = {
               title: 'Thread Id',
             },
           },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'multipart/form-data': {
-              schema: {
-                $ref: '#/components/schemas/Body_parse_document_async_document_intelligence_documents_parse_async_post',
-              },
+          {
+            name: 'file_ref',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'File Ref',
             },
           },
-        },
+        ],
         responses: {
           '200': {
             description: 'Successful Response',
@@ -11784,32 +11798,6 @@ export const spec = {
           title:
             'Body_generate_data_model_from_document_document_intelligence_data_models_generate_post',
         },
-      Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post:
-        {
-          properties: {
-            file: {
-              anyOf: [
-                {
-                  type: 'string',
-                  format: 'binary',
-                },
-                {
-                  type: 'string',
-                },
-              ],
-              title: 'File',
-            },
-            instructions: {
-              type: 'string',
-              title: 'Instructions',
-              default: '',
-            },
-          },
-          type: 'object',
-          required: ['file'],
-          title:
-            'Body_generate_extraction_schema_from_document_document_intelligence_documents_generate_schema_post',
-        },
       Body_generate_layout_from_file_document_intelligence_layouts_generate_post:
         {
           properties: {
@@ -11873,46 +11861,6 @@ export const spec = {
         required: ['file'],
         title:
           'Body_ingest_document_document_intelligence_documents_ingest_post',
-      },
-      Body_parse_document_async_document_intelligence_documents_parse_async_post:
-        {
-          properties: {
-            file: {
-              anyOf: [
-                {
-                  type: 'string',
-                  format: 'binary',
-                },
-                {
-                  type: 'string',
-                },
-              ],
-              title: 'File',
-            },
-          },
-          type: 'object',
-          required: ['file'],
-          title:
-            'Body_parse_document_async_document_intelligence_documents_parse_async_post',
-        },
-      Body_parse_document_document_intelligence_documents_parse_post: {
-        properties: {
-          file: {
-            anyOf: [
-              {
-                type: 'string',
-                format: 'binary',
-              },
-              {
-                type: 'string',
-              },
-            ],
-            title: 'File',
-          },
-        },
-        type: 'object',
-        required: ['file'],
-        title: 'Body_parse_document_document_intelligence_documents_parse_post',
       },
       Body_upload_thread_files_threads__tid__files_post: {
         properties: {
@@ -14713,6 +14661,19 @@ export const spec = {
         type: 'object',
         required: ['layout'],
         title: 'GenerateLayoutResponsePayload',
+      },
+      GenerateSchemaPayload: {
+        properties: {
+          instructions: {
+            type: 'string',
+            title: 'Instructions',
+            description: 'Optional instructions for schema generation',
+            default: '',
+          },
+        },
+        type: 'object',
+        title: 'GenerateSchemaPayload',
+        description: 'Payload for generate-schema endpoint.',
       },
       GenerateSchemaResponsePayload: {
         properties: {

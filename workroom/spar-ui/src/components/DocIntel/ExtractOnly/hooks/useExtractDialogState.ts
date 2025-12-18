@@ -82,7 +82,7 @@ export const useExtractDialogState = ({
         const result = await generateSchema({
           agentId,
           threadId,
-          formData: file,
+          formData: file.name,
           instructions: generatePayload?.instructions ?? '',
           force: generatePayload?.force ?? false,
         });

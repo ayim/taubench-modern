@@ -34,7 +34,7 @@ export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, fil
       const result = await mutateAsync({
         agentId,
         threadId,
-        formData: file,
+        formData: file.name,
       });
 
       setParseResult(result);
