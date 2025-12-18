@@ -480,7 +480,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
                     )}
                     {shouldAllowRegenerating && (
                       <Button variant="outline" onClick={() => setOpenRetryExtract(true)} round>
-                        Regenerate
+                        Regen Schema
                       </Button>
                     )}
                     {shouldAllowSendingToThread && (
