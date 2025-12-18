@@ -1,9 +1,3 @@
-"""Integration tests for document tools (parse_document and generate_schema).
-
-These tests verify that the document intelligence functionality works correctly
-when called via kernel tools during agent execution.
-"""
-
 from collections.abc import Callable
 from pathlib import Path
 

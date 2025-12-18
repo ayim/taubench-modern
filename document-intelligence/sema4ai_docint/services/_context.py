@@ -49,6 +49,14 @@ class _DIContext:
             self._agent_client = AgentServerClient(transport=self.agent_server_transport)
         return self._agent_client
 
+    async def close(self) -> None:
+        """Close all async resources held by this context.
+
+        This should be called when the context is no longer needed to avoid resource leaks.
+        """
+        if self.extraction_service_async is not None:
+            await self.extraction_service_async.close()
+
     @classmethod
     def create(
         cls,

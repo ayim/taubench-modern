@@ -173,3 +173,19 @@ class DIService:
         """Access to the extraction service for multi-client document extraction if
         sema4_api_key is provided."""
         return self._context.extraction_service_async
+
+    async def close(self) -> None:
+        """Close all async resources held by the DIService.
+
+        This should be called when the service is no longer needed to avoid resource leaks.
+        For example, call this after completing document extraction operations.
+        """
+        await self._context.close()
+
+    async def __aenter__(self) -> "DIService":
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit - ensures cleanup."""
+        await self.close()

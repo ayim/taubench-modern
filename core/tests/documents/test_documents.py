@@ -81,6 +81,8 @@ async def test_documents_system_prompt_with_documents():
 
     assert "## Documents Available" in prompt
     assert "parse_document" in prompt
+    assert "generate_schema" in prompt
+    assert "extract_document" in prompt
     assert "invoice.pdf" in prompt
     assert "create_data_frame_from_json" in prompt
 

@@ -44,7 +44,7 @@ class TestDirectoryPersistenceService:
 
         # Test EXTRACT operation
         cache_key = service.cache_key_for("data.xlsx", DocumentOperationType.EXTRACT)
-        assert cache_key == "data.xlsx.extract.json"
+        assert cache_key == "data.xlsx.extracted.json"
 
     async def test_file_paths_generated_correctly(self, tmp_path):
         """Test that cache files are saved in the correct directory location."""

@@ -137,6 +137,10 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
                     document_tools.generate_schema,
                     name="generate_schema",
                 ),
+                ToolDefinition.from_callable(
+                    document_tools.extract_document,
+                    name="extract_document",
+                ),
             )
             state.documents_tools_state = "enabled"
             logger.info("Document tools registered", num_tools=len(self._document_tools))
@@ -178,17 +182,24 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         The following documents have been uploaded and are available for parsing and analysis.
         Use the `parse_document` tool to get the content from a document.
         Use the `generate_schema` tool to create a JSON schema from a document.
+        Use the `extract_document` tool to extract structured data from a document using a schema.
 
         """)
         prompt += self.documents_summary
         prompt += "\n\n"
         prompt += dedent("""
         **Tips for working with documents:**
-        - Use `parse_document(file_ref="filename.pdf")` to get the content from
-          a document
+        - Use `parse_document(file_name="filename.pdf")` to get the content from
+          a document. If force_reload is False, the result will pulled from cache.
         - After parsing, you can create data frames from the content using
           `create_data_frame_from_json`.
-        - The content includes text, tables, figures, and document structure
+        - Use `generate_schema(file_name="filename.pdf")` to automatically generate
+          a JSON schema describing the document's structure.
+          If force_reload is False, the result will pulled from cache.
+        - Use `extract_document(extraction_schema={...}, file_name="filename.pdf")` to
+          extract structured data matching your schema.
+          If the input parameters are the same, the result will pulled from cache.
+        - The content includes text, tables, figures, and document structure.
         """)
 
         return prompt
@@ -240,12 +251,9 @@ class _DocumentTools:
 
     async def parse_document(
         self,
-        file_ref: Annotated[
+        file_name: Annotated[
             str,
-            (
-                "The file reference to parse. This should be the filename only "
-                "(e.g., 'invoice.pdf' or 'document.docx'), not a file ID or path."
-            ),
+            "The name of the file to parse (e.g., 'invoice.pdf' or 'document.docx').",
         ],
         force_reload: Annotated[
             bool,
@@ -261,7 +269,7 @@ class _DocumentTools:
         - Metadata about the document
 
         The parsed result is automatically cached in thread storage. Subsequent calls
-        with the same file_ref will return the cached result unless force_reload is True.
+        with the same file_name will return the cached result unless force_reload is True.
 
         Args:
             file_ref: The filename of the document to parse
@@ -329,21 +337,20 @@ class _DocumentTools:
             from sema4ai_docint.services.persistence import ChatFilePersistenceService
             from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
 
-            di_service = build_di_service(
+            async with build_di_service(
                 datasource=None,
                 sema4_api_key=api_key,
                 agent_server_transport=transport,
                 persistence_service=ChatFilePersistenceService(
                     chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
                 ),
-            )
+            ) as di_service:
+                # Parse using DIService with automatic caching
+                doc = await di_service.document_v2.new_document(file_name)
+                parse_response = await di_service.document_v2.parse(doc, force_reload=force_reload)
 
-            # Parse using DIService with automatic caching
-            doc = await di_service.document_v2.new_document(file_ref)
-            parse_response = await di_service.document_v2.parse(doc, force_reload=force_reload)
-
-            # Convert response to LLM-friendly dictionary
-            return parse_response.model_dump()
+                # Convert response to LLM-friendly dictionary
+                return parse_response.model_dump()
 
         except PlatformHTTPError as e:
             return {
@@ -351,7 +358,7 @@ class _DocumentTools:
                 "message": e.response.message,
             }
         except Exception as e:
-            logger.exception("Error parsing document", error=e, file_ref=file_ref)
+            logger.exception("Error parsing document", error=e, file_name=file_name)
             return {
                 "error_code": "parse_error",
                 "message": f"Failed to parse document: {e!s}",
@@ -359,12 +366,9 @@ class _DocumentTools:
 
     async def generate_schema(
         self,
-        file_ref: Annotated[
+        file_name: Annotated[
             str,
-            (
-                "The file reference to generate a schema from. This should be the filename only "
-                "(e.g., 'invoice.pdf' or 'document.docx')."
-            ),
+            "The name of the file to generate a schema from (e.g., 'invoice.pdf' or 'document.docx').",
         ],
         start_page: Annotated[
             int | None,
@@ -453,26 +457,25 @@ class _DocumentTools:
             from sema4ai_docint.services.persistence import ChatFilePersistenceService
             from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
 
-            di_service = build_di_service(
+            async with build_di_service(
                 datasource=None,
                 sema4_api_key=api_key,
                 agent_server_transport=transport,
                 persistence_service=ChatFilePersistenceService(
                     chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
                 ),
-            )
+            ) as di_service:
+                # Generate schema using DIService with automatic caching
+                doc = await di_service.document_v2.new_document(file_name)
+                schema = await di_service.document_v2.generate_schema(
+                    doc,
+                    force_reload=force_reload,
+                    start_page=start_page,
+                    end_page=end_page,
+                    user_prompt=user_prompt,
+                )
 
-            # Generate schema using DIService with automatic caching
-            doc = await di_service.document_v2.new_document(file_ref)
-            schema = await di_service.document_v2.generate_schema(
-                doc,
-                force_reload=force_reload,
-                start_page=start_page,
-                end_page=end_page,
-                user_prompt=user_prompt,
-            )
-
-            return schema
+                return schema
 
         except PlatformHTTPError as e:
             return {
@@ -480,8 +483,154 @@ class _DocumentTools:
                 "message": e.response.message,
             }
         except Exception as e:
-            logger.exception("Error generating schema", error=e, file_ref=file_ref)
+            logger.exception("Error generating schema", error=e, file_name=file_name)
             return {
                 "error_code": "schema_generation_error",
                 "message": f"Failed to generate schema: {e!s}",
+            }
+
+    async def extract_document(
+        self,
+        extraction_schema: Annotated[
+            str,
+            "The JSONSchema as a JSON string which describes the desired extracted output from the file.",
+        ],
+        file_name: Annotated[
+            str,
+            "The name of the file to extract (e.g., 'invoice.pdf' or 'document.docx').",
+        ],
+        start_page: Annotated[
+            int | None,
+            "Optional starting page number (1-indexed) for page range extraction.",
+        ] = None,
+        end_page: Annotated[
+            int | None,
+            "Optional ending page number (1-indexed) for page range extraction.",
+        ] = None,
+        force_reload: Annotated[
+            bool,
+            "If True, bypass cache and force re-extraction of the document.",
+        ] = False,
+    ) -> dict[str, Any]:
+        """Extract structured data from a document using a JSON Schema.
+
+        This tool extracts data from a document (PDF, DOCX, etc.) according to a provided
+        JSON Schema (as a JSON string).
+
+        The extracted result is automatically cached in thread storage. Subsequent calls
+        with the same parameters will return the cached result unless force_reload is True or the
+        parameters are different.
+
+        Args:
+            extraction_schema: JSON Schema as a JSON string describing the desired output structure
+            file_ref: The filename of the document to extract from (required)
+            start_page: Optional starting page for extraction (1-indexed)
+            end_page: Optional ending page for extraction (1-indexed)
+            force_reload: If True, bypass cache and re-extract the document
+
+        Returns:
+            A dictionary containing the extracted data matching the provided schema
+        """
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.server.storage.errors import IntegrationNotFoundError
+
+        try:
+            # Validate and parse extraction schema
+            if not extraction_schema:
+                return {
+                    "error_code": "invalid_input",
+                    "message": "extraction_schema is required and must describe an object",
+                }
+
+            import json
+
+            try:
+                schema_dict = json.loads(extraction_schema)
+            except json.JSONDecodeError as e:
+                return {
+                    "error_code": "invalid_schema",
+                    "message": f"extraction_schema is not valid JSON: {e!s}",
+                }
+
+            kernel = self._kernel
+            # Get Reducto integration configuration to extract API key
+            try:
+                reducto_integration = await self._storage.get_integration_by_kind("reducto")
+            except IntegrationNotFoundError:
+                return {
+                    "error_code": "reducto_not_configured",
+                    "message": ("Reducto integration is not configured. Please configure it first."),
+                }
+
+            from agent_platform.core.integrations.settings.reducto import ReductoSettings
+
+            if not isinstance(reducto_integration.settings, ReductoSettings):
+                return {
+                    "error_code": "invalid_reducto_config",
+                    "message": "Reducto integration has invalid settings",
+                }
+
+            reducto_settings = reducto_integration.settings
+
+            from agent_platform.core.utils import SecretString
+
+            # Extract API key
+            api_key = (
+                reducto_settings.api_key.get_secret_value()
+                if isinstance(reducto_settings.api_key, SecretString)
+                else str(reducto_settings.api_key)
+            )
+
+            from agent_platform.server.document_intelligence import DirectKernelTransport
+            from agent_platform.server.file_manager import FileManagerService
+
+            file_manager = FileManagerService.get_instance(self._storage)
+            transport = DirectKernelTransport(
+                storage=self._storage,
+                file_manager=file_manager,
+                thread_id=kernel.thread.thread_id,
+                agent_id=kernel.agent.agent_id,
+                user_id=self._user.user_id,
+                server_context=kernel.ctx,
+            )
+
+            # Build DIService with file-based persistence (same as parse_document)
+            from sema4ai_docint import build_di_service
+            from sema4ai_docint.services.persistence import ChatFilePersistenceService
+            from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
+
+            async with build_di_service(
+                datasource=None,
+                sema4_api_key=api_key,
+                agent_server_transport=transport,
+                persistence_service=ChatFilePersistenceService(
+                    chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
+                ),
+            ) as di_service:
+                # Extract using DIService with automatic caching
+                doc = await di_service.document_v2.new_document(file_name)
+                result = await di_service.document_v2.extract_document(
+                    doc,
+                    schema_dict,
+                    force_reload=force_reload,
+                    start_page=start_page,
+                    end_page=end_page,
+                )
+
+                return result.model_dump()
+
+        except PlatformHTTPError as e:
+            return {
+                "error_code": str(e.response.code),
+                "message": e.response.message,
+            }
+        except Exception as e:
+            logger.exception(
+                "Error extracting from document",
+                error=e,
+                file_name=file_name,
+            )
+            return {
+                "error_code": "extraction_error",
+                "message": f"Failed to extract from document: {e!s}",
             }

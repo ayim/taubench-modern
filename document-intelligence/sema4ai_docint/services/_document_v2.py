@@ -1,9 +1,11 @@
 import asyncio
+import hashlib
 import json
 from pathlib import PurePath
 
 from reducto.types import ParseResponse
 
+from sema4ai_docint.models import ExtractionResult
 from sema4ai_docint.models.document_v2 import DocumentV2
 from sema4ai_docint.services._context import _DIContext
 from sema4ai_docint.services.exceptions import DocumentServiceError
@@ -176,3 +178,91 @@ class _DocumentServiceV2:
         await self._context.persistence_service.save(cache_key, json.dumps(schema).encode())
 
         return schema
+
+    async def extract_document(
+        self,
+        document: DocumentV2,
+        extraction_schema: dict,
+        *,
+        force_reload: bool = False,
+        extraction_config: dict | None = None,
+        prompt: str | None = None,
+        start_page: int | None = None,
+        end_page: int | None = None,
+    ) -> ExtractionResult:
+        """Extract structured data from a document using a JSON Schema.
+
+        This method extracts data from a document according to a provided JSON Schema.
+        If a persistence service is available, the extracted data is automatically cached.
+        Subsequent calls with the same parameters will return the cached result unless
+        force_reload is True.
+
+        Args:
+            document: The document to extract from
+            extraction_schema: JSON Schema describing the desired output structure
+            force_reload: If True, bypass cache and re-extract the data
+            extraction_config: Optional advanced Reducto configuration
+            prompt: Optional instructions to guide the extraction process
+            start_page: Optional starting page for extraction (1-indexed)
+            end_page: Optional ending page for extraction (1-indexed)
+
+        Returns:
+            A dictionary containing the extracted data matching the provided schema
+
+        Raises:
+            AssertionError: If required context dependencies are not available
+        """
+        from sema4ai_docint.services.persistence import DocumentOperationType
+
+        assert self._context.extraction_service_async is not None, "Extraction service is required."
+        assert self._context.agent_server_transport is not None, (
+            "Agent server transport is required."
+        )
+
+        # Compute hash of extraction parameters for cache validation
+        params_dict = {
+            "extraction_schema": extraction_schema,
+            "extraction_config": extraction_config,
+            "start_page": start_page,
+            "end_page": end_page,
+            "thread_id": self._context.agent_server_transport.thread_id,
+        }
+        params_hash = hashlib.sha256(json.dumps(params_dict, sort_keys=True).encode()).hexdigest()
+
+        if not force_reload and self._context.persistence_service:
+            cache_key = self._context.persistence_service.cache_key_for(
+                document.file_name, DocumentOperationType.EXTRACT
+            )
+            cached = await self._context.persistence_service.load(cache_key)
+            if cached:
+                cached_data = json.loads(cached)
+                if cached_data.pop("params_hash", None) == params_hash:
+                    return ExtractionResult(**cached_data)
+
+        # Prepare extraction input - use local file path
+        extraction_input = await document.get_local_path(self._context.agent_server_transport)
+
+        # Perform extraction
+        extract_response = await self._context.extraction_service_async.extract_with_schema(
+            extraction_input=extraction_input,
+            extraction_schema=extraction_schema,
+            extraction_config=extraction_config,
+            prompt=prompt,
+            start_page=start_page,
+            end_page=end_page,
+        )
+
+        if self._context.persistence_service:
+            cache_key = self._context.persistence_service.cache_key_for(
+                document.file_name, DocumentOperationType.EXTRACT
+            )
+            cache_entry = {
+                "results": extract_response.results,
+                "citations": extract_response.citations,
+                "params_hash": params_hash,
+            }
+            await self._context.persistence_service.save(
+                cache_key, json.dumps(cache_entry).encode()
+            )
+
+        return extract_response

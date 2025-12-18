@@ -8,7 +8,7 @@ class DocumentOperationType(str, Enum):
 
     PARSE = "parse"
     SCHEMA = "schema"
-    EXTRACT = "extract"
+    EXTRACT = "extracted"  # Uses "extracted" for compatibility with existing caches
 
 
 class DocumentPersistence(Protocol):
