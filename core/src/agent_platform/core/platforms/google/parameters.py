@@ -138,6 +138,12 @@ class GooglePlatformParameters(PlatformParameters):
         if not vertex_credentials:
             return
 
+        # If the client sent a parsed JSON object (dict), dump it back to a string
+        if isinstance(vertex_credentials, dict):
+            import json
+
+            vertex_credentials = json.dumps(vertex_credentials)
+
         if not isinstance(vertex_credentials, SecretString):
             vertex_credentials = SecretString(vertex_credentials)
         object.__setattr__(

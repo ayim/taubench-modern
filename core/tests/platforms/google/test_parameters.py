@@ -1,5 +1,6 @@
 """Unit tests for the Google platform parameters."""
 
+import json
 import os
 from unittest.mock import patch
 
@@ -183,6 +184,22 @@ class TestGooglePlatformParameters:
         default_generic = platform_configs.platforms_to_default_model["google"]
         expected_slug = platform_configs.models_to_platform_specific_model_ids[default_generic]
         assert params.models == {"google": [expected_slug]}
+
+    def test_google_parameters_vertex_service_account_accepts_dict(self) -> None:
+        """Service account JSON should accept raw dictionaries."""
+        service_account_dict = {"type": "service_account", "project_id": "test-project"}
+
+        params = GooglePlatformParameters(
+            google_use_vertex_ai=True,
+            google_cloud_project_id="test-project",
+            google_cloud_location="us-central1",
+            # Passing a dict reproduces the issue we're testing for.
+            google_vertex_service_account_json=service_account_dict,  # type: ignore[arg-type]
+        )
+
+        assert isinstance(params.google_vertex_service_account_json, SecretString)
+        secret_value = params.google_vertex_service_account_json.get_secret_value()
+        assert json.loads(secret_value) == service_account_dict
 
     def test_init_uses_api_key_from_environment(self) -> None:
         """API keys should be derived from the GOOGLE_API_KEY env var when missing."""
