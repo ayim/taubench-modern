@@ -1,5 +1,18 @@
 # @sema4ai/spar-ui
 
+## 0.12.0
+
+### Minor Changes
+
+- ba6ed24: Fix non-PDF Document Intelligence UI messaging and layout
+
+### Patch Changes
+
+- d470b4a: Render DIv2 extractet results in chat conversation
+- c402f4b: Fixing an issue where rows with optional/different fields weren't rendering properly in tables
+- 9804b37: Rename schema regeneration in DIv2
+- 65e7ee7: Parese and generate schema in DIv2 by file reference
+
 ## 0.11.0
 
 ### Minor Changes
