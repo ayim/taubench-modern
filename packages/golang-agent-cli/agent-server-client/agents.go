@@ -215,11 +215,11 @@ type AgentMetadata struct {
 }
 
 type SelectedToolConfig struct {
-	ToolName string `json:"tool_name"`
+	Name string `json:"name"`
 }
 
 type SelectedTools struct {
-	ToolNames []SelectedToolConfig `json:"tool_names,omitempty"`
+	Tools []SelectedToolConfig `json:"tools,omitempty"`
 }
 
 // NewSelectedTools creates a new SelectedTools with an empty slice
@@ -230,8 +230,8 @@ func NewSelectedTools() SelectedTools {
 // MarshalJSON ensures that SelectedTools always serializes with an empty array instead of null
 func (st *SelectedTools) MarshalJSON() ([]byte, error) {
 	// If ToolNames is nil, initialize it as an empty slice
-	if st.ToolNames == nil {
-		st.ToolNames = []SelectedToolConfig{}
+	if st.Tools == nil {
+		st.Tools = []SelectedToolConfig{}
 	}
 
 	// Create a temporary struct to avoid infinite recursion

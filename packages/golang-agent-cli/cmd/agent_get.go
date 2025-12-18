@@ -240,12 +240,12 @@ func convertSpecAgentSelectedToolsToAgentServerSelectedTools(selectedTools commo
 	var toolConfigs []AgentServer.SelectedToolConfig
 	for _, toolConfig := range selectedTools.Tools {
 		toolConfigs = append(toolConfigs, AgentServer.SelectedToolConfig{
-			ToolName: toolConfig.Name,
+			Name: toolConfig.Name,
 		})
 	}
 
 	return AgentServer.SelectedTools{
-		ToolNames: toolConfigs,
+		Tools: toolConfigs,
 	}
 }
 

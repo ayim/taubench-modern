@@ -110,9 +110,9 @@ func (state *SpecState) specForAgent(assistant AgentServer.Agent, projectPath st
 
 	// Convert selected_tools from agent to spec format
 	var specSelectedTools common.SpecSelectedTools
-	for _, toolConfig := range assistant.SelectedTools.ToolNames {
+	for _, toolConfig := range assistant.SelectedTools.Tools {
 		specSelectedTools.Tools = append(specSelectedTools.Tools, common.SpecSelectedToolConfig{
-			Name: toolConfig.ToolName,
+			Name: toolConfig.Name,
 		})
 	}
 

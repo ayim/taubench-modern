@@ -316,7 +316,7 @@ type AgentSpec struct {
 
 // AreSelectedToolsEqual compares two SelectedTools configurations
 func AreSelectedToolsEqual(spec *SpecSelectedTools, agent *AgentServer.SelectedTools) bool {
-	if len(spec.Tools) != len(agent.ToolNames) {
+	if len(spec.Tools) != len(agent.Tools) {
 		return false
 	}
 
@@ -327,8 +327,8 @@ func AreSelectedToolsEqual(spec *SpecSelectedTools, agent *AgentServer.SelectedT
 	}
 
 	// Check if each agent tool exists in the spec
-	for _, agentTool := range agent.ToolNames {
-		_, exists := specTools[agentTool.ToolName]
+	for _, agentTool := range agent.Tools {
+		_, exists := specTools[agentTool.Name]
 		if !exists {
 			return false
 		}

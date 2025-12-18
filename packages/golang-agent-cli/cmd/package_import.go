@@ -93,12 +93,12 @@ func getSelectedToolsFromMetadata(metadata []*common.AgentPackageMetadata) Agent
 	var toolConfigs []AgentServer.SelectedToolConfig
 	for _, toolConfig := range metadata[0].SelectedTools.Tools {
 		toolConfigs = append(toolConfigs, AgentServer.SelectedToolConfig{
-			ToolName: toolConfig.Name,
+			Name: toolConfig.Name,
 		})
 	}
 
 	return AgentServer.SelectedTools{
-		ToolNames: toolConfigs,
+		Tools: toolConfigs,
 	}
 }
 

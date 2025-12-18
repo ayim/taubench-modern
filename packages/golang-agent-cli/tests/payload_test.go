@@ -9,11 +9,11 @@ import (
 )
 
 func TestVerifySelectedToolsWhenBuildingPayload(t *testing.T) {
-	jsonString := `{"selected_tools":{"tool_names":[{"tool_name":"tool1"}]}}`
+	jsonString := `{"selected_tools":{"tools":[{"name":"tool1"}]}}`
 	expectedSelectedTools := AgentServer.SelectedTools{
-		ToolNames: []AgentServer.SelectedToolConfig{
+		Tools: []AgentServer.SelectedToolConfig{
 			{
-				ToolName: "tool1",
+				Name: "tool1",
 			},
 		},
 	}
@@ -30,7 +30,7 @@ func TestVerifySelectedToolsWhenBuildingPayload(t *testing.T) {
 
 	// Verify round-trip JSON serialization
 	marshaledJSON, err := json.Marshal(builtPayload.SelectedTools)
-	expectedString := `{"tool_names":[{"tool_name":"tool1"}]}`
+	expectedString := `{"tools":[{"name":"tool1"}]}`
 	assert.NoError(t, err, "Failed to marshal SelectedTools")
 	assert.JSONEq(t, expectedString, string(marshaledJSON), "Marshaled JSON should match expected format")
 }
@@ -40,34 +40,34 @@ func TestVerifySelectedToolsOmitted(t *testing.T) {
 	payload := &AgentServer.AgentPayload{}
 	assert.NoError(t, json.Unmarshal([]byte(jsonString), payload), "Failed to parse JSON")
 	agent := AgentServer.BuildAgent(payload)
-	assert.Equal(t, agent.SelectedTools, AgentServer.SelectedTools{}, "SelectedTools is created with empty ToolNames")
+	assert.Equal(t, agent.SelectedTools, AgentServer.SelectedTools{}, "SelectedTools is created with empty tools")
 
 	builtPayload := AgentServer.BuildAgentPayload(agent)
-	assert.Equal(t, builtPayload.SelectedTools, AgentServer.SelectedTools{}, "SelectedTools is created with empty ToolNames")
+	assert.Equal(t, builtPayload.SelectedTools, AgentServer.SelectedTools{}, "SelectedTools is created with empty tools")
 
 	// Verify round-trip JSON serialization - SelectedTools should be omitted from full payload
 	marshaledPayload, err := json.Marshal(builtPayload.SelectedTools)
 	expectedString := `{}`
 	assert.NoError(t, err, "Failed to marshal SelectedTools")
-	assert.JSONEq(t, expectedString, string(marshaledPayload), "tool_names should be omitted from JSON when empty")
+	assert.JSONEq(t, expectedString, string(marshaledPayload), "tools should be omitted from JSON when empty")
 }
 
 func TestVerifySelectedToolsInitializedToEmptySlice(t *testing.T) {
 	jsonString := `{"selected_tools": {}}`
 	expectedSelectedTools := AgentServer.SelectedTools{
-		ToolNames: nil,
+		Tools: nil,
 	}
 	payload := &AgentServer.AgentPayload{}
 	assert.NoError(t, json.Unmarshal([]byte(jsonString), payload), "Failed to parse JSON")
 	agent := AgentServer.BuildAgent(payload)
 	assert.NotNil(t, agent.SelectedTools, "SelectedTools should not be nil")
-	assert.Equal(t, agent.SelectedTools, expectedSelectedTools, "Selected tools should have empty ToolNames")
-	assert.Empty(t, agent.SelectedTools.ToolNames, "ToolNames should be empty")
+	assert.Equal(t, agent.SelectedTools, expectedSelectedTools, "Selected tools should have empty tools")
+	assert.Empty(t, agent.SelectedTools.Tools, "tools should be empty")
 
 	builtPayload := AgentServer.BuildAgentPayload(agent)
 	assert.NotNil(t, builtPayload.SelectedTools, "SelectedTools should not be nil")
-	assert.Equal(t, builtPayload.SelectedTools, expectedSelectedTools, "Selected tools should have empty ToolNames")
-	assert.Empty(t, builtPayload.SelectedTools.ToolNames, "ToolNames should be empty")
+	assert.Equal(t, builtPayload.SelectedTools, expectedSelectedTools, "Selected tools should have empty tools")
+	assert.Empty(t, builtPayload.SelectedTools.Tools, "tools should be empty")
 
 	// Verify round-trip JSON serialization
 	marshaledJSON, err := json.Marshal(builtPayload.SelectedTools)
