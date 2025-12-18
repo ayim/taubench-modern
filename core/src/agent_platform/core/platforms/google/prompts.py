@@ -96,11 +96,13 @@ class GooglePrompt(PlatformPrompt):
 
         if self.thinking_level or self.thinking_budget > 0:
             thinking_config_fields: dict[str, Any] = {}
+            # if we are enabling thinking (through level or budget), prefer always
+            # including thoughts so downstream consumers can use them
+            thinking_config_fields["include_thoughts"] = True
             if self.thinking_level:
                 thinking_config_fields["thinking_level"] = self.thinking_level
             if self.thinking_budget > 0:
                 thinking_config_fields["thinking_budget"] = self.thinking_budget
-                thinking_config_fields["include_thoughts"] = True
             generation_config_kwargs["thinking_config"] = ThinkingConfig(
                 **thinking_config_fields,
             )

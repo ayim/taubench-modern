@@ -246,6 +246,7 @@ class TestGooglePrompt:
         thinking_config = getattr(config, "thinking_config", None)
         assert thinking_config is not None
         assert str(thinking_config.thinking_level).lower().endswith("low")
+        assert thinking_config.include_thoughts is True
 
     def test_prompt_properties(self, contents: "list[Content]") -> None:
         """Test prompt properties and defaults."""
