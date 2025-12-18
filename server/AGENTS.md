@@ -31,15 +31,8 @@ core/tests/
 ### Import Patterns
 
 - **Use absolute imports**: `from agent_platform.core.errors import PlatformError`
-- **Explicit re-exports in `__init__.py`**: All public APIs use `__all__` lists
-  ```python
-  __all__ = [
-      "ErrorCode",
-      "ErrorResponse",
-      "PlatformError",
-  ]
-  ```
-- **TYPE_CHECKING for circular imports**: Avoid runtime import issues
+- **Avoid doing re-exports in `__init__.py` and prefer to import from the module directly**
+- **Use TYPE_CHECKING for symbols that are only used for type checking**
 
   ```python
   from typing import TYPE_CHECKING
@@ -64,41 +57,19 @@ core/tests/
 
 ### Error Handling
 
-**Use hierarchical exception system** with structured logging integration:
-
-```python
-class PlatformError(Exception):
-    """Base class for platform errors."""
-
-    def __init__(
-        self,
-        error_code: ErrorCode = ErrorCode.UNEXPECTED,
-        message: str | None = None,
-        data: dict[str, Any] | None = None,
-    ) -> None:
-        self.response = ErrorResponse(error_code, message_override=message)
-        self.data = data or {}
-        super().__init__(self.response.message)
-```
-
-**Key principles:**
-
-- Custom error hierarchies inherit from base classes
-- Errors include `error_id` UUID for tracing
-- Structured `data` dict for debugging context
-- HTTP-specific errors inherit from `PlatformHTTPError`
-- Detailed docstrings explain when to use each error type
+**Prefer to use PlatformHttpError** (error messages from those should be readable and
+the related message is sent to the client - as such these messages should not contain sensitive information).
+Subclasses from PlatformHttpError can be used for convenience to create custom error hierarchies.
+Other hierarchies for internal errors should inherit from `PlatformError`.
 
 **Simple error pattern for smaller modules:**
 
 ```python
-class ConfigurationError(Exception):
+class ConfigurationError(PlatformHttpError):
     """Base class for all configuration errors."""
-    pass
 
 class ConfigurationDiscriminatorError(ConfigurationError):
     """Error raised when there is a mismatch between discriminator values."""
-    pass
 ```
 
 ### Async/Await Patterns
@@ -126,7 +97,7 @@ class ConfigurationDiscriminatorError(ConfigurationError):
 
 **Very strict typing throughout:**
 
-- **Union types using `|` syntax** (Python 3.10+)
+- **Union types using `|` syntax**
   ```python
   merged_credentials: dict | None
   user_id: str
@@ -222,17 +193,16 @@ def model_validate(cls, data: dict) -> "User":
 - **Pytest exclusively** for testing framework
 - **Test files**: `test_*.py` naming (e.g., `test_generic_delta.py`)
 - **Test location**: Mirrors source structure in separate `tests/` directory
+- **Whenever possible don't use mocks or dummy data**. Example: to create a test
+  don't use a dummy storage with dummy created data, prefer to use the real sqlite storage
+  with `SampleModelCreator` to create real data and then test the code with that data.
+  -- the postgres storage should be used for storage tests itself, but for testing other
+  behaviors in the platform, usually testing with the sqlite storage is enough.
 
 ### Fixtures Pattern
 
 ```python
 # tests/conftest.py
-@pytest.fixture(scope="session", autouse=True)
-def _load_dotenv():
-    """Load the .env file."""
-    from dotenv import load_dotenv
-    load_dotenv()
-
 @pytest.fixture(autouse=True)
 def _clear_http_proxy_env(monkeypatch):
     """Remove HTTP proxy environment variables."""
@@ -244,35 +214,34 @@ def _clear_http_proxy_env(monkeypatch):
 ### Test Organization
 
 ```python
-class TestGenericDelta:
-    def test_generic_delta_init_and_dict(self):
-        """Basic test to ensure GenericDelta can be constructed."""
-        delta = GenericDelta(op="replace", path="/foo/bar", value="new_value")
-        assert delta.op == "replace"
+def test_generic_delta_init_and_dict():
+    """Basic test to ensure GenericDelta can be constructed."""
+    delta = GenericDelta(op="replace", path="/foo/bar", value="new_value")
+    assert delta.op == "replace"
 
-    @pytest.mark.parametrize(
-        ("op", "path", "value", "from_", "expected_error", "error_match"),
-        [
-            ("add", "/test", "test", None, None, None),
-            ("remove", "invalid", NO_VALUE, None, InvalidPathError, "Invalid target path"),
-        ],
-        ids=["valid-simple-path", "invalid-character-sequence"],
-    )
-    def test_path_validation(self, op, path, value, from_, expected_error, error_match):
-        """Test path validation."""
-        if expected_error:
-            with pytest.raises(expected_error, match=error_match):
-                GenericDelta(op=op, path=path, value=value, from_=from_)
-        else:
-            delta = GenericDelta(op=op, path=path, value=value, from_=from_)
-            assert delta is not None
+@pytest.mark.parametrize(
+    ("op", "path", "value", "from_", "expected_error", "error_match"),
+    [
+        ("add", "/test", "test", None, None, None),
+        ("remove", "invalid", NO_VALUE, None, InvalidPathError, "Invalid target path"),
+    ],
+    ids=["valid-simple-path", "invalid-character-sequence"],
+)
+def test_path_validation(op, path, value, from_, expected_error, error_match):
+    """Test path validation."""
+    if expected_error:
+        with pytest.raises(expected_error, match=error_match):
+            GenericDelta(op=op, path=path, value=value, from_=from_)
+    else:
+        delta = GenericDelta(op=op, path=path, value=value, from_=from_)
+        assert delta is not None
 ```
 
 ### FastAPI Test Fixtures
 
 ```python
 @pytest.fixture
-def fastapi_app(storage, stub_user) -> FastAPI:
+def fastapi_app(sqlite_storage: "SQLiteStorage", stub_user) -> FastAPI:
     StorageService.reset()
     StorageService.set_for_testing(storage)
 

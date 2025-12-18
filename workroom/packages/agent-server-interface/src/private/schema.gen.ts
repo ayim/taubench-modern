@@ -1158,6 +1158,9 @@ export interface paths {
      * @description List tools available from the provided MCP servers.
      *
      *     Returns a mapping of each server to the tools discovered for that server.
+     *
+     *     This is the preferred API to use to test that the MCP server is working correctly
+     *     with the settings that the user has provided.
      */
     post: operations['list_mcp_tools_capabilities_mcp_tools_post'];
     delete?: never;
@@ -4329,6 +4332,15 @@ export interface components {
         [key: string]: number;
       };
     };
+    /**
+     * AuthenticationType
+     * @description Type of authentication to use for the MCP server.
+     * @enum {string}
+     */
+    AuthenticationType:
+      | 'none'
+      | 'oauth2-client-credentials'
+      | 'oauth2-authorization-code';
     /** AzureOpenAIEmbeddingModel */
     AzureOpenAIEmbeddingModel: {
       /** Model Name */
@@ -6286,7 +6298,22 @@ export interface components {
        * Mcp Servers
        * @description The MCP servers to query for tools.
        */
-      mcp_servers: components['schemas']['MCPServer'][];
+      mcp_servers: components['schemas']['MCPServerCreate'][];
+    };
+    /** ListMCPToolsResponse */
+    ListMCPToolsResponse: {
+      /** Results */
+      results: components['schemas']['ListMCPToolsResult'][];
+    };
+    /** ListMCPToolsResult */
+    ListMCPToolsResult: {
+      server: components['schemas']['MCPServerCoreResponse'];
+      /** Tools */
+      tools: {
+        [key: string]: unknown;
+      }[];
+      /** Issues */
+      issues: string[];
     };
     /** LiteLLMPlatformParameters */
     LiteLLMPlatformParameters: {
@@ -6483,6 +6510,169 @@ export interface components {
        */
       force_serial_tool_calls: boolean;
     };
+    /**
+     * MCPServerCoreResponse
+     * @description Response model for MCP server endpoints that includes ID and source.
+     */
+    MCPServerCoreResponse: {
+      /**
+       * Name
+       * @description The name of the MCP server.
+       */
+      name: string;
+      /**
+       * Transport
+       * @description Transport protocol to use when connecting to the MCP server.
+       * @enum {string}
+       */
+      transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
+      /**
+       * Url
+       * @description The URL of the MCP server.
+       */
+      url?: string | null;
+      /**
+       * Headers
+       * @description Headers used for configuring requests & connections to the MCP server.
+       */
+      headers?: {
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
+      } | null;
+      /**
+       * Command
+       * @description The command to run the MCP server.
+       */
+      command?: string | null;
+      /**
+       * Args
+       * @description The arguments to pass to the MCP server command.
+       */
+      args?: string[] | null;
+      /**
+       * Env
+       * @description Environment variables to merge with agent-server's env vars.
+       */
+      env?: {
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
+      } | null;
+      /**
+       * Cwd
+       * @description Working directory to run the MCP server command in.
+       */
+      cwd?: string | null;
+      /**
+       * Type
+       * @description The type of MCP server.
+       * @default generic_mcp
+       * @enum {string}
+       */
+      type: 'generic_mcp' | 'sema4ai_action_server';
+      /**
+       * Force Serial Tool Calls
+       * @description If true, all tool calls are executed under a lock.
+       * @default false
+       */
+      force_serial_tool_calls: boolean;
+    };
+    /** MCPServerCreate */
+    MCPServerCreate: {
+      /** Name */
+      name: string;
+      /**
+       * Transport
+       * @default auto
+       * @enum {string}
+       */
+      transport: 'auto' | 'streamable-http' | 'sse' | 'stdio';
+      /** Url */
+      url?: string | null;
+      /** Headers */
+      headers?: {
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
+      } | null;
+      /** Command */
+      command?: string | null;
+      /** Args */
+      args?: string[] | null;
+      /** Env */
+      env?: {
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
+      } | null;
+      /** Cwd */
+      cwd?: string | null;
+      /**
+       * Force Serial Tool Calls
+       * @default false
+       */
+      force_serial_tool_calls: boolean;
+      /**
+       * Type
+       * @default generic_mcp
+       * @enum {string}
+       */
+      type: 'generic_mcp' | 'sema4ai_action_server';
+      /** Mcp Server Metadata */
+      mcp_server_metadata?: {
+        [key: string]: unknown;
+      } | null;
+      oauth_config?: components['schemas']['MCPServerCreateOAuthConfig'] | null;
+    };
+    /** MCPServerCreateAuthenticationMetadataClientCredentials */
+    MCPServerCreateAuthenticationMetadataClientCredentials: {
+      /**
+       * Client Id
+       * Format: password
+       */
+      client_id: string;
+      /**
+       * Client Secret
+       * Format: password
+       */
+      client_secret: string;
+      /** Scope */
+      scope: string;
+      /** Endpoint */
+      endpoint: string;
+    };
+    /** MCPServerCreateOAuthConfig */
+    MCPServerCreateOAuthConfig: {
+      authentication_type: components['schemas']['AuthenticationType'];
+      /** Authentication Metadata */
+      authentication_metadata?:
+        | components['schemas']['MCPServerCreateAuthenticationMetadataClientCredentials']
+        | {
+            [key: string]: unknown;
+          }
+        | null;
+    };
     /** MCPServerDetail */
     MCPServerDetail: {
       /** Name */
@@ -6497,13 +6687,6 @@ export interface components {
     };
     /** MCPServerResponse */
     MCPServerResponse: {
-      /**
-       * Mcp Server Id
-       * @description The unique identifier of the MCP server.
-       */
-      mcp_server_id: string;
-      /** @description The source of the MCP server (FILE or API). */
-      source: components['schemas']['MCPServerSource'];
       /**
        * Name
        * @description The name of the MCP server.
@@ -6577,12 +6760,23 @@ export interface components {
        */
       force_serial_tool_calls: boolean;
       /**
+       * Mcp Server Id
+       * @description The unique identifier of the MCP server.
+       */
+      mcp_server_id: string;
+      /** @description The source of the MCP server (FILE or API). */
+      source: components['schemas']['MCPServerSource'];
+      /**
        * Is Hosted
-       * @description Whether this MCP server is hosted on our MCP Runtime. True for servers deployed via agent package upload.
+       * @description Whether this MCP server is hosted on our MCP Runtime.
+       *                 True for servers deployed via agent package upload.
        * @default false
        */
       is_hosted: boolean;
-      /** @description Metadata from agent package inspection for hosted MCP servers. Contains action packages, secrets, and other package information. */
+      /**
+       * @description Metadata from agent package inspection for hosted MCP servers.
+       *                 Contains action packages, secrets, and other package information.
+       */
       mcp_server_metadata?:
         | components['schemas']['AgentPackageMetadata']
         | null;
@@ -16934,9 +17128,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json': components['schemas']['ListMCPToolsResponse'];
         };
       };
       /** @description Validation Error */
@@ -16981,7 +17173,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['MCPServer'];
+        'application/json': components['schemas']['MCPServerCreate'];
       };
     };
     responses: {

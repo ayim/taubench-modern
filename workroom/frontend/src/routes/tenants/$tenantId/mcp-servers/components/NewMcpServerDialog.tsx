@@ -140,7 +140,7 @@ export const NewMcpServerDialog: FC<{ open: boolean; onClose: () => void }> = ({
           tenantId,
           name: body.name,
           file: values.agentPackageFile,
-          headers: body.headers,
+          headers: body?.headers,
           mcpServerMetadata,
         },
         {

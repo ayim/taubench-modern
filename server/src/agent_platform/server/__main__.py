@@ -11,10 +11,22 @@ start_time = time.monotonic()
 import sys
 import agent_platform.server
 
+
 RUN_AS_STUDIO = False
+RUN_WITH_POSTGRES = False
 
 
 if __name__ == "__main__":
+    if RUN_WITH_POSTGRES:
+        import os
+
+        os.environ["SEMA4AI_AGENT_SERVER_DB_TYPE"] = "postgres"
+        os.environ["POSTGRES_HOST"] = "localhost"
+        os.environ["POSTGRES_DB"] = "agents"
+        os.environ["POSTGRES_USER"] = "agents"
+        os.environ["POSTGRES_PASSWORD"] = "agents"
+        os.environ["POSTGRES_PORT"] = "5432"
+
     if RUN_AS_STUDIO:
         sys.argv = [
             "",

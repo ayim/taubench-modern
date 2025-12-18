@@ -1,0 +1,1 @@
+TIMEOUT_TO_CONSIDER_OAUTH_TOKEN_EXPIRED = 10 * 60  # 10 minutes in seconds

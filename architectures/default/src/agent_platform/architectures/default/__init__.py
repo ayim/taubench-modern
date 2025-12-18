@@ -5,18 +5,13 @@ Default architecture for running agents.
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
-from agent_platform.architectures.default.thread_conversion import (
-    thread_messages_to_prompt_messages,
-)
-from agent_platform.core.agent_architectures.special_commands import (
-    handle_special_command,
-    parse_special_command,
-)
+from agent_platform.architectures.default.thread_conversion import thread_messages_to_prompt_messages
+from agent_platform.core.agent_architectures.special_commands import handle_special_command, parse_special_command
 from agent_platform.core.errors.streaming import StreamingError
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
-from agent_platform.core.mcp.mcp_server import MCPServer
 
 if TYPE_CHECKING:
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
     from agent_platform.server.storage.base import BaseStorage
 
 __author__ = "Sema4.ai Engineering"
@@ -155,14 +150,14 @@ async def _handle_max_iterations(state: ArchState, message: ThreadMessageWithThr
     return state
 
 
-async def _resolve_global_mcp_servers(kernel: Kernel) -> list[MCPServer]:
+async def _resolve_global_mcp_servers(kernel: Kernel) -> "list[MCPServerWithOAuthConfig]":
     """Resolve global MCP servers from their IDs."""
     global_mcp_server_ids = kernel.agent.mcp_server_ids
     if not global_mcp_server_ids:
         return []
 
     storage: BaseStorage = kernel.storage._internal_storage  # type: ignore
-    mcp_servers_dict = await storage.get_mcp_servers_by_ids(global_mcp_server_ids)
+    mcp_servers_dict = await storage.get_mcp_servers_and_oauth_info_by_ids(global_mcp_server_ids)
     return list(mcp_servers_dict.values())
 
 
@@ -202,6 +197,8 @@ async def _process_conversation_step(
 ) -> ArchState:
     from functools import partial
 
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
     # Register the thread message conversion function
     kernel.converters.set_thread_message_conversion_function(
         partial(thread_messages_to_prompt_messages, state=state),
@@ -228,12 +225,9 @@ async def _process_conversation_step(
     action_tools = action_result.tools
     action_issues = action_result.issues
 
-    global_mcp_servers = await _resolve_global_mcp_servers(kernel)
-    all_mcp_servers = [*global_mcp_servers, *kernel.agent.mcp_servers]
+    mcp_servers_with_oauth_config: list[MCPServerWithOAuthConfig] = await kernel.tools.load_mcp_servers()
 
-    mcp_result = await kernel.tools.from_mcp_servers(
-        all_mcp_servers,
-    )
+    mcp_result = await kernel.tools.from_mcp_servers(mcp_servers_with_oauth_config)
     mcp_tools = mcp_result.tools
     mcp_issues = mcp_result.issues
 

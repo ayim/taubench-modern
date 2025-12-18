@@ -102,7 +102,7 @@ class LocalFileSecretManager(BaseSecretManager):
 
         except Exception as e:
             # If metadata parsing fails, fall back to primary encryption
-            logger.error(f"Metadata parsing failed, falling back to primary encryption: {e}")
+            logger.exception(f"Metadata parsing failed (local_file), falling back to primary encryption: {e}")
 
         # Default to primary encryption for both non-fallback keys and parsing failures
         return self._envelope_encryption.decrypt(stored_reference)

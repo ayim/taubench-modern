@@ -93,6 +93,14 @@ def main(run_server: bool = True) -> None:
             public_path=args.public_openapi_file,
         )
 
+    if sys.platform == "win32":
+        # Fix: psycopg.pool - WARNING:  error connecting in 'pool-1': Psycopg cannot use the
+        # 'ProactorEventLoop' to run in async mode. Please use a compatible event loop,
+        # for instance by setting 'asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())'
+        import asyncio
+
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     # Create and run the server lifecycle manager
     lifecycle_manager = ServerLifecycleManager(args)
     exit_code = lifecycle_manager.run(run_server=run_server)

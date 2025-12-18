@@ -21,6 +21,7 @@ from agent_platform.core.payloads.document_intelligence import (
 from agent_platform.core.payloads.document_intelligence_config import (
     DocumentIntelligenceConfigPayload,
 )
+from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
 
 HEADER_INDEX = 0
 
@@ -269,12 +270,14 @@ class AgentServerClient:
             base_url = urljoin(base_url + "/", "api/v2")
         self.base_url = base_url
         self._created_agent_ids: list[str] = []
+        self._created_mcp_server_ids: list[str] = []
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.remove_created_agents()
+        self.remove_created_mcp_servers()
 
     def delete_agent(self, agent_id: str):
         """Delete an agent by ID."""
@@ -291,6 +294,34 @@ class AgentServerClient:
         """Removes all agents that were created by the client."""
         for agent_id in self._created_agent_ids:
             self.delete_agent(agent_id)
+
+    def delete_mcp_server(self, mcp_server_id: str):
+        """Delete an MCP server by ID."""
+        url = urljoin(self.base_url + "/", f"mcp-servers/{mcp_server_id}")
+        response = requests.delete(url)
+        if response.status_code in (requests.codes.no_content, requests.codes.ok):
+            print_success(f"Successfully deleted MCP server with ID: {mcp_server_id}")
+        else:
+            # Don't raise exception during cleanup, just print warning
+            print_warning(
+                f"Unexpected status code {response.status_code} when deleting MCP server {mcp_server_id}",
+            )
+
+    def remove_created_mcp_servers(self):
+        """Removes all MCP servers that were created by the client."""
+        for mcp_server_id in self._created_mcp_server_ids:
+            self.delete_mcp_server(mcp_server_id)
+
+    def list_mcp_servers(self) -> dict[str, dict]:
+        """Lists all MCP servers (provides MCP server ID -> MCP server object mapping as the response)"""
+        url = urljoin(self.base_url + "/", "mcp-servers/")
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
     def list_files(self, thread_id: str) -> dict[str, str] | None:
         """
@@ -558,6 +589,45 @@ class AgentServerClient:
         else:
             raise Exception(
                 f"Error creating agent from package: {response.status_code} {response.text}",
+            )
+
+    def create_mcp_server_and_return_id(
+        self,
+        mcp_server: MCPServerCreate,
+    ) -> str:
+        """Create an MCP server and return its ID.
+
+        The MCP server will be automatically deleted when the client context exits.
+
+        Args:
+            mcp_server: An MCPServerCreate instance.
+
+        Returns:
+            The MCP server ID.
+        """
+        print_header("CREATING MCP SERVER")
+
+        url = urljoin(self.base_url + "/", "mcp-servers/")
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
+        # Prepare the payload
+        payload = mcp_server.model_dump_cleartext()
+
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == requests.codes.ok:
+            mcp_server_data = response.json()
+            mcp_server_id = mcp_server_data["mcp_server_id"]
+            assert mcp_server_id is not None, "MCP server id is None right after creation"
+            print_success(f"Created MCP server with ID: {mcp_server_id}")
+
+            self._created_mcp_server_ids.append(mcp_server_id)
+            return mcp_server_id
+        else:
+            raise Exception(
+                f"Error creating MCP server: {response.status_code} {response.text}",
             )
 
     def create_thread_and_return_thread_id(self, agent_id: str) -> str:

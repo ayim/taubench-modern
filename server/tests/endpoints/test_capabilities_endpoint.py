@@ -61,8 +61,8 @@ async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.M
     payload = {"mcp_servers": [{"name": "test", "url": "https://example.com"}]}
 
     resp = client.post("/capabilities/mcp/tools", json=payload)
-    assert resp.status_code == 200
-    assert resp.json() == {
+    assert resp.status_code == 200, f"Response: {resp.text}"
+    expected = {
         "results": [
             {
                 "server": {
@@ -77,13 +77,14 @@ async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.M
                     "env": None,
                     "cwd": None,
                     "force_serial_tool_calls": False,
-                    "mcp_server_metadata": None,
                 },
                 "tools": [dummy_tool.model_dump()],
                 "issues": [],
             }
         ]
     }
+    found = resp.json()
+    assert found == expected, f"Found:\n{found}\nExpected:\n{expected}"
 
 
 @pytest.mark.asyncio
@@ -124,7 +125,6 @@ async def test_list_mcp_tools_endpoint_with_different_transport(client: TestClie
                     "env": None,
                     "cwd": None,
                     "force_serial_tool_calls": False,
-                    "mcp_server_metadata": None,
                 },
                 "tools": [dummy_tool.model_dump()],
                 "issues": [],
@@ -141,7 +141,6 @@ async def test_list_mcp_tools_endpoint_with_different_transport(client: TestClie
                     "env": None,
                     "cwd": None,
                     "force_serial_tool_calls": False,
-                    "mcp_server_metadata": None,
                 },
                 "tools": [dummy_tool.model_dump()],
                 "issues": [],

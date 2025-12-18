@@ -1326,6 +1326,7 @@ async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterfa
 async def test_mcp_tools_with_null_selected_tools(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that MCP tool filtering works when selected_tools is None (legacy agents)."""
     from agent_platform.core.mcp import MCPServer
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
     from agent_platform.core.tools.collected_tools import CollectedTools
 
     # Set selected_tools to None to simulate legacy agents
@@ -1361,7 +1362,21 @@ async def test_mcp_tools_with_null_selected_tools(tools_interface: AgentServerTo
         )
 
         # Call from_mcp_servers - this should not raise AttributeError
-        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_server_with_oauth = MCPServerWithOAuthConfig(
+            name=mcp_server.name,
+            transport=mcp_server.transport,
+            url=mcp_server.url,
+            headers=mcp_server.headers,
+            command=mcp_server.command,
+            args=mcp_server.args,
+            env=mcp_server.env,
+            cwd=mcp_server.cwd,
+            force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            type=mcp_server.type,
+            mcp_server_metadata=mcp_server.mcp_server_metadata,
+            oauth_config=None,
+        )
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server_with_oauth])
         tools = mcp_result.tools
         issues = mcp_result.issues
 

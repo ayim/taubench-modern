@@ -495,3 +495,71 @@ async def test_list_mcp_servers_with_metadata_empty(
     """Test list_mcp_servers_with_metadata when no servers exist."""
     result = await storage.list_mcp_servers_with_metadata()
     assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_servers_and_oauth_info_by_ids(
+    storage: "PostgresStorage|SQLiteStorage",
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+    sample_mcp_server_stdio: MCPServer,
+) -> None:
+    """Test getting multiple MCP servers by IDs with OAuth configuration."""
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+    from agent_platform.core.oauth.oauth_models import AuthenticationType, OAuthConfig
+
+    # Create servers without OAuth config
+    server1_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+    server2_id = await storage.create_mcp_server(sample_mcp_server_stdio, MCPServerSource.FILE)
+
+    # Create server with OAuth config
+    mcp_server_with_oauth = MCPServerWithOAuthConfig(
+        name="test-oauth-server",
+        transport="streamable-http",
+        url="https://oauth.example.com/mcp",
+        headers={"Authorization": "Bearer token"},
+        oauth_config=OAuthConfig(
+            authentication_type=AuthenticationType.OAUTH2_CLIENT_CREDENTIALS,
+            authentication_metadata={
+                "client_id": "test_client_id",
+                "client_secret": "test_client_secret",
+                "scope": "read write",
+                "endpoint": "https://oauth.example.com/token",
+            },
+        ),
+    )
+    server3_id = await storage.create_mcp_server(mcp_server_with_oauth, MCPServerSource.API)
+
+    # Test getting all servers
+    result = await storage.get_mcp_servers_and_oauth_info_by_ids([server1_id, server2_id, server3_id])
+
+    assert len(result) == 3
+    assert server1_id in result
+    assert server2_id in result
+    assert server3_id in result
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_servers_and_oauth_info_by_ids_mixed_existent_and_non_existent(
+    storage: "PostgresStorage|SQLiteStorage",
+    sample_user_id: str,
+    sample_mcp_server_http: MCPServer,
+) -> None:
+    """Test get_mcp_servers_and_oauth_info_by_ids with mix of existent and non-existent IDs."""
+    from uuid import uuid4
+
+    # Create a server
+    server_id = await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
+
+    # Try to get existent and non-existent servers
+    non_existent_id = str(uuid4())
+    result = await storage.get_mcp_servers_and_oauth_info_by_ids([server_id, non_existent_id])
+
+    # Should only return the existent server
+    assert len(result) == 1
+    assert server_id in result
+    assert non_existent_id not in result
+    assert result[server_id].name == sample_mcp_server_http.name
+
+    # Cleanup
+    await storage.delete_mcp_server([server_id])

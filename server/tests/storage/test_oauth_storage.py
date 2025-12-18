@@ -185,7 +185,8 @@ async def test_oauth_token_without_expires_in(
         user_id=sample_user_id, mcp_url=sample_mcp_url, decrypt=True
     )
     assert retrieved_no_expiry is not None
-    assert retrieved_no_expiry.expires_in is None
+    assert retrieved_no_expiry.expires_in is not None
+    assert retrieved_no_expiry.expires_in <= 3600
 
 
 @pytest.mark.asyncio

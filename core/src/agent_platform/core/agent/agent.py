@@ -76,11 +76,12 @@ class Agent(TolerantDataclass):
 
     mcp_servers: list[MCPServer] = field(
         metadata={
-            "description": "The Model Context Protocol (MCP) servers this agent uses.",
+            "description": """The Model Context Protocol (MCP) servers this agent uses. This field
+            is deprecated. MCP servers should be added independently and referenced by their IDs
+            using `mcp_server_ids` instead.""",
         },
         default_factory=list,
     )
-    """The Model Context Protocol (MCP) servers this agent uses."""
 
     mcp_server_ids: list[str] = field(
         metadata={
@@ -290,6 +291,8 @@ class Agent(TolerantDataclass):
             ActionPackage.model_validate(action_package) for action_package in data.pop("action_packages", [])
         ]
         mcp_servers = [MCPServer.model_validate(mcp_server) for mcp_server in data.pop("mcp_servers", [])]
+        if mcp_servers:
+            logger.critical("Agent.mcp_servers is deprecated. Use mcp_server_ids instead.")
         agent_architecture = AgentArchitecture.model_validate(
             data.pop("agent_architecture", {}),
         )

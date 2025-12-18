@@ -1,4 +1,3 @@
-import uuid
 from datetime import UTC, datetime
 
 from psycopg.errors import UniqueViolation
@@ -11,7 +10,6 @@ from agent_platform.server.storage.errors import (
     ConfigDecryptionError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
-    RecordAlreadyExistsError,
 )
 from agent_platform.server.storage.postgres.cursor import CursorMixin
 
@@ -20,57 +18,6 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
     """Mixin for PostgreSQL MCP server operations."""
 
     _logger = get_logger(__name__)
-
-    async def create_mcp_server(
-        self,
-        mcp_server: MCPServer,
-        source: MCPServerSource,
-        mcp_runtime_deployment_id: str | None = None,
-    ) -> str:
-        """Create a new MCP server. Returns the generated MCP server ID."""
-        # 1. Generate ID and timestamps
-        mcp_server_id = str(uuid.uuid4())
-        now = datetime.now(UTC)
-
-        # 2. Prepare the config as encrypted JSONB (secret manager returns structured JSON)
-        config_dict = mcp_server.model_dump()
-        encrypted_config = self._encrypt_config(config_dict)
-
-        # 3. Insert the MCP server
-        try:
-            async with self._cursor() as cur:
-                await cur.execute(
-                    """
-                    INSERT INTO v2.mcp_server (
-                        mcp_server_id, name, enc_config, source, mcp_runtime_deployment_id,
-                        created_at, updated_at
-                    )
-                    VALUES (
-                        %s::uuid, %s, %s, %s, %s, %s, %s
-                    )
-                    """,
-                    (
-                        mcp_server_id,
-                        mcp_server.name,
-                        encrypted_config,
-                        source.value,
-                        mcp_runtime_deployment_id,
-                        now,
-                        now,
-                    ),
-                )
-        except UniqueViolation as e:
-            if "mcp_server_pkey" in str(e):
-                raise RecordAlreadyExistsError(
-                    f"MCP server {mcp_server_id} already exists",
-                ) from e
-            elif "idx_mcp_server_name_source" in str(e):
-                raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' and source '{source.value}' already exists",
-                ) from e
-            raise
-
-        return mcp_server_id
 
     async def get_mcp_server(self, mcp_server_id: str) -> MCPServer:
         """Get an MCP server by ID."""
@@ -262,33 +209,6 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Return the MCP servers as a dict of name -> id
             return {row["name"]: str(row["mcp_server_id"]) for row in rows}
-
-    async def get_mcp_servers_by_ids(self, mcp_server_ids: list[str]) -> dict[str, MCPServer]:
-        """Get multiple MCP servers by their IDs."""
-        if not mcp_server_ids:
-            return {}
-
-        # Validate all UUIDs
-        for mcp_server_id in mcp_server_ids:
-            self._validate_uuid(mcp_server_id)
-
-        async with self._cursor() as cur:
-            await cur.execute(
-                """
-                SELECT mcp_server_id, enc_config::text AS enc_config FROM v2.mcp_server
-                WHERE mcp_server_id = ANY(%s::uuid[])
-                """,
-                (mcp_server_ids,),
-            )
-
-            rows = await cur.fetchall()
-            result = {}
-            for row in rows:
-                server_id = row["mcp_server_id"]
-                encrypted_config = row["enc_config"]
-                config_dict = self._decrypt_config(encrypted_config)
-                result[server_id] = MCPServer.model_validate(config_dict)
-            return result
 
     async def update_mcp_server(
         self,

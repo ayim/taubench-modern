@@ -78,8 +78,11 @@ class ToolsRegistry:
         return self.state.action_tools, self.state.action_issues
 
     async def _get_mcp_tools(self, *, refresh: bool) -> tuple[Sequence[ToolDefinition], list[str]]:
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
         if refresh or not self.state.mcp_tools:
-            mcp_result = await self.kernel.tools.from_mcp_servers(self.kernel.agent.mcp_servers)
+            mcp_servers_with_oauth_config: list[MCPServerWithOAuthConfig] = await self.kernel.tools.load_mcp_servers()
+            mcp_result = await self.kernel.tools.from_mcp_servers(mcp_servers_with_oauth_config)
             self.state.mcp_tools = mcp_result.tools
             self.state.mcp_issues = mcp_result.issues
         return self.state.mcp_tools, self.state.mcp_issues

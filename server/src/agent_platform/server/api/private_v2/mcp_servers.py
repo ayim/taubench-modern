@@ -14,6 +14,7 @@ from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.mcp.mcp_types import deserialize_mcp_variables
 from agent_platform.core.payloads import MCPServerResponse
+from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
 from agent_platform.server.api.dependencies import MCPQuotaCheck, StorageDependency
 from agent_platform.server.env_vars import SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE
 from agent_platform.server.mcp_runtime import MCPRuntimeConfig, delete_deployment
@@ -343,20 +344,28 @@ async def _sync_file_based_mcp_servers(storage: StorageDependency) -> None:
 
 @router.post("/", response_model=MCPServerResponse)
 async def create_mcp_server(
-    payload: MCPServer,
+    payload: MCPServerCreate,
     storage: StorageDependency,
     _: MCPQuotaCheck,
 ) -> MCPServerResponse:
     """Create an MCP server."""
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
+    # Extract the name for response
+    mcp_server_name = payload.name
+
+    # Create MCPServerWithOAuthConfig from MCPServerCreate
+    mcp_server: MCPServerWithOAuthConfig = payload.to_mcp_server()
+
     try:
-        mcp_server_id = await storage.create_mcp_server(payload, source=MCPServerSource.API)
+        mcp_server_id = await storage.create_mcp_server(mcp_server, source=MCPServerSource.API)
     except MCPServerWithNameAlreadyExistsError as e:
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
-            detail=f"MCP server with name '{payload.name}' and source 'API' already exists",
+            detail=f"MCP server with name '{mcp_server_name}' and source 'API' already exists",
         ) from e
 
-    return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, payload)
+    return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, mcp_server)
 
 
 @router.post("/mcp-servers-hosted", response_model=MCPServerResponse)

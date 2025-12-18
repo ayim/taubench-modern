@@ -17,11 +17,27 @@ class TestMCPToolFiltering:
     @pytest.mark.asyncio
     async def test_no_agent_level_filtering_when_empty(self):
         """Test that no filtering occurs when agent selected_tools is empty."""
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
         # Create mock MCP server
         mcp_server = MCPServer(
             name="test-server",
             url="https://example.com",
             transport="streamable-http",
+        )
+        mcp_server_with_oauth = MCPServerWithOAuthConfig(
+            name=mcp_server.name,
+            transport=mcp_server.transport,
+            url=mcp_server.url,
+            headers=mcp_server.headers,
+            command=mcp_server.command,
+            args=mcp_server.args,
+            env=mcp_server.env,
+            cwd=mcp_server.cwd,
+            force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            type=mcp_server.type,
+            mcp_server_metadata=mcp_server.mcp_server_metadata,
+            oauth_config=None,
         )
 
         # Create mock tools that would be returned
@@ -44,7 +60,7 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server_with_oauth])
         filtered_tools = mcp_result.tools
         issues = mcp_result.issues
 
@@ -58,13 +74,28 @@ class TestMCPToolFiltering:
     @pytest.mark.asyncio
     async def test_agent_level_filtering(self):
         """Test that agent-level selected_tools filtering works."""
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
         # Create mock MCP server
         mcp_server = MCPServer(
             name="test-server",
             url="https://example.com",
             transport="streamable-http",
         )
-
+        mcp_server_with_oauth = MCPServerWithOAuthConfig(
+            name=mcp_server.name,
+            transport=mcp_server.transport,
+            url=mcp_server.url,
+            headers=mcp_server.headers,
+            command=mcp_server.command,
+            args=mcp_server.args,
+            env=mcp_server.env,
+            cwd=mcp_server.cwd,
+            force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            type=mcp_server.type,
+            mcp_server_metadata=mcp_server.mcp_server_metadata,
+            oauth_config=None,
+        )
         # Create mock tools that would be returned
         all_tools = [
             ToolDefinition(name="tool1", description="Tool 1", input_schema={}),
@@ -88,7 +119,7 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server_with_oauth])
         filtered_tools = mcp_result.tools
         issues = mcp_result.issues
 
@@ -101,16 +132,46 @@ class TestMCPToolFiltering:
     @pytest.mark.asyncio
     async def test_agent_level_filtering_with_multiple_servers(self):
         """Test that agent-level filtering works across multiple servers."""
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
         # Create mock MCP servers
         mcp_server1 = MCPServer(
             name="test-server-1",
             url="https://example1.com",
             transport="streamable-http",
         )
+        mcp_server_with_oauth1 = MCPServerWithOAuthConfig(
+            name=mcp_server1.name,
+            transport=mcp_server1.transport,
+            url=mcp_server1.url,
+            headers=mcp_server1.headers,
+            command=mcp_server1.command,
+            args=mcp_server1.args,
+            env=mcp_server1.env,
+            cwd=mcp_server1.cwd,
+            force_serial_tool_calls=mcp_server1.force_serial_tool_calls,
+            type=mcp_server1.type,
+            mcp_server_metadata=mcp_server1.mcp_server_metadata,
+            oauth_config=None,
+        )
         mcp_server2 = MCPServer(
             name="test-server-2",
             url="https://example2.com",
             transport="streamable-http",
+        )
+        mcp_server_with_oauth2 = MCPServerWithOAuthConfig(
+            name=mcp_server2.name,
+            transport=mcp_server2.transport,
+            url=mcp_server2.url,
+            headers=mcp_server2.headers,
+            command=mcp_server2.command,
+            args=mcp_server2.args,
+            env=mcp_server2.env,
+            cwd=mcp_server2.cwd,
+            force_serial_tool_calls=mcp_server2.force_serial_tool_calls,
+            type=mcp_server2.type,
+            mcp_server_metadata=mcp_server2.mcp_server_metadata,
+            oauth_config=None,
         )
 
         # Create mock tools that would be returned from each server
@@ -147,7 +208,7 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        mcp_result = await tools_interface.from_mcp_servers([mcp_server1, mcp_server2])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server_with_oauth1, mcp_server_with_oauth2])
         filtered_tools = mcp_result.tools
         issues = mcp_result.issues
 
@@ -161,13 +222,28 @@ class TestMCPToolFiltering:
     @pytest.mark.asyncio
     async def test_no_filtering_when_empty_lists(self):
         """Test that no filtering occurs when selected_tools lists are empty."""
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
         # Create mock MCP server
         mcp_server = MCPServer(
             name="test-server",
             url="https://example.com",
             transport="streamable-http",
         )
-
+        mcp_server_with_oauth = MCPServerWithOAuthConfig(
+            name=mcp_server.name,
+            transport=mcp_server.transport,
+            url=mcp_server.url,
+            headers=mcp_server.headers,
+            command=mcp_server.command,
+            args=mcp_server.args,
+            env=mcp_server.env,
+            cwd=mcp_server.cwd,
+            force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            type=mcp_server.type,
+            mcp_server_metadata=mcp_server.mcp_server_metadata,
+            oauth_config=None,
+        )
         # Create mock tools that would be returned
         all_tools = [
             ToolDefinition(name="tool1", description="Tool 1", input_schema={}),
@@ -187,7 +263,7 @@ class TestMCPToolFiltering:
         tools_interface.attach_kernel(mock_kernel)
 
         # Call from_mcp_servers
-        mcp_result = await tools_interface.from_mcp_servers([mcp_server])
+        mcp_result = await tools_interface.from_mcp_servers([mcp_server_with_oauth])
         filtered_tools = mcp_result.tools
         issues = mcp_result.issues
 

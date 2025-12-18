@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
-from agent_platform.core.mcp import MCPServer
 from agent_platform.core.responses import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
 
 if TYPE_CHECKING:
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
     from agent_platform.core.tools.collected_tools import CollectedTools
 
 PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
@@ -58,7 +58,7 @@ class ToolsInterface(ABC):
     @abstractmethod
     async def from_mcp_servers(
         self,
-        mcp_servers: list[MCPServer],
+        mcp_servers: list[MCPServerWithOAuthConfig],
         # Headers to be added to the request at
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
@@ -70,3 +70,7 @@ class ToolsInterface(ABC):
             A CollectedTools containing a list of tool definitions and a list of
             configuration issues.
         """
+
+    @abstractmethod
+    async def load_mcp_servers(self) -> list[MCPServerWithOAuthConfig]:
+        """Loads all the MCP servers from the storage and returns them as a list of MCPServerWithOAuthConfig."""

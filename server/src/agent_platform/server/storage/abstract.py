@@ -18,17 +18,12 @@ from agent_platform.core.runs import Run, RunStep
 from agent_platform.core.storage import ScopedStorage
 from agent_platform.core.thread import Thread, ThreadMessage
 from agent_platform.core.user import User
-from agent_platform.core.work_items import (
-    WorkItem,
-    WorkItemCompletedBy,
-    WorkItemStatus,
-    WorkItemStatusUpdatedBy,
-)
+from agent_platform.core.work_items import WorkItem, WorkItemCompletedBy, WorkItemStatus, WorkItemStatusUpdatedBy
 from agent_platform.server.storage.types import JSONValue, StaleThreadsResult
 
 if TYPE_CHECKING:
     from agent_platform.core import MCPServer, MCPServerSource
-    from agent_platform.core.mcp.mcp_server import MCPServerWithMetadata
+    from agent_platform.core.mcp.mcp_server import MCPServerWithMetadata, MCPServerWithOAuthConfig
     from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
@@ -530,11 +525,16 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def create_mcp_server(
         self,
-        mcp_server: "MCPServer",
+        mcp_server: "MCPServer | MCPServerWithOAuthConfig",
         source: "MCPServerSource",
         mcp_runtime_deployment_id: str | None = None,
     ) -> str:
-        """Create a new MCP server. Returns the generated MCP server ID."""
+        """Create a new MCP server. Returns the generated MCP server ID.
+
+        Accepts either:
+        - MCPServer: Standard MCP server configuration (for backward compatibility)
+        - MCPServerWithOAuthConfig: MCP server with OAuth configuration
+        """
 
     @abstractmethod
     async def get_mcp_server(self, mcp_server_id: str) -> "MCPServer":
@@ -580,10 +580,6 @@ class AbstractStorage(ABC):
     @abstractmethod
     async def count_mcp_servers(self) -> int:
         """Count the number of MCP servers."""
-
-    @abstractmethod
-    async def get_mcp_servers_by_ids(self, mcp_server_ids: list[str]) -> dict[str, "MCPServer"]:
-        """Get multiple MCP servers by their IDs."""
 
     @abstractmethod
     async def update_work_item_from_thread(

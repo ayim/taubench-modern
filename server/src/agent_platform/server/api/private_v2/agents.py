@@ -6,12 +6,7 @@ from typing import Any, TypedDict
 from fastapi import APIRouter, HTTPException, Request
 from structlog import get_logger
 
-from agent_platform.core.actions.action_package import (
-    ActionDetail,
-    ActionPackage,
-    ActionPackageDetail,
-    AgentDetails,
-)
+from agent_platform.core.actions.action_package import ActionDetail, ActionPackage, ActionPackageDetail, AgentDetails
 from agent_platform.core.agent import AgentUserInterface
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
@@ -31,11 +26,7 @@ from agent_platform.core.payloads import (
 from agent_platform.core.utils import SecretString
 from agent_platform.core.utils.url import safe_urljoin
 from agent_platform.server.api.agent_filters import filter_hidden_agents
-from agent_platform.server.api.dependencies import (
-    AgentQuotaCheck,
-    PlatformParamsValidationCheck,
-    StorageDependency,
-)
+from agent_platform.server.api.dependencies import AgentQuotaCheck, PlatformParamsValidationCheck, StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
@@ -173,6 +164,8 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
 
 async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: AuthedUser) -> list[MCPServerDetail]:
     """Process MCP servers and return their details."""
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
     all_mcp_server_details = []
 
     # Get data server details for MCP context
@@ -187,12 +180,25 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
         # even when data server details are unavailable
         logger.info(f"Could not retrieve data server details for MCP context: {e}")
 
-    mcp_servers_dict = await storage.get_mcp_servers_by_ids(agent.mcp_server_ids)
-    all_mcp_servers = list(mcp_servers_dict.values()) + agent.mcp_servers
+    mcp_servers_dict: dict[str, MCPServerWithOAuthConfig] = await storage.get_mcp_servers_and_oauth_info_by_ids(
+        agent.mcp_server_ids
+    )
+    all_mcp_servers: list[MCPServerWithOAuthConfig] = list(mcp_servers_dict.values())
 
-    for mcp_server in all_mcp_servers:
+    if agent.mcp_servers:
+        logger.warning("Agent.mcp_servers is deprecated. Use mcp_server_ids instead.")
+
+        for mcp_server in agent.mcp_servers:
+            # Old-deprecated MCP servers don't have OAuth configuration
+            all_mcp_servers.append(
+                MCPServerWithOAuthConfig.model_validate(
+                    mcp_server.model_dump(),
+                )
+            )
+
+    for mcp_server_with_oauth_config in all_mcp_servers:
         try:
-            tool_defs = await mcp_server.to_tool_definitions(
+            tool_defs = await mcp_server_with_oauth_config.to_tool_definitions(
                 user_id=user.user_id,
                 storage=storage,
                 data_server_details=data_server_details,
@@ -211,7 +217,7 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
             ]
 
             mcp_server_details = MCPServerDetail(
-                name=mcp_server.name,
+                name=mcp_server_with_oauth_config.name,
                 actions=allowed_actions,
                 status="online",
             )

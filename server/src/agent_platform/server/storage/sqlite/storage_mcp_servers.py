@@ -1,4 +1,3 @@
-import uuid
 from datetime import UTC, datetime
 from sqlite3 import IntegrityError
 
@@ -10,7 +9,6 @@ from agent_platform.server.storage.errors import (
     ConfigDecryptionError,
     MCPServerNotFoundError,
     MCPServerWithNameAlreadyExistsError,
-    RecordAlreadyExistsError,
 )
 from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
@@ -25,58 +23,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
     # -------------------------------------------------------------------------
     # MCP Servers
     # -------------------------------------------------------------------------
-    async def create_mcp_server(
-        self,
-        mcp_server: MCPServer,
-        source: MCPServerSource,
-        mcp_runtime_deployment_id: str | None = None,
-    ) -> str:
-        """Create a new MCP server. Returns the generated MCP server ID."""
-        # 1. Generate ID and timestamps
-        mcp_server_id = str(uuid.uuid4())
-        now = datetime.now(UTC).isoformat()
-
-        # 2. Prepare the config as encrypted JSON
-        config_dict = mcp_server.model_dump()
-        encrypted_config = self._encrypt_config(config_dict)
-
-        # 3. Insert the MCP server
-        # The 'source' field is used to track where the MCP server entry originated from.
-        # This is important for syncing the MCP servers list from a file, such as when
-        # adding or removing MCP servers to match the list defined in a configuration file.
-        try:
-            async with self._transaction() as cur:
-                await cur.execute(
-                    """
-                INSERT INTO v2_mcp_server (
-                    mcp_server_id, name, enc_config, source, mcp_runtime_deployment_id,
-                    created_at, updated_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                    (
-                        mcp_server_id,
-                        mcp_server.name,
-                        encrypted_config,
-                        source.value,
-                        mcp_runtime_deployment_id,
-                        now,
-                        now,
-                    ),
-                )
-        except IntegrityError as e:
-            error_msg = str(e).lower()
-            if "unique constraint failed: v2_mcp_server.mcp_server_id" in error_msg:
-                raise RecordAlreadyExistsError(
-                    f"MCP server {mcp_server_id} already exists",
-                ) from e
-            elif "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
-                raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' and source '{source.value}' already exists",
-                ) from e
-            raise
-
-        return mcp_server_id
 
     async def get_mcp_server(self, mcp_server_id: str) -> MCPServer:
         """Get an MCP server by ID."""
@@ -260,36 +206,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Return the MCP servers as a dict of name -> id
             return {row[1]: row[0] for row in rows}
-
-    async def get_mcp_servers_by_ids(self, mcp_server_ids: list[str]) -> dict[str, MCPServer]:
-        """Get multiple MCP servers by their IDs."""
-        if not mcp_server_ids:
-            return {}
-
-        # Validate all UUIDs
-        for mcp_server_id in mcp_server_ids:
-            self._validate_uuid(mcp_server_id)
-
-        # Create placeholders for the IN clause
-        placeholders = ",".join("?" * len(mcp_server_ids))
-
-        async with self._cursor() as cur:
-            await cur.execute(
-                f"""
-                SELECT mcp_server_id, enc_config FROM v2_mcp_server
-                WHERE mcp_server_id IN ({placeholders})
-                """,
-                mcp_server_ids,
-            )
-
-            rows = await cur.fetchall()
-            result = {}
-            for row in rows:
-                server_id = row[0]
-                encrypted_config = row[1]
-                config_dict = self._decrypt_config(encrypted_config)
-                result[server_id] = MCPServer.model_validate(config_dict)
-            return result
 
     async def update_mcp_server(
         self,

@@ -314,6 +314,8 @@ async def _gather_tools(
     Returns:
         (ToolsBundle, configuration_issues)
     """
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
     await kernel.data_frames.step_initialize(state=state)
     data_frames_tools = kernel.data_frames.get_data_frame_tools()
 
@@ -334,7 +336,9 @@ async def _gather_tools(
 
     if not state.mcp_tools or force_refresh:
         logger.info("Gathering MCP tools from remote servers")
-        mcp_result = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+        mcp_servers_with_oauth_config: list[MCPServerWithOAuthConfig] = await kernel.tools.load_mcp_servers()
+        mcp_result = await kernel.tools.from_mcp_servers(mcp_servers_with_oauth_config)
+
         state.mcp_tools = mcp_result.tools
         state.mcp_issues = mcp_result.issues
 

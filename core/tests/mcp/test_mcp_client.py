@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import time
 from contextlib import asynccontextmanager
 
 import anyio.from_thread
@@ -64,29 +63,10 @@ async def _make_connected_client(server):
     return client, sess, _finaliser
 
 
-async def _wait_until(path: str, *, timeout: float = 5.0) -> None:
-    start = time.monotonic()
-    while True:
-        try:
-            async with httpx.AsyncClient() as c:
-                # We don't care which status, just that a socket is open
-                await c.get(
-                    path,
-                    headers={
-                        "accept": "application/json, text/event-stream",
-                    },
-                    timeout=0.3,
-                )
-            return
-        except httpx.RequestError:
-            pass
-        if time.monotonic() - start > timeout:
-            raise RuntimeError(f"Server route {path!r} never became ready")
-        await anyio.sleep(0.1)
-
-
 @pytest.fixture
 async def live_streamable_server(unused_tcp_port_factory):
+    from core.tests.mcp.fixtures import wait_until_mcp_server_is_ready
+
     port = unused_tcp_port_factory()
     url = f"http://127.0.0.1:{port}"
 
@@ -100,44 +80,15 @@ async def live_streamable_server(unused_tcp_port_factory):
         config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
         server = uvicorn.Server(config)
         portal.start_task_soon(server.serve)  # background thread
-        await _wait_until(url)
+        await wait_until_mcp_server_is_ready(url)
         yield f"{url}/mcp"
         server.should_exit = True
 
 
-@pytest.fixture(scope="session")
-async def live_custom_mcp_server_with_auth(unused_tcp_port_factory):
-    import io
-    import sys
-
-    from core.tests.mcp import custom_mcp
-
-    port = unused_tcp_port_factory()
-    from sema4ai.common.process import Process
-
-    custom_mcp_file = custom_mcp.__file__
-    process = Process([sys.executable, custom_mcp_file, str(port), "dummy-token"])
-    stream = io.StringIO()
-    process.stream_to(stream)
-    process.start()
-    url = f"http://127.0.0.1:{port}"
-
-    # Wait until the server is ready
-    timeout = 30.0
-    try:
-        await _wait_until(url, timeout=timeout)
-    except Exception as e:
-        process.stop()
-        raise RuntimeError(
-            f"Server didn't become ready after {timeout} seconds.\nProcess output:\n{stream.getvalue()}"
-        ) from e
-
-    yield url
-    process.stop()
-
-
 @pytest.fixture
 async def live_sse_server(unused_tcp_port_factory):
+    from core.tests.mcp.fixtures import wait_until_mcp_server_is_ready
+
     port = unused_tcp_port_factory()
     url = f"http://127.0.0.1:{port}"
 
@@ -151,7 +102,7 @@ async def live_sse_server(unused_tcp_port_factory):
         config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
         server = uvicorn.Server(config)
         portal.start_task_soon(server.serve)  # background thread
-        await _wait_until(url)
+        await wait_until_mcp_server_is_ready(url)
         yield f"{url}/sse"
         server.should_exit = True
 

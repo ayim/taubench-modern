@@ -1,5 +1,6 @@
 import pytest
 
+from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.mcp.mcp_types import (
     MCPUnionOfVariableTypes,
@@ -16,25 +17,25 @@ from agent_platform.core.mcp.mcp_types import (
 
 def test_missing_url_and_command_raises() -> None:
     """Neither *url* nor *command* supplied --> ValueError."""
-    with pytest.raises(ValueError, match="Either url or command must be provided"):
+    with pytest.raises(PlatformHTTPError, match="Either url or command must be provided"):
         MCPServer(name="missing")  # type: ignore[arg-type]
 
 
 def test_both_url_and_command_raises() -> None:
     """Supplying both *url* and *command* is invalid."""
-    with pytest.raises(ValueError, match="Provide \\*either\\* url=.* or command=.*"):
+    with pytest.raises(PlatformHTTPError, match="Provide \\*either\\* url=.* or command=.*"):
         MCPServer(name="both", url="http://x", command="foo")
 
 
 def test_invalid_transport_for_url() -> None:
     """A remote URL cannot use the *stdio* transport."""
-    with pytest.raises(ValueError, match="requires transport=sse or transport=streamable-http"):
+    with pytest.raises(PlatformHTTPError, match="requires transport=sse or transport=streamable-http"):
         MCPServer(name="bad", url="http://x", transport="stdio")  # type: ignore[arg-type]
 
 
 def test_invalid_transport_for_command() -> None:
     """A local command must use the *stdio* transport."""
-    with pytest.raises(ValueError, match="requires transport=stdio"):
+    with pytest.raises(PlatformHTTPError, match="requires transport=stdio"):
         MCPServer(name="bad", command="foo", transport="sse")  # type: ignore[arg-type]
 
 

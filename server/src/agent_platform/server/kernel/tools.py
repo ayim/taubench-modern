@@ -14,7 +14,7 @@ from agent_platform.core.actions.action_utils import ActionResponse, InternalToo
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.kernel import ToolsInterface
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
-from agent_platform.core.mcp import MCPServer
+from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.streaming.delta import StreamingDeltaRequestToolExecution
 from agent_platform.core.tools import ToolDefinition, ToolExecutionResult
@@ -428,25 +428,29 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
     async def _fetch_mcp_tools(
         self,
-        mcp_servers: list[MCPServer],
+        mcp_servers: list[MCPServerWithOAuthConfig],
         additional_headers: dict | None = None,
     ) -> CollectedTools:
         """Same contract as _fetch_action_tools()."""
         from agent_platform.core.tools.collected_tools import CollectedTools
+        from agent_platform.server.storage.errors import IntegrationNotFoundError
         from agent_platform.server.storage.option import StorageService
 
         # Get data server details for MCP context
         data_server_details = None
         try:
-            if hasattr(self, "kernel") and self.kernel and hasattr(self.kernel, "storage"):
-                # Use new integration table instead of old dids_connection_details table
-                data_server_integration = await self.kernel.storage.get_integration_by_kind("data_server")
-                settings_dict = data_server_integration.settings.model_dump()
-                data_server_details = DataServerDetails.model_validate(settings_dict)
-        except Exception as e:
+            # Use new integration table instead of old dids_connection_details table
+            data_server_integration = await self.kernel.storage.get_integration_by_kind("data_server")
+        except (IntegrationNotFoundError, ValueError) as e:
             # Log but continue without data context - this allows MCP servers to work
             # even when data server details are unavailable
-            logger.error(f"Could not retrieve data server details for MCP context: {e}")
+            logger.info(f"Could not retrieve data server details for MCP context: {e}")
+        else:
+            try:
+                settings_dict = data_server_integration.settings.model_dump()
+                data_server_details = DataServerDetails.model_validate(settings_dict)
+            except Exception as e:
+                logger.exception(f"Error validating data server details: {e}")
 
         # Build action invocation context for Sema4AI action servers
         mcp_sema4ai_action_invocation_context = {
@@ -460,10 +464,10 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
         base_storage = StorageService.get_instance()
 
-        async def safe(srv: MCPServer):
+        async def safe(mcp_server_with_oauth_config: MCPServerWithOAuthConfig):
             try:
-                logger.info(f"Fetching tool definitions from MCP server: {srv.url}")
-                tools = await srv.to_tool_definitions(
+                logger.info(f"Fetching tool definitions from MCP server: {mcp_server_with_oauth_config.url}")
+                tools = await mcp_server_with_oauth_config.to_tool_definitions(
                     user_id=self.kernel.user.user_id,
                     storage=base_storage,
                     additional_headers=additional_headers,
@@ -474,7 +478,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             except Exception as exc:
                 detailed = (
                     "Error acquiring tool definitions from MCP server:"
-                    f"\n  name={srv.name!r} url={srv.url!r}"
+                    f"\n  name={mcp_server_with_oauth_config.name!r} url={mcp_server_with_oauth_config.url!r}"
                     f"\n  exception={exc!s}"
                 )
                 logger.warning(
@@ -552,7 +556,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
     async def from_mcp_servers(
         self,
-        mcp_servers: list[MCPServer],
+        mcp_servers: list[MCPServerWithOAuthConfig],
         # Headers to be added to the request at
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
@@ -563,9 +567,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         all_collected_tools = CollectedTools(tools=[], issues=[])
         seen_urls = set()
 
-        async def _fetch(srv: MCPServer, additional_headers: dict | None = None):
+        async def _fetch(
+            mcp_server_with_oauth_config: MCPServerWithOAuthConfig, additional_headers: dict | None = None
+        ):
             return await self._fetch_mcp_tools(
-                [srv],
+                [mcp_server_with_oauth_config],
                 additional_headers=additional_headers,
             )
 
@@ -576,21 +582,44 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if agent_selected_tools and len(agent_selected_tools) > 0:
                 agent_selected_tools_set = set(tool.name for tool in agent_selected_tools)
 
-        for srv in mcp_servers:
-            if srv.url and srv.url in seen_urls:
+        for mcp_server_with_oauth_config in mcp_servers:
+            if mcp_server_with_oauth_config.url and mcp_server_with_oauth_config.url in seen_urls:
                 continue  # skip any duplicate URLs (this shouldn't really
                 # happen, but just in case...)
 
-            if srv.url:
-                seen_urls.add(srv.url)
+            if mcp_server_with_oauth_config.url:
+                seen_urls.add(mcp_server_with_oauth_config.url)
 
             collected_tools = await self._cache.get_or_fetch(
                 kind="mcp_servers",
-                key=srv.cache_key,
-                fetch_coro=_fetch(srv, additional_headers=additional_headers),
+                key=mcp_server_with_oauth_config.cache_key,
+                fetch_coro=_fetch(mcp_server_with_oauth_config, additional_headers=additional_headers),
             )
             if agent_selected_tools_set:
                 collected_tools.filter_tools(agent_selected_tools_set)
             all_collected_tools.merge(collected_tools)
 
         return all_collected_tools
+
+    async def load_mcp_servers(self):
+        """Loads all the MCP servers from the storage and returns them as a list of MCPServerWithOAuthConfig."""
+        from agent_platform.server.storage.base import BaseStorage
+
+        kernel = self.kernel
+
+        storage: BaseStorage = kernel.storage._internal_storage  # type: ignore
+        mcp_servers_dict = await storage.get_mcp_servers_and_oauth_info_by_ids(kernel.agent.mcp_server_ids)
+
+        if kernel.agent.mcp_servers:
+            logger.warning("Agent.mcp_servers is deprecated. Use mcp_server_ids instead.")
+
+        all_mcp_servers: list[MCPServerWithOAuthConfig] = [
+            *list(mcp_servers_dict.values()),
+            # The ones below are deprecated, but we still support them for backwards compatibility
+            *[
+                MCPServerWithOAuthConfig.model_validate(mcp_server.model_dump())
+                for mcp_server in kernel.agent.mcp_servers
+            ],
+        ]
+
+        return all_mcp_servers

@@ -14,17 +14,9 @@ from starlette.datastructures import Headers
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
-from agent_platform.core.evals.agent_client import (
-    AgentClient,
-    ToolExecutionError,
-    UnexpectedToolError,
-)
+from agent_platform.core.evals.agent_client import AgentClient, ToolExecutionError, UnexpectedToolError
 from agent_platform.core.evals.live_executor import LiveToolExecutor
-from agent_platform.core.evals.replay_executor import (
-    DriftEvent,
-    ReplayDriftError,
-    ReplayToolExecutor,
-)
+from agent_platform.core.evals.replay_executor import DriftEvent, ReplayDriftError, ReplayToolExecutor
 from agent_platform.core.evals.session import Session
 from agent_platform.core.evals.types import (
     ActionCallingResult,
@@ -376,6 +368,8 @@ async def _copy_scenario_files_to_run_thread(
 
 
 async def _gather_agent_tools(agent: Agent, context: AgentServerContext) -> ToolsBundle:
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
     kernel = create_minimal_kernel(context)
     iface = AgentServerToolsInterface()
     iface.attach_kernel(kernel)
@@ -384,15 +378,11 @@ async def _gather_agent_tools(agent: Agent, context: AgentServerContext) -> Tool
     action_tools = action_result.tools
     action_issues = action_result.issues
 
-    mcp_result = await iface.from_mcp_servers(agent.mcp_servers)
+    mcp_servers_with_oauth_config: list[MCPServerWithOAuthConfig] = await iface.load_mcp_servers()
+    mcp_result = await iface.from_mcp_servers(mcp_servers_with_oauth_config)
     mcp_tools = mcp_result.tools
     mcp_issues = mcp_result.issues
-
     issues = [*action_issues, *mcp_issues]
-
-    logger.info(f"Tools gathered: action={len(action_tools)}, mcp={len(mcp_tools)}")
-    if issues:
-        logger.info(f"Tool issues: {', '.join(issues)}")
 
     return ToolsBundle(
         action_tools=action_tools,

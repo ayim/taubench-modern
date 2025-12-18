@@ -4,28 +4,21 @@ from dataclasses import dataclass, field
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 from structlog import get_logger
 
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.delta.combine_delta import combine_generic_deltas
 from agent_platform.core.errors import PlatformError
-from agent_platform.core.mcp import MCPServer
+from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
 from agent_platform.core.model_selector import DefaultModelSelector
 from agent_platform.core.model_selector.selection_request import ModelSelectionRequest
-from agent_platform.core.platforms import (
-    AnyPlatformParameters,
-    PlatformClient,
-)
+from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
+from agent_platform.core.payloads.mcp_server_response import MCPServerCoreResponse
+from agent_platform.core.platforms import AnyPlatformParameters, PlatformClient
 from agent_platform.core.platforms.base import PlatformParameters
-from agent_platform.core.prompts import (
-    Prompt,
-    PromptTextContent,
-    PromptUserMessage,
-)
-from agent_platform.core.responses import (
-    ResponseMessage,
-    ResponseToolUseContent,
-)
+from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
+from agent_platform.core.responses import ResponseMessage, ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition
 from agent_platform.server.agent_architectures import AgentArchManager
 from agent_platform.server.api.private_v2.utils import create_minimal_kernel
@@ -53,7 +46,7 @@ class _Book:
 class ListMCPToolsRequest:
     """Payload schema for listing tools from MCP servers."""
 
-    mcp_servers: list[MCPServer] = field(metadata={"description": "The MCP servers to query for tools."})
+    mcp_servers: list[MCPServerCreate] = field(metadata={"description": "The MCP servers to query for tools."})
 
 
 def _basic_test_prompt_with_tool() -> tuple[Prompt, Callable[[ResponseMessage], bool]]:
@@ -321,15 +314,28 @@ async def test_model_platform_params(
         ) from ex
 
 
+class ListMCPToolsResult(BaseModel):
+    server: Annotated[MCPServerCoreResponse, "The MCP server configuration"]
+    tools: Annotated[list[dict], "The tools discovered for the MCP server"]
+    issues: Annotated[list[str], "The issues encountered while listing tools for the MCP server"]
+
+
+class ListMCPToolsResponse(BaseModel):
+    results: Annotated[list[ListMCPToolsResult], "The results of the tool listing for each MCP server"]
+
+
 @router.post("/mcp/tools")
 async def list_mcp_tools(
     user: AuthedUser,
     payload: ListMCPToolsRequest,
     request: Request,
-) -> dict:
+) -> ListMCPToolsResponse:
     """List tools available from the provided MCP servers.
 
     Returns a mapping of each server to the tools discovered for that server.
+
+    This is the preferred API to use to test that the MCP server is working correctly
+    with the settings that the user has provided.
     """
     context = AgentServerContext.from_request(
         request=request,
@@ -337,22 +343,22 @@ async def list_mcp_tools(
     )
     kernel = create_minimal_kernel(context)
 
-    iface = AgentServerToolsInterface()
+    agent_server_tools_interface = AgentServerToolsInterface()
     # Recent changes to how headers are passed require this method
     # to have a minimal kernel, else tool listing will fail
-    iface.attach_kernel(kernel)
+    agent_server_tools_interface.attach_kernel(kernel)
 
-    async def _per_server(server: MCPServer):
+    async def _per_server(mcp_server_with_oauth_config: MCPServerWithOAuthConfig):
         # Create task first, then wait with timeout to avoid cancel scope issues
         timeout = 30.0
-        task = asyncio.create_task(iface.from_mcp_servers([server]))
+        task = asyncio.create_task(agent_server_tools_interface.from_mcp_servers([mcp_server_with_oauth_config]))
 
         try:
             mcp_result = await asyncio.wait_for(task, timeout=timeout)
             tools = mcp_result.tools
             issues = mcp_result.issues
         except TimeoutError:
-            logger.warning(f"Timed out listing tools from MCP server {server.url}")
+            logger.warning(f"Timed out listing tools from MCP server {mcp_server_with_oauth_config.url}")
             # Cancel the task gracefully
             if not task.done():
                 task.cancel()
@@ -361,28 +367,31 @@ async def list_mcp_tools(
                 except asyncio.CancelledError:
                     pass  # Expected when we cancel
                 except Exception:
-                    pass  # Suppress any cleanup errors
-            return {
-                "server": server.model_dump(),
-                "tools": [],
-                "issues": [f"Failed to list tools: timeout after {timeout} seconds"],
-            }
+                    logger.debug("Exception when cancelling task", exc_info=True)
+
+            return ListMCPToolsResult(
+                server=MCPServerCoreResponse.core_response_from_mcp_server(mcp_server_with_oauth_config),
+                tools=[],
+                issues=[f"Failed to list tools: timeout after {timeout} seconds"],
+            )
         except Exception as exc:  # pragma: no cover - defensive
-            logger.exception(f"Failed to list tools from MCP server {server.url} ({exc!s})")
-            return {
-                "server": server.model_dump(),
-                "tools": [],
-                "issues": [f"Failed to list tools: {exc!s}"],
-            }
+            logger.exception(f"Failed to list tools from MCP server {mcp_server_with_oauth_config.url} ({exc!s})")
 
-        return {
-            "server": server.model_dump(),
-            "tools": [t.model_dump() for t in tools],
-            "issues": issues,
-        }
+            return ListMCPToolsResult(
+                server=MCPServerCoreResponse.core_response_from_mcp_server(mcp_server_with_oauth_config),
+                tools=[],
+                issues=[f"Failed to list tools: {exc!s}"],
+            )
 
-    ToolDefinitionCache().clear_specific_urls_or_keys(
-        [server.cache_key for server in payload.mcp_servers if server.cache_key]
-    )
-    results = await asyncio.gather(*[_per_server(srv) for srv in payload.mcp_servers])
-    return {"results": results}
+        return ListMCPToolsResult(
+            server=MCPServerCoreResponse.core_response_from_mcp_server(mcp_server_with_oauth_config),
+            tools=[t.model_dump() for t in tools],
+            issues=issues,
+        )
+
+    mcp_servers_with_oauth_config = [srv.to_mcp_server() for srv in payload.mcp_servers]
+
+    ToolDefinitionCache().clear_specific_urls_or_keys([server.cache_key for server in mcp_servers_with_oauth_config])
+
+    results = await asyncio.gather(*[_per_server(server) for server in mcp_servers_with_oauth_config])
+    return ListMCPToolsResponse(results=results)

@@ -51,6 +51,7 @@ from agent_platform.server.storage.errors import (
 if typing.TYPE_CHECKING:
     from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
+    from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithOAuthConfig
     from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
     from agent_platform.server.storage.types import StaleThreadsResult
 
@@ -506,6 +507,190 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 ]
                 insert_stmt = sa.insert(agent_mcp_server).values(insert_data)
                 await conn.execute(insert_stmt)
+
+    async def create_mcp_server(
+        self,
+        mcp_server: "MCPServer | MCPServerWithOAuthConfig",
+        source: "MCPServerSource",
+        mcp_runtime_deployment_id: str | None = None,
+    ) -> str:
+        """Create a new MCP server. Returns the generated MCP server ID.
+
+        Accepts either:
+        - MCPServer: Standard MCP server configuration (for backward compatibility)
+        - MCPServerWithOAuthConfig: MCP server with OAuth configuration
+        """
+        import uuid
+
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+        from agent_platform.core.oauth.oauth_models import AuthenticationType, OAuthConfig
+        from agent_platform.server.storage.errors import MCPServerWithNameAlreadyExistsError, RecordAlreadyExistsError
+
+        oauth_config: OAuthConfig | None = None
+
+        # 1. Extract OAuth config if present
+        if isinstance(mcp_server, MCPServerWithOAuthConfig):
+            oauth_config = mcp_server.oauth_config
+            # Use parent class model_dump to avoid exposing oauth_config
+            from agent_platform.core.mcp.mcp_server import MCPServer
+
+            actual_mcp_server_dict = MCPServer.model_dump(mcp_server)
+        else:
+            oauth_config = None
+            actual_mcp_server_dict = mcp_server.model_dump()
+
+        # 2. Generate ID and timestamps
+        mcp_server_id = str(uuid.uuid4())
+        now = datetime.now(UTC)
+
+        # 3. Insert the MCP server
+        mcp_server_table = self._get_table("mcp_server")
+
+        insert_values = {
+            "mcp_server_id": mcp_server_id,
+            "name": mcp_server.name,
+            "enc_config": self._encrypt_config(actual_mcp_server_dict),
+            "source": source.value,
+            "mcp_runtime_deployment_id": mcp_runtime_deployment_id,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        if oauth_config is not None:
+            model_dump = oauth_config.model_dump_cleartext()
+            insert_values["authentication_type"] = model_dump["authentication_type"]
+            insert_values["authentication_metadata_enc"] = self._encrypt_config(model_dump["authentication_metadata"])
+        else:
+            insert_values["authentication_type"] = AuthenticationType.NONE.value
+
+        if self._sa_engine.dialect.name == "postgresql":
+            # Note: we need to do this for enc_config, but not for authentication_metadata_enc
+            # (because enc_config is a JSONB column and authentication_metadata_enc is a text column)
+            # -- ideally it'd be text in both cases as the `encrypt_config` method doesn't really
+            # say that it returns a JSON-encoded string, so, it's possible this could break if the
+            # encryption algorithm changes not to return a JSON-encoded string (this was done this way to
+            # keep backwards compatibility with the existing data in PostgreSQL, otherwise keeping the
+            # string would've been fine).
+            try:
+                insert_values["enc_config"] = json.loads(insert_values["enc_config"])
+            except Exception:
+                logger.warning("The encoded information given by `self._encrypt_config` is not a valid JSON string")
+
+        stmt = sa.insert(mcp_server_table).values(insert_values)
+
+        try:
+            async with self._write_connection() as conn:
+                await conn.execute(stmt)
+        except IntegrityError as e:
+            if self._sa_engine.dialect.name == "postgresql":
+                if "mcp_server_pkey" in str(e):
+                    raise RecordAlreadyExistsError(
+                        f"MCP server {mcp_server_id} already exists",
+                    ) from e
+                elif "idx_mcp_server_name_source" in str(e):
+                    raise MCPServerWithNameAlreadyExistsError(
+                        f"MCP server with name '{mcp_server.name}' and source '{source.value}' already exists",
+                    ) from e
+            else:
+                error_msg = str(e).lower()
+                if "unique constraint failed: v2_mcp_server.mcp_server_id" in error_msg:
+                    raise RecordAlreadyExistsError(
+                        f"MCP server {mcp_server_id} already exists",
+                    ) from e
+                elif "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
+                    raise MCPServerWithNameAlreadyExistsError(
+                        f"MCP server with name '{mcp_server.name}' and source '{source.value}' already exists",
+                    ) from e
+            raise
+
+        return mcp_server_id
+
+    async def get_mcp_servers_and_oauth_info_by_ids(
+        self, mcp_server_ids: list[str]
+    ) -> dict[str, "MCPServerWithOAuthConfig"]:
+        """Get multiple MCP servers by their IDs with OAuth configuration."""
+        from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerWithOAuthConfig
+        from agent_platform.core.oauth.oauth_models import AuthenticationType, OAuthConfig
+        from agent_platform.server.storage.errors import ConfigDecryptionError
+
+        if not mcp_server_ids:
+            return {}
+
+        # Validate all UUIDs
+        for mcp_server_id in mcp_server_ids:
+            self._validate_uuid(mcp_server_id)
+
+        mcp_server_table = self._get_table("mcp_server")
+        stmt = sa.select(
+            mcp_server_table.c.mcp_server_id,
+            mcp_server_table.c.enc_config,
+            mcp_server_table.c.authentication_type,
+            mcp_server_table.c.authentication_metadata_enc,
+        ).where(mcp_server_table.c.mcp_server_id.in_(mcp_server_ids))
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        result_dict: dict[str, MCPServerWithOAuthConfig] = {}
+        for row in rows:
+            server_id = str(row["mcp_server_id"])
+            encrypted_config = row["enc_config"]
+            try:
+                if not isinstance(encrypted_config, str):
+                    encrypted_config = json.dumps(encrypted_config)
+                config_dict = self._decrypt_config(encrypted_config)
+                mcp_server = MCPServer.model_validate(config_dict)
+
+                # Build OAuthConfig from database fields
+                authentication_type_str = row.get("authentication_type")
+                authentication_metadata_enc = row.get("authentication_metadata_enc")
+
+                oauth_config: OAuthConfig | None = None
+                authentication_metadata = None
+                authentication_type = AuthenticationType.NONE
+
+                if authentication_type_str:
+                    try:
+                        authentication_type = AuthenticationType(authentication_type_str)
+                    except ValueError as e:
+                        logger.critical(
+                            f"Invalid authentication_type '{authentication_type_str}' for MCP server {server_id}: {e}"
+                        )
+                    else:
+                        if authentication_metadata_enc:
+                            try:
+                                metadata_dict = self._decrypt_config(authentication_metadata_enc)
+                                authentication_metadata = metadata_dict
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to decrypt authentication metadata for MCP server {server_id}: {e}"
+                                )
+
+                        oauth_config = OAuthConfig(
+                            authentication_type=authentication_type,
+                            authentication_metadata=authentication_metadata,
+                        )
+
+                # Create MCPServerWithOAuthConfig by passing all MCPServer fields
+                result_dict[server_id] = MCPServerWithOAuthConfig(
+                    name=mcp_server.name,
+                    transport=mcp_server.transport,
+                    url=mcp_server.url,
+                    headers=mcp_server.headers,
+                    command=mcp_server.command,
+                    args=mcp_server.args,
+                    env=mcp_server.env,
+                    cwd=mcp_server.cwd,
+                    force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+                    type=mcp_server.type,
+                    mcp_server_metadata=mcp_server.mcp_server_metadata,
+                    oauth_config=oauth_config,
+                )
+            except Exception as e:
+                raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {server_id}") from e
+
+        return result_dict
 
     # -------------------------------------------------------------------------
     # Agent Data Connections
@@ -2155,12 +2340,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
         Returns:
             List of ObservabilityIntegration instances that are enabled.
         """
-        from agent_platform.core.integrations.observability.integration import (
-            ObservabilityIntegration,
-        )
-        from agent_platform.core.integrations.settings.observability import (
-            ObservabilityIntegrationSettings,
-        )
+        from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
+        from agent_platform.core.integrations.settings.observability import ObservabilityIntegrationSettings
 
         integrations = await self.list_integrations(kind="observability")
         enabled_obs_integrations = []
@@ -2650,6 +2831,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def _load_mcp_oauth_token_from_row(self, row: RowMapping, *, decrypt: bool = False) -> "OAuthToken":
         from mcp.shared.auth import OAuthToken
 
+        from agent_platform.core.oauth.oauth_constants import TIMEOUT_TO_CONSIDER_OAUTH_TOKEN_EXPIRED
+
         # Decrypt tokens if requested
         if decrypt:
             access_token = self._secret_manager.fetch(row["access_token_enc"])
@@ -2658,24 +2841,29 @@ class BaseStorage(AbstractStorage, CommonMixin):
             access_token = row["access_token_enc"]
             refresh_token = row["refresh_token_enc"]
 
-        # Calculate updated expires_in based on current time
-        expires_in = row["expires_in"]
-        if expires_in is not None:
-            # Get the updated_at timestamp (when token was last saved)
+        # Calculate expires_in based on expires_at and current time
+        expires_in = None
+        if row["expires_at"] is not None:
+            # Get the expires_at timestamp
             if self._sa_engine.dialect.name == "sqlite":
-                updated_at_str = row["updated_at"]
-                updated_at = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00"))
+                expires_at_str = row["expires_at"]
+                expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
             else:
-                updated_at = row["updated_at"]
+                expires_at = row["expires_at"]
 
-            # Calculate elapsed time since token was saved
+            # Calculate expires_in based on current time
             now = datetime.now(UTC)
-            if updated_at.tzinfo is None:
-                updated_at = updated_at.replace(tzinfo=UTC)
-            elapsed_seconds = int((now - updated_at).total_seconds())
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            expires_in = max(0, int((expires_at - now).total_seconds()))
 
-            # Recalculate expires_in based on current time
-            expires_in = max(0, expires_in - elapsed_seconds)
+            if expires_in < TIMEOUT_TO_CONSIDER_OAUTH_TOKEN_EXPIRED:
+                logger.info(
+                    f"OAuth token for {row['mcp_url']} will expire in less than "
+                    f"{TIMEOUT_TO_CONSIDER_OAUTH_TOKEN_EXPIRED} seconds "
+                    f"(considering already expired)."
+                )
+                access_token = ""  # Expired token
 
         return OAuthToken(
             access_token=access_token,
@@ -2777,6 +2965,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 "scope": stmt.excluded.scope,
                 "refresh_token_enc": stmt.excluded.refresh_token_enc,
                 "updated_at": stmt.excluded.updated_at,
+                "expires_at": stmt.excluded.expires_at,
             },
         )
 

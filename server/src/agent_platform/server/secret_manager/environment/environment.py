@@ -81,7 +81,7 @@ class EnvironmentSecretManager(BaseSecretManager):
 
         return self._envelope_encryption.encrypt(data)
 
-    def fetch(self, encrypted_data: str) -> str:
+    def fetch(self, stored_reference: str) -> str:
         """Fetch and decrypt data using envelope encryption."""
         if self._envelope_encryption is None:
             raise RuntimeError("Secret manager not properly initialized")
@@ -90,16 +90,16 @@ class EnvironmentSecretManager(BaseSecretManager):
         from agent_platform.core.utils.encryption.envelope import EnvelopeEncryptionResult
 
         try:
-            envelope_result = EnvelopeEncryptionResult.from_json(encrypted_data)
+            envelope_result = EnvelopeEncryptionResult.from_json(stored_reference)
             encrypted_key_id = envelope_result.metadata.key_id
 
             # If data was encrypted with fallback key, use fallback to decrypt
             if encrypted_key_id == "fallback" and self._fallback_envelope_encryption is not None:
-                return self._fallback_envelope_encryption.decrypt(encrypted_data)
+                return self._fallback_envelope_encryption.decrypt(stored_reference)
 
         except Exception as e:
             # If metadata parsing fails, fall back to primary encryption
-            logger.error(f"Metadata parsing failed, falling back to primary encryption: {e}")
+            logger.exception(f"Metadata parsing failed (environment), falling back to primary encryption: {e}")
 
         # Default to primary encryption for both non-fallback keys and parsing failures
-        return self._envelope_encryption.decrypt(encrypted_data)
+        return self._envelope_encryption.decrypt(stored_reference)

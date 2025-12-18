@@ -1,15 +1,20 @@
+import typing
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal
 
+from structlog.stdlib import get_logger
+
 from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.mcp.mcp_client import MCPClient
-from agent_platform.core.mcp.mcp_types import (
-    MCPVariables,
-    deserialize_mcp_variables,
-    serialize_mcp_variables,
-)
+from agent_platform.core.mcp.mcp_types import MCPVariables, deserialize_mcp_variables, serialize_mcp_variables
+from agent_platform.core.oauth.oauth_models import OAuthConfig
 from agent_platform.core.tools.tool_definition import ToolDefinition
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.base import BaseStorage
+
+logger = get_logger(__name__)
 
 
 class MCPServerSource(str, Enum):
@@ -31,6 +36,9 @@ class MCPServerWithMetadata:
     """The MCP runtime deployment ID, if hosted."""
 
 
+Transport = Literal["auto", "streamable-http", "sse", "stdio"]
+
+
 @dataclass(frozen=True)
 class MCPServer:
     """Model Context Protocol (MCP) server definition."""
@@ -38,7 +46,7 @@ class MCPServer:
     name: str = field(metadata={"description": "The name of the MCP server."})
     """The name of the MCP server."""
 
-    transport: Literal["auto", "streamable-http", "sse", "stdio"] = field(
+    transport: Transport = field(
         default="auto",
         metadata={
             "description": "Transport protocol to use when connecting to the MCP server. "
@@ -131,12 +139,21 @@ class MCPServer:
 
     def _validate_url_command(self) -> None:
         """Validate url and command configuration."""
-        if not self.url and not self.command:
-            raise ValueError("Either url or command must be provided")
-        if self.url and self.command:
-            raise ValueError("Provide *either* url=* or command=*, but not both")
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
 
-    def _resolve_transport(self) -> str:
+        if not self.url and not self.command:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                message="Either url or command must be provided",
+            )
+        if self.url and self.command:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                message="Provide *either* url=* or command=*, but not both",
+            )
+
+    def _resolve_transport(self) -> Transport:
         """Resolve transport type based on url/command."""
         if self.transport != "auto":
             return self.transport
@@ -150,10 +167,19 @@ class MCPServer:
 
     def _validate_transport(self) -> None:
         """Validate transport matches url/command."""
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         if self.url and self.transport not in ["sse", "streamable-http"]:
-            raise ValueError("'url' transport requires transport=sse or transport=streamable-http")
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                message="'url' transport requires transport=sse or transport=streamable-http",
+            )
         if self.command and self.transport != "stdio":
-            raise ValueError("'command' transport requires transport=stdio")
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                message="'command' transport requires transport=stdio",
+            )
 
     def __post_init__(self):
         # Skip url/command validation for sema4ai_action_server type
@@ -180,6 +206,9 @@ class MCPServer:
 
     @property
     def cache_key(self) -> str:
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
         if self.url:
             headers_part = tuple(sorted((self.headers or {}).items()))
             return f"{self.url}|{headers_part}"
@@ -188,7 +217,11 @@ class MCPServer:
             cwd_part = self.cwd or ""
             args_part = " ".join(self.args or [])
             return f"{self.command}|{args_part}|{cwd_part}|{env_part}"
-        raise ValueError("No cache key for MCP server")
+
+        raise PlatformHTTPError(
+            error_code=ErrorCode.INTERNAL_ERROR,
+            message="No cache key for MCP server",
+        )
 
     def copy(self) -> "MCPServer":
         """Returns a deep copy of the MCP server."""
@@ -227,34 +260,6 @@ class MCPServer:
             "mcp_server_metadata": self.mcp_server_metadata,
         }
 
-    async def to_tool_definitions(
-        self,
-        # Additional headers to be added to the request at
-        # tool definition time
-        user_id: str,
-        storage,
-        additional_headers: dict | None = None,
-        data_server_details: DataServerDetails | None = None,
-        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
-    ) -> list[ToolDefinition]:
-        """Converts the MCP server to a list of tool definitions."""
-        url = self.url
-        if url is not None:
-            token = await storage.get_mcp_oauth_token(user_id, url, decrypt=True)
-            if token is not None:
-                if not additional_headers:
-                    additional_headers = {}
-                additional_headers["Authorization"] = f"Bearer {token.access_token}"
-
-        async with MCPClient(
-            self,
-            additional_headers=additional_headers,
-            data_server_details=data_server_details,
-            mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
-        ) as client:
-            tools = await client.list_tools()
-        return tools
-
     @classmethod
     def model_validate(cls, data: dict) -> "MCPServer":
         """Deserializes the MCP server from a dictionary.
@@ -266,3 +271,144 @@ class MCPServer:
             data["env"] = deserialize_mcp_variables(data["env"])
 
         return cls(**data)
+
+
+@dataclass(frozen=True)
+class MCPServerWithOAuthConfig(MCPServer):
+    """MCP server + OAuth configuration."""
+
+    oauth_config: OAuthConfig | None = field(
+        default=None,
+        metadata={"description": "OAuth configuration for the MCP server."},
+    )
+
+    async def to_tool_definitions(
+        self,
+        # Additional headers to be added to the request at
+        # tool definition time
+        user_id: str,
+        storage: "BaseStorage",
+        *,
+        additional_headers: dict | None = None,
+        data_server_details: DataServerDetails | None = None,
+        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
+    ) -> list[ToolDefinition]:
+        """Converts the MCP server to a list of tool definitions.
+
+        Note: the oauth_config is taken from the class instance.
+        """
+        from agent_platform.core.oauth.oauth_models import (
+            AuthenticationMetadataClientCredentials,
+            AuthenticationType,
+            get_client_credentials_oauth_token,
+        )
+
+        if not additional_headers:
+            additional_headers = {}
+
+        url = self.url
+        token = None
+        if url is not None:
+            token = await storage.get_mcp_oauth_token(user_id, url, decrypt=True)
+            if token is not None:
+                if token.access_token is not None:
+                    additional_headers["Authorization"] = f"Bearer {token.access_token}"
+
+            if "Authorization" not in additional_headers:
+                # No token, maybe it must still be added?
+                if (
+                    self.oauth_config
+                    and self.oauth_config.authentication_type == AuthenticationType.OAUTH2_CLIENT_CREDENTIALS
+                ):
+                    # Do client credentials authentication (could fail if the authentication metadata is invalid)
+                    token = await get_client_credentials_oauth_token(self.oauth_config, self.url)
+                    additional_headers["Authorization"] = f"Bearer {token.access_token}"
+
+                    authentication_metadata = self.oauth_config.authentication_metadata
+                    assert isinstance(authentication_metadata, AuthenticationMetadataClientCredentials), (
+                        "Authentication metadata must be an instance of AuthenticationMetadataClientCredentials"
+                    )
+
+                    await storage.set_mcp_oauth_token(user_id, url, token)
+
+        async with MCPClient(
+            self,
+            additional_headers=additional_headers,
+            data_server_details=data_server_details,
+            mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
+        ) as client:
+            tools = await client.list_tools()
+        return tools
+
+    def model_dump(self) -> dict:
+        """Serializes the MCP server to a dictionary.
+
+        Raises an error to prevent exposing OAuth configuration in API responses.
+        """
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="MCPServerWithOAuthConfig.model_dump() is not allowed. "
+            "Use MCPServer.model_dump() instead to avoid exposing OAuth configuration.",
+        )
+
+    @property
+    def cache_key(self) -> str:
+        """Cache key that includes OAuth information when URL is available."""
+        if self.url:
+            headers_part = tuple(sorted((self.headers or {}).items()))
+            # Include oauth config in cache key when available
+            oauth_part = None
+            if self.oauth_config:
+                # Include authentication type and a hash of metadata for cache key
+                import hashlib
+                import json
+
+                auth_type = self.oauth_config.authentication_type.value
+                if self.oauth_config.authentication_metadata:
+                    # Create a stable hash of the metadata
+                    metadata_dict = self.oauth_config.model_dump_cleartext()["authentication_metadata"]
+                    if isinstance(metadata_dict, dict):
+                        # Sort keys for consistent hashing
+                        metadata_str = json.dumps(metadata_dict, sort_keys=True)
+                        metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()[:16]
+                        oauth_part = f"{auth_type}:{metadata_hash}"
+                    else:
+                        oauth_part = auth_type
+                else:
+                    oauth_part = auth_type
+
+            if oauth_part:
+                return f"{self.url}|{headers_part}|oauth:{oauth_part}"
+            return f"{self.url}|{headers_part}"
+        if self.command:
+            env_part = tuple(sorted((self.env or {}).items()))
+            cwd_part = self.cwd or ""
+            args_part = " ".join(self.args or [])
+            return f"{self.command}|{args_part}|{cwd_part}|{env_part}"
+        raise ValueError("No cache key for MCP server")
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "MCPServerWithOAuthConfig":
+        """Deserializes the MCP server with OAuth config from a dictionary.
+        Useful for JSON deserialization."""
+        from agent_platform.core.oauth.oauth_models import OAuthConfig
+
+        data = data.copy()
+
+        # Extract oauth_config if present
+        oauth_config = None
+        if "oauth_config" in data:
+            oauth_config_data = data.pop("oauth_config")
+            if oauth_config_data is not None:
+                oauth_config = OAuthConfig.model_validate(oauth_config_data)
+
+        # Handle MCPServer fields
+        if "headers" in data:
+            data["headers"] = deserialize_mcp_variables(data["headers"])
+        if "env" in data:
+            data["env"] = deserialize_mcp_variables(data["env"])
+
+        return cls(**data, oauth_config=oauth_config)

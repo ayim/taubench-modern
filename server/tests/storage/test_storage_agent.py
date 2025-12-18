@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import typing
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -12,12 +15,20 @@ from agent_platform.server.storage.errors import (
     ThreadNotFoundError,
     UserAccessDeniedError,
 )
-from agent_platform.server.storage.sqlite import SQLiteStorage
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.postgres import PostgresStorage
+    from agent_platform.server.storage.sqlite import SQLiteStorage
+
+
+@pytest.fixture
+async def sample_user_id(storage: SQLiteStorage) -> str:
+    return await storage.get_system_user_id()
 
 
 @pytest.mark.asyncio
 async def test_agent_by_name(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -33,7 +44,7 @@ async def test_agent_by_name(
 
 @pytest.mark.asyncio
 async def test_agent_crud_operations(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -79,7 +90,7 @@ async def test_agent_crud_operations(
 
 @pytest.mark.asyncio
 async def test_update_agent_prop_not_name(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -103,7 +114,7 @@ async def test_update_agent_prop_not_name(
 
 @pytest.mark.asyncio
 async def test_agent_list_all(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -144,7 +155,7 @@ async def test_agent_list_all(
 
 @pytest.mark.asyncio
 async def test_agent_list(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -157,7 +168,7 @@ async def test_agent_list(
 
 @pytest.mark.asyncio
 async def test_agent_system_user_access(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_agent: Agent,
 ) -> None:
     """Test system user's ability to access other users' resources."""
@@ -177,7 +188,7 @@ async def test_agent_system_user_access(
 
 @pytest.mark.asyncio
 async def test_agent_regular_user_access(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -202,7 +213,7 @@ async def test_agent_regular_user_access(
 
 @pytest.mark.asyncio
 async def test_agent_delete_cascades_threads(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_thread: Thread,
@@ -232,7 +243,7 @@ async def test_agent_delete_cascades_threads(
 
 @pytest.mark.asyncio
 async def test_agent_duplicate_name_constraint(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -252,7 +263,7 @@ async def test_agent_duplicate_name_constraint(
 
 @pytest.mark.asyncio
 async def test_agent_case_insensitive_lookup(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -277,7 +288,7 @@ async def test_agent_case_insensitive_lookup(
 
 @pytest.mark.asyncio
 async def test_agent_invalid_json_metadata(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -297,7 +308,7 @@ async def test_agent_invalid_json_metadata(
 
 @pytest.mark.asyncio
 async def test_agent_filter_by_user(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_agent: Agent,
 ) -> None:
     """
@@ -327,7 +338,7 @@ async def test_agent_filter_by_user(
 
 @pytest.mark.asyncio
 async def test_agent_mcp_server_operations(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_mcp_server_http: MCPServer,
@@ -429,7 +440,7 @@ async def test_agent_mcp_server_operations(
 
 @pytest.mark.asyncio
 async def test_agent_crud_with_mcp_servers(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
     sample_mcp_server_http: MCPServer,
@@ -484,7 +495,7 @@ async def test_agent_crud_with_mcp_servers(
 
 @pytest.mark.asyncio
 async def test_agent_platform_params_association(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_user_id: str,
     sample_agent: Agent,
 ) -> None:
@@ -543,7 +554,7 @@ async def test_agent_platform_params_association(
 
 @pytest.mark.asyncio
 async def test_delete_agent_other_user(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_agent: Agent,
 ) -> None:
     owner, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
@@ -557,7 +568,7 @@ async def test_delete_agent_other_user(
 
 @pytest.mark.asyncio
 async def test_patch_agent(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_agent: Agent,
 ) -> None:
     owner, _ = await storage.get_or_create_user(sub="tenant:testing:user:owner")
@@ -599,7 +610,7 @@ async def test_patch_agent(
     ],
 )
 async def test_agent_access_control_users(
-    storage: SQLiteStorage,
+    storage: SQLiteStorage | PostgresStorage,
     sample_agent: Agent,
     owner_sub: str,
     caller_sub: str,

@@ -205,6 +205,8 @@ async def _handle_debug(
       - Thread and run stats
       - Environment summary
     """
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
     message = await kernel.thread_state.new_agent_message(
         tag_expected_past_response=None,
         tag_expected_pre_response=None,
@@ -348,7 +350,8 @@ async def _handle_debug(
 
     # MCP tool defs
     try:
-        mcp_result = await kernel.tools.from_mcp_servers(kernel.agent.mcp_servers)
+        mcp_servers_with_oauth_config: list[MCPServerWithOAuthConfig] = await kernel.tools.load_mcp_servers()
+        mcp_result = await kernel.tools.from_mcp_servers(mcp_servers_with_oauth_config)
         mcp_tools = mcp_result.tools
         mcp_issues = mcp_result.issues
         names = [f"`{t.name}`" for t in mcp_tools]

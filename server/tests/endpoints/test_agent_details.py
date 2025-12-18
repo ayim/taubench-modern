@@ -10,10 +10,7 @@ from agent_platform.core.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
-from agent_platform.server.api.private_v2.agents import (
-    get_agent_details,
-    get_agent_user_interfaces,
-)
+from agent_platform.server.api.private_v2.agents import get_agent_details, get_agent_user_interfaces
 
 
 @pytest.fixture
@@ -26,7 +23,7 @@ def mock_user():
 def mock_storage():
     storage = AsyncMock()
     # Mock methods that are called by _process_mcp_servers
-    storage.get_mcp_servers_by_ids.return_value = {}  # Return empty dict by default
+    storage.get_mcp_servers_and_oauth_info_by_ids.return_value = {}  # Return empty dict by default
     storage.get_dids_connection_details.return_value = None  # Return None by default
     return storage
 
@@ -297,7 +294,7 @@ async def test_agent_details_one_mcp_server_online(mock_user, mock_storage):
     agent = create_test_agent(mcp_servers=[mcp_server])
 
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         return_value=[AsyncMock(name="test_mcp_action")],
     ):
         mock_storage.get_agent.return_value = agent
@@ -323,7 +320,7 @@ async def test_agent_details_one_mcp_server_offline(mock_user, mock_storage):
     agent = create_test_agent(mcp_servers=[mcp_server])
 
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         side_effect=Exception("Failed to get MCP tool definitions"),
     ):
         mock_storage.get_agent.return_value = agent
@@ -352,7 +349,7 @@ async def test_agent_details_two_mcp_servers_both_online(mock_user, mock_storage
     agent = create_test_agent(mcp_servers=mcp_servers)
 
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         return_value=[AsyncMock(name="test_mcp_action")],
     ):
         mock_storage.get_agent.return_value = agent
@@ -379,10 +376,11 @@ async def test_agent_details_two_mcp_servers_both_offline(mock_user, mock_storag
         )
         for i in range(2)
     ]
+    names = set(x.name for x in mcp_servers)
     agent = create_test_agent(mcp_servers=mcp_servers)
 
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         side_effect=Exception("Failed to get MCP tool definitions"),
     ):
         mock_storage.get_agent.return_value = agent
@@ -394,8 +392,8 @@ async def test_agent_details_two_mcp_servers_both_offline(mock_user, mock_storag
 
     assert result.runbook == "test runbook"
     assert len(result.mcp_servers) == 2
-    for i, server in enumerate(result.mcp_servers):
-        assert server.name == f"test_mcp_server_{i}"
+    for server in result.mcp_servers:
+        assert server.name in names
         assert server.status == "offline"
         assert len(server.actions) == 0
 
@@ -418,7 +416,7 @@ async def test_agent_details_two_mcp_servers_mixed_status(mock_user, mock_storag
 
     # Test online server first
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         return_value=[AsyncMock(name="test_mcp_action")],
     ):
         mock_storage.get_agent.return_value = online_agent
@@ -430,7 +428,7 @@ async def test_agent_details_two_mcp_servers_mixed_status(mock_user, mock_storag
 
     # Test offline server
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         side_effect=Exception("Failed to get MCP tool definitions"),
     ):
         mock_storage.get_agent.return_value = offline_agent
@@ -477,7 +475,7 @@ async def test_agent_details_mcp_servers_with_selected_tools(mock_user, mock_sto
     ]
 
     monkeypatch.setattr(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         AsyncMock(return_value=mock_tool_defs),
     )
 
@@ -525,7 +523,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_all_online(moc
         return_value=mock_action_packages_data,
     ):
         with patch(
-            "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+            "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
             return_value=[AsyncMock(name="test_mcp_action")],
         ):
             mock_storage.get_agent.return_value = agent
@@ -576,7 +574,7 @@ async def test_agent_details_with_action_packages_and_mcp_servers_mixed_status(m
         return_value=mock_action_packages_data,
     ):
         with patch(
-            "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+            "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
             side_effect=Exception("Failed to get MCP tool definitions"),
         ):
             mock_storage.get_agent.return_value = agent
@@ -633,7 +631,7 @@ async def test_agent_details_with_multiple_action_packages_and_mcp_servers(mock_
         return_value=mock_action_packages_data,
     ):
         with patch(
-            "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+            "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
             return_value=[AsyncMock(name="test_mcp_action")],
         ):
             mock_storage.get_agent.return_value = agent
@@ -668,14 +666,16 @@ async def test_agent_details_with_global_and_agent_specific_mcp_servers(mock_use
     Test getting agent details for an agent with both
     global MCP servers (from storage) and agent-specific MCP servers.
     """
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
+
     # Create global MCP servers that will be returned by storage
-    global_mcp_server = MCPServer(
+    global_mcp_server = MCPServerWithOAuthConfig(
         name="global_mcp_server",
         url="http://global-mcp.com",
     )
 
     # Create agent-specific MCP server
-    agent_mcp_server = MCPServer(
+    agent_mcp_server = MCPServerWithOAuthConfig(
         name="agent_specific_mcp_server",
         url="http://agent-mcp.com",
     )
@@ -686,14 +686,29 @@ async def test_agent_details_with_global_and_agent_specific_mcp_servers(mock_use
 
     # Mock storage to return global MCP server
     mock_storage.get_agent.return_value = agent
-    mock_storage.get_mcp_servers_by_ids.return_value = {"global-server-id-123": global_mcp_server}
+    mock_storage.get_mcp_servers_and_oauth_info_by_ids.return_value = {
+        "global-server-id-123": MCPServerWithOAuthConfig(
+            name=global_mcp_server.name,
+            transport=global_mcp_server.transport,
+            url=global_mcp_server.url,
+            headers=global_mcp_server.headers,
+            command=global_mcp_server.command,
+            args=global_mcp_server.args,
+            env=global_mcp_server.env,
+            cwd=global_mcp_server.cwd,
+            force_serial_tool_calls=global_mcp_server.force_serial_tool_calls,
+            type=global_mcp_server.type,
+            mcp_server_metadata=global_mcp_server.mcp_server_metadata,
+            oauth_config=None,
+        )
+    }
 
     # Create a proper mock tool definition with name attribute
     mock_tool_def = AsyncMock()
     mock_tool_def.name = "test_mcp_action"
 
     with patch(
-        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        "agent_platform.core.mcp.mcp_server.MCPServerWithOAuthConfig.to_tool_definitions",
         return_value=[mock_tool_def],
     ):
         result = await get_agent_details(
