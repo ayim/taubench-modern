@@ -54,6 +54,7 @@ def convert_error_response(
     include_message: bool = True,
     status_code: int | None = None,
     headers: dict[str, str] | None = None,
+    data: dict[str, Any] | None = None,
 ) -> ORJSONResponse:
     """Convert an ErrorResponse to a FastAPI Response object.
 
@@ -63,6 +64,7 @@ def convert_error_response(
             the default message from the error code will be used.
         status_code: The status code to use for the response. If None, uses the error's status_code.
         headers: The headers to include in the response. Defaults to None.
+        data: Optional additional data to merge into the error response dict.
 
     Returns:
         A FastAPI ORJSONResponse object.
@@ -74,6 +76,10 @@ def convert_error_response(
     if not include_message:
         # Use the default message from the error code
         out_dict["message"] = error_response.error_code.default_message
+
+    # Merge additional data if provided (e.g., for connection error details)
+    if data:
+        out_dict.update(data)
 
     if not is_body_allowed_for_status_code(response_status_code):
         return ORJSONResponse(
@@ -261,7 +267,12 @@ async def platform_http_error_handler(
         error_id=exc.response.error_id,  # TODO: repeated for current structlog config
         exc_info=exc,
     )
-    return convert_error_response(exc.response, headers=exc.headers)
+    # Use convert_error_response to build the response, including any additional data
+    return convert_error_response(
+        exc.response,
+        headers=exc.headers,
+        data=exc.data or None,
+    )
 
 
 def add_exception_handlers(app: Starlette) -> None:

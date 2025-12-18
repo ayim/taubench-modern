@@ -6818,6 +6818,20 @@ export const spec = {
             title: 'Message',
             type: 'string',
           },
+          details: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            default: null,
+            description:
+              'Optional technical details for debugging. UI can show this in an expandable section.',
+            title: 'Details',
+          },
         },
         required: ['error_id', 'code', 'message'],
         title: 'ErrorDetail',

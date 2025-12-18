@@ -434,12 +434,16 @@ def test_connection_failed_error_exception_properties():
     assert str(error) == "Unable to connect"
     assert isinstance(error, DataConnectionInspectorError)
     assert isinstance(error, Exception)
+    assert error.message == "Unable to connect"
+    assert error.details is None
 
     # Test with details
     error_with_details = ConnectionFailedError("Unable to connect", "Port is closed")
     error_str = str(error_with_details)
     assert "Unable to connect" in error_str
     assert "Port is closed" in error_str
+    assert error_with_details.message == "Unable to connect"
+    assert error_with_details.details == "Port is closed"
 
 
 def test_table_not_found_error_has_correct_attributes():

@@ -43,6 +43,10 @@ class ErrorDetail(BaseModel):
     error_id: UUID = Field(..., description="Unique ID for tracing")
     code: str = Field(..., description="Error code in format 'family.code'")
     message: str = Field(..., description="Human readable error message")
+    details: str | None = Field(
+        default=None,
+        description="Optional technical details for debugging. UI can show this in an expandable section.",
+    )
 
 
 class ErrorEnvelope(BaseModel):

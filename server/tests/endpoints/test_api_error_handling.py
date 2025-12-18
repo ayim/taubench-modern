@@ -696,8 +696,73 @@ class TestPlatformErrorSystem:
         assert "message" in response_dict
         assert response_dict["code"] == "unauthorized"
         assert response_dict["message"] == "Access denied"
-        # Data should NOT be in response for security
+        # Data should NOT be in response.model_dump() (ErrorResponse doesn't include it)
+        # But data will be merged in convert_error_response when building the API response
         assert "data" not in response_dict
+
+    def test_platform_http_error_with_details_in_response(self):
+        """Test that PlatformHTTPError with details includes details in API response."""
+        from agent_platform.server.error_handlers import convert_error_response
+
+        error = PlatformHTTPError(
+            ErrorCode.UNEXPECTED,
+            message="Unable to connect to database",
+            data={"details": "250001 (08001): None: Failed to connect to DB"},
+        )
+
+        # Use convert_error_response to build the actual API response
+        response = convert_error_response(
+            error.response,
+            data=error.data if error.data else None,
+        )
+
+        import json
+
+        response_dict = json.loads(bytes(response.body))
+        assert "error" in response_dict
+        error_info = response_dict["error"]
+
+        # Verify standard fields
+        assert "error_id" in error_info
+        assert "code" in error_info
+        assert "message" in error_info
+        assert error_info["code"] == "unexpected"
+        assert error_info["message"] == "Unable to connect to database"
+
+        # Verify details field is included
+        assert "details" in error_info
+        assert error_info["details"] == "250001 (08001): None: Failed to connect to DB"
+
+    def test_convert_error_response_with_data_parameter(self):
+        """Test convert_error_response merges data parameter into response."""
+        from agent_platform.core.errors.responses import ErrorResponse
+        from agent_platform.server.error_handlers import convert_error_response
+
+        error_response = ErrorResponse(
+            ErrorCode.BAD_REQUEST,
+            message_override="Invalid request",
+        )
+
+        # Test with data parameter
+        response = convert_error_response(
+            error_response,
+            data={"details": "Technical error details"},
+        )
+
+        import json
+
+        response_dict = json.loads(bytes(response.body))
+        assert "error" in response_dict
+        error_info = response_dict["error"]
+        assert error_info["message"] == "Invalid request"
+        assert error_info["details"] == "Technical error details"
+
+        # Test without data parameter (backward compatibility)
+        response_no_data = convert_error_response(error_response)
+        response_dict_no_data = json.loads(bytes(response_no_data.body))
+        error_info_no_data = response_dict_no_data["error"]
+        assert error_info_no_data["message"] == "Invalid request"
+        assert "details" not in error_info_no_data
 
     def test_error_log_context(self):
         """Test that platform errors generate proper log context."""

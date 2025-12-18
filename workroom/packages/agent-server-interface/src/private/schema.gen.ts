@@ -14549,6 +14549,12 @@ export interface components {
        * @description Human readable error message
        */
       message: string;
+      /**
+       * Details
+       * @description Optional technical details for debugging. UI can show this in an expandable section.
+       * @default null
+       */
+      details: string | null;
     };
     /**
      * ErrorEnvelope

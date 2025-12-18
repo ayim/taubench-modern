@@ -216,8 +216,9 @@ async def inspect_data_connection(
 
         return result
     except Exception as e:
-        # Import ConnectionFailedError inside the exception handler
+        # Import error types inside the exception handler
         from agent_platform.core.errors.base import ErrorCode, PlatformHTTPError
+        from agent_platform.server.kernel.data_connection_inspector import TableNotFoundError
         from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
 
         logger.error(
@@ -227,17 +228,39 @@ async def inspect_data_connection(
             user_id=user.user_id,
         )
 
-        # For ConnectionFailedError, use the cleaned error message directly
+        # For ConnectionFailedError, expose message and details separately for UI expand/collapse
         if isinstance(e, ConnectionFailedError):
+            error_data = {"details": e.details} if e.details else None
             raise PlatformHTTPError(
                 ErrorCode.UNEXPECTED,
-                str(e),
+                e.message,  # Primary message (shortened)
+                data=error_data,
             ) from e
 
-        # For other exceptions, include the generic prefix
+        # For TableNotFoundError, also expose details separately
+        if isinstance(e, TableNotFoundError):
+            error_data = {"details": e.details} if e.details else None
+            # Use a shortened message without the full details
+            short_message = (
+                f"Table '{e.table_name}' not found or not accessible. "
+                "Please verify the table name and your permissions."
+            )
+            raise PlatformHTTPError(
+                ErrorCode.UNEXPECTED,
+                short_message,  # Primary message (shortened, user-friendly)
+                data=error_data,
+            ) from e
+
+        # For other exceptions, include the generic prefix and full error as details
+        original_error = str(e)
+        # Try to get more context from the exception chain
+        if e.__cause__:
+            original_error = f"{original_error}\n\nCaused by: {e.__cause__!s}"
+        error_data = {"details": original_error}
         raise PlatformHTTPError(
             ErrorCode.UNEXPECTED,
             f"Failed to inspect data connection: {e!s}",
+            data=error_data,
         ) from e
 
 

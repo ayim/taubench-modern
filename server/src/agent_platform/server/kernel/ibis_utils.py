@@ -327,12 +327,13 @@ async def _create_sqlite_connection(config: SQLiteDataConnectionConfiguration) -
         raise
     except Exception as e:
         error_message = _parse_connection_error(e, "sqlite", config)
+        original_error = str(e)
         logger.error(
             "Failed to create sqlite connection",
             error=error_message,
             exc_info=True,
         )
-        raise ConnectionFailedError(error_message) from e
+        raise ConnectionFailedError(error_message, details=original_error) from e
 
 
 async def _create_postgres_connection(config: PostgresDataConnectionConfiguration) -> Any:
@@ -359,6 +360,7 @@ async def _create_postgres_connection(config: PostgresDataConnectionConfiguratio
         raise
     except Exception as e:
         error_message = _parse_connection_error(e, "postgres", config)
+        original_error = str(e)
         logger.error(
             "Failed to create postgres connection",
             error=error_message,
@@ -367,7 +369,7 @@ async def _create_postgres_connection(config: PostgresDataConnectionConfiguratio
             database=config.database,
             exc_info=True,
         )
-        raise ConnectionFailedError(error_message) from e
+        raise ConnectionFailedError(error_message, details=original_error) from e
 
 
 async def _create_mysql_connection(config: MySQLDataConnectionConfiguration) -> Any:
@@ -409,6 +411,7 @@ async def _create_mysql_connection(config: MySQLDataConnectionConfiguration) -> 
         raise
     except Exception as e:
         error_message = _parse_connection_error(e, "mysql", config)
+        original_error = str(e)
         logger.error(
             "Failed to create mysql connection",
             error=error_message,
@@ -417,7 +420,7 @@ async def _create_mysql_connection(config: MySQLDataConnectionConfiguration) -> 
             database=config.database,
             exc_info=True,
         )
-        raise ConnectionFailedError(error_message) from e
+        raise ConnectionFailedError(error_message, details=original_error) from e
 
 
 async def _create_redshift_connection(config: RedshiftDataConnectionConfiguration) -> Any:
@@ -451,6 +454,7 @@ async def _create_redshift_connection(config: RedshiftDataConnectionConfiguratio
         raise
     except Exception as e:
         error_message = _parse_connection_error(e, "redshift", config)
+        original_error = str(e)
         logger.error(
             "Failed to create redshift connection",
             error=error_message,
@@ -459,7 +463,7 @@ async def _create_redshift_connection(config: RedshiftDataConnectionConfiguratio
             database=config.database,
             exc_info=True,
         )
-        raise ConnectionFailedError(error_message) from e
+        raise ConnectionFailedError(error_message, details=original_error) from e
 
 
 async def _create_databricks_connection(config: DatabricksDataConnectionConfiguration) -> Any:
@@ -484,6 +488,7 @@ async def _create_databricks_connection(config: DatabricksDataConnectionConfigur
         raise
     except Exception as e:
         error_message = _parse_connection_error(e, "databricks", config)
+        original_error = str(e)
         logger.error(
             "Failed to create databricks connection",
             error=error_message,
@@ -491,7 +496,7 @@ async def _create_databricks_connection(config: DatabricksDataConnectionConfigur
             http_path=config.http_path,
             exc_info=True,
         )
-        raise ConnectionFailedError(error_message) from e
+        raise ConnectionFailedError(error_message, details=original_error) from e
 
 
 async def _create_snowflake_connection(
@@ -581,9 +586,11 @@ async def _create_snowflake_connection(
         raise
     except Exception as e:
         error_message = _parse_connection_error(e, "snowflake", config)
+        original_error = str(e)
         logger.error(
             "Failed to create snowflake connection",
             error=error_message,
             exc_info=True,
         )
-        raise ConnectionFailedError(error_message) from e
+
+        raise ConnectionFailedError(error_message, details=original_error) from e

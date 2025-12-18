@@ -123,7 +123,12 @@ class DataConnectionInspector:
         except IbisDbCallNotInWorkerThreadError as e:
             raise e
         except Exception as e:
-            raise TableNotFoundError(table_spec.name, str(e)) from e
+            # Extract full error details from exception chain
+            error_details = str(e)
+            if e.__cause__:
+                # Include the underlying database error (e.g., Snowflake ProgrammingError)
+                error_details = f"{error_details}\n\nCaused by: {e.__cause__!s}"
+            raise TableNotFoundError(table_spec.name, error_details) from e
         return table
 
     async def _validate_table(self, table_spec: "TableToInspect") -> ValidationMessage | None:
@@ -379,7 +384,8 @@ class DataConnectionInspector:
         from agent_platform.core.payloads.data_connection import TableInfo
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
-        table = await connection.table(table_spec.name)
+        # Use _get_table to get proper error handling with TableNotFoundError
+        table = await self._get_table(table_spec)
         column_names = table.columns
 
         # Filter columns to inspect based on request

@@ -418,6 +418,144 @@ def test_inspect_data_connection_success(client: TestClient, sample_sqlite_data_
     assert {"user_id", "city"} == {column["name"] for column in city_table["columns"]}
 
 
+def test_inspect_data_connection_connection_failed_error_with_details(
+    client: TestClient,
+):
+    """Test inspecting a data connection with invalid credentials returns error with details."""
+    # Create connection with invalid credentials
+    invalid_connection = {
+        "name": "test-invalid-connection",
+        "description": "Test invalid connection",
+        "engine": "postgres",
+        "configuration": {
+            "host": "localhost",
+            "port": 5432,
+            "database": "nonexistent_database_12345",
+            "user": "invalid_user_12345",
+            "password": "wrong_password",
+            "schema": "public",
+        },
+    }
+
+    create_response = client.post("/api/v2/private/data-connections/", json=invalid_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Try to inspect - should fail with connection error
+    response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": None},
+    )
+
+    assert response.status_code == 500
+    error_data = response.json()
+    assert "error" in error_data
+    error_info = error_data["error"]
+
+    # Verify standard error fields
+    assert "error_id" in error_info
+    assert "code" in error_info
+    assert "message" in error_info
+
+    # Verify user-friendly message
+    assert "Unable to connect" in error_info["message"] or "connection" in error_info["message"].lower()
+
+    # Verify details field is present with technical error
+    assert "details" in error_info
+    assert isinstance(error_info["details"], str)
+    assert len(error_info["details"]) > 0
+
+    # Verify password is NOT exposed in details
+    assert "wrong_password" not in error_info["details"]
+    assert "invalid_user_12345" not in error_info["details"].lower()
+
+
+def test_inspect_data_connection_table_not_found_error_with_details(
+    client: TestClient,
+    sample_sqlite_data_connection: dict,
+):
+    """Test inspecting a data connection with non-existent table returns error with details."""
+    # Create a valid SQLite connection
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Try to inspect a non-existent table
+    response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": [{"name": "nonexistent_table_12345", "database": None, "schema": None}]},
+    )
+
+    assert response.status_code == 500
+    error_data = response.json()
+    assert "error" in error_data
+    error_info = error_data["error"]
+
+    # Verify standard error fields
+    assert "error_id" in error_info
+    assert "code" in error_info
+    assert "message" in error_info
+
+    # Verify user-friendly message mentions table name
+    assert "nonexistent_table_12345" in error_info["message"] or "not found" in error_info["message"].lower()
+    assert "not found" in error_info["message"].lower() or "not accessible" in error_info["message"].lower()
+
+    # Verify details field is present with technical error
+    assert "details" in error_info
+    assert isinstance(error_info["details"], str)
+    assert len(error_info["details"]) > 0
+
+
+def test_inspect_data_connection_generic_error_with_details(
+    client: TestClient,
+    tmp_path: Path,
+):
+    """Test inspecting a data connection with corrupted SQLite file returns error with details."""
+    # Create a corrupted SQLite file (not a valid database)
+    corrupted_db_file = tmp_path / "corrupted.db"
+    corrupted_db_file.write_text("This is not a valid SQLite database file")
+
+    # Create connection with corrupted SQLite file
+    invalid_sqlite_connection = {
+        "name": "test-corrupted-sqlite",
+        "description": "Test corrupted SQLite connection",
+        "engine": "sqlite",
+        "configuration": {
+            "db_file": str(corrupted_db_file),
+        },
+    }
+
+    create_response = client.post("/api/v2/private/data-connections/", json=invalid_sqlite_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Try to inspect - should fail with database error
+    response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": None},
+    )
+
+    assert response.status_code == 500
+    error_data = response.json()
+    assert "error" in error_data
+    error_info = error_data["error"]
+
+    # Verify standard error fields
+    assert "error_id" in error_info
+    assert "code" in error_info
+    assert "message" in error_info
+
+    # Verify user-friendly message (corrupted file triggers ConnectionFailedError)
+    assert "Connection failed" in error_info["message"] or "connection" in error_info["message"].lower()
+
+    # Verify details field is present with technical error
+    assert "details" in error_info
+    assert isinstance(error_info["details"], str)
+    assert len(error_info["details"]) > 0
+    # Verify the technical error details are present
+    assert "file is not a database" in error_info["details"] or "database" in error_info["details"].lower()
+
+
 def test_create_postgres_data_connection_with_sanitized_connection_details(
     client: TestClient,
     sample_postgres_data_connection_with_whitespaces_in_connection_details: dict,
