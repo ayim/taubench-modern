@@ -1,5 +1,23 @@
 # @sema4ai/spar-ui
 
+## 0.11.0
+
+### Minor Changes
+
+- dfa49e7: check for cached schema before generating new one
+- 6a34ceb: Snowflake observability EAI banner for updating network rules
+- 56616db: fix: bounding citations boxes not showing up in Parse only mode document
+- 30b7fc5: render nested table data correctly in extraction results
+- 44b4ded: Show more info on intermediate steps to determine if evals are slow or stalled.
+
+### Patch Changes
+
+- c775dcf: Show Data Connection details for Semantic Data Models
+- 90803ed: Make Tool call inputs/outputs collapsible
+- 2ae7115: Update agent package inspection types
+- 03a5cd6: Update Semantic Data Model synonym edition to a tag list
+- 980d402: Changed the main navigation sorting, icons and labels.
+
 ## 0.10.0
 
 ### Minor Changes
