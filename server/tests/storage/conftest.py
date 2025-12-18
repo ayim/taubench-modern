@@ -1,3 +1,5 @@
+import asyncio
+import sys
 import typing
 from collections.abc import Generator
 
@@ -11,6 +13,13 @@ if typing.TYPE_CHECKING:
 
 # Get storage fixtures.
 from server.tests.storage_fixtures import *  # noqa: F403
+
+# setup the event loop globally
+if sys.platform == "win32":
+    # Fix: psycopg.pool - WARNING: error connecting in 'pool-1': Psycopg cannot use the
+    # 'ProactorEventLoop' to run in async mode. Please use a compatible event loop,
+    # for instance by setting 'asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())'
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 @pytest.fixture

@@ -102,9 +102,23 @@ async def postgres_testing(request):
     # Lazy import testing.postgresql only when needed
     already_yielded = False
     try:
+        import testing.common.database
         import testing.postgresql
 
-        with testing.postgresql.Postgresql() as postgresql:
+        class CustomPostgresql(testing.postgresql.Postgresql):
+            def terminate(self, *args):
+                # We need to override to work on Windows.
+                import signal
+                import sys
+
+                if sys.platform == "win32":
+                    send_signal = signal.CTRL_BREAK_EVENT
+                else:
+                    send_signal = signal.SIGINT
+
+                testing.common.database.Database.terminate(self, send_signal)
+
+        with CustomPostgresql() as postgresql:
             try:
                 yield postgresql
                 already_yielded = True
