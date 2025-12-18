@@ -1,4 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock the router import as it causes test run fails due to bringing in the whole frontend stack where ESM related imports fail to resolve with vitest
+vi.mock('~/components/providers/Router', () => ({
+  router: {
+    flatRoutes: [],
+  },
+}));
+
 import { getTenantWorkoomRedirect } from './utils';
 
 const getLocationMock = ({
