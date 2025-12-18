@@ -3,6 +3,7 @@ import { NEW_CHAT_STARTING_MSG, streamManager } from '@sema4ai/spar-ui';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
+import { isValidRoute } from '~/lib/utils';
 import { getAgentQueryOptions } from '~/queries/agents';
 import { getThreadQueryOptions, listThreadsQueryOptions } from '~/queries/thread';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
@@ -49,6 +50,12 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
      */
     const searchParams = new URLSearchParams(location.search);
     const initialThreadMessage = searchParams.get('initial_thread_message')?.trim();
+
+    const targetRoute = `/tenants/$tenantId/conversational/$agentId/$threadId/${searchParams.get('threadView')?.trim() || ''}`;
+    const threadRoute = isValidRoute(targetRoute)
+      ? targetRoute
+      : '/tenants/$tenantId/conversational/$agentId/$threadId';
+
     const startWebsocketStream = async (agentId: string) => {
       const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId, tenantId });
       return withBearerTokenAuth ? new WebSocket(url, ['Bearer', token]) : new WebSocket(url);
@@ -83,7 +90,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       });
 
       throw redirect({
-        to: '/tenants/$tenantId/conversational/$agentId/$threadId',
+        to: threadRoute,
         params: {
           tenantId,
           agentId,
@@ -112,7 +119,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
           removeUserPreferenceId(getPreferenceKey({ agentId }));
         } else {
           throw redirect({
-            to: '/tenants/$tenantId/conversational/$agentId/$threadId',
+            to: threadRoute,
             params: {
               tenantId,
               agentId,
@@ -130,7 +137,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
      */
     if (userInitiatedThreads?.length) {
       throw redirect({
-        to: '/tenants/$tenantId/conversational/$agentId/$threadId',
+        to: threadRoute,
         params: { tenantId, agentId, threadId: userInitiatedThreads[0].thread_id ?? '' }, // TODO-V2: integration, remove this nullish coalescing
       });
     }
@@ -178,7 +185,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     }
 
     throw redirect({
-      to: '/tenants/$tenantId/conversational/$agentId/$threadId',
+      to: threadRoute,
       params: {
         tenantId,
         agentId,
