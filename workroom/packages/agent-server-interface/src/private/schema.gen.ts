@@ -10861,6 +10861,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high",
      *         "google/google/gemini-3-pro-medium",
      *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-3-flash-high",
+     *         "google/google/gemini-3-flash-medium",
+     *         "google/google/gemini-3-flash-low",
      *         "google/google/gemini-2-5-pro-high",
      *         "google/google/gemini-2-5-pro-medium",
      *         "google/google/gemini-2-5-pro-low",
@@ -10988,6 +10991,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": "gemini-3-pro-preview",
      *         "google/google/gemini-3-pro-medium": "gemini-3-pro-preview",
      *         "google/google/gemini-3-pro-low": "gemini-3-pro-preview",
+     *         "google/google/gemini-3-flash-high": "gemini-3-flash-preview",
+     *         "google/google/gemini-3-flash-medium": "gemini-3-flash-preview",
+     *         "google/google/gemini-3-flash-low": "gemini-3-flash-preview",
      *         "google/google/gemini-2-5-pro-high": "gemini-2.5-pro",
      *         "google/google/gemini-2-5-pro-medium": "gemini-2.5-pro",
      *         "google/google/gemini-2-5-pro-low": "gemini-2.5-pro",
@@ -11118,6 +11124,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": "gemini",
      *         "google/google/gemini-3-pro-medium": "gemini",
      *         "google/google/gemini-3-pro-low": "gemini",
+     *         "google/google/gemini-3-flash-high": "gemini",
+     *         "google/google/gemini-3-flash-medium": "gemini",
+     *         "google/google/gemini-3-flash-low": "gemini",
      *         "google/google/gemini-2-5-pro-high": "gemini",
      *         "google/google/gemini-2-5-pro-medium": "gemini",
      *         "google/google/gemini-2-5-pro-low": "gemini",
@@ -11248,6 +11257,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": "llm",
      *         "google/google/gemini-3-pro-medium": "llm",
      *         "google/google/gemini-3-pro-low": "llm",
+     *         "google/google/gemini-3-flash-high": "llm",
+     *         "google/google/gemini-3-flash-medium": "llm",
+     *         "google/google/gemini-3-flash-low": "llm",
      *         "google/google/gemini-2-5-pro-high": "llm",
      *         "google/google/gemini-2-5-pro-medium": "llm",
      *         "google/google/gemini-2-5-pro-low": "llm",
@@ -11378,6 +11390,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": 1000000,
      *         "google/google/gemini-3-pro-medium": 1000000,
      *         "google/google/gemini-3-pro-low": 1000000,
+     *         "google/google/gemini-3-flash-high": 1000000,
+     *         "google/google/gemini-3-flash-medium": 1000000,
+     *         "google/google/gemini-3-flash-low": 1000000,
      *         "google/google/gemini-2-5-pro-high": 1000000,
      *         "google/google/gemini-2-5-pro-medium": 1000000,
      *         "google/google/gemini-2-5-pro-low": 1000000,
@@ -11711,6 +11726,21 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "google/google/gemini-3-pro-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-flash-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-flash-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-flash-low": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -11869,6 +11899,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high",
      *         "google/google/gemini-3-pro-medium",
      *         "google/google/gemini-3-pro-low",
+     *         "google/google/gemini-3-flash-high",
+     *         "google/google/gemini-3-flash-medium",
+     *         "google/google/gemini-3-flash-low",
      *         "google/google/gemini-2-5-pro-high",
      *         "google/google/gemini-2-5-pro-medium",
      *         "google/google/gemini-2-5-pro-low",
@@ -11996,6 +12029,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": "gemini-3-pro-preview",
      *         "google/google/gemini-3-pro-medium": "gemini-3-pro-preview",
      *         "google/google/gemini-3-pro-low": "gemini-3-pro-preview",
+     *         "google/google/gemini-3-flash-high": "gemini-3-flash-preview",
+     *         "google/google/gemini-3-flash-medium": "gemini-3-flash-preview",
+     *         "google/google/gemini-3-flash-low": "gemini-3-flash-preview",
      *         "google/google/gemini-2-5-pro-high": "gemini-2.5-pro",
      *         "google/google/gemini-2-5-pro-medium": "gemini-2.5-pro",
      *         "google/google/gemini-2-5-pro-low": "gemini-2.5-pro",
@@ -12126,6 +12162,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": "gemini",
      *         "google/google/gemini-3-pro-medium": "gemini",
      *         "google/google/gemini-3-pro-low": "gemini",
+     *         "google/google/gemini-3-flash-high": "gemini",
+     *         "google/google/gemini-3-flash-medium": "gemini",
+     *         "google/google/gemini-3-flash-low": "gemini",
      *         "google/google/gemini-2-5-pro-high": "gemini",
      *         "google/google/gemini-2-5-pro-medium": "gemini",
      *         "google/google/gemini-2-5-pro-low": "gemini",
@@ -12256,6 +12295,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": "llm",
      *         "google/google/gemini-3-pro-medium": "llm",
      *         "google/google/gemini-3-pro-low": "llm",
+     *         "google/google/gemini-3-flash-high": "llm",
+     *         "google/google/gemini-3-flash-medium": "llm",
+     *         "google/google/gemini-3-flash-low": "llm",
      *         "google/google/gemini-2-5-pro-high": "llm",
      *         "google/google/gemini-2-5-pro-medium": "llm",
      *         "google/google/gemini-2-5-pro-low": "llm",
@@ -12386,6 +12428,9 @@ export interface components {
      *         "google/google/gemini-3-pro-high": 1000000,
      *         "google/google/gemini-3-pro-medium": 1000000,
      *         "google/google/gemini-3-pro-low": 1000000,
+     *         "google/google/gemini-3-flash-high": 1000000,
+     *         "google/google/gemini-3-flash-medium": 1000000,
+     *         "google/google/gemini-3-flash-low": 1000000,
      *         "google/google/gemini-2-5-pro-high": 1000000,
      *         "google/google/gemini-2-5-pro-medium": 1000000,
      *         "google/google/gemini-2-5-pro-low": 1000000,
@@ -12719,6 +12764,21 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "google/google/gemini-3-pro-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-flash-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-flash-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "google/google/gemini-3-flash-low": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -12985,6 +13045,9 @@ export interface components {
       | 'google/google/gemini-2-5-pro-high'
       | 'google/google/gemini-2-5-pro-low'
       | 'google/google/gemini-2-5-pro-medium'
+      | 'google/google/gemini-3-flash-high'
+      | 'google/google/gemini-3-flash-low'
+      | 'google/google/gemini-3-flash-medium'
       | 'google/google/gemini-3-pro-high'
       | 'google/google/gemini-3-pro-low'
       | 'google/google/gemini-3-pro-medium'
@@ -13202,6 +13265,9 @@ export interface components {
      *         "google/google/gemini-2-5-pro-high",
      *         "google/google/gemini-2-5-pro-low",
      *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-flash-high",
+     *         "google/google/gemini-3-flash-low",
+     *         "google/google/gemini-3-flash-medium",
      *         "google/google/gemini-3-pro-high",
      *         "google/google/gemini-3-pro-low",
      *         "google/google/gemini-3-pro-medium",
@@ -13347,6 +13413,9 @@ export interface components {
      *         "google/google/gemini-2-5-pro-high",
      *         "google/google/gemini-2-5-pro-low",
      *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-flash-high",
+     *         "google/google/gemini-3-flash-low",
+     *         "google/google/gemini-3-flash-medium",
      *         "google/google/gemini-3-pro-high",
      *         "google/google/gemini-3-pro-low",
      *         "google/google/gemini-3-pro-medium",
@@ -13519,6 +13588,9 @@ export interface components {
      *         "google/google/gemini-2-5-pro-high",
      *         "google/google/gemini-2-5-pro-low",
      *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-flash-high",
+     *         "google/google/gemini-3-flash-low",
+     *         "google/google/gemini-3-flash-medium",
      *         "google/google/gemini-3-pro-high",
      *         "google/google/gemini-3-pro-low",
      *         "google/google/gemini-3-pro-medium",
@@ -13681,6 +13753,9 @@ export interface components {
      *         "google/google/gemini-2-5-pro-high",
      *         "google/google/gemini-2-5-pro-low",
      *         "google/google/gemini-2-5-pro-medium",
+     *         "google/google/gemini-3-flash-high",
+     *         "google/google/gemini-3-flash-low",
+     *         "google/google/gemini-3-flash-medium",
      *         "google/google/gemini-3-pro-high",
      *         "google/google/gemini-3-pro-low",
      *         "google/google/gemini-3-pro-medium",
@@ -13924,6 +13999,9 @@ export interface components {
      *           "google/google/gemini-2-5-pro-high",
      *           "google/google/gemini-2-5-pro-low",
      *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-flash-high",
+     *           "google/google/gemini-3-flash-low",
+     *           "google/google/gemini-3-flash-medium",
      *           "google/google/gemini-3-pro-high",
      *           "google/google/gemini-3-pro-low",
      *           "google/google/gemini-3-pro-medium",
@@ -14083,6 +14161,9 @@ export interface components {
      *           "google/google/gemini-2-5-pro-high",
      *           "google/google/gemini-2-5-pro-low",
      *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-flash-high",
+     *           "google/google/gemini-3-flash-low",
+     *           "google/google/gemini-3-flash-medium",
      *           "google/google/gemini-3-pro-high",
      *           "google/google/gemini-3-pro-low",
      *           "google/google/gemini-3-pro-medium",
@@ -14306,6 +14387,9 @@ export interface components {
      *           "google/google/gemini-2-5-pro-high",
      *           "google/google/gemini-2-5-pro-low",
      *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-flash-high",
+     *           "google/google/gemini-3-flash-low",
+     *           "google/google/gemini-3-flash-medium",
      *           "google/google/gemini-3-pro-high",
      *           "google/google/gemini-3-pro-low",
      *           "google/google/gemini-3-pro-medium",
@@ -14465,6 +14549,9 @@ export interface components {
      *           "google/google/gemini-2-5-pro-high",
      *           "google/google/gemini-2-5-pro-low",
      *           "google/google/gemini-2-5-pro-medium",
+     *           "google/google/gemini-3-flash-high",
+     *           "google/google/gemini-3-flash-low",
+     *           "google/google/gemini-3-flash-medium",
      *           "google/google/gemini-3-pro-high",
      *           "google/google/gemini-3-pro-low",
      *           "google/google/gemini-3-pro-medium",

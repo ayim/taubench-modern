@@ -73,6 +73,8 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         "gpt-5-1-codex-max": "gpt-5-codex",
         # Cohere command R plus changed slugs in llms.json
         "command-r-plus": "command-r-plus-04-2024",
+        # TODO: Gemini 3 Flash models when AA updates their api and adds support to llms.json
+        "gemini-3-flash": "gemini-3-pro",
     }
 
     return slug_mappings.get(slug, slug)
@@ -240,6 +242,9 @@ class PlatformModelConfigs(Configuration):
             # Will be disallowed until available
             "google/google/gemini-3-pro-medium",
             "google/google/gemini-3-pro-low",
+            "google/google/gemini-3-flash-high",
+            "google/google/gemini-3-flash-medium",
+            "google/google/gemini-3-flash-low",
             "google/google/gemini-2-5-pro-high",
             "google/google/gemini-2-5-pro-medium",
             "google/google/gemini-2-5-pro-low",
@@ -383,6 +388,9 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-3-pro-high": "gemini-3-pro-preview",
             "google/google/gemini-3-pro-medium": "gemini-3-pro-preview",
             "google/google/gemini-3-pro-low": "gemini-3-pro-preview",
+            "google/google/gemini-3-flash-high": "gemini-3-flash-preview",
+            "google/google/gemini-3-flash-medium": "gemini-3-flash-preview",
+            "google/google/gemini-3-flash-low": "gemini-3-flash-preview",
             "google/google/gemini-2-5-pro-high": "gemini-2.5-pro",
             "google/google/gemini-2-5-pro-medium": "gemini-2.5-pro",
             "google/google/gemini-2-5-pro-low": "gemini-2.5-pro",
@@ -529,6 +537,9 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-3-pro-high": "gemini",
             "google/google/gemini-3-pro-medium": "gemini",
             "google/google/gemini-3-pro-low": "gemini",
+            "google/google/gemini-3-flash-high": "gemini",
+            "google/google/gemini-3-flash-medium": "gemini",
+            "google/google/gemini-3-flash-low": "gemini",
             "google/google/gemini-2-5-pro-high": "gemini",
             "google/google/gemini-2-5-pro-medium": "gemini",
             "google/google/gemini-2-5-pro-low": "gemini",
@@ -675,6 +686,9 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-3-pro-high": "llm",
             "google/google/gemini-3-pro-medium": "llm",
             "google/google/gemini-3-pro-low": "llm",
+            "google/google/gemini-3-flash-high": "llm",
+            "google/google/gemini-3-flash-medium": "llm",
+            "google/google/gemini-3-flash-low": "llm",
             "google/google/gemini-2-5-pro-high": "llm",
             "google/google/gemini-2-5-pro-medium": "llm",
             "google/google/gemini-2-5-pro-low": "llm",
@@ -825,6 +839,9 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-3-pro-high": 1_000_000,
             "google/google/gemini-3-pro-medium": 1_000_000,
             "google/google/gemini-3-pro-low": 1_000_000,
+            "google/google/gemini-3-flash-high": 1_000_000,
+            "google/google/gemini-3-flash-medium": 1_000_000,
+            "google/google/gemini-3-flash-low": 1_000_000,
             "google/google/gemini-2-5-pro-high": 1_000_000,
             "google/google/gemini-2-5-pro-medium": 1_000_000,
             "google/google/gemini-2-5-pro-low": 1_000_000,
@@ -925,6 +942,9 @@ class PlatformModelConfigs(Configuration):
             "google/google/gemini-3-pro-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "google/google/gemini-3-pro-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "google/google/gemini-3-pro-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-3-flash-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-3-flash-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "google/google/gemini-3-flash-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "google/google/gemini-2-5-pro-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "google/google/gemini-2-5-pro-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "google/google/gemini-2-5-pro-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
