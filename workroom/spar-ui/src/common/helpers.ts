@@ -147,7 +147,12 @@ export const formatShortDateTime = (dateString: string | undefined): string => {
 };
 
 export const isImageFile = (file: File): boolean => {
-  return file.type.startsWith('image/');
+  if (file.type.startsWith('image/')) {
+    return true;
+  }
+  // Fallback to extension check if MIME type isn't set
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension);
 };
 
 export const snakeCaseToCamelCase = (str: string): string => {

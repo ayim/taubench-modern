@@ -1,10 +1,11 @@
 import { Box, Button, Divider, Typography, Switch } from '@sema4ai/components';
 import { IconArrowLeft, IconArrowRight, IconMinus, IconPlus } from '@sema4ai/icons';
-import { FC, useState, useEffect, useCallback } from 'react';
+import { FC, useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { getFileTypeIcon, isImageFile } from '../../../../common/helpers';
 import { AnnotationInputPopup } from './AnnotationInputPopup';
 import { AnnotationOverlay } from './AnnotationOverlay';
 import type { Annotation } from '../hooks/usePdfAnnotations';
@@ -64,6 +65,9 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({
   // Default to showing parse boxes if we only have parseData (no extractedData)
   const [showingParseBoxes, setShowingParseBoxes] = useState(false);
 
+  // Track image dimensions for annotation overlay on images
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+
   // Update showingParseBoxes when parseData/extractedData changes
   useEffect(() => {
     // If we have parseData but no extractedData, show parse boxes by default
@@ -88,10 +92,101 @@ export const DocumentViewer: FC<DocumentViewerProps> = ({
     extractedData,
   });
 
+  // Create object URL for image files (with cleanup on unmount)
+  const imageUrl = useMemo(() => {
+    if (isImageFile(file)) {
+      return URL.createObjectURL(file);
+    }
+    return null;
+  }, [file]);
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [imageUrl]);
+
   if (pdfState.isLoading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-        <Typography>Loading PDF...</Typography>
+        <Typography>Loading document...</Typography>
+      </Box>
+    );
+  }
+
+  // Non-PDF file handling
+  if (!pdfState.isPdf) {
+    // If it's an image, display it directly with annotation overlay support
+    if (imageUrl) {
+      return (
+        <Box
+          borderRadius="$8"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          height="100%"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          overflow="auto"
+          padding="$16"
+        >
+          <Box style={{ position: 'relative', display: 'inline-block' }}>
+            <img
+              src={imageUrl}
+              alt={file.name}
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                setImageDimensions({ width: img.width, height: img.height });
+              }}
+            />
+            {/* Annotation Overlay for images - positioned over the image */}
+            {imageDimensions && (parseData || extractedData) && (
+              <AnnotationOverlay
+                pageNumber={1}
+                pageWidth={imageDimensions.width}
+                pageHeight={imageDimensions.height}
+                scale={1}
+                parseData={parseData}
+                extractedData={extractedData}
+                showingParseBoxes={showingParseBoxes}
+                selectedFieldId={selectedFieldId}
+                setSelectedFieldId={handleFieldClick}
+              />
+            )}
+          </Box>
+        </Box>
+      );
+    }
+
+    // Non-image file placeholder - show file icon and informative message
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    const FileIcon = getFileTypeIcon(file.type || fileExtension);
+    return (
+      <Box
+        borderRadius="$8"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        height="100%"
+        borderWidth="1px"
+        borderColor="border.subtle"
+        gap="$16"
+        padding="$24"
+      >
+        <FileIcon size={100} />
+        <Typography variant="body-medium" fontWeight={600}>
+          {file.name}
+        </Typography>
+        <Typography variant="display-small" textAlign="center">
+          Document preview is not available for this file type.
+        </Typography>
+        <Typography variant="body-medium" textAlign="center">
+          Extraction results will appear in the panel on the right.
+        </Typography>
       </Box>
     );
   }

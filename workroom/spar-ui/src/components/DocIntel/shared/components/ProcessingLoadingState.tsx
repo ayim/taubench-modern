@@ -49,8 +49,8 @@ export const ProcessingLoadingState: FC<ProcessingLoadingStateProps> = ({
 
             return (
               <Box key={step.id} display="flex" alignItems="center" gap="$8">
-                <Icon color={color} />
-                <Typography fontSize="$14" color={color}>
+                <Icon color={color} size="large" />
+                <Typography fontSize="$16" color={color}>
                   {step.label}
                 </Typography>
               </Box>

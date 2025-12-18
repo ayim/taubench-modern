@@ -57,7 +57,7 @@ const DocumentIntelligenceItem: FC<ItemProps> = ({ file, agentId, threadId, onDo
 
   if (isDocIntelConfigured) {
     return (
-      <Tooltip text="Use document intelligence to analyze this file" placement="top">
+      <Tooltip text="Use document intelligence UI to analyze this file" placement="top">
         <Box
           pl="32px"
           height="46px"
@@ -110,28 +110,19 @@ const ItemAction: FC<ItemProps> = ({ file, agentId, threadId, onDocumentIntellig
   const fileExtension = fileName.split('.').pop();
   const mimeType = file.mime_type.toLowerCase();
 
-  const isPdfFile = mimeType === 'application/pdf' || fileExtension === 'pdf';
   const isJsonFile = mimeType === 'application/json' || fileExtension === 'json';
 
   if (!docIntelFeatureEnabled || isJsonFile) {
     return null;
   }
 
-  if (isPdfFile) {
-    return (
-      <DocumentIntelligenceItem
-        file={file}
-        agentId={agentId}
-        threadId={threadId}
-        onDocumentIntelligenceClick={onDocumentIntelligenceClick}
-      />
-    );
-  }
-
   return (
-    <Tooltip text="Currently unsupported by Document Intelligence" placement="top">
-      <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
-    </Tooltip>
+    <DocumentIntelligenceItem
+      file={file}
+      agentId={agentId}
+      threadId={threadId}
+      onDocumentIntelligenceClick={onDocumentIntelligenceClick}
+    />
   );
 };
 
