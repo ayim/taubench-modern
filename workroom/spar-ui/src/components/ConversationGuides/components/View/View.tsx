@@ -250,7 +250,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
                 {questionGroup.questions?.map((question) => (
                   <ConversationGuideCard
                     title={question}
-                    onClick={() => sendMessage(question, [])}
+                    onClick={() => sendMessage({ text: question }, [])}
                     disabled={!canSendMessage}
                   />
                 ))}

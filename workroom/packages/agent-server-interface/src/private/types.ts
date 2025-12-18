@@ -17,6 +17,11 @@ export type ThreadTextContent = components['schemas']['ThreadTextContent'] & {
   kind: 'text';
 };
 
+export type ThreadFormattedTextContent =
+  components['schemas']['ThreadFormattedTextContent'] & {
+    kind: 'formatted-text';
+  };
+
 export type ThreadQuickActionsContent =
   components['schemas']['ThreadQuickActionsContent'] & {
     kind: 'quick_actions';
@@ -44,6 +49,7 @@ export type ThreadAttachmentContent =
 
 export type ThreadContent =
   | ThreadTextContent
+  | ThreadFormattedTextContent
   | ThreadQuickActionsContent
   | ThreadVegaChartContent
   | ThreadToolUsageContent

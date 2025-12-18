@@ -22,7 +22,7 @@ export type QuickOptionsPayload = {
 
 type OptionProps = {
   choice: QuickOption;
-  onSelect: (message: string, files: File[]) => void;
+  onSelect: (message: { text: string }, files: File[]) => void;
   disabled: boolean;
   isRunning: boolean;
 };
@@ -42,7 +42,7 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
         loading={isRunning}
         variant={choice.primary ? 'primary' : 'outline'}
         disabled={disabled}
-        onClick={() => onSelect(choice.message, [])}
+        onClick={() => onSelect({ text: choice.message }, [])}
         icon={IconComponent}
         truncate
       >

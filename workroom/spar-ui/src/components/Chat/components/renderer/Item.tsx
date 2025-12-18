@@ -7,7 +7,7 @@ import { css, styled } from '@sema4ai/theme';
 
 import { Attachment } from '../Attachment';
 import { FeedbackDialog } from '../FeedbackDialog';
-import { markdownRules } from '../markdown';
+import { markdownRules, markdownUserMessageRules } from '../markdown';
 import { ToolCall } from '../ToolCall';
 import { useSparUIContext } from '../../../../api/context';
 import { useToggle } from '../../../../hooks/useToggle';
@@ -110,6 +110,33 @@ export const MessageContentItemRenderer: FC<Props> = ({
         <Thinking key={content.content_id} complete={isThinkingDone} platform={platform}>
           {content.thought}
         </Thinking>
+      );
+    }
+    case 'formatted-text': {
+      return (
+        <MessageContainer key={content.content_id}>
+          <Chat.Markdown
+            ref={containerRef}
+            messageId={message.message_id}
+            streaming={streaming}
+            parserRules={markdownUserMessageRules}
+          >
+            {content.text}
+          </Chat.Markdown>
+          <MessageActions
+            $isLastMessage={isLastMessage && !isFirstMessage && !streaming}
+            $isLastContentItem={isLastContentItem}
+          >
+            <div className="message-actions">
+              <Button
+                icon={copiedToClipboard ? IconCheck2 : IconCopy}
+                onClick={onCopyToClipboard(content.text)}
+                aria-label="Copy to clipboard"
+                variant="ghost-subtle"
+              />
+            </div>
+          </MessageActions>
+        </MessageContainer>
       );
     }
     case 'text':

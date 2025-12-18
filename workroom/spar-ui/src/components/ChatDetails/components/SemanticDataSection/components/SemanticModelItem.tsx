@@ -58,7 +58,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
 
   const onAddFile = useCallback(
     async (files: File[]) => {
-      await sendMessage('', files);
+      await sendMessage({ text: '' }, files);
     },
     [sendMessage],
   );

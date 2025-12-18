@@ -5,6 +5,7 @@ import { InteractionComponent } from './interactionComponents';
 import { Chart } from './interactionComponents/chart';
 import { Table } from './markdownComponents/Table';
 import { InlineHTML } from './markdownComponents/InlineHTML';
+import { ExtractedDataRenderer } from './markdownComponents/ExtractedDataRenderer';
 
 export const markdownRules: MarkdownParserRules = {
   code: (key, tokens, _, messageId) => {
@@ -35,5 +36,22 @@ export const markdownRules: MarkdownParserRules = {
 
   html: (key, { raw }) => {
     return <InlineHTML key={key} content={raw} />;
+  },
+};
+
+export const markdownUserMessageRules: MarkdownParserRules = {
+  ...markdownRules,
+  code: (key, tokens, _, messageId, streaming) => {
+    if (tokens.lang && 'sema4di-json'.indexOf(tokens.lang) === 0) {
+      try {
+        const payload: unknown = JSON.parse(tokens.text);
+        return <ExtractedDataRenderer key={key} data={payload} />;
+      } catch {
+        // fallback to json code block on failure
+        return markdownRules.code?.(key, { ...tokens, lang: 'json' }, _, messageId, streaming);
+      }
+    }
+
+    return markdownRules.code?.(key, tokens, _, messageId, streaming);
   },
 };

@@ -27,6 +27,7 @@ const EMOJI_MAP: {
     text: '',
     quick_actions: '',
     thought: '',
+    'formatted-text': '',
   },
   tool_call_state: {
     in_progress: '▶️',
@@ -49,6 +50,9 @@ const STATUS_EMOJI_MAP: Record<Extract<ThreadMessageContent, { kind: 'tool_call'
 const parseContentItem = (item: ThreadMessage['content'][number], platform: string | undefined): string => {
   switch (item.kind) {
     case 'text':
+      return item.text;
+
+    case 'formatted-text':
       return item.text;
 
     case 'thought': {

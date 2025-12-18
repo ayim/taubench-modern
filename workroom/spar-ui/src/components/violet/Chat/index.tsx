@@ -206,7 +206,7 @@ export const Chat: FC<Props> = ({ agentId, agentType, threadId, thread }) => {
 
   const onSubmit = handleSubmit(async ({ message }) => {
     if (!isStreaming) {
-      const sendMessageResult = await sendMessage(message, attachments);
+      const sendMessageResult = await sendMessage({ text: message }, attachments);
 
       if (!sendMessageResult.success) {
         addSnackbar({ message: sendMessageResult.error.message, variant: 'danger' });

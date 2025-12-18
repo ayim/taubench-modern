@@ -6,13 +6,14 @@ from agent_platform.core.thread.content.quick_actions import (
     ThreadQuickActionContent,
     ThreadQuickActionsContent,
 )
-from agent_platform.core.thread.content.text import ThreadTextContent
+from agent_platform.core.thread.content.text import ThreadFormattedTextContent, ThreadTextContent
 from agent_platform.core.thread.content.thought import ThreadThoughtContent
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.thread.content.vega_chart import ThreadVegaChartContent
 
 __all__ = [
     "ThreadAttachmentContent",
+    "ThreadFormattedTextContent",
     "ThreadMessageContent",
     "ThreadQuickActionContent",
     "ThreadQuickActionsContent",

@@ -32,7 +32,7 @@ export const AddFiles: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
 
   const onAddAttachements = useCallback(
     async (files: File[]) => {
-      await sendMessage('', files);
+      await sendMessage({ text: '' }, files);
     },
     [sendMessage, refetchFiles],
   );

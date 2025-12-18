@@ -96,7 +96,8 @@ const DataFrameEntry: FC<DataFrameEntryProps> = ({ dataFrame, agentId, preview =
         actions: [
           {
             label: 'Remove Column',
-            onClick: () => sendMessage(`Remove column "${column.title}" from data frame "${dataFrame.name}".`, []),
+            onClick: () =>
+              sendMessage({ text: `Remove column "${column.title}" from data frame "${dataFrame.name}".` }, []),
           },
         ],
       };

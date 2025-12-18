@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from agent_platform.core.thread.content import (
     ThreadAttachmentContent,
+    ThreadFormattedTextContent,
     ThreadQuickActionsContent,
     ThreadTextContent,
     ThreadThoughtContent,
@@ -15,6 +16,7 @@ from agent_platform.core.thread.content import (
 
 AnyThreadMessageContent = (
     ThreadTextContent
+    | ThreadFormattedTextContent
     | ThreadQuickActionsContent
     | ThreadVegaChartContent
     | ThreadToolUsageContent

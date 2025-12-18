@@ -22,10 +22,18 @@ interface SendResultsToThreadProps {
 
 const getStringResults = (results: ValidJSON) => {
   try {
-    return JSON.stringify(results);
+    return JSON.stringify(results, null, 2);
   } catch (error) {
     return String(results);
   }
+};
+
+const formatResultsForMarkdown = (results: ValidJSON, fileName: string) => {
+  return `The following results were extracted from \`${fileName}\`:
+\`\`\`sema4di-json
+${getStringResults(results)}
+\`\`\`
+  `;
 };
 
 const useSendResultsToThread = ({ results, agentId, threadId, fileName }: SendResultsToThreadProps) => {
@@ -36,9 +44,10 @@ const useSendResultsToThread = ({ results, agentId, threadId, fileName }: SendRe
 
   const sendResultsToThread = useCallback(async () => {
     return sendMessage(
-      `The following results were extracted from ${fileName}:
-      \`\`\`${getStringResults(results)}\`\`\`
-      `,
+      {
+        text: formatResultsForMarkdown(results, fileName),
+        type: 'formatted-text',
+      },
       [],
     );
   }, [results, fileName, sendMessage]);

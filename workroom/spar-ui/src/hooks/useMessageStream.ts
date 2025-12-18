@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ThreadMessage, ThreadContent, ThreadToolUsageContent, Thread } from '@sema4ai/agent-server-interface';
+import {
+  ThreadMessage,
+  ThreadContent,
+  ThreadToolUsageContent,
+  Thread,
+  ThreadFormattedTextContent,
+  ThreadTextContent,
+} from '@sema4ai/agent-server-interface';
 import { findByPointer } from '@jsonjoy.com/json-pointer';
 import { applyPatch, Operation } from 'json-joy/esm/json-patch/index.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -364,7 +371,7 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
   const isStreaming = streamingMessages?.some((message) => message.role === 'agent' && !message.complete) ?? false;
 
   const sendMessage = async (
-    text: string,
+    { text, type = 'text' }: { text: string; type?: 'text' | 'formatted-text' },
     files: File[],
   ): Promise<{ success: true; data: null } | { success: false; error: { message: string } }> => {
     const hasText = text.trim().length > 0;
@@ -422,7 +429,14 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
     const content: ThreadContent[] = [...uploadedAttachments.data];
 
     if (hasText) {
-      content.push({ kind: 'text', text, complete: true, content_id: uuidv4() });
+      const base = { text, complete: true, content_id: uuidv4() };
+
+      // ThreadContent is a discriminated union: kind must be a concrete literal, not `'text' | 'formatted-text'`.
+      if (type === 'formatted-text') {
+        content.push({ kind: 'formatted-text', ...base } satisfies ThreadFormattedTextContent);
+      } else {
+        content.push({ kind: 'text', ...base } satisfies ThreadTextContent);
+      }
     }
 
     try {

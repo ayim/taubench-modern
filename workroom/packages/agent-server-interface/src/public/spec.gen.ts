@@ -1994,6 +1994,44 @@ export const spec = {
         required: ['name', 'mime_type'],
         title: 'ThreadAttachmentContent',
       },
+      ThreadFormattedTextContent: {
+        properties: {
+          content_id: {
+            type: 'string',
+            title: 'Content Id',
+            description: 'The unique identifier of the content',
+          },
+          kind: {
+            type: 'string',
+            title: 'Kind',
+            description: "Content kind: always 'formatted-text'",
+            default: 'formatted-text',
+          },
+          complete: {
+            type: 'boolean',
+            title: 'Complete',
+            description:
+              "True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.",
+            default: false,
+          },
+          text: {
+            type: 'string',
+            title: 'Text',
+            description: 'The actual text content of the message',
+          },
+          citations: {
+            items: {
+              $ref: '#/components/schemas/Citation',
+            },
+            type: 'array',
+            title: 'Citations',
+            description: 'The citations in the text content',
+          },
+        },
+        type: 'object',
+        required: ['text'],
+        title: 'ThreadFormattedTextContent',
+      },
       ThreadMessage: {
         properties: {
           content: {
@@ -2001,6 +2039,9 @@ export const spec = {
               anyOf: [
                 {
                   $ref: '#/components/schemas/ThreadTextContent',
+                },
+                {
+                  $ref: '#/components/schemas/ThreadFormattedTextContent',
                 },
                 {
                   $ref: '#/components/schemas/ThreadQuickActionsContent',

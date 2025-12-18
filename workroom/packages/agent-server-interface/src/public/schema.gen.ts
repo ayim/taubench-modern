@@ -691,6 +691,36 @@ export interface components {
        */
       base64_data?: string | null;
     };
+    /** ThreadFormattedTextContent */
+    ThreadFormattedTextContent: {
+      /**
+       * Content Id
+       * @description The unique identifier of the content
+       */
+      content_id?: string;
+      /**
+       * Kind
+       * @description Content kind: always 'formatted-text'
+       * @default formatted-text
+       */
+      kind: string;
+      /**
+       * Complete
+       * @description True when the content has finished streaming, false otherwise. Clients can use this to determine if the content item is 'complete' or if further updates are expected.
+       * @default false
+       */
+      complete: boolean;
+      /**
+       * Text
+       * @description The actual text content of the message
+       */
+      text: string;
+      /**
+       * Citations
+       * @description The citations in the text content
+       */
+      citations?: components['schemas']['Citation'][];
+    };
     /** ThreadMessage */
     ThreadMessage: {
       /**
@@ -699,6 +729,7 @@ export interface components {
        */
       content: (
         | components['schemas']['ThreadTextContent']
+        | components['schemas']['ThreadFormattedTextContent']
         | components['schemas']['ThreadQuickActionsContent']
         | components['schemas']['ThreadVegaChartContent']
         | components['schemas']['ThreadToolUsageContent']
