@@ -31,6 +31,24 @@ const getPageFromCitations = (citations: unknown): number | undefined => {
 };
 
 /**
+ * Get page number from array/table citations (uses first item's citation)
+ */
+const getPageFromArrayCitations = (citations: unknown): number | undefined => {
+  if (Array.isArray(citations) && citations.length > 0) {
+    // For array data, try to get page from first item's citations
+    const firstItemCitations = citations[0];
+    if (firstItemCitations && typeof firstItemCitations === 'object') {
+      // Citations might be nested - look for any citation with bbox.page
+      const values = Object.values(firstItemCitations as Record<string, unknown>);
+      const foundPage = values.map((val) => getPageFromCitations(val)).find((page) => page !== undefined);
+      if (foundPage !== undefined) return foundPage;
+    }
+    return getPageFromCitations(firstItemCitations);
+  }
+  return undefined;
+};
+
+/**
  * Format field path for display as a label
  * e.g., "company.name" → "name"
  * e.g., "inspection_items[0].component_name" → "component_name"
@@ -65,7 +83,7 @@ const isPrimitive = (value: unknown): boolean => {
 
 /**
  * Check if an array should be rendered as a table
- * Returns true if all items are objects with consistent keys
+ * Returns true if all items are objects with primitive values (allows optional/sparse fields)
  */
 const shouldRenderAsTable = (arr: unknown[]): boolean => {
   if (arr.length === 0) return false;
@@ -75,14 +93,20 @@ const shouldRenderAsTable = (arr: unknown[]): boolean => {
 
   if (!allObjects) return false;
 
-  // Get keys from first object
-  const firstKeys = Object.keys(arr[0] as Record<string, unknown>).sort();
+  // Get keys from first object - require at least 2 keys to be table-worthy
+  const firstKeys = Object.keys(arr[0] as Record<string, unknown>);
+  if (firstKeys.length < 2) return false;
 
-  // Check if all objects have the same keys
-  return arr.every((item) => {
-    const itemKeys = Object.keys(item as Record<string, unknown>).sort();
-    return JSON.stringify(itemKeys) === JSON.stringify(firstKeys);
+  // Check that values are primitives - reject if any item has nested objects/arrays
+  // This prevents complex structures like transaction_details from being rendered as tables
+  const allValuesArePrimitive = arr.every((item) => {
+    const obj = item as Record<string, unknown>;
+    return Object.values(obj).every(isPrimitive);
   });
+
+  if (!allValuesArePrimitive) return false;
+
+  return true;
 };
 
 type TableWrapperItem = { table_name?: string; rows: unknown[] };
@@ -129,6 +153,7 @@ const valueToString = (value: unknown): string => {
 
 /**
  * Convert array of objects to table format
+ * Uses union of all keys across all items to handle optional/sparse fields
  */
 const arrayToTableData = (
   arr: unknown[],
@@ -137,8 +162,12 @@ const arrayToTableData = (
     return { columns: [], data: [] };
   }
 
-  const firstItem = arr[0] as Record<string, unknown>;
-  const keys = Object.keys(firstItem);
+  // Collect ALL keys from ALL items (union) to handle optional/sparse fields
+  const allKeysSet = new Set<string>();
+  arr.forEach((item) => {
+    Object.keys(item as Record<string, unknown>).forEach((key) => allKeysSet.add(key));
+  });
+  const keys = Array.from(allKeysSet);
 
   // Create columns with formatted titles
   const columns = keys.map((key) => ({
@@ -146,7 +175,7 @@ const arrayToTableData = (
     title: formatFieldLabel(key),
   }));
 
-  // Create data rows
+  // Create data rows - missing keys become empty strings via valueToString
   const data = arr.map((item) => {
     const row: Record<string, string> = {};
     keys.forEach((key) => {
@@ -180,8 +209,12 @@ const flattenExtractedData = (
     // Render each item's 'rows' as a table with 'table_name' as header
     const tableWrappers = getParsedTableWrapperArray(result);
     if (tableWrappers.length > 0) {
+      const citationsArr = Array.isArray(citations) ? citations : [];
       tableWrappers.forEach(({ table_name: tableName, rows }, index) => {
         const itemPath = `${path}[${index}]`;
+        const itemCitations = citationsArr[index] as Record<string, unknown> | undefined;
+        const rowsCitations = itemCitations?.rows;
+        const page = getPageFromArrayCitations(rowsCitations);
 
         // Add table name as section header if present
         if (tableName) {
@@ -190,7 +223,7 @@ const flattenExtractedData = (
             id: sectionBlockId,
             type: 'Section Header',
             content: tableName,
-            page: undefined,
+            page,
           });
         }
 
@@ -203,7 +236,7 @@ const flattenExtractedData = (
           type: 'Table',
           content: '', // Not used for tables
           tableData,
-          page: undefined,
+          page,
         });
       });
       return;
@@ -213,13 +246,14 @@ const flattenExtractedData = (
     if (shouldRenderAsTable(result)) {
       const blockId = `extract-${path}-table`;
       const tableData = arrayToTableData(result);
+      const page = getPageFromArrayCitations(citations);
 
       blocks.push({
         id: blockId,
         type: 'Table',
         content: '', // Not used for tables
         tableData,
-        page: undefined,
+        page,
       });
       return;
     }

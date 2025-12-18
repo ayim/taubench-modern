@@ -41,7 +41,7 @@ const BlockRenderer: FC<{
 }> = ({ block, isSelected, onClick }) => {
   // Render tables
   if (block.type === 'Table' && block.tableData) {
-    const pageInfo = block.page === undefined ? '' : ` (Page ${block.page})`;
+    const pageInfo = block.page === undefined ? '' : ` • Page ${block.page}`;
     return (
       <Tooltip text={`Table${pageInfo}`}>
         <HoverableBox
