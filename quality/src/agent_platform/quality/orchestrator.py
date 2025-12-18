@@ -12,7 +12,6 @@ from agent_platform.orchestrator.default_locations import get_agent_server_execu
 
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.spec import SpecActionPackage
-from agent_platform.core.agent_package.utils import read_package_bytes
 from agent_platform.quality.models import AgentPackage, Platform
 
 logger = structlog.get_logger(__name__)
@@ -511,10 +510,7 @@ class QualityOrchestrator:
         logger.info("Extracting action packages from agent spec")
 
         try:
-            # @TODO:
-            #  Remove the read_package_bytes dependency, and use data stream to create
-            # AgentPackageHandler.
-            package_bytes = await read_package_bytes(path=agent_zip_path, url=None, package_base64=None)
+            package_bytes = Path(agent_zip_path).expanduser().read_bytes()
 
             with await AgentPackageHandler.from_bytes(package_bytes) as handler:
                 spec_agent = await handler.get_spec_agent()

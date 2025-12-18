@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import io
 import os
 import zipfile
 from abc import ABC, abstractmethod
@@ -39,6 +40,14 @@ class BasePackageHandler(ABC):
     def close(self):
         if not self._spooled_file.closed:
             self._spooled_file.close()
+
+    def get_spooled_file_size(self) -> int:
+        """Returns the size of the spooled file in bytes."""
+        self._spooled_file.seek(0, io.SEEK_END)
+        size = self._spooled_file.tell()
+        self._spooled_file.seek(0)
+
+        return size
 
     @staticmethod
     def _get_empty_spooled_file() -> SpooledTemporaryFile:
@@ -138,7 +147,13 @@ class BasePackageHandler(ABC):
         Returns:
             AgentPackageHandler instance.
         """
-        return await cls.from_bytes(base64.b64decode(data, validate=True))
+        try:
+            return await cls.from_bytes(base64.b64decode(data, validate=True))
+        except Exception as exc:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                message=f"Failed to decode base64 Package: {exc}",
+            ) from exc
 
     @classmethod
     async def from_stream(cls, stream: AsyncGenerator[bytes, None]) -> Self:

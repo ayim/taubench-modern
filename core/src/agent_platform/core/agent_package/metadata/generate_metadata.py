@@ -41,7 +41,7 @@ from agent_platform.core.agent_package.spec import (
     SpecKnowledge,
     SpecMCPServer,
 )
-from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
+from agent_platform.core.selected_tools import SelectedTools
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -258,9 +258,9 @@ class AgentMetadataGenerator:
 
     def _extract_selected_tools(self, agent: SpecAgent) -> SelectedTools:
         """Extract selected tools from agent spec."""
-        if not agent.selected_tools or not agent.selected_tools.tools:
+        if not agent.selected_tools:
             return SelectedTools(tools=[])
-        return SelectedTools(tools=[SelectedToolConfig(name=t.name) for t in agent.selected_tools.tools])
+        return agent.selected_tools.to_selected_tools()
 
     async def _extract_datasources(
         self,

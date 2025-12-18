@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Any, Self
 
 
 @dataclass(frozen=True)
@@ -33,3 +34,15 @@ class ActionPackagePayload:
         },
     )
     """The base64 encoded action package."""
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> Self:
+        if isinstance(data, cls):
+            return data
+
+        return cls(
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            action_package_url=data.get("action_package_url", ""),
+            action_package_base64=data.get("action_package_base64", ""),
+        )

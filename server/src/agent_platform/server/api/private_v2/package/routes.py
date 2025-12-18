@@ -3,18 +3,14 @@ import uuid
 from fastapi import APIRouter, Request
 from structlog import get_logger
 
-from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
-from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.hash.agent_package_hash import calculate_agent_package_hash
 from agent_platform.core.agent_package.metadata.agent_metadata import (
     AgentPackageMetadata,
 )
 from agent_platform.core.agent_package.metadata.generate_metadata import AgentMetadataGenerator
-from agent_platform.core.agent_package.read import read_question_groups  # noqa: F401
-from agent_platform.core.agent_package.utils import read_package_bytes
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
-from agent_platform.core.payloads import AgentPackagePayload, UpsertAgentPayload
+from agent_platform.core.payloads import UpsertAgentPayload
 from agent_platform.core.payloads.action_package import ActionPackagePayload
 from agent_platform.core.payloads.agent_package_inspection import (
     AgentPackageInspectionResponse,
@@ -22,25 +18,17 @@ from agent_platform.core.payloads.agent_package_inspection import (
 )
 from agent_platform.server.api.dependencies import AgentQuotaCheck, StorageDependency
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
-from agent_platform.server.api.private_v2.package.content_handler import (
-    convert_binary_to_base64,
+from agent_platform.server.api.private_v2.package.request_content_handler import (
     create_binary_zip_metadata,
     create_binary_zip_openapi_extra,
-    parse_request_payload_contents,
+    parse_action_package_payload,
+    parse_agent_package_payload,
 )
 from agent_platform.server.api.private_v2.package.upserts import upsert_agent_from_package
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.kernel.tools_caching import ToolDefinitionCache  # noqa: F401
 
 router = APIRouter()
 logger = get_logger(__name__)
-
-
-# ===============================
-# ROUTES
-# ===============================
-
-#### DEPLOY ENDPOINT
 
 
 @router.post(
@@ -57,47 +45,23 @@ async def deploy_agent_from_package(
     _: AgentQuotaCheck = None,
 ) -> AgentCompat:
     # Handle both JSON and binary ZIP content types
-    validated_payload, zip_content = await parse_request_payload_contents(
-        request=request,
-        payload_model=AgentPackagePayload,
-    )
+    validated_payload, handler = await parse_agent_package_payload(request=request)
 
-    # If binary ZIP was uploaded, convert it to base64 and set it in the payload
-    if zip_content:
-        package_base64 = await convert_binary_to_base64(zip_content)
-        # Create a new payload with the uploaded file as base64
-        validated_payload = AgentPackagePayload(
-            name=validated_payload.name,
-            description=validated_payload.description,
-            public=validated_payload.public,
-            agent_package_url=None,  # Clear URL since we have binary content
-            agent_package_base64=package_base64,  # Set base64 from binary ZIP
-            model=validated_payload.model,
-            action_servers=validated_payload.action_servers,
-            mcp_servers=validated_payload.mcp_servers,
-            mcp_server_ids=validated_payload.mcp_server_ids,
-            langsmith=validated_payload.langsmith,
-            platform_params_ids=validated_payload.platform_params_ids,
-            selected_tools=validated_payload.selected_tools,
-        )
-
+    with handler:
         # Log binary ZIP metadata for tracking
-        file_metadata = create_binary_zip_metadata(zip_content)
+        file_metadata = create_binary_zip_metadata(handler.get_spooled_file_size())
         logger.info(
             "Binary ZIP uploaded for agent deployment",
             agent_name=validated_payload.name,
             file_metadata=file_metadata,
         )
 
-    aid = str(uuid.uuid4())
-    result = await upsert_agent_from_package(
-        user=user,
-        aid=aid,
-        payload=validated_payload,
-        storage=storage,
-    )
+        aid = str(uuid.uuid4())
+        result = await upsert_agent_from_package(
+            user=user, aid=aid, payload=validated_payload, storage=storage, handler=handler
+        )
 
-    return result
+        return result
 
 
 @router.put(
@@ -114,47 +78,22 @@ async def update_agent_from_package(
     storage: StorageDependency,
 ) -> AgentCompat:
     # Handle both JSON and binary ZIP content types
-    validated_payload, zip_content = await parse_request_payload_contents(
-        request=request,
-        payload_model=AgentPackagePayload,
-    )
+    validated_payload, handler = await parse_agent_package_payload(request=request)
 
-    # If binary ZIP was uploaded, convert it to base64 and set it in the payload
-    if zip_content:
-        package_base64 = await convert_binary_to_base64(zip_content)
-        # Create a new payload with the uploaded file as base64
-        validated_payload = AgentPackagePayload(
-            name=validated_payload.name,
-            description=validated_payload.description,
-            public=validated_payload.public,
-            agent_package_url=None,  # Clear URL since we have binary content
-            agent_package_base64=package_base64,  # Set base64 from binary ZIP
-            model=validated_payload.model,
-            action_servers=validated_payload.action_servers,
-            mcp_servers=validated_payload.mcp_servers,
-            mcp_server_ids=validated_payload.mcp_server_ids,
-            langsmith=validated_payload.langsmith,
-            platform_params_ids=validated_payload.platform_params_ids,
-            selected_tools=validated_payload.selected_tools,
-        )
-
+    with handler:
         # Log binary ZIP metadata for tracking
-        file_metadata = create_binary_zip_metadata(zip_content)
+        file_metadata = create_binary_zip_metadata(handler.get_spooled_file_size())
         logger.info(
-            "Binary ZIP uploaded for agent update",
-            agent_id=aid,
+            "Binary ZIP uploaded for agent deployment",
             agent_name=validated_payload.name,
             file_metadata=file_metadata,
         )
 
-    result = await upsert_agent_from_package(
-        user=user,
-        aid=aid,
-        payload=validated_payload,
-        storage=storage,
-    )
+        result = await upsert_agent_from_package(
+            user=user, aid=aid, payload=validated_payload, storage=storage, handler=handler
+        )
 
-    return result
+        return result
 
 
 #### ENVIRONMENT HASH ENDPOINT
@@ -171,27 +110,13 @@ async def calculate_agent_package_environment_hash(
 ) -> StatusResponse[dict]:
     try:
         # Handle both JSON and binary ZIP content types
-        validated_payload, zip_content = await parse_request_payload_contents(
-            request=request,
-            payload_model=AgentPackagePayload,
-        )
+        _, handler = await parse_agent_package_payload(request=request)
 
-        # @TODO:
-        # Remove when we are able to produce AgentPackageHandler directly
-        # in parse_request_payload_contents.
-        package_bytes = zip_content or (
-            await read_package_bytes(
-                path=None,
-                url=validated_payload.agent_package_url,
-                package_base64=validated_payload.agent_package_base64,
-            )
-        )
-
-        with await AgentPackageHandler.from_bytes(package_bytes) as handler:
+        with handler:
             # Calculate the hash
             calculation_result = await calculate_agent_package_hash(handler)
 
-        return StatusResponse.success(calculation_result)
+            return StatusResponse.success(calculation_result)
     except PlatformError as e:
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:
@@ -215,29 +140,13 @@ async def inspect_agent_from_package(
 ) -> StatusResponse[AgentPackageInspectionResponse]:
     try:
         # Handle both JSON and binary ZIP content types
-        validated_payload, zip_content = await parse_request_payload_contents(
-            request=request,
-            payload_model=AgentPackagePayload,
-        )
+        _, handler = await parse_agent_package_payload(request=request)
 
-        # @TODO:
-        # Remove when we are able to produce AgentPackageHandler directly
-        # in parse_request_payload_contents.
-        package_bytes = zip_content or (
-            await read_package_bytes(
-                path=None,
-                url=validated_payload.agent_package_url,
-                package_base64=validated_payload.agent_package_base64,
-            )
-        )
-
-        with await AgentPackageHandler.from_bytes(package_bytes) as handler:
+        with handler:
             metadata = await handler.read_metadata()
 
-        # Build uploaded package info if binary ZIP was uploaded
-        uploaded_package = None
-        if zip_content:
-            file_metadata = create_binary_zip_metadata(zip_content)
+            # Build uploaded package info
+            file_metadata = create_binary_zip_metadata(handler.get_spooled_file_size())
             pkg_info = file_metadata["binary_package"]
             uploaded_package = UploadedPackageInfo(
                 content_type=pkg_info.get("content_type", "application/zip"),
@@ -245,8 +154,8 @@ async def inspect_agent_from_package(
                 format=pkg_info.get("format", "zip"),
             )
 
-        response = AgentPackageInspectionResponse.from_metadata(metadata, uploaded_package)
-        return StatusResponse.success(response)
+            response = AgentPackageInspectionResponse.from_metadata(metadata, uploaded_package)
+            return StatusResponse.success(response)
     except PlatformError as e:
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:
@@ -266,41 +175,23 @@ async def inspect_action_from_package(
 ) -> StatusResponse[dict]:
     try:
         # Handle both JSON and binary ZIP content types
-        validated_payload, zip_content = await parse_request_payload_contents(
-            request=request,
-            payload_model=ActionPackagePayload,
-        )
+        _, handler = await parse_action_package_payload(request=request)
 
-        # @TODO:
-        # Remove when we are able to produce AgentPackageHandler directly
-        # in parse_request_payload_contents.
-        package_bytes = zip_content or (
-            await read_package_bytes(
-                path=None,
-                url=validated_payload.action_package_url,
-                package_base64=validated_payload.action_package_base64,
-            )
-        )
-
-        with await ActionPackageHandler.from_bytes(package_bytes) as handler:
+        with handler:
             metadata = await handler.read_metadata()
 
-        result = metadata.model_dump()
+            result = metadata.model_dump()
 
-        # If binary ZIP was uploaded, add file metadata to the response
-        if zip_content:
-            file_metadata = create_binary_zip_metadata(zip_content)
+            # Add file metadata to the response
+            file_metadata = create_binary_zip_metadata(handler.get_spooled_file_size())
             result["uploaded_package"] = file_metadata["binary_package"]
 
-        return StatusResponse.success(result)
+            return StatusResponse.success(result)
     except PlatformError as e:
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:
         logger.exception("Failed to inspect action package")
         return StatusResponse.failure([StatusError.from_message(f"Failed to inspect package: {e}", code="unexpected")])
-
-
-#### CREATE ENDPOINT
 
 
 @router.post(
@@ -318,9 +209,6 @@ async def create_agent_package(
     raise NotImplementedError("Not implemented")
 
 
-#### READ ENDPOINT
-
-
 @router.post(
     "/read",
     response_model=AgentCompat,
@@ -333,9 +221,6 @@ async def read_agent_package(
     storage: StorageDependency,
 ) -> StatusResponse[dict]:
     raise NotImplementedError("Not implemented")
-
-
-#### BUILD ENDPOINT
 
 
 @router.post(
@@ -351,9 +236,6 @@ async def build_agent_package(
     raise NotImplementedError("Not implemented")
 
 
-#### METADATA ENDPOINT
-
-
 @router.post(
     "/metadata",
     summary="Generate agent package metadata",
@@ -366,30 +248,16 @@ async def generate_agent_package_metadata(
     try:
         # Handle both JSON and binary ZIP content types
         logger.debug("Parsing request payload contents...")
-        validated_payload, zip_content = await parse_request_payload_contents(
-            request=request,
-            payload_model=AgentPackagePayload,
-        )
+        # Handle both JSON and binary ZIP content types
+        _, handler = await parse_agent_package_payload(request=request)
 
-        # @TODO:
-        # Remove when we are able to produce AgentPackageHandler directly
-        # in parse_request_payload_contents.
-        logger.debug("Reading package bytes...")
-        package_bytes = zip_content or (
-            await read_package_bytes(
-                path=None,
-                url=validated_payload.agent_package_url,
-                package_base64=validated_payload.agent_package_base64,
-            )
-        )
-
-        with await AgentPackageHandler.from_bytes(package_bytes) as handler:
+        with handler:
             logger.debug("Generating agent package metadata...")
             generator = AgentMetadataGenerator(handler)
             metadata = await generator.generate()
 
-        logger.debug("Metadata generated successfully")
-        return StatusResponse.success(metadata)
+            logger.debug("Metadata generated successfully")
+            return StatusResponse.success(metadata)
     except PlatformError as e:
         return StatusResponse.failure([StatusError.from_platform_error(e)])
     except Exception as e:

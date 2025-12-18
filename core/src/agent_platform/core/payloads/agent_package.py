@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
+from typing import Any, Self
 
 from agent_platform.core.mcp.mcp_server import MCPServer
-from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils import SecretString
 
 
@@ -21,7 +21,19 @@ class AgentPackagePayloadActionServer:
     )
     """The API key of the action server."""
 
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> Self:
+        if isinstance(data, cls):
+            return data
 
+        return cls(
+            url=data.get("url", ""),
+            api_key=data.get("api_key", ""),
+        )
+
+
+# @TODO:
+# deprecate AgentPackagePayloadLangsmith on AgentPackagePayload.
 @dataclass(frozen=True)
 class AgentPackagePayloadLangsmith:
     api_key: str | SecretString = field(
@@ -51,6 +63,17 @@ class AgentPackagePayloadLangsmith:
             "api_url": self.api_url,
             "project_name": self.project_name,
         }
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> Self:
+        if isinstance(data, cls):
+            return data
+
+        return cls(
+            api_key=data.get("api_key", ""),
+            api_url=data.get("api_url", ""),
+            project_name=data.get("project_name", ""),
+        )
 
 
 @dataclass(frozen=True)
@@ -95,8 +118,8 @@ class AgentPackagePayload:
     """The base64 encoded agent package."""
 
     # This is for backwards compatibility with existing (v1) apis.
-    model: dict = field(
-        default_factory=dict,
+    model: dict | None = field(
+        default=None,
         metadata={
             "description": ("The model configuration for the agent. (Legacy field.)"),
         },
@@ -146,12 +169,39 @@ class AgentPackagePayload:
     )
     """The Langsmith configuration for the agent."""
 
-    selected_tools: SelectedTools = field(
-        metadata={
-            "description": "Configuration for tools selected for this agent.",
-        },
-        default_factory=SelectedTools,
-    )
-    """Configuration for tools selected for this agent."""
-
     # TODO: platform_configs for v2?
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any]) -> Self:
+        if isinstance(data, cls):
+            return data
+
+        action_servers_raw = data.get("action_servers", [])
+        mcp_servers_raw = data.get("mcp_servers", [])
+        langsmith_raw: dict[str, Any] | None = data.get("langsmith", None)
+
+        action_servers = []
+        mcp_servers = []
+        if action_servers_raw:
+            action_servers = [
+                AgentPackagePayloadActionServer.model_validate(action_server) for action_server in action_servers_raw
+            ]
+
+        if mcp_servers_raw:
+            mcp_servers = [MCPServer.model_validate(mcp_server) for mcp_server in mcp_servers_raw]
+
+        langsmith = AgentPackagePayloadLangsmith.model_validate(langsmith_raw) if langsmith_raw is not None else None
+
+        return cls(
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            public=data.get("public", True),
+            agent_package_url=data.get("agent_package_url", None),
+            agent_package_base64=data.get("agent_package_base64", None),
+            model=data.get("model", None),
+            platform_params_ids=data.get("platform_params_ids", []),
+            mcp_server_ids=data.get("mcp_server_ids", []),
+            action_servers=action_servers,
+            mcp_servers=mcp_servers,
+            langsmith=langsmith,
+        )

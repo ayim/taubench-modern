@@ -90,7 +90,6 @@ export const AgentUploadForm = () => {
               llmId: '',
               apiKey: '',
               mcpServerSettings,
-              selected_tools: { tool_names: [] }, // This is an API mistake: the selected_tools should be only read from the package
             },
           },
         },

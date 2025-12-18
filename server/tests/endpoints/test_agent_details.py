@@ -7,6 +7,8 @@ from agent_platform.core.actions.action_package import ActionPackage, SecretStri
 from agent_platform.core.agent import Agent, AgentArchitecture, AgentUserInterface
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.runbook import Runbook
+from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.agents import (
     get_agent_details,
@@ -29,7 +31,7 @@ def mock_storage():
     return storage
 
 
-def create_test_agent(action_packages=None, mcp_servers=None):
+def create_test_agent(action_packages=None, mcp_servers=None, selected_tools=None):
     """Helper function to create a test agent with given action packages and MCP servers."""
     return Agent(
         name="Test Agent",
@@ -44,6 +46,7 @@ def create_test_agent(action_packages=None, mcp_servers=None):
             name="agent_platform.architectures.default",
             version="1.0.0",
         ),
+        selected_tools=selected_tools or SelectedTools(),
     )
 
 
@@ -450,6 +453,47 @@ async def test_agent_details_two_mcp_servers_mixed_status(mock_user, mock_storag
     assert offline_result.mcp_servers[0].name == "test_mcp_server_offline"
     assert offline_result.mcp_servers[0].status == "offline"
     assert len(offline_result.mcp_servers[0].actions) == 0
+
+
+async def test_agent_details_mcp_servers_with_selected_tools(mock_user, mock_storage, monkeypatch):
+    """Test getting agent details for an agent with two online MCP servers."""
+    mcp_servers = [
+        MCPServer(
+            name=f"test_mcp_server_{i}",
+            url="http://test-mcp.com",
+        )
+        for i in range(2)
+    ]
+
+    selected_tools = SelectedTools(tools=[SelectedToolConfig(name="tool_two")])
+
+    agent = create_test_agent(mcp_servers=mcp_servers, selected_tools=selected_tools)
+
+    mock_tool_defs = [
+        ToolDefinition(name="tool_one", description="Test tool", input_schema={}),
+        ToolDefinition(name="tool_two", description="Test tool", input_schema={}),
+        ToolDefinition(name="tool_three", description="Test tool", input_schema={}),
+        ToolDefinition(name="tool_four", description="Test tool", input_schema={}),
+    ]
+
+    monkeypatch.setattr(
+        "agent_platform.core.mcp.mcp_server.MCPServer.to_tool_definitions",
+        AsyncMock(return_value=mock_tool_defs),
+    )
+
+    mock_storage.get_agent.return_value = agent
+    result = await get_agent_details(
+        user=mock_user,
+        aid="test_agent",
+        storage=mock_storage,
+    )
+
+    assert len(result.mcp_servers) == 2
+    for i, server in enumerate(result.mcp_servers):
+        assert server.name == f"test_mcp_server_{i}"
+        assert server.status == "online"
+        assert len(server.actions) == 1
+        assert server.actions[0].name == "tool_two"
 
 
 # =============================================================================

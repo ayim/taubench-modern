@@ -126,6 +126,7 @@ def agent_package_handler_factory():
 
         handler.read_conversation_guide_raw = AsyncMock(return_value=None)
         handler.read_semantic_data_model_raw = AsyncMock(return_value=None)
+        handler.get_spooled_file_bytes = AsyncMock(return_value=b"")
 
         return handler
 

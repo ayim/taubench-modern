@@ -43,9 +43,6 @@ function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
     action_servers: [],
     mcp_servers: inlineMcpServers,
     mcp_server_ids: configuredMCPServerIds,
-    // TODO: selected tools should be inherited from the package configuration
-    // Currently [] -> ALL tools selected
-    selected_tools: { tool_names: [] },
   };
 
   return payload;

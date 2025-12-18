@@ -197,7 +197,19 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
                 storage=storage,
                 data_server_details=data_server_details,
             )
-            allowed_actions = [MCPToolDetail(name=tool_def.name) for tool_def in tool_defs]
+
+            selected_tools = agent.selected_tools.tools if agent.selected_tools else []
+
+            selected_tool_names = [tool.name for tool in selected_tools]
+            has_selected_tools = len(selected_tool_names) > 0
+
+            allowed_actions = [
+                # Only filter out MCP tools based on SelectedTools if there are any SelectedTools present.
+                MCPToolDetail(name=tool_def.name)
+                for tool_def in tool_defs
+                if (not has_selected_tools or tool_def.name in selected_tool_names)
+            ]
+
             mcp_server_details = MCPServerDetail(
                 name=mcp_server.name,
                 actions=allowed_actions,

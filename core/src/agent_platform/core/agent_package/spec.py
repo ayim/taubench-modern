@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 from ruamel.yaml import YAML
 
 from agent_platform.core.mcp.mcp_types import MCPUnionOfVariableTypes
+from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
 
 # @TODO:
 # Consider bringing types and models from other core packages.
@@ -68,9 +69,17 @@ class SpecAgentMetadata(BaseModel):
 class SpecSelectedTool(BaseModel):
     name: str
 
+    def to_selected_tool_config(self) -> SelectedToolConfig:
+        return SelectedToolConfig(name=self.name)
+
 
 class SpecSelectedTools(BaseModel):
     tools: list[SpecSelectedTool] | None = None
+
+    def to_selected_tools(self) -> SelectedTools:
+        if self.tools is None:
+            return SelectedTools(tools=[])
+        return SelectedTools(tools=[SpecSelectedTool.to_selected_tool_config(tool) for tool in self.tools])
 
 
 # A permissive implementation of the Agent Spec model, mimicking the Agent Package

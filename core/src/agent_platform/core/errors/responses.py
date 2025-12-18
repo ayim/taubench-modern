@@ -66,6 +66,11 @@ class ErrorCode(Enum):
         "The request failed due to a invalid state.",
         412,
     )
+    HTTP_415_UNSUPPORTED_MEDIA_TYPE = ErrorInfo(
+        "unsupported_media_type",
+        "The requested media type is not allowed for this resource.",
+        415,
+    )
     INTERNAL_ERROR = ErrorInfo(
         "internal_error",
         "An internal error occurred while processing this request.",

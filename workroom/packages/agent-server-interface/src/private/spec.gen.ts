@@ -6056,20 +6056,6 @@ export const spec = {
               description:
                 "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
             },
-            'application/zip': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
-            'application/octet-stream': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
           },
         },
         responses: {
@@ -6160,20 +6146,6 @@ export const spec = {
               description:
                 "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
             },
-            'application/zip': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
-            'application/octet-stream': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
           },
         },
       },
@@ -6219,20 +6191,6 @@ export const spec = {
               },
               description:
                 "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
-            },
-            'application/zip': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
-            'application/octet-stream': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
             },
           },
         },
@@ -6291,20 +6249,6 @@ export const spec = {
               description:
                 "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
             },
-            'application/zip': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
-            'application/octet-stream': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
           },
         },
         responses: {
@@ -6361,20 +6305,6 @@ export const spec = {
               },
               description:
                 "Multipart form with all ActionPackagePayload fields plus ZIP file under the 'package_zip_file' field",
-            },
-            'application/zip': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
-            'application/octet-stream': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
             },
           },
           required: true,
@@ -6525,20 +6455,6 @@ export const spec = {
               },
               description:
                 "Multipart form with all AgentPackagePayload fields plus ZIP file under the 'package_zip_file' field",
-            },
-            'application/zip': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
-            },
-            'application/octet-stream': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-              description: 'Binary ZIP file containing the package',
             },
           },
         },
@@ -11017,8 +10933,15 @@ export const spec = {
             description: 'The base64 encoded agent package.',
           },
           model: {
-            additionalProperties: true,
-            type: 'object',
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Model',
             description:
               'The model configuration for the agent. (Legacy field.)',
@@ -11067,10 +10990,6 @@ export const spec = {
               },
             ],
             description: 'The Langsmith configuration for the agent.',
-          },
-          selected_tools: {
-            $ref: '#/components/schemas/SelectedTools',
-            description: 'Configuration for tools selected for this agent.',
           },
         },
         type: 'object',

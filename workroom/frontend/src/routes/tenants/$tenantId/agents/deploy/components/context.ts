@@ -44,15 +44,6 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
   const mcpConfigurationSchema = z.object({
     mcpServerSettings: z.array(MCPServerSettingsSchema).optional(),
     mcpServerIds: z.array(z.string()).optional(),
-    selected_tools: z
-      .object({
-        tool_names: z.array(
-          z.object({
-            tool_name: z.string(),
-          }),
-        ),
-      })
-      .optional(),
   });
 
   return agentConfigurationSchema.and(mcpConfigurationSchema);

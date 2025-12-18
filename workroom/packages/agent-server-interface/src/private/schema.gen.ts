@@ -4254,7 +4254,7 @@ export interface components {
        */
       model?: {
         [key: string]: unknown;
-      };
+      } | null;
       /**
        * Platform Params Ids
        * @description The IDs of platform params this agent uses.
@@ -4277,8 +4277,6 @@ export interface components {
       mcp_server_ids?: string[];
       /** @description The Langsmith configuration for the agent. */
       langsmith?: components['schemas']['AgentPackagePayloadLangsmith'] | null;
-      /** @description Configuration for tools selected for this agent. */
-      selected_tools?: components['schemas']['SelectedTools'];
     };
     /** AgentPackagePayloadActionServer */
     AgentPackagePayloadActionServer: {
@@ -18552,10 +18550,6 @@ export interface operations {
            */
           package_zip_file: string;
         };
-        /** @description Binary ZIP file containing the package */
-        'application/zip': string;
-        /** @description Binary ZIP file containing the package */
-        'application/octet-stream': string;
       };
     };
     responses: {
@@ -18590,10 +18584,6 @@ export interface operations {
            */
           package_zip_file: string;
         };
-        /** @description Binary ZIP file containing the package */
-        'application/zip': string;
-        /** @description Binary ZIP file containing the package */
-        'application/octet-stream': string;
       };
     };
     responses: {
@@ -18635,10 +18625,6 @@ export interface operations {
            */
           package_zip_file: string;
         };
-        /** @description Binary ZIP file containing the package */
-        'application/zip': string;
-        /** @description Binary ZIP file containing the package */
-        'application/octet-stream': string;
       };
     };
     responses: {
@@ -18671,10 +18657,6 @@ export interface operations {
            */
           package_zip_file: string;
         };
-        /** @description Binary ZIP file containing the package */
-        'application/zip': string;
-        /** @description Binary ZIP file containing the package */
-        'application/octet-stream': string;
       };
     };
     responses: {
@@ -18707,10 +18689,6 @@ export interface operations {
            */
           package_zip_file: string;
         };
-        /** @description Binary ZIP file containing the package */
-        'application/zip': string;
-        /** @description Binary ZIP file containing the package */
-        'application/octet-stream': string;
       };
     };
     responses: {
@@ -18825,10 +18803,6 @@ export interface operations {
            */
           package_zip_file: string;
         };
-        /** @description Binary ZIP file containing the package */
-        'application/zip': string;
-        /** @description Binary ZIP file containing the package */
-        'application/octet-stream': string;
       };
     };
     responses: {
