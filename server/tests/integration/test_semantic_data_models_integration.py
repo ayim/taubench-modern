@@ -1305,3 +1305,112 @@ def test_generate_semantic_data_model_rejects_empty_columns(base_url_agent_serve
     # Verify the error is about columns min length
     response_text = response.text.lower()
     assert "columns" in response_text, f"Expected error message to mention 'columns', got: {response.text}"
+
+
+@pytest.mark.integration
+def test_distinct_samples_from_file(base_url_agent_server):
+    """Ensure SDM generation stores unique sample_values when input samples contain duplicates."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Create duplicates in a sampled column ("city") so SDM generation must dedupe.
+        csv_content = b"name,age,city\nJohn,25,Paris\nJane,30,Paris\nBob,35,Rome\n"
+
+        inspect_result = agent_client.inspect_file_as_data_connection(
+            file_contents=csv_content, file_name="dupe_samples.csv"
+        )
+        assert len(inspect_result["tables"]) == 1
+        table = inspect_result["tables"][0]
+
+        city_col = next(col for col in table["columns"] if col["name"] == "city")
+        assert city_col["sample_values"] is not None
+        # Precondition: we actually have duplicates in the sampled values.
+        assert len(city_col["sample_values"]) > len(set(city_col["sample_values"]))
+
+        generated = agent_client.generate_semantic_data_model(
+            {
+                "name": "dupe_samples_model",
+                "description": "Ensure SDM sample_values are unique",
+                "data_connections_info": [],
+                "files_info": [
+                    {
+                        # No need to upload; SDM generation only needs a file reference structure.
+                        "thread_id": "thread_for_test_only",
+                        "file_ref": "dupe_samples.csv",
+                        "sheet_name": None,
+                        "tables_info": inspect_result["tables"],
+                    }
+                ],
+            }
+        )
+
+        semantic_model = generated["semantic_model"]
+        logical_table = next(t for t in semantic_model["tables"] if t["name"] == "dupe_samples.csv")
+        logical_city = next(d for d in logical_table["dimensions"] if d.get("expr") == "city")
+        sample_values = logical_city.get("sample_values")
+        assert sample_values is not None
+        assert sorted(sample_values) == ["Paris", "Rome"]
+
+
+@pytest.mark.integration
+def test_distinct_samples_from_data_connection(base_url_agent_server, tmp_path):
+    """Ensure SDM generation stores unique sample_values when DB-derived samples contain duplicates."""
+    import sqlite3
+
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    db_file = tmp_path / "dupe_samples.sqlite"
+    conn = sqlite3.connect(str(db_file))
+    try:
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE items (id INTEGER, category TEXT)")
+        cur.executemany(
+            "INSERT INTO items (id, category) VALUES (?, ?)",
+            [
+                (1, "Paris"),
+                (2, "Paris"),
+                (3, "Rome"),
+                (4, "Paris"),
+            ],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        data_connection = agent_client.create_data_connection(
+            name="sqlite-dupe-samples",
+            description="SQLite connection for SDM sample dedupe test",
+            engine="sqlite",
+            configuration={"db_file": str(db_file)},
+        )
+
+        inspect_response = agent_client.inspect_data_connection(connection_id=data_connection["id"])
+        assert "tables" in inspect_response
+        assert len(inspect_response["tables"]) > 0
+
+        # Force a duplicate into the payload we send to SDM generation so this test validates
+        # SDM-level deduping even if upstream inspection changes.
+        tables_info = inspect_response["tables"]
+        items_table = next(t for t in tables_info if t["name"] == "items")
+        category_col = next(c for c in items_table["columns"] if c["name"] == "category")
+        if category_col.get("sample_values"):
+            category_col["sample_values"] = [category_col["sample_values"][0], *category_col["sample_values"]]
+        else:
+            category_col["sample_values"] = ["Paris", "Paris", "Rome"]
+
+        generated = agent_client.generate_semantic_data_model(
+            {
+                "name": "sqlite_dupe_samples_model",
+                "description": "Ensure SDM sample_values are unique (sqlite)",
+                "data_connections_info": [{"data_connection_id": data_connection["id"], "tables_info": tables_info}],
+                "files_info": [],
+            }
+        )
+
+        semantic_model = generated["semantic_model"]
+        logical_items = next(t for t in semantic_model["tables"] if t["name"] == "items")
+        logical_category = next(d for d in logical_items["dimensions"] if d.get("expr") == "category")
+        sample_values = logical_category.get("sample_values")
+        assert sample_values is not None
+        assert len(sample_values) == len(set(sample_values))

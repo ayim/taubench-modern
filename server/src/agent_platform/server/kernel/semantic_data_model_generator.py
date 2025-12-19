@@ -250,15 +250,33 @@ class SemanticDataModelGenerator:
         return time_dimension
 
     def _get_sample_values(self, sample_values: list[Any] | None) -> list[str | int | float | bool | None] | None:
-        """Get sample values as strings."""
+        """Normalize and de-duplicate sample values.
+
+        Notes:
+            - SDM `sample_values` should be unique to keep payload sizes small and avoid repeating
+              the same value many times when sampling from small-cardinality columns.
+            - Order is not semantically important, but we keep first-seen order for stability.
+        """
         if sample_values is None:
             return None
-        ret = []
+
+        ret: list[str | int | float | bool | None] = []
+        seen: set[tuple[type, str | int | float | bool | None]] = set()
+
         for value in sample_values:
             if value is None or isinstance(value, str | int | float | bool):
-                ret.append(value)
+                normalized: str | int | float | bool | None = value
             else:
-                ret.append(str(value))
+                normalized = str(value)
+
+            # Avoid Python's bool/int equality quirks (True == 1) by including type in key,
+            # but store only the normalized value in the output list.
+            key = (type(normalized), normalized)
+            if key in seen:
+                continue
+            seen.add(key)
+            ret.append(normalized)
+
         return ret
 
     async def _create_metadata_snapshot(

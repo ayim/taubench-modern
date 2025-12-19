@@ -451,3 +451,43 @@ async def test_generate_semantic_data_model_with_file_metadata():
     assert tables[1].name == "Sheet2"
     assert tables[1].database == "test_file.xlsx"  # Same file
     assert tables[1].schema is None
+
+
+def test_distinct_sample_values():
+    """Test _get_sample_values normalizes and deduplicates sample values correctly."""
+    generator = SemanticDataModelGenerator()
+
+    # Test with mixed types including duplicates
+    sample_values = [
+        "apple",
+        "banana",
+        "apple",  # Duplicate string
+        123,
+        456,
+        123,  # Duplicate int
+        12.5,
+        12.5,  # Duplicate float
+        True,
+        False,
+        True,  # Duplicate bool
+        None,
+        None,  # Duplicate None
+        1,  # Should be kept separate from True despite Python's bool/int equality
+    ]
+
+    expected = [
+        "apple",
+        "banana",
+        123,
+        456,
+        12.5,
+        True,
+        False,
+        None,
+        1,
+    ]
+
+    result = generator._get_sample_values(sample_values)
+
+    # Should deduplicate while preserving first-seen order
+    assert result == expected
