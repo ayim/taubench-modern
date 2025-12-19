@@ -116,20 +116,6 @@ export function createOpenAIConfig(apiKey: string, availableModels?: string[]): 
 }
 
 /**
- * Create a LiteLLM platform config
- */
-export function createLiteLLMConfig(baseUrl: string, apiKey: string, availableModels?: string[]): PlatformConfig {
-  return {
-    kind: 'litellm',
-    litellm_base_url: baseUrl,
-    litellm_api_key: apiKey,
-    models: {
-      litellm: availableModels || [],
-    },
-  };
-}
-
-/**
  * Create a Bedrock platform config
  */
 export function createBedrockConfig(
@@ -249,6 +235,57 @@ export function createSnowflakeConfig(
   };
 }
 
+/**
+ * Create a LiteLLM platform config
+ */
+export function createLiteLLMConfig(baseUrl: string, apiKey: string, availableModels?: string[]): PlatformConfig {
+  return {
+    kind: 'litellm',
+    litellm_base_url: baseUrl,
+    litellm_api_key: apiKey,
+    models: {
+      litellm: availableModels || [],
+    },
+  };
+}
+
+/**
+ * Create a Google platform config
+ */
+export function createGoogleConfig(
+  apiKey: string,
+  cloudProjectId: string,
+  cloudLocation: string,
+  useVertexAi: boolean,
+  vertexServiceAccountJson: string,
+  availableModels?: string[],
+): PlatformConfig {
+  return {
+    kind: 'google',
+    google_api_key: apiKey,
+    google_cloud_project_id: cloudProjectId,
+    google_cloud_location: cloudLocation,
+    google_use_vertex_ai: useVertexAi,
+    google_vertex_service_account_json: vertexServiceAccountJson,
+    models: {
+      google: availableModels || [],
+    },
+  };
+}
+
+/**
+ * Create a Groq platform config
+ */
+export function createGroqConfig(apiKey: string, baseUrl: string, availableModels?: string[]): PlatformConfig {
+  return {
+    kind: 'groq',
+    groq_api_key: apiKey,
+    groq_base_url: baseUrl,
+    models: {
+      groq: availableModels || [],
+    },
+  };
+}
 /**
  * Create a conversation history special message
  */
