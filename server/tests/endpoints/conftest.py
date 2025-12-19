@@ -108,25 +108,34 @@ def client(fastapi_app: FastAPI) -> TestClient:
 # ──────────────────────────────────────────────────────────────
 @pytest.fixture
 def agent_package_handler_factory():
-    def _create_agent_package_handler(spec: dict):
+    def _create_agent_package_handler(mock_package_spec: dict):
         handler = AsyncMock()
 
-        handler.read_agent_spec = AsyncMock(return_value=AgentSpec.model_validate(spec["spec"]))
+        handler.read_agent_spec = AsyncMock(return_value=AgentSpec.model_validate(mock_package_spec["spec"]))
         handler.get_spec_agent = AsyncMock(
-            return_value=SpecAgent.model_validate(spec["spec"]["agent-package"]["agents"][0])
+            return_value=SpecAgent.model_validate(mock_package_spec["spec"]["agent-package"]["agents"][0])
         )
-
-        if "runbook_text" in spec:
-            handler.read_runbook = AsyncMock(return_value=spec["runbook_text"])
 
         # Configure the mock to behave as an asynchronous context manager
         # that returns itself
         handler.__enter__.return_value = handler
         handler.__exit__.return_value = None
 
+        handler.read_runbook = AsyncMock(return_value=None)
         handler.read_conversation_guide_raw = AsyncMock(return_value=None)
         handler.read_semantic_data_model_raw = AsyncMock(return_value=None)
         handler.get_spooled_file_bytes = AsyncMock(return_value=b"")
+        handler.read_all_semantic_data_models = AsyncMock(return_value={})
+        handler.read_conversation_guide = AsyncMock(return_value=[])
+
+        if "runbook_text" in mock_package_spec:
+            handler.read_runbook = AsyncMock(return_value=mock_package_spec["runbook_text"])
+
+        if "question_groups" in mock_package_spec:
+            handler.read_conversation_guide = AsyncMock(return_value=mock_package_spec["question_groups"])
+
+        if "semantic_data_models" in mock_package_spec:
+            handler.read_semantic_data_models = AsyncMock(return_value=mock_package_spec["semantic_data_models"])
 
         return handler
 

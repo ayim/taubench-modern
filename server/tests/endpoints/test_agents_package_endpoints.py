@@ -1472,12 +1472,6 @@ class TestConversationFields:
             AsyncMock(return_value=agent_package_handler_factory(conversation_guide_spec)),
         )
 
-        # Mock Question Groups reading.
-        monkeypatch.setattr(
-            "agent_platform.server.api.private_v2.package.upserts.read_question_groups",
-            AsyncMock(return_value=conversation_guide_spec["question_groups"]),
-        )
-
         # Execute
         result = await create_agent_from_package(
             user=mock_user,

@@ -6480,13 +6480,33 @@
         "summary": "Read Agent data from an Agent Package",
         "description": "Read Agent data from an Agent Package. Accepts binary ZIP files.",
         "operationId": "read_agent_package_package_read_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_read_agent_package_package_read_post"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentCompat"
+                  "$ref": "#/components/schemas/ReadAgentPackageResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -11848,6 +11868,19 @@
         "type": "object",
         "required": ["file"],
         "title": "Body_ingest_document_document_intelligence_documents_ingest_post"
+      },
+      "Body_read_agent_package_package_read_post": {
+        "properties": {
+          "package_zip_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "Package Zip File",
+            "description": "Agent Package ZIP file"
+          }
+        },
+        "type": "object",
+        "required": ["package_zip_file"],
+        "title": "Body_read_agent_package_package_read_post"
       },
       "Body_upload_thread_files_threads__tid__files_post": {
         "properties": {
@@ -19007,6 +19040,39 @@
         "required": ["title"],
         "title": "QuestionGroup"
       },
+      "ReadAgentPackageResult": {
+        "properties": {
+          "spec_agent": {
+            "$ref": "#/components/schemas/SpecAgent"
+          },
+          "runbook": {
+            "type": "string",
+            "title": "Runbook"
+          },
+          "question_groups": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionGroup"
+            },
+            "type": "array",
+            "title": "Question Groups"
+          },
+          "semantic_data_models_map": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SemanticDataModel"
+            },
+            "type": "object",
+            "title": "Semantic Data Models Map"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spec_agent",
+          "runbook",
+          "question_groups",
+          "semantic_data_models_map"
+        ],
+        "title": "ReadAgentPackageResult"
+      },
       "ReadyResponse": {
         "properties": {
           "status": {
@@ -21518,6 +21584,270 @@
         "required": ["warehouse", "database", "schema"],
         "title": "SnowflakeLinkedConfiguration"
       },
+      "SpecActionPackage": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "organization": {
+            "type": "string",
+            "title": "Organization"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["zip", "folder"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "whitelist": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whitelist"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": ["name", "organization", "version"],
+        "title": "SpecActionPackage"
+      },
+      "SpecAgent": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpecAgentModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "architecture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Architecture"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["disabled", "enabled", "verbose"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "runbook": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runbook"
+          },
+          "action-packages": {
+            "items": {
+              "$ref": "#/components/schemas/SpecActionPackage"
+            },
+            "type": "array",
+            "title": "Action-Packages"
+          },
+          "knowledge": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SpecKnowledge"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Knowledge"
+          },
+          "semantic-data-models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SpecSemanticDataModel"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic-Data-Models"
+          },
+          "mcp-servers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SpecMCPServer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp-Servers"
+          },
+          "docker-mcp-gateway": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpecDockerMcpGateway"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conversation-guide": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation-Guide"
+          },
+          "conversation-starter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation-Starter"
+          },
+          "document-intelligence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["v2", "v2.1"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document-Intelligence"
+          },
+          "welcome-message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Welcome-Message"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpecAgentMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selected-tools": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpecSelectedTools"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "agent-settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent-Settings"
+          }
+        },
+        "type": "object",
+        "required": ["name", "description", "version", "action-packages"],
+        "title": "SpecAgent"
+      },
+      "SpecAgentMetadata": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["conversational", "worker"],
+            "title": "Mode"
+          }
+        },
+        "type": "object",
+        "required": ["mode"],
+        "title": "SpecAgentMetadata"
+      },
       "SpecAgentModel": {
         "properties": {
           "provider": {
@@ -21532,6 +21862,268 @@
         "type": "object",
         "required": ["provider", "name"],
         "title": "SpecAgentModel"
+      },
+      "SpecDockerMcpGateway": {
+        "properties": {
+          "catalog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog"
+          },
+          "servers": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Servers"
+          }
+        },
+        "type": "object",
+        "required": ["servers"],
+        "title": "SpecDockerMcpGateway"
+      },
+      "SpecKnowledge": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "embedded": {
+            "type": "boolean",
+            "title": "Embedded"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          }
+        },
+        "type": "object",
+        "required": ["name", "embedded"],
+        "title": "SpecKnowledge"
+      },
+      "SpecMCPServer": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "transport": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["auto", "streamable-http", "sse", "stdio"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "headers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headers"
+          },
+          "command-line": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command-Line"
+          },
+          "env": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Env"
+          },
+          "cwd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cwd"
+          },
+          "force-serial-tool-calls": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Force-Serial-Tool-Calls",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "SpecMCPServer"
+      },
+      "SpecSelectedTool": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "SpecSelectedTool"
+      },
+      "SpecSelectedTools": {
+        "properties": {
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SpecSelectedTool"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools"
+          }
+        },
+        "type": "object",
+        "title": "SpecSelectedTools"
+      },
+      "SpecSemanticDataModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "SpecSemanticDataModel"
       },
       "SplitJobResult": {
         "properties": {

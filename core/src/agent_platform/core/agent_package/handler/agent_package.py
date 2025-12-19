@@ -1,6 +1,7 @@
 import json
 from typing import TYPE_CHECKING, Any
 
+from ruamel.yaml import YAML
 from structlog import get_logger
 
 from agent_platform.core.agent.question_group import QuestionGroup
@@ -9,12 +10,15 @@ from agent_platform.core.agent_package.handler.base import BasePackageHandler
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
 from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
 from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, model_validate_sdm
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 if TYPE_CHECKING:
     from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
 
 logger = get_logger(__name__)
+
+_yaml = YAML(typ="safe")
 
 
 class AgentPackageHandler(BasePackageHandler):
@@ -97,11 +101,7 @@ class AgentPackageHandler(BasePackageHandler):
         return await self.read_file(spec_agent.conversation_guide)
 
     async def read_conversation_guide(self) -> list[QuestionGroup]:
-        from ruamel.yaml import YAML
-
         from agent_platform.core.agent.question_group import QuestionGroup
-
-        _yaml = YAML(typ="safe")
 
         spec_agent = await self.get_spec_agent()
         if not spec_agent.conversation_guide:
@@ -148,6 +148,56 @@ class AgentPackageHandler(BasePackageHandler):
     async def read_semantic_data_model_raw(self, semantic_data_model_filename: str) -> bytes:
         path = f"{AgentPackageConfig.semantic_data_models_dirname}/{semantic_data_model_filename}"
         return await self.read_file(path)
+
+    async def read_semantic_data_model(self, semantic_data_model_filename: str) -> SemanticDataModel | None:
+        try:
+            sdm_raw = await self.read_semantic_data_model_raw(semantic_data_model_filename)
+            if not sdm_raw:
+                return None
+
+            # Parse YAML (Snowflake Cortex Analyst semantic model format)
+            sdm_yaml = _yaml.load(sdm_raw.decode("utf-8"))
+
+            if not isinstance(sdm_yaml, dict):
+                logger.warning(
+                    f"SDM file {semantic_data_model_filename}' does not contain valid YAML dict, skipping",
+                )
+                return None
+
+            return model_validate_sdm(sdm_yaml)
+
+        except Exception as e:
+            logger.warning(
+                "Failed to read Semantic Data Model",
+                path=semantic_data_model_filename,
+                error=str(e),
+            )
+
+    async def read_all_semantic_data_models(self) -> dict[str, SemanticDataModel]:
+        result: dict[str, SemanticDataModel] = {}
+
+        spec_agent = await self.get_spec_agent()
+
+        sdm_refs = spec_agent.semantic_data_models or []
+
+        if not sdm_refs:
+            return result
+
+        for sdm_ref in sdm_refs:
+            if not sdm_ref.name:
+                logger.warning("SDM reference missing 'name' field, skipping")
+                continue
+
+            sdm_filename = sdm_ref.name
+
+            sdm = await self.read_semantic_data_model(sdm_filename)
+
+            if not sdm:
+                continue
+
+            result[sdm_filename] = sdm
+
+        return result
 
     async def load_agent_package_icon(self) -> str:
         """Load and convert the agent package icon to base64.

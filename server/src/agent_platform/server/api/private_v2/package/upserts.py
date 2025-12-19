@@ -1,6 +1,4 @@
 import copy
-from collections.abc import Mapping
-from typing import Any
 
 from fastapi import HTTPException
 from starlette import status
@@ -9,8 +7,8 @@ from structlog import get_logger
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.agent import AgentArchitecture
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
-from agent_platform.core.agent_package.read import read_question_groups, read_semantic_data_models
-from agent_platform.core.data_frames.semantic_data_model_types import model_validate_sdm
+from agent_platform.core.agent_package.read import read_agent_package
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.payloads import AgentPackagePayload, UpsertAgentPayload
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
@@ -64,11 +62,9 @@ async def upsert_agent_from_package(
         action_server_api_key = SecretString(action_server_api_key)
 
     with handler:
-        spec_agent = await handler.get_spec_agent()
-        runbook_text = await handler.read_runbook()
+        read_package_result = await read_agent_package(handler)
 
-        question_groups = await read_question_groups(handler)
-        semantic_data_models = await read_semantic_data_models(handler)
+        spec_agent = read_package_result.spec_agent
 
         # Original architecture name (if not present, use default)
         mapped_architecture_name = spec_agent.architecture or "agent_platform.architectures.default"
@@ -98,9 +94,9 @@ async def upsert_agent_from_package(
             mcp_server_ids=payload.mcp_server_ids,
             selected_tools=selected_tools,
             platform_params_ids=payload.platform_params_ids,
-            runbook=runbook_text,
+            runbook=read_package_result.runbook,
             advanced_config=advanced_config,
-            question_groups=question_groups,
+            question_groups=read_package_result.question_groups,
             agent_settings=spec_agent.agent_settings or {},
             extra={
                 "conversation_starter": spec_agent.conversation_starter,
@@ -139,7 +135,7 @@ async def upsert_agent_from_package(
     # Import semantic data models if present in the package
     await upsert_semantic_data_models(
         agent_id=aid,
-        sdms=semantic_data_models,
+        sdms=read_package_result.semantic_data_models_map,
         storage=storage,
     )
 
@@ -156,7 +152,7 @@ async def upsert_agent_from_package(
 
 async def upsert_semantic_data_models(
     agent_id: str,
-    sdms: Mapping[str, dict[str, Any]] | None,
+    sdms: dict[str, SemanticDataModel],
     storage: StorageDependency,
 ) -> None:
     """
@@ -187,15 +183,8 @@ async def upsert_semantic_data_models(
     logger.info(f"Keeping {len(existing_ids)} existing SDMs", count=len(existing_ids))
 
     # Process each SDM from package
-    for filename, sdm_content in sdms.items():
+    for filename, sdm_instance in sdms.items():
         # Resolve data connection names to IDs (if possible)
-        # Convert dict to SemanticDataModel if needed (for type checking)
-        # TypedDict is just a type annotation, so dicts are already SemanticDataModel
-        if isinstance(sdm_content, dict):
-            sdm_instance = model_validate_sdm(sdm_content)
-        else:
-            sdm_instance = sdm_content
-
         sdm_resolved = await resolve_data_connection_names(sdm_instance, storage)
 
         # Check for match (find_matching_sdm uses class methods for normalization)

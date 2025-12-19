@@ -4681,6 +4681,15 @@ export interface components {
       /** File */
       file: string;
     };
+    /** Body_read_agent_package_package_read_post */
+    Body_read_agent_package_package_read_post: {
+      /**
+       * Package Zip File
+       * Format: binary
+       * @description Agent Package ZIP file
+       */
+      package_zip_file: string;
+    };
     /** Body_upload_thread_files_threads__tid__files_post */
     Body_upload_thread_files_threads__tid__files_post: {
       /** Files */
@@ -7844,6 +7853,18 @@ export interface components {
        */
       questions?: string[];
     };
+    /** ReadAgentPackageResult */
+    ReadAgentPackageResult: {
+      spec_agent: components['schemas']['SpecAgent'];
+      /** Runbook */
+      runbook: string;
+      /** Question Groups */
+      question_groups: components['schemas']['QuestionGroup'][];
+      /** Semantic Data Models Map */
+      semantic_data_models_map: {
+        [key: string]: components['schemas']['SemanticDataModel'];
+      };
+    };
     /** ReadyResponse */
     ReadyResponse: {
       /** Status */
@@ -9071,10 +9092,153 @@ export interface components {
        */
       credential_type: string;
     };
+    /** SpecActionPackage */
+    SpecActionPackage: {
+      /** Name */
+      name: string;
+      /** Organization */
+      organization: string;
+      /** Version */
+      version: string;
+      /** Type */
+      type?: ('zip' | 'folder') | null;
+      /** Whitelist */
+      whitelist?: string | null;
+      /** Path */
+      path?: string | null;
+    };
+    /** SpecAgent */
+    SpecAgent: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      model?: components['schemas']['SpecAgentModel'] | null;
+      /** Version */
+      version: string;
+      /** Architecture */
+      architecture?: string | null;
+      /** Reasoning */
+      reasoning?: ('disabled' | 'enabled' | 'verbose') | null;
+      /** Runbook */
+      runbook?: string | null;
+      /** Action-Packages */
+      'action-packages': components['schemas']['SpecActionPackage'][];
+      /** Knowledge */
+      knowledge?: components['schemas']['SpecKnowledge'][] | null;
+      /** Semantic-Data-Models */
+      'semantic-data-models'?:
+        | components['schemas']['SpecSemanticDataModel'][]
+        | null;
+      /** Mcp-Servers */
+      'mcp-servers'?: components['schemas']['SpecMCPServer'][] | null;
+      'docker-mcp-gateway'?:
+        | components['schemas']['SpecDockerMcpGateway']
+        | null;
+      /** Conversation-Guide */
+      'conversation-guide'?: string | null;
+      /** Conversation-Starter */
+      'conversation-starter'?: string | null;
+      /** Document-Intelligence */
+      'document-intelligence'?: ('v2' | 'v2.1') | null;
+      /** Welcome-Message */
+      'welcome-message'?: string | null;
+      metadata?: components['schemas']['SpecAgentMetadata'] | null;
+      'selected-tools'?: components['schemas']['SpecSelectedTools'] | null;
+      /** Agent-Settings */
+      'agent-settings'?: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /** SpecAgentMetadata */
+    SpecAgentMetadata: {
+      /**
+       * Mode
+       * @enum {string}
+       */
+      mode: 'conversational' | 'worker';
+    };
     /** SpecAgentModel */
     SpecAgentModel: {
       /** Provider */
       provider: string;
+      /** Name */
+      name: string;
+    };
+    /** SpecDockerMcpGateway */
+    SpecDockerMcpGateway: {
+      /** Catalog */
+      catalog?: string | null;
+      /** Servers */
+      servers: {
+        [key: string]: {
+          [key: string]: unknown;
+        };
+      };
+    };
+    /** SpecKnowledge */
+    SpecKnowledge: {
+      /** Name */
+      name: string;
+      /** Embedded */
+      embedded: boolean;
+      /** Digest */
+      digest?: string | null;
+    };
+    /** SpecMCPServer */
+    SpecMCPServer: {
+      /** Name */
+      name: string;
+      /** Transport */
+      transport?: ('auto' | 'streamable-http' | 'sse' | 'stdio') | null;
+      /** Description */
+      description?: string | null;
+      /** Url */
+      url?: string | null;
+      /** Headers */
+      headers?: {
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
+      } | null;
+      /** Command-Line */
+      'command-line'?: string[] | null;
+      /** Env */
+      env?: {
+        [key: string]:
+          | string
+          | (
+              | components['schemas']['MCPVariableTypeString']
+              | components['schemas']['MCPVariableTypeSecret']
+              | components['schemas']['MCPVariableTypeOAuth2Secret']
+              | components['schemas']['MCPVariableTypeDataServerInfo']
+            );
+      } | null;
+      /** Cwd */
+      cwd?: string | null;
+      /**
+       * Force-Serial-Tool-Calls
+       * @default false
+       */
+      'force-serial-tool-calls': boolean | null;
+    };
+    /** SpecSelectedTool */
+    SpecSelectedTool: {
+      /** Name */
+      name: string;
+    };
+    /** SpecSelectedTools */
+    SpecSelectedTools: {
+      /** Tools */
+      tools?: components['schemas']['SpecSelectedTool'][] | null;
+    };
+    /** SpecSemanticDataModel */
+    SpecSemanticDataModel: {
       /** Name */
       name: string;
     };
@@ -19053,7 +19217,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_read_agent_package_package_read_post'];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -19061,7 +19229,16 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AgentCompat'];
+          'application/json': components['schemas']['ReadAgentPackageResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };

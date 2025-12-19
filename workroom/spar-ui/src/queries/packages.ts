@@ -1,9 +1,9 @@
-import { Agent, components } from '@sema4ai/agent-server-interface';
+import { components } from '@sema4ai/agent-server-interface';
 
 import { createSparMutation, QueryError, ResourceType } from './shared';
 
 export const useReadPackageMutation = createSparMutation<object, { formData: FormData }>()(({ sparAPIClient }) => ({
-  mutationFn: async ({ formData }): Promise<Agent> => {
+  mutationFn: async ({ formData }): Promise<components['schemas']['ReadAgentPackageResult']> => {
     const response = await sparAPIClient.queryAgentServer('post', '/api/v2/package/read', {
       params: {},
       body: formData as never,
@@ -16,7 +16,7 @@ export const useReadPackageMutation = createSparMutation<object, { formData: For
       });
     }
 
-    return response.data as Agent;
+    return response.data;
   },
 }));
 

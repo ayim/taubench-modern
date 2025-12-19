@@ -89,7 +89,7 @@ async def _request_body_to_json(request: Request) -> dict:
     return json_data
 
 
-async def _iter_upload_file_chunks(
+async def iter_upload_file_chunks(
     upload_file: UploadFile,
 ) -> AsyncGenerator[bytes, None]:
     """
@@ -194,7 +194,7 @@ async def parse_agent_package_payload(request: Request) -> tuple[AgentPackagePay
     elif content_type.startswith("multipart/form-data"):
         package_zip_file, form_data = await _extract_multipart_zip_and_data(request)
         payload = _get_agent_package_payload_from_form_data(form_data)
-        handler = await AgentPackageHandler.from_stream(_iter_upload_file_chunks(package_zip_file))
+        handler = await AgentPackageHandler.from_stream(iter_upload_file_chunks(package_zip_file))
 
         return payload, handler
 
@@ -232,7 +232,7 @@ async def parse_action_package_payload(request: Request) -> tuple[ActionPackageP
         package_zip_file, form_data = await _extract_multipart_zip_and_data(request)
         # ActionPackagePayload does not have any nested fields, so no preparation is needed.
         payload = ActionPackagePayload.model_validate(form_data)
-        handler = await ActionPackageHandler.from_stream(_iter_upload_file_chunks(package_zip_file))
+        handler = await ActionPackageHandler.from_stream(iter_upload_file_chunks(package_zip_file))
 
         return payload, handler
 

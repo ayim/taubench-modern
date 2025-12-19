@@ -1,13 +1,16 @@
 import uuid
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Request, UploadFile
 from structlog import get_logger
 
+from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.hash.agent_package_hash import calculate_agent_package_hash
 from agent_platform.core.agent_package.metadata.agent_metadata import (
     AgentPackageMetadata,
 )
 from agent_platform.core.agent_package.metadata.generate_metadata import AgentMetadataGenerator
+from agent_platform.core.agent_package.read import ReadAgentPackageResult
+from agent_platform.core.agent_package.read import read_agent_package as core_read_agent_package
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
 from agent_platform.core.payloads import UpsertAgentPayload
@@ -21,6 +24,7 @@ from agent_platform.server.api.private_v2.compatibility.agent_compat import Agen
 from agent_platform.server.api.private_v2.package.request_content_handler import (
     create_binary_zip_metadata,
     create_binary_zip_openapi_extra,
+    iter_upload_file_chunks,
     parse_action_package_payload,
     parse_agent_package_payload,
 )
@@ -96,9 +100,6 @@ async def update_agent_from_package(
         return result
 
 
-#### ENVIRONMENT HASH ENDPOINT
-
-
 @router.post(
     "/environment-hash/agent",
     summary="Calculate agent package environment hash",
@@ -106,6 +107,7 @@ async def update_agent_from_package(
     openapi_extra=create_binary_zip_openapi_extra("AgentPackagePayload"),
 )
 async def calculate_agent_package_environment_hash(
+    user: AuthedUser,
     request: Request,
 ) -> StatusResponse[dict]:
     try:
@@ -126,9 +128,6 @@ async def calculate_agent_package_environment_hash(
         )
 
 
-#### INSPECT ENDPOINT
-
-
 @router.post(
     "/inspect/agent",
     summary="Inspect agent package",
@@ -136,6 +135,7 @@ async def calculate_agent_package_environment_hash(
     openapi_extra=create_binary_zip_openapi_extra("AgentPackagePayload"),
 )
 async def inspect_agent_from_package(
+    user: AuthedUser,
     request: Request,
 ) -> StatusResponse[AgentPackageInspectionResponse]:
     try:
@@ -170,6 +170,7 @@ async def inspect_agent_from_package(
     openapi_extra=create_binary_zip_openapi_extra("ActionPackagePayload"),
 )
 async def inspect_action_from_package(
+    user: AuthedUser,
     request: Request,
     payload: ActionPackagePayload,  # Unused parameter, added to fix OpenAPI spec generation
 ) -> StatusResponse[dict]:
@@ -211,16 +212,16 @@ async def create_agent_package(
 
 @router.post(
     "/read",
-    response_model=AgentCompat,
+    response_model=ReadAgentPackageResult,
     summary="Read Agent data from an Agent Package",
     description="Read Agent data from an Agent Package. Accepts binary ZIP files.",
 )
 async def read_agent_package(
     user: AuthedUser,
-    request: Request,
-    storage: StorageDependency,
-) -> StatusResponse[dict]:
-    raise NotImplementedError("Not implemented")
+    package_zip_file: UploadFile = File(..., description="Agent Package ZIP file"),  # noqa: B008
+) -> ReadAgentPackageResult:
+    with await AgentPackageHandler.from_stream(iter_upload_file_chunks(package_zip_file)) as handler:
+        return await core_read_agent_package(handler)
 
 
 @router.post(
