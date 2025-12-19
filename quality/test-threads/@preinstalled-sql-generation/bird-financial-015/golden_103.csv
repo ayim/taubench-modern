@@ -1,0 +1,2 @@
+client_id,gender,birth_date,card_type,age_at_card_issue,account_count,loan_count,active_loans,avg_loan_amount,district_name,region,avg_salary,borrower_category,age_rank_by_gender
+2429,M,1973-11-22,classic,21,1,0,0,,Karvina,north Moravia,10177,Non-borrower,1

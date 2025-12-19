@@ -1,0 +1,34 @@
+name: bird-toxicology-127
+description: "BIRD Q321 (simple): What is the molecule of atom id \"TR000_2\" and atom id 2 \"TR000_4\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-321
+    description: "What is the molecule of atom id \"TR000_2\" and atom id 2 \"TR000_4\"?"
+    messages:
+      - role: user
+        content: |
+          What is the molecule of atom id "TR000_2" and atom id 2 "TR000_4"?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_321.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

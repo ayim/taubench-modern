@@ -1,0 +1,36 @@
+name: bird-european-football-2-057
+description: "BIRD Q1076 (challenging): What is the difference of the average ball control score between Abdou Diallo and Aaron Appindangoye ?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1076
+    description: "What is the difference of the average ball control score between Abdou Diallo and Aaron Appindangoye ?"
+    messages:
+      - role: user
+        content: |
+          What is the difference of the average ball control score between Abdou Diallo and Aaron Appindangoye
+          ?
+          Evidence: difference of the average ball control = SUBTRACT(AVG(ball_control WHERE player_name = 'Abdou Diallo'), AVG(ball_control WHERE player_name = 'Aaron Appindangoye')); AVG(ball_control WHERE player_name = 'XX XX') = SUM(CASE WHEN player_name = 'XX XX' THEN ball_control ELSE 0 END) / COUNT(CASE WHEN player_name = 'XX XX' THEN id ELSE NULL END)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1076.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

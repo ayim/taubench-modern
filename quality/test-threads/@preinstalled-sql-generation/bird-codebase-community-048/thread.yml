@@ -1,0 +1,35 @@
+name: bird-codebase-community-048
+description: "BIRD Q578 (moderate): Which user made a post titled 'Understanding what Dassault iSight is doing?' and how much is the reputation of the user?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-578
+    description: "Which user made a post titled 'Understanding what Dassault iSight is doing?' and how much is the reputation of the user?"
+    messages:
+      - role: user
+        content: |
+          Which user made a post titled 'Understanding what Dassault iSight is doing?' and how much is the reputation of the user?
+          Evidence: user refers to DisplayName
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_578.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

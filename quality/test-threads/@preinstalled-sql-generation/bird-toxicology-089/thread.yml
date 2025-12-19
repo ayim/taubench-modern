@@ -1,0 +1,35 @@
+name: bird-toxicology-089
+description: "BIRD Q283 (moderate): Identify whether the chemical compound that contains Calcium is carcinogenic."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-283
+    description: "Identify whether the chemical compound that contains Calcium is carcinogenic."
+    messages:
+      - role: user
+        content: |
+          Identify whether the chemical compound that contains Calcium is carcinogenic.
+          Evidence: calcium refers to element = 'ca'; label = '+' mean molecules are carcinogenic; label = '-' means molecules are non-carcinogenic;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_283.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

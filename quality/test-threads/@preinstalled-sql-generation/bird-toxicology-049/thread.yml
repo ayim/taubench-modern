@@ -1,0 +1,35 @@
+name: bird-toxicology-049
+description: "BIRD Q243 (moderate): What are the bonds that have phosphorus and nitrogen as their atom elements?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-243
+    description: "What are the bonds that have phosphorus and nitrogen as their atom elements?"
+    messages:
+      - role: user
+        content: |
+          What are the bonds that have phosphorus and nitrogen as their atom elements?
+          Evidence: have phosphorus as atom elements refers to element = 'p'; have nitrogen as atom elements refers to element = 'n'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_243.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

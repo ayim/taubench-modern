@@ -1,0 +1,35 @@
+name: bird-european-football-2-020
+description: "BIRD Q1039 (simple): Find the average number of long-shot done by Ahmed Samir Farag."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1039
+    description: "Find the average number of long-shot done by Ahmed Samir Farag."
+    messages:
+      - role: user
+        content: |
+          Find the average number of long-shot done by Ahmed Samir Farag.
+          Evidence: average number of long shot = DIVIDE(SUM(long_shots), COUNT(player_fifa_api_id));
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1039.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

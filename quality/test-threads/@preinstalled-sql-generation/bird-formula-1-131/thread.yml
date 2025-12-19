@@ -1,0 +1,35 @@
+name: bird-formula-1-131
+description: "BIRD Q976 (simple): List the driver's ID of the top five driver, by descending order, the fastest time during the first lap of the race."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-976
+    description: "List the driver's ID of the top five driver, by descending order, the fastest time during the first lap of the race."
+    messages:
+      - role: user
+        content: |
+          List the driver's ID of the top five driver, by descending order, the fastest time during the first lap of the race.
+          Evidence: fastest time refers to Min(time);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_976.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

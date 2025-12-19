@@ -1,0 +1,2 @@
+SUM(t2.overall_rating) / COUNT(t1.id)
+69

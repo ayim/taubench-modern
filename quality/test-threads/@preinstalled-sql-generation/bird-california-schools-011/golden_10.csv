@@ -1,0 +1,2 @@
+SchoolName,County,City,GradeSpan,ReadingScore,MathScore,WritingScore,TotalSATScore,ReadingRank,FRPMCount,FRPMPercentage,Enrollment,PercentScoring1500Plus,SchoolType,PovertyLevel
+Mission San Jose High,Alameda,Fremont,9-12,653,699,671,2023,1,69.0,0.0327324478178368,2108.0,92.93598233995586,Non-Charter School,Very Low Poverty (<25%)

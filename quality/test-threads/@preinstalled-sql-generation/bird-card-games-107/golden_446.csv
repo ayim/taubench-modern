@@ -1,0 +1,2 @@
+CAST(SUM(CASE WHEN T1.convertedManaCost = 10 THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(T1.id),name
+0.0,Abyssal Horror

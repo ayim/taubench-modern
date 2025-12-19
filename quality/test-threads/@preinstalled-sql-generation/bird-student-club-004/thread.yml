@@ -1,0 +1,35 @@
+name: bird-student-club-004
+description: "BIRD Q1315 (simple): How many students of the Student_Club have attended the event \"Women's Soccer\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1315
+    description: "How many students of the Student_Club have attended the event \"Women's Soccer\"?"
+    messages:
+      - role: user
+        content: |
+          How many students of the Student_Club have attended the event "Women's Soccer"?
+          Evidence: Women's Soccer is an event name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1315.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

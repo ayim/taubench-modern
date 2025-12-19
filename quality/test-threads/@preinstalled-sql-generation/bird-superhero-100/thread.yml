@@ -1,0 +1,35 @@
+name: bird-superhero-100
+description: "BIRD Q816 (simple): Provide the names of superheroes with attribute value between 75 to 80."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-816
+    description: "Provide the names of superheroes with attribute value between 75 to 80."
+    messages:
+      - role: user
+        content: |
+          Provide the names of superheroes with attribute value between 75 to 80.
+          Evidence: names of superheroes refers to superhero_name; attribute value between 75 to 80 refers to attribute_value BETWEEN 75 AND 80;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_816.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

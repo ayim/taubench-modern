@@ -1,0 +1,35 @@
+name: bird-financial-017
+description: "BIRD Q105 (challenging): For the loan approved on August 25, 1994, provide a comprehensive profile including: the district information (name, region, average salary rank, unemployment rank), how long the account was open before the loan, the demographics of clients in that district (total count, gender breakdown, average age), and the account's transaction history (number of transactions and total income) before the loan date."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-105
+    description: "For the loan approved on August 25, 1994, provide a comprehensive profile including: the district information (name, region, average salary rank, unemployment rank), how long the account was open before the loan, the demographics of clients in that district (total count, gender breakdown, average age), and the account's transaction history (number of transactions and total income) before the loan date."
+    messages:
+      - role: user
+        content: |
+          For the loan approved on August 25, 1994, provide a comprehensive profile including: the district information (name, region, average salary rank, unemployment rank), how long the account was open before the loan, the demographics of clients in that district (total count, gender breakdown, average age), and the account's transaction history (number of transactions and total income) before the loan date.
+          Evidence: Income transactions refer to type = 'PRIJEM'. Average age is calculated as of the loan date 1994-08-25.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_105.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

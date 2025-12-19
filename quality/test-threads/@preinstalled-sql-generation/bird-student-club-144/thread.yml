@@ -1,0 +1,35 @@
+name: bird-student-club-144
+description: "BIRD Q1455 (moderate): Which budget allowed the most money for water, chips, and cookies?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1455
+    description: "Which budget allowed the most money for water, chips, and cookies?"
+    messages:
+      - role: user
+        content: |
+          Which budget allowed the most money for water, chips, and cookies?
+          Evidence: 'Water, chips, cookies' is the value in expense description to filter; most money refers to the highest cost among matching expenses
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1455.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

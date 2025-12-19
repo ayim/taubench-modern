@@ -1,0 +1,35 @@
+name: bird-financial-063
+description: "BIRD Q151 (challenging): For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-151
+    description: "For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level."
+    messages:
+      - role: user
+        content: |
+          For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level.
+          Evidence: Withdrawal transactions refer to type = 'VYDAJ'. District name refers to A2. Unemployment category is based on 1995 unemployment rate: High (>2.0), Medium (1.0-2.0), Low (<1.0).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_151.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

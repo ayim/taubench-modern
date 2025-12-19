@@ -1,0 +1,35 @@
+name: bird-student-club-093
+description: "BIRD Q1404 (moderate): Identify the type of expenses and their total value approved for 'October Meeting' event."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1404
+    description: "Identify the type of expenses and their total value approved for 'October Meeting' event."
+    messages:
+      - role: user
+        content: |
+          Identify the type of expenses and their total value approved for 'October Meeting' event.
+          Evidence: total value refers to SUM(cost); 'October Meeting' is an event name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1404.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-financial-060
+description: "BIRD Q148 (challenging): For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-148
+    description: "For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance."
+    messages:
+      - role: user
+        content: |
+          For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance.
+          Evidence: District refers to A2; account owners are those with type = 'OWNER'; credit status is determined by loan repayment history where status 'A' indicates good loans and 'B' indicates bad loans; customer priority is based on age and average balance thresholds.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_148.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

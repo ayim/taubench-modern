@@ -1,0 +1,35 @@
+name: bird-formula-1-111
+description: "BIRD Q956 (simple): Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-956
+    description: "Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames."
+    messages:
+      - role: user
+        content: |
+          Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames.
+          Evidence: born after 1975 refers to year(dob) >1975;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_956.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

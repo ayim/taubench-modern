@@ -1,0 +1,35 @@
+name: bird-card-games-164
+description: "BIRD Q503 (simple): What was the expansion type for the set which card \"Samite Pilgrim\" in it?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-503
+    description: "What was the expansion type for the set which card \"Samite Pilgrim\" in it?"
+    messages:
+      - role: user
+        content: |
+          What was the expansion type for the set which card "Samite Pilgrim" in it?
+          Evidence: expansion type refers to type; card "Samite Pilgrim" refers to name = 'Samite Pilgrim'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_503.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

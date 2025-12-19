@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-040
+description: "BIRD Q1509 (moderate): Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1509
+    description: "Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?"
+    messages:
+      - role: user
+        content: |
+          Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?
+          Evidence: Czech Republic can be represented as the Country value in the gasstations table is 'CZE'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1509.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

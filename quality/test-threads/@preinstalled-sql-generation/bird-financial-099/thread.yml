@@ -1,0 +1,35 @@
+name: bird-financial-099
+description: "BIRD Q187 (challenging): What are the key statistics for account owners with weekly statement issuance, including how many owners there are, their average number of transactions, how many have credit cards, how many are high-volume clients with over 10,000 in total transactions, the number of districts they're located in, and their average account balance?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-187
+    description: "What are the key statistics for account owners with weekly statement issuance, including how many owners there are, their average number of transactions, how many have credit cards, how many are high-volume clients with over 10,000 in total transactions, the number of districts they're located in, and their average account balance?"
+    messages:
+      - role: user
+        content: |
+          What are the key statistics for account owners with weekly statement issuance, including how many owners there are, their average number of transactions, how many have credit cards, how many are high-volume clients with over 10,000 in total transactions, the number of districts they're located in, and their average account balance?
+          Evidence: Weekly statement issuance refers to frequency = 'POPLATEK TYDNE'; high-volume clients are those with total transaction amount > 10000
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_187.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

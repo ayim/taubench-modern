@@ -1,0 +1,35 @@
+name: bird-student-club-028
+description: "BIRD Q1339 (challenging): Calculate the total average cost that Elijah Allen spent in the events on September and October."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1339
+    description: "Calculate the total average cost that Elijah Allen spent in the events on September and October."
+    messages:
+      - role: user
+        content: |
+          Calculate the total average cost that Elijah Allen spent in the events on September and October.
+          Evidence: Elijah Allen is the full name; full name refers to first_name, last_name; The 5th and 6th string of the expense_date in the expense table can refer to month; events in September and October refers to month(expense_date) = 9 OR month(expense_date) = 10
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1339.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

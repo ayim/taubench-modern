@@ -1,0 +1,35 @@
+name: bird-formula-1-109
+description: "BIRD Q954 (challenging): Please calculate the race completion percentage of Japanese drivers from 2007 to 2009."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-954
+    description: "Please calculate the race completion percentage of Japanese drivers from 2007 to 2009."
+    messages:
+      - role: user
+        content: |
+          Please calculate the race completion percentage of Japanese drivers from 2007 to 2009.
+          Evidence: from 2007 to 2009 refers to year between 2007 and 2009; race completion refers to time is not null; percentage = Divide(COUNT(DriverID where time is not null and year between 2007 and 2009),Count (DriverID where year between 2007 and 2009))*100; 
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_954.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,46 @@
+# BIRD Benchmark PostgreSQL Stack
+# Usage: docker compose -f quality/docker/bird-compose.yml up -d
+#
+# Prerequisites:
+# 1. Download minidev from Google Drive: https://drive.google.com/file/d/13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG/view
+# 2. Extract to a local directory (e.g., ~/.sema4x/quality/bird-data/)
+# 3. Set BIRD_DEV_SQL_PATH environment variable to point to BIRD_dev.sql:
+#    export BIRD_DEV_SQL_PATH=~/.sema4x/quality/bird-data/minidev/MINIDEV_postgresql/BIRD_dev.sql
+#
+# First startup takes ~5 minutes to load the 955MB SQL file into PostgreSQL.
+# Subsequent starts are instant as data persists in the named volume.
+#
+# Start:  docker compose -f quality/docker/bird-compose.yml up -d
+# Stop:   docker compose -f quality/docker/bird-compose.yml stop
+# Logs:   docker compose -f quality/docker/bird-compose.yml logs -f
+# Remove: docker compose -f quality/docker/bird-compose.yml down -v
+
+services:
+  bird-postgres:
+    image: postgres:18-alpine
+    container_name: bird-quality-postgres
+    ports:
+      - '${BIRD_PG_PORT:-5433}:5432'
+    volumes:
+      - bird_pgdata:/var/lib/postgresql/data
+      - ./bird-init.sql:/docker-entrypoint-initdb.d/01_create_role.sql:ro
+      - ${BIRD_DEV_SQL_PATH:-${HOME}/.sema4x/quality/bird-data/minidev/MINIDEV_postgresql/BIRD_dev.sql}:/docker-entrypoint-initdb.d/02_bird_dev.sql:ro
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bird
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U postgres && psql -U postgres -d bird -tAc "SELECT COUNT(*) FROM pg_tables WHERE schemaname=''public''" | grep -q "[5-9][0-9]\|[1-9][0-9][0-9]"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 300s
+    restart: unless-stopped
+
+volumes:
+  bird_pgdata:
+    name: bird-quality-pgdata

@@ -1,0 +1,37 @@
+name: bird-card-games-035
+description: "BIRD Q374 (simple): How many black border cards are only available on mtgo?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-374
+    description: "How many black border cards are only available on mtgo?"
+    messages:
+      - role: user
+        content: |
+          How many black border cards are only available on mtgo?
+          Evidence: black border card refers to borderColor = black; available on mtgo refers to availability = mtgo;
+          
+          add quotes for string = 'black' and = 'mtgo'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_374.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

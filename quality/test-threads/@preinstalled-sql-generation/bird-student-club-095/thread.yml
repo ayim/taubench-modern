@@ -1,0 +1,35 @@
+name: bird-student-club-095
+description: "BIRD Q1406 (simple): Among the budgets for Food, which one has the highest budgeted amount?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1406
+    description: "Among the budgets for Food, which one has the highest budgeted amount?"
+    messages:
+      - role: user
+        content: |
+          Among the budgets for Food, which one has the highest budgeted amount?
+          Evidence: MAX(amount) where category = 'Food'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1406.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

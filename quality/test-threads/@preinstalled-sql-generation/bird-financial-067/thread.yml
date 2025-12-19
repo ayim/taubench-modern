@@ -1,0 +1,35 @@
+name: bird-financial-067
+description: "BIRD Q155 (challenging): What percentage of gold credit cards were issued before 1998, both overall and broken down by region?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-155
+    description: "What percentage of gold credit cards were issued before 1998, both overall and broken down by region?"
+    messages:
+      - role: user
+        content: |
+          What percentage of gold credit cards were issued before 1998, both overall and broken down by region?
+          Evidence: Percentage of gold cards issued before 1998 = count(gold cards issued before 1998) / count(all gold cards) * 100. Region refers to A3 in district table.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_155.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

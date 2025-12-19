@@ -1,0 +1,35 @@
+name: bird-student-club-099
+description: "BIRD Q1410 (simple): List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1410
+    description: "List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?"
+    messages:
+      - role: user
+        content: |
+          List out the full name and total cost that member id "rec4BLdZHS2Blfp4v" incurred?
+          Evidence: full name refers to first_name, last name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1410.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

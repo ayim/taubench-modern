@@ -1,0 +1,35 @@
+name: bird-formula-1-067
+description: "BIRD Q912 (simple): What's the reference name of Marina Bay Street Circuit?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-912
+    description: "What's the reference name of Marina Bay Street Circuit?"
+    messages:
+      - role: user
+        content: |
+          What's the reference name of Marina Bay Street Circuit?
+          Evidence: reference name refers to circuitRef; Marina Bay Street Circuit refers to circuits.name = 'Marina Bay Street Circuit'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_912.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

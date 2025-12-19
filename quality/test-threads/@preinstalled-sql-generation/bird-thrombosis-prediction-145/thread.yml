@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-145
+description: "BIRD Q1293 (moderate): What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1293
+    description: "What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?"
+    messages:
+      - role: user
+        content: |
+          What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?
+          Evidence: highest refers to the maximum value; normal creatinine level refers to CRE < 1.5
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1293.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

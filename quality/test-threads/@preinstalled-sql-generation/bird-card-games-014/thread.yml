@@ -1,0 +1,35 @@
+name: bird-card-games-014
+description: "BIRD Q353 (simple): List all the sets available in Italian translation. State the total number of cards per set."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-353
+    description: "List all the sets available in Italian translation. State the total number of cards per set."
+    messages:
+      - role: user
+        content: |
+          List all the sets available in Italian translation. State the total number of cards per set.
+          Evidence: Italian translation refers to language = 'Italian'; total number of card per set refers to totalSetSize;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_353.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

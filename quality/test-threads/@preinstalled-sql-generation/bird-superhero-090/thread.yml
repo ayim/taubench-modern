@@ -1,0 +1,35 @@
+name: bird-superhero-090
+description: "BIRD Q806 (simple): Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-806
+    description: "Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name."
+    messages:
+      - role: user
+        content: |
+          Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.
+          Evidence: eye colour refers to colour.colour where eye_colour_id = colour.id
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_806.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

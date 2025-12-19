@@ -1,0 +1,35 @@
+name: bird-codebase-community-133
+description: "BIRD Q663 (simple): What is the id of the youngest user?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-663
+    description: "What is the id of the youngest user?"
+    messages:
+      - role: user
+        content: |
+          What is the id of the youngest user?
+          Evidence: the youngest user refers to MIN(Age);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_663.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

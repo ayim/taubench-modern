@@ -1,0 +1,3 @@
+"(SELECT CAST(COUNT(*) AS REAL) FROM posts WHERE OwnerUserId = 24) /
+    (SELECT CAST(COUNT(*) AS REAL) FROM votes WHERE UserId = 24)"
+0.375

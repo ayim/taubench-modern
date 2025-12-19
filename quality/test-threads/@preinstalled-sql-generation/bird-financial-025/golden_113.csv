@@ -1,0 +1,2 @@
+birth_date,age_at_loan,district_name,region,transaction_count,total_income,total_expense,expense_to_income_ratio,max_balance,min_balance,card_count,card_types,previous_loans
+1970-09-10,25,Havlickuv Brod,east Bohemia,177,401402,374238,93.23,63095,500,0,None,0

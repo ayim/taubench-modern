@@ -1,0 +1,35 @@
+name: bird-superhero-123
+description: "BIRD Q839 (simple): In superheroes with weight less than 100, list the full name of the superheroes with brown eyes."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-839
+    description: "In superheroes with weight less than 100, list the full name of the superheroes with brown eyes."
+    messages:
+      - role: user
+        content: |
+          In superheroes with weight less than 100, list the full name of the superheroes with brown eyes.
+          Evidence: weight less than 100 refers to weight_kg < 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_839.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

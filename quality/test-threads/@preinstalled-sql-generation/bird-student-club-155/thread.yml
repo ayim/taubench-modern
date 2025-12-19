@@ -1,0 +1,35 @@
+name: bird-student-club-155
+description: "BIRD Q1466 (simple): Write the full name of the club member with the position of 'Secretary' and list which college the club member belongs to."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1466
+    description: "Write the full name of the club member with the position of 'Secretary' and list which college the club member belongs to."
+    messages:
+      - role: user
+        content: |
+          Write the full name of the club member with the position of 'Secretary' and list which college the club member belongs to.
+          Evidence: full name refers to first_name, last name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1466.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

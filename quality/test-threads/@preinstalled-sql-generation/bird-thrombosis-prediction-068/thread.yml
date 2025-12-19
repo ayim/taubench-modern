@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-068
+description: "BIRD Q1216 (simple): Sort in descending order all patients by birthday for male patient with albumin not within range."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1216
+    description: "Sort in descending order all patients by birthday for male patient with albumin not within range."
+    messages:
+      - role: user
+        content: |
+          Sort in descending order all patients by birthday for male patient with albumin not within range.
+          Evidence: male = SEX = 'M'; albumin not within range refers to ALB < = 3.5 or ALB > = 5.5
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1216.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

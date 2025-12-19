@@ -1,0 +1,35 @@
+name: bird-european-football-2-079
+description: "BIRD Q1098 (moderate): What is Ajax's highest chance creation passing score and what is it classified as?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1098
+    description: "What is Ajax's highest chance creation passing score and what is it classified as?"
+    messages:
+      - role: user
+        content: |
+          What is Ajax's highest chance creation passing score and what is it classified as?
+          Evidence: Ajax's refers to team_long_name = 'Ajax'; chance creation passing score refers to MAX(chanceCreationPassing); classified refer to chanceCreationPassingClass
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1098.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

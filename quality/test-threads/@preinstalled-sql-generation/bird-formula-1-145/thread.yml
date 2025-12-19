@@ -1,0 +1,35 @@
+name: bird-formula-1-145
+description: "BIRD Q990 (challenging): What is the constructor reference name of the champion in the 2009 Singapore Grand Prix? Please give its website."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-990
+    description: "What is the constructor reference name of the champion in the 2009 Singapore Grand Prix? Please give its website."
+    messages:
+      - role: user
+        content: |
+          What is the constructor reference name of the champion in the 2009 Singapore Grand Prix? Please give its website.
+          Evidence: the time of the champion shows in the format of "minutes: seconds.millionsecond" in which Max(time); constructor reference name refers to constructorRef; website refers to url
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_990.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-083
+description: "BIRD Q1231 (challenging): For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1231
+    description: "For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?"
+    messages:
+      - role: user
+        content: |
+          For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?
+          Evidence: born between 1936-1956 refers to year(Birthday) BETWEEN '1936' AND '1956'; male patients refers to sex = 'M'; creatinine phosphokinase beyond the normal range refers to CPK > = 250; Should consider DISTINCT in the final result;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1231.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

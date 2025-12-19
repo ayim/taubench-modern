@@ -1,0 +1,35 @@
+name: bird-card-games-011
+description: "BIRD Q350 (simple): State the alternative languages available for card named Annul numbered 29."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-350
+    description: "State the alternative languages available for card named Annul numbered 29."
+    messages:
+      - role: user
+        content: |
+          State the alternative languages available for card named Annul numbered 29.
+          Evidence: Annul refers to the card name; numbered 29 refers to the card's collector number; alternative languages are stored in foreign language data records
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_350.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

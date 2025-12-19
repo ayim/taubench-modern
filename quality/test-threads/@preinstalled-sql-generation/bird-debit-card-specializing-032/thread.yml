@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-032
+description: "BIRD Q1501 (moderate): Please list the countries of the gas stations with transactions taken place in August, 2012."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1501
+    description: "Please list the countries of the gas stations with transactions taken place in August, 2012."
+    messages:
+      - role: user
+        content: |
+          Please list the countries of the gas stations with transactions taken place in August, 2012.
+          Evidence: June 2013 refers to '201306'; The first 4 strings of the Date values in the yearmonth table can represent year; The 5th and 6th string of the date can refer to month;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1501.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

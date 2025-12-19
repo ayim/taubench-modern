@@ -1,0 +1,35 @@
+name: bird-superhero-045
+description: "BIRD Q761 (moderate): Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-761
+    description: "Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes."
+    messages:
+      - role: user
+        content: |
+          Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes.
+          Evidence: super hero names refers to superhero_name;male superheros refers to gender = 'Male';Calculation = weight_kg > MULTIPLY(AVG(weight_kg), 0.79)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_761.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,5 @@
+SchoolName,City,VirtualStatus,SchoolType,MathScore,ReadingScore,WritingScore,TotalScore,MathRank,TotalScoreRank,Enrollment,PovertyLevel,FRPMPercentage
+California Virtual Academy @ Los Angeles,Simi Valley,Fully Virtual,Charter School,502,549,521,1572,642,355,3634.0,Medium Poverty,60.7%
+California Connections Academy @ Ripon,Ripon,Fully Virtual,Charter School,487,542,535,1564,792,378,685.0,Low Poverty,34.6%
+Capistrano Connections Academy,San Juan Capistrano,Fully Virtual,Charter School,513,537,512,1562,519,384,2409.0,Low Poverty,37.1%
+Insight @ Los Angeles,Simi Valley,Fully Virtual,Charter School,437,453,425,1315,1294,1257,122.0,Medium Poverty,72.1%

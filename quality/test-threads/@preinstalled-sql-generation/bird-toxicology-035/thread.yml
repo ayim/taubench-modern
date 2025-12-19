@@ -1,0 +1,35 @@
+name: bird-toxicology-035
+description: "BIRD Q229 (challenging): For molecule TR000, what are the bond types ranked by frequency, how many times does each bond type occur, and how many unique element pairs are connected by each bond type? Also indicate whether each bond type appears multiple times or just once, and show the molecule's label."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-229
+    description: "For molecule TR000, what are the bond types ranked by frequency, how many times does each bond type occur, and how many unique element pairs are connected by each bond type? Also indicate whether each bond type appears multiple times or just once, and show the molecule's label."
+    messages:
+      - role: user
+        content: |
+          For molecule TR000, what are the bond types ranked by frequency, how many times does each bond type occur, and how many unique element pairs are connected by each bond type? Also indicate whether each bond type appears multiple times or just once, and show the molecule's label.
+          Evidence: TR000 is the molecule id; bond frequency refers to whether bond_count is greater than 1
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_229.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

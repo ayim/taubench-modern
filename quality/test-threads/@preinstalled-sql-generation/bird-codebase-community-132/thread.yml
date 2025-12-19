@@ -1,0 +1,35 @@
+name: bird-codebase-community-132
+description: "BIRD Q662 (simple): How many posts with votes that were created in 2011 have a bounty of 50?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-662
+    description: "How many posts with votes that were created in 2011 have a bounty of 50?"
+    messages:
+      - role: user
+        content: |
+          How many posts with votes that were created in 2011 have a bounty of 50?
+          Evidence: created in 2011 refers to the year when the votes were created; bounty of 50 refers to a bounty amount of 50
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_662.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-018
+description: "BIRD Q357 (simple): What type of promotion is of card 'Duress'?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-357
+    description: "What type of promotion is of card 'Duress'?"
+    messages:
+      - role: user
+        content: |
+          What type of promotion is of card 'Duress'?
+          Evidence: card Duress refers to name = 'Duress'; type of promotion refers to promoTypes;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_357.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

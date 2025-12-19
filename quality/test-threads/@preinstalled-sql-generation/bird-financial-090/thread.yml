@@ -1,0 +1,35 @@
+name: bird-financial-090
+description: "BIRD Q178 (challenging): What are the complete details of client number 9 including their gender, birth date, credit card type, when the card was issued, customer status, total number of accounts owned, and how long they've had their most recent card?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-178
+    description: "What are the complete details of client number 9 including their gender, birth date, credit card type, when the card was issued, customer status, total number of accounts owned, and how long they've had their most recent card?"
+    messages:
+      - role: user
+        content: |
+          What are the complete details of client number 9 including their gender, birth date, credit card type, when the card was issued, customer status, total number of accounts owned, and how long they've had their most recent card?
+          Evidence: Customer status is determined by card type: gold card holders are Premium Customers and classic card holders are Regular Customers.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_178.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

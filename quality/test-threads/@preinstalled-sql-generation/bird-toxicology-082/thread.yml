@@ -1,0 +1,35 @@
+name: bird-toxicology-082
+description: "BIRD Q276 (simple): Write down the atom IDs of the first and second atoms of triple bond type molecules."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-276
+    description: "Write down the atom IDs of the first and second atoms of triple bond type molecules."
+    messages:
+      - role: user
+        content: |
+          Write down the atom IDs of the first and second atoms of triple bond type molecules.
+          Evidence: first atom refers to atom_id; second atom refers to atom_id2; triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_276.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

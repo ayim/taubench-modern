@@ -1,0 +1,35 @@
+name: bird-california-schools-062
+description: "BIRD Q61 (challenging): For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-61
+    description: "For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?"
+    messages:
+      - role: user
+        content: |
+          For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?
+          Evidence: Elementary School District refers to DOC = '52'; Charter schools refers to Charter = 1; FRPM stands for Free or Reduced Price Meal program
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_61.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

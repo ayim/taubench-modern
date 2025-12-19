@@ -1,0 +1,35 @@
+name: bird-financial-068
+description: "BIRD Q156 (challenging): What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-156
+    description: "What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?"
+    messages:
+      - role: user
+        content: |
+          What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?
+          Evidence: Savings rate is calculated as (total income - total expense) / total income * 100. Age categories are: Young (under 30), Middle-aged (30-50), Senior (over 50). High unemployment area refers to districts with unemployment rate above 1.0%.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_156.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

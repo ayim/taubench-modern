@@ -1,0 +1,2 @@
+(SELECT COUNT (id) FROM cards WHERE isTextless = 1 AND isStorySpotlight = 1) * 100 / COUNT(id)
+0

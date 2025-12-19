@@ -1,0 +1,35 @@
+name: bird-superhero-028
+description: "BIRD Q744 (challenging): Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-744
+    description: "Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published."
+    messages:
+      - role: user
+        content: |
+          Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published.
+          Evidence: DC refers to publisher_name = 'DC Comics'; Marvel Comics refers to publisher_name = 'Marvel Comics'; calculation = SUBTRACT(SUM(publisher_name = 'Marvel Comics'), SUM(publisher_name = 'DC Comics'))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_744.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

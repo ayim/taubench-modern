@@ -1,0 +1,35 @@
+name: bird-codebase-community-184
+description: "BIRD Q714 (simple): List the comments commented by the user with a username of Harvey Motulsky."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-714
+    description: "List the comments commented by the user with a username of Harvey Motulsky."
+    messages:
+      - role: user
+        content: |
+          List the comments commented by the user with a username of Harvey Motulsky.
+          Evidence: comments refer to Text; username of Harvey Motulsky refers to DisplayName = 'Harvey Motulsky';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_714.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

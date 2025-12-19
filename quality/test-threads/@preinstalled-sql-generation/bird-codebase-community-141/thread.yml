@@ -1,0 +1,35 @@
+name: bird-codebase-community-141
+description: "BIRD Q671 (simple): What is the display name of the user who acquired the first Autobiographer badge?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-671
+    description: "What is the display name of the user who acquired the first Autobiographer badge?"
+    messages:
+      - role: user
+        content: |
+          What is the display name of the user who acquired the first Autobiographer badge?
+          Evidence: Autobiographer is the name of the badge; acquired the first refers to MIN(Date);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_671.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

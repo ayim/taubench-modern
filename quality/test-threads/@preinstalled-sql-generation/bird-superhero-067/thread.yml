@@ -1,0 +1,35 @@
+name: bird-superhero-067
+description: "BIRD Q783 (simple): Provide the eye colours of the heroes whose skin colours are gold."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-783
+    description: "Provide the eye colours of the heroes whose skin colours are gold."
+    messages:
+      - role: user
+        content: |
+          Provide the eye colours of the heroes whose skin colours are gold.
+          Evidence: skin colours are gold refers to colour.colour = 'Gold' WHERE skin_colour_id = colour.id;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_783.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

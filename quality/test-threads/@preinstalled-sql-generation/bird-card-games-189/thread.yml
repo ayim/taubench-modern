@@ -1,0 +1,35 @@
+name: bird-card-games-189
+description: "BIRD Q528 (challenging): List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-528
+    description: "List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal."
+    messages:
+      - role: user
+        content: |
+          List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal.
+          Evidence: the set Hour of Devastation refers to set.name = 'Hour of Devastation'; names of all the cards in the set refers to cards.name; legal cards refers to status = 'Legal'; the formats refers to format
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_528.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

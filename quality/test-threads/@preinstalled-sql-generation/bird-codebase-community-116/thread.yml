@@ -1,0 +1,35 @@
+name: bird-codebase-community-116
+description: "BIRD Q646 (simple): Describe the post title which got positive comments and display names of the users who posted those comments."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-646
+    description: "Describe the post title which got positive comments and display names of the users who posted those comments."
+    messages:
+      - role: user
+        content: |
+          Describe the post title which got positive comments and display names of the users who posted those comments.
+          Evidence: positive comments refer to Score > 60;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_646.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

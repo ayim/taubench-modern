@@ -1,0 +1,11 @@
+County,District,School,school_type,grade_level,frpm_count,enrollment,percent_eligible_frpm,num_sat_takers,percent_taking_sat,avg_reading,avg_math,avg_writing,total_avg_score,percent_scoring_over_1500,frpm_rank
+Los Angeles,Paramount Unified,Paramount High,Non-Charter School,High School,4419.0,4814.0,91.7947652679684,459,41.06,424,434,414,1272,14.81,1
+Imperial,Calexico Unified,Calexico High,Non-Charter School,High School,2979.0,2981.0,99.93290841999331,216,30.38,431,432,425,1288,21.76,2
+Los Angeles,Los Angeles Unified,Bell Senior High,Non-Charter School,High School,2919.0,3256.0,89.6498771498772,411,48.64,420,439,420,1279,15.57,3
+Orange,Anaheim Union High,Anaheim High,Non-Charter School,High School,2872.0,3206.0,89.5820336868372,255,34.51,436,448,432,1316,21.96,4
+Los Angeles,Montebello Unified,Bell Gardens High,Non-Charter School,High School,2727.0,2983.0,91.4180355346966,304,47.8,420,420,422,1262,15.13,5
+San Bernardino,Chaffey Joint Union High,Chaffey High,Non-Charter School,High School,2679.0,3530.0,75.8923512747875,277,32.78,453,450,445,1348,25.63,6
+Los Angeles,Los Angeles Unified,Birmingham Community Charter High,Charter School,High School,2662.0,3269.0,81.431630468033,327,46.38,433,428,433,1294,18.35,7
+Los Angeles,Long Beach Unified,Jordan High,Non-Charter School,High School,2657.0,3367.0,78.9129789129789,322,38.75,392,397,389,1178,7.14,8
+Los Angeles,Los Angeles Unified,Vaughn Next Century Learning Center,Charter School,Other,2649.0,2724.0,97.2466960352423,87,68.5,459,444,446,1349,25.29,9
+Ventura,Oxnard Union High,Pacifica High,Non-Charter School,High School,2599.0,3346.0,77.67483562462641,236,30.18,460,467,454,1381,32.63,10

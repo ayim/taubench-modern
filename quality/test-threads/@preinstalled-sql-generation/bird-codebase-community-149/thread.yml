@@ -1,0 +1,35 @@
+name: bird-codebase-community-149
+description: "BIRD Q679 (simple): Which post has the highest score? Please give its id and title's name."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-679
+    description: "Which post has the highest score? Please give its id and title's name."
+    messages:
+      - role: user
+        content: |
+          Which post has the highest score? Please give its id and title's name.
+          Evidence: the highest score refers to MAX(Score); owner's name refers to DisplayName;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_679.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

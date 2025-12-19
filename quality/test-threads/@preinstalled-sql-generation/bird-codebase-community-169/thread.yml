@@ -1,0 +1,35 @@
+name: bird-codebase-community-169
+description: "BIRD Q699 (simple): When did the user known as 'IrishStat' create his or her account?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-699
+    description: "When did the user known as 'IrishStat' create his or her account?"
+    messages:
+      - role: user
+        content: |
+          When did the user known as 'IrishStat' create his or her account?
+          Evidence: DisplayName = 'IrishStat'; when create his or her account refers to CreationDate;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_699.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

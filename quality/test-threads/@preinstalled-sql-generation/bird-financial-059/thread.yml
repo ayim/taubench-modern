@@ -1,0 +1,35 @@
+name: bird-financial-059
+description: "BIRD Q147 (challenging): What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-147
+    description: "What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?"
+    messages:
+      - role: user
+        content: |
+          What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?
+          Evidence: Female refers to gender = 'F'; south Bohemia refers to region A3 = 'south Bohemia'; age categories are Young (born after 1980), Middle-aged (born 1960-1980), and Senior (born before 1960); net balance = total income - total expense; active loans refer to loan status = 'A'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_147.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-118
+description: "BIRD Q457 (simple): Please list the websites where I can purchase the cards that have the promotional type of \"bundle\"."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-457
+    description: "Please list the websites where I can purchase the cards that have the promotional type of \"bundle\"."
+    messages:
+      - role: user
+        content: |
+          Please list the websites where I can purchase the cards that have the promotional type of "bundle".
+          Evidence: promotional type of "bundle" refers to promoTypes = 'bundle'; websites refers to purchaseUrls
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_457.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

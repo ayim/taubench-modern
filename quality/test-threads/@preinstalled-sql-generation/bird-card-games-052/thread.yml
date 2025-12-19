@@ -1,0 +1,35 @@
+name: bird-card-games-052
+description: "BIRD Q391 (moderate): Among the Artifact cards, which are black color and comes with foreign languague translation?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-391
+    description: "Among the Artifact cards, which are black color and comes with foreign languague translation?"
+    messages:
+      - role: user
+        content: |
+          Among the Artifact cards, which are black color and comes with foreign languague translation?
+          Evidence: Artifact card refers to originalType = 'Artifact'; black color refers to colors = 'B'; foreign language refers to language in foreign_data
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_391.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

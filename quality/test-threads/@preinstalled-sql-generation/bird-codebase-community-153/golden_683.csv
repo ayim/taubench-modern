@@ -1,0 +1,3 @@
+"(SUM(IIF(STRFTIME('%Y', T2.CreaionDate) = '2011' AND T1.Reputation > 1000, 1, 0)) * 100.0) 
+    / COUNT(IIF(STRFTIME('%Y', T2.CreaionDate) = '2011', 1, NULL))"
+51.16623761603869

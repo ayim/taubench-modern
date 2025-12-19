@@ -1,0 +1,35 @@
+name: bird-codebase-community-115
+description: "BIRD Q645 (simple): How many negative comments were given by user ID 13?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-645
+    description: "How many negative comments were given by user ID 13?"
+    messages:
+      - role: user
+        content: |
+          How many negative comments were given by user ID 13?
+          Evidence: negative comments refer to Score < 60;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_645.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

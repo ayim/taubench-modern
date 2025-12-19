@@ -1,0 +1,35 @@
+name: bird-california-schools-007
+description: "BIRD Q6 (challenging): For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-6
+    description: "For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores."
+    messages:
+      - role: user
+        content: |
+          For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores.
+          Evidence: Magnet schools refers to Magnet = 1; Total average SAT score is the sum of average reading, math, and writing scores; Poverty level is categorized based on the percentage eligible for free or reduced-price meals (FRPM).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_6.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

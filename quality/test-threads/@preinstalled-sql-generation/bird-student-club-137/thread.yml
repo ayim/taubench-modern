@@ -1,0 +1,35 @@
+name: bird-student-club-137
+description: "BIRD Q1448 (challenging): Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1448
+    description: "Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars."
+    messages:
+      - role: user
+        content: |
+          Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars.
+          Evidence: name of event refers to event_name; date of event refers to event_date; expenses for pizza refers to expense_description = 'Pizza' where cost > 50 and cost < 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1448.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

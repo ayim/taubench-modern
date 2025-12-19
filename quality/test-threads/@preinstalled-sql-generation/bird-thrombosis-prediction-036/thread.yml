@@ -1,0 +1,34 @@
+name: bird-thrombosis-prediction-036
+description: "BIRD Q1184 (simple): For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1184
+    description: "For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?"
+    messages:
+      - role: user
+        content: |
+          For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1184.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

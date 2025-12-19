@@ -90,7 +90,12 @@ class QualityReporter:
                 elif result.evaluation_results and all(r.passed for r in result.evaluation_results):
                     status = "[green]PASSED[/green]"
                     status_icon = "✅"
+                elif result.evaluation_results and not any(r.passed for r in result.evaluation_results):
+                    # All evaluations failed
+                    status = "[red]FAILED[/red]"
+                    status_icon = "❌"
                 elif result.evaluation_results:
+                    # Some passed, some failed
                     status = "[yellow]PARTIAL[/yellow]"
                     status_icon = "⚠️"
                 else:
@@ -114,11 +119,12 @@ class QualityReporter:
             )
             return f"[red]Error: {error_preview}[/red]"
         elif result.evaluation_results:
+            total = len(result.evaluation_results)
             failed_evals = [r for r in result.evaluation_results if not r.passed]
             if failed_evals:
-                return f"[yellow]{len(failed_evals)} evaluations failed[/yellow]"
+                return f"[yellow]{len(failed_evals)}/{total} evaluations failed[/yellow]"
             else:
-                return f"[green]All {len(result.evaluation_results)} evaluations passed[/green]"
+                return f"[green]{total}/{total} evaluations passed[/green]"
         else:
             return "[gray]No evaluations run[/gray]"
 

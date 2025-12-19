@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-020
+description: "BIRD Q1168 (challenging): The oldest SJS patient's latest medical laboratory work was completed on what date, and what age was the patient when they initially arrived at the hospital?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1168
+    description: "The oldest SJS patient's latest medical laboratory work was completed on what date, and what age was the patient when they initially arrived at the hospital?"
+    messages:
+      - role: user
+        content: |
+          The oldest SJS patient's latest medical laboratory work was completed on what date, and what age was the patient when they initially arrived at the hospital?
+          Evidence: The larger the birthday value, the younger the person is, and vice versa; 'SJS' refers to diagnosis; (SUBTRACT(year(`First Date`)), year(Birthday)); age of the patients when they initially arrived at the hospital refers to year(Birthday)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1168.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

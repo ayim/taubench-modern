@@ -15,6 +15,7 @@ import structlog
 import yaml
 from dotenv import load_dotenv
 
+from agent_platform.quality.bird import BirdDatasetGenerator, BirdDatasetResolver
 from agent_platform.quality.models import ThreadResult
 from agent_platform.quality.oauth import OAuthRedirectServer
 from agent_platform.quality.reporter import QualityReporter
@@ -328,6 +329,12 @@ def list_tests(ctx: Context, agent_name: str | None):
     type=str,
     help="Comma-separated list of test thread names to run (matches YAML 'name').",
 )
+@click.option(
+    "--difficulty",
+    required=False,
+    type=str,
+    help="Filter tests by difficulty (BIRD: simple, moderate, challenging).",
+)
 @click.pass_obj
 async def run(
     ctx: Context,
@@ -339,6 +346,7 @@ async def run(
     agent_arch: str | None,
     platform: str | None,
     tests: str,
+    difficulty: str | None,
 ):
     """Run quality tests for agents."""
     runner = QualityTestRunner(
@@ -354,17 +362,21 @@ async def run(
     reporter = QualityReporter()
 
     try:
-        click.echo(
-            "🚀 Running tests for all agents "
-            f"(fully parallel, max {max_agents} concurrent agents"
-            f"{f', platform={platform}' if platform else ''})"
-        )
+        filters_desc = []
+        if platform:
+            filters_desc.append(f"platform={platform}")
+        if difficulty:
+            filters_desc.append(f"difficulty={difficulty}")
+        filters_str = f", {', '.join(filters_desc)}" if filters_desc else ""
+
+        click.echo(f"🚀 Running tests for all agents (fully parallel, max {max_agents} concurrent agents{filters_str})")
         tests_filter = [test.strip() for test in tests.split(",") if test.strip()]
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
             selected_agents=[selected.strip() for selected in selected_agents.split(",") if selected.strip()],
             max_concurrent_agents=max_agents,
             platform_filter=platform,
             tests_filter=tests_filter if tests_filter else None,
+            difficulty_filter=difficulty,
         )
 
         # Report results
@@ -556,6 +568,463 @@ async def replay(
         raise click.Abort() from None
 
 
+@cli.group()
+def bird():
+    """BIRD benchmark dataset management commands.
+
+    BIRD benchmark stores data in two places:
+      - Questions/SQL metadata: Hugging Face (birdsql/*)
+      - Database files (.sqlite): Google Drive (manual download)
+
+    Database files must be downloaded from:
+      https://drive.google.com/file/d/13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG/view
+    """
+    pass
+
+
+@bird.command(name="docker")
+@click.argument("action", type=click.Choice(["up", "down", "ps", "logs"]))
+@click.option("--wait/--no-wait", default=True, help="Wait for healthy status after 'up' (default: True)")
+@click.option(
+    "--sql-file",
+    type=click.Path(exists=True, file_okay=True, path_type=Path),
+    help="Path to BIRD_dev.sql (overrides BIRD_DEV_SQL_PATH env var)",
+)
+@click.option(
+    "-v",
+    "--volumes",
+    is_flag=True,
+    help="Remove volumes when using 'down' (destructive - deletes all data)",
+)
+def bird_docker(action: str, wait: bool, sql_file: Path | None, volumes: bool):
+    """Manage BIRD Docker Compose stack.
+
+    Actions:
+      up    - Start the BIRD PostgreSQL stack (waits for healthy by default)
+      down  - Stop and remove the stack
+      ps    - Show stack status
+      logs  - Show stack logs
+
+    Examples:
+      quality-test bird docker up                           # Start and wait for healthy
+      quality-test bird docker up --sql-file /path/to/file  # Specify SQL file
+      quality-test bird docker up --no-wait                 # Start without waiting
+      quality-test bird docker down                         # Stop stack (keeps data)
+      quality-test bird docker down -v                      # Stop and remove volumes
+      quality-test bird docker ps                           # Check status
+      quality-test bird docker logs                         # View logs
+    """
+    import os
+    import subprocess
+
+    monorepo_root = find_monorepo_root()
+    compose_file = monorepo_root / "quality" / "docker" / "bird-compose.yml"
+
+    if not compose_file.exists():
+        click.echo(f"❌ Compose file not found: {compose_file}", err=True)
+        raise click.Abort()
+
+    # Prepare environment for subprocess
+    env = os.environ.copy()
+    if sql_file:
+        env["BIRD_DEV_SQL_PATH"] = str(sql_file.resolve())
+
+    try:
+        if action == "up":
+            click.echo("🚀 Starting BIRD PostgreSQL stack...")
+            click.echo(f"   Compose file: {compose_file}")
+            if sql_file:
+                click.echo(f"   SQL file: {sql_file}")
+            click.echo("   This may take ~5 minutes on first run to load 955MB of data")
+
+            subprocess.run(
+                ["docker", "compose", "-f", str(compose_file), "up", "-d"],
+                check=True,
+                env=env,
+            )
+
+            if wait:
+                import sys
+                import time
+
+                click.echo("\n⏳ Waiting for database to be healthy (50+ tables loaded)...")
+                max_wait = 600  # 10 minutes
+                poll_interval = 3
+                elapsed = 0
+
+                while elapsed < max_wait:
+                    result = subprocess.run(
+                        [
+                            "docker",
+                            "inspect",
+                            "bird-quality-postgres",
+                            "--format={{.State.Health.Status}}",
+                        ],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+                    status = result.stdout.strip()
+
+                    if status == "healthy":
+                        click.echo("✅ BIRD PostgreSQL stack is healthy and ready!")
+                        break
+                    elif status == "unhealthy":
+                        click.echo("❌ Container is unhealthy. Check logs with: bird docker logs", err=True)
+                        raise click.Abort()
+                    else:
+                        # starting or no status yet - show spinner-style progress
+                        mins, secs = divmod(elapsed, 60)
+                        time_str = f"{mins}m {secs}s" if mins else f"{secs}s"
+                        click.echo(f"\r   Status: {status or 'starting'}... ({time_str} elapsed)  ", nl=False)
+                        sys.stdout.flush()
+                        time.sleep(poll_interval)
+                        elapsed += poll_interval
+
+                # Clear the progress line
+                click.echo("\r" + " " * 60 + "\r", nl=False)
+                if elapsed >= max_wait:
+                    click.echo(f"❌ Timeout after {max_wait}s waiting for healthy status", err=True)
+                    subprocess.run(["docker", "compose", "-f", str(compose_file), "ps"], check=False)
+                    raise click.Abort()
+            else:
+                click.echo("✅ BIRD PostgreSQL stack started (use 'bird docker ps' to check health)")
+
+        elif action == "down":
+            if volumes:
+                click.echo("🛑 Stopping BIRD PostgreSQL stack and removing volumes...")
+                click.echo("⚠️  This will delete all data - you'll need to reload on next start")
+            else:
+                click.echo("🛑 Stopping BIRD PostgreSQL stack...")
+
+            cmd = ["docker", "compose", "-f", str(compose_file), "down"]
+            if volumes:
+                cmd.append("-v")
+
+            subprocess.run(cmd, check=True, env=env)
+            click.echo("✅ Stack stopped" + (" and volumes removed" if volumes else ""))
+
+        elif action == "ps":
+            subprocess.run(
+                ["docker", "compose", "-f", str(compose_file), "ps"],
+                check=True,
+                env=env,
+            )
+
+        elif action == "logs":
+            subprocess.run(
+                ["docker", "compose", "-f", str(compose_file), "logs", "-f"],
+                check=True,
+                env=env,
+            )
+
+    except subprocess.CalledProcessError as e:
+        click.echo(f"❌ Docker compose command failed: {e}", err=True)
+        raise click.Abort() from None
+    except FileNotFoundError:
+        click.echo("❌ Docker or docker compose not found. Please install Docker.", err=True)
+        raise click.Abort() from None
+
+
+@bird.command(name="list-dbs")
+@click.option(
+    "--hf-dataset",
+    type=str,
+    default="birdsql/bird_sql_dev_20251106",
+    help="Hugging Face dataset name (default: birdsql/bird_sql_dev_20251106)",
+)
+@click.option(
+    "--home-folder",
+    type=click.Path(exists=False, file_okay=False, path_type=Path),
+    help="Sema4ai home folder for cache (default: ~/.sema4x)",
+)
+def bird_list_dbs(
+    hf_dataset: str,
+    home_folder: Path | None,
+):
+    """List available database IDs in a BIRD Hugging Face dataset.
+
+    Example:
+
+      quality-test bird list-dbs --hf-dataset birdsql/bird_sql_dev_20251106
+    """
+    try:
+        home_folder = home_folder if home_folder is not None else Path.home() / ".sema4x"
+        bird_cache_dir = home_folder / "quality" / "bird"
+        resolver = BirdDatasetResolver(cache_dir=bird_cache_dir)
+
+        click.echo(f"🔍 Listing available database IDs in {hf_dataset}...")
+        db_ids = resolver.list_available_db_ids(hf_dataset)
+
+        click.echo(f"\n✅ Found {len(db_ids)} databases:")
+        for db_id in db_ids:
+            click.echo(f"   • {db_id}")
+
+        click.echo("\nTo import a database, you need:")
+        click.echo("  1. Download the database files from Google Drive:")
+        click.echo("     https://drive.google.com/file/d/13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG/view")
+        click.echo("  2. Run the import command with the --db-path pointing to your .sqlite file")
+
+    except Exception as e:
+        click.echo(f"❌ Error listing databases: {e}", err=True)
+        raise click.Abort() from None
+
+
+@bird.command(name="import")
+@click.option(
+    "--hf-dataset",
+    type=str,
+    default="birdsql/bird_sql_dev_20251106",
+    help="Hugging Face dataset for questions (default: birdsql/bird_sql_dev_20251106)",
+)
+@click.option(
+    "--db-path",
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+    help="Path to SQLite file OR dev_databases directory (imports all if directory)",
+)
+@click.option(
+    "--questions-json",
+    type=click.Path(exists=True, file_okay=True, path_type=Path),
+    help="Local path to BIRD questions JSON file (alternative to --hf-dataset)",
+)
+@click.option(
+    "--db-id",
+    type=str,
+    help="Database ID to import (optional if --db-path is a directory to import all)",
+)
+@click.option(
+    "--test-prefix",
+    type=str,
+    help="Prefix for test directory names (default: 'bird-{db_id}')",
+)
+@click.option(
+    "--sdm-name",
+    type=str,
+    help="Name for SDM reference (default: 'bird_{db_id}')",
+)
+@click.option(
+    "--output-threads-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Output directory for test threads (default: quality/test-threads/@preinstalled-sql-generation)",
+)
+@click.option(
+    "--force-download",
+    is_flag=True,
+    help="Force re-download questions from Hugging Face even if cached",
+)
+@click.option(
+    "--skip-existing/--no-skip-existing",
+    default=True,
+    help="Skip test directories that already exist (default: skip)",
+)
+@click.option(
+    "--home-folder",
+    type=click.Path(exists=False, file_okay=False, path_type=Path),
+    help="Sema4ai home folder for cache (default: ~/.sema4x)",
+)
+@click.option(
+    "--generate-sdm",
+    is_flag=True,
+    help="Generate SDM using agent server (requires server and BIRD docker running)",
+)
+@click.option(
+    "--agent-id",
+    type=str,
+    help="Agent ID for SDM generation (default: uses @preinstalled-sql-generation agent)",
+)
+@click.pass_obj
+def bird_import(
+    ctx: Context,
+    hf_dataset: str | None,
+    db_path: Path,
+    questions_json: Path | None,
+    db_id: str | None,
+    test_prefix: str | None,
+    sdm_name: str | None,
+    output_threads_dir: Path | None,
+    force_download: bool,
+    skip_existing: bool,
+    home_folder: Path | None,
+    generate_sdm: bool,
+    agent_id: str | None,
+):
+    """Import BIRD benchmark dataset and generate test threads with golden CSVs.
+
+    This command downloads latest questions from Hugging Face and generates golden
+    CSVs by executing SQLite gold SQL.
+
+    Examples:
+
+      # Import ALL databases from dev_databases directory
+      quality-test bird import \\
+        --db-path ~/.sema4x/quality/bird-data/minidev/MINIDEV/dev_databases
+
+      # Import a single database
+      quality-test bird import \\
+        --db-path .../dev_databases/california_schools/california_schools.sqlite \\
+        --db-id california_schools
+
+    For more info: docs/BIRD_CLI_GUIDE.md
+    """
+    try:
+        # Validate input options
+        if hf_dataset and questions_json:
+            raise click.UsageError(
+                "Cannot specify both --hf-dataset and --questions-json. Choose one source for questions."
+            )
+
+        if not hf_dataset and not questions_json:
+            raise click.UsageError("Must specify either --hf-dataset OR --questions-json for the questions source")
+
+        # Discover databases to import
+        databases_to_import: list[tuple[Path, str]] = []
+
+        if db_path.is_dir():
+            # Directory mode: discover all databases
+            click.echo(f"📂 Discovering databases in {db_path}...")
+            for subdir in sorted(db_path.iterdir()):
+                if subdir.is_dir():
+                    # Look for .sqlite file with same name as directory
+                    sqlite_file = subdir / f"{subdir.name}.sqlite"
+                    if sqlite_file.exists():
+                        databases_to_import.append((sqlite_file, subdir.name))
+                        click.echo(f"   Found: {subdir.name}")
+
+            if not databases_to_import:
+                raise click.UsageError(f"No databases found in {db_path}. Expected subdirectories with .sqlite files.")
+
+            click.echo(f"\n🎯 Will import {len(databases_to_import)} databases")
+        else:
+            # Single file mode
+            if not db_id:
+                # Try to derive db_id from filename
+                db_id = db_path.stem
+                click.echo(f"   Inferred db_id: {db_id}")
+            databases_to_import.append((db_path, db_id))
+
+        # Set defaults
+        home_folder = home_folder if home_folder is not None else Path.home() / ".sema4x"
+        monorepo_root = find_monorepo_root()
+        output_threads_dir = output_threads_dir or (
+            monorepo_root / "quality" / "test-threads" / "@preinstalled-sql-generation"
+        )
+        bird_cache_dir = home_folder / "quality" / "bird"
+        resolver = BirdDatasetResolver(cache_dir=bird_cache_dir)
+
+        total_generated = 0
+        total_skipped = 0
+
+        for sqlite_path, current_db_id in databases_to_import:
+            current_test_prefix = test_prefix or f"bird-{current_db_id.replace('_', '-')}"
+            current_sdm_name = sdm_name or f"bird_{current_db_id}"
+
+            click.echo(f"\n{'=' * 60}")
+            click.echo(f"📦 Importing: {current_db_id}")
+            click.echo(f"{'=' * 60}")
+
+            # Resolve dataset source
+            click.echo("🔍 Resolving BIRD dataset source...")
+            if hf_dataset:
+                click.echo(f"   Questions: Hugging Face ({hf_dataset})")
+                click.echo(f"   SQLite DB: {sqlite_path}")
+                dataset_info = resolver.resolve_huggingface_questions(
+                    dataset_name=hf_dataset,
+                    db_id=current_db_id,
+                    db_path=sqlite_path,
+                    force_download=force_download,
+                )
+            else:
+                click.echo("   Source: Local files")
+                dataset_info = resolver.resolve_local(
+                    db_path=sqlite_path,
+                    questions_json_path=questions_json,  # type: ignore
+                    db_id=current_db_id,
+                )
+
+            click.echo(f"   Database: {dataset_info['db_path']}")
+            click.echo(f"   Questions: {dataset_info['questions_json_path']}")
+
+            # Initialize generator
+            generator = BirdDatasetGenerator(
+                db_path=dataset_info["db_path"],
+                questions_json_path=dataset_info["questions_json_path"],
+                output_threads_dir=output_threads_dir,
+                db_id=current_db_id,
+                test_name_prefix=current_test_prefix,
+                sdm_name=current_sdm_name,
+            )
+
+            # Generate test threads with golden CSVs
+            click.echo("\n📝 Generating test threads and golden CSVs...")
+            generated, skipped = generator.generate_test_threads(skip_existing=skip_existing)
+            total_generated += generated
+            total_skipped += skipped
+
+            # Generate SDM if requested
+            if generate_sdm:
+                from agent_platform.quality.bird.generation import generate_bird_sdm
+
+                # Determine agent ID using metadata search (same as runner.py)
+                if not agent_id:
+                    click.echo("\n🔍 Looking up @preinstalled-sql-generation agent...")
+                    import httpx
+
+                    try:
+                        search_url = f"{ctx.agent_server_url}/api/v2/agents/search/by-metadata"
+                        params = {"visibility": "hidden", "feature": "sql-generation"}
+                        with httpx.Client(timeout=30.0) as client:
+                            response = client.get(search_url, params=params)
+                            response.raise_for_status()
+                            agents_data = response.json() or []
+
+                        if agents_data and isinstance(agents_data, list) and len(agents_data) > 0:
+                            agent_id = agents_data[0].get("id")
+
+                        if not agent_id:
+                            click.echo("❌ Could not find @preinstalled-sql-generation agent", err=True)
+                            click.echo("   Please specify --agent-id or deploy the agent", err=True)
+                            raise click.Abort()
+                        click.echo(f"   ✓ Found agent: {agent_id}")
+                    except httpx.HTTPError as e:
+                        click.echo(f"❌ Failed to connect to agent server: {e}", err=True)
+                        click.echo(f"   Ensure agent server is running at {ctx.agent_server_url}", err=True)
+                        raise click.Abort() from None
+
+                # Determine context directory and output directory
+                db_description_dir = sqlite_path.parent / "database_description"
+                sdm_output_dir = monorepo_root / "quality" / "test-data" / "sdms" / current_sdm_name
+
+                # Generate SDM
+                asyncio.run(
+                    generate_bird_sdm(
+                        server_url=ctx.agent_server_url,
+                        db_id=current_db_id,
+                        context_dir=db_description_dir,
+                        output_dir=sdm_output_dir,
+                        agent_id=agent_id,
+                    )
+                )
+
+        click.echo(f"\n{'=' * 60}")
+        click.echo("✅ BIRD dataset import complete!")
+        click.echo(f"{'=' * 60}")
+        click.echo(f"   Databases imported: {len(databases_to_import)}")
+        click.echo(f"   Test threads: {output_threads_dir}")
+        click.echo(f"   Generated: {total_generated} tests")
+        if total_skipped > 0:
+            click.echo(f"   Skipped: {total_skipped} tests (already exist)")
+        if generate_sdm:
+            sdms_dir = monorepo_root / "quality" / "test-data" / "sdms"
+            click.echo(f"   SDMs: {sdms_dir}/bird_*")
+        click.echo("\n💡 To run tests, ensure BIRD compose stack is running:")
+        click.echo("   quality-test bird docker up")
+
+    except Exception as e:
+        click.echo(f"❌ Error importing BIRD dataset: {e}", err=True)
+        raise click.Abort() from None
+
+
 # Async wrapper for Click commands
 def async_command(f):
     """Decorator to make Click commands async-compatible."""
@@ -572,6 +1041,7 @@ run.callback = async_command(run.callback)
 oauth.callback = async_command(oauth.callback)
 init.callback = async_command(init.callback)
 replay.callback = async_command(replay.callback)
+# Note: bird_import is synchronous, no async wrapper needed
 
 
 def find_monorepo_root() -> Path:

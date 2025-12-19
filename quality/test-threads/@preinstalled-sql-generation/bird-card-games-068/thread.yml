@@ -1,0 +1,35 @@
+name: bird-card-games-068
+description: "BIRD Q407 (moderate): Lists all types of cards in German."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-407
+    description: "Lists all types of cards in German."
+    messages:
+      - role: user
+        content: |
+          Lists all types of cards in German.
+          Evidence: German refer to language; all types refer to the subtypes, supertypes; subtypes is not null AND supertypes is not null
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_407.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

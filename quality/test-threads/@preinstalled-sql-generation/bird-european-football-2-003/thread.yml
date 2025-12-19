@@ -1,0 +1,35 @@
+name: bird-european-football-2-003
+description: "BIRD Q1022 (simple): What is the preferred foot when attacking of the player with the lowest potential?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1022
+    description: "What is the preferred foot when attacking of the player with the lowest potential?"
+    messages:
+      - role: user
+        content: |
+          What is the preferred foot when attacking of the player with the lowest potential?
+          Evidence: preferred foot when attacking refers to preferred_foot; lowest potential refers to MIN(potential);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1022.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

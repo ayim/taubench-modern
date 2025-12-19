@@ -1,0 +1,35 @@
+name: bird-formula-1-114
+description: "BIRD Q959 (simple): Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-959
+    description: "Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?"
+    messages:
+      - role: user
+        content: |
+          Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?
+          Evidence: Here, “champion” means the race winner; take the minimum of winners’ fastest lap times across 2009 and return that lap number.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_959.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

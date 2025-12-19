@@ -1,0 +1,35 @@
+name: bird-california-schools-078
+description: "BIRD Q77 (challenging): For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-77
+    description: "For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage."
+    messages:
+      - role: user
+        content: |
+          For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage.
+          Evidence: Poverty level is categorized as High Poverty (≥75% FRPM), Medium Poverty (50-74% FRPM), or Low Poverty (<50% FRPM). FRPM percentage = FRPM Count (Ages 5-17) / Enrollment (Ages 5-17) * 100. Charter status can be found in Charter field where 1 = Yes and 0 = No.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_77.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

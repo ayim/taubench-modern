@@ -1,0 +1,35 @@
+name: bird-toxicology-109
+description: "BIRD Q303 (moderate): How many double bonds does TR006 have and is it carcinogenic?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-303
+    description: "How many double bonds does TR006 have and is it carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          How many double bonds does TR006 have and is it carcinogenic?
+          Evidence: label = '+' mean molecules are carcinogenic; label = '-' means molecules are non-carcinogenic; double bond refers to bond_type = ' = ';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_303.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

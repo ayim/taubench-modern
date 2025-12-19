@@ -1,0 +1,35 @@
+name: bird-toxicology-134
+description: "BIRD Q328 (challenging): List all the elements with double bond, consisted in molecule TR024."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-328
+    description: "List all the elements with double bond, consisted in molecule TR024."
+    messages:
+      - role: user
+        content: |
+          List all the elements with double bond, consisted in molecule TR024.
+          Evidence: double bond refers to bond_type = '='
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_328.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

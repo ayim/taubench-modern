@@ -1,0 +1,35 @@
+name: bird-european-football-2-058
+description: "BIRD Q1077 (simple): What's the long name for the team GEN?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1077
+    description: "What's the long name for the team GEN?"
+    messages:
+      - role: user
+        content: |
+          What's the long name for the team GEN?
+          Evidence: long name for the team refers to team_long_name; team_short_name = 'GEN';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1077.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

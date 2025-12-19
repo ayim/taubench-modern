@@ -1,0 +1,35 @@
+name: bird-superhero-015
+description: "BIRD Q731 (simple): How many superheroes did DC Comics publish?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-731
+    description: "How many superheroes did DC Comics publish?"
+    messages:
+      - role: user
+        content: |
+          How many superheroes did DC Comics publish?
+          Evidence: superheroes that DC Comics published refers to publisher_name = 'DC Comics'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_731.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

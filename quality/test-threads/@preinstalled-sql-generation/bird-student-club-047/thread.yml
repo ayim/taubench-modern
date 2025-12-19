@@ -1,0 +1,35 @@
+name: bird-student-club-047
+description: "BIRD Q1358 (simple): Who was the first one paid his/her dues? Tell the full name."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1358
+    description: "Who was the first one paid his/her dues? Tell the full name."
+    messages:
+      - role: user
+        content: |
+          Who was the first one paid his/her dues? Tell the full name.
+          Evidence: Full name refers to first and last name; “first paid dues” means the earliest dues payment date.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1358.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

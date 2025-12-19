@@ -1,0 +1,35 @@
+name: bird-formula-1-105
+description: "BIRD Q950 (simple): Please list the constructor names with 0 points at race 291."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-950
+    description: "Please list the constructor names with 0 points at race 291."
+    messages:
+      - role: user
+        content: |
+          Please list the constructor names with 0 points at race 291.
+          Evidence: race at 291 refers to raceID = 291;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_950.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

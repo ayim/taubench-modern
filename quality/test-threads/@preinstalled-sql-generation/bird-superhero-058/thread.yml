@@ -1,0 +1,35 @@
+name: bird-superhero-058
+description: "BIRD Q774 (simple): Which group does superhero A-Bomb belong to?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-774
+    description: "Which group does superhero A-Bomb belong to?"
+    messages:
+      - role: user
+        content: |
+          Which group does superhero A-Bomb belong to?
+          Evidence: group refers to race; A-Bomb refers to superhero_name = 'A-Bomb';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_774.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+"SUM(IIF(CustomerID = 7, Consumption, 0)) - SUM(IIF(CustomerID = 5, Consumption, 0))"
+540.51

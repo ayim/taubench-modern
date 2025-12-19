@@ -1,0 +1,35 @@
+name: bird-codebase-community-144
+description: "BIRD Q674 (simple): Who has the highest reputation? Please give the display name."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-674
+    description: "Who has the highest reputation? Please give the display name."
+    messages:
+      - role: user
+        content: |
+          Who has the highest reputation? Please give the display name.
+          Evidence: the highest reputation refers to MAX(Reputation);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_674.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

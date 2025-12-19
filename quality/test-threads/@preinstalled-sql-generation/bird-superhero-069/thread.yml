@@ -1,0 +1,35 @@
+name: bird-superhero-069
+description: "BIRD Q785 (simple): Describe the names of neutral alignment superheroes."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-785
+    description: "Describe the names of neutral alignment superheroes."
+    messages:
+      - role: user
+        content: |
+          Describe the names of neutral alignment superheroes.
+          Evidence: names of superheroes refers to superhero_name; neutral alignment refers to alignment = 'Neutral';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_785.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

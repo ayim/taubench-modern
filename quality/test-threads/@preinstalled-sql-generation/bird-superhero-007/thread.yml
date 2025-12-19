@@ -1,0 +1,35 @@
+name: bird-superhero-007
+description: "BIRD Q723 (moderate): Among the superheroes with blue eyes, how many of them have the super power of \"Agility\"?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-723
+    description: "Among the superheroes with blue eyes, how many of them have the super power of \"Agility\"?"
+    messages:
+      - role: user
+        content: |
+          Among the superheroes with blue eyes, how many of them have the super power of "Agility"?
+          Evidence: blue eyes refers to the eye colour = 'Blue' in the colour table; super power of "Agility" refers to power_name = 'Agility'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_723.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

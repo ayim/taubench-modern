@@ -1,0 +1,35 @@
+name: bird-codebase-community-109
+description: "BIRD Q639 (challenging): Based on posts posted by Community, calculate the percentage of posts that use the R language."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-639
+    description: "Based on posts posted by Community, calculate the percentage of posts that use the R language."
+    messages:
+      - role: user
+        content: |
+          Based on posts posted by Community, calculate the percentage of posts that use the R language.
+          Evidence: Community refers to DisplayName = 'Community'; R language posts are those with tag 'r'; percentage is calculated as posts with R tag divided by total posts by Community
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_639.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

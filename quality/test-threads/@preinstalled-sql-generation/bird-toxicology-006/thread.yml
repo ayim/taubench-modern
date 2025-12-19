@@ -1,0 +1,35 @@
+name: bird-toxicology-006
+description: "BIRD Q200 (challenging): For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-200
+    description: "For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds."
+    messages:
+      - role: user
+        content: |
+          For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds.
+          Evidence: carcinogenic molecules refers to label = '+'; triple bonds refers to bond_type = '#'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_200.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

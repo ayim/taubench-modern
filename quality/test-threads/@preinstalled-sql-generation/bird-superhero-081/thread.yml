@@ -1,0 +1,35 @@
+name: bird-superhero-081
+description: "BIRD Q797 (moderate): Which superheroes have blue eyes with brown hair?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-797
+    description: "Which superheroes have blue eyes with brown hair?"
+    messages:
+      - role: user
+        content: |
+          Which superheroes have blue eyes with brown hair?
+          Evidence: blue eyes refers to eye_colour_id; brown hair refers to hair_colour_id; both colors are stored in the colour table
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_797.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

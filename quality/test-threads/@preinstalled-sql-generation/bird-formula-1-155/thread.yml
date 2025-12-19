@@ -1,0 +1,35 @@
+name: bird-formula-1-155
+description: "BIRD Q1000 (simple): Which racetrack hosted the most recent race? Indicate the full location."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-1000
+    description: "Which racetrack hosted the most recent race? Indicate the full location."
+    messages:
+      - role: user
+        content: |
+          Which racetrack hosted the most recent race? Indicate the full location.
+          Evidence: Full location includes both city/location and country; the most recent race is the one with the latest date.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1000.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

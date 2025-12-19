@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-066
+description: "BIRD Q1214 (simple): List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1214
+    description: "List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index."
+    messages:
+      - role: user
+        content: |
+          List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index.
+          Evidence: total protein (TP) below the lower range of the normal index refers to TP < 6.0
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1214.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

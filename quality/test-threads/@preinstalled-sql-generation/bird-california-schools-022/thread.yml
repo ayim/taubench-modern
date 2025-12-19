@@ -1,0 +1,35 @@
+name: bird-california-schools-022
+description: "BIRD Q21 (challenging): For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-21
+    description: "For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?"
+    messages:
+      - role: user
+        content: |
+          For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?
+          Evidence: Free meal percentage = Free Meal Count (K-12) / Enrollment (K-12) * 100. Schools are categorized as 'Very High' if free meals > 600, 'High' if > 500, otherwise 'Moderate'. Charter schools have Charter = 1.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_21.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

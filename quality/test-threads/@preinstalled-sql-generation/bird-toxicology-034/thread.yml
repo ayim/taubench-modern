@@ -1,0 +1,35 @@
+name: bird-toxicology-034
+description: "BIRD Q228 (moderate): How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-228
+    description: "How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places."
+    messages:
+      - role: user
+        content: |
+          How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places.
+          Evidence: hydrogen refers to element = 'h'; TR206 is the molecule id; percentage = DIVIDE(SUM(element = 'h'), COUNT(atom_id)) as percent where molecule_id = 'TR206'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_228.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+SUM(CASE WHEN T1.type = 'Meeting' THEN T3.cost ELSE 0 END) * 100 / SUM(T3.cost)
+51.284005656623755

@@ -1,0 +1,35 @@
+name: bird-european-football-2-080
+description: "BIRD Q1099 (simple): Which foot is preferred by Abdou Diallo?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1099
+    description: "Which foot is preferred by Abdou Diallo?"
+    messages:
+      - role: user
+        content: |
+          Which foot is preferred by Abdou Diallo?
+          Evidence: Abdou Diallo refers to player_name = 'Abdou Diallo'; foot is preferred refers to preferred_foot
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1099.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+COUNT(driverId) - COUNT(CASE WHEN code IS NOT NULL THEN code END)
+757

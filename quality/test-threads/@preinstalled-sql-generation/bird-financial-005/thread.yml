@@ -1,0 +1,35 @@
+name: bird-financial-005
+description: "BIRD Q93 (moderate): How many male customers who are living in North Bohemia have average salary greater than 8000?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-93
+    description: "How many male customers who are living in North Bohemia have average salary greater than 8000?"
+    messages:
+      - role: user
+        content: |
+          How many male customers who are living in North Bohemia have average salary greater than 8000?
+          Evidence: Male means that gender = 'M'; A3 refers to region; A11 pertains to average salary.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_93.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

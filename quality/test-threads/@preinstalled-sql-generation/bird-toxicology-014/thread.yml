@@ -1,0 +1,35 @@
+name: bird-toxicology-014
+description: "BIRD Q208 (challenging): For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-208
+    description: "For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?"
+    messages:
+      - role: user
+        content: |
+          For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?
+          Evidence: Hydrogen atoms refer to element = 'h'; single bonds refer to bond_type = '-'; double bonds refer to bond_type = '='
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_208.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

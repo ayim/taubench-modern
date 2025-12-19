@@ -1,0 +1,35 @@
+name: bird-california-schools-069
+description: "BIRD Q68 (moderate): Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-68
+    description: "Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?"
+    messages:
+      - role: user
+        content: |
+          Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?
+          Evidence: Youth Authority Facilities (CEA) refers to SOC = 11; 1980s = years between 1980 and 1989
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_68.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-european-football-2-011
+description: "BIRD Q1030 (moderate): Give the name of the league had the most matches end as draw in the 2016 season?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1030
+    description: "Give the name of the league had the most matches end as draw in the 2016 season?"
+    messages:
+      - role: user
+        content: |
+          Give the name of the league had the most matches end as draw in the 2016 season?
+          Evidence: most matches end as draw refers to having most matches that goals of home team = goals of away team; 2016 season refers to season called '2015/2016';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1030.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-167
+description: "BIRD Q506 (challenging): For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-506
+    description: "For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?"
+    messages:
+      - role: user
+        content: |
+          For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?
+          Evidence: Japanese translation refers to language = 'Japanese'; in non-foil refers to isNonFoilOnly = 1; percentage of Japanese non foil in Japanese cards refers to DIVIDE(SUM(isNonFoilOnly = 1), SUM(language = 'Japanese'))*100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_506.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

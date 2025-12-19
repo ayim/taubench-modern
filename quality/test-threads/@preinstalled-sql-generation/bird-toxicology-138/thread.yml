@@ -1,0 +1,35 @@
+name: bird-toxicology-138
+description: "BIRD Q332 (simple): Among the molecules between TR004 to TR010, how many of them has single bonds?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-332
+    description: "Among the molecules between TR004 to TR010, how many of them has single bonds?"
+    messages:
+      - role: user
+        content: |
+          Among the molecules between TR004 to TR010, how many of them has single bonds?
+          Evidence: single bond refers to bond_type = '-'; molecules between TR004 to TR010 refers molecule_id BETWEEN 'TR004' and 'TR010';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_332.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

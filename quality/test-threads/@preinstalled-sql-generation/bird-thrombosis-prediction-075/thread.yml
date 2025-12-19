@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-075
+description: "BIRD Q1223 (challenging): Are there more male patients with creatinine not within the normal range than female? True or False?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1223
+    description: "Are there more male patients with creatinine not within the normal range than female? True or False?"
+    messages:
+      - role: user
+        content: |
+          Are there more male patients with creatinine not within the normal range than female? True or False?
+          Evidence: creatinine not within the normal range refers to CRE >= 1.5; male refers to SEX = 'M'; female refers to SEX = 'F'; need to compare whether there are more male patients than female patients with abnormal creatinine levels
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1223.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

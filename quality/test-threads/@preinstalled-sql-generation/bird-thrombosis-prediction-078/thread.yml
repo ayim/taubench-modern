@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-078
+description: "BIRD Q1226 (simple): Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1226
+    description: "Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index."
+    messages:
+      - role: user
+        content: |
+          Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index.
+          Evidence: oldest patient refers to MIN(birthday); highest total cholesterol refers to MAX(T-CHO);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1226.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

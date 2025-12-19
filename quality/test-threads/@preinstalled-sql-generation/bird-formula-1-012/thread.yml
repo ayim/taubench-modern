@@ -1,0 +1,35 @@
+name: bird-formula-1-012
+description: "BIRD Q857 (simple): Give the coordinate position for Abu Dhabi Grand Prix."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-857
+    description: "Give the coordinate position for Abu Dhabi Grand Prix."
+    messages:
+      - role: user
+        content: |
+          Give the coordinate position for Abu Dhabi Grand Prix.
+          Evidence: coordinate position/location refers to lat, lng; Abu Dhabi Grand Prix refers to races.name = 'Abu Dhabi Grand Prix'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_857.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

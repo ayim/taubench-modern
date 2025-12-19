@@ -1,0 +1,2 @@
+SUM(CASE WHEN power = '*' OR power IS NULL THEN 1 ELSE 0 END)
+416

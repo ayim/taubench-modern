@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-056
+description: "BIRD Q1204 (simple): How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1204
+    description: "How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?"
+    messages:
+      - role: user
+        content: |
+          How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?
+          Evidence: MIN(JULIANDAY(`Examination Date`) - JULIANDAY(`First Date`)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1204.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

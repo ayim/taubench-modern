@@ -1,0 +1,35 @@
+name: bird-student-club-129
+description: "BIRD Q1440 (moderate): List emails of people who paid more than 20 dollars from 9/10/2019 to 11/19/2019."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1440
+    description: "List emails of people who paid more than 20 dollars from 9/10/2019 to 11/19/2019."
+    messages:
+      - role: user
+        content: |
+          List emails of people who paid more than 20 dollars from 9/10/2019 to 11/19/2019.
+          Evidence: expense_date BETWEEN '2019-09-10' and '2019-11-19'; cost > 20
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1440.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

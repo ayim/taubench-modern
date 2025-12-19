@@ -1,0 +1,35 @@
+name: bird-formula-1-049
+description: "BIRD Q894 (moderate): What is the best lap time recorded? List the driver and race with such recorded lap time."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-894
+    description: "What is the best lap time recorded? List the driver and race with such recorded lap time."
+    messages:
+      - role: user
+        content: |
+          What is the best lap time recorded? List the driver and race with such recorded lap time.
+          Evidence: the best lap time refers to min(milliseconds); List the driver refers to drivers.forename and drivers.surname; List the race refers to races.name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_894.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

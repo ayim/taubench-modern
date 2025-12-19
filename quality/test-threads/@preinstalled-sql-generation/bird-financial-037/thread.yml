@@ -1,0 +1,35 @@
+name: bird-financial-037
+description: "BIRD Q125 (challenging): For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-125
+    description: "For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996."
+    messages:
+      - role: user
+        content: |
+          For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996.
+          Evidence: Unemployment increment rate in percentage = [(unemployment rate 1996 - unemployment rate 1995) / unemployment rate 2015] * 100; unemployment rate 1995 appears in the A12; unemployment rate 1996 appears in the A13; Loan contracts which are still running where client are in debt can be presented as status = 'D'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_125.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

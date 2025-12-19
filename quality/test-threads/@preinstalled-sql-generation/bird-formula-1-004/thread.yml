@@ -1,0 +1,35 @@
+name: bird-formula-1-004
+description: "BIRD Q849 (simple): Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-849
+    description: "Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?"
+    messages:
+      - role: user
+        content: |
+          Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?
+          Evidence: introduction of races refers to url; Circuit de Barcelona-Catalunya is a name of circuit;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_849.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

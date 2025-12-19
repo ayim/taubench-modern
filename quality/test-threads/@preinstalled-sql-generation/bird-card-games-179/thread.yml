@@ -1,0 +1,35 @@
+name: bird-card-games-179
+description: "BIRD Q518 (moderate): Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-518
+    description: "Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition."
+    messages:
+      - role: user
+        content: |
+          Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition.
+          Evidence: play format refers to format; banned status refers to status = 'Banned'; the highest number of banned status refers to MAX(COUNT(status = 'Banned'))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_518.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-088
+description: "BIRD Q1236 (challenging): For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1236
+    description: "For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital."
+    messages:
+      - role: user
+        content: |
+          For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital.
+          Evidence: female patient refers to Sex = 'F'; age 50 and above = SUBTRACT(year(current_timestamp), year(Birthday)) > = 50; abnormal red blood cell count refers to RBC < = 3.5 or RBC > = 6.0; Admission = '+' means the patient was admitted to the hospital; Admission = '-' means the patient was not admitted to the hospital;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1236.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

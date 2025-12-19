@@ -1,0 +1,35 @@
+name: bird-student-club-087
+description: "BIRD Q1398 (moderate): Name the event with the highest amount spent on advertisement."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1398
+    description: "Name the event with the highest amount spent on advertisement."
+    messages:
+      - role: user
+        content: |
+          Name the event with the highest amount spent on advertisement.
+          Evidence: advertisement refers to category = 'Advertisement'; highest amount spent refers to the maximum value in the spent column for advertisement category
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1398.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

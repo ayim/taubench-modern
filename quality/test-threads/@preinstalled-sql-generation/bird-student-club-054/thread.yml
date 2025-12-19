@@ -1,0 +1,35 @@
+name: bird-student-club-054
+description: "BIRD Q1365 (simple): What are the expenses of the budget with the lowest remaining?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1365
+    description: "What are the expenses of the budget with the lowest remaining?"
+    messages:
+      - role: user
+        content: |
+          What are the expenses of the budget with the lowest remaining?
+          Evidence: expense of budget refers to expense_description; lowest remaining refers to MIN(remaining)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1365.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

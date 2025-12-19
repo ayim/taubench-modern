@@ -1,0 +1,35 @@
+name: bird-superhero-003
+description: "BIRD Q719 (moderate): Among the superheroes with the super power of \"Super Strength\", how many of them have a height of over 200cm?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-719
+    description: "Among the superheroes with the super power of \"Super Strength\", how many of them have a height of over 200cm?"
+    messages:
+      - role: user
+        content: |
+          Among the superheroes with the super power of "Super Strength", how many of them have a height of over 200cm?
+          Evidence: 'Super Strength' refers to power_name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_719.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

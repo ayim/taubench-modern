@@ -1,0 +1,35 @@
+name: bird-codebase-community-110
+description: "BIRD Q640 (moderate): Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-640
+    description: "Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos."
+    messages:
+      - role: user
+        content: |
+          Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos.
+          Evidence: Difference refers to subtraction; Mornington and Amos are user display names.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_640.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+COUNT(DISTINCT T.element)
+17

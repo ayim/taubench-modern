@@ -1,0 +1,35 @@
+name: bird-financial-007
+description: "BIRD Q95 (moderate): List out the account numbers of clients who are youngest and have highest average salary?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-95
+    description: "List out the account numbers of clients who are youngest and have highest average salary?"
+    messages:
+      - role: user
+        content: |
+          List out the account numbers of clients who are youngest and have highest average salary?
+          Evidence: If the person A's birthdate < B's birthdate, it means that person B is younger than person A; A11 refers to average salary
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_95.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-formula-1-070
+description: "BIRD Q915 (simple): Which country is the oldest driver from?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-915
+    description: "Which country is the oldest driver from?"
+    messages:
+      - role: user
+        content: |
+          Which country is the oldest driver from?
+          Evidence: date of birth refers to drivers.dob; The larger the birthday value, the younger the person is, and vice versa;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_915.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

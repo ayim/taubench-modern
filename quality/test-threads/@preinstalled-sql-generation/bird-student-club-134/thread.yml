@@ -1,0 +1,35 @@
+name: bird-student-club-134
+description: "BIRD Q1445 (simple): Find the full name of members whose t-shirt size is extra large."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1445
+    description: "Find the full name of members whose t-shirt size is extra large."
+    messages:
+      - role: user
+        content: |
+          Find the full name of members whose t-shirt size is extra large.
+          Evidence: full name refers to first_name, last_name; t_shirt_size = 'X-Large'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1445.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,34 @@
+name: bird-codebase-community-181
+description: "BIRD Q711 (simple): Among product comments with 0 score, what is the total number of users aged 40 years old?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-711
+    description: "Among product comments with 0 score, what is the total number of users aged 40 years old?"
+    messages:
+      - role: user
+        content: |
+          Among product comments with 0 score, what is the total number of users aged 40 years old?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_711.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

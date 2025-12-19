@@ -1,0 +1,35 @@
+name: bird-student-club-089
+description: "BIRD Q1400 (moderate): Among all events hold by the Student_Club in 2019, find the percentage share of events related to 'Community Service'"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1400
+    description: "Among all events hold by the Student_Club in 2019, find the percentage share of events related to 'Community Service'"
+    messages:
+      - role: user
+        content: |
+          Among all events hold by the Student_Club in 2019, find the percentage share of events related to 'Community Service'
+          Evidence: DIVIDE(SUM(type = 'Community Service'), COUNT(event_id)) * 100 where event_date BETWEEN' 2019-01-01' and '2019-12-31'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1400.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

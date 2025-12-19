@@ -1,0 +1,35 @@
+name: bird-card-games-145
+description: "BIRD Q484 (moderate): Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-484
+    description: "Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost."
+    messages:
+      - role: user
+        content: |
+          Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost.
+          Evidence: card set Coldsnap refers to name = 'Coldsnap'; Italian refers to language = 'Italian'; highest converted mana cost refers to MAX(convertedManaCost)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_484.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-003
+description: "BIRD Q1151 (moderate): For patient born between Year 1930 to 1940, how many percent of them were inpatient?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1151
+    description: "For patient born between Year 1930 to 1940, how many percent of them were inpatient?"
+    messages:
+      - role: user
+        content: |
+          For patient born between Year 1930 to 1940, how many percent of them were inpatient?
+          Evidence: patient born between Year 1930 to 1940 refers to year(Birthday) BETWEEN '1930-01-01' AND '1940-12-31'; inpatient refers to Admission = '+'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1151.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

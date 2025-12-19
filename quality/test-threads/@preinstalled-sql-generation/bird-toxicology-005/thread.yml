@@ -1,0 +1,35 @@
+name: bird-toxicology-005
+description: "BIRD Q199 (simple): In the molecule containing sodium atoms, how many are non-carcinogenic?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-199
+    description: "In the molecule containing sodium atoms, how many are non-carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          In the molecule containing sodium atoms, how many are non-carcinogenic?
+          Evidence: non-carcinogenic refers to label = '-'; sodium atoms refers to element = 'na'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_199.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

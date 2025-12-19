@@ -1,0 +1,35 @@
+name: bird-california-schools-082
+description: "BIRD Q81 (moderate): In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-81
+    description: "In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name."
+    messages:
+      - role: user
+        content: |
+          In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name.
+          Evidence: State of California refers to state = 'CA'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_81.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

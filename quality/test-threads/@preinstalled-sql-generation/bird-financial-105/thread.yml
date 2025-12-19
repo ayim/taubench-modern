@@ -1,0 +1,35 @@
+name: bird-financial-105
+description: "BIRD Q193 (moderate): List all ID and district for clients that can only have the right to issue permanent orders or apply for loans."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-193
+    description: "List all ID and district for clients that can only have the right to issue permanent orders or apply for loans."
+    messages:
+      - role: user
+        content: |
+          List all ID and district for clients that can only have the right to issue permanent orders or apply for loans.
+          Evidence: Only the owner accounts have the right to issue permanent orders or apply for loans
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_193.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

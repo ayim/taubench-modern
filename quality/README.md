@@ -389,9 +389,69 @@ quality-test --verbose run
 # Limit concurrent agents
 quality-test run --max-agents 3
 
-# Run only specific test threads (comma-separated YAML 'name' fields)
-quality-test run --tests=churn-plan-tier-golden,energy-top-oil-producers-golden
+# Run specific tests (exact match or prefix match, comma-separated)
+quality-test run --tests=bird-california-schools-001          # Exact match
+quality-test run --tests=bird-california-schools              # All tests starting with prefix
+quality-test run --tests=bird-                                # All BIRD tests
+quality-test run --tests=churn-plan-tier-golden,energy-top-oil-producers-golden  # Multiple
+
+# Filter by difficulty (BIRD benchmark tests)
+quality-test run --tests=bird- --difficulty=simple            # Only simple BIRD tests
+quality-test run --tests=bird- --difficulty=moderate          # Only moderate tests
+quality-test run --tests=bird- --difficulty=challenging       # Only challenging tests
 ```
+
+### BIRD Benchmark
+
+Import BIRD benchmark tests with sensible defaults. One-time setup:
+
+```bash
+# 1. Install HuggingFace support
+make sync # from repo root
+
+# 2. Download minidev.zip from Google Drive and extract to default location
+#    Link: https://drive.google.com/file/d/13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG/view
+mkdir -p ~/.sema4x/quality/bird-data && cd ~/.sema4x/quality/bird-data
+unzip ~/Downloads/minidev.zip
+
+# 3. Start PostgreSQL stack (first time: ~5 min, subsequent: instant)
+quality-test bird docker up
+```
+
+Creating new dataset tests:
+
+```bash
+# Import ALL databases at once
+quality-test bird import \
+  --db-path ~/.sema4x/quality/bird-data/minidev/MINIDEV/dev_databases
+
+# Or import a single database
+quality-test bird import \
+  --db-path ~/.sema4x/quality/bird-data/minidev/MINIDEV/dev_databases/california_schools/california_schools.sqlite \
+  --db-id california_schools
+```
+
+Before running tests, you need to create an SDM for the database. You can use our SPAR UI or Studio to generate an SDM. You should connect to the database you've brought up in the product and then reference the Excel files sitting alongside each database in MINIDEV for business context and then generate the SDM.
+
+Save the new SDM in the `test-data/sdms/` directory similar to the existing data folder for california_schools, be sure to copy the config.yml file from california_schools as well.
+
+```bash
+# Run tests
+quality-test run --tests=bird-california-schools
+
+# Manage stack
+quality-test bird docker ps      # Check status
+quality-test bird docker down    # Stop (keeps data)
+quality-test bird docker down -v # Remove completely
+```
+
+**Defaults** (override via env vars if needed):
+
+- `BIRD_DEV_SQL_PATH`: `~/.sema4x/quality/bird-data/minidev/MINIDEV_postgresql/BIRD_dev.sql`
+- `BIRD_PG_PORT`: `5433` (avoids conflicts with SPAR's 5432)
+- HF dataset: `birdsql/bird_sql_dev_20251106`
+
+For complete CLI reference, see `docs/BIRD_CLI_GUIDE.md`.
 
 ### Global Options
 

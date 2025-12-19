@@ -1,0 +1,35 @@
+name: bird-formula-1-027
+description: "BIRD Q872 (simple): In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-872
+    description: "In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?"
+    messages:
+      - role: user
+        content: |
+          In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?
+          Evidence: Had the Q3 time as 0:0M:SS refers to q3 LIKE 'M:SS%'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_872.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

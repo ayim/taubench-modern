@@ -1,0 +1,35 @@
+name: bird-card-games-140
+description: "BIRD Q479 (moderate): Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-479
+    description: "Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?"
+    messages:
+      - role: user
+        content: |
+          Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?
+          Evidence: card set Coldsnap refers to name = 'Coldsnap'; converted mana cost higher than 5 refers to convertedManaCost > 5; unknown power refers to power = '*' or power = NULL
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_479.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

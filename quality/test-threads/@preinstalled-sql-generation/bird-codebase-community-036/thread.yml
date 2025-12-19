@@ -1,0 +1,35 @@
+name: bird-codebase-community-036
+description: "BIRD Q566 (simple): For the owner user of post No. 65041, what is his/her reputation points?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-566
+    description: "For the owner user of post No. 65041, what is his/her reputation points?"
+    messages:
+      - role: user
+        content: |
+          For the owner user of post No. 65041, what is his/her reputation points?
+          Evidence: post no. 65041 refers to Id = '65041'; reputation point refers to Reputation
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_566.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

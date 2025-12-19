@@ -1,0 +1,35 @@
+name: bird-card-games-079
+description: "BIRD Q418 (simple): What kind of printing is on the card that Daren Bader created?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-418
+    description: "What kind of printing is on the card that Daren Bader created?"
+    messages:
+      - role: user
+        content: |
+          What kind of printing is on the card that Daren Bader created?
+          Evidence: kind of printing refers to availability; Daren Bader created refers to artist = 'Daren Bader'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_418.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

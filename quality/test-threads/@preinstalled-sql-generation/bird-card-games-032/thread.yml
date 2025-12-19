@@ -1,0 +1,35 @@
+name: bird-card-games-032
+description: "BIRD Q371 (challenging): What is the percentage of cards whose language is French among the Story Spotlight cards?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-371
+    description: "What is the percentage of cards whose language is French among the Story Spotlight cards?"
+    messages:
+      - role: user
+        content: |
+          What is the percentage of cards whose language is French among the Story Spotlight cards?
+          Evidence: Story Spotlight card refers to isStorySpotlight = 1; French is the language; Percentage = Divide(Count(id) where language = 'French' and isStorySpotlight = 1, Count(id) where isStorySpotlight = 1)*100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_371.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

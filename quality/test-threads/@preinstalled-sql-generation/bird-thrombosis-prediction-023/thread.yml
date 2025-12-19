@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-023
+description: "BIRD Q1171 (challenging): How many underage patients were examined during the course of the three-year period from 1990 to 1993?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1171
+    description: "How many underage patients were examined during the course of the three-year period from 1990 to 1993?"
+    messages:
+      - role: user
+        content: |
+          How many underage patients were examined during the course of the three-year period from 1990 to 1993?
+          Evidence: underage patients refers to year(Birthday) < 18; three-year period from 1990 to 1993 refers to year(`Examination Date`) between '1990' and '1993'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1171.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

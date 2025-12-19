@@ -1,0 +1,35 @@
+name: bird-european-football-2-117
+description: "BIRD Q1136 (moderate): How many players had the highest potential score for crossing that preferred to use their left foots while attacking?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1136
+    description: "How many players had the highest potential score for crossing that preferred to use their left foots while attacking?"
+    messages:
+      - role: user
+        content: |
+          How many players had the highest potential score for crossing that preferred to use their left foots while attacking?
+          Evidence: highest potential score for crossing refers to MAX(crossing); preferred to use their left foots while attacking refers to preferred_foot = 'left'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1136.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

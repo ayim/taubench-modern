@@ -1,0 +1,36 @@
+name: bird-formula-1-017
+description: "BIRD Q862 (simple): For the Bahrain Grand Prix in 2007, how many drivers not finished the game?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-862
+    description: "For the Bahrain Grand Prix in 2007, how many drivers not finished the game?"
+    messages:
+      - role: user
+        content: |
+          For the Bahrain Grand Prix in 2007, how many drivers not finished the game?
+          Evidence: Bahrain Grand Prix refers to the name of the race;
+          Drivers who finished the race refers to time is not empty (i.e. time IS NOT NULL);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_862.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-120
+description: "BIRD Q459 (moderate): Which card costs more converted mana, \"Serra Angel\" or \"Shrine Keeper\"?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-459
+    description: "Which card costs more converted mana, \"Serra Angel\" or \"Shrine Keeper\"?"
+    messages:
+      - role: user
+        content: |
+          Which card costs more converted mana, "Serra Angel" or "Shrine Keeper"?
+          Evidence: "Serra Angel" refers to name = 'Serra Angel'; "Shrine Keeper" refers to name = 'Shrine Keeper'; card costs more converted mana when the value of convertedManaCost is greater
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_459.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

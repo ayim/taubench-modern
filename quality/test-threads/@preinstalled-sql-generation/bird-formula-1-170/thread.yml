@@ -1,0 +1,35 @@
+name: bird-formula-1-170
+description: "BIRD Q1015 (moderate): In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-1015
+    description: "In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?"
+    messages:
+      - role: user
+        content: |
+          In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?
+          Evidence: lap record means the fastest time recorded which refers to time
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1015.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

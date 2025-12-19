@@ -1,0 +1,35 @@
+name: bird-card-games-069
+description: "BIRD Q408 (moderate): How many unknown power cards contain info about the triggered ability"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-408
+    description: "How many unknown power cards contain info about the triggered ability"
+    messages:
+      - role: user
+        content: |
+          How many unknown power cards contain info about the triggered ability
+          Evidence: unknown power cards refers to power is null or power = '*';contain info about the triggered ability refers to text contains 'triggered ability'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_408.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

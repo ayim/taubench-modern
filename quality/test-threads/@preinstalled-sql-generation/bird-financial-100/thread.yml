@@ -1,0 +1,35 @@
+name: bird-financial-100
+description: "BIRD Q188 (challenging): For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-188
+    description: "For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity."
+    messages:
+      - role: user
+        content: |
+          For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity.
+          Evidence: Before 1997 does not include year 1997. PRIJEM means income transactions and VYDAJ means expense transactions.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_188.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

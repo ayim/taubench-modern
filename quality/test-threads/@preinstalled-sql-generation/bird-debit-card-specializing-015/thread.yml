@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-015
+description: "BIRD Q1484 (simple): How many more \"discount\" gas stations does the Czech Republic have compared to Slovakia?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1484
+    description: "How many more \"discount\" gas stations does the Czech Republic have compared to Slovakia?"
+    messages:
+      - role: user
+        content: |
+          How many more "discount" gas stations does the Czech Republic have compared to Slovakia?
+          Evidence: Czech Republic can be represented as the Country value in gasstations table is 'CZE'; Slovakia can be represented as the Country value in the gasstations table is 'SVK';  Computation of more "discount" gas stations= Total no. of discount gas stations in Czech Republic - Total no. of discount gas stations in Slovakia
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1484.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

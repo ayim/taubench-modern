@@ -1,0 +1,35 @@
+name: bird-superhero-066
+description: "BIRD Q782 (moderate): List the heroes' names whose eyes and hair colours are both black."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-782
+    description: "List the heroes' names whose eyes and hair colours are both black."
+    messages:
+      - role: user
+        content: |
+          List the heroes' names whose eyes and hair colours are both black.
+          Evidence: heroes' names refers to superhero_name; eyes and hair colours are both black refer to eye_colour_id and hair_colour_id are both black;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_782.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

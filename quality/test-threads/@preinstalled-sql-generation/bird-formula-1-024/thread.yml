@@ -1,0 +1,35 @@
+name: bird-formula-1-024
+description: "BIRD Q869 (moderate): For the constructor which got the highest point in the race No. 9 , what is its introduction website?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-869
+    description: "For the constructor which got the highest point in the race No. 9 , what is its introduction website?"
+    messages:
+      - role: user
+        content: |
+          For the constructor which got the highest point in the race No. 9 , what is its introduction website?
+          Evidence: race number refers to raceId; constructor which got the highest point refers to MAX(constructorResults.points); introduction website of the constructor refers to url;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_869.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

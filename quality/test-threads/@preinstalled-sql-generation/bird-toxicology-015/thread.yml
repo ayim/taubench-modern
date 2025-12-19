@@ -1,0 +1,35 @@
+name: bird-toxicology-015
+description: "BIRD Q209 (challenging): What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-209
+    description: "What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?"
+    messages:
+      - role: user
+        content: |
+          What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?
+          Evidence: Chlorine refers to element = 'cl'; type of bond refers to bond_type
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_209.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,37 @@
+name: bird-card-games-065
+description: "BIRD Q404 (simple): Indicates the name of all the languages into which the set whose number of cards is 309 is translated."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-404
+    description: "Indicates the name of all the languages into which the set whose number of cards is 309 is translated."
+    messages:
+      - role: user
+        content: |
+          Indicates the name of all the languages into which the set whose number of cards is 309 is translated.
+          Evidence: set refer to setCode; number of cards refers to baseSetSize; baseSetsize = 309
+          
+          
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_404.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

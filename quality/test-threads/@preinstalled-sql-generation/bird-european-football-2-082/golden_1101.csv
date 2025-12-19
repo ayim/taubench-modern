@@ -1,0 +1,2 @@
+CAST(SUM(T1.away_team_goal) AS REAL) / COUNT(T1.id)
+1.0707964601769913

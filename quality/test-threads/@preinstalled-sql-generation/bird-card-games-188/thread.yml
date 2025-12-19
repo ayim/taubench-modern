@@ -1,0 +1,35 @@
+name: bird-card-games-188
+description: "BIRD Q527 (moderate): What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-527
+    description: "What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates."
+    messages:
+      - role: user
+        content: |
+          What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates.
+          Evidence: rulings refers to text; card named and designed by Kev Walker refers to artist = 'Kev Walker'; descending order of dates refers to ORDER BY date DESC
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_527.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

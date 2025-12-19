@@ -1,0 +1,35 @@
+name: bird-card-games-073
+description: "BIRD Q412 (moderate): What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-412
+    description: "What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?"
+    messages:
+      - role: user
+        content: |
+          What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?
+          Evidence: in French refers to language = 'French'; black border color refers to borderColor = 'black'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_412.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

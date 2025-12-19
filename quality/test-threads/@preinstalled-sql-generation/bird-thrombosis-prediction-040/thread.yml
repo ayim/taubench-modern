@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-040
+description: "BIRD Q1188 (simple): How many female patients born in 1964 were admitted to the hospital? List them by ID."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1188
+    description: "How many female patients born in 1964 were admitted to the hospital? List them by ID."
+    messages:
+      - role: user
+        content: |
+          How many female patients born in 1964 were admitted to the hospital? List them by ID.
+          Evidence: female refers to SEX = 'F'; born in 1964 refers to YEAR(Birthday) = 1964; admitted to the hospital refers to Admission = '+'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1188.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

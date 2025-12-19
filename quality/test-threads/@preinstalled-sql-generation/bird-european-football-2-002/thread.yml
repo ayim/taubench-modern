@@ -1,0 +1,35 @@
+name: bird-european-football-2-002
+description: "BIRD Q1021 (simple): What is the height of the tallest player? Indicate his name."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1021
+    description: "What is the height of the tallest player? Indicate his name."
+    messages:
+      - role: user
+        content: |
+          What is the height of the tallest player? Indicate his name.
+          Evidence: tallest player refers to MAX(height); height is measured in centimeters
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1021.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

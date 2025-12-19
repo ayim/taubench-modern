@@ -1,0 +1,35 @@
+name: bird-california-schools-047
+description: "BIRD Q46 (simple): Which state special schools have the highest number of enrollees from grades 1 through 12?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-46
+    description: "Which state special schools have the highest number of enrollees from grades 1 through 12?"
+    messages:
+      - role: user
+        content: |
+          Which state special schools have the highest number of enrollees from grades 1 through 12?
+          Evidence: State Special Schools are identified by DOC code 31; Grades 1 through 12 means K-12
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_46.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

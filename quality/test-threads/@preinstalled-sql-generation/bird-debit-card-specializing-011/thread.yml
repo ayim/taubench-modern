@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-011
+description: "BIRD Q1480 (moderate): What was the gas consumption peak month for SME customers in 2013?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1480
+    description: "What was the gas consumption peak month for SME customers in 2013?"
+    messages:
+      - role: user
+        content: |
+          What was the gas consumption peak month for SME customers in 2013?
+          Evidence: Year 2013 can be presented as Between 201301 And 201312; The first 4 strings of the Date values in the yearmonth table can represent year; The 5th and 6th string of the date can refer to month.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1480.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

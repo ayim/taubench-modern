@@ -1,0 +1,35 @@
+name: bird-formula-1-092
+description: "BIRD Q937 (simple): What's the finish time for the driver who ranked second in 2008's AustChineseralian Grand Prix?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-937
+    description: "What's the finish time for the driver who ranked second in 2008's AustChineseralian Grand Prix?"
+    messages:
+      - role: user
+        content: |
+          What's the finish time for the driver who ranked second in 2008's AustChineseralian Grand Prix?
+          Evidence: finish time refers to time; Chinese Grand Prix refers to races.name = 'Chinese Grand Prix';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_937.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

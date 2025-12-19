@@ -1,0 +1,35 @@
+name: bird-card-games-133
+description: "BIRD Q472 (moderate): Among the sets in the block \"Ice Age\", how many of them have an Italian translation?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-472
+    description: "Among the sets in the block \"Ice Age\", how many of them have an Italian translation?"
+    messages:
+      - role: user
+        content: |
+          Among the sets in the block "Ice Age", how many of them have an Italian translation?
+          Evidence: sets in the block "Ice Age" refers to block = 'Ice Age'; Italian translation refers to language = 'Italian' and translation is not null
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_472.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

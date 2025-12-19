@@ -1,0 +1,35 @@
+name: bird-toxicology-012
+description: "BIRD Q206 (challenging): What elements are in the TR004_8_9 bond atoms?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-206
+    description: "What elements are in the TR004_8_9 bond atoms?"
+    messages:
+      - role: user
+        content: |
+          What elements are in the TR004_8_9 bond atoms?
+          Evidence: TR004_8_9 bond atoms refers to bond_id = 'TR004_8_9';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_206.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

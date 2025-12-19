@@ -1,0 +1,35 @@
+name: bird-european-football-2-008
+description: "BIRD Q1027 (simple): Indicate the full names of the top 10 players with the highest penalties rating."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1027
+    description: "Indicate the full names of the top 10 players with the highest penalties rating."
+    messages:
+      - role: user
+        content: |
+          Indicate the full names of the top 10 players with the highest penalties rating.
+          Evidence: Interpret 'highest number of penalties' as the highest penalty attribute value per player across records.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1027.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

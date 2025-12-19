@@ -1,0 +1,35 @@
+name: bird-card-games-183
+description: "BIRD Q522 (moderate): Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-522
+    description: "Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format."
+    messages:
+      - role: user
+        content: |
+          Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format.
+          Evidence: ranked 1st on EDHRec refers to edhrecRank = 1; banned refers to status = 'Banned'; play format refers to format; cards name refers to name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_522.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

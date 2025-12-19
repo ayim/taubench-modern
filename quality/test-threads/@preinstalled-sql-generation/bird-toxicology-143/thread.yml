@@ -1,0 +1,35 @@
+name: bird-toxicology-143
+description: "BIRD Q337 (challenging): List the element and bond type included in the molecule with molecule ID of TR002."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-337
+    description: "List the element and bond type included in the molecule with molecule ID of TR002."
+    messages:
+      - role: user
+        content: |
+          List the element and bond type included in the molecule with molecule ID of TR002.
+          Evidence: TR002 is the molecule id
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_337.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

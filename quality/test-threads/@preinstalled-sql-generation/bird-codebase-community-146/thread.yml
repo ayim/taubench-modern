@@ -1,0 +1,35 @@
+name: bird-codebase-community-146
+description: "BIRD Q676 (simple): Please list all display names of users who are adults."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-676
+    description: "Please list all display names of users who are adults."
+    messages:
+      - role: user
+        content: |
+          Please list all display names of users who are adults.
+          Evidence: adults refer to users where Age BETWEEN 19 and 65;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_676.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

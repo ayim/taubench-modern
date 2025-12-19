@@ -1,0 +1,35 @@
+name: bird-formula-1-001
+description: "BIRD Q846 (moderate): Please list the reference names of the drivers who are eliminated in the first period in race number 20."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-846
+    description: "Please list the reference names of the drivers who are eliminated in the first period in race number 20."
+    messages:
+      - role: user
+        content: |
+          Please list the reference names of the drivers who are eliminated in the first period in race number 20.
+          Evidence: race number refers to raceId; driver reference name refers to driverRef; The five drivers with the highest q1 times are eliminated in the first qualifying period.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_846.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

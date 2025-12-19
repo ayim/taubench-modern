@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-041
+description: "BIRD Q1189 (challenging): What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1189
+    description: "What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?"
+    messages:
+      - role: user
+        content: |
+          What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?
+          Evidence: thrombosis level 2 refers to Thrombosis = 2; ANA pattern of only S refers to `ANA Pattern` = 'S'; average anti-Cardiolipin antibody (IgM) refers to AVG(`aCL IgM`); 20% higher than average means greater than 1.2 times the average value.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1189.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

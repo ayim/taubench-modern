@@ -1,0 +1,35 @@
+name: bird-superhero-074
+description: "BIRD Q790 (moderate): Calculate the difference between Emil Blonsky's weight and Charles Chandler's weight."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-790
+    description: "Calculate the difference between Emil Blonsky's weight and Charles Chandler's weight."
+    messages:
+      - role: user
+        content: |
+          Calculate the difference between Emil Blonsky's weight and Charles Chandler's weight.
+          Evidence: Emil Blonsky and Charles Chandler are the full names of superheros;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_790.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

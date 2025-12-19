@@ -1,0 +1,35 @@
+name: bird-codebase-community-099
+description: "BIRD Q629 (simple): Calculate the ratio of votes in 2010 and 2011."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-629
+    description: "Calculate the ratio of votes in 2010 and 2011."
+    messages:
+      - role: user
+        content: |
+          Calculate the ratio of votes in 2010 and 2011.
+          Evidence: ratio = DIVIDE(the number of id in votes table where year(CreationDate) = 2010, the number of id in votes table where year(CreationDate) = 2011)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_629.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

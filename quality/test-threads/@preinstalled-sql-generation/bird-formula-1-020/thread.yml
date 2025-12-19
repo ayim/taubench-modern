@@ -1,0 +1,35 @@
+name: bird-formula-1-020
+description: "BIRD Q865 (moderate): For all the drivers who finished the game in race No. 592, who is the oldest?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-865
+    description: "For all the drivers who finished the game in race No. 592, who is the oldest?"
+    messages:
+      - role: user
+        content: |
+          For all the drivers who finished the game in race No. 592, who is the oldest?
+          Evidence: drivers who finished the race refers to time is not empty (i.e. time IS NOT NULL); race number refers to raceId; date of birth refers to drivers.dob; The larger the birthday value, the younger the person is, and vice versa;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_865.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

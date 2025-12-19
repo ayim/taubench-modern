@@ -1,0 +1,35 @@
+name: bird-california-schools-026
+description: "BIRD Q25 (moderate): Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-25
+    description: "Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?"
+    messages:
+      - role: user
+        content: |
+          Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?
+          Evidence: Average of average math = sum(average math scores) / count(schools).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_25.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

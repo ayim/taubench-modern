@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-089
+description: "BIRD Q1237 (simple): Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1237
+    description: "Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex."
+    messages:
+      - role: user
+        content: |
+          Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex.
+          Evidence: outpatients refers to Admission = '-'; low hemoglobin level refers to HGB < 10;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1237.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

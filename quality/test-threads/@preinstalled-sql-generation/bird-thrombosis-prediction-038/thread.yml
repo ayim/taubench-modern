@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-038
+description: "BIRD Q1186 (moderate): Lists all patients by ID who were diagnosed with Behcet's and had their exams between 01/01/197 and 12/31/1997."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1186
+    description: "Lists all patients by ID who were diagnosed with Behcet's and had their exams between 01/01/197 and 12/31/1997."
+    messages:
+      - role: user
+        content: |
+          Lists all patients by ID who were diagnosed with Behcet's and had their exams between 01/01/197 and 12/31/1997.
+          Evidence: 'Behcet' refers to diagnosis; exam between 01/01/1997 and 12/31/1997 refers to YEAR(Description) > = '1997-1-1' AND YEAR(Description) < '1998-1-1'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1186.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

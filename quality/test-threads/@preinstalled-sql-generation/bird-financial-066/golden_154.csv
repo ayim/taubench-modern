@@ -1,0 +1,3 @@
+age_category,client_count,avg_loans_per_client,total_good_loans,total_bad_loans,avg_cards_per_client,avg_transactions_per_client,total_income_all_clients,total_expense_all_clients,net_balance_all_clients
+Middle-aged,42,0.11904761904761904,0,499,0.35714285714285715,229.76190476190476,30650964,26822611,3828353
+Senior,238,0.13445378151260504,8645,787,0.22268907563025211,237.7983193277311,222616722,193802798,28813924

@@ -1,0 +1,35 @@
+name: bird-student-club-006
+description: "BIRD Q1317 (moderate): Among the students from the Student_Club who attended the event \"Women's Soccer\", how many of them want a T-shirt that's in medium size?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1317
+    description: "Among the students from the Student_Club who attended the event \"Women's Soccer\", how many of them want a T-shirt that's in medium size?"
+    messages:
+      - role: user
+        content: |
+          Among the students from the Student_Club who attended the event "Women's Soccer", how many of them want a T-shirt that's in medium size?
+          Evidence: Students refer to members; Women's Soccer is an event name; T-shirt that is in medium size refers to t_shirt_size = 'Medium'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1317.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

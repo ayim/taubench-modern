@@ -1,0 +1,35 @@
+name: bird-toxicology-087
+description: "BIRD Q281 (challenging): Tally the toxicology element of the 4th atom of each molecule that was carcinogenic."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-281
+    description: "Tally the toxicology element of the 4th atom of each molecule that was carcinogenic."
+    messages:
+      - role: user
+        content: |
+          Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.
+          Evidence: label = '+' means molecules are carcinogenic; 4th atom of each molecule refers to substr(atom_id, 7, 1) = '4'; 
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_281.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-049
+description: "BIRD Q388 (simple): What are the cards in set 10E with converted mana of 5 have translation and what are the languages?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-388
+    description: "What are the cards in set 10E with converted mana of 5 have translation and what are the languages?"
+    messages:
+      - role: user
+        content: |
+          What are the cards in set 10E with converted mana of 5 have translation and what are the languages?
+          Evidence: set 10E refers to setCode = '10E'; converted mana of 5 refers to convertedManaCost = 5;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_388.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

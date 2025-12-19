@@ -1,0 +1,35 @@
+name: bird-codebase-community-083
+description: "BIRD Q613 (simple): List out the dates that users who are located in Rochester, NY obtained their badges?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-613
+    description: "List out the dates that users who are located in Rochester, NY obtained their badges?"
+    messages:
+      - role: user
+        content: |
+          List out the dates that users who are located in Rochester, NY obtained their badges?
+          Evidence: "Rochester, NY" is the Location of user; user refers to UserId
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_613.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

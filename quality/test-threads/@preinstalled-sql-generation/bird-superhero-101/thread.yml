@@ -1,0 +1,35 @@
+name: bird-superhero-101
+description: "BIRD Q817 (moderate): Give the race of the blue-haired male superhero."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-817
+    description: "Give the race of the blue-haired male superhero."
+    messages:
+      - role: user
+        content: |
+          Give the race of the blue-haired male superhero.
+          Evidence:  
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_817.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

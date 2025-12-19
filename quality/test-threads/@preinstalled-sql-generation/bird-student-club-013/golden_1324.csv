@@ -1,0 +1,2 @@
+CAST(COUNT(T2.link_to_event) AS REAL) / COUNT(DISTINCT T2.link_to_event)
+4.0

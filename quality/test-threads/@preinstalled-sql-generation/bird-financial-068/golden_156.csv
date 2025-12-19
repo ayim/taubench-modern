@@ -1,0 +1,2 @@
+client_id,gender,age,district_name,region,loan_amount,loan_id,transaction_count,total_income,total_expense,savings_rate_pct,age_category,area_status
+9340,M,58,Brno - mesto,south Moravia,590820,6534,220,579715,515000,11.16,Senior,High unemployment area

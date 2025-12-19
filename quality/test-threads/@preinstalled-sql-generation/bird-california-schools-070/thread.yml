@@ -1,0 +1,35 @@
+name: bird-california-schools-070
+description: "BIRD Q69 (challenging): For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-69
+    description: "For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest."
+    messages:
+      - role: user
+        content: |
+          For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest.
+          Evidence: State Special Schools refers to DOCType = 'State Special Schools'; School Ownership Code starting with 3 means SOC = '31' OR SOC LIKE '3%'; Poverty classification is based on Percent (%) Eligible FRPM (K-12) where >75% is High Poverty, >50% is Medium Poverty, >25% is Low Poverty, otherwise Very Low Poverty
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_69.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-superhero-102
+description: "BIRD Q818 (challenging): Among the bad superheroes, what is the percentage of female superheroes?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-818
+    description: "Among the bad superheroes, what is the percentage of female superheroes?"
+    messages:
+      - role: user
+        content: |
+          Among the bad superheroes, what is the percentage of female superheroes?
+          Evidence: bad superheroes refers to alignment.id = 2; percentage = MULTIPLY(DIVIDE(SUM(gender.id = 2 WHERE alignment.id = 2), COUNT(alignment.id = 2)), 100.0); female refers to gender.id = 2;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_818.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-104
+description: "BIRD Q634 (challenging): Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-634
+    description: "Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?"
+    messages:
+      - role: user
+        content: |
+          Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?
+          Evidence: Has higher popularity means the post has higher view count ; calculation = MAX(SUM(ViewCount)) where DisplayName = 'Harvey Motulsky' OR DisplayName = 'Noah Snyder';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_634.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

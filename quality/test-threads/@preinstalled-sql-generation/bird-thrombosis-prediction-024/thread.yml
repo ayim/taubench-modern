@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-024
+description: "BIRD Q1172 (simple): How many male patients have elevated total bilirubin count?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1172
+    description: "How many male patients have elevated total bilirubin count?"
+    messages:
+      - role: user
+        content: |
+          How many male patients have elevated total bilirubin count?
+          Evidence: male refers to SEX = 'M'; elevated means above the normal range; total bilirubin above the normal range refers to `T-BIL` >= '2.0'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1172.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

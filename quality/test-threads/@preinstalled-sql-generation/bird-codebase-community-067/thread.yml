@@ -1,0 +1,35 @@
+name: bird-codebase-community-067
+description: "BIRD Q597 (simple): How many users from India have the teacher badges?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-597
+    description: "How many users from India have the teacher badges?"
+    messages:
+      - role: user
+        content: |
+          How many users from India have the teacher badges?
+          Evidence: 'India' is the Location; 'Teacher' is the Name of badge
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_597.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

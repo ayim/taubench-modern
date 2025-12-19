@@ -1,0 +1,35 @@
+name: bird-toxicology-002
+description: "BIRD Q196 (challenging): For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-196
+    description: "For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?"
+    messages:
+      - role: user
+        content: |
+          For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?
+          Evidence: non-carcinogenic molecules refers to label = '-'; chlorine atoms refers to element = 'cl'; single bonds refers to bond_type = '-'; double bonds refers to bond_type = '='
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_196.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

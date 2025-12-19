@@ -1,0 +1,35 @@
+name: bird-student-club-083
+description: "BIRD Q1394 (simple): How many members of the Student_Club have major in 'Physics Teaching'?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1394
+    description: "How many members of the Student_Club have major in 'Physics Teaching'?"
+    messages:
+      - role: user
+        content: |
+          How many members of the Student_Club have major in 'Physics Teaching'?
+          Evidence: 'Physics Teaching' is the major_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1394.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

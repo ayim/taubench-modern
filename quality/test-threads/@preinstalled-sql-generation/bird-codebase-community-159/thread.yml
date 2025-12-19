@@ -1,0 +1,35 @@
+name: bird-codebase-community-159
+description: "BIRD Q689 (simple): Identify the display name and location of the user, who was the last to edit the post with ID 183."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-689
+    description: "Identify the display name and location of the user, who was the last to edit the post with ID 183."
+    messages:
+      - role: user
+        content: |
+          Identify the display name and location of the user, who was the last to edit the post with ID 183.
+          Evidence: last to edit refers to MAX(LastEditDate);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_689.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

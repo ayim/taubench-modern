@@ -1,0 +1,35 @@
+name: bird-financial-001
+description: "BIRD Q89 (moderate): How many accounts who choose issuance after transaction are staying in East Bohemia region?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-89
+    description: "How many accounts who choose issuance after transaction are staying in East Bohemia region?"
+    messages:
+      - role: user
+        content: |
+          How many accounts who choose issuance after transaction are staying in East Bohemia region?
+          Evidence: A3 contains the data of region; 'POPLATEK PO OBRATU' represents for 'issuance after transaction'.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_89.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

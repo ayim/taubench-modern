@@ -1,0 +1,35 @@
+name: bird-european-football-2-105
+description: "BIRD Q1124 (moderate): Who are the players that tend to be attacking when their mates were doing attack moves? List down their name."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1124
+    description: "Who are the players that tend to be attacking when their mates were doing attack moves? List down their name."
+    messages:
+      - role: user
+        content: |
+          Who are the players that tend to be attacking when their mates were doing attack moves? List down their name.
+          Evidence: tend to be attacking when their mates were doing attack moves refers to attacking_work_rate = 'high';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1124.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

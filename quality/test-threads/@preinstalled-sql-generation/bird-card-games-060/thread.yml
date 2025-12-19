@@ -1,0 +1,37 @@
+name: bird-card-games-060
+description: "BIRD Q399 (simple): Lists all types of cards available in arena."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-399
+    description: "Lists all types of cards available in arena."
+    messages:
+      - role: user
+        content: |
+          Lists all types of cards available in arena.
+          Evidence: all types refer to subtypes and supertypes
+          
+          availble in arena refers to availability = 'arena'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_399.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

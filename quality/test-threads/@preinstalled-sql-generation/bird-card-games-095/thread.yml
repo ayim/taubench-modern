@@ -1,0 +1,35 @@
+name: bird-card-games-095
+description: "BIRD Q434 (moderate): How many sets are available just in Japanese and not in Magic: The Gathering Online?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-434
+    description: "How many sets are available just in Japanese and not in Magic: The Gathering Online?"
+    messages:
+      - role: user
+        content: |
+          How many sets are available just in Japanese and not in Magic: The Gathering Online?
+          Evidence: Japanese refers to language = 'Japanese'; not in Magic: The Gathering Online refers to mtgoCode is null or mtgoCode = ''
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_434.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

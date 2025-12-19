@@ -1,0 +1,35 @@
+name: bird-superhero-080
+description: "BIRD Q796 (moderate): State all of 3-D Man's attributes along with their values."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-796
+    description: "State all of 3-D Man's attributes along with their values."
+    messages:
+      - role: user
+        content: |
+          State all of 3-D Man's attributes along with their values.
+          Evidence: 3-D Man is the superhero_name. attributes refers to attribute_name; values refers to attribute_value;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_796.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-toxicology-135
+description: "BIRD Q329 (moderate): Which carcinogenic molecule have the highest number of atoms consisted in it?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-329
+    description: "Which carcinogenic molecule have the highest number of atoms consisted in it?"
+    messages:
+      - role: user
+        content: |
+          Which carcinogenic molecule have the highest number of atoms consisted in it?
+          Evidence: label = '+' mean molecules are carcinogenic; molecule that have the highest number of atoms consisted in in refers to MAX(COUNT(atom.molecule_id))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_329.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

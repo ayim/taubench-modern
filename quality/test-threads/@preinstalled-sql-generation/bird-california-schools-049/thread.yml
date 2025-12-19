@@ -1,0 +1,37 @@
+name: bird-california-schools-049
+description: "BIRD Q48 (moderate): What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-48
+    description: "What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?"
+    messages:
+      - role: user
+        content: |
+          What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?
+          Evidence: Elementary School District refers to DOC = 52; Unified School District refers to DOC = 54.
+          
+          Ratio refers to number of merged Unified School District schools in Orange County / number of merged Elementary School District schools
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_48.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

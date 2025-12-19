@@ -1,0 +1,35 @@
+name: bird-financial-034
+description: "BIRD Q122 (challenging): For loan ID 4990, provide a comprehensive profile including the borrower's demographics, loan details with status description, district economic indicators, and how this loan ranks among other loans in the same district."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-122
+    description: "For loan ID 4990, provide a comprehensive profile including the borrower's demographics, loan details with status description, district economic indicators, and how this loan ranks among other loans in the same district."
+    messages:
+      - role: user
+        content: |
+          For loan ID 4990, provide a comprehensive profile including the borrower's demographics, loan details with status description, district economic indicators, and how this loan ranks among other loans in the same district.
+          Evidence: Status descriptions: A = Running - OK, B = Running - Issues, C = Finished - No Issues, D = Finished - Issues. Problematic loans are those with status B or D. District information includes A2 for district name, A3 for region, A11 for average salary, and A12 for unemployment rate in 1995.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_122.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

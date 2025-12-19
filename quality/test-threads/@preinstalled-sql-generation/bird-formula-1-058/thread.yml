@@ -1,0 +1,35 @@
+name: bird-formula-1-058
+description: "BIRD Q903 (moderate): How many times did Michael Schumacher won from races hosted in Sepang International Circuit?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-903
+    description: "How many times did Michael Schumacher won from races hosted in Sepang International Circuit?"
+    messages:
+      - role: user
+        content: |
+          How many times did Michael Schumacher won from races hosted in Sepang International Circuit?
+          Evidence: win from races refers to max(points)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_903.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

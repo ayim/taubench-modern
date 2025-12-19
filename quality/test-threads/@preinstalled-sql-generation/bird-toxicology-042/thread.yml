@@ -1,0 +1,35 @@
+name: bird-toxicology-042
+description: "BIRD Q236 (moderate): What are the bond type and the atoms of the bond ID of TR001_6_9?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-236
+    description: "What are the bond type and the atoms of the bond ID of TR001_6_9?"
+    messages:
+      - role: user
+        content: |
+          What are the bond type and the atoms of the bond ID of TR001_6_9?
+          Evidence: atoms refer to atom_id or atom_id2
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_236.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

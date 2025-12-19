@@ -1,0 +1,35 @@
+name: bird-student-club-066
+description: "BIRD Q1377 (simple): How many student have the position of president?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1377
+    description: "How many student have the position of president?"
+    messages:
+      - role: user
+        content: |
+          How many student have the position of president?
+          Evidence: 'President' is a position of Student Club
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1377.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

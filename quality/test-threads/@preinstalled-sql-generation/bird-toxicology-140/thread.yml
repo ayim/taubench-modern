@@ -1,0 +1,35 @@
+name: bird-toxicology-140
+description: "BIRD Q334 (challenging): What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-334
+    description: "What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?
+          Evidence: A non-carcinogenic molecule is labeled as '-'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_334.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

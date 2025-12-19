@@ -1,0 +1,35 @@
+name: bird-financial-055
+description: "BIRD Q143 (challenging): For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-143
+    description: "For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance."
+    messages:
+      - role: user
+        content: |
+          For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance.
+          Evidence: Transaction income refers to type = 'PRIJEM'; transaction expense refers to type = 'VYDAJ'; good loans refers to status = 'A'; bad loans refers to status = 'B'.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_143.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

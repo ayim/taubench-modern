@@ -1,0 +1,2 @@
+CAST(SUM(CASE WHEN skin_colour_id = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(*)
+0.908

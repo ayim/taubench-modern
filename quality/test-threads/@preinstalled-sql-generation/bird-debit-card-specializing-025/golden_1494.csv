@@ -1,0 +1,2 @@
+"CAST(SUM(IIF(Segment = 'Premium', 1, 0)) AS FLOAT) * 100 / COUNT(GasStationID)"
+35.68181818181818

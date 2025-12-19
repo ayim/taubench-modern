@@ -1,0 +1,34 @@
+name: bird-student-club-063
+description: "BIRD Q1374 (simple): How many events did the member with the phone number \"954-555-6240\" attend?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1374
+    description: "How many events did the member with the phone number \"954-555-6240\" attend?"
+    messages:
+      - role: user
+        content: |
+          How many events did the member with the phone number "954-555-6240" attend?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1374.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

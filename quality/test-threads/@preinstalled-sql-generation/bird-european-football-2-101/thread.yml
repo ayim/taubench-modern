@@ -1,0 +1,35 @@
+name: bird-european-football-2-101
+description: "BIRD Q1120 (moderate): Sum up the away team goal scored by both Daan Smith and Filipe Ferreira."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1120
+    description: "Sum up the away team goal scored by both Daan Smith and Filipe Ferreira."
+    messages:
+      - role: user
+        content: |
+          Sum up the away team goal scored by both Daan Smith and Filipe Ferreira.
+          Evidence: Sum the away-team goals in matches where either player appears for the away team.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1120.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

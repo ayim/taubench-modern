@@ -1,0 +1,36 @@
+name: bird-card-games-054
+description: "BIRD Q393 (simple): On how many cards designed by John Avon is its foil non-powerful?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-393
+    description: "On how many cards designed by John Avon is its foil non-powerful?"
+    messages:
+      - role: user
+        content: |
+          On how many cards designed by John Avon is its foil non-powerful?
+          Evidence: John Avon refer to artist; foil poweful foils refers to cardKingdomId and cardKingdomFoildId is NOT NULL 
+          
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_393.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

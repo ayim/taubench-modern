@@ -1,0 +1,35 @@
+name: bird-superhero-012
+description: "BIRD Q728 (moderate): Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-728
+    description: "Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color."
+    messages:
+      - role: user
+        content: |
+          Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color.
+          Evidence: the superheroes from Marvel Comics refers to publisher_name = 'Marvel Comics'; most common color refers to COUNT(superhero.id) DESC;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_728.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

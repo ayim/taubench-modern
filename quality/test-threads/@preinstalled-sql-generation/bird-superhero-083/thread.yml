@@ -1,0 +1,35 @@
+name: bird-superhero-083
+description: "BIRD Q799 (simple): How many superheroes didn't have any publisher?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-799
+    description: "How many superheroes didn't have any publisher?"
+    messages:
+      - role: user
+        content: |
+          How many superheroes didn't have any publisher?
+          Evidence: didn't have any publisher refers to publisher.id = 1;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_799.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

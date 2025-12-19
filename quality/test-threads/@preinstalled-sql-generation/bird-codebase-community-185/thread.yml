@@ -1,0 +1,35 @@
+name: bird-codebase-community-185
+description: "BIRD Q715 (simple): In comments with score between 1 to 5, list down the display names of the users with 0 down votes."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-715
+    description: "In comments with score between 1 to 5, list down the display names of the users with 0 down votes."
+    messages:
+      - role: user
+        content: |
+          In comments with score between 1 to 5, list down the display names of the users with 0 down votes.
+          Evidence: DownVotes = 0; Score BETWEEN 1 and 5
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_715.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

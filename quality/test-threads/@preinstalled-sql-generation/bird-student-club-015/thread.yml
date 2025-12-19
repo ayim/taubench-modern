@@ -1,0 +1,36 @@
+name: bird-student-club-015
+description: "BIRD Q1326 (simple): How many members of the Student_Club have majored Environmental Engineering? "
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1326
+    description: "How many members of the Student_Club have majored Environmental Engineering? "
+    messages:
+      - role: user
+        content: |
+          How many members of the Student_Club have majored Environmental Engineering?
+          
+          Evidence: 'Environmental Engineering' is the major name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1326.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

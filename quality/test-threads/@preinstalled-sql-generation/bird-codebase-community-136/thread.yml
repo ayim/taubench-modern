@@ -1,0 +1,35 @@
+name: bird-codebase-community-136
+description: "BIRD Q666 (simple): Among the posts that were voted by user 1465, what is the id of the most valuable post?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-666
+    description: "Among the posts that were voted by user 1465, what is the id of the most valuable post?"
+    messages:
+      - role: user
+        content: |
+          Among the posts that were voted by user 1465, what is the id of the most valuable post?
+          Evidence: user 1465 refers to UserId = 1465; the most valuable post refers to MAX(FavoriteCount);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_666.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-toxicology-022
+description: "BIRD Q216 (simple): Identify all connected atoms with a triple bond."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-216
+    description: "Identify all connected atoms with a triple bond."
+    messages:
+      - role: user
+        content: |
+          Identify all connected atoms with a triple bond.
+          Evidence: triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_216.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

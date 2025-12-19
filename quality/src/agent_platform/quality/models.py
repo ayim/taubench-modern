@@ -370,6 +370,7 @@ class TestCase:
     trials: int = field(default=1)
     metrics: list[Metric] = field(default_factory=list)
     timeout_seconds: float | None = None
+    difficulty: str | None = None  # e.g., "simple", "moderate", "challenging"
 
     @property
     def test_directory(self) -> Path:
@@ -593,6 +594,7 @@ class TestCase:
             sf_auth_override=sf_auth_override,
             workitem=workitem,
             sdms=sdms,
+            difficulty=data.get("difficulty"),
         )
 
 

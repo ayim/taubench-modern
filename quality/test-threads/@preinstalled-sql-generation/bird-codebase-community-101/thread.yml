@@ -1,0 +1,35 @@
+name: bird-codebase-community-101
+description: "BIRD Q631 (simple): How many posts were created by Daniel Vassallo?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-631
+    description: "How many posts were created by Daniel Vassallo?"
+    messages:
+      - role: user
+        content: |
+          How many posts were created by Daniel Vassallo?
+          Evidence: DisplayName = 'Daniel Vassallo';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_631.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-162
+description: "BIRD Q692 (moderate): How long did it take the user, known by his or her display name 'Zolomon' to get the badge? Count from the date the user's account was created."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-692
+    description: "How long did it take the user, known by his or her display name 'Zolomon' to get the badge? Count from the date the user's account was created."
+    messages:
+      - role: user
+        content: |
+          How long did it take the user, known by his or her display name 'Zolomon' to get the badge? Count from the date the user's account was created.
+          Evidence: SUBTRACT(Date from stats_badges, CreationDate) where DisplayName = 'Zolomon';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_692.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

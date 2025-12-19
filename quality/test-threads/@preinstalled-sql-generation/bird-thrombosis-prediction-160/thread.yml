@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-160
+description: "BIRD Q1308 (moderate): Among the patients who have a normal platelet level, how many of them have other symptoms observed?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1308
+    description: "Among the patients who have a normal platelet level, how many of them have other symptoms observed?"
+    messages:
+      - role: user
+        content: |
+          Among the patients who have a normal platelet level, how many of them have other symptoms observed?
+          Evidence: normal platelet level refers to PLT > 100 and PLT < 400; have other symptoms refers to Diagnosis is not null;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1308.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

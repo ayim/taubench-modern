@@ -1,0 +1,35 @@
+name: bird-toxicology-036
+description: "BIRD Q230 (challenging): What are the elements of molecule TR060 and its label?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-230
+    description: "What are the elements of molecule TR060 and its label?"
+    messages:
+      - role: user
+        content: |
+          What are the elements of molecule TR060 and its label?
+          Evidence: TR060 is the molecule id; 
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_230.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

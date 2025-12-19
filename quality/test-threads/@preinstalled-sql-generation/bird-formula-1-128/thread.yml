@@ -1,0 +1,35 @@
+name: bird-formula-1-128
+description: "BIRD Q973 (moderate): List out top 10 Spanish drivers who were born before 1982 and have the latest lap time."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-973
+    description: "List out top 10 Spanish drivers who were born before 1982 and have the latest lap time."
+    messages:
+      - role: user
+        content: |
+          List out top 10 Spanish drivers who were born before 1982 and have the latest lap time.
+          Evidence: born before 1982 refers to year(dob) < 1982; latest lap time refers to Max(time);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_973.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

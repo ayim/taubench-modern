@@ -1,0 +1,35 @@
+name: bird-financial-085
+description: "BIRD Q173 (challenging): How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-173
+    description: "How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?"
+    messages:
+      - role: user
+        content: |
+          How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?
+          Evidence: k_symbol refers to the purpose of payments
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_173.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

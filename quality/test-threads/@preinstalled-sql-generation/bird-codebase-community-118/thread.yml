@@ -1,0 +1,35 @@
+name: bird-codebase-community-118
+description: "BIRD Q648 (simple): Provide the users' display names and available website URLs of the post with favorite count of more than 150."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-648
+    description: "Provide the users' display names and available website URLs of the post with favorite count of more than 150."
+    messages:
+      - role: user
+        content: |
+          Provide the users' display names and available website URLs of the post with favorite count of more than 150.
+          Evidence: favorite count of more than 150 refers to FavoriteCount > 150;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_648.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

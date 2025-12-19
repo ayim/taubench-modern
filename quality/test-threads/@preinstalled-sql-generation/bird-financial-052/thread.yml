@@ -1,0 +1,35 @@
+name: bird-financial-052
+description: "BIRD Q140 (challenging): What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-140
+    description: "What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?"
+    messages:
+      - role: user
+        content: |
+          What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?
+          Evidence: Active loans refer to status = 'A'; PRIJEM refers to deposits; VYDAJ refers to withdrawals; account owners refer to disposition type = 'OWNER'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_140.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-toxicology-063
+description: "BIRD Q257 (simple): List down atom id2 for atoms with element sulfur."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-257
+    description: "List down atom id2 for atoms with element sulfur."
+    messages:
+      - role: user
+        content: |
+          List down atom id2 for atoms with element sulfur.
+          Evidence: element sulfur refers to element = 's'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_257.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

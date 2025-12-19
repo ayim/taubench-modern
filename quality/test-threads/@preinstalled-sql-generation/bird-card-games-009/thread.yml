@@ -1,0 +1,35 @@
+name: bird-card-games-009
+description: "BIRD Q348 (simple): Describe the information about rulings for card named 'Sublime Epiphany' with number 74s."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-348
+    description: "Describe the information about rulings for card named 'Sublime Epiphany' with number 74s."
+    messages:
+      - role: user
+        content: |
+          Describe the information about rulings for card named 'Sublime Epiphany' with number 74s.
+          Evidence: Sublime Epiphany' is name of cards; number 74s refers to number = '74s'; information refers to text;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_348.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-063
+description: "BIRD Q1211 (moderate): Provide the ID and age of patient with lactate dehydrogenase (LDH) between 100-300 index above the normal range."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1211
+    description: "Provide the ID and age of patient with lactate dehydrogenase (LDH) between 100-300 index above the normal range."
+    messages:
+      - role: user
+        content: |
+          Provide the ID and age of patient with lactate dehydrogenase (LDH) between 100-300 index above the normal range.
+          Evidence: age refers to SUBTRACT(year(current_timestamp), year(Birthday)); lactate dehydrogenase (LDH) between 100-300 index above the normal range refers to LDH between 600 and 800;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1211.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

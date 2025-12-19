@@ -1,0 +1,35 @@
+name: bird-card-games-088
+description: "BIRD Q427 (moderate): What languages are available in the set known as Archenemy on the magic card market and having the code ARC?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-427
+    description: "What languages are available in the set known as Archenemy on the magic card market and having the code ARC?"
+    messages:
+      - role: user
+        content: |
+          What languages are available in the set known as Archenemy on the magic card market and having the code ARC?
+          Evidence: known as Archenemy refers to mcmName = 'Archenemy'; having the code ARC refers to setCode = 'ARC'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_427.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -150,11 +150,12 @@ class PostgresContainerManager:
         from psycopg import sql
 
         log = structlog.get_logger(__name__)
+        statements = _split_sql_statements(sql_text)
         try:
             with connection.cursor() as cur:
                 if connection_info.schema:
                     cur.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(connection_info.schema)))
-                for statement in _split_sql_statements(sql_text):
+                for statement in statements:
                     cur.execute(statement)
         except Exception:
             log.exception(
@@ -189,5 +190,48 @@ class PostgresContainerManager:
 
 
 def _split_sql_statements(sql_text: str) -> list[bytes]:
-    """Split a SQL script into individual statements, preserving order, and encoding as bytes."""
-    return [statement.strip().encode("utf-8") for statement in sql_text.split(";") if statement.strip()]
+    """Split a SQL script into individual statements, preserving order, and encoding as bytes.
+
+    Properly handles:
+    - String literals (single quotes) with escaped quotes ('')
+    - Semicolons inside string literals
+    - Comments are kept as part of statements
+    """
+    statements = []
+    current_statement = []
+    in_string = False
+    i = 0
+
+    while i < len(sql_text):
+        char = sql_text[i]
+
+        # Track string literal state
+        if char == "'" and not in_string:
+            in_string = True
+            current_statement.append(char)
+        elif char == "'" and in_string:
+            # Check if this is an escaped quote ('')
+            if i + 1 < len(sql_text) and sql_text[i + 1] == "'":
+                current_statement.append("''")
+                i += 1  # Skip the next quote
+            else:
+                # End of string literal
+                in_string = False
+                current_statement.append(char)
+        elif char == ";" and not in_string:
+            # Statement terminator outside of string - split here
+            stmt = "".join(current_statement).strip()
+            if stmt:
+                statements.append(stmt.encode("utf-8"))
+            current_statement = []
+        else:
+            current_statement.append(char)
+
+        i += 1
+
+    # Add final statement if exists
+    final_stmt = "".join(current_statement).strip()
+    if final_stmt:
+        statements.append(final_stmt.encode("utf-8"))
+
+    return statements

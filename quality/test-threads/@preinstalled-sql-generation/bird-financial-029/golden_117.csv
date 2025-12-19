@@ -1,0 +1,9 @@
+region,paid_amount_percentage,successful_loans_percentage,successful_loans,total_loans,paid_amount,total_amount,avg_interest_paid_successful,avg_interest_paid_all,overall_percentage
+west Bohemia,23.79,29.82,17,57,1850412,7779384,0.0,0.0,18.02
+Prague,23.09,40.48,34,84,2985540,12932412,0.0,0.0,18.02
+north Bohemia,21.6,31.15,19,61,1617432,7486620,0.0,0.0,18.02
+south Bohemia,20.34,30.0,18,60,1906620,9374136,0.0,0.0,18.02
+north Moravia,17.96,29.91,35,117,3247776,18081312,0.0,0.0,18.02
+central Bohemia,16.78,28.89,26,90,2347260,13985304,0.0,0.0,18.02
+south Moravia,14.81,27.13,35,129,2913936,19678848,0.0,0.0,18.02
+east Bohemia,12.44,22.62,19,84,1734240,13943724,0.0,0.0,18.02

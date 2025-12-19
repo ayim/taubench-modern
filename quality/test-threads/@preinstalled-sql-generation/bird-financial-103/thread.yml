@@ -1,0 +1,35 @@
+name: bird-financial-103
+description: "BIRD Q191 (challenging): What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-191
+    description: "What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?"
+    messages:
+      - role: user
+        content: |
+          What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?
+          Evidence: Weekly statement issuance refers to frequency = 'POPLATEK TYDNE'. Loan status: A = contract finished no problems, B = contract finished loan not paid, C = running contract OK so far, D = running contract client in debt.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_191.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

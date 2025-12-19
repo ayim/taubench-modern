@@ -1,0 +1,35 @@
+name: bird-financial-104
+description: "BIRD Q192 (moderate): What is the average amount of loan which are still on running contract with statement issuance after each transaction?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-192
+    description: "What is the average amount of loan which are still on running contract with statement issuance after each transaction?"
+    messages:
+      - role: user
+        content: |
+          What is the average amount of loan which are still on running contract with statement issuance after each transaction?
+          Evidence: status = 'C' stands for running contract, OK so far; status = 'D' stands for running contract, client in debt. 'POPLATEK PO OBRATU' stands for issuance after transaction
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_192.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

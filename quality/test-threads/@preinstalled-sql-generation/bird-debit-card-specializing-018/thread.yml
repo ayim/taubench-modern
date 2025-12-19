@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-018
+description: "BIRD Q1487 (moderate): Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1487
+    description: "Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?"
+    messages:
+      - role: user
+        content: |
+          Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?
+          Evidence: October 2013 refers to 201310 in the yearmonth.date
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1487.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

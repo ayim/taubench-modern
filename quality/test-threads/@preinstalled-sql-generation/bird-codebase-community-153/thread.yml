@@ -1,0 +1,35 @@
+name: bird-codebase-community-153
+description: "BIRD Q683 (moderate): What is the percentage of posts whose owners had a reputation of over 1000 in 2011?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-683
+    description: "What is the percentage of posts whose owners had a reputation of over 1000 in 2011?"
+    messages:
+      - role: user
+        content: |
+          What is the percentage of posts whose owners had a reputation of over 1000 in 2011?
+          Evidence: percentage = DIVIDE(COUNT(Id where YEAR(CreationDate) = 2011 and Reputation > 1000), COUNT(Id) ) * 100;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_683.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

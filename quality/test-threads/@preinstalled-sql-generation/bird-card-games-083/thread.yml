@@ -1,0 +1,35 @@
+name: bird-card-games-083
+description: "BIRD Q422 (simple): What is the language of the card with the multiverse number 149934?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-422
+    description: "What is the language of the card with the multiverse number 149934?"
+    messages:
+      - role: user
+        content: |
+          What is the language of the card with the multiverse number 149934?
+          Evidence: multiverse number 149934 refers to multiverseid = 149934;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_422.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

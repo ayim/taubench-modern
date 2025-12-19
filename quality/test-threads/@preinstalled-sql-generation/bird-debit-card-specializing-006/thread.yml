@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-006
+description: "BIRD Q1475 (moderate): How many customers in KAM had a consumption of less than 30,000 for the year 2012?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1475
+    description: "How many customers in KAM had a consumption of less than 30,000 for the year 2012?"
+    messages:
+      - role: user
+        content: |
+          How many customers in KAM had a consumption of less than 30,000 for the year 2012?
+          Evidence: Year 2012 can be presented as Between 201201 And 201212, which means between January and December in 2012
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1475.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

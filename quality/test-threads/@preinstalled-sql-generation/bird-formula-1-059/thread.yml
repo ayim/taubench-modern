@@ -1,0 +1,35 @@
+name: bird-formula-1-059
+description: "BIRD Q904 (moderate): State the race and year of race in which Michael Schumacher had his fastest lap."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-904
+    description: "State the race and year of race in which Michael Schumacher had his fastest lap."
+    messages:
+      - role: user
+        content: |
+          State the race and year of race in which Michael Schumacher had his fastest lap.
+          Evidence: fastest lap refers to min(milliseconds); Michael Schumacher refers to the full name of the driver; Full name of the driver refers to drivers.forename and drivers.surname;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_904.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

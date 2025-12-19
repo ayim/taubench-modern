@@ -1,0 +1,35 @@
+name: bird-european-football-2-048
+description: "BIRD Q1067 (moderate): Which teams have build up play passing more than 70? Please list their short names."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1067
+    description: "Which teams have build up play passing more than 70? Please list their short names."
+    messages:
+      - role: user
+        content: |
+          Which teams have build up play passing more than 70? Please list their short names.
+          Evidence: build up play passing refers to buildUpPlayPassing; buildUpPlayPassing > 70; short names refers to team_short_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1067.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

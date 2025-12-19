@@ -1,0 +1,35 @@
+name: bird-european-football-2-109
+description: "BIRD Q1128 (simple): Which country has the highest average weight among all players who participated in matches in that country?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1128
+    description: "Which country has the highest average weight among all players who participated in matches in that country?"
+    messages:
+      - role: user
+        content: |
+          Which country has the highest average weight among all players who participated in matches in that country?
+          Evidence: Players are associated with countries through the matches they played in that country's league. All 22 players (11 home and 11 away) from each match should be considered.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1128.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

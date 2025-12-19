@@ -1,0 +1,114 @@
+text,CASE WHEN T1.hasContentWarning = 1 THEN 'YES' ELSE 'NO' END
+"If Oubliette leaves the battlefield before its triggered ability resolves, the target creature won’t be phased out or tapped.",NO
+"While a permanent is phased out, it’s treated as though it doesn’t exist. It can’t be the target of spells or abilities, its static abilities have no effect on the game, its triggered abilities can’t trigger, it can’t attack or block, and so on.",NO
+"Phasing out doesn’t cause any “leaves the battlefield” abilities to trigger. Similarly, phasing in won’t cause any “enters the battlefield” abilities to trigger.",NO
+"Any one-shot effects that are waiting “until [this] leaves the battlefield,” such as that of Kitesail Freebooter, won’t happen when a permanent phases out.",NO
+Any continuous effects with a “for as long as” duration such as that of Awakener Druid ignore phased-out objects. Any such effects will expire if their conditions are no longer met after ignoring the phased-out objects.,NO
+"Each Aura and Equipment attached to a permanent that’s phasing out also phases out. They will phase in with that permanent and still be attached to it. Similarly, permanents that phase out with counters phase in with those counters.",NO
+Choices made for permanents as they entered the battlefield are remembered when they phase in.,NO
+"A creature phased out by Oubliette doesn’t phase in during its controller’s untap step as normal. Rather, it phases in immediately after Oubliette leaves the battlefield.",NO
+Abilities that trigger when a creature becomes tapped won’t trigger when the creature phases in tapped.,NO
+"If a nonbasic land has an ability that causes it to enter the battlefield tapped, it will lose that ability before it applies. The same is also true of any other abilities that modify how a land enters the battlefield or apply “as” a land enters the battl",NO
+Nonbasic lands will lose any other land types and abilities they had. They will gain the land type Mountain and gain the ability “{T}: Add {R}.”,NO
+"This effect doesn’t affect names or supertypes. It won’t turn any land into a basic land or remove the legendary supertype from a legendary land, and the lands won’t be named “Mountain.”",NO
+"If a nonbasic land has an ability that triggers “when” it enters the battlefield, it will lose that ability before it triggers.",NO
+It can only make itself into a creature during combat phases and therefore it is difficult to get Auras placed on it.,NO
+"A delayed triggered ability that refers to Jade Statue still affects it even if it’s no longer a creature. For example, if Jade Statue blocks the Kashi-Tribe Warriors (“Whenever Kashi-Tribe Warriors deals combat damage to a creature, tap that creature and",NO
+"If Jade Statue’s ability has been activated, abilities that trigger “at end of combat” will see Jade Statue as an artifact creature.",NO
+"A noncreature permanent that turns into a creature can attack, and its {T} abilities can be activated, only if its controller has continuously controlled that permanent since the beginning of their most recent turn. It doesn’t matter how long the permanen",NO
+"If Jade Statue is animated by some other effect, you get an artifact creature with whatever power, toughness, and creature types (if any) are specified by that effect. If you subsequently use Jade Statue’s ability during combat, it will become 3/6 and gai",NO
+"Each other creature copies the printed values of the targeted creature, plus any copy effects that have been applied to that creature. They won’t copy other effects that have changed the targeted creature’s power, toughness, types, color, or so on. They a",NO
+"If the targeted creature is itself copying a creature, each other creature will become whatever it’s copying, as modified by that copy effect. For example, if you target a Cemetery Puca that’s copying a Grizzly Bears (a 2/2 creature with no abilities), ea",NO
+"This effect can cause each other creature to stop being a creature. For example, if you target an animated Mutavault (a land with an activated ability that turns it into a creature), only the printed wording will be copied — the “becomes a creature” effec",NO
+"Noncopy effects that have already applied to the other creatures will continue to apply to them. For example, if Giant Growth had given one of them +3/+3 earlier in the turn, then Mirrorweave made it a copy of Grizzly Bears, it will be a 5/5 Grizzly Bears",NO
+"If the targeted creature is a token, each other creature copies the original characteristics of that token as stated by the effect that put it onto the battlefield. Those creatures don’t become tokens.",NO
+"As the turn ends, the other creatures revert to what they were before. If two Mirrorweaves are cast on the same turn, they’ll both wear off at the same time.",NO
+"Each other creature copies the printed values of the targeted creature, plus any copy effects that have been applied to that creature. They won’t copy other effects that have changed the targeted creature’s power, toughness, types, color, or so on. They a",NO
+"If the targeted creature is itself copying a creature, each other creature will become whatever it’s copying, as modified by that copy effect. For example, if you target a Cemetery Puca that’s copying a Grizzly Bears (a 2/2 creature with no abilities), ea",NO
+"This effect can cause each other creature to stop being a creature. For example, if you target an animated Mutavault (a land with an activated ability that turns it into a creature), only the printed wording will be copied — the “becomes a creature” effec",NO
+"Noncopy effects that have already applied to the other creatures will continue to apply to them. For example, if Giant Growth had given one of them +3/+3 earlier in the turn, then Mirrorweave made it a copy of Grizzly Bears, it will be a 5/5 Grizzly Bears",NO
+"If the targeted creature is a token, each other creature copies the original characteristics of that token as stated by the effect that put it onto the battlefield. Those creatures don’t become tokens.",NO
+"As the turn ends, the other creatures revert to what they were before. If two Mirrorweaves are cast on the same turn, they’ll both wear off at the same time.",NO
+"Panglacial Wurm’s ability works only while you’re searching your own library. The effect that caused you to search needs to say “search” and “library,” and you need to be looking through your own library for this to work. Examples of effects that let you ",NO
+"Casting Panglacial Wurm while searching your library follows all the normal rules for casting a creature spell, except for timing (casting the Wurm this way always occurs during the resolution of another spell or ability) and what zone the Wurm is being c",NO
+"After you cast Panglacial Wurm, you pick up the search effect where you left off. When the search effect finishes resolving, the active player gets priority with Panglacial Wurm on the stack. Any abilities that triggered when the spell was cast are put on",NO
+"If you have enough mana, you can cast multiple Panglacial Wurms during a single search effect.",NO
+A Panglacial Wurm that you cast while searching your library can’t be found by the search effect.,NO
+"If you want to cast Panglacial Wurm while searching your library, you must do so before you find any cards with the search effect.",NO
+"While searching your library, you must keep your library in the same order until you shuffle it. This order could matter if you tap Millikin for mana, for example, to pay for a Panglacial Wurm you cast from your library.",NO
+"Casting a card by using its retrace ability works just like casting any other spell, with two exceptions: You’re casting it from your graveyard rather than your hand, and you must discard a land card in addition to any other costs.",NO
+A retrace card cast from your graveyard follows the normal timing rules for its card type.,NO
+"When a retrace card you cast from your graveyard resolves, fails to resolve, or is countered, it’s put back into your graveyard. You may use the retrace ability to cast it again.",NO
+"If the active player casts a spell that has retrace, that player may cast that card again after it resolves, before another player can remove the card from the graveyard. The active player has priority after the spell resolves, so they can immediately cas",NO
+"Waves of Aggression untaps all creatures that attacked this turn, not just those that attacked during the most recent combat phase.",NO
+"If it’s somehow not a main phase when Waves of Aggression resolves, all it does is untap all creatures that attacked that turn. No new phases are created.",NO
+"Panglacial Wurm’s ability works only while you’re searching your own library. The effect that caused you to search needs to say “search” and “library,” and you need to be looking through your own library for this to work. Examples of effects that let you ",NO
+"Casting Panglacial Wurm while searching your library follows all the normal rules for casting a creature spell, except for timing (casting the Wurm this way always occurs during the resolution of another spell or ability) and what zone the Wurm is being c",NO
+"After you cast Panglacial Wurm, you pick up the search effect where you left off. When the search effect finishes resolving, the active player gets priority with Panglacial Wurm on the stack. Any abilities that triggered when the spell was cast are put on",NO
+"If you have enough mana, you can cast multiple Panglacial Wurms during a single search effect.",NO
+A Panglacial Wurm that you cast while searching your library can’t be found by the search effect.,NO
+"If you want to cast Panglacial Wurm while searching your library, you must do so before you find any cards with the search effect.",NO
+"While searching your library, you must keep your library in the same order until you shuffle it. This order could matter if you tap Millikin for mana, for example, to pay for a Panglacial Wurm you cast from your library.",NO
+"Examples of creature types include Sliver, Goblin, and Soldier. Creature types appear after the dash on the type line of creatures.",NO
+The second ability checks how many creatures have been exiled with Colfenor’s Urn over the course of the entire game.,NO
+"The second ability forces you to sacrifice Colfenor’s Urn. If the ability triggers and the Urn isn’t sacrificed (because it left the battlefield or changed controllers, for example), the exiled cards won’t be returned to the battlefield.",NO
+"The first ability triggers when a token creature with toughness 4 or greater is put into your graveyard. However, that token will cease to exist before Colfenor’s Plans can exile it.",NO
+"Examples of creature types include Sliver, Goblin, and Soldier. Creature types appear after the dash on the type line of creatures.",NO
+The opponent you clash with doesn’t have to be the player targeted by Pulling Teeth.,NO
+Kinship is an ability word that indicates a group of similar triggered abilities that appear on _Morningtide_ creatures. It doesn’t have any special rules associated with it.,NO
+The first two sentences of every kinship ability are the same (except for the creature’s name). Only the last sentence varies from one kinship ability to the next.,NO
+"You don’t have to reveal the top card of your library, even if it shares a creature type with the creature that has the kinship ability.",NO
+"After the kinship ability finishes resolving, the card you looked at remains on top of your library.",NO
+"If you have multiple creatures with kinship abilities, each triggers and resolves separately. You’ll look at the same card for each one, unless you have some method of shuffling your library or moving that card to a different zone.",NO
+"If the top card of your library is already revealed (due to Magus of the Future, for example), you still have the option to reveal it or not as part of a kinship ability’s effect.",NO
+"Reins of the Vinesteed’s last ability triggers if it and the creature it’s enchanting are both put into the graveyard at the same time, or if the creature it’s enchanting is put into the graveyard but Reins of the Vinesteed isn’t. (In the second case, Rei",NO
+"As the triggered ability resolves, check which creatures on the battlefield have any of the creature types that the previously enchanted creature had as it left the battlefield. If that creature was a Goblin Rogue, for example, Reins of the Vinesteed can ",NO
+"This triggered ability doesn’t target a creature. You may return Reins of the Vinesteed to the battlefield attached to a creature that has shroud, for example. However, the creature must be able to be legally enchanted by Reins of the Vinesteed. You can’t",NO
+"You can choose to return Reins of the Vinesteed to the battlefield attached to a creature another player controls. You still control Reins of the Vinesteed. When that creature is put into a graveyard, the ability of Reins of the Vinesteed will trigger aga",NO
+The effect doesn’t wear off until just before your next untap step (even if an effect will cause that untap step to be skipped).,NO
+"This ability applies no matter who or what the damage would be dealt to: a creature, a player, or a planeswalker. It also doesn’t matter who controls the source.",NO
+"If multiple effects modify how damage will be dealt, the player who would be dealt damage or the controller of the permanent that would be dealt damage chooses the order to apply the effects. For example, Mending Hands says, “Prevent the next 4 damage tha",NO
+"If a spell or ability divides damage among multiple recipients (such as Fireball does), the damage is divided before this effect doubles it.",NO
+"A plane card is treated as if its text box included “When you roll {PW}, put this card on the bottom of its owner’s planar deck face down, then move the top card of your planar deck off that planar deck and turn it face up.” This is called the “planeswalk",NO
+"A face-up plane card that’s turned face down becomes a new object with no relation to its previous existence. In particular, it loses all counters it may have had.",NO
+"The controller of a face-up plane card is the player designated as the “planar controller.” Normally, the planar controller is whoever the active player is. However, if the current planar controller would leave the game, instead the next player in turn or",NO
+"If an ability of a plane refers to “you,” it’s referring to whoever the plane’s controller is at the time, not to the player that started the game with that plane card in their deck. Many abilities of plane cards affect all players, while many others affe",NO
+"Stronghold Furnace’s first ability interacts with all damage, not just combat damage. Notably, it doubles the damage from its own chaos ability.",NO
+"If multiple effects modify how damage will be dealt, the player who would be dealt damage or the controller of the creature that would be dealt damage chooses the order to apply the effects. For example, Mending Hands says, “Prevent the next 4 damage that",NO
+"If a spell or ability divides damage among multiple recipients (such as Pyrotechnics does), the damage is divided before Stronghold Furnace’s effect doubles it. The same is true for combat damage.",NO
+"A plane card is treated as if its text box included “When you roll {PW}, put this card on the bottom of its owner’s planar deck face down, then move the top card of your planar deck off that planar deck and turn it face up.” This is called the “planeswalk",NO
+"A face-up plane card that’s turned face down becomes a new object with no relation to its previous existence. In particular, it loses all counters it may have had.",NO
+"The controller of a face-up plane card is the player designated as the “planar controller.” Normally, the planar controller is whoever the active player is. However, if the current planar controller would leave the game, instead the next player in turn or",NO
+"If an ability of a plane refers to “you,” it’s referring to whoever the plane’s controller is at the time, not to the player that started the game with that plane card in their deck. Many abilities of plane cards affect all players, while many others affe",NO
+"Stronghold Furnace’s first ability interacts with all damage, not just combat damage. Notably, it doubles the damage from its own chaos ability.",NO
+"If multiple effects modify how damage will be dealt, the player who would be dealt damage or the controller of the creature that would be dealt damage chooses the order to apply the effects. For example, Mending Hands says, “Prevent the next 4 damage that",NO
+"If a spell or ability divides damage among multiple recipients (such as Pyrotechnics does), the damage is divided before Stronghold Furnace’s effect doubles it. The same is true for combat damage.",NO
+The targeted player will discard two cards even if some or all of Blightning’s damage is prevented or redirected.,NO
+"Volcanic Fallout can be targeted by spells that try to counter it (such as Countersquall). Those spells will still resolve, but the part of their effect that would counter Volcanic Fallout won’t do anything. Any other effects those spells have will work a",NO
+"If Oubliette leaves the battlefield before its triggered ability resolves, the target creature won’t be phased out or tapped.",NO
+"While a permanent is phased out, it’s treated as though it doesn’t exist. It can’t be the target of spells or abilities, its static abilities have no effect on the game, its triggered abilities can’t trigger, it can’t attack or block, and so on.",NO
+"Phasing out doesn’t cause any “leaves the battlefield” abilities to trigger. Similarly, phasing in won’t cause any “enters the battlefield” abilities to trigger.",NO
+"Any one-shot effects that are waiting “until [this] leaves the battlefield,” such as that of Kitesail Freebooter, won’t happen when a permanent phases out.",NO
+Any continuous effects with a “for as long as” duration such as that of Awakener Druid ignore phased-out objects. Any such effects will expire if their conditions are no longer met after ignoring the phased-out objects.,NO
+"Each Aura and Equipment attached to a permanent that’s phasing out also phases out. They will phase in with that permanent and still be attached to it. Similarly, permanents that phase out with counters phase in with those counters.",NO
+Choices made for permanents as they entered the battlefield are remembered when they phase in.,NO
+"A creature phased out by Oubliette doesn’t phase in during its controller’s untap step as normal. Rather, it phases in immediately after Oubliette leaves the battlefield.",NO
+Abilities that trigger when a creature becomes tapped won’t trigger when the creature phases in tapped.,NO
+"Panglacial Wurm’s ability works only while you’re searching your own library. The effect that caused you to search needs to say “search” and “library,” and you need to be looking through your own library for this to work. Examples of effects that let you ",NO
+"Casting Panglacial Wurm while searching your library follows all the normal rules for casting a creature spell, except for timing (casting the Wurm this way always occurs during the resolution of another spell or ability) and what zone the Wurm is being c",NO
+"After you cast Panglacial Wurm, you pick up the search effect where you left off. When the search effect finishes resolving, the active player gets priority with Panglacial Wurm on the stack. Any abilities that triggered when the spell was cast are put on",NO
+"If you have enough mana, you can cast multiple Panglacial Wurms during a single search effect.",NO
+A Panglacial Wurm that you cast while searching your library can’t be found by the search effect.,NO
+"If you want to cast Panglacial Wurm while searching your library, you must do so before you find any cards with the search effect.",NO
+"While searching your library, you must keep your library in the same order until you shuffle it. This order could matter if you tap Millikin for mana, for example, to pay for a Panglacial Wurm you cast from your library.",NO
+The targeted player will discard two cards even if some or all of Blightning’s damage is prevented or redirected.,NO
+"Volcanic Fallout can be targeted by spells that try to counter it (such as Countersquall). Those spells will still resolve, but the part of their effect that would counter Volcanic Fallout won’t do anything. Any other effects those spells have will work a",NO
+"Each other creature copies the printed values of the targeted creature, plus any copy effects that have been applied to that creature. They won’t copy other effects that have changed the targeted creature’s power, toughness, types, color, or so on. They a",NO
+"If the targeted creature is itself copying a creature, each other creature will become whatever it’s copying, as modified by that copy effect. For example, if you target a Cemetery Puca that’s copying a Grizzly Bears (a 2/2 creature with no abilities), ea",NO
+"This effect can cause each other creature to stop being a creature. For example, if you target an animated Mutavault (a land with an activated ability that turns it into a creature), only the printed wording will be copied — the “becomes a creature” effec",NO
+"Noncopy effects that have already applied to the other creatures will continue to apply to them. For example, if Giant Growth had given one of them +3/+3 earlier in the turn, then Mirrorweave made it a copy of Grizzly Bears, it will be a 5/5 Grizzly Bears",NO
+"If the targeted creature is a token, each other creature copies the original characteristics of that token as stated by the effect that put it onto the battlefield. Those creatures don’t become tokens.",NO
+"As the turn ends, the other creatures revert to what they were before. If two Mirrorweaves are cast on the same turn, they’ll both wear off at the same time.",NO
+"If you use conspire to copy Traitor’s Roar, but you don’t change its target, the copy will resolve just fine but the original doesn’t resolve. That’s because the copy will resolve first, and as part of its resolution, it will tap the targeted creature. Th",NO
+"The two revealed cards stay revealed until the ability resolves. If one of them is played, is discarded, or otherwise leaves your hand, the ability will still resolve as normal.",NO
+Colorless is not a color. You can’t reveal two colorless cards from your hand to activate this ability because those cards don’t share a color with one another.,NO

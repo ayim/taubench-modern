@@ -1,0 +1,35 @@
+name: bird-toxicology-024
+description: "BIRD Q218 (challenging): For carcinogenic molecules, what is the percentage that don't contain fluorine, the average number of atoms per molecule, the average number of bonds in molecules with and without fluorine, and the average bond strength?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-218
+    description: "For carcinogenic molecules, what is the percentage that don't contain fluorine, the average number of atoms per molecule, the average number of bonds in molecules with and without fluorine, and the average bond strength?"
+    messages:
+      - role: user
+        content: |
+          For carcinogenic molecules, what is the percentage that don't contain fluorine, the average number of atoms per molecule, the average number of bonds in molecules with and without fluorine, and the average bond strength?
+          Evidence: Carcinogenic molecules have label = '+'; fluorine refers to element = 'f'; bond strength is calculated as 1 for single bonds ('-'), 2 for double bonds ('='), and 3 for triple bonds ('#')
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_218.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

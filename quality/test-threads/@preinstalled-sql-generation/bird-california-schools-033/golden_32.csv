@@ -1,0 +1,6 @@
+FRPMRank,School,County,District,SOCType,Enrollment,FRPMCount,EligibilityRate,EligibilityCategory,SATTestTakers,AvgReading,AvgMath,AvgWriting,TotalSATScore,HighSATScorerRate,SATParticipationRate
+1,Paramount High,Los Angeles,Paramount Unified,High Schools (Public),4814.0,4419.0,91.79%,Very High FRPM,459,424,434,414,1272,14.81%,9.53%
+2,Calexico High,Imperial,Calexico Unified,High Schools (Public),2981.0,2979.0,99.93%,Very High FRPM,216,431,432,425,1288,21.76%,7.25%
+3,Bell Senior High,Los Angeles,Los Angeles Unified,High Schools (Public),3256.0,2919.0,89.65%,Very High FRPM,411,420,439,420,1279,15.57%,12.62%
+4,Anaheim High,Orange,Anaheim Union High,High Schools (Public),3206.0,2872.0,89.58%,Very High FRPM,255,436,448,432,1316,21.96%,7.95%
+5,Bell Gardens High,Los Angeles,Montebello Unified,High Schools (Public),2983.0,2727.0,91.42%,Very High FRPM,304,420,420,422,1262,15.13%,10.19%

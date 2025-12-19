@@ -1,0 +1,35 @@
+name: bird-financial-023
+description: "BIRD Q111 (challenging): What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-111
+    description: "What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?"
+    messages:
+      - role: user
+        content: |
+          What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?
+          Evidence: Litomerice is a district name; PRIJEM refers to deposits/credits, VYDAJ refers to withdrawals/debits; loan status 'A' indicates good loans, 'B' indicates bad loans
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_111.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

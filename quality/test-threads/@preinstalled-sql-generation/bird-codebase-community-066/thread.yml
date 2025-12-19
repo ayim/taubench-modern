@@ -1,0 +1,35 @@
+name: bird-codebase-community-066
+description: "BIRD Q596 (simple): Which user has posted the most comments? List out all the user's badge."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-596
+    description: "Which user has posted the most comments? List out all the user's badge."
+    messages:
+      - role: user
+        content: |
+          Which user has posted the most comments? List out all the user's badge.
+          Evidence: user with the most comments refers to UserId where Max(Count(Id)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_596.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

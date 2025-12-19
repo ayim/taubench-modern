@@ -1,0 +1,35 @@
+name: bird-toxicology-061
+description: "BIRD Q255 (moderate): What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-255
+    description: "What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places."
+    messages:
+      - role: user
+        content: |
+          What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places.
+          Evidence: single bond is represented by the '-' symbol; carcinogenic molecules are represented by the '+' symbol; proportion refers to the percentage of single bonds that belong to carcinogenic molecules
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_255.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

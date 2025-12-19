@@ -1,0 +1,35 @@
+name: bird-european-football-2-001
+description: "BIRD Q1020 (simple): Which player has the highest overall rating? Indicate the player's api id."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1020
+    description: "Which player has the highest overall rating? Indicate the player's api id."
+    messages:
+      - role: user
+        content: |
+          Which player has the highest overall rating? Indicate the player's api id.
+          Evidence: highest overall rating refers to MAX(overall_rating);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1020.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

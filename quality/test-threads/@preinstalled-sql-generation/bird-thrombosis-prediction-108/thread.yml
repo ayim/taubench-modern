@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-108
+description: "BIRD Q1256 (moderate): How many patients with a abnormal C-reactive protein don't have their data recorded?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1256
+    description: "How many patients with a abnormal C-reactive protein don't have their data recorded?"
+    messages:
+      - role: user
+        content: |
+          How many patients with a abnormal C-reactive protein don't have their data recorded?
+          Evidence: abnormal C-reactive protein refers to CRP ='+'; don't have data recorded refers to Description IS NULL;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1256.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

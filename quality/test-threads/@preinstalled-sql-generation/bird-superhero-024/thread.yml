@@ -1,0 +1,35 @@
+name: bird-superhero-024
+description: "BIRD Q740 (moderate): How many female superheroes have a strength value of 100?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-740
+    description: "How many female superheroes have a strength value of 100?"
+    messages:
+      - role: user
+        content: |
+          How many female superheroes have a strength value of 100?
+          Evidence: female refers to gender = 'Female'; strength value of 100 refers to attribute_name = 'Strength' AND attribute_value = 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_740.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

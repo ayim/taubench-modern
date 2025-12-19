@@ -1,0 +1,35 @@
+name: bird-california-schools-046
+description: "BIRD Q45 (challenging): For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-45
+    description: "For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average."
+    messages:
+      - role: user
+        content: |
+          For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.
+          Evidence: FRPM stands for Free or Reduced Price Meal. Test participation rate = (Number of Test Takers / Enrollment) * 100.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_45.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

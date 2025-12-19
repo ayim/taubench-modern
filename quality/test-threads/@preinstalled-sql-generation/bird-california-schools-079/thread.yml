@@ -1,0 +1,35 @@
+name: bird-california-schools-079
+description: "BIRD Q78 (challenging): For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-78
+    description: "For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?"
+    messages:
+      - role: user
+        content: |
+          For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?
+          Evidence: Poverty level is categorized as High (>75% FRPM eligible), Medium (50-75% FRPM eligible), or Low (<50% FRPM eligible). FRPM refers to Free or Reduced Price Meal program eligibility.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_78.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

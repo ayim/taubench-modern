@@ -1,0 +1,35 @@
+name: bird-codebase-community-097
+description: "BIRD Q627 (simple): How many users were adult?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-627
+    description: "How many users were adult?"
+    messages:
+      - role: user
+        content: |
+          How many users were adult?
+          Evidence: adult refers to user where Age BETWEEN 19 and 65;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_627.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

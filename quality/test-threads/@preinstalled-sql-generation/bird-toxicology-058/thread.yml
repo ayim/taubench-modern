@@ -1,0 +1,35 @@
+name: bird-toxicology-058
+description: "BIRD Q252 (simple): What are the atoms that can bond with the atom that has the element lead?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-252
+    description: "What are the atoms that can bond with the atom that has the element lead?"
+    messages:
+      - role: user
+        content: |
+          What are the atoms that can bond with the atom that has the element lead?
+          Evidence: atom that has the element lead refers to atom_id where element = 'pb'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_252.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

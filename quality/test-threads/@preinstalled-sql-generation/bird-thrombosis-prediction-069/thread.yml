@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-069
+description: "BIRD Q1217 (moderate): For all patient born in 1982, state if their albumin is within normal range."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1217
+    description: "For all patient born in 1982, state if their albumin is within normal range."
+    messages:
+      - role: user
+        content: |
+          For all patient born in 1982, state if their albumin is within normal range.
+          Evidence: Year(Birthday) = '1982'; albumin is within normal range refers to ALB between 3.5 and 5.5
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1217.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

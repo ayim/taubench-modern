@@ -1,0 +1,35 @@
+name: bird-financial-081
+description: "BIRD Q169 (challenging): What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-169
+    description: "What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?"
+    messages:
+      - role: user
+        content: |
+          What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?
+          Evidence: Growth rate = (sum of amount_1997 - sum of amount_1996) / (sum of amount_1996) * 100%; Male refers to gender = 'M'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_169.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-california-schools-019
+description: "BIRD Q18 (challenging): What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-18
+    description: "What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?"
+    messages:
+      - role: user
+        content: |
+          What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?
+          Evidence: Directly funded refers to Charter Funding Type = 'Directly funded'. Testing volume categories are: under 50 testers, 50-100 testers, and 100-250 testers.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_18.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-european-football-2-019
+description: "BIRD Q1038 (moderate): List the top 5 leagues in ascending order of the number of goals made in all seasons combined."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1038
+    description: "List the top 5 leagues in ascending order of the number of goals made in all seasons combined."
+    messages:
+      - role: user
+        content: |
+          List the top 5 leagues in ascending order of the number of goals made in all seasons combined.
+          Evidence: number of goals made in all seasons combine = SUM(home_team_goal, away_team_goal);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1038.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

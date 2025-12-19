@@ -1,0 +1,35 @@
+name: bird-student-club-033
+description: "BIRD Q1344 (simple): What was the notes of the fundraising on 2019/9/14?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1344
+    description: "What was the notes of the fundraising on 2019/9/14?"
+    messages:
+      - role: user
+        content: |
+          What was the notes of the fundraising on 2019/9/14?
+          Evidence: 2019/9/14 refers to September 14, 2019
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1344.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

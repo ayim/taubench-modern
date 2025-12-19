@@ -1,0 +1,35 @@
+name: bird-toxicology-021
+description: "BIRD Q215 (challenging): How many atoms with iodine and with sulfur type elements are there in single bond molecules?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-215
+    description: "How many atoms with iodine and with sulfur type elements are there in single bond molecules?"
+    messages:
+      - role: user
+        content: |
+          How many atoms with iodine and with sulfur type elements are there in single bond molecules?
+          Evidence: with iodine element refer to element = 'i'; with sulfur element refers to element = 's'; single type bond refers to bond_type = '-'; Should consider the distinct atoms when counting;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_215.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

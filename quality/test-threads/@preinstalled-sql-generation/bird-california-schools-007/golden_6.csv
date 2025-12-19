@@ -1,0 +1,4 @@
+School,SchoolType,EducationalOption,TestTakers,TotalAvgScore,ReadingScore,MathScore,WritingScore,PercentHighScorers,Enrollment,FreeReducedMealPercentage,StateRank,CountyRank,PovertyLevel,PerformanceCategory
+Troy High,High Schools (Public),Traditional,541,1881,611,653,617,86.87615526802219,2764.0,0.19356005788712,4,1,Very Low Poverty,Excellent
+Polytechnic High,High Schools (Public),Traditional,660,1435,479,483,473,40.45454545454545,4464.0,0.575492831541219,92,17,Moderate Poverty,Average
+Millikan High,High Schools (Public),Traditional,510,1401,472,465,464,33.92156862745098,3753.0,0.476951771915801,99,19,Low Poverty,Average

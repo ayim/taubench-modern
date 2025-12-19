@@ -1,0 +1,2 @@
+MIN(JULIANDAY(T3.`Examination Date`)) - JULIANDAY(T1.`First Date`)
+147.0

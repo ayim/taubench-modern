@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-055
+description: "BIRD Q1524 (simple): In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1524
+    description: "In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?"
+    messages:
+      - role: user
+        content: |
+          In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?
+          Evidence: '2012/8/24' can be represented by '2012-08-24'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1524.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

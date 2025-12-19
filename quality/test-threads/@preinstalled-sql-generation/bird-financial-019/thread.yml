@@ -1,0 +1,35 @@
+name: bird-financial-019
+description: "BIRD Q107 (simple): What is the gender of the oldest client who opened his/her account in the highest average salary branch?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-107
+    description: "What is the gender of the oldest client who opened his/her account in the highest average salary branch?"
+    messages:
+      - role: user
+        content: |
+          What is the gender of the oldest client who opened his/her account in the highest average salary branch?
+          Evidence: Earlier birthdate refers to older age; A11 refers to average salary
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_107.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

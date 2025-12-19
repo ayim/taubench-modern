@@ -1,0 +1,35 @@
+name: bird-card-games-168
+description: "BIRD Q507 (challenging): For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-507
+    description: "For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?"
+    messages:
+      - role: user
+        content: |
+          For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?
+          Evidence: Brazilian Portuguese translation refers to language = 'Portuguese (Brazil)'; only available online refers to isOnlineOnly = 1
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_507.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

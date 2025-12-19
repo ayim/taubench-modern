@@ -1,0 +1,35 @@
+name: bird-toxicology-101
+description: "BIRD Q295 (simple): How many atoms belong to the molecule that element is hydrogen and labeled with carcinogenic compound?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-295
+    description: "How many atoms belong to the molecule that element is hydrogen and labeled with carcinogenic compound?"
+    messages:
+      - role: user
+        content: |
+          How many atoms belong to the molecule that element is hydrogen and labeled with carcinogenic compound?
+          Evidence: label = '+' mean molecules are carcinogenic; hydrogen refers to element = h'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_295.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-student-club-051
+description: "BIRD Q1362 (simple): How many cities are there in Orange County, Virginia?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1362
+    description: "How many cities are there in Orange County, Virginia?"
+    messages:
+      - role: user
+        content: |
+          How many cities are there in Orange County, Virginia?
+          Evidence: Orange County is the county name, Virginia is the state name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1362.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

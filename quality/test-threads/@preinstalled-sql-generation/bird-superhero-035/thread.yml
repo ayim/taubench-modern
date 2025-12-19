@@ -1,0 +1,35 @@
+name: bird-superhero-035
+description: "BIRD Q751 (moderate): List down at least five superpowers of male superheroes."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-751
+    description: "List down at least five superpowers of male superheroes."
+    messages:
+      - role: user
+        content: |
+          List down at least five superpowers of male superheroes.
+          Evidence: male refers to gender = 'Male'; superpowers refers to power_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_751.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

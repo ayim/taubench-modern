@@ -1,0 +1,35 @@
+name: bird-financial-073
+description: "BIRD Q161 (challenging): What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-161
+    description: "What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?"
+    messages:
+      - role: user
+        content: |
+          What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?
+          Evidence: Customer segment is classified as 'Premium' for gold card holders, 'Long-term Classic' for classic card holders with cards older than 5 years, and 'Standard' for all others. PRIJEM refers to income transactions and VYDAJ refers to expense transactions.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_161.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

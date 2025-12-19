@@ -1,0 +1,35 @@
+name: bird-financial-035
+description: "BIRD Q123 (challenging): For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-123
+    description: "For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount."
+    messages:
+      - role: user
+        content: |
+          For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount.
+          Evidence: Average salary refers to A11 in the district table. Income categories are classified as High Income (total income > 1,000,000), Medium Income (total income > 500,000), or Low Income (otherwise). PRIJEM represents incoming transactions and VYDAJ represents outgoing transactions. Savings ratio is calculated as (total income - total expense) / total income.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_123.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

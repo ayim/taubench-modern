@@ -1,0 +1,35 @@
+name: bird-formula-1-147
+description: "BIRD Q992 (moderate): Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-992
+    description: "Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth."
+    messages:
+      - role: user
+        content: |
+          Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth.
+          Evidence: Full name refers to forename and surname; between 1971 and 1985 is inclusive.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_992.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-student-club-146
+description: "BIRD Q1457 (challenging): Give the full name and contact number of members who had to spend more than average on each expense."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1457
+    description: "Give the full name and contact number of members who had to spend more than average on each expense."
+    messages:
+      - role: user
+        content: |
+          Give the full name and contact number of members who had to spend more than average on each expense.
+          Evidence: full name refers to first_name, last_name; contact number refers to phone; had spent more than average on each expense refers to cost > AVG(cost)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1457.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

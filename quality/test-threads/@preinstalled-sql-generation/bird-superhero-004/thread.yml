@@ -1,0 +1,35 @@
+name: bird-superhero-004
+description: "BIRD Q720 (simple): Please list the full names of all the superheroes with over 15 super powers."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-720
+    description: "Please list the full names of all the superheroes with over 15 super powers."
+    messages:
+      - role: user
+        content: |
+          Please list the full names of all the superheroes with over 15 super powers.
+          Evidence: 15 super powers refers to COUNT(full_name) > 15
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_720.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

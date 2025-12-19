@@ -1,0 +1,34 @@
+name: bird-card-games-109
+description: "BIRD Q448 (simple): Name the foreign name of the card that has abzan watermark? List out the type of this card."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-448
+    description: "Name the foreign name of the card that has abzan watermark? List out the type of this card."
+    messages:
+      - role: user
+        content: |
+          Name the foreign name of the card that has abzan watermark? List out the type of this card.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_448.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

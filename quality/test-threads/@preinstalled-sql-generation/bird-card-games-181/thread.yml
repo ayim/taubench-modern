@@ -1,0 +1,35 @@
+name: bird-card-games-181
+description: "BIRD Q520 (moderate): Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-520
+    description: "Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated."
+    messages:
+      - role: user
+        content: |
+          Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated.
+          Evidence: format of the cards refers to format; illustrator refers to artist; the least amount of cards refers to MIN(artist)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_520.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

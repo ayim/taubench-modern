@@ -1,0 +1,35 @@
+name: bird-california-schools-013
+description: "BIRD Q12 (challenging): Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-12
+    description: "Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?"
+    messages:
+      - role: user
+        content: |
+          Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?
+          Evidence: SAT excellence rate = NumGE1500 / NumTstTakr; Free meal eligibility rate = Free Meal Count (Ages 5-17) / Enrollment (Ages 5-17); Only active schools are considered
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_12.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

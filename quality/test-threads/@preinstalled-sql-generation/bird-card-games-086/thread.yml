@@ -1,0 +1,35 @@
+name: bird-card-games-086
+description: "BIRD Q425 (simple): What are the card numbers that don't have multiple faces on a single card and have the subtypes Angel and Wizard?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-425
+    description: "What are the card numbers that don't have multiple faces on a single card and have the subtypes Angel and Wizard?"
+    messages:
+      - role: user
+        content: |
+          What are the card numbers that don't have multiple faces on a single card and have the subtypes Angel and Wizard?
+          Evidence: don't have multiple faces on a single card side is null
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_425.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-california-schools-050
+description: "BIRD Q49 (moderate): Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-49
+    description: "Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date."
+    messages:
+      - role: user
+        content: |
+          Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date.
+          Evidence: Closure date and closed date are synonyms; 'Closed' was mentioned in schools.StatusType.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_49.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

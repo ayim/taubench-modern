@@ -1,0 +1,35 @@
+name: bird-toxicology-095
+description: "BIRD Q289 (simple): Is molecule TR151 carcinogenic?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-289
+    description: "Is molecule TR151 carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          Is molecule TR151 carcinogenic?
+          Evidence: label = '+' mean molecules are carcinogenic;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_289.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

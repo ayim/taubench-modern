@@ -1,0 +1,35 @@
+name: bird-financial-033
+description: "BIRD Q121 (challenging): For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-121
+    description: "For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest."
+    messages:
+      - role: user
+        content: |
+          For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest.
+          Evidence: A2 refers to district names. PRIJEM refers to incoming transactions (credits), VYDAJ refers to outgoing transactions (debits). Net balance is calculated as total income minus total expense. Customer category is determined by loan count and transaction activity: High Activity (has loans and >10 transactions), Loan Customer (has loans), Active Customer (>10 transactions), or Regular Customer (others).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_121.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

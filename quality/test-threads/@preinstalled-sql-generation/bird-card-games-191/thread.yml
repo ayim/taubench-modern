@@ -1,0 +1,35 @@
+name: bird-card-games-191
+description: "BIRD Q530 (moderate): List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-530
+    description: "List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any."
+    messages:
+      - role: user
+        content: |
+          List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any.
+          Evidence: frame styles refers to frameVersion; cards Allen Williams worked on refers to artist = 'Allen Williams'; banned cards refers to status = 'Banned'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_530.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

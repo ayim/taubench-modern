@@ -1,0 +1,35 @@
+name: bird-codebase-community-059
+description: "BIRD Q589 (simple): Which user ID has the highest reputation?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-589
+    description: "Which user ID has the highest reputation?"
+    messages:
+      - role: user
+        content: |
+          Which user ID has the highest reputation?
+          Evidence: highest reputation refers to Max(Reputation)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_589.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

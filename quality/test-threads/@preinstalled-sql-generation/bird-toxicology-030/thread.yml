@@ -1,0 +1,35 @@
+name: bird-toxicology-030
+description: "BIRD Q224 (challenging): For all bonds connected to atom TR000_2, what are the bond details including the connected atoms, their elements, bond types, bond classifications, and the molecule's atom and bond counts?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-224
+    description: "For all bonds connected to atom TR000_2, what are the bond details including the connected atoms, their elements, bond types, bond classifications, and the molecule's atom and bond counts?"
+    messages:
+      - role: user
+        content: |
+          For all bonds connected to atom TR000_2, what are the bond details including the connected atoms, their elements, bond types, bond classifications, and the molecule's atom and bond counts?
+          Evidence: TR000_2 refers to atom_id2; bond classification includes 'Contains Chlorine' for bonds with chlorine atoms, 'Carbon-Carbon Bond' for bonds between two carbon atoms, and 'Other Bond Type' for remaining bonds
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_224.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

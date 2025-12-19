@@ -1,0 +1,35 @@
+name: bird-codebase-community-041
+description: "BIRD Q571 (moderate): For the user No.24, how many times is the number of his/her posts compared to his/her votes?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-571
+    description: "For the user No.24, how many times is the number of his/her posts compared to his/her votes?"
+    messages:
+      - role: user
+        content: |
+          For the user No.24, how many times is the number of his/her posts compared to his/her votes?
+          Evidence: user no. 24 refers to UserId = OwnerUserId = '24'; times of his/her post than votes = Divide (Count(post.Id), Count(votes.Id))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_571.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

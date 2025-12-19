@@ -1,0 +1,35 @@
+name: bird-formula-1-056
+description: "BIRD Q901 (simple): Name the races along with its circuit name and location for f1 races hosted in September 2005."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-901
+    description: "Name the races along with its circuit name and location for f1 races hosted in September 2005."
+    messages:
+      - role: user
+        content: |
+          Name the races along with its circuit name and location for f1 races hosted in September 2005.
+          Evidence: N/A
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_901.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

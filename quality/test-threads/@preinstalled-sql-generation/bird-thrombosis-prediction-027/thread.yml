@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-027
+description: "BIRD Q1175 (moderate): How old was the patient who had the highest hemoglobin count on the date of laboratory tests , and what is the doctor's diagnosis?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1175
+    description: "How old was the patient who had the highest hemoglobin count on the date of laboratory tests , and what is the doctor's diagnosis?"
+    messages:
+      - role: user
+        content: |
+          How old was the patient who had the highest hemoglobin count on the date of laboratory tests , and what is the doctor's diagnosis?
+          Evidence: How old the patient refers to SUBTRACT(year(`Laboratory.Date`), year(Birthday)); the highest hemoglobin count refers to MAX(HGB)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1175.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-064
+description: "BIRD Q1533 (moderate): For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1533
+    description: "For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012."
+    messages:
+      - role: user
+        content: |
+          For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012.
+          Evidence: August of 2012 refers to the Date value = '201208' ; Price per unit of product = Price / Amount;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1533.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

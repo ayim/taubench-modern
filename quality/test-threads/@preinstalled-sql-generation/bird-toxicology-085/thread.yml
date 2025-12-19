@@ -1,0 +1,35 @@
+name: bird-toxicology-085
+description: "BIRD Q279 (simple): What is the label for bond ID TR001_10_11?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-279
+    description: "What is the label for bond ID TR001_10_11?"
+    messages:
+      - role: user
+        content: |
+          What is the label for bond ID TR001_10_11?
+          Evidence: label = '+' mean molecules are carcinogenic; label = '-' means molecules are non-carcinogenic
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_279.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

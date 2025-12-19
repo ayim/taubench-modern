@@ -1,0 +1,35 @@
+name: bird-financial-015
+description: "BIRD Q103 (challenging): For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-103
+    description: "For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group."
+    messages:
+      - role: user
+        content: |
+          For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group.
+          Evidence: Active loans refers to status = 'A'. Young borrower means age at card issue is less than 30 years old with at least one loan. Mature borrower means age at card issue is 30 or older with at least one loan.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_103.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

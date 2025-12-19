@@ -1,0 +1,35 @@
+name: bird-financial-074
+description: "BIRD Q162 (challenging): For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-162
+    description: "For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?"
+    messages:
+      - role: user
+        content: |
+          For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?
+          Evidence: PRIJEM refers to incoming transactions; VYDAJ refers to outgoing transactions; net balance = total income - total expense; account activity is measured by transaction count
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_162.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

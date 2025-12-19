@@ -1,0 +1,35 @@
+name: bird-superhero-089
+description: "BIRD Q805 (simple): List the full names of superheroes with missing weight."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-805
+    description: "List the full names of superheroes with missing weight."
+    messages:
+      - role: user
+        content: |
+          List the full names of superheroes with missing weight.
+          Evidence: missing weight refers to weight_kg = 0 OR weight_kg = NULL;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_805.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

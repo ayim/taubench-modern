@@ -1,0 +1,35 @@
+name: bird-card-games-161
+description: "BIRD Q500 (moderate): Tell the Japanese name of the set which card \"Fellwar Stone\" is in it."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-500
+    description: "Tell the Japanese name of the set which card \"Fellwar Stone\" is in it."
+    messages:
+      - role: user
+        content: |
+          Tell the Japanese name of the set which card "Fellwar Stone" is in it.
+          Evidence: Japanese name refers to language = 'Japanese'; card "Fellwar Stone" refers to name = 'Fellwar Stone'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_500.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

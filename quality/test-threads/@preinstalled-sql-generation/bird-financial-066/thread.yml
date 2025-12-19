@@ -1,0 +1,35 @@
+name: bird-financial-066
+description: "BIRD Q154 (challenging): What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-154
+    description: "What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?"
+    messages:
+      - role: user
+        content: |
+          What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?
+          Evidence: Young clients are under 30 years old, Middle-aged clients are between 30 and 50 years old, and Senior clients are over 50 years old. Status 'A' indicates good loans and status 'B' indicates bad loans. PRIJEM represents income transactions and VYDAJ represents expense transactions.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_154.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

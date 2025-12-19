@@ -1,0 +1,35 @@
+name: bird-card-games-182
+description: "BIRD Q521 (challenging): Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-521
+    description: "Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?"
+    messages:
+      - role: user
+        content: |
+          Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?
+          Evidence: version of frame style is 1997 refers to frameVersion = '1997'; illustrated by D. Alexander Gregory refers to artist = 'D. Alexander Gregory'; sensitive content refers to hasContentWarning = 1; legacy play format refers to format = 'legacy'; status of the card refers to status
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_521.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

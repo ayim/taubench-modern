@@ -1,0 +1,596 @@
+name: Superhero Roster
+tables:
+- name: superhero
+  facts:
+  - expr: height_cm
+    name: height_cm
+    synonyms:
+    - stature_centimeters
+    - body_height_cm
+    data_type: int64
+    description: Character height in centimeters; NULL or 0 may indicate missing height.
+    sample_values:
+    - 188
+    - 203
+    - 191
+    - 185
+    - 203
+  - expr: weight_kg
+    name: weight_kg
+    synonyms:
+    - mass_kilograms
+    - body_weight_kg
+    data_type: int64
+    description: Character weight in kilograms; NULL or 0 may indicate missing weight.
+    sample_values:
+    - 90
+    - 441
+    - 65
+    - 90
+    - 441
+  synonyms:
+  - hero master list
+  - character roster
+  - superhero profiles
+  base_table:
+    table: superhero
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - superhero_primary_key
+    - hero_identifier
+    data_type: '!int64'
+    description: Primary key for the superhero/character record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: superhero_name
+    name: superhero_name
+    synonyms:
+    - hero_alias_name
+    - public_codename
+    data_type: string
+    description: Common superhero/character name or alias used publicly.
+    sample_values:
+    - 3-D Man
+    - A-Bomb
+    - Abe Sapien
+    - Abin Sur
+    - Abomination
+  - expr: full_name
+    name: full_name
+    synonyms:
+    - civilian_full_name
+    - legal_name_text
+    data_type: string
+    description: Character's full/legal name (may be '-' or blank when unknown).
+    sample_values:
+    - Charles Chandler
+    - Richard Milhouse Jones
+    - Abraham Sapien
+    - '-'
+    - Emil Blonsky
+  - expr: gender_id
+    name: gender_id
+    synonyms:
+    - gender_key_fk
+    - sex_category_id
+    data_type: int64
+    description: Foreign key to gender indicating the character's gender classification.
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  - expr: eye_colour_id
+    name: eye_colour_id
+    synonyms:
+    - eye_color_key
+    - eye_shade_fk
+    data_type: int64
+    description: Foreign key to colour representing the character's eye colour.
+    sample_values:
+    - 9
+    - 33
+    - 7
+    - 7
+    - 14
+  - expr: hair_colour_id
+    name: hair_colour_id
+    synonyms:
+    - hair_color_key
+    - hair_shade_fk
+    data_type: int64
+    description: Foreign key to colour representing the character's hair colour.
+    sample_values:
+    - 13
+    - 1
+    - 1
+    - 1
+    - 1
+  - expr: skin_colour_id
+    name: skin_colour_id
+    synonyms:
+    - skin_color_key
+    - skin_tone_fk
+    data_type: int64
+    description: Foreign key to colour representing the character's skin colour.
+    sample_values:
+    - 1
+    - 1
+    - 7
+    - 23
+    - 1
+  - expr: race_id
+    name: race_id
+    synonyms:
+    - species_key_fk
+    - race_classification_id
+    data_type: int64
+    description: Foreign key to race describing the character's species/race classification.
+    sample_values:
+    - 1
+    - 24
+    - 33
+    - 55
+    - 28
+  - expr: publisher_id
+    name: publisher_id
+    synonyms:
+    - publisher_key_fk
+    - rights_holder_id
+    data_type: int64
+    description: Foreign key to publisher indicating the publishing company/imprint
+      associated with the character.
+    sample_values:
+    - 13
+    - 13
+    - 3
+    - 4
+    - 13
+  - expr: alignment_id
+    name: alignment_id
+    synonyms:
+    - moral_alignment_key
+    - ethics_alignment_fk
+    data_type: int64
+    description: Foreign key to alignment identifying the hero's moral/ethical stance
+      (e.g., Good/Bad/Neutral).
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 2
+  description: One row per superhero/character with identity fields and foreign keys
+    to descriptive dimensions (gender, colours, race, publisher, alignment) plus basic
+    physical measurements.
+- name: publisher
+  synonyms:
+  - comic_publisher_list
+  - imprint_directory
+  - publisher_reference
+  base_table:
+    table: publisher
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - publisher_primary_key
+    - publisher_identifier_code
+    data_type: '!int64'
+    description: Primary key for the publisher.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: publisher_name
+    name: publisher_name
+    synonyms:
+    - publishing_company_name
+    - imprint_name_text
+    data_type: string
+    description: Display name of the publisher/imprint.
+    sample_values:
+    - ''
+    - ABC Studios
+    - Dark Horse Comics
+    - DC Comics
+    - George Lucas
+  description: Lookup table of publishers/imprints associated with superheroes (e.g.,
+    DC Comics, Marvel-related imprints).
+- name: attribute
+  synonyms:
+  - attribute_definitions
+  - stat_categories
+  - ability_attribute_list
+  base_table:
+    table: attribute
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - attribute_primary_key
+    - attribute_identifier_code
+    data_type: '!int64'
+    description: Primary key for the attribute definition.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: attribute_name
+    name: attribute_name
+    synonyms:
+    - attribute_label_text
+    - stat_name_category
+    data_type: string
+    description: Name of the attribute/skill being rated for a hero (e.g., Speed,
+      Power).
+    sample_values:
+    - Intelligence
+    - Strength
+    - Speed
+    - Durability
+    - Power
+  description: Lookup table defining the types of rated attributes (e.g., Intelligence,
+    Strength) used to score superheroes.
+- name: hero_power
+  synonyms:
+  - hero_to_power_map
+  - powers_assignment_table
+  - ability_link_powers
+  base_table:
+    table: hero_power
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: hero_id
+    name: hero_id
+    synonyms:
+    - power_map_hero_key
+    - character_fk_in_power_map
+    data_type: int64
+    description: Foreign key to superhero; identifies which hero has the power.
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 2
+  - expr: power_id
+    name: power_id
+    synonyms:
+    - power_map_power_key
+    - superpower_fk_in_map
+    data_type: int64
+    description: Foreign key to superpower; identifies which power is assigned to
+      the hero.
+    sample_values:
+    - 1
+    - 18
+    - 26
+    - 31
+    - 2
+  description: Bridge table mapping superheroes to their powers (many-to-many relationship).
+    Each row assigns one power to one hero.
+- name: race
+  synonyms:
+  - species_lookup
+  - race_reference_list
+  - character_race_dictionary
+  base_table:
+    table: race
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - race_primary_key
+    - species_identifier_code
+    data_type: '!int64'
+    description: Primary key for the race/species category.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: race
+    name: race
+    synonyms:
+    - race_name_text
+    - species_category_name
+    data_type: string
+    description: Race/species label for the character classification.
+    sample_values:
+    - '-'
+    - Alien
+    - Alpha
+    - Amazon
+    - Android
+  description: Lookup table of race/species categories used to classify superheroes
+    (e.g., Alien, Android).
+- name: superpower
+  synonyms:
+  - power_catalog
+  - superhuman_abilities_list
+  - powers_reference
+  base_table:
+    table: superpower
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - superpower_primary_key
+    - power_identifier_code
+    data_type: '!int64'
+    description: Primary key for the superpower.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: power_name
+    name: power_name
+    synonyms:
+    - superpower_name_text
+    - ability_name_label
+    data_type: string
+    description: Name of the superpower/ability (e.g., Accelerated Healing).
+    sample_values:
+    - Agility
+    - Accelerated Healing
+    - Lantern Power Ring
+    - Dimensional Awareness
+    - Cold Resistance
+  description: Lookup table of named superpowers/abilities that can be assigned to
+    superheroes.
+- name: alignment
+  synonyms:
+  - alignment_lookup
+  - morality_scale_table
+  - ethics_category_list
+  base_table:
+    table: alignment
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - alignment_primary_key
+    - alignment_identifier_code
+    data_type: '!int64'
+    description: Primary key for the alignment category.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+  - expr: alignment
+    name: alignment
+    synonyms:
+    - alignment_label_text
+    - morality_category_name
+    data_type: string
+    description: Alignment category label for the character (e.g., Good, Bad, Neutral).
+    sample_values:
+    - Good
+    - Bad
+    - Neutral
+    - N/A
+  description: Lookup table defining alignment categories describing a hero's moral
+    stance (Good/Bad/Neutral/N/A).
+- name: gender
+  synonyms:
+  - gender_lookup_table
+  - gender_category_list
+  - sex_reference_dictionary
+  base_table:
+    table: gender
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - gender_primary_key
+    - gender_identifier_code
+    data_type: '!int64'
+    description: Primary key for the gender category.
+    sample_values:
+    - 1
+    - 2
+    - 3
+  - expr: gender
+    name: gender
+    synonyms:
+    - gender_label_text
+    - sex_category_name
+    data_type: string
+    description: Gender category label (e.g., Male, Female, N/A).
+    sample_values:
+    - Male
+    - Female
+    - N/A
+  description: Lookup table defining gender categories used by superhero records.
+- name: hero_attribute
+  facts:
+  - expr: attribute_value
+    name: attribute_value
+    synonyms:
+    - attribute_score_value
+    - hero_stat_rating
+    data_type: int64
+    description: Numeric score/value for the given hero and attribute (higher typically
+      indicates stronger capability).
+    sample_values:
+    - 80
+    - 75
+    - 95
+    - 80
+    - 85
+  synonyms:
+  - hero_attribute_scores
+  - stats_by_hero_table
+  - attribute_ratings_map
+  base_table:
+    table: hero_attribute
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: hero_id
+    name: hero_id
+    synonyms:
+    - rating_hero_key
+    - superhero_fk_in_rating
+    data_type: int64
+    description: Foreign key to superhero identifying which hero the attribute rating
+      belongs to.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: attribute_id
+    name: attribute_id
+    synonyms:
+    - rating_attribute_key
+    - attribute_fk_in_rating
+    data_type: int64
+    description: Foreign key to attribute identifying which attribute is being scored.
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  description: Bridge table storing numeric attribute ratings for each superhero and
+    attribute type (many-to-many with a score).
+- name: colour
+  synonyms:
+  - colour_lookup
+  - color_reference_table
+  - appearance_color_dictionary
+  base_table:
+    table: colour
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - colour_primary_key
+    - colour_identifier_code
+    data_type: '!int64'
+    description: Primary key for the colour value.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: colour
+    name: colour
+    synonyms:
+    - colour_name_text
+    - appearance_color_name
+    data_type: string
+    description: Colour label (e.g., Black, Amber, No Colour).
+    sample_values:
+    - No Colour
+    - Amber
+    - Auburn
+    - Black
+    - Black/Blue
+  description: Lookup table of colour values used for eye, hair, and skin colour attributes
+    in superhero profiles.
+description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
+  \ alignment\n\nColumns:\n (the unique identifier of the alignment) - Type: integer\n\
+  \ (the alignment of the superhero) - Type: text - commonsense evidence: Alignment\
+  \ refers to a character's moral and ethical stance and can be used to describe the\
+  \ overall attitude or behavior of a superhero. Some common alignments for superheroes\
+  \ include: Good: These superheroes are typically kind, selfless, and dedicated to\
+  \ protecting others and upholding justice. Examples of good alignments include Superman,\
+  \ Wonder Woman, and Spider-Man. Neutral: These superheroes may not always prioritize\
+  \ the greater good, but they are not necessarily evil either. They may act in their\
+  \ own self-interest or make decisions based on their own moral code. Examples of\
+  \ neutral alignments include the Hulk and Deadpool. \x95\tBad: These superheroes\
+  \ are typically selfish, manipulative, and willing to harm others in pursuit of\
+  \ their own goals. Examples of evil alignments include Lex Luthor and the Joker.\n\
+  \n## Table: attribute\n\nColumns:\n (the unique identifier of the attribute) - Type:\
+  \ integer\n- **attribute name** (the attribute) - Type: text - commonsense evidence:\
+  \ A superhero's attribute is a characteristic or quality that defines who they are\
+  \ and what they are capable of. This could be a physical trait, such as superhuman\
+  \ strength or the ability to fly, or a personal trait, such as extraordinary intelligence\
+  \ or exceptional bravery.\n\n## Table: colour\n\nColumns:\n (the unique identifier\
+  \ of the color) - Type: integer\n (the color of the superhero's skin/eye/hair/etc)\
+  \ - Type: text\n\n## Table: gender\n\nColumns:\n (the unique identifier of the gender)\
+  \ - Type: integer\n (the gender of the superhero) - Type: text\n\n## Table: hero_attribute\n\
+  \nColumns:\n- **hero id** (the id of the hero\nMaps to superhero(id))\n- **attribute\
+  \ id** (the id of the attribute\nMaps to attribute(id))\n- **attribute value** (the\
+  \ attribute value) - commonsense evidence: If a superhero has a higher attribute\
+  \ value on a particular attribute, it means that they are more skilled or powerful\
+  \ in that area compared to other superheroes. For example, if a superhero has a\
+  \ higher attribute value for strength, they may be able to lift heavier objects\
+  \ or deliver more powerful punches than other superheroes.\n\n## Table: hero_power\n\
+  \nColumns:\n- **hero id** (the id of the hero\nMaps to superhero(id)) - Type: integer\n\
+  - **power id** (the id of the power\nMaps to superpower(id)) - Type: integer - commonsense\
+  \ evidence: In general, a superhero's attributes provide the foundation for their\
+  \ abilities and help to define who they are, while their powers are the specific\
+  \ abilities that they use to fight crime and protect others.\n\n## Table: publisher\n\
+  \nColumns:\n (the unique identifier of the publisher) - Type: integer\n (the name\
+  \ of the publisher) - Type: text\n\n## Table: race\n\nColumns:\n (the unique identifier\
+  \ of the race) - Type: integer\n (the race of the superhero) - Type: text - commonsense\
+  \ evidence: In the context of superheroes, a superhero's race would refer to the\
+  \ particular group of people that the superhero belongs to base on these physical\
+  \ characteristics\n\n## Table: superhero\n\nColumns:\n (the unique identifier of\
+  \ the superhero) - Type: integer\n- **superhero name** (the name of the superhero)\
+  \ - Type: text\n- **full name** (the full name of the superhero) - Type: text -\
+  \ commonsense evidence: The full name of a person typically consists of their given\
+  \ name, also known as their first name or personal name, and their surname, also\
+  \ known as their last name or family name. For example, if someone's given name\
+  \ is \"John\" and their surname is \"Smith,\" their full name would be \"John Smith.\"\
+  \n- **gender id** (the id of the superhero's gender) - Type: integer\n- **eye colour\
+  \ id** (the id of the superhero's eye color) - Type: integer\n- **hair colour id**\
+  \ (the id of the superhero's hair color) - Type: integer\n- **skin colour id** (the\
+  \ id of the superhero's skin color) - Type: integer\n- **race id** (the id of the\
+  \ superhero's race) - Type: integer\n- **publisher id** (the id of the publisher)\
+  \ - Type: integer\n- **alignment id** (the id of the superhero's alignment) - Type:\
+  \ integer\n- **height cm** (the height of the superhero) - Type: integer - commonsense\
+  \ evidence: The unit of height is centimeter. If the height_cm is NULL or 0, it\
+  \ means the height of the superhero is missing.\n- **weight kg** (the weight of\
+  \ the superhero) - Type: integer - commonsense evidence: The unit of weight is kilogram.\
+  \ If the weight_kg is NULL or 0, it means the weight of the superhero is missing.\n\
+  \n## Table: superpower\n\nColumns:\n (the unique identifier of the superpower) -\
+  \ Type: integer\n- **power name** (the superpower name) - Type: text\n"

@@ -1,0 +1,35 @@
+name: bird-student-club-092
+description: "BIRD Q1403 (moderate): Indicate the name of the closed event whose cost has exceeded the budget the most."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1403
+    description: "Indicate the name of the closed event whose cost has exceeded the budget the most."
+    messages:
+      - role: user
+        content: |
+          Indicate the name of the closed event whose cost has exceeded the budget the most.
+          Evidence: closed events refers to event_name where status = 'Closed'; exceed the budget the most refers to MIN(remaining) where remaining < 0
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1403.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

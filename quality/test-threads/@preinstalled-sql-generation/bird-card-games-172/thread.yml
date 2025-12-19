@@ -1,0 +1,35 @@
+name: bird-card-games-172
+description: "BIRD Q511 (moderate): What is the most common visual frame effects among the incredibly powerful foils?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-511
+    description: "What is the most common visual frame effects among the incredibly powerful foils?"
+    messages:
+      - role: user
+        content: |
+          What is the most common visual frame effects among the incredibly powerful foils?
+          Evidence: when both cardKingdomFoilId and cardKingdomId are not null, this foil is incredibly powerful; most common visual frame effects refers to MAX(frameEffects)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_511.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

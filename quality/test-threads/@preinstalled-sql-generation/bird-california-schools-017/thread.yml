@@ -1,0 +1,35 @@
+name: bird-california-schools-017
+description: "BIRD Q16 (simple): How many schools in merged Alameda have number of test takers less than 100?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-16
+    description: "How many schools in merged Alameda have number of test takers less than 100?"
+    messages:
+      - role: user
+        content: |
+          How many schools in merged Alameda have number of test takers less than 100?
+          Evidence: 'Merged' in 'merged Alameda' refers to the schools' StatusType; Number of test takers refers to NumTstTakr
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_16.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

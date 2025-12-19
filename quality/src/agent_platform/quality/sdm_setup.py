@@ -343,28 +343,40 @@ class SDMSetup:
         return semantic_model
 
     def _interpolate_config_value(self, key: str, value: Any, connection_name: str) -> int | str:
-        """Interpolate $ENV_VAR_NAME patterns in config values.
+        """Interpolate $ENV_VAR_NAME and ${ENV_VAR:-default} patterns in config values.
 
         Args:
             key: Configuration field name
-            value: Configuration value (may contain $ENV_VAR_NAME)
+            value: Configuration value (may contain $ENV_VAR_NAME or ${VAR:-default})
             connection_name: Data connection name (for error messages)
 
         Returns:
             Interpolated value with proper type conversion
 
         Raises:
-            ValueError: If env var not found or port conversion fails
+            ValueError: If env var not found (when no default) or port conversion fails
         """
-        # Interpolate $ENV_VAR_NAME patterns
+        # Interpolate environment variable patterns
         if isinstance(value, str) and value.startswith("$"):
-            env_var_name = value[1:]
-            env_value = os.getenv(env_var_name)
-            if env_value is None:
-                raise ValueError(
-                    f"Environment variable '{env_var_name}' not set for field '{key}' "
-                    f"in data connection '{connection_name}'"
-                )
+            import re
+
+            # Check for ${VAR:-default} syntax
+            match = re.match(r"^\$\{([^:}]+):-([^}]*)\}$", value)
+            if match:
+                env_var_name = match.group(1)
+                default_value = match.group(2)
+                env_value = os.getenv(env_var_name, default_value)
+            else:
+                # Simple $VAR syntax (no default)
+                env_var_name = value[1:].strip("{}")
+                env_value = os.getenv(env_var_name)
+                if env_value is None:
+                    raise ValueError(
+                        f"Environment variable '{env_var_name}' not set for field '{key}' "
+                        f"in data connection '{connection_name}'"
+                    )
+
+            # Convert port to int if needed
             if key == "port":
                 try:
                     return int(env_value)

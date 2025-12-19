@@ -1,0 +1,35 @@
+name: bird-codebase-community-087
+description: "BIRD Q617 (simple): What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-617
+    description: "What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?"
+    messages:
+      - role: user
+        content: |
+          What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?
+          Evidence: detailed content of the comment refers to Text; created on 7/19/2010 7:37:33 PM CreationDate = 2010-07-19 19:37:33.0'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_617.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

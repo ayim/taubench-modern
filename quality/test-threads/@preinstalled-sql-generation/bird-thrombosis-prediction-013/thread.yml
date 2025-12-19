@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-013
+description: "BIRD Q1161 (challenging): For in-patients, what is the average IgG concentration measured when they were age 50 or above?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1161
+    description: "For in-patients, what is the average IgG concentration measured when they were age 50 or above?"
+    messages:
+      - role: user
+        content: |
+          For in-patients, what is the average IgG concentration measured when they were age 50 or above?
+          Evidence: in-patient refers to Admission = '+'; age 50 and above refers to SUBTRACT(year(Examination Date), year(Birthday)) >= '50'; average anti-cardiolipin antibody (IgG) concentration refers to AVG(aCL IgG)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1161.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

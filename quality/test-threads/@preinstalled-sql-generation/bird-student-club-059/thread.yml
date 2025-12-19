@@ -1,0 +1,35 @@
+name: bird-student-club-059
+description: "BIRD Q1370 (simple): List all the expenses incurred by the vice president."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1370
+    description: "List all the expenses incurred by the vice president."
+    messages:
+      - role: user
+        content: |
+          List all the expenses incurred by the vice president.
+          Evidence: expense refers to expense_description; 'Vice President' is a position of the Student Club
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1370.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

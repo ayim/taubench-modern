@@ -1,0 +1,35 @@
+name: bird-toxicology-001
+description: "BIRD Q195 (challenging): For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-195
+    description: "For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type."
+    messages:
+      - role: user
+        content: |
+          For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type.
+          Evidence: most common bond type refers to the bond_type with MAX(COUNT(bond_id)); molecule label refers to '+' for carcinogenic and '-' for non-carcinogenic
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_195.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+CustomerID,SUM(T2.Consumption)
+12459,16130041.82

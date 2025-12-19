@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-026
+description: "BIRD Q1495 (simple): Which client ID consumed the most in September 2013?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1495
+    description: "Which client ID consumed the most in September 2013?"
+    messages:
+      - role: user
+        content: |
+          Which client ID consumed the most in September 2013?
+          Evidence: September 2013 refers to yearmonth.date = '201309'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1495.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

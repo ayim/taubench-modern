@@ -1,0 +1,35 @@
+name: bird-card-games-117
+description: "BIRD Q456 (simple): What's the list of all types for the card \"Molimo, Maro-Sorcerer\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-456
+    description: "What's the list of all types for the card \"Molimo, Maro-Sorcerer\"?"
+    messages:
+      - role: user
+        content: |
+          What's the list of all types for the card "Molimo, Maro-Sorcerer"?
+          Evidence: card "Molimo, Maro-Sorcerer" refers to name = 'Molimo, Maro-Sorcerer'; list of all types refers to subtypes,supertypes, types
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_456.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

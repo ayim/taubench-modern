@@ -1,0 +1,5 @@
+bond_id,connected_from,connected_to,connection_elements,bond_type,molecule_label,bond_classification,atom_count,bond_count,connection_rank
+TR000_1_2,TR000_1,TR000_2,cl-c,-,+,Contains Chlorine,5,4,1
+TR000_2_3,TR000_3,TR000_2,cl-c,-,+,Contains Chlorine,5,4,2
+TR000_2_4,TR000_4,TR000_2,cl-c,-,+,Contains Chlorine,5,4,3
+TR000_2_5,TR000_5,TR000_2,h-c,-,+,Other Bond Type,5,4,4

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-098
+description: "BIRD Q1246 (moderate): For the patients with an abnormal activated partial prothrom bin time, how many of them does not have thrombosis?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1246
+    description: "For the patients with an abnormal activated partial prothrom bin time, how many of them does not have thrombosis?"
+    messages:
+      - role: user
+        content: |
+          For the patients with an abnormal activated partial prothrom bin time, how many of them does not have thrombosis?
+          Evidence: abnormal activated partial prothrom bin time refers to APTT > 45; does not have thrombosis refers to Thrombosis = 0; Only count ones without repetitive.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1246.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

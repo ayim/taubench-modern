@@ -1,0 +1,35 @@
+name: bird-superhero-055
+description: "BIRD Q771 (simple): List the name of superheroes with flight power."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-771
+    description: "List the name of superheroes with flight power."
+    messages:
+      - role: user
+        content: |
+          List the name of superheroes with flight power.
+          Evidence: name of superheroes refers to superhero_name; flight power refers to power_name = 'Flight';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_771.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

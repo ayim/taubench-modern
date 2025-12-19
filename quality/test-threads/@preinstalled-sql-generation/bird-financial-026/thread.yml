@@ -1,0 +1,35 @@
+name: bird-financial-026
+description: "BIRD Q114 (simple): For the first client who opened his/her account in Prague, what is his/her account ID?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-114
+    description: "For the first client who opened his/her account in Prague, what is his/her account ID?"
+    messages:
+      - role: user
+        content: |
+          For the first client who opened his/her account in Prague, what is his/her account ID?
+          Evidence: A3 stands for region names
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_114.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

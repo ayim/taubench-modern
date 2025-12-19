@@ -1,0 +1,35 @@
+name: bird-card-games-176
+description: "BIRD Q515 (moderate): When was the oldest mythic card released and what are its legal play formats?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-515
+    description: "When was the oldest mythic card released and what are its legal play formats?"
+    messages:
+      - role: user
+        content: |
+          When was the oldest mythic card released and what are its legal play formats?
+          Evidence: the oldest card refers to MIN(originalReleaseDate); mythic card refers to rarity = 'mythic'; legal play refers to status = 'legal'; play format refers to format
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_515.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

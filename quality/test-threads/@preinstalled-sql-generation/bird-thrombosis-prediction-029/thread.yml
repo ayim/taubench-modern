@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-029
+description: "BIRD Q1177 (simple): Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1177
+    description: "Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?"
+    messages:
+      - role: user
+        content: |
+          Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?
+          Evidence: total cholesterol normal level refers to N < 250
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1177.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

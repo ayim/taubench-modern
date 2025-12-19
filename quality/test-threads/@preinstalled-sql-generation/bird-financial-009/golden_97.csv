@@ -1,0 +1,15 @@
+client_id,gender,birth_date,district_name,region,loan_count,avg_loan_amount,active_loans,completed_loans,transaction_count,total_income,total_expense,net_balance,last_transaction_date,card_count,card_types,client_category,transaction_rank
+6318,M,1950-03-05,Vsetin,north Moravia,1,173808.0,1,0,454,3576922,2990808,586114,1998-12-31,0,,Loan Only Client,1
+1261,M,1951-09-28,Hodonin,south Moravia,0,,0,0,421,1955138,1495845,459293,1998-12-31,0,,Basic Client,2
+11979,F,1977-12-09,Brno - mesto,south Moravia,1,113796.0,1,0,346,1025262,917111,108151,1998-12-31,0,,Loan Only Client,3
+4625,M,1967-03-04,Rychnov nad Kneznou,east Bohemia,0,,0,0,330,1052190,669600,382590,1998-12-31,0,,Basic Client,4
+2304,M,1939-02-11,Trebic,south Moravia,0,,0,0,278,1773621,1580749,192872,1998-12-31,0,,Basic Client,5
+384,M,1935-10-08,Cesky Krumlov,south Bohemia,1,66840.0,0,0,223,1415124,1285221,129903,1998-12-31,0,,Loan Only Client,6
+159,M,1938-09-10,Teplice,north Bohemia,1,88440.0,1,0,198,1285258,1065840,219418,1998-12-31,0,,Loan Only Client,7
+4334,F,1954-02-19,Hl.m. Praha,Prague,0,,0,0,187,866157,671030,195127,1998-12-31,0,,Basic Client,8
+4133,F,1965-03-22,Havlickuv Brod,east Bohemia,1,207264.0,0,0,186,1134171,909742,224429,1998-12-31,0,,Loan Only Client,9
+1706,M,1944-07-19,Prachatice,south Bohemia,1,125472.0,0,0,182,1331689,1071766,259923,1998-12-31,0,,Loan Only Client,10
+3609,F,1955-10-26,Zdar nad Sazavou,south Moravia,1,88608.0,0,0,168,1083464,1005420,78044,1998-12-31,0,,Loan Only Client,11
+4035,F,1930-08-20,Jihlava,south Moravia,0,,0,0,160,1290495,1084017,206478,1998-12-31,0,,Basic Client,12
+5580,F,1952-03-01,Vsetin,north Moravia,1,87528.0,0,0,133,591614,479164,112450,1998-12-31,0,,Loan Only Client,13
+3526,F,1977-07-06,Cesky Krumlov,south Bohemia,0,,0,0,70,471465,365009,106456,1998-12-31,0,,Basic Client,14

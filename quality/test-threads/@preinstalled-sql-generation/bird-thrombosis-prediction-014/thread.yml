@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-014
+description: "BIRD Q1162 (moderate): How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1162
+    description: "How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?"
+    messages:
+      - role: user
+        content: |
+          How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?
+          Evidence: female refers to sex = 'F'; came at the hospital in 1997 refers to year(Description) = '1997'; immediately followed at the outpatient clinic refers to Admission = '-'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1162.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

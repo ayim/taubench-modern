@@ -1,0 +1,35 @@
+name: bird-codebase-community-072
+description: "BIRD Q602 (simple): List out all post ID with score more than 60 and list out all the user ID that created these post."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-602
+    description: "List out all post ID with score more than 60 and list out all the user ID that created these post."
+    messages:
+      - role: user
+        content: |
+          List out all post ID with score more than 60 and list out all the user ID that created these post.
+          Evidence: score more than 60 refers to Score > 60
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_602.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

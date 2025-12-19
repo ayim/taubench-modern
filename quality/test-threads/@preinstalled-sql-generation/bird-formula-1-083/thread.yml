@@ -1,0 +1,35 @@
+name: bird-formula-1-083
+description: "BIRD Q928 (moderate): Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-928
+    description: "Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name."
+    messages:
+      - role: user
+        content: |
+          Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name.
+          Evidence: reference name refers to driverRef; Canadian Grand Prix refers to races.name = 'Canadian Grand Prix';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_928.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-formula-1-047
+description: "BIRD Q892 (moderate): State the driver with the most points scored. Find his full name with that points."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-892
+    description: "State the driver with the most points scored. Find his full name with that points."
+    messages:
+      - role: user
+        content: |
+          State the driver with the most points scored. Find his full name with that points.
+          Evidence: the most points scored refers to max(points); Full name of the driver refers to drivers.forename and drivers.surname;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_892.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

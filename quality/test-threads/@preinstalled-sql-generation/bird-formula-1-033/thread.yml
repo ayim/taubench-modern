@@ -1,0 +1,35 @@
+name: bird-formula-1-033
+description: "BIRD Q878 (simple): Who was the driver that got the best lap time in the race No. 348? Give his full name."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-878
+    description: "Who was the driver that got the best lap time in the race No. 348? Give his full name."
+    messages:
+      - role: user
+        content: |
+          Who was the driver that got the best lap time in the race No. 348? Give his full name.
+          Evidence: race number refers to raceId; the best lap time refers to MIN(time)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_878.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

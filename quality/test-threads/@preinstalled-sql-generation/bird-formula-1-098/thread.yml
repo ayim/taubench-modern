@@ -1,0 +1,35 @@
+name: bird-formula-1-098
+description: "BIRD Q943 (moderate): What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-943
+    description: "What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?"
+    messages:
+      - role: user
+        content: |
+          What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?
+          Evidence: completing all the laps refers to time is not null; rate = divide(COUNT(raceID where time is not null), COUNT(raceID))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_943.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

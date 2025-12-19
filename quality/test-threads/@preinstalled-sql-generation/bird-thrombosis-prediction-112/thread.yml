@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-112
+description: "BIRD Q1260 (simple): Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1260
+    description: "Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test."
+    messages:
+      - role: user
+        content: |
+          Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test.
+          Evidence: RF is normal refers to RF < 20, excluding any '<' or '>' prefix if present; older than 60 means the patient's age at the time of the laboratory test exceeded 60 years
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1260.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

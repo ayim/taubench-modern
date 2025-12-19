@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-095
+description: "BIRD Q1243 (challenging): For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1243
+    description: "For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?"
+    messages:
+      - role: user
+        content: |
+          For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?
+          Evidence: older than 55 years old = SUBTRACT(year(current_timestamp), year(Birthday)) > 55; abnormal prothrombin time (PT) refers to PT > = 14; percentage = DIVIDE(SUM(PT > = 14 AND SEX = 'F'), SUM(PT > = 14)) * 100; female refers to sex = 'F'; 
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1243.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

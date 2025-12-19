@@ -1,0 +1,35 @@
+name: bird-superhero-057
+description: "BIRD Q773 (challenging): Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-773
+    description: "Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero."
+    messages:
+      - role: user
+        content: |
+          Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero.
+          Evidence: which superhero refers to superhero_name; the same eyes, hair and skin colour refers to hair_colour_id = skin_colour_id AND hair_colour_id = eye_colour_id; publisher refers to publisher_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_773.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+CAST(SUM(Currency = 'EUR') AS FLOAT) * 100 / COUNT(CustomerID)
+3.480392156862745

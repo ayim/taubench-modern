@@ -1,0 +1,35 @@
+name: bird-formula-1-116
+description: "BIRD Q961 (simple): Which race has the shortest actual finishing time? Please give the name and year."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-961
+    description: "Which race has the shortest actual finishing time? Please give the name and year."
+    messages:
+      - role: user
+        content: |
+          Which race has the shortest actual finishing time? Please give the name and year.
+          Evidence: shortest actual finishing time refers to Min(milliseconds) except milliseconds = null;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_961.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-043
+description: "BIRD Q573 (simple): Write the contents of comments with a score of 17."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-573
+    description: "Write the contents of comments with a score of 17."
+    messages:
+      - role: user
+        content: |
+          Write the contents of comments with a score of 17.
+          Evidence: score of 17 refers to Score = 17; contents of comments refers to Text
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_573.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

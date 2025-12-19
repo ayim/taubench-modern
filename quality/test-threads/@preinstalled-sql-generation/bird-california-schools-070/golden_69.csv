@@ -1,0 +1,4 @@
+NCESDist,School,SchoolType,CurrentStatus,OpeningDate,Enrollment,PovertyLevel,AvgReadingScore,AvgMathScore,AvgWritingScore,AvgTotalScore,EnrollmentRank
+0600003,California School for the Deaf-Fremont,Non-Charter,Active,1980-07-01,410.0,High Poverty,0,0,0,0.0,1
+0600007,California School for the Deaf-Riverside,Non-Charter,Active,1953-07-01,355.0,Low Poverty,0,0,0,0.0,2
+0600002,California School for the Blind,Non-Charter,Active,1980-07-01,60.0,High Poverty,0,0,0,0.0,3

@@ -1,0 +1,35 @@
+name: bird-superhero-094
+description: "BIRD Q810 (simple): What is the most common race of the superhero with maximum attribute value?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-810
+    description: "What is the most common race of the superhero with maximum attribute value?"
+    messages:
+      - role: user
+        content: |
+          What is the most common race of the superhero with maximum attribute value?
+          Evidence: maximum attribute value refers to MAX(attribute_value);most common race refers to race with MAX(COUNT(*))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_810.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

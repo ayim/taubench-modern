@@ -1,0 +1,2 @@
+CAST(SUM(T2.gender = 'F') AS REAL) / COUNT(T2.client_id) * 100
+48.86877828054298

@@ -1,0 +1,35 @@
+name: bird-european-football-2-127
+description: "BIRD Q1146 (moderate): Please provide the full name of the away team that scored the most goals."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1146
+    description: "Please provide the full name of the away team that scored the most goals."
+    messages:
+      - role: user
+        content: |
+          Please provide the full name of the away team that scored the most goals.
+          Evidence: full name refers to team_long_name; away team refers to away_team_api_id; scored the most goals refers to MAX(away_team_goal)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1146.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

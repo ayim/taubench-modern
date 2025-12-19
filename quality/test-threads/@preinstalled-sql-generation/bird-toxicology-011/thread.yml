@@ -1,0 +1,35 @@
+name: bird-toxicology-011
+description: "BIRD Q205 (challenging): For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-205
+    description: "For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule."
+    messages:
+      - role: user
+        content: |
+          For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule.
+          Evidence: carbon refers to element = 'c'; chlorine refers to element = 'cl'; double bonds refers to bond_type = '='
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_205.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

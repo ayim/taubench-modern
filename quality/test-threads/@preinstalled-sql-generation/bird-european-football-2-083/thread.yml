@@ -1,0 +1,35 @@
+name: bird-european-football-2-083
+description: "BIRD Q1102 (moderate): For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1102
+    description: "For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player."
+    messages:
+      - role: user
+        content: |
+          For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player.
+          Evidence: on 2016/6/23 refers to date LIKE '2016-06-23%'; The larger the birthday value, the younger the person is, and vice versa;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1102.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

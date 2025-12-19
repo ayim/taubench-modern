@@ -1,0 +1,2 @@
+client_id,card_id,card_type,gender,client_age,district_name,region,trans_id,largest_transaction_amount,transaction_type,transaction_date,balance_after_transaction,transaction_category,loan_status,loan_amount,order_id,bank_to
+1202,197,junior,F,45,Pardubice,east Bohemia,291346,87400,VYDAJ,1998-12-15,22169,High Value,No Loan,,30855,MN

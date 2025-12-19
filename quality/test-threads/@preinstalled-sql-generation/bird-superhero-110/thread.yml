@@ -1,0 +1,35 @@
+name: bird-superhero-110
+description: "BIRD Q826 (simple): Identify the heaviest superhero in DC Comics."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-826
+    description: "Identify the heaviest superhero in DC Comics."
+    messages:
+      - role: user
+        content: |
+          Identify the heaviest superhero in DC Comics.
+          Evidence: heaviest refers to MAX(weight_kg); DC Comics refers to publisher_name = 'DC Comics'; superhero refers to superhero_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_826.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

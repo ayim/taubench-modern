@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-053
+description: "BIRD Q1522 (simple): There's one customer spent 214582.17 in the June of 2013, which currency did he/she use?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1522
+    description: "There's one customer spent 214582.17 in the June of 2013, which currency did he/she use?"
+    messages:
+      - role: user
+        content: |
+          There's one customer spent 214582.17 in the June of 2013, which currency did he/she use?
+          Evidence: June of 2013 means Date contains '201306' in the yearmonth.date of the database
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1522.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

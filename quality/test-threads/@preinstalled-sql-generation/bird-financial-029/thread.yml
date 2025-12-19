@@ -1,0 +1,35 @@
+name: bird-financial-029
+description: "BIRD Q117 (challenging): For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-117
+    description: "For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans."
+    messages:
+      - role: user
+        content: |
+          For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans.
+          Evidence: Loan paid with no issue refers to status = 'A'; Interest paid = (monthly payments * duration) - loan amount; Percentage = (amount with status 'A' / total amount) * 100%
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_117.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

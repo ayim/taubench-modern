@@ -1,0 +1,35 @@
+name: bird-card-games-115
+description: "BIRD Q454 (simple): Among the cards with a white border color, how many of them have unknown power?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-454
+    description: "Among the cards with a white border color, how many of them have unknown power?"
+    messages:
+      - role: user
+        content: |
+          Among the cards with a white border color, how many of them have unknown power?
+          Evidence: unknown power refers to power = '*' or power is null
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_454.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

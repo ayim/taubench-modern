@@ -1,0 +1,35 @@
+name: bird-formula-1-118
+description: "BIRD Q963 (moderate): How many French drivers who obtain the laptime less than 02:00.00?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-963
+    description: "How many French drivers who obtain the laptime less than 02:00.00?"
+    messages:
+      - role: user
+        content: |
+          How many French drivers who obtain the laptime less than 02:00.00?
+          Evidence: lap time less than 02:00.00 refers to seconds < 120;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_963.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

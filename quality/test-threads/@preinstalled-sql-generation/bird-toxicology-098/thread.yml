@@ -1,0 +1,35 @@
+name: bird-toxicology-098
+description: "BIRD Q292 (simple): Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-292
+    description: "Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon."
+    messages:
+      - role: user
+        content: |
+          Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon.
+          Evidence: carbon refers to element = 'c'; between TR010 to TR050 refers to substr(molecule_id, 3, 3)>=10 AND substr(molecule_id, 3, 3) <= 50
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_292.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

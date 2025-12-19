@@ -1,0 +1,35 @@
+name: bird-superhero-061
+description: "BIRD Q777 (simple): What is the gender of Agent 13 hero?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-777
+    description: "What is the gender of Agent 13 hero?"
+    messages:
+      - role: user
+        content: |
+          What is the gender of Agent 13 hero?
+          Evidence: Agent 13 hero refers to superhero_name = 'Agent 13';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_777.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

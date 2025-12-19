@@ -1,0 +1,35 @@
+name: bird-superhero-023
+description: "BIRD Q739 (moderate): What are the names of the superheroes with the power of death touch?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-739
+    description: "What are the names of the superheroes with the power of death touch?"
+    messages:
+      - role: user
+        content: |
+          What are the names of the superheroes with the power of death touch?
+          Evidence: name of superheroes refers to refers to superhero_name; the power of death touch refers to power_name = 'Death Touch'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_739.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

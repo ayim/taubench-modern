@@ -1,0 +1,2 @@
+CAST(SUM(CASE WHEN T1.category = 'Parking' THEN T1.amount ELSE 0 END) AS REAL) * 100 / SUM(T1.amount)
+3.8461538461538463

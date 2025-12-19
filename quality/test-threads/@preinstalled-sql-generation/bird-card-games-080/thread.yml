@@ -1,0 +1,35 @@
+name: bird-card-games-080
+description: "BIRD Q419 (simple): How many color cards with no borders have been ranked higher than 12000 on EDHRec?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-419
+    description: "How many color cards with no borders have been ranked higher than 12000 on EDHRec?"
+    messages:
+      - role: user
+        content: |
+          How many color cards with no borders have been ranked higher than 12000 on EDHRec?
+          Evidence: color cards with no borders refers to borderColor = 'borderless'; ranked higher than 12000 on EDHRec refers to edhrecRank > 12000
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_419.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

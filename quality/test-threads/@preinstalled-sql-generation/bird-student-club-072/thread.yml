@@ -1,0 +1,35 @@
+name: bird-student-club-072
+description: "BIRD Q1383 (simple): State the name of students from Georgetown, South Carolina."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1383
+    description: "State the name of students from Georgetown, South Carolina."
+    messages:
+      - role: user
+        content: |
+          State the name of students from Georgetown, South Carolina.
+          Evidence: name of students means the full name; Georgetown is a city; South Carolina is a state
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1383.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

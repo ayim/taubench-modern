@@ -1,0 +1,35 @@
+name: bird-codebase-community-065
+description: "BIRD Q595 (moderate): Which users have used only one post history type across all posts having at least 1000 views?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-595
+    description: "Which users have used only one post history type across all posts having at least 1000 views?"
+    messages:
+      - role: user
+        content: |
+          Which users have used only one post history type across all posts having at least 1000 views?
+          Evidence: having at least 1000 view refers to ViewCount > = 1000; user refers to UserId
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_595.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

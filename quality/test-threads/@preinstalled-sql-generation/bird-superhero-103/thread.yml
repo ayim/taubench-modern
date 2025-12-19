@@ -1,0 +1,35 @@
+name: bird-superhero-103
+description: "BIRD Q819 (challenging): In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-819
+    description: "In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color."
+    messages:
+      - role: user
+        content: |
+          In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color.
+          Evidence: missing weight data refers to weight_kg = 0 OR T1.weight_kg = NULL; difference = SUBTRACT(SUM(colour.id = 7), SUM(colour.id = 1)); blue eyes refers to eye_colour_id WHERE colour.id = 7; no eye color refers to eye_colour_id WHERE colour.id = 1;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_819.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

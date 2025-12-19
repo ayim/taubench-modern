@@ -1,0 +1,35 @@
+name: bird-toxicology-023
+description: "BIRD Q217 (simple): Identify all the atoms that are connected to the atoms of the TR181 molecule."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-217
+    description: "Identify all the atoms that are connected to the atoms of the TR181 molecule."
+    messages:
+      - role: user
+        content: |
+          Identify all the atoms that are connected to the atoms of the TR181 molecule.
+          Evidence: TR181 molecule refers to molecule_id = 'TR181'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_217.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

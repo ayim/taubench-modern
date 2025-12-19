@@ -1,0 +1,35 @@
+name: bird-superhero-020
+description: "BIRD Q736 (moderate): Who is the dumbest superhero?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-736
+    description: "Who is the dumbest superhero?"
+    messages:
+      - role: user
+        content: |
+          Who is the dumbest superhero?
+          Evidence: The dumbest superhero is the one with the lowest intelligence attribute value.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_736.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-076
+description: "BIRD Q415 (challenging): What percentage of cards with format commander and legal status do not have a content warning?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-415
+    description: "What percentage of cards with format commander and legal status do not have a content warning?"
+    messages:
+      - role: user
+        content: |
+          What percentage of cards with format commander and legal status do not have a content warning?
+          Evidence: do not have a content warning refers to hasContentWarning = 0; percentage = (cards without content warning / total cards) × 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_415.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

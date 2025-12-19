@@ -1,0 +1,35 @@
+name: bird-financial-050
+description: "BIRD Q138 (challenging): For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-138
+    description: "For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories."
+    messages:
+      - role: user
+        content: |
+          For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories.
+          Evidence: Male refers to gender = 'M'; A15 refers to number of committed crimes in 1995; Age is calculated from birth_date to current date
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_138.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-172
+description: "BIRD Q702 (simple): How many posts have a score less than 20?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-702
+    description: "How many posts have a score less than 20?"
+    messages:
+      - role: user
+        content: |
+          How many posts have a score less than 20?
+          Evidence: score less than 20 refers to Score < 20;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_702.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

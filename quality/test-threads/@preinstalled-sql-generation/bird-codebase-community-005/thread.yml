@@ -1,0 +1,35 @@
+name: bird-codebase-community-005
+description: "BIRD Q535 (simple): Among the users who have more than 100 upvotes, how many of them have more then 1 downvotes?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-535
+    description: "Among the users who have more than 100 upvotes, how many of them have more then 1 downvotes?"
+    messages:
+      - role: user
+        content: |
+          Among the users who have more than 100 upvotes, how many of them have more then 1 downvotes?
+          Evidence: more than 100 upvotes refers to Upvotes > 100; more than 1 downvotes refers to Downvotes > 1
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_535.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

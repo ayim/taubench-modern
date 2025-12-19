@@ -1,0 +1,2512 @@
+name: European Football
+tables:
+- name: player
+  facts:
+  - expr: height
+    name: height
+    synonyms:
+    - player height cm
+    - player stature
+    - player height
+    data_type: int64
+    description: Player height (typically in centimeters).
+    sample_values:
+    - 182
+    - 170
+    - 170
+    - 182
+    - 182
+  - expr: weight
+    name: weight
+    synonyms:
+    - player weight lbs
+    - player body weight
+    - player weight
+    data_type: int64
+    description: Player weight (often in pounds in this dataset).
+    sample_values:
+    - 187
+    - 146
+    - 163
+    - 198
+    - 154
+  synonyms:
+  - player master
+  - footballers
+  - athlete roster
+  base_table:
+    table: player
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - player row id
+    - player record id
+    - player table id
+    data_type: '!int64'
+    description: Surrogate primary key for the player record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: player_api_id
+    name: player_api_id
+    synonyms:
+    - player api identifier
+    - player api id
+    - player external id
+    data_type: int64
+    description: Player identifier used by the source API (join key to match and attributes
+      tables).
+    sample_values:
+    - 505942
+    - 155782
+    - 162549
+    - 30572
+    - 23780
+  - expr: player_name
+    name: player_name
+    synonyms:
+    - footballer name
+    - player full name
+    - athlete name
+    data_type: string
+    description: Player full name.
+    sample_values:
+    - Aaron Appindangoye
+    - Aaron Cresswell
+    - Aaron Doran
+    - Aaron Galindo
+    - Aaron Hughes
+  - expr: player_fifa_api_id
+    name: player_fifa_api_id
+    synonyms:
+    - player fifa id
+    - fifa player api id
+    - fifa player identifier
+    data_type: int64
+    description: Player identifier used by FIFA data source/API.
+    sample_values:
+    - 218353
+    - 189615
+    - 186170
+    - 140161
+    - 17725
+  description: 'Player master data: one row per football player with identifiers and
+    basic biographical attributes.'
+  time_dimensions:
+  - expr: birthday
+    name: birthday
+    synonyms:
+    - player date of birth
+    - player dob
+    - player birthdate
+    data_type: string
+    description: Player date of birth (timestamp stored as text).
+    sample_values:
+    - '1992-02-29 00:00:00'
+    - '1989-12-15 00:00:00'
+    - '1991-05-13 00:00:00'
+    - '1982-05-08 00:00:00'
+    - '1979-11-08 00:00:00'
+- name: country
+  synonyms:
+  - country reference
+  - nations
+  - country list
+  base_table:
+    table: country
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - country id key
+    - country record id
+    - country table id
+    data_type: '!int64'
+    description: Surrogate primary key for the country record (join to league and
+      match).
+    sample_values:
+    - 1
+    - 1729
+    - 4769
+    - 7809
+    - 10257
+  - expr: name
+    name: name
+    synonyms:
+    - country name
+    - nation name
+    - country
+    data_type: string
+    description: Country name.
+    sample_values:
+    - Belgium
+    - England
+    - France
+    - Germany
+    - Italy
+  description: Country reference data used to group leagues and matches by country.
+- name: league
+  synonyms:
+  - league directory
+  - competitions
+  - league list
+  base_table:
+    table: league
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - league id key
+    - league record id
+    - league table id
+    data_type: '!int64'
+    description: Surrogate primary key for the league record (join to match).
+    sample_values:
+    - 1
+    - 1729
+    - 4769
+    - 7809
+    - 10257
+  - expr: country_id
+    name: country_id
+    synonyms:
+    - league country id
+    - country id for league
+    - league nation id
+    data_type: int64
+    description: Country identifier for the league (foreign key to country.id).
+    sample_values:
+    - 1
+    - 1729
+    - 4769
+    - 7809
+    - 10257
+  - expr: name
+    name: name
+    synonyms:
+    - league name
+    - competition name
+    - division name
+    data_type: string
+    description: League (competition) name.
+    sample_values:
+    - Belgium Jupiler League
+    - England Premier League
+    - France Ligue 1
+    - Germany 1. Bundesliga
+    - Italy Serie A
+  description: League/competition reference data, including which country a league
+    belongs to.
+- name: player_attributes
+  facts:
+  - expr: acceleration
+    name: acceleration
+    synonyms:
+    - player acceleration rating
+    - acceleration score
+    - acceleration
+    data_type: int64
+    description: Acceleration rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 60
+    - 60
+    - 60
+    - 60
+    - 60
+  - expr: aggression
+    name: aggression
+    synonyms:
+    - player aggression rating
+    - aggression score
+    - aggression
+    data_type: int64
+    description: Aggression rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 71
+    - 71
+    - 63
+    - 62
+    - 62
+  - expr: agility
+    name: agility
+    synonyms:
+    - player agility rating
+    - agility score
+    - agility
+    data_type: int64
+    description: Agility rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 59
+    - 59
+    - 59
+    - 59
+    - 59
+  - expr: balance
+    name: balance
+    synonyms:
+    - player balance rating
+    - balance score
+    - balance
+    data_type: int64
+    description: Balance rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 65
+    - 65
+    - 65
+    - 65
+    - 65
+  - expr: ball_control
+    name: ball_control
+    synonyms:
+    - player ball control rating
+    - ball control score
+    - ball control
+    data_type: int64
+    description: Ball control rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 49
+    - 49
+    - 49
+    - 48
+    - 48
+  - expr: crossing
+    name: crossing
+    synonyms:
+    - player crossing rating
+    - crossing accuracy score
+    - crossing
+    data_type: int64
+    description: Crossing rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 49
+    - 49
+    - 49
+    - 48
+    - 48
+  - expr: curve
+    name: curve
+    synonyms:
+    - player curve rating
+    - curve score
+    - curve
+    data_type: int64
+    description: Curve rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 45
+    - 45
+    - 45
+    - 44
+    - 44
+  - expr: dribbling
+    name: dribbling
+    synonyms:
+    - player dribbling rating
+    - dribbling score
+    - dribbling
+    data_type: int64
+    description: Dribbling rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 51
+    - 51
+    - 51
+    - 50
+    - 50
+  - expr: finishing
+    name: finishing
+    synonyms:
+    - player finishing rating
+    - finishing score
+    - finishing
+    data_type: int64
+    description: Finishing rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 44
+    - 44
+    - 44
+    - 43
+    - 43
+  - expr: free_kick_accuracy
+    name: free_kick_accuracy
+    synonyms:
+    - free kick accuracy rating
+    - free kick score
+    - fk accuracy
+    data_type: int64
+    description: Free-kick accuracy rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 39
+    - 39
+    - 39
+    - 38
+    - 38
+  - expr: gk_diving
+    name: gk_diving
+    synonyms:
+    - goalkeeper diving rating
+    - gk diving score
+    - keeper diving
+    data_type: int64
+    description: Goalkeeper diving rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 6
+    - 6
+    - 6
+    - 5
+    - 5
+  - expr: gk_handling
+    name: gk_handling
+    synonyms:
+    - goalkeeper handling rating
+    - gk handling score
+    - keeper handling
+    data_type: int64
+    description: Goalkeeper handling rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 11
+    - 11
+    - 11
+    - 10
+    - 10
+  - expr: gk_kicking
+    name: gk_kicking
+    synonyms:
+    - goalkeeper kicking rating
+    - gk kicking score
+    - keeper kicking
+    data_type: int64
+    description: Goalkeeper kicking rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 10
+    - 10
+    - 10
+    - 9
+    - 9
+  - expr: gk_positioning
+    name: gk_positioning
+    synonyms:
+    - goalkeeper positioning rating
+    - gk positioning score
+    - keeper positioning
+    data_type: int64
+    description: Goalkeeper positioning rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 8
+    - 8
+    - 8
+    - 7
+    - 7
+  - expr: gk_reflexes
+    name: gk_reflexes
+    synonyms:
+    - goalkeeper reflexes rating
+    - gk reflexes score
+    - keeper reflexes
+    data_type: int64
+    description: Goalkeeper reflexes rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 8
+    - 8
+    - 8
+    - 7
+    - 7
+  - expr: heading_accuracy
+    name: heading_accuracy
+    synonyms:
+    - heading accuracy rating
+    - heading score
+    - heading accuracy
+    data_type: int64
+    description: Heading accuracy rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 71
+    - 71
+    - 71
+    - 70
+    - 70
+  - expr: interceptions
+    name: interceptions
+    synonyms:
+    - player interceptions rating
+    - interceptions score
+    - interceptions
+    data_type: int64
+    description: Interceptions rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 70
+    - 70
+    - 41
+    - 40
+    - 40
+  - expr: jumping
+    name: jumping
+    synonyms:
+    - player jumping rating
+    - jumping score
+    - jumping
+    data_type: int64
+    description: Jumping rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 58
+    - 58
+    - 58
+    - 58
+    - 58
+  - expr: long_passing
+    name: long_passing
+    synonyms:
+    - long passing rating
+    - long pass score
+    - long passing
+    data_type: int64
+    description: Long passing rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 64
+    - 64
+    - 64
+    - 63
+    - 63
+  - expr: long_shots
+    name: long_shots
+    synonyms:
+    - long shots rating
+    - long shot score
+    - long shots
+    data_type: int64
+    description: Long shots rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 35
+    - 35
+    - 35
+    - 34
+    - 34
+  - expr: marking
+    name: marking
+    synonyms:
+    - player marking rating
+    - marking score
+    - marking
+    data_type: int64
+    description: Marking rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 65
+    - 65
+    - 65
+    - 62
+    - 62
+  - expr: overall_rating
+    name: overall_rating
+    synonyms:
+    - overall player rating
+    - player overall score
+    - overall rating
+    data_type: int64
+    description: Overall rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 67
+    - 67
+    - 62
+    - 61
+    - 61
+  - expr: penalties
+    name: penalties
+    synonyms:
+    - penalties rating
+    - penalty taking score
+    - penalties
+    data_type: int64
+    description: Penalties (penalty kick) rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 48
+    - 48
+    - 48
+    - 47
+    - 47
+  - expr: positioning
+    name: positioning
+    synonyms:
+    - attacking positioning rating
+    - positioning score
+    - positioning
+    data_type: int64
+    description: Attacking positioning rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 45
+    - 45
+    - 45
+    - 44
+    - 44
+  - expr: potential
+    name: potential
+    synonyms:
+    - player potential rating
+    - potential score
+    - potential
+    data_type: int64
+    description: Potential rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 71
+    - 71
+    - 66
+    - 65
+    - 65
+  - expr: reactions
+    name: reactions
+    synonyms:
+    - player reactions rating
+    - reactions score
+    - reactions
+    data_type: int64
+    description: Reactions rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 47
+    - 47
+    - 47
+    - 46
+    - 46
+  - expr: short_passing
+    name: short_passing
+    synonyms:
+    - short passing rating
+    - short pass score
+    - short passing
+    data_type: int64
+    description: Short passing rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 61
+    - 61
+    - 61
+    - 60
+    - 60
+  - expr: shot_power
+    name: shot_power
+    synonyms:
+    - shot power rating
+    - shot power score
+    - shot power
+    data_type: int64
+    description: Shot power rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 55
+    - 55
+    - 55
+    - 54
+    - 54
+  - expr: sliding_tackle
+    name: sliding_tackle
+    synonyms:
+    - sliding tackle rating
+    - slide tackle score
+    - sliding tackle
+    data_type: int64
+    description: Sliding tackle rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 69
+    - 69
+    - 69
+    - 66
+    - 66
+  - expr: sprint_speed
+    name: sprint_speed
+    synonyms:
+    - sprint speed rating
+    - sprint speed score
+    - sprint speed
+    data_type: int64
+    description: Sprint speed rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 64
+    - 64
+    - 64
+    - 64
+    - 64
+  - expr: stamina
+    name: stamina
+    synonyms:
+    - player stamina rating
+    - stamina score
+    - stamina
+    data_type: int64
+    description: Stamina rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 54
+    - 54
+    - 54
+    - 54
+    - 54
+  - expr: standing_tackle
+    name: standing_tackle
+    synonyms:
+    - standing tackle rating
+    - stand tackle score
+    - standing tackle
+    data_type: int64
+    description: Standing tackle rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 69
+    - 69
+    - 66
+    - 63
+    - 63
+  - expr: strength
+    name: strength
+    synonyms:
+    - player strength rating
+    - strength score
+    - strength
+    data_type: int64
+    description: Strength rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 76
+    - 76
+    - 76
+    - 76
+    - 76
+  - expr: vision
+    name: vision
+    synonyms:
+    - player vision rating
+    - vision score
+    - vision
+    data_type: int64
+    description: Vision rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 54
+    - 54
+    - 54
+    - 53
+    - 53
+  - expr: volleys
+    name: volleys
+    synonyms:
+    - volleys rating
+    - volley score
+    - volleys
+    data_type: int64
+    description: Volleys rating at the snapshot date (typically 0–100).
+    sample_values:
+    - 44
+    - 44
+    - 44
+    - 43
+    - 43
+  synonyms:
+  - player ratings history
+  - player attributes snapshot
+  - player skills
+  base_table:
+    table: player_attributes
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - player attributes row id
+    - player attributes record id
+    - player attributes table id
+    data_type: '!int64'
+    description: Surrogate primary key for the player attributes record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: player_fifa_api_id
+    name: player_fifa_api_id
+    synonyms:
+    - fifa id in attributes
+    - player fifa id in ratings
+    - fifa key attributes
+    data_type: int64
+    description: FIFA API identifier for the player in this snapshot.
+    sample_values:
+    - 218353
+    - 218353
+    - 218353
+    - 218353
+    - 218353
+  - expr: player_api_id
+    name: player_api_id
+    synonyms:
+    - player id in attributes
+    - player api id in ratings
+    - player api key attributes
+    data_type: int64
+    description: Player API identifier for this attribute snapshot (foreign key to
+      player.player_api_id).
+    sample_values:
+    - 505942
+    - 505942
+    - 505942
+    - 505942
+    - 505942
+  - expr: preferred_foot
+    name: preferred_foot
+    synonyms:
+    - preferred foot
+    - dominant foot
+    - strong foot
+    data_type: string
+    description: Player preferred foot (left/right).
+    sample_values:
+    - right
+    - right
+    - right
+    - right
+    - right
+  - expr: attacking_work_rate
+    name: attacking_work_rate
+    synonyms:
+    - attacking work rate
+    - attack work rate label
+    - offensive work rate
+    data_type: string
+    description: Categorical attacking work-rate descriptor (e.g., low/medium/high).
+    sample_values:
+    - medium
+    - medium
+    - medium
+    - medium
+    - medium
+  - expr: defensive_work_rate
+    name: defensive_work_rate
+    synonyms:
+    - defensive work rate
+    - defense work rate label
+    - defensive effort
+    data_type: string
+    description: Categorical defensive work-rate descriptor (e.g., low/medium/high).
+    sample_values:
+    - medium
+    - medium
+    - medium
+    - medium
+    - medium
+  description: Time-varying player attribute snapshots (ratings and traits) for a
+    player at a given date.
+  time_dimensions:
+  - expr: date
+    name: date
+    synonyms:
+    - attribute snapshot date
+    - player attributes date
+    - ratings as of date
+    data_type: string
+    description: Effective date of the attribute snapshot (timestamp stored as text).
+    sample_values:
+    - '2016-02-18 00:00:00'
+    - '2015-11-19 00:00:00'
+    - '2015-09-21 00:00:00'
+    - '2015-03-20 00:00:00'
+    - '2007-02-22 00:00:00'
+- name: team_attributes
+  facts:
+  - expr: buildupplaydribbling
+    name: buildupplaydribbling
+    synonyms:
+    - build up dribbling rating
+    - buildup dribbling score
+    - team buildup dribbling
+    data_type: int64
+    description: Build-up play dribbling score at the snapshot date.
+    sample_values:
+    - 48
+    - 41
+  - expr: buildupplaypassing
+    name: buildupplaypassing
+    synonyms:
+    - build up passing rating
+    - buildup passing score
+    - team buildup passing
+    data_type: int64
+    description: Build-up play passing score at the snapshot date.
+    sample_values:
+    - 50
+    - 56
+    - 54
+    - 70
+    - 52
+  - expr: buildupplayspeed
+    name: buildupplayspeed
+    synonyms:
+    - build up speed rating
+    - buildup speed score
+    - team buildup speed
+    data_type: int64
+    description: Build-up play speed score at the snapshot date.
+    sample_values:
+    - 60
+    - 52
+    - 47
+    - 70
+    - 47
+  - expr: chancecreationcrossing
+    name: chancecreationcrossing
+    synonyms:
+    - chance creation crossing rating
+    - chance crossing score
+    - team crossing creation
+    data_type: int64
+    description: Chance creation crossing score at the snapshot date.
+    sample_values:
+    - 65
+    - 63
+    - 63
+    - 70
+    - 48
+  - expr: chancecreationpassing
+    name: chancecreationpassing
+    synonyms:
+    - chance creation passing rating
+    - chance passing score
+    - team passing creation
+    data_type: int64
+    description: Chance creation passing score at the snapshot date.
+    sample_values:
+    - 60
+    - 54
+    - 54
+    - 70
+    - 53
+  - expr: chancecreationshooting
+    name: chancecreationshooting
+    synonyms:
+    - chance creation shooting rating
+    - chance shooting score
+    - team shooting creation
+    data_type: int64
+    description: Chance creation shooting score at the snapshot date.
+    sample_values:
+    - 55
+    - 64
+    - 64
+    - 70
+    - 52
+  - expr: defenceaggression
+    name: defenceaggression
+    synonyms:
+    - defense aggression rating
+    - defence aggression score
+    - team defence aggression
+    data_type: int64
+    description: Defensive aggression score at the snapshot date.
+    sample_values:
+    - 55
+    - 44
+    - 44
+    - 70
+    - 47
+  - expr: defencepressure
+    name: defencepressure
+    synonyms:
+    - defence pressure rating
+    - defense pressure score
+    - team defensive pressure
+    data_type: int64
+    description: Defensive pressure score at the snapshot date.
+    sample_values:
+    - 50
+    - 47
+    - 47
+    - 60
+    - 47
+  - expr: defenceteamwidth
+    name: defenceteamwidth
+    synonyms:
+    - defence team width rating
+    - defensive width score
+    - team defence width
+    data_type: int64
+    description: Defensive team width score at the snapshot date.
+    sample_values:
+    - 45
+    - 54
+    - 54
+    - 70
+    - 52
+  synonyms:
+  - team ratings history
+  - team tactics snapshot
+  - team style metrics
+  base_table:
+    table: team_attributes
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - team attributes row id
+    - team attributes record id
+    - team attributes table id
+    data_type: '!int64'
+    description: Surrogate primary key for the team attributes record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: team_fifa_api_id
+    name: team_fifa_api_id
+    synonyms:
+    - team fifa id in attributes
+    - fifa team id tactics
+    - team fifa identifier attributes
+    data_type: int64
+    description: FIFA API identifier for the team in this snapshot.
+    sample_values:
+    - 434
+    - 434
+    - 434
+    - 77
+    - 77
+  - expr: team_api_id
+    name: team_api_id
+    synonyms:
+    - team api id in attributes
+    - team api key tactics
+    - team api identifier attributes
+    data_type: int64
+    description: Team API identifier for this attribute snapshot (foreign key to team.team_api_id).
+    sample_values:
+    - 9930
+    - 9930
+    - 9930
+    - 8485
+    - 8485
+  - expr: buildupplayspeedclass
+    name: buildupplayspeedclass
+    synonyms:
+    - build up speed class
+    - buildup speed style
+    - team speed class
+    data_type: string
+    description: Categorical class for build-up play speed (e.g., Slow/Balanced/Fast).
+    sample_values:
+    - Balanced
+    - Balanced
+    - Balanced
+    - Fast
+    - Balanced
+  - expr: buildupplaydribblingclass
+    name: buildupplaydribblingclass
+    synonyms:
+    - build up dribbling class
+    - buildup dribbling style
+    - team dribbling class
+    data_type: string
+    description: Categorical class for build-up play dribbling (e.g., Little/Normal/Lots).
+    sample_values:
+    - Little
+    - Normal
+    - Normal
+    - Little
+    - Little
+  - expr: buildupplaypassingclass
+    name: buildupplaypassingclass
+    synonyms:
+    - build up passing class
+    - buildup passing style
+    - team passing class
+    data_type: string
+    description: Categorical class for build-up play passing (e.g., Short/Mixed/Long).
+    sample_values:
+    - Mixed
+    - Mixed
+    - Mixed
+    - Long
+    - Mixed
+  - expr: buildupplaypositioningclass
+    name: buildupplaypositioningclass
+    synonyms:
+    - build up positioning class
+    - buildup positioning style
+    - team buildup positioning class
+    data_type: string
+    description: Categorical class for build-up play positioning (e.g., Organised/Free
+      Form).
+    sample_values:
+    - Organised
+    - Organised
+    - Organised
+    - Organised
+    - Organised
+  - expr: chancecreationpassingclass
+    name: chancecreationpassingclass
+    synonyms:
+    - chance creation passing class
+    - chance passing style
+    - team passing chance class
+    data_type: string
+    description: Categorical class for chance creation passing.
+    sample_values:
+    - Normal
+    - Normal
+    - Normal
+    - Risky
+    - Normal
+  - expr: chancecreationcrossingclass
+    name: chancecreationcrossingclass
+    synonyms:
+    - chance creation crossing class
+    - chance crossing style
+    - team crossing class
+    data_type: string
+    description: Categorical class for chance creation crossing (e.g., Little/Normal/Lots).
+    sample_values:
+    - Normal
+    - Normal
+    - Normal
+    - Lots
+    - Normal
+  - expr: chancecreationshootingclass
+    name: chancecreationshootingclass
+    synonyms:
+    - chance creation shooting class
+    - chance shooting style
+    - team shooting class
+    data_type: string
+    description: Categorical class for chance creation shooting (e.g., Little/Normal/Lots).
+    sample_values:
+    - Normal
+    - Normal
+    - Normal
+    - Lots
+    - Normal
+  - expr: chancecreationpositioningclass
+    name: chancecreationpositioningclass
+    synonyms:
+    - chance creation positioning class
+    - chance positioning style
+    - team chance positioning class
+    data_type: string
+    description: Categorical class for chance creation positioning (e.g., Organised/Free
+      Form).
+    sample_values:
+    - Organised
+    - Organised
+    - Organised
+    - Organised
+    - Organised
+  - expr: defencepressureclass
+    name: defencepressureclass
+    synonyms:
+    - defence pressure class
+    - defensive pressure style
+    - team pressure class
+    data_type: string
+    description: Categorical class for defensive pressure (e.g., Low/Medium/High).
+    sample_values:
+    - Medium
+    - Medium
+    - Medium
+    - Medium
+    - Medium
+  - expr: defenceaggressionclass
+    name: defenceaggressionclass
+    synonyms:
+    - defence aggression class
+    - defense pressing style
+    - team aggression class
+    data_type: string
+    description: Categorical class for defensive aggression (e.g., Press/Double).
+    sample_values:
+    - Press
+    - Press
+    - Press
+    - Double
+    - Press
+  - expr: defenceteamwidthclass
+    name: defenceteamwidthclass
+    synonyms:
+    - defence team width class
+    - defensive width style
+    - team width class
+    data_type: string
+    description: Categorical class for defensive team width (e.g., Narrow/Normal/Wide).
+    sample_values:
+    - Normal
+    - Normal
+    - Normal
+    - Wide
+    - Normal
+  - expr: defencedefenderlineclass
+    name: defencedefenderlineclass
+    synonyms:
+    - defender line class
+    - defensive line style
+    - back line class
+    data_type: string
+    description: Categorical class for defender line behavior (e.g., Cover/Offside
+      Trap).
+    sample_values:
+    - Cover
+    - Cover
+    - Cover
+    - Cover
+    - Cover
+  description: Time-varying team tactical/playing-style attributes for a team at a
+    given date.
+  time_dimensions:
+  - expr: date
+    name: date
+    synonyms:
+    - team attributes date
+    - tactics snapshot date
+    - team ratings as of date
+    data_type: string
+    description: Effective date of the team attribute snapshot (timestamp stored as
+      text).
+    sample_values:
+    - '2010-02-22 00:00:00'
+    - '2014-09-19 00:00:00'
+    - '2015-09-10 00:00:00'
+    - '2010-02-22 00:00:00'
+    - '2011-02-22 00:00:00'
+- name: team
+  synonyms:
+  - team master
+  - clubs
+  - team list
+  base_table:
+    table: team
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - team row id
+    - team record id
+    - team table id
+    data_type: '!int64'
+    description: Surrogate primary key for the team record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: team_api_id
+    name: team_api_id
+    synonyms:
+    - team api identifier
+    - team api id
+    - team external id
+    data_type: int64
+    description: Team identifier used by the source API (join key to match and team_attributes).
+    sample_values:
+    - 9987
+    - 9993
+    - 10000
+    - 9994
+    - 9984
+  - expr: team_fifa_api_id
+    name: team_fifa_api_id
+    synonyms:
+    - team fifa id
+    - fifa team api id
+    - fifa team identifier
+    data_type: int64
+    description: Team identifier used by the FIFA data source/API.
+    sample_values:
+    - 673
+    - 675
+    - 15005
+    - 2007
+    - 1750
+  - expr: team_long_name
+    name: team_long_name
+    synonyms:
+    - team long name
+    - club full name
+    - official team name
+    data_type: string
+    description: Full (long) team/club name.
+    sample_values:
+    - KRC Genk
+    - Beerschot AC
+    - SV Zulte-Waregem
+    - Sporting Lokeren
+    - KSV Cercle Brugge
+  - expr: team_short_name
+    name: team_short_name
+    synonyms:
+    - team short name
+    - club abbreviation
+    - team code
+    data_type: string
+    description: Short team name or abbreviation (e.g., three-letter code).
+    sample_values:
+    - GEN
+    - BAC
+    - ZUL
+    - LOK
+    - CEB
+  description: Team/club master data with API identifiers and names.
+- name: match
+  facts:
+  - expr: away_player_x1
+    name: away_player_x1
+    synonyms:
+    - away player 1 x coordinate
+    - away lineup x1
+    - away player x position 1
+    data_type: int64
+    description: Away player 1 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x10
+    name: away_player_x10
+    synonyms:
+    - away player 10 x coordinate
+    - away lineup x10
+    - away player x position 10
+    data_type: int64
+    description: Away player 10 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x11
+    name: away_player_x11
+    synonyms:
+    - away player 11 x coordinate
+    - away lineup x11
+    - away player x position 11
+    data_type: int64
+    description: Away player 11 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x2
+    name: away_player_x2
+    synonyms:
+    - away player 2 x coordinate
+    - away lineup x2
+    - away player x position 2
+    data_type: int64
+    description: Away player 2 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x3
+    name: away_player_x3
+    synonyms:
+    - away player 3 x coordinate
+    - away lineup x3
+    - away player x position 3
+    data_type: int64
+    description: Away player 3 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x4
+    name: away_player_x4
+    synonyms:
+    - away player 4 x coordinate
+    - away lineup x4
+    - away player x position 4
+    data_type: int64
+    description: Away player 4 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x5
+    name: away_player_x5
+    synonyms:
+    - away player 5 x coordinate
+    - away lineup x5
+    - away player x position 5
+    data_type: int64
+    description: Away player 5 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x6
+    name: away_player_x6
+    synonyms:
+    - away player 6 x coordinate
+    - away lineup x6
+    - away player x position 6
+    data_type: int64
+    description: Away player 6 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x7
+    name: away_player_x7
+    synonyms:
+    - away player 7 x coordinate
+    - away lineup x7
+    - away player x position 7
+    data_type: int64
+    description: Away player 7 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x8
+    name: away_player_x8
+    synonyms:
+    - away player 8 x coordinate
+    - away lineup x8
+    - away player x position 8
+    data_type: int64
+    description: Away player 8 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_x9
+    name: away_player_x9
+    synonyms:
+    - away player 9 x coordinate
+    - away lineup x9
+    - away player x position 9
+    data_type: int64
+    description: Away player 9 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y1
+    name: away_player_y1
+    synonyms:
+    - away player 1 y coordinate
+    - away lineup y1
+    - away player y position 1
+    data_type: int64
+    description: Away player 1 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y10
+    name: away_player_y10
+    synonyms:
+    - away player 10 y coordinate
+    - away lineup y10
+    - away player y position 10
+    data_type: int64
+    description: Away player 10 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y11
+    name: away_player_y11
+    synonyms:
+    - away player 11 y coordinate
+    - away lineup y11
+    - away player y position 11
+    data_type: int64
+    description: Away player 11 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y2
+    name: away_player_y2
+    synonyms:
+    - away player 2 y coordinate
+    - away lineup y2
+    - away player y position 2
+    data_type: int64
+    description: Away player 2 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y3
+    name: away_player_y3
+    synonyms:
+    - away player 3 y coordinate
+    - away lineup y3
+    - away player y position 3
+    data_type: int64
+    description: Away player 3 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y4
+    name: away_player_y4
+    synonyms:
+    - away player 4 y coordinate
+    - away lineup y4
+    - away player y position 4
+    data_type: int64
+    description: Away player 4 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y5
+    name: away_player_y5
+    synonyms:
+    - away player 5 y coordinate
+    - away lineup y5
+    - away player y position 5
+    data_type: int64
+    description: Away player 5 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y6
+    name: away_player_y6
+    synonyms:
+    - away player 6 y coordinate
+    - away lineup y6
+    - away player y position 6
+    data_type: int64
+    description: Away player 6 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y7
+    name: away_player_y7
+    synonyms:
+    - away player 7 y coordinate
+    - away lineup y7
+    - away player y position 7
+    data_type: int64
+    description: Away player 7 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y8
+    name: away_player_y8
+    synonyms:
+    - away player 8 y coordinate
+    - away lineup y8
+    - away player y position 8
+    data_type: int64
+    description: Away player 8 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_player_y9
+    name: away_player_y9
+    synonyms:
+    - away player 9 y coordinate
+    - away lineup y9
+    - away player y position 9
+    data_type: int64
+    description: Away player 9 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: away_team_goal
+    name: away_team_goal
+    synonyms:
+    - away team goals
+    - away goals scored
+    - goals away
+    data_type: int64
+    description: Number of goals scored by the away team in the match.
+    sample_values:
+    - 1
+    - 0
+    - 3
+    - 0
+    - 3
+  - expr: b365a
+    name: b365a
+    synonyms:
+    - bet365 away win odds
+    - b365 away odds
+    - bet365 odds away
+    data_type: float32
+    description: Bet365 decimal odds for an away-team win.
+    sample_values:
+    - 5.0
+    - 3.5999999046325684
+    - 2.75
+    - 7.5
+    - 1.649999976158142
+  - expr: b365d
+    name: b365d
+    synonyms:
+    - bet365 draw odds
+    - b365 draw odds
+    - bet365 odds draw
+    data_type: float32
+    description: Bet365 decimal odds for a draw.
+    sample_values:
+    - 3.4000000953674316
+    - 3.200000047683716
+    - 3.299999952316284
+    - 3.75
+    - 3.5
+  - expr: b365h
+    name: b365h
+    synonyms:
+    - bet365 home win odds
+    - b365 home odds
+    - bet365 odds home
+    data_type: float32
+    description: Bet365 decimal odds for a home-team win.
+    sample_values:
+    - 1.7300000190734863
+    - 1.9500000476837158
+    - 2.380000114440918
+    - 1.440000057220459
+    - 5.0
+  - expr: bsa
+    name: bsa
+    synonyms:
+    - betsson away win odds
+    - bsa away odds
+    - betsson odds away
+    data_type: float32
+    description: Bookmaker B/S decimal odds for an away-team win.
+    sample_values:
+    - 4.199999809265137
+    - 3.5999999046325684
+    - 2.75
+    - 6.5
+    - 1.6699999570846558
+  - expr: bsd
+    name: bsd
+    synonyms:
+    - betsson draw odds
+    - bsd draw odds
+    - betsson odds draw
+    data_type: float32
+    description: Bookmaker B/S decimal odds for a draw.
+    sample_values:
+    - 3.4000000953674316
+    - 3.25
+    - 3.200000047683716
+    - 3.75
+    - 3.299999952316284
+  - expr: bsh
+    name: bsh
+    synonyms:
+    - betsson home win odds
+    - bsh home odds
+    - betsson odds home
+    data_type: float32
+    description: Bookmaker B/S decimal odds for a home-team win.
+    sample_values:
+    - 1.7300000190734863
+    - 1.909999966621399
+    - 2.299999952316284
+    - 1.440000057220459
+    - 4.75
+  - expr: bwa
+    name: bwa
+    synonyms:
+    - bwin away win odds
+    - bwa away odds
+    - bwin odds away
+    data_type: float32
+    description: Bwin decimal odds for an away-team win.
+    sample_values:
+    - 4.199999809265137
+    - 3.950000047683716
+    - 2.549999952316284
+    - 6.800000190734863
+    - 1.600000023841858
+  - expr: bwd
+    name: bwd
+    synonyms:
+    - bwin draw odds
+    - bwd draw odds
+    - bwin odds draw
+    data_type: float32
+    description: Bwin decimal odds for a draw.
+    sample_values:
+    - 3.3499999046325684
+    - 3.299999952316284
+    - 3.299999952316284
+    - 4.0
+    - 3.5
+  - expr: bwh
+    name: bwh
+    synonyms:
+    - bwin home win odds
+    - bwh home odds
+    - bwin odds home
+    data_type: float32
+    description: Bwin decimal odds for a home-team win.
+    sample_values:
+    - 1.75
+    - 1.7999999523162842
+    - 2.4000000953674316
+    - 1.399999976158142
+    - 5.0
+  - expr: gba
+    name: gba
+    synonyms:
+    - gamebookers away win odds
+    - gba away odds
+    - gb odds away
+    data_type: float32
+    description: Bookmaker G/B decimal odds for an away-team win.
+    sample_values:
+    - 4.0
+    - 3.75
+    - 2.5
+    - 5.5
+    - 1.649999976158142
+  - expr: gbd
+    name: gbd
+    synonyms:
+    - gamebookers draw odds
+    - gbd draw odds
+    - gb odds draw
+    data_type: float32
+    description: Bookmaker G/B decimal odds for a draw.
+    sample_values:
+    - 3.25
+    - 3.25
+    - 3.200000047683716
+    - 3.75
+    - 3.5
+  - expr: gbh
+    name: gbh
+    synonyms:
+    - gamebookers home win odds
+    - gbh home odds
+    - gb odds home
+    data_type: float32
+    description: Bookmaker G/B decimal odds for a home-team win.
+    sample_values:
+    - 1.7799999713897705
+    - 1.850000023841858
+    - 2.5
+    - 1.5
+    - 4.5
+  - expr: home_player_x1
+    name: home_player_x1
+    synonyms:
+    - home player 1 x coordinate
+    - home lineup x1
+    - home player x position 1
+    data_type: int64
+    description: Home player 1 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x10
+    name: home_player_x10
+    synonyms:
+    - home player 10 x coordinate
+    - home lineup x10
+    - home player x position 10
+    data_type: int64
+    description: Home player 10 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x11
+    name: home_player_x11
+    synonyms:
+    - home player 11 x coordinate
+    - home lineup x11
+    - home player x position 11
+    data_type: int64
+    description: Home player 11 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x2
+    name: home_player_x2
+    synonyms:
+    - home player 2 x coordinate
+    - home lineup x2
+    - home player x position 2
+    data_type: int64
+    description: Home player 2 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x3
+    name: home_player_x3
+    synonyms:
+    - home player 3 x coordinate
+    - home lineup x3
+    - home player x position 3
+    data_type: int64
+    description: Home player 3 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x4
+    name: home_player_x4
+    synonyms:
+    - home player 4 x coordinate
+    - home lineup x4
+    - home player x position 4
+    data_type: int64
+    description: Home player 4 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x5
+    name: home_player_x5
+    synonyms:
+    - home player 5 x coordinate
+    - home lineup x5
+    - home player x position 5
+    data_type: int64
+    description: Home player 5 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x6
+    name: home_player_x6
+    synonyms:
+    - home player 6 x coordinate
+    - home lineup x6
+    - home player x position 6
+    data_type: int64
+    description: Home player 6 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x7
+    name: home_player_x7
+    synonyms:
+    - home player 7 x coordinate
+    - home lineup x7
+    - home player x position 7
+    data_type: int64
+    description: Home player 7 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x8
+    name: home_player_x8
+    synonyms:
+    - home player 8 x coordinate
+    - home lineup x8
+    - home player x position 8
+    data_type: int64
+    description: Home player 8 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_x9
+    name: home_player_x9
+    synonyms:
+    - home player 9 x coordinate
+    - home lineup x9
+    - home player x position 9
+    data_type: int64
+    description: Home player 9 x-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y1
+    name: home_player_y1
+    synonyms:
+    - home player 1 y coordinate
+    - home lineup y1
+    - home player y position 1
+    data_type: int64
+    description: Home player 1 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y10
+    name: home_player_y10
+    synonyms:
+    - home player 10 y coordinate
+    - home lineup y10
+    - home player y position 10
+    data_type: int64
+    description: Home player 10 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y11
+    name: home_player_y11
+    synonyms:
+    - home player 11 y coordinate
+    - home lineup y11
+    - home player y position 11
+    data_type: int64
+    description: Home player 11 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y2
+    name: home_player_y2
+    synonyms:
+    - home player 2 y coordinate
+    - home lineup y2
+    - home player y position 2
+    data_type: int64
+    description: Home player 2 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y3
+    name: home_player_y3
+    synonyms:
+    - home player 3 y coordinate
+    - home lineup y3
+    - home player y position 3
+    data_type: int64
+    description: Home player 3 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y4
+    name: home_player_y4
+    synonyms:
+    - home player 4 y coordinate
+    - home lineup y4
+    - home player y position 4
+    data_type: int64
+    description: Home player 4 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y5
+    name: home_player_y5
+    synonyms:
+    - home player 5 y coordinate
+    - home lineup y5
+    - home player y position 5
+    data_type: int64
+    description: Home player 5 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y6
+    name: home_player_y6
+    synonyms:
+    - home player 6 y coordinate
+    - home lineup y6
+    - home player y position 6
+    data_type: int64
+    description: Home player 6 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y7
+    name: home_player_y7
+    synonyms:
+    - home player 7 y coordinate
+    - home lineup y7
+    - home player y position 7
+    data_type: int64
+    description: Home player 7 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y8
+    name: home_player_y8
+    synonyms:
+    - home player 8 y coordinate
+    - home lineup y8
+    - home player y position 8
+    data_type: int64
+    description: Home player 8 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_player_y9
+    name: home_player_y9
+    synonyms:
+    - home player 9 y coordinate
+    - home lineup y9
+    - home player y position 9
+    data_type: int64
+    description: Home player 9 y-coordinate in the recorded formation/positioning
+      data.
+  - expr: home_team_goal
+    name: home_team_goal
+    synonyms:
+    - home team goals
+    - home goals scored
+    - goals home
+    data_type: int64
+    description: Number of goals scored by the home team in the match.
+    sample_values:
+    - 1
+    - 0
+    - 0
+    - 5
+    - 1
+  - expr: iwa
+    name: iwa
+    synonyms:
+    - interwetten away win odds
+    - iwa away odds
+    - interwetten odds away
+    data_type: float32
+    description: Interwetten decimal odds for an away-team win.
+    sample_values:
+    - 3.5
+    - 3.5
+    - 2.299999952316284
+    - 6.0
+    - 1.7000000476837158
+  - expr: iwd
+    name: iwd
+    synonyms:
+    - interwetten draw odds
+    - iwd draw odds
+    - interwetten odds draw
+    data_type: float32
+    description: Interwetten decimal odds for a draw.
+    sample_values:
+    - 3.200000047683716
+    - 3.200000047683716
+    - 3.0999999046325684
+    - 3.9000000953674316
+    - 3.299999952316284
+  - expr: iwh
+    name: iwh
+    synonyms:
+    - interwetten home win odds
+    - iwh home odds
+    - interwetten odds home
+    data_type: float32
+    description: Interwetten decimal odds for a home-team win.
+    sample_values:
+    - 1.850000023841858
+    - 1.899999976158142
+    - 2.5999999046325684
+    - 1.399999976158142
+    - 4.0
+  - expr: lba
+    name: lba
+    synonyms:
+    - ladbrokes away win odds
+    - lba away odds
+    - ladbrokes odds away
+    data_type: float32
+    description: Ladbrokes decimal odds for an away-team win.
+    sample_values:
+    - 3.75
+    - 3.5
+    - 2.5
+    - 6.5
+    - 1.7200000286102295
+  - expr: lbd
+    name: lbd
+    synonyms:
+    - ladbrokes draw odds
+    - lbd draw odds
+    - ladbrokes odds draw
+    data_type: float32
+    description: Ladbrokes decimal odds for a draw.
+    sample_values:
+    - 3.299999952316284
+    - 3.200000047683716
+    - 3.200000047683716
+    - 3.5999999046325684
+    - 3.4000000953674316
+  - expr: lbh
+    name: lbh
+    synonyms:
+    - ladbrokes home win odds
+    - lbh home odds
+    - ladbrokes odds home
+    data_type: float32
+    description: Ladbrokes decimal odds for a home-team win.
+    sample_values:
+    - 1.7999999523162842
+    - 1.899999976158142
+    - 2.5
+    - 1.440000057220459
+    - 4.0
+  - expr: psa
+    name: psa
+    synonyms:
+    - pinnacle away win odds
+    - psa away odds
+    - pinnacle odds away
+    data_type: float32
+    description: Pinnacle (PS) decimal odds for an away-team win.
+  - expr: psd
+    name: psd
+    synonyms:
+    - pinnacle draw odds
+    - psd draw odds
+    - pinnacle odds draw
+    data_type: float32
+    description: Pinnacle (PS) decimal odds for a draw.
+  - expr: psh
+    name: psh
+    synonyms:
+    - pinnacle home win odds
+    - psh home odds
+    - pinnacle odds home
+    data_type: float32
+    description: Pinnacle (PS) decimal odds for a home-team win.
+  - expr: sja
+    name: sja
+    synonyms:
+    - stan james away win odds
+    - sja away odds
+    - stan james odds away
+    data_type: float32
+    description: Stan James decimal odds for an away-team win.
+    sample_values:
+    - 4.0
+    - 3.799999952316284
+    - 2.5
+    - 7.5
+    - 1.7300000190734863
+  - expr: sjd
+    name: sjd
+    synonyms:
+    - stan james draw odds
+    - sjd draw odds
+    - stan james odds draw
+    data_type: float32
+    description: Stan James decimal odds for a draw.
+    sample_values:
+    - 3.299999952316284
+    - 3.299999952316284
+    - 3.299999952316284
+    - 4.0
+    - 3.5
+  - expr: sjh
+    name: sjh
+    synonyms:
+    - stan james home win odds
+    - sjh home odds
+    - stan james odds home
+    data_type: float32
+    description: Stan James decimal odds for a home-team win.
+    sample_values:
+    - 1.899999976158142
+    - 1.9500000476837158
+    - 2.630000114440918
+    - 1.440000057220459
+    - 4.5
+  - expr: vca
+    name: vca
+    synonyms:
+    - vc away win odds
+    - vca away odds
+    - vc odds away
+    data_type: float32
+    description: VC bookmaker decimal odds for an away-team win.
+    sample_values:
+    - 4.5
+    - 3.25
+    - 2.6500000953674316
+    - 6.5
+    - 1.649999976158142
+  - expr: vcd
+    name: vcd
+    synonyms:
+    - vc draw odds
+    - vcd draw odds
+    - vc odds draw
+    data_type: float32
+    description: VC bookmaker decimal odds for a draw.
+    sample_values:
+    - 3.4000000953674316
+    - 3.25
+    - 3.25
+    - 3.75
+    - 3.4000000953674316
+  - expr: vch
+    name: vch
+    synonyms:
+    - vc home win odds
+    - vch home odds
+    - vc odds home
+    data_type: float32
+    description: VC bookmaker decimal odds for a home-team win.
+    sample_values:
+    - 1.649999976158142
+    - 2.0
+    - 2.3499999046325684
+    - 1.4500000476837158
+    - 4.5
+  - expr: wha
+    name: wha
+    synonyms:
+    - william hill away win odds
+    - wha away odds
+    - willhill odds away
+    data_type: float32
+    description: William Hill decimal odds for an away-team win.
+    sample_values:
+    - 4.329999923706055
+    - 3.5999999046325684
+    - 2.4000000953674316
+    - 6.0
+    - 1.7000000476837158
+  - expr: whd
+    name: whd
+    synonyms:
+    - william hill draw odds
+    - whd draw odds
+    - willhill odds draw
+    data_type: float32
+    description: William Hill decimal odds for a draw.
+    sample_values:
+    - 3.299999952316284
+    - 3.299999952316284
+    - 3.25
+    - 3.75
+    - 3.4000000953674316
+  - expr: whh
+    name: whh
+    synonyms:
+    - william hill home win odds
+    - whh home odds
+    - willhill odds home
+    data_type: float32
+    description: William Hill decimal odds for a home-team win.
+    sample_values:
+    - 1.7000000476837158
+    - 1.8300000429153442
+    - 2.5
+    - 1.440000057220459
+    - 4.199999809265137
+  synonyms:
+  - match results
+  - fixtures
+  - game records
+  base_table:
+    table: match
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - match row id
+    - match record id
+    - match table id
+    data_type: '!int64'
+    description: Surrogate primary key for the match record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: country_id
+    name: country_id
+    synonyms:
+    - match country id
+    - country id for match
+    - match nation id
+    data_type: int64
+    description: Country identifier where the match/league is associated (foreign
+      key to country.id).
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  - expr: league_id
+    name: league_id
+    synonyms:
+    - match league id
+    - league id for match
+    - competition id match
+    data_type: int64
+    description: League identifier for the match (foreign key to league.id).
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  - expr: season
+    name: season
+    synonyms:
+    - season label
+    - league season
+    - competition season
+    data_type: string
+    description: Season in which the match was played (e.g., 2008/2009).
+    sample_values:
+    - 2008/2009
+    - 2008/2009
+    - 2008/2009
+    - 2008/2009
+    - 2008/2009
+  - expr: stage
+    name: stage
+    synonyms:
+    - league stage
+    - matchweek number
+    - round number
+    data_type: int64
+    description: Stage/round number within the season (often corresponds to matchweek).
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  - expr: match_api_id
+    name: match_api_id
+    synonyms:
+    - match api identifier
+    - match api id
+    - match external id
+    data_type: int64
+    description: Match identifier used by the source API.
+    sample_values:
+    - 492473
+    - 492474
+    - 492475
+    - 492476
+    - 492477
+  - expr: home_team_api_id
+    name: home_team_api_id
+    synonyms:
+    - home team api id
+    - home club api id
+    - home team identifier
+    data_type: int64
+    description: API identifier for the home team (foreign key to team.team_api_id).
+    sample_values:
+    - 9987
+    - 10000
+    - 9984
+    - 9991
+    - 7947
+  - expr: away_team_api_id
+    name: away_team_api_id
+    synonyms:
+    - away team api id
+    - away club api id
+    - away team identifier
+    data_type: int64
+    description: API identifier for the away team (foreign key to team.team_api_id).
+    sample_values:
+    - 9993
+    - 9994
+    - 8635
+    - 9998
+    - 9985
+  - expr: home_player_1
+    name: home_player_1
+    synonyms:
+    - home lineup player 1 id
+    - home starting player 1
+    - home player slot 1
+    data_type: int64
+    description: Player API id for home team lineup position 1 (often goalkeeper).
+  - expr: home_player_2
+    name: home_player_2
+    synonyms:
+    - home lineup player 2 id
+    - home starting player 2
+    - home player slot 2
+    data_type: int64
+    description: Player API id for home team lineup position 2.
+  - expr: home_player_3
+    name: home_player_3
+    synonyms:
+    - home lineup player 3 id
+    - home starting player 3
+    - home player slot 3
+    data_type: int64
+    description: Player API id for home team lineup position 3.
+  - expr: home_player_4
+    name: home_player_4
+    synonyms:
+    - home lineup player 4 id
+    - home starting player 4
+    - home player slot 4
+    data_type: int64
+    description: Player API id for home team lineup position 4.
+  - expr: home_player_5
+    name: home_player_5
+    synonyms:
+    - home lineup player 5 id
+    - home starting player 5
+    - home player slot 5
+    data_type: int64
+    description: Player API id for home team lineup position 5.
+  - expr: home_player_6
+    name: home_player_6
+    synonyms:
+    - home lineup player 6 id
+    - home starting player 6
+    - home player slot 6
+    data_type: int64
+    description: Player API id for home team lineup position 6.
+  - expr: home_player_7
+    name: home_player_7
+    synonyms:
+    - home lineup player 7 id
+    - home starting player 7
+    - home player slot 7
+    data_type: int64
+    description: Player API id for home team lineup position 7.
+  - expr: home_player_8
+    name: home_player_8
+    synonyms:
+    - home lineup player 8 id
+    - home starting player 8
+    - home player slot 8
+    data_type: int64
+    description: Player API id for home team lineup position 8.
+  - expr: home_player_9
+    name: home_player_9
+    synonyms:
+    - home lineup player 9 id
+    - home starting player 9
+    - home player slot 9
+    data_type: int64
+    description: Player API id for home team lineup position 9.
+  - expr: home_player_10
+    name: home_player_10
+    synonyms:
+    - home lineup player 10 id
+    - home starting player 10
+    - home player slot 10
+    data_type: int64
+    description: Player API id for home team lineup position 10.
+  - expr: home_player_11
+    name: home_player_11
+    synonyms:
+    - home lineup player 11 id
+    - home starting player 11
+    - home player slot 11
+    data_type: int64
+    description: Player API id for home team lineup position 11.
+  - expr: away_player_1
+    name: away_player_1
+    synonyms:
+    - away lineup player 1 id
+    - away starting player 1
+    - away player slot 1
+    data_type: int64
+    description: Player API id for away team lineup position 1 (often goalkeeper).
+  - expr: away_player_2
+    name: away_player_2
+    synonyms:
+    - away lineup player 2 id
+    - away starting player 2
+    - away player slot 2
+    data_type: int64
+    description: Player API id for away team lineup position 2.
+  - expr: away_player_3
+    name: away_player_3
+    synonyms:
+    - away lineup player 3 id
+    - away starting player 3
+    - away player slot 3
+    data_type: int64
+    description: Player API id for away team lineup position 3.
+  - expr: away_player_4
+    name: away_player_4
+    synonyms:
+    - away lineup player 4 id
+    - away starting player 4
+    - away player slot 4
+    data_type: int64
+    description: Player API id for away team lineup position 4.
+  - expr: away_player_5
+    name: away_player_5
+    synonyms:
+    - away lineup player 5 id
+    - away starting player 5
+    - away player slot 5
+    data_type: int64
+    description: Player API id for away team lineup position 5.
+  - expr: away_player_6
+    name: away_player_6
+    synonyms:
+    - away lineup player 6 id
+    - away starting player 6
+    - away player slot 6
+    data_type: int64
+    description: Player API id for away team lineup position 6.
+  - expr: away_player_7
+    name: away_player_7
+    synonyms:
+    - away lineup player 7 id
+    - away starting player 7
+    - away player slot 7
+    data_type: int64
+    description: Player API id for away team lineup position 7.
+  - expr: away_player_8
+    name: away_player_8
+    synonyms:
+    - away lineup player 8 id
+    - away starting player 8
+    - away player slot 8
+    data_type: int64
+    description: Player API id for away team lineup position 8.
+  - expr: away_player_9
+    name: away_player_9
+    synonyms:
+    - away lineup player 9 id
+    - away starting player 9
+    - away player slot 9
+    data_type: int64
+    description: Player API id for away team lineup position 9.
+  - expr: away_player_10
+    name: away_player_10
+    synonyms:
+    - away lineup player 10 id
+    - away starting player 10
+    - away player slot 10
+    data_type: int64
+    description: Player API id for away team lineup position 10.
+  - expr: away_player_11
+    name: away_player_11
+    synonyms:
+    - away lineup player 11 id
+    - away starting player 11
+    - away player slot 11
+    data_type: int64
+    description: Player API id for away team lineup position 11.
+  - expr: goal
+    name: goal
+    synonyms:
+    - match goals events
+    - goal events log
+    - scoring events
+    data_type: string
+    description: Serialized goal events for the match (format varies; stored as text).
+  - expr: shoton
+    name: shoton
+    synonyms:
+    - shots on target events
+    - shot on goal log
+    - on target shots
+    data_type: string
+    description: Serialized shots on target events for the match (format varies; stored
+      as text).
+  - expr: shotoff
+    name: shotoff
+    synonyms:
+    - shots off target events
+    - shot off goal log
+    - off target shots
+    data_type: string
+    description: Serialized shots off target events for the match (format varies;
+      stored as text).
+  - expr: foulcommit
+    name: foulcommit
+    synonyms:
+    - match fouls events
+    - foul events
+    - foul committed log
+    data_type: string
+    description: Serialized foul events for the match (format varies; stored as text).
+  - expr: card
+    name: card
+    synonyms:
+    - match cards events
+    - yellow red cards
+    - card incidents
+    data_type: string
+    description: Serialized card events for the match (format varies; stored as text).
+  - expr: cross
+    name: cross
+    synonyms:
+    - match crosses events
+    - crossing events
+    - cross incidents
+    data_type: string
+    description: Serialized crossing events for the match (format varies; stored as
+      text).
+  - expr: corner
+    name: corner
+    synonyms:
+    - match corners events
+    - corner kick events
+    - corner incidents
+    data_type: string
+    description: Serialized corner-kick events for the match (format varies; stored
+      as text).
+  - expr: possession
+    name: possession
+    synonyms:
+    - match possession events
+    - possession log
+    - ball possession events
+    data_type: string
+    description: Serialized possession information/events for the match (format varies;
+      stored as text).
+  description: 'Match-level fact table: one row per football match, including competition
+    context, teams, lineups (player ids and positions), events (stored as text), and
+    bookmaker odds.'
+  time_dimensions:
+  - expr: date
+    name: date
+    synonyms:
+    - match date time
+    - kickoff datetime
+    - fixture date
+    data_type: string
+    description: Match date/time (timestamp stored as text).
+    sample_values:
+    - '2008-08-17 00:00:00'
+    - '2008-08-16 00:00:00'
+    - '2008-08-16 00:00:00'
+    - '2008-08-17 00:00:00'
+    - '2008-08-16 00:00:00'
+description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
+  \ Country\n\nColumns:\n (the unique id for countries) - Type: integer\n (country\
+  \ name) - Type: text\n\n## Table: League\n\nColumns:\n (the unique id for leagues)\
+  \ - Type: integer\n- **country id** (the unique id for countries) - Type: integer\n\
+  \ (league name) - Type: text\n\n## Table: Match\n\nColumns:\n (the unique id for\
+  \ matches) - Type: integer\n- **country id** (country id) - Type: integer\n- **league\
+  \ id** (league id) - Type: integer\n (the season of the match) - Type: text\n (the\
+  \ stage of the match) - Type: integer\n (the date of the match) - Type: text - e.g.\
+  \ 2008-08-17 00:00:00\n- **match api id** (the id of the match api) - Type: integer\n\
+  - **home team api id** (the id of the home team api) - Type: integer\n- **away team\
+  \ api id** (the id of the away team api) - Type: integer\n- **home team goal** (the\
+  \ goal of the home team) - Type: integer\n- **away team goal** (the goal of the\
+  \ away team) - Type: integer\n (the goal of the match) - Type: text\n- **shot on**\
+  \ (the shot on goal of the match) - Type: text - commonsense reasoning:  A shot\
+  \ on goal is a shot that enters the goal or would have entered the goal if it had\
+  \ not been blocked by the goalkeeper or another defensive player.\n- **shot off**\
+  \ (the shot off goal of the match, which is the opposite of shot on) - Type: text\n\
+  - **foul commit** (the fouls occurred in the match) - Type: text\n (the cards given\
+  \ in the match) - Type: text\n (Balls sent into the opposition team's area from\
+  \ a wide position in the match) - Type: text\n (Ball goes out of play for a corner\
+  \ kick in the match) - Type: text\n (The duration from a player taking over the\
+  \ ball in the match) - Type: text\n\n## Table: Player\n\nColumns:\n (the unique\
+  \ id for players) - Type: integer\n- **player api id** (the id of the player api)\
+  \ - Type: integer\n- **player name** (player name) - Type: text\n- **player federation\
+  \ international football association api id** (the id of the player fifa api) -\
+  \ Type: integer\n (the player's birthday) - Type: text - e.g. 1992-02-29 00:00:00\
+  \  commonsense reasoning:  Player A is older than player B means that A's birthday\
+  \ is earlier than B's\n (the player's height) - Type: integer\n (the player's weight)\
+  \ - Type: integer\n\n## Table: Player_Attributes\n\n## Table: Team\n\nColumns:\n\
+  \ (the unique id for teams) - Type: integer\n- **team api id** (the id of the team\
+  \ api) - Type: integer\n- **team federation international football association api\
+  \ id** (the id of the team fifa api) - Type: integer\n- **team long name** (the\
+  \ team's long name) - Type: text\n- **team short name** (the team's short name)\
+  \ - Type: text\n\n## Table: Team_Attributes\n"

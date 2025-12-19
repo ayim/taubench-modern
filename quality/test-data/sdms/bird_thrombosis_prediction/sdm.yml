@@ -1,0 +1,737 @@
+name: Thrombosis Risk Data
+tables:
+- name: patient
+  synonyms:
+  - patient demographics
+  - patient master record
+  - patient registry
+  base_table:
+    table: patient
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - patient identifier
+    data_type: '!int64'
+    description: Unique identifier for the patient used to join across tables.
+    sample_values:
+    - 2110
+    - 11408
+    - 12052
+    - 14872
+    - 27654
+  - expr: sex
+    name: sex
+    synonyms:
+    - biological sex
+    data_type: string
+    description: 'Patient sex: ''F'' = female; ''M'' = male.'
+    sample_values:
+    - F
+    - F
+    - F
+    - F
+    - F
+  - expr: admission
+    name: admission
+    synonyms:
+    - inpatient outpatient flag
+    data_type: string
+    description: 'Care setting indicator: ''+'' = admitted inpatient; ''-'' = followed
+      as outpatient.'
+    sample_values:
+    - +
+    - +
+    - +
+    - +
+    - +
+  - expr: diagnosis
+    name: diagnosis
+    synonyms:
+    - primary diagnosis text
+    data_type: string
+    description: Diagnosis names recorded for the patient (may contain abbreviations
+      and multiple conditions).
+    sample_values:
+    - RA susp.
+    - PSS
+    - SLE
+    - MCTD
+    - RA, SLE susp
+  description: One row per patient with demographics and key dates (birth date, first
+    recorded date, hospital visit/admission context) plus recorded diagnosis text.
+  time_dimensions:
+  - expr: birthday
+    name: birthday
+    synonyms:
+    - date of birth
+    data_type: date
+    description: Patient date of birth.
+    sample_values:
+    - '1934-02-13'
+    - '1937-05-02'
+    - '1956-04-14'
+    - '1953-09-21'
+    - '1936-03-25'
+  - expr: description
+    name: description
+    synonyms:
+    - hospital visit date
+    data_type: date
+    description: Date the patient came to the hospital (encounter/visit date).
+    sample_values:
+    - '1994-02-14'
+    - '1996-12-01'
+    - '1991-08-13'
+    - '1997-08-13'
+  - expr: First Date
+    name: First Date
+    synonyms:
+    - first recorded date
+    data_type: date
+    description: First date on which this patient appears in the dataset (start of
+      recorded history).
+    sample_values:
+    - '1993-02-10'
+    - '1973-01-01'
+    - '1992-02-03'
+- name: laboratory
+  facts:
+  - expr: DNA-II
+    name: DNA-II
+    synonyms:
+    - anti dna quantitative ii
+    data_type: int64
+    description: Quantitative anti-DNA test result (alternate encoding/assay variant
+      labeled DNA-II).
+  - expr: T-BIL
+    name: T-BIL
+    synonyms:
+    - total bilirubin level
+    data_type: float32
+    description: Total bilirubin laboratory value (liver function marker).
+    sample_values:
+    - 0.30000001192092896
+    - 0.20000000298023224
+  - expr: T-CHO
+    name: T-CHO
+    synonyms:
+    - total cholesterol value
+    data_type: int64
+    description: Total cholesterol laboratory value.
+    sample_values:
+    - 165
+    - 134
+  - expr: alb
+    name: alb
+    synonyms:
+    - serum albumin level
+    data_type: float32
+    description: Albumin laboratory value.
+    sample_values:
+    - 3.299999952316284
+    - 3.4000000953674316
+    - 3.5999999046325684
+    - 2.9000000953674316
+  - expr: alp
+    name: alp
+    synonyms:
+    - alkaline phosphatase value
+    data_type: int64
+    description: Alkaline phosphatase (ALP) laboratory value.
+    sample_values:
+    - 166
+    - 154
+    - 138
+    - 131
+  - expr: aptt
+    name: aptt
+    synonyms:
+    - activated partial thromboplastin time
+    data_type: int64
+    description: Activated partial thromboplastin time (aPTT) value; coagulation screening
+      test.
+  - expr: c3
+    name: c3
+    synonyms:
+    - complement c3 level
+    data_type: int64
+    description: Complement component 3 (C3) laboratory value.
+  - expr: c4
+    name: c4
+    synonyms:
+    - complement c4 level
+    data_type: int64
+    description: Complement component 4 (C4) laboratory value.
+  - expr: cpk
+    name: cpk
+    synonyms:
+    - creatine phosphokinase value
+    data_type: int64
+    description: Creatine phosphokinase (CPK/CK) laboratory value.
+    sample_values:
+    - 9
+    - 10
+  - expr: cre
+    name: cre
+    synonyms:
+    - serum creatinine level
+    data_type: float32
+    description: Creatinine laboratory value (renal function marker).
+    sample_values:
+    - 0.800000011920929
+    - 0.800000011920929
+    - 0.8999999761581421
+    - 0.699999988079071
+  - expr: crp
+    name: crp
+    synonyms:
+    - c reactive protein result
+    data_type: string
+    description: C-reactive protein (CRP) result; may be numeric stored as text or
+      qualitative.
+    sample_values:
+    - '0.6'
+    - '0.6'
+    - '2.7'
+    - '1.2'
+  - expr: fg
+    name: fg
+    synonyms:
+    - fibrinogen level
+    data_type: float32
+    description: Fibrinogen laboratory value (coagulation factor).
+  - expr: glu
+    name: glu
+    synonyms:
+    - blood glucose value
+    data_type: int64
+    description: Blood glucose laboratory value.
+    sample_values:
+    - 88
+  - expr: got
+    name: got
+    synonyms:
+    - ast got value
+    data_type: int64
+    description: AST (GOT) liver enzyme laboratory value.
+    sample_values:
+    - 34
+    - 29
+    - 26
+    - 23
+  - expr: gpt
+    name: gpt
+    synonyms:
+    - alt gpt value
+    data_type: int64
+    description: ALT (GPT) liver enzyme laboratory value.
+    sample_values:
+    - 36
+    - 31
+    - 22
+    - 18
+  - expr: hct
+    name: hct
+    synonyms:
+    - hematocrit percentage
+    data_type: float32
+    description: Hematocrit (HCT) value from complete blood count.
+    sample_values:
+    - 20.299999237060547
+    - 21.600000381469727
+    - 24.700000762939453
+    - 19.299999237060547
+    - 23.399999618530273
+  - expr: hgb
+    name: hgb
+    synonyms:
+    - hemoglobin concentration
+    data_type: float32
+    description: Hemoglobin (HGB) value from complete blood count.
+    sample_values:
+    - 6.400000095367432
+    - 6.699999809265137
+    - 7.900000095367432
+    - 6.099999904632568
+    - 7.199999809265137
+  - expr: iga
+    name: iga
+    synonyms:
+    - immunoglobulin a level
+    data_type: int64
+    description: Immunoglobulin A (IgA) laboratory value.
+    sample_values:
+    - 145
+    - 188
+    - 118
+  - expr: igg
+    name: igg
+    synonyms:
+    - immunoglobulin g level
+    data_type: int64
+    description: Immunoglobulin G (IgG) laboratory value.
+    sample_values:
+    - 339
+    - 771
+    - 430
+  - expr: igm
+    name: igm
+    synonyms:
+    - immunoglobulin m level
+    data_type: int64
+    description: Immunoglobulin M (IgM) laboratory value.
+    sample_values:
+    - 46
+    - 132
+    - 56
+  - expr: ldh
+    name: ldh
+    synonyms:
+    - lactate dehydrogenase value
+    data_type: int64
+    description: Lactate dehydrogenase (LDH) laboratory value.
+    sample_values:
+    - 567
+    - 579
+    - 684
+    - 552
+  - expr: pic
+    name: pic
+    synonyms:
+    - pic coagulation marker
+    data_type: int64
+    description: PIC coagulation/fibrinolysis marker value (assay-specific).
+  - expr: plt
+    name: plt
+    synonyms:
+    - platelet count
+    data_type: int64
+    description: Platelet (PLT) count from complete blood count.
+    sample_values:
+    - 227
+    - 242
+    - 233
+    - 201
+    - 215
+  - expr: pt
+    name: pt
+    synonyms:
+    - prothrombin time seconds
+    data_type: float32
+    description: Prothrombin time (PT) value; coagulation screening test.
+  - expr: rbc
+    name: rbc
+    synonyms:
+    - red blood cell count
+    data_type: float32
+    description: Red blood cell (RBC) count from complete blood count.
+    sample_values:
+    - 2.5999999046325684
+    - 2.9000000953674316
+    - 3.4000000953674316
+    - 2.5999999046325684
+    - 3.200000047683716
+  - expr: tat
+    name: tat
+    synonyms:
+    - thrombin antithrombin complex
+    data_type: int64
+    description: TAT (thrombin–antithrombin complex) value; coagulation activation
+      marker.
+  - expr: tat2
+    name: tat2
+    synonyms:
+    - thrombin antithrombin complex v2
+    data_type: int64
+    description: Second/alternate TAT measurement or encoding (tat2).
+  - expr: tg
+    name: tg
+    synonyms:
+    - triglycerides value
+    data_type: int64
+    description: Triglyceride laboratory value.
+  - expr: tp
+    name: tp
+    synonyms:
+    - total protein level
+    data_type: float32
+    description: Total protein laboratory value.
+    sample_values:
+    - 4.5
+    - 5.099999904632568
+    - 5.5
+    - 4.199999809265137
+  - expr: ua
+    name: ua
+    synonyms:
+    - uric acid level
+    data_type: float32
+    description: Uric acid laboratory value.
+    sample_values:
+    - 3.799999952316284
+    - 4.199999809265137
+    - 4.900000095367432
+    - 4.800000190734863
+  - expr: un
+    name: un
+    synonyms:
+    - urea nitrogen bun
+    data_type: int64
+    description: Urea nitrogen (BUN) laboratory value.
+    sample_values:
+    - 29
+    - 36
+    - 34
+    - 22
+  - expr: wbc
+    name: wbc
+    synonyms:
+    - white blood cell count
+    data_type: float32
+    description: White blood cell (WBC) count from complete blood count.
+    sample_values:
+    - 5.0
+    - 10.399999618530273
+    - 10.5
+    - 10.300000190734863
+    - 14.300000190734863
+  synonyms:
+  - laboratory results
+  - lab tests panel
+  - clinical labs
+  base_table:
+    table: laboratory
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - lab patient identifier
+    data_type: int64
+    description: Patient identifier to link lab results to the patient table.
+    sample_values:
+    - 27654
+    - 27654
+    - 27654
+    - 27654
+    - 27654
+  - expr: U-PRO
+    name: U-PRO
+    synonyms:
+    - urine protein result
+    data_type: string
+    description: Proteinuria / urine protein test result (often semi-quantitative
+      or categorical).
+  - expr: ra
+    name: ra
+    synonyms:
+    - raha rheumatoid assay
+    data_type: string
+    description: RAHA / rheumatoid-related assay result (text-encoded, often thresholded).
+  - expr: rf
+    name: rf
+    synonyms:
+    - rheumatoid factor result
+    data_type: string
+    description: Rheumatoid factor (RF) test result (often qualitative such as negative/positive).
+  - expr: rnp
+    name: rnp
+    synonyms:
+    - anti rnp antibody
+    data_type: string
+    description: Anti-ribonucleoprotein (RNP) antibody test result (typically qualitative).
+  - expr: sm
+    name: sm
+    synonyms:
+    - anti sm antibody
+    data_type: string
+    description: Anti-Sm antibody test result (typically qualitative).
+  - expr: sc170
+    name: sc170
+    synonyms:
+    - anti scl 70 antibody
+    data_type: string
+    description: Anti-Scl-70 antibody test result (typically qualitative).
+  - expr: ssa
+    name: ssa
+    synonyms:
+    - anti ssa ro antibody
+    data_type: string
+    description: Anti-SSA (Ro) antibody test result (typically qualitative).
+  - expr: ssb
+    name: ssb
+    synonyms:
+    - anti ssb la antibody
+    data_type: string
+    description: Anti-SSB (La) antibody test result (typically qualitative).
+  - expr: centromea
+    name: centromea
+    synonyms:
+    - anti centromere antibody
+    data_type: string
+    description: Anti-centromere antibody test result (typically qualitative such
+      as negative/positive).
+  - expr: dna
+    name: dna
+    synonyms:
+    - anti dna antibody result
+    data_type: string
+    description: Anti-DNA antibody test result (often qualitative or text-encoded).
+  description: Laboratory test results by patient and lab test date. Includes chemistry,
+    CBC, coagulation markers, immunoglobulins, complements, and autoantibody test
+    results.
+  time_dimensions:
+  - expr: date
+    name: date
+    synonyms:
+    - lab test date
+    data_type: date
+    description: Date when the laboratory tests were performed.
+    sample_values:
+    - '1991-09-11'
+    - '1991-09-17'
+    - '1991-09-19'
+    - '1991-09-20'
+    - '1991-09-21'
+- name: examination
+  facts:
+  - expr: aCL IgA
+    name: aCL IgA
+    synonyms:
+    - anticardiolipin iga titer
+    data_type: int64
+    description: Anti-cardiolipin antibody (IgA) concentration/titer.
+    sample_values:
+    - 0
+    - 3
+    - 4
+    - 0
+    - 0
+  - expr: aCL IgG
+    name: aCL IgG
+    synonyms:
+    - anticardiolipin igg level
+    data_type: float32
+    description: Anti-cardiolipin antibody (IgG) concentration/titer.
+    sample_values:
+    - 1.2999999523162842
+    - 4.300000190734863
+    - 2.299999952316284
+    - 0.0
+    - 0.0
+  - expr: aCL IgM
+    name: aCL IgM
+    synonyms:
+    - anticardiolipin igm level
+    data_type: float32
+    description: Anti-cardiolipin antibody (IgM) concentration/titer.
+    sample_values:
+    - 1.600000023841858
+    - 4.599999904632568
+    - 2.5
+    - 0.0
+    - 4.0
+  - expr: ana
+    name: ana
+    synonyms:
+    - ana titer value
+    data_type: int64
+    description: ANA (anti-nuclear antibody) concentration/titer expressed as a numeric
+      value.
+    sample_values:
+    - 256
+    - 256
+    - 0
+    - 16
+    - 4
+  synonyms:
+  - clinical examination
+  - immunology exam results
+  - autoantibody examination
+  base_table:
+    table: examination
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: id
+    name: id
+    synonyms:
+    - exam patient identifier
+    data_type: int64
+    description: Patient identifier to link examination records to the patient table.
+    sample_values:
+    - 14872
+    - 48473
+    - 102490
+    - 108788
+    - 122405
+  - expr: ANA Pattern
+    name: ANA Pattern
+    synonyms:
+    - ana staining pattern
+    data_type: string
+    description: ANA (anti-nuclear antibody) pattern observed on the test sheet (e.g.,
+      P, S).
+    sample_values:
+    - P
+    - P,S
+    - S
+    - P
+  - expr: diagnosis
+    name: diagnosis
+    synonyms:
+    - exam diagnosis notes
+    data_type: string
+    description: Diagnosis names recorded at the time of examination (may include
+      multiple conditions).
+    sample_values:
+    - MCTD, AMI
+    - SLE
+    - PSS
+    - SLE, SjS, vertigo
+  - expr: kct
+    name: kct
+    synonyms:
+    - kaolin clotting time result
+    data_type: string
+    description: KCT (kaolin clotting time) result; typically '+' or '-' indicating
+      abnormal/normal.
+    sample_values:
+    - '-'
+  - expr: rvvt
+    name: rvvt
+    synonyms:
+    - dilute russell viper venom time result
+    data_type: string
+    description: RVVT test result; typically '+' or '-' indicating abnormal/normal
+      coagulation.
+    sample_values:
+    - '-'
+  - expr: lac
+    name: lac
+    synonyms:
+    - lupus anticoagulant result
+    data_type: string
+    description: LAC (lupus anticoagulant) test result; typically '+' or '-' indicating
+      presence/absence.
+    sample_values:
+    - '-'
+    - '-'
+    - '-'
+  - expr: symptoms
+    name: symptoms
+    synonyms:
+    - observed symptoms
+    data_type: string
+    description: Other symptoms observed around the examination (free text, may include
+      abbreviations).
+    sample_values:
+    - AMI
+  - expr: thrombosis
+    name: thrombosis
+    synonyms:
+    - thrombosis severity grade
+    data_type: int64
+    description: 'Thrombosis outcome/severity label: 0 = negative; 1 = most severe;
+      2 = severe; 3 = mild.'
+    sample_values:
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+  description: Immunologic and coagulation-related examination results by patient
+    and examination date, including ANA findings, anti-cardiolipin antibodies, coagulation
+    screening outcomes, symptoms, diagnosis text, and thrombosis severity label.
+  time_dimensions:
+  - expr: Examination Date
+    name: Examination Date
+    synonyms:
+    - exam performed date
+    data_type: date
+    description: Date the examination was performed.
+    sample_values:
+    - '1997-05-27'
+    - '1992-12-21'
+    - '1995-04-20'
+    - '1997-05-06'
+    - '1998-04-02'
+description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
+  \ Examination\n\nColumns:\n (identification of the patient) - Type: integer\n (Examination\
+  \ Date) - Type: date \n- **anti-Cardiolipin antibody (IgG) ** (anti-Cardiolipin\
+  \ antibody (IgG) concentration) - Type: real\n- **anti-Cardiolipin antibody (IgM)\
+  \ ** (anti-Cardiolipin antibody (IgM) concentration) - Type: real\n- **anti-nucleus\
+  \ antibody ** (anti-nucleus antibody concentration) - Type: integer\n- **pattern\
+  \ observed in the sheet of ANA examination** (pattern observed in the sheet of ANA\
+  \ examination) - Type: text\n- **anti-Cardiolipin antibody (IgA) concentration**\
+  \ (anti-Cardiolipin antibody (IgA) concentration) - Type: integer\n (disease names)\
+  \ - Type: text\n- **measure of degree of coagulation** (measure of degree of coagulation)\
+  \ - Type: text - +: positive  -: negative\n- **measure of degree of coagulation**\
+  \ (measure of degree of coagulation) - Type: text - +: positive  -: negative\n-\
+  \ **measure of degree of coagulation** (measure of degree of coagulation) - Type:\
+  \ text - +: positive  -: negative\n (other symptoms observed) - Type: text\n (degree\
+  \ of thrombosis) - Type: integer - 0: negative (no thrombosis) 1: positive (the\
+  \ most severe one) 2: positive (severe)3: positive (mild)\n\n## Table: Laboratory\n\
+  \nColumns:\n (identification of the patient) - Type: integer\n (Date of the laboratory\
+  \ tests (YYMMDD)) - Type: date\n- **AST glutamic oxaloacetic transaminase** (AST\
+  \ glutamic oxaloacetic transaminase) - Type: integer - Commonsense evidence:  Normal\
+  \ range: N < 60\n- **ALT glutamic pyruvic transaminase** (ALT glutamic pyruvic transaminase)\
+  \ - Type: integer - Commonsense evidence:  Normal range: N < 60\n- **lactate dehydrogenase**\
+  \ (lactate dehydrogenase) - Type: integer - Commonsense evidence:  Normal range:\
+  \ N < 500\n- **alkaliphophatase** (alkaliphophatase) - Type: integer - Commonsense\
+  \ evidence:  Normal range: N < 300\n- **total protein** (total protein) - Type:\
+  \ real - Commonsense evidence:  Normal range: 6.0 < N < 8.5\n- **albumin** (albumin)\
+  \ - Type: real - Commonsense evidence:  Normal range: 3.5 < N < 5.5\n- **uric acid**\
+  \ (uric acid) - Type: real - Commonsense evidence:  Normal range: N > 8.0 (Male)N\
+  \ > 6.5 (Female)\n- **urea nitrogen** (urea nitrogen) - Type: integer - Commonsense\
+  \ evidence:  Normal range: N < 30\n- **creatinine** (creatinine) - Type: real -\
+  \ Commonsense evidence:  Normal range: N < 1.5\n- **total bilirubin** (total bilirubin)\
+  \ - Type: real - Commonsense evidence:  Normal range: N < 2.0\n- **total cholesterol**\
+  \ (total cholesterol) - Type: integer - Commonsense evidence: Normal range: N <\
+  \ 250\n- **triglyceride** (triglyceride) - Type: integer - Commonsense evidence:\
+  \  Normal range: N < 200\n- **creatinine phosphokinase** (creatinine phosphokinase)\
+  \ - Type: integer - Commonsense evidence: Normal range: N < 250\n- **blood glucose**\
+  \ (blood glucose) - Type: integer - Commonsense evidence: Normal range: N < 180\n\
+  - **White blood cell** (White blood cell) - Type: real - Commonsense evidence: Normal\
+  \ range: 3.5 < N < 9.0\n- **Red blood cell** (Red blood cell) - Type: real - Commonsense\
+  \ evidence:  Normal range: 3.5 < N < 6.0\n- **Hemoglobin** (Hemoglobin) - Type:\
+  \ real - Commonsense evidence:  Normal range: 10 < N < 17\n- **Hematoclit** (Hematoclit)\
+  \ - Type: real - Commonsense evidence: Normal range: 29 < N < 52\n- **platelet**\
+  \ (platelet) - Type: integer - Commonsense evidence:  Normal range: 100 < N < 400\n\
+  - **prothrombin time** (prothrombin time) - Type: real - Commonsense evidence: \
+  \ Normal range: N < 14\n- **activated partial prothrombin time** (activated partial\
+  \ prothrombin time) - Type: integer - Commonsense evidence:  Normal range: N < 45\n\
+  - **fibrinogen** (fibrinogen) - Type: real - Commonsense evidence:  Normal range:\
+  \ 150 < N < 450\n- **proteinuria** (proteinuria) - Type: text - Commonsense evidence:\
+  \  Normal range: 0 < N < 30\n- **Ig G** (Ig G) - Type: integer - Commonsense evidence:\
+  \  Normal range: 900 < N < 2000\n- **Ig A** (Ig A) - Type: integer - Commonsense\
+  \ evidence:  Normal range: 80 < N < 500\n- **Ig M** (Ig M) - Type: integer - Commonsense\
+  \ evidence:  Normal range: 40 < N < 400\n- **C-reactive protein** (C-reactive protein)\
+  \ - Type: text - Commonsense evidence:  Normal range: N= -, +-, or N < 1.0\n- **Rhuematoid\
+  \ Factor** (Rhuematoid Factor) - Type: text - Commonsense evidence:  Normal range:\
+  \ N= -, +-\n- **RAHA** (RAHA) - Type: text - Commonsense evidence:  Normal range:\
+  \ N < 20\n- **complement 3** (complement 3) - Type: integer - Commonsense evidence:\
+  \  Normal range: N > 35\n- **complement 4** (complement 4) - Type: integer - Commonsense\
+  \ evidence:  Normal range: N > 10\n- **anti-ribonuclear protein** (anti-ribonuclear\
+  \ protein) - Type: text - Commonsense evidence:  Normal range: N= -, +-\n- **anti-SM**\
+  \ (anti-SM) - Type: text - Commonsense evidence:  Normal range: N= -, +-\n- **anti-scl70**\
+  \ (anti-scl70) - Type: text - Commonsense evidence:  Normal range: N= -, +-\n- **anti-SSA**\
+  \ (anti-SSA) - Type: text - Commonsense evidence:  Normal range: N= -, +-\n- **anti-SSB**\
+  \ (anti-SSB) - Type: text - Commonsense evidence:  Normal range: N= -, +-\n- **anti-centromere**\
+  \ (anti-centromere) - Type: text - Commonsense evidence:  Normal range: N= -, +-\n\
+  - **anti-DNA** (anti-DNA) - Type: text - Commonsense evidence:  Normal range: N\
+  \ < 8\n- **anti-DNA** (anti-DNA) - Type: integer - Commonsense evidence:  Normal\
+  \ range: N < 8\n\n## Table: Patient\n\nColumns:\n (identification of the patient)\
+  \ - Type: integer\n (Sex) - Type: text - F: female; M: male\n (Birthday) - Type:\
+  \ date\n (the first date when a patient data was recorded) - Type: date - null or\
+  \ empty: not recorded\n (the date when a patient came to the hospital) - Type: date\n\
+  \ (patient was admitted to the hospital (+) or followed at the outpatient clinic\
+  \ (-)) - Type: text - patient was admitted to the hospital (+) or followed at the\
+  \ outpatient clinic (-)\n (disease names) - Type: text\n"

@@ -1,0 +1,35 @@
+name: bird-codebase-community-004
+description: "BIRD Q534 (simple): What is the display name of the user who has the most number of views?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-534
+    description: "What is the display name of the user who has the most number of views?"
+    messages:
+      - role: user
+        content: |
+          What is the display name of the user who has the most number of views?
+          Evidence: user who has the most number of view refers to Max(Views)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_534.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-053
+description: "BIRD Q1201 (moderate): What percentage of patients who were born in 1980 and were diagnosed with RA are women?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1201
+    description: "What percentage of patients who were born in 1980 and were diagnosed with RA are women?"
+    messages:
+      - role: user
+        content: |
+          What percentage of patients who were born in 1980 and were diagnosed with RA are women?
+          Evidence: born in 1980 refers to STRFTIME('%Y', Birthday) = '1980'; 'RA' refers to Diagnosis='RA' ; women refers to SEX = 'F'; calculation = (Number of female patients ÷ total patients) * 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1201.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

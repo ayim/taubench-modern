@@ -1,0 +1,35 @@
+name: bird-california-schools-018
+description: "BIRD Q17 (simple): Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-17
+    description: "Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers."
+    messages:
+      - role: user
+        content: |
+          Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers.
+          Evidence: Valid charter number means the number is not null
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_17.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

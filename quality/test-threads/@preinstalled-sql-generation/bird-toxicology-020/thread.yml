@@ -1,0 +1,35 @@
+name: bird-toxicology-020
+description: "BIRD Q214 (simple): What type of label is not on molecules with atoms with tin?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-214
+    description: "What type of label is not on molecules with atoms with tin?"
+    messages:
+      - role: user
+        content: |
+          What type of label is not on molecules with atoms with tin?
+          Evidence: tin refers to element = 'sn'; label = '+' mean molecules are carcinogenic; label = '-' means molecules are non-carcinogenic
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_214.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

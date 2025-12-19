@@ -1,0 +1,35 @@
+name: bird-financial-058
+description: "BIRD Q146 (challenging): What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-146
+    description: "What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?"
+    messages:
+      - role: user
+        content: |
+          What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?
+          Evidence: Female refers to gender = 'F'; OWNER refers to type = 'OWNER'; loan status 'A' means 'Good Standing' and 'B' means 'Default'; savings rate is calculated as (total income - total expense) / total income * 100%; only adult clients (age >= 18) are included
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_146.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

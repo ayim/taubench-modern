@@ -1,0 +1,35 @@
+name: bird-toxicology-133
+description: "BIRD Q327 (moderate): Which non-carcinogenic molecules consisted more than 5 atoms?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-327
+    description: "Which non-carcinogenic molecules consisted more than 5 atoms?"
+    messages:
+      - role: user
+        content: |
+          Which non-carcinogenic molecules consisted more than 5 atoms?
+          Evidence: non-carcinogenic molecules have a label value of '-'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_327.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-toxicology-027
+description: "BIRD Q221 (simple): What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-221
+    description: "What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?"
+    messages:
+      - role: user
+        content: |
+          What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?
+          Evidence: TR001 is the molecule id; TR001_2_6 is the bond id
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_221.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

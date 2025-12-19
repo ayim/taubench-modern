@@ -1,0 +1,25 @@
+# BIRD Debit Card Specializing PostgreSQL Connection Config
+#
+# This config points to the BIRD Docker Compose stack which contains
+# all BIRD benchmark databases in a single PostgreSQL instance.
+#
+# To start the BIRD stack:
+#   quality-test bird docker up
+#
+# Environment variables (with defaults):
+#   BIRD_PG_HOST=localhost
+#   BIRD_PG_PORT=5433
+#   BIRD_PG_DATABASE=bird
+#   BIRD_PG_USER=postgres
+#   BIRD_PG_PASSWORD=postgres
+
+data_connection:
+  engine: postgres
+  name: postgres-spar
+  description: Debit Card Specializing BIRD benchmark database
+  host: ${BIRD_PG_HOST:-localhost}
+  port: ${BIRD_PG_PORT:-5433}
+  database: ${BIRD_PG_DATABASE:-bird}
+  user: ${BIRD_PG_USER:-postgres}
+  password: ${BIRD_PG_PASSWORD:-postgres}
+  schema: public

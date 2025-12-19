@@ -1,0 +1,34 @@
+name: bird-formula-1-082
+description: "BIRD Q927 (simple): Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-927
+    description: "Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname."
+    messages:
+      - role: user
+        content: |
+          Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_927.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

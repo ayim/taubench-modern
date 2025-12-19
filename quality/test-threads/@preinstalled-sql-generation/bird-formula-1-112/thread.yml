@@ -1,0 +1,35 @@
+name: bird-formula-1-112
+description: "BIRD Q957 (simple): How many Italian drivers haven't finished the race?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-957
+    description: "How many Italian drivers haven't finished the race?"
+    messages:
+      - role: user
+        content: |
+          How many Italian drivers haven't finished the race?
+          Evidence: haven't finished the race refers to time is null;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_957.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

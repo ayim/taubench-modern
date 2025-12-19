@@ -1,0 +1,2 @@
+loan_id,district_name,region,gender,birth_date,loan_amount,loan_duration_months,status_description,district_avg_salary,unemployment_rate_1995,district_total_loans,district_avg_loan_amount,district_problematic_loans,district_loan_rank,total_transactions
+4990,Liberec,north Bohemia,M,1953-01-26,162576,36,Finished - No Issues,9198,3.3,7,138756.0,0,2,209

@@ -1,0 +1,35 @@
+name: bird-card-games-126
+description: "BIRD Q465 (moderate): For the set of cards with \"Ancestor's Chosen\" in it, is there a Korean version of it?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-465
+    description: "For the set of cards with \"Ancestor's Chosen\" in it, is there a Korean version of it?"
+    messages:
+      - role: user
+        content: |
+          For the set of cards with "Ancestor's Chosen" in it, is there a Korean version of it?
+          Evidence: set of cards with "Ancestor''s Chosen" in it refers to name = 'Ancestor''s Chosen'; Korean version refers to language = 'Korean'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_465.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

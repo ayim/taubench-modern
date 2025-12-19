@@ -1,0 +1,35 @@
+name: bird-formula-1-013
+description: "BIRD Q858 (simple): Which country is the constructor which got 1 point in the race No. 24 from?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-858
+    description: "Which country is the constructor which got 1 point in the race No. 24 from?"
+    messages:
+      - role: user
+        content: |
+          Which country is the constructor which got 1 point in the race No. 24 from?
+          Evidence: race number refers to raceId;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_858.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

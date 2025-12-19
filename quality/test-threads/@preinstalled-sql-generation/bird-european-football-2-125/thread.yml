@@ -1,0 +1,35 @@
+name: bird-european-football-2-125
+description: "BIRD Q1144 (simple): Please state the finishing rate and curve score of the player who has the heaviest weight."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1144
+    description: "Please state the finishing rate and curve score of the player who has the heaviest weight."
+    messages:
+      - role: user
+        content: |
+          Please state the finishing rate and curve score of the player who has the heaviest weight.
+          Evidence: finishing rate refer to finishing; curve score refer to curve; heaviest weight refers to MAX(weight)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1144.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

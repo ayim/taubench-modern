@@ -1,0 +1,35 @@
+name: bird-formula-1-014
+description: "BIRD Q859 (simple): What's Bruno Senna's Q1 result in the qualifying race No. 354?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-859
+    description: "What's Bruno Senna's Q1 result in the qualifying race No. 354?"
+    messages:
+      - role: user
+        content: |
+          What's Bruno Senna's Q1 result in the qualifying race No. 354?
+          Evidence: race number refers to raceId; Bruno Senna refers to the full name of the driver; Full name of the driver refers to drivers.forename and drivers.surname;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_859.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,2 @@
+"STRFTIME('%Y', MAX(T1.Birthday)) - STRFTIME('%Y', MIN(T1.Birthday))"
+63

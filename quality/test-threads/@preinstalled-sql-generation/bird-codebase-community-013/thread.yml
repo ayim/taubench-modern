@@ -1,0 +1,35 @@
+name: bird-codebase-community-013
+description: "BIRD Q543 (simple): For the post that got the most number of answers owned by csgillespie, how many answers did it get?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-543
+    description: "For the post that got the most number of answers owned by csgillespie, how many answers did it get?"
+    messages:
+      - role: user
+        content: |
+          For the post that got the most number of answers owned by csgillespie, how many answers did it get?
+          Evidence: "csgillespie" is the display name of the user. The post with the most number of answers is the one with the highest answer count among the user's posts.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_543.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

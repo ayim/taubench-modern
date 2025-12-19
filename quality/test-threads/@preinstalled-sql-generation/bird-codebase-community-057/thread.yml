@@ -1,0 +1,35 @@
+name: bird-codebase-community-057
+description: "BIRD Q587 (moderate): Calculate the average view count of each post tagged as 'humor' and list the title and the comment of each post."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-587
+    description: "Calculate the average view count of each post tagged as 'humor' and list the title and the comment of each post."
+    messages:
+      - role: user
+        content: |
+          Calculate the average view count of each post tagged as 'humor' and list the title and the comment of each post.
+          Evidence: tagged as  'humor' refers to tag = '<humor>'; comment of the post refers to Text; average view count = AVG(ViewCount)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_587.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-european-football-2-077
+description: "BIRD Q1096 (moderate): Calculate the average overall rating of Pietro Marino."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1096
+    description: "Calculate the average overall rating of Pietro Marino."
+    messages:
+      - role: user
+        content: |
+          Calculate the average overall rating of Pietro Marino.
+          Evidence: Pietro Marino refers to player_name = 'Pietro Marino'; average overall rating AVG(T1.overall_rating)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1096.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

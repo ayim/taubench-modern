@@ -1,0 +1,35 @@
+name: bird-formula-1-089
+description: "BIRD Q934 (moderate): Which driver was in the no. 4 grid formation when starting the race in 1989's Australian Grand Prix? Please give his forename and surname."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-934
+    description: "Which driver was in the no. 4 grid formation when starting the race in 1989's Australian Grand Prix? Please give his forename and surname."
+    messages:
+      - role: user
+        content: |
+          Which driver was in the no. 4 grid formation when starting the race in 1989's Australian Grand Prix? Please give his forename and surname.
+          Evidence: the no. 4 grid formation refers to grid = 4
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_934.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

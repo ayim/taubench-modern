@@ -1,0 +1,35 @@
+name: bird-superhero-111
+description: "BIRD Q827 (moderate): What is the average height of a non-human superhero in Dark Horse Comics?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-827
+    description: "What is the average height of a non-human superhero in Dark Horse Comics?"
+    messages:
+      - role: user
+        content: |
+          What is the average height of a non-human superhero in Dark Horse Comics?
+          Evidence: average = AVG(height_cm); non-human superhero refers to race <> 'Human'; Dark Horse Comics refers to publisher_name = 'Dark Horse Comics';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_827.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

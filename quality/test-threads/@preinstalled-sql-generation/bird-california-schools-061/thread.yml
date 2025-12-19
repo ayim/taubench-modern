@@ -1,0 +1,35 @@
+name: bird-california-schools-061
+description: "BIRD Q60 (challenging): For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-60
+    description: "For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county."
+    messages:
+      - role: user
+        content: |
+          For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county.
+          Evidence: Partially virtual schools have Virtual = 'P'; Charter schools have Charter = 1; Poverty levels are categorized based on FRPM percentage: over 75% is High Poverty, 50-75% is Medium-High Poverty, 25-50% is Medium-Low Poverty, and under 25% is Low Poverty.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_60.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

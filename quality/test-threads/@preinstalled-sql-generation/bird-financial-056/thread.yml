@@ -1,0 +1,35 @@
+name: bird-financial-056
+description: "BIRD Q144 (challenging): What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-144
+    description: "What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?"
+    messages:
+      - role: user
+        content: |
+          What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?
+          Evidence: Credit card transactions refer to operation = 'VYBER KARTOU'. Only account owners with credit cards are considered.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_144.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-129
+description: "BIRD Q1277 (moderate): How many patients have a normal anti-DNA level, yet their data are not recorded."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1277
+    description: "How many patients have a normal anti-DNA level, yet their data are not recorded."
+    messages:
+      - role: user
+        content: |
+          How many patients have a normal anti-DNA level, yet their data are not recorded.
+          Evidence: normal anti-DNA level refers to DNA < 8; data are not recorded refers to Description IS NULL; Should compute the number of unique ones
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1277.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

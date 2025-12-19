@@ -1,0 +1,35 @@
+name: bird-toxicology-076
+description: "BIRD Q270 (moderate): Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-270
+    description: "Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?
+          Evidence: calcium refers to element = 'ca'; label = '+' mean molecules are carcinogenic; label = '-' means molecules are non-carcinogenic
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_270.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

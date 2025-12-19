@@ -210,16 +210,19 @@ class QualityTestRunner:
         return preinstalled_packages
 
     def discover_test_cases(
-        self, agent_name: str | None = None, tests_filter: list[str] | None = None
+        self,
+        agent_name: str | None = None,
+        tests_filter: list[str] | None = None,
+        difficulty_filter: str | None = None,
     ) -> list[TestCase]:
-        """Discover test cases, optionally filtered by agent name and test names.
+        """Discover test cases, optionally filtered by agent name, test names, and difficulty.
 
         Supports two structures:
         1. Direct YAML files: test-threads/agent-name/001-test.yml
         2. Directory-based: test-threads/agent-name/001-test/thread.yml (with additional files)
 
-        When tests_filter is provided, YAML files whose 'name' does not match are skipped
-        without full parsing to avoid loading unrelated auth config (e.g., Snowflake).
+        When filters are provided, YAML files are pre-filtered without full parsing
+        to avoid loading unrelated auth config (e.g., Snowflake).
         """
         logger.info(f"Discovering test cases in {self.test_threads_dir}")
 
@@ -232,12 +235,17 @@ class QualityTestRunner:
 
                 # First, look for direct .yml files
                 for yml_path in test_dir.glob(f"*.{YML_FILE_EXTENSION}"):
-                    if tests_filter:
+                    if tests_filter or difficulty_filter:
                         try:
                             with open(yml_path, encoding="utf-8") as f:
                                 raw = yaml.safe_load(f)
                             test_name = raw.get("name")
-                            if test_name not in tests_filter:
+                            test_difficulty = raw.get("difficulty")
+                            # Apply tests filter
+                            if tests_filter and not self._matches_filter(test_name, tests_filter):
+                                continue
+                            # Apply difficulty filter
+                            if difficulty_filter and test_difficulty != difficulty_filter:
                                 continue
                         except Exception:
                             # If we can't read minimally, fall back to full parse
@@ -251,12 +259,17 @@ class QualityTestRunner:
                     if sub_dir.is_dir():
                         thread_yml = sub_dir / THREAD_YML_FILE
                         if thread_yml.exists():
-                            if tests_filter:
+                            if tests_filter or difficulty_filter:
                                 try:
                                     with open(thread_yml, encoding="utf-8") as f:
                                         raw = yaml.safe_load(f)
                                     test_name = raw.get("name")
-                                    if test_name not in tests_filter:
+                                    test_difficulty = raw.get("difficulty")
+                                    # Apply tests filter
+                                    if tests_filter and not self._matches_filter(test_name, tests_filter):
+                                        continue
+                                    # Apply difficulty filter
+                                    if difficulty_filter and test_difficulty != difficulty_filter:
                                         continue
                                 except Exception:
                                     pass
@@ -267,12 +280,37 @@ class QualityTestRunner:
         logger.info(f"Found {len(test_cases)} test cases")
         return test_cases
 
+    @staticmethod
+    def _matches_filter(test_name: str | None, tests_filter: list[str]) -> bool:
+        """Check if test name matches any filter (exact or prefix match).
+
+        Args:
+            test_name: Test name from YAML
+            tests_filter: List of filter strings
+
+        Returns:
+            True if test_name matches any filter (exact or starts with)
+        """
+        if not test_name:
+            return False
+
+        for filter_str in tests_filter:
+            # Exact match
+            if test_name == filter_str:
+                return True
+            # Prefix match (e.g., "bird-california-schools" matches "bird-california-schools-001")
+            if test_name.startswith(filter_str):
+                return True
+
+        return False
+
     async def run_tests_for_all_agents_fully_parallel(
         self,
         selected_agents: list[str],
         max_concurrent_agents: int = 2,
         platform_filter: str | None = None,
         tests_filter: list[str] | None = None,
+        difficulty_filter: str | None = None,
     ) -> dict[str, list[ThreadResult]]:
         """Run tests for all agents with full parallelization (agents + platforms).
 
@@ -293,24 +331,26 @@ class QualityTestRunner:
             self.results_manager.complete_run("No agents found after filtering by selected_agents")
             return {}
 
-        # If specific tests are requested, skip agents that have no matching test cases
-        if tests_filter:
+        # If specific tests or difficulty are requested, skip agents that have no matching test cases
+        if tests_filter or difficulty_filter:
             filtered_agents: list[AgentPackage] = []
             for agent in agents:
-                agent_tests = self.discover_test_cases(agent.name, tests_filter=tests_filter)
-                if any(test_case.name in tests_filter for test_case in agent_tests):
+                agent_tests = self.discover_test_cases(
+                    agent.name, tests_filter=tests_filter, difficulty_filter=difficulty_filter
+                )
+                if agent_tests:
                     filtered_agents.append(agent)
                 else:
                     logger.info(
-                        "Skipping agent %s because no test cases matched the provided tests filter",
+                        "Skipping agent %s because no test cases matched the provided filters",
                         agent.name,
                     )
 
             agents = filtered_agents
 
             if not agents:
-                logger.warning("No agents found after applying tests filter")
-                self.results_manager.complete_run("No agents found after applying tests filter")
+                logger.warning("No agents found after applying filters")
+                self.results_manager.complete_run("No agents found after applying filters")
                 return {}
 
         logger.info(
@@ -350,6 +390,7 @@ class QualityTestRunner:
                             action_server_url,
                             platform_filter,
                             tests_filter,
+                            difficulty_filter,
                         )
                         logger.info(f"Completed agent: {agent.name} with {len(agent_results)} results")
                         return agent.name, agent_results
@@ -405,13 +446,16 @@ class QualityTestRunner:
         action_server_url: str,
         platform_filter: str | None,
         tests_filter: list[str] | None,
+        difficulty_filter: str | None = None,
     ) -> list[ThreadResult]:
         """Run all tests for a single agent with full parallelization."""
         logger.info(f"Running agent tests (fully parallel): {agent_package.name}")
 
         try:
             # Discover test cases for this agent
-            test_cases = self.discover_test_cases(agent_package.name, tests_filter=tests_filter)
+            test_cases = self.discover_test_cases(
+                agent_package.name, tests_filter=tests_filter, difficulty_filter=difficulty_filter
+            )
 
             if not test_cases:
                 logger.error(f"No test cases found for agent {agent_package.name} after applying filters.")

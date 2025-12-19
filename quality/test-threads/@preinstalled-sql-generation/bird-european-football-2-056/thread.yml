@@ -1,0 +1,35 @@
+name: bird-european-football-2-056
+description: "BIRD Q1075 (moderate): List all the football player with the highest balance score and potential score of 61."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1075
+    description: "List all the football player with the highest balance score and potential score of 61."
+    messages:
+      - role: user
+        content: |
+          List all the football player with the highest balance score and potential score of 61.
+          Evidence: balance score refers to balance; highest balance score refers to MAX(balance); potential score refers to potential; potential = 61;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1075.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

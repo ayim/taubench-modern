@@ -1,0 +1,35 @@
+name: bird-european-football-2-103
+description: "BIRD Q1122 (simple): State the name of the most strongest player."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1122
+    description: "State the name of the most strongest player."
+    messages:
+      - role: user
+        content: |
+          State the name of the most strongest player.
+          Evidence: Strongest player refers to the player with the maximum value of strength (player strength) in the Player_Attributes table; "most strongest" means the maximum strength value; strength and overall_rating are independent fields (the latter is a comprehensive rating, not related to strength).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1122.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

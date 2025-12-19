@@ -1,0 +1,35 @@
+name: bird-card-games-094
+description: "BIRD Q433 (moderate): What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-433
+    description: "What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?"
+    messages:
+      - role: user
+        content: |
+          What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?
+          Evidence: are only available for online games refers to isOnlineOnly = 1; percentage = DIVIDE(COUNT(isOnlineOnly = 1),COUNT(isOnlineOnly))*100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_433.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

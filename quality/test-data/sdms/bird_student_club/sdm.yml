@@ -1,0 +1,727 @@
+name: Student Club Operations
+tables:
+- name: income
+  facts:
+  - expr: amount
+    name: amount
+    synonyms:
+    - income_amount_dollars
+    data_type: int64
+    description: Dollar amount of income received in the transaction.
+    sample_values:
+    - 50
+    - 50
+    - 50
+    - 50
+    - 50
+  synonyms:
+  - club_funds_inflow
+  - revenue_records_income
+  base_table:
+    table: income
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: income_id
+    name: income_id
+    synonyms:
+    - income_record_id
+    data_type: '!string'
+    description: Unique identifier for the income record.
+    sample_values:
+    - rec0s9ZrO15zhzUeE
+    - rec7f5XMQZexgtQJo
+    - rec8BUJa8GXUjiglg
+    - rec8V9BPNIoewWt2z
+    - recCRWMfFqifuKMc6
+  - expr: source
+    name: source
+    synonyms:
+    - income_source_type
+    data_type: string
+    description: Source/category of the income (e.g., Dues, University Allocation).
+    sample_values:
+    - Dues
+    - Dues
+    - Dues
+    - Dues
+    - Dues
+  - expr: notes
+    name: notes
+    synonyms:
+    - income_receipt_notes
+    data_type: string
+    description: Free-text notes describing details about the income receipt.
+  - expr: link_to_member
+    name: link_to_member
+    synonyms:
+    - income_member_id
+    data_type: string
+    description: Identifier of the member associated with the income (if applicable),
+      referencing member.member_id.
+    sample_values:
+    - reccW7q1KkhSKZsea
+    - recTjHY5xXhvkCdVT
+    - recUdRhbhcEO1Hk5r
+    - rec3pH4DxMcWHMRB7
+    - rec28ORZgcm1dtqBZ
+  description: Records of money received by the club (e.g., member dues or university
+    allocations), including the amount, source, receipt date, and optionally the member
+    associated with the payment.
+  time_dimensions:
+  - expr: date_received
+    name: date_received
+    synonyms:
+    - income_received_date
+    data_type: string
+    description: Date the income was received by the club (YYYY-MM-DD).
+    sample_values:
+    - '2019-10-17'
+    - '2019-09-04'
+    - '2019-10-08'
+    - '2019-10-02'
+    - '2019-09-18'
+- name: event
+  synonyms:
+  - club_event_schedule
+  - student_club_events_list
+  base_table:
+    table: event
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: event_id
+    name: event_id
+    synonyms:
+    - event_record_id
+    data_type: '!string'
+    description: Unique identifier for the event.
+    sample_values:
+    - rec0Si5cQ4rJRVzd6
+    - rec0akZnLLpGUloLH
+    - rec0dZPcWXF0QjNnE
+    - rec180D2MI4EpckHy
+    - rec2N69DMcrqN9PJC
+  - expr: event_name
+    name: event_name
+    synonyms:
+    - event_title_name
+    data_type: string
+    description: Human-readable name/title of the event.
+    sample_values:
+    - March Meeting
+    - Officers meeting - January
+    - Spring Elections
+    - Officers meeting - March
+    - Women's Soccer
+  - expr: type
+    name: type
+    synonyms:
+    - event_category_type
+    data_type: string
+    description: Type of event (e.g., Meeting, Game, Election).
+    sample_values:
+    - Meeting
+    - Meeting
+    - Election
+    - Meeting
+    - Game
+  - expr: notes
+    name: notes
+    synonyms:
+    - event_planning_notes
+    data_type: string
+    description: Free-text notes or details about the event.
+    sample_values:
+    - All active members can vote for new officers between 4pm-8pm.
+    - Attend Women's soccer game as a group.
+  - expr: location
+    name: location
+    synonyms:
+    - event_venue_location
+    data_type: string
+    description: Location or venue where the event is/was held (e.g., room, building,
+      stadium).
+    sample_values:
+    - MU 215
+    - MU 215
+    - Campus Soccer/Lacrosse stadium
+  - expr: status
+    name: status
+    synonyms:
+    - event_lifecycle_status
+    data_type: string
+    description: Current lifecycle status of the event (e.g., Planning, Open, Closed).
+    sample_values:
+    - Open
+    - Open
+    - Open
+    - Planning
+    - Closed
+  description: Master list of club events, including the event’s name, date/time,
+    location, type, status, and optional notes.
+  time_dimensions:
+  - expr: event_date
+    name: event_date
+    synonyms:
+    - event_datetime
+    data_type: string
+    description: Date/time when the event occurred or is scheduled to occur (ISO-like
+      string).
+    sample_values:
+    - '2020-03-10T12:00:00'
+    - '2020-01-14T09:30:00'
+    - '2019-11-24T09:00:00'
+    - '2020-03-10T09:30:00'
+    - '2019-10-05T12:00:00'
+- name: expense
+  facts:
+  - expr: cost
+    name: cost
+    synonyms:
+    - expense_cost_dollars
+    data_type: float32
+    description: Dollar amount spent for the expense line item.
+    sample_values:
+    - 122.05999755859375
+    - 20.200000762939453
+    - 51.810001373291016
+    - 67.80999755859375
+    - 6.0
+  synonyms:
+  - club_spending_records
+  - expense_transactions_list
+  base_table:
+    table: expense
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: expense_id
+    name: expense_id
+    synonyms:
+    - expense_record_id
+    data_type: '!string'
+    description: Unique identifier for the expense record.
+    sample_values:
+    - rec017x6R3hQqkLAo
+    - rec1nIjoZKTYayqZ6
+    - rec1oMgNFt7Y0G40x
+    - rec4Zg7WEmfiHXcnC
+    - rec7gUiykKKW4RaJS
+  - expr: expense_description
+    name: expense_description
+    synonyms:
+    - expense_item_description
+    data_type: string
+    description: Description of what the money was spent on (e.g., Pizza, Posters).
+    sample_values:
+    - Post Cards, Posters
+    - Water, Cookies
+    - Pizza
+    - Posters
+    - Parking
+  - expr: approved
+    name: approved
+    synonyms:
+    - expense_is_approved_flag
+    data_type: string
+    description: Indicates whether the expense was approved (stored as 'true'/'false').
+    sample_values:
+    - 'true'
+    - 'true'
+    - 'true'
+    - 'true'
+    - 'true'
+  - expr: link_to_member
+    name: link_to_member
+    synonyms:
+    - expense_member_id
+    data_type: string
+    description: Identifier of the member who incurred/submitted the expense, referencing
+      member.member_id.
+    sample_values:
+    - rec4BLdZHS2Blfp4v
+    - recro8T1MPMwRadVH
+    - recD078PnS3x2doBe
+    - rec4BLdZHS2Blfp4v
+    - recro8T1MPMwRadVH
+  - expr: link_to_budget
+    name: link_to_budget
+    synonyms:
+    - expense_budget_id
+    data_type: string
+    description: Identifier of the related budget record (budget.budget_id) that the
+      expense is tracked against.
+    sample_values:
+    - recvKTAWAFKkVNnXQ
+    - recy8KY5bUdzF81vv
+    - recwXIiKoBMjXJsGZ
+    - recsI0IzpUuxl2bPh
+    - recTUGXxhTaFZ2qkg
+  description: Expense transactions incurred by the club, including date, description,
+    cost, approval flag, and links to the responsible member and related budget line.
+  time_dimensions:
+  - expr: expense_date
+    name: expense_date
+    synonyms:
+    - expense_incurred_date
+    data_type: string
+    description: Date the expense was incurred (YYYY-MM-DD).
+    sample_values:
+    - '2019-08-20'
+    - '2019-10-08'
+    - '2019-09-10'
+    - '2019-10-10'
+    - '2019-11-19'
+- name: major
+  synonyms:
+  - academic_majors_reference
+  - student_major_catalog
+  base_table:
+    table: major
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: major_id
+    name: major_id
+    synonyms:
+    - major_record_id
+    data_type: '!string'
+    description: Unique identifier for the major.
+    sample_values:
+    - rec06DF6vZ1CyPKpc
+    - rec09LedkREyskCNv
+    - rec0Eanv576RhQllI
+    - rec0xRZtkzxrg8kj2
+    - rec1N0upiVLy5esTO
+  - expr: major_name
+    name: major_name
+    synonyms:
+    - academic_major_name
+    data_type: string
+    description: Name of the academic major (e.g., Finance).
+    sample_values:
+    - Outdoor Product Design and Development
+    - Agricultural Communication
+    - Fisheries and Aquatic Sciences
+    - Finance
+    - Forest Ecology and Management
+  - expr: department
+    name: department
+    synonyms:
+    - major_department_name
+    data_type: string
+    description: Department that offers the major.
+    sample_values:
+    - School of Applied Sciences, Technology and Education
+    - School of Applied Sciences, Technology and Education
+    - Watershed Sciences Department
+    - Economics and Finance Department
+    - Wildland Resources Department
+  - expr: college
+    name: college
+    synonyms:
+    - major_college_name
+    data_type: string
+    description: College that houses the department offering the major.
+    sample_values:
+    - College of Agriculture and Applied Sciences
+    - College of Agriculture and Applied Sciences
+    - College of Natural Resources
+    - School of Business
+    - College of Natural Resources
+  description: Reference list of academic majors, including the associated department
+    and college.
+- name: member
+  synonyms:
+  - club_member_roster
+  - student_members_list
+  base_table:
+    table: member
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: member_id
+    name: member_id
+    synonyms:
+    - member_record_id
+    data_type: '!string'
+    description: Unique identifier for the member.
+    sample_values:
+    - rec1x5zBFIqoOuPW8
+    - rec280Sk7o31iG0Tx
+    - rec28ORZgcm1dtqBZ
+    - rec2a03QXbFQAUZ7X
+    - rec3pH4DxMcWHMRB7
+  - expr: first_name
+    name: first_name
+    synonyms:
+    - member_given_name
+    data_type: string
+    description: Member’s first (given) name.
+    sample_values:
+    - Angela
+    - Grant
+    - Luisa
+    - Randy
+    - Connor
+  - expr: last_name
+    name: last_name
+    synonyms:
+    - member_family_name
+    data_type: string
+    description: Member’s last (family) name.
+    sample_values:
+    - Sanders
+    - Gilmour
+    - Guidi
+    - Woodard
+    - Hilton
+  - expr: email
+    name: email
+    synonyms:
+    - member_email_address
+    data_type: string
+    description: Member’s email address.
+    sample_values:
+    - angela.sanders@lpu.edu
+    - grant.gilmour@lpu.edu
+    - luisa.guidi@lpu.edu
+    - randy.woodard@lpu.edu
+    - connor.hilton@lpu.edu
+  - expr: position
+    name: position
+    synonyms:
+    - member_club_role
+    data_type: string
+    description: Role/status of the member within the club (e.g., Member, Inactive).
+    sample_values:
+    - Member
+    - Member
+    - Member
+    - Inactive
+    - Member
+  - expr: t_shirt_size
+    name: t_shirt_size
+    synonyms:
+    - member_tshirt_size_pref
+    data_type: string
+    description: Preferred T-shirt size for the member.
+    sample_values:
+    - Medium
+    - X-Large
+    - Medium
+    - X-Large
+    - X-Large
+  - expr: phone
+    name: phone
+    synonyms:
+    - member_phone_number
+    data_type: string
+    description: Best contact phone number for the member.
+    sample_values:
+    - (651) 928-4507
+    - 403-555-1310
+    - 442-555-5882
+    - 490-555-8460
+    - 454-555-7970
+  - expr: zip
+    name: zip
+    synonyms:
+    - member_home_zip_code
+    data_type: int64
+    description: ZIP code of the member’s hometown/primary address.
+    sample_values:
+    - 55108
+    - 29440
+    - 10002
+    - 8021
+    - 48236
+  - expr: link_to_major
+    name: link_to_major
+    synonyms:
+    - member_major_id
+    data_type: string
+    description: Identifier of the member’s major, referencing major.major_id.
+    sample_values:
+    - recxK3MHQFbR9J5uO
+    - rec7BxKpjJ7bNph3O
+    - recdIBgeU38UbV2sy
+    - recaJdSK83k6ekRJL
+  description: Club member directory, including contact information, club role/status,
+    T-shirt size preference, hometown ZIP code, and the member’s academic major.
+- name: attendance
+  synonyms:
+  - event_attendance_log
+  - member_event_checkins
+  base_table:
+    table: attendance
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: link_to_event
+    name: link_to_event
+    synonyms:
+    - attendance_event_id
+    data_type: '!string'
+    description: Identifier of the attended event, referencing event.event_id.
+    sample_values:
+    - rec2N69DMcrqN9PJC
+    - rec2N69DMcrqN9PJC
+    - rec2N69DMcrqN9PJC
+    - rec2N69DMcrqN9PJC
+    - rec2N69DMcrqN9PJC
+  - expr: link_to_member
+    name: link_to_member
+    synonyms:
+    - attendance_member_id
+    data_type: '!string'
+    description: Identifier of the member who attended, referencing member.member_id.
+    sample_values:
+    - recD078PnS3x2doBe
+    - recP6DJPyi5donvXL
+    - rec28ORZgcm1dtqBZ
+    - recTjHY5xXhvkCdVT
+    - recZ4PkGERzl9ziHO
+  description: Bridge table capturing which members attended which events (many-to-many
+    relationship between member and event).
+- name: budget
+  facts:
+  - expr: amount
+    name: amount
+    synonyms:
+    - budget_planned_amount_dollars
+    data_type: int64
+    description: Planned/budgeted dollar amount for the category and event.
+    sample_values:
+    - 75
+    - 150
+    - 20
+    - 25
+    - 150
+  - expr: remaining
+    name: remaining
+    synonyms:
+    - budget_remaining_balance_dollars
+    data_type: float32
+    description: Remaining budget balance in dollars (planned minus spent; may be
+      negative if overspent).
+    sample_values:
+    - 7.190000057220459
+    - 28.860000610351562
+    - -0.20000000298023224
+    - 25.0
+    - 150.0
+  - expr: spent
+    name: spent
+    synonyms:
+    - budget_amount_spent_dollars
+    data_type: float32
+    description: Total dollars spent against this budget line (as recorded in the
+      budgeting system).
+    sample_values:
+    - 67.80999755859375
+    - 121.13999938964844
+    - 20.200000762939453
+    - 0.0
+    - 0.0
+  synonyms:
+  - event_budget_plan
+  - budget_allocations_list
+  base_table:
+    table: budget
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: budget_id
+    name: budget_id
+    synonyms:
+    - budget_record_id
+    data_type: '!string'
+    description: Unique identifier for the budget record.
+    sample_values:
+    - rec0QmEc3cSQFQ6V2
+    - rec1bG6HSft7XIvTP
+    - rec1z6ISJU2HdIsVm
+    - rec33PFqxLtnp80RJ
+    - rec4DYUKBHMPZXWB2
+  - expr: category
+    name: category
+    synonyms:
+    - budget_spend_category
+    data_type: string
+    description: Budget category for the allocation (e.g., Food, Advertisement).
+    sample_values:
+    - Advertisement
+    - Food
+    - Food
+    - Speaker Gifts
+    - Food
+  - expr: event_status
+    name: event_status
+    synonyms:
+    - budget_related_event_status
+    data_type: string
+    description: Status of the related event at the time of budgeting (e.g., Open,
+      Closed).
+    sample_values:
+    - Closed
+    - Closed
+    - Closed
+    - Open
+    - Open
+  - expr: link_to_event
+    name: link_to_event
+    synonyms:
+    - budget_event_id
+    data_type: string
+    description: Identifier of the related event, referencing event.event_id.
+    sample_values:
+    - recI43CzsZ0Q625ma
+    - recggMW2eyCYceNcy
+    - recJ4Witp9tpjaugn
+    - recHaMmaKyfktt5fW
+    - recHaMmaKyfktt5fW
+  description: Budget allocations by event and spending category, including planned
+    amount, amount spent, and remaining balance, plus the related event status.
+- name: zip_code
+  synonyms:
+  - postal_zip_reference
+  - us_zip_lookup_table
+  base_table:
+    table: zip_code
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: zip_code
+    name: zip_code
+    synonyms:
+    - postal_zip_code_value
+    data_type: '!int64'
+    description: Five-digit USPS ZIP code value.
+    sample_values:
+    - 501
+    - 544
+    - 601
+    - 602
+    - 603
+  - expr: type
+    name: type
+    synonyms:
+    - zip_code_type_label
+    data_type: string
+    description: Type of ZIP code (e.g., Standard, PO Box, Unique).
+    sample_values:
+    - Unique
+    - Unique
+    - Standard
+    - Standard
+    - Standard
+  - expr: city
+    name: city
+    synonyms:
+    - zip_city_name
+    data_type: string
+    description: City associated with the ZIP code.
+    sample_values:
+    - Holtsville
+    - Holtsville
+    - Adjuntas
+    - Aguada
+    - Aguadilla
+  - expr: county
+    name: county
+    synonyms:
+    - zip_county_name
+    data_type: string
+    description: County associated with the ZIP code.
+    sample_values:
+    - Suffolk County
+    - Suffolk County
+    - Adjuntas Municipio
+    - Aguada Municipio
+    - Aguadilla Municipio
+  - expr: state
+    name: state
+    synonyms:
+    - zip_state_full_name
+    data_type: string
+    description: Full state/territory name for the ZIP code.
+    sample_values:
+    - New York
+    - New York
+    - Puerto Rico
+    - Puerto Rico
+    - Puerto Rico
+  - expr: short_state
+    name: short_state
+    synonyms:
+    - zip_state_abbrev
+    data_type: string
+    description: Two-letter state/territory abbreviation for the ZIP code.
+    sample_values:
+    - NY
+    - NY
+    - PR
+    - PR
+    - PR
+  description: Reference table mapping ZIP codes to geography and ZIP type information
+    (city, county, state).
+description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
+  \ Attendance\n\nColumns:\n- **link to event** (The unique identifier of the event\
+  \ which was attended) - Type: text - References the Event table\n- **link to member**\
+  \ (The unique identifier of the member who attended the event) - Type: text - References\
+  \ the Member table\n\n## Table: Budget\n\n## Table: Event\n\nColumns:\n- **event\
+  \ id** (A unique identifier for the event) - Type: text\n- **event name** (event\
+  \ name) - Type: text\n- **event date** (The date the event took place or is scheduled\
+  \ to take place) - Type: text - e.g. 2020-03-10T12:00:00\n (The kind of event, such\
+  \ as game, social, election) - Type: text\n (A free text field for any notes about\
+  \ the event) - Type: text\n (Address where the event was held or is to be held or\
+  \ the name of such a location) - Type: text\n (One of three values indicating if\
+  \ the event is in planning, is opened, or is closed) - Type: text - Open/ Closed/\
+  \ Planning\n\n## Table: Expense\n\nColumns:\n- **expense id** (unique id of income)\
+  \ - Type: text\n- **expense description** (A textual description of what the money\
+  \ was spend for) - Type: text\n- **expense date** (The date the expense was incurred)\
+  \ - Type: text - e.g. YYYY-MM-DD\n (The dollar amount of the expense) - Type: real\
+  \ - the unit is dollar\n (A true or false value indicating if the expense was approved)\
+  \ - Type: text - true/ false\n- **link to member** (The member who incurred the\
+  \ expense) - Type: text\n- **link to budget** (The unique identifier of the record\
+  \ in the Budget table that indicates the expected total expenditure for a given\
+  \ category and event. ) - Type: text - References the Budget table\n\n## Table:\
+  \ Income\n\nColumns:\n- **income id** (A unique identifier for each record of income)\
+  \ - Type: text\n- **date received** (the date that the fund received) - Type: text\n\
+  \ (amount of funds) - Type: integer - the unit is dollar\n (A value indicating where\
+  \ the funds come from such as dues, or the annual university allocation) - Type:\
+  \ text\n (A free-text value giving any needed details about the receipt of funds)\
+  \ - Type: text\n- **link to member** (link to member) - Type: text\n\n## Table:\
+  \ Major\n\nColumns:\n- **major id** (A unique identifier for each major) - Type:\
+  \ text\n- **major name** (major name) - Type: text\n (The name of the department\
+  \ that offers the major) - Type: text\n (The name college that houses the department\
+  \ that offers the major) - Type: text\n\n## Table: Member\n\nColumns:\n- **member\
+  \ id** (unique id of member) - Type: text\n- **first name** (member's first name)\
+  \ - Type: text\n- **last name** (member's last name) - Type: text - commonsense\
+  \ evidence:  full name is first_name + last_name. e.g. A member's first name is\
+  \ Angela and last name is Sanders. Thus, his/her full name is Angela Sanders.\n\
+  \ (member's email) - Type: text\n (The position the member holds in the club) -\
+  \ Type: text\n (The size of tee shirt that member wants when shirts are ordered)\
+  \ - Type: text - commonsense evidence: usually the student ordered t-shirt with\
+  \ lager size has bigger body shape\n (The best telephone at which to contact the\
+  \ member) - Type: text\n (the zip code of the member's hometown) - Type: integer\n\
+  - **link to major** (The unique identifier of the major of the member. References\
+  \ the Major table) - Type: text\n\n## Table: Zip_Code\n\nColumns:\n- **zip code**\
+  \ (The ZIP code itself. A five-digit number identifying a US post office.) - Type:\
+  \ integer\n (The kind of ZIP code) - Type: text - commonsense evidence: \r � Standard:\
+  \ the normal codes with which most people are familiar \r � PO Box: zip codes have\
+  \ post office boxes \r � Unique: zip codes that are assigned to individual organizations.\n\
+  \ (The city to which the ZIP pertains) - Type: text\n (The county to which the ZIP\
+  \ pertains) - Type: text\n (The name of the state to which the ZIP pertains) - Type:\
+  \ text\n- **short state** (The abbreviation of the state to which the ZIP pertains)\
+  \ - Type: text\n"

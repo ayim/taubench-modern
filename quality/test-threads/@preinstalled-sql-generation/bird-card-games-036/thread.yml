@@ -1,0 +1,35 @@
+name: bird-card-games-036
+description: "BIRD Q375 (simple): List down all the card IDs with converted mana cost of 0."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-375
+    description: "List down all the card IDs with converted mana cost of 0."
+    messages:
+      - role: user
+        content: |
+          List down all the card IDs with converted mana cost of 0.
+          Evidence: converted mana cost of 0 refers to covertedManaCost = 0;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_375.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

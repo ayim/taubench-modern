@@ -1,0 +1,35 @@
+name: bird-formula-1-146
+description: "BIRD Q991 (simple): What is the full name and date of birth of Austrian drivers born between 1981 and 1991?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-991
+    description: "What is the full name and date of birth of Austrian drivers born between 1981 and 1991?"
+    messages:
+      - role: user
+        content: |
+          What is the full name and date of birth of Austrian drivers born between 1981 and 1991?
+          Evidence: Full name refers to forname, surname; Date of birth refers to dob; year(dob) BETWEEN '1981' AND '1991'; Austrian is a nationality
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_991.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

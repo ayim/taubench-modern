@@ -1,0 +1,35 @@
+name: bird-toxicology-136
+description: "BIRD Q330 (challenging): Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-330
+    description: "Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms."
+    messages:
+      - role: user
+        content: |
+          Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms.
+          Evidence: hydrogen refers to element = 'h'; label = '+' mean molecules are carcinogenic; triple bond refers to bond_type = '#'; percentage = DIVIDE(SUM(label = '+'), COUNT(molecule_id)) * 100.0 where element = 'h' AND bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_330.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-superhero-129
+description: "BIRD Q845 (moderate): List the power of superheroes with height greater than 80% of the average height of all superheroes."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-845
+    description: "List the power of superheroes with height greater than 80% of the average height of all superheroes."
+    messages:
+      - role: user
+        content: |
+          List the power of superheroes with height greater than 80% of the average height of all superheroes.
+          Evidence: power of superheroes refers to power_name; height greater than 80% of the average height of all superheroes = height_cm > MULTIPLY(AVG(height_cm), 0.8);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_845.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

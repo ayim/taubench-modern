@@ -1,0 +1,2 @@
+SUM(type = 'OWNER'),SUM(type = 'DISPONENT')
+10,3

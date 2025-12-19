@@ -1,0 +1,35 @@
+name: bird-formula-1-127
+description: "BIRD Q972 (moderate): Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-972
+    description: "Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers."
+    messages:
+      - role: user
+        content: |
+          Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers.
+          Evidence: born in 1971 refers to date of birth is 1971; has the fastest lap time refers to fastestLapTime has values
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_972.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

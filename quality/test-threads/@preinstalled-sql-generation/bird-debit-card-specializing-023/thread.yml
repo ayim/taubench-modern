@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-023
+description: "BIRD Q1492 (simple): What percentage of KAM customers pay in euros?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1492
+    description: "What percentage of KAM customers pay in euros?"
+    messages:
+      - role: user
+        content: |
+          What percentage of KAM customers pay in euros?
+          Evidence: Percentage of KAM uses Euro = (Total of KAM uses Euro / Total of KAM) * 100%.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1492.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

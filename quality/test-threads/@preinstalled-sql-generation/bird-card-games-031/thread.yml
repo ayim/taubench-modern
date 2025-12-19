@@ -1,0 +1,35 @@
+name: bird-card-games-031
+description: "BIRD Q370 (simple): How many borderless cards are illustrated in Russian?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-370
+    description: "How many borderless cards are illustrated in Russian?"
+    messages:
+      - role: user
+        content: |
+          How many borderless cards are illustrated in Russian?
+          Evidence: borderless card refers to borderColor = 'borderless'; 'Russian' is the language;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_370.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-114
+description: "BIRD Q453 (simple): What's the unconverted mana cost of the card \"Ancestor's Chosen\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-453
+    description: "What's the unconverted mana cost of the card \"Ancestor's Chosen\"?"
+    messages:
+      - role: user
+        content: |
+          What's the unconverted mana cost of the card "Ancestor's Chosen"?
+          Evidence: card "Ancestor's Chosen" refers to name = 'Ancestor`s Chosen'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_453.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

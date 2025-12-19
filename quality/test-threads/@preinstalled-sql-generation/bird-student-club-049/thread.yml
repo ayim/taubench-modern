@@ -1,0 +1,35 @@
+name: bird-student-club-049
+description: "BIRD Q1360 (moderate): What percentage was the budget for Parking to the total budget for the \"November Speaker\"?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1360
+    description: "What percentage was the budget for Parking to the total budget for the \"November Speaker\"?"
+    messages:
+      - role: user
+        content: |
+          What percentage was the budget for Parking to the total budget for the "November Speaker"?
+          Evidence: DIVDE(SUM( amount where category = 'Parking' and event_name = 'November Speaker'), COUNT(event_name = 'November Speaker)) * 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1360.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

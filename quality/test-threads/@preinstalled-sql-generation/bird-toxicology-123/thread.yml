@@ -1,0 +1,35 @@
+name: bird-toxicology-123
+description: "BIRD Q317 (moderate): Calculate the percentage of carcinogenic molecules which contain the Chlorine element."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-317
+    description: "Calculate the percentage of carcinogenic molecules which contain the Chlorine element."
+    messages:
+      - role: user
+        content: |
+          Calculate the percentage of carcinogenic molecules which contain the Chlorine element.
+          Evidence: label = '+' mean molecules are carcinogenic; percentage = DIVIDE(SUM(label = '+' and element = 'cl'), COUNT(molecule_id)) as percentage
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_317.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

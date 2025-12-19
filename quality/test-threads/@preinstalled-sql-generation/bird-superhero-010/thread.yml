@@ -1,0 +1,35 @@
+name: bird-superhero-010
+description: "BIRD Q726 (moderate): Rank heroes published by Marvel Comics by their height in descending order."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-726
+    description: "Rank heroes published by Marvel Comics by their height in descending order."
+    messages:
+      - role: user
+        content: |
+          Rank heroes published by Marvel Comics by their height in descending order.
+          Evidence: published by Marvel Comics refers to publisher_name = 'Marvel Comics'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_726.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

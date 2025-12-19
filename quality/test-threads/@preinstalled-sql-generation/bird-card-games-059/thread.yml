@@ -1,0 +1,35 @@
+name: bird-card-games-059
+description: "BIRD Q398 (simple): What is the  unconverted mana do all the cards created by Rob Alexander cost in total?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-398
+    description: "What is the  unconverted mana do all the cards created by Rob Alexander cost in total?"
+    messages:
+      - role: user
+        content: |
+          What is the  unconverted mana do all the cards created by Rob Alexander cost in total?
+          Evidence: unconverted mana refer to manaCost; Rob Alexander refer to artist
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_398.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-108
+description: "BIRD Q638 (simple): List all the name of users that obtained the Organizer Badges."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-638
+    description: "List all the name of users that obtained the Organizer Badges."
+    messages:
+      - role: user
+        content: |
+          List all the name of users that obtained the Organizer Badges.
+          Evidence: name of users refers to DisplayName; the Organizer Badges refer to badges where Name = 'Organizer';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_638.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

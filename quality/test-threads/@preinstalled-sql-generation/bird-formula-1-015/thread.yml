@@ -1,0 +1,35 @@
+name: bird-formula-1-015
+description: "BIRD Q860 (simple): For the driver who had the Q2 time as 0:01:40 in the qualifying race No. 355, what is his nationality?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-860
+    description: "For the driver who had the Q2 time as 0:01:40 in the qualifying race No. 355, what is his nationality?"
+    messages:
+      - role: user
+        content: |
+          For the driver who had the Q2 time as 0:01:40 in the qualifying race No. 355, what is his nationality?
+          Evidence: race number refers to raceId;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_860.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

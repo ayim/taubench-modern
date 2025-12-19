@@ -1,0 +1,35 @@
+name: bird-card-games-023
+description: "BIRD Q362 (simple): What is the description about the ruling of card \"Condemn\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-362
+    description: "What is the description about the ruling of card \"Condemn\"?"
+    messages:
+      - role: user
+        content: |
+          What is the description about the ruling of card "Condemn"?
+          Evidence: Ancestor's Chosen' is the name of card; description about the ruling refers to text;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_362.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

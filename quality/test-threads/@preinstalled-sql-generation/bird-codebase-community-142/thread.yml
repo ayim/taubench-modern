@@ -1,0 +1,35 @@
+name: bird-codebase-community-142
+description: "BIRD Q672 (moderate): Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-672
+    description: "Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?"
+    messages:
+      - role: user
+        content: |
+          Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?
+          Evidence: favorite amount of 4 or more refers to FavoriteCount > = 4; Location = 'United Kingdom';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_672.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

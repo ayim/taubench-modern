@@ -1,0 +1,35 @@
+name: bird-student-club-100
+description: "BIRD Q1411 (simple): State what kind of expenses that Sacha Harrison incurred?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1411
+    description: "State what kind of expenses that Sacha Harrison incurred?"
+    messages:
+      - role: user
+        content: |
+          State what kind of expenses that Sacha Harrison incurred?
+          Evidence: kind of expenses refers to expense_description; Sacha Harrison is the full name; full name refers to first_name, last_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1411.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

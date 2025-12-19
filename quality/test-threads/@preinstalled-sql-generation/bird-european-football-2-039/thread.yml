@@ -1,0 +1,35 @@
+name: bird-european-football-2-039
+description: "BIRD Q1058 (challenging): Who has the highest average finishing rate between the highest and shortest football player?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1058
+    description: "Who has the highest average finishing rate between the highest and shortest football player?"
+    messages:
+      - role: user
+        content: |
+          Who has the highest average finishing rate between the highest and shortest football player?
+          Evidence: finishing rate refers to finishing; highest average finishing rate = MAX(AVG(finishing)); highest football player refers to MAX(height); shortest football player refers to MIN(height);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1058.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

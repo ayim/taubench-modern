@@ -1,0 +1,34 @@
+name: bird-california-schools-039
+description: "BIRD Q38 (simple): What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-38
+    description: "What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?"
+    messages:
+      - role: user
+        content: |
+          What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_38.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

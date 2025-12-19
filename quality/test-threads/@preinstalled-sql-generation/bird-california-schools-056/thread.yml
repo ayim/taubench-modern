@@ -1,0 +1,35 @@
+name: bird-california-schools-056
+description: "BIRD Q55 (challenging): What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-55
+    description: "What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?"
+    messages:
+      - role: user
+        content: |
+          What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?
+          Evidence: High FRPM refers to schools where Percent (%) Eligible FRPM (K-12) > 0.5. Total SAT Score is the sum of average reading, math, and writing scores. All ratios are calculated as Colusa County value divided by Humboldt County value.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_55.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

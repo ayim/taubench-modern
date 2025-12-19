@@ -1,0 +1,35 @@
+name: bird-codebase-community-051
+description: "BIRD Q581 (moderate): Who is the editor of the post titled 'Open source tools for visualizing multi-dimensional data?'"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-581
+    description: "Who is the editor of the post titled 'Open source tools for visualizing multi-dimensional data?'"
+    messages:
+      - role: user
+        content: |
+          Who is the editor of the post titled 'Open source tools for visualizing multi-dimensional data?'
+          Evidence: An editor of a post is the last person who edited it; 'Open source tools for visualizing multi-dimensional data?' is the exact title of the post
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_581.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-toxicology-025
+description: "BIRD Q219 (challenging): What is the percentage of carcinogenic molecules in triple type bonds?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-219
+    description: "What is the percentage of carcinogenic molecules in triple type bonds?"
+    messages:
+      - role: user
+        content: |
+          What is the percentage of carcinogenic molecules in triple type bonds?
+          Evidence: label = '+' mean molecules are carcinogenic; triple bond refers to bond_type = '#'; percentage = DIVIDE(SUM(bond_type = '#') * 100, COUNT(bond_id)) as percent where label = '+'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_219.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-financial-102
+description: "BIRD Q190 (challenging): What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-190
+    description: "What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?"
+    messages:
+      - role: user
+        content: |
+          What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?
+          Evidence: East Bohemia refers to region A3 = 'east Bohemia'. PRIJEM transactions represent income while VYDAJ transactions represent expenses.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_190.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

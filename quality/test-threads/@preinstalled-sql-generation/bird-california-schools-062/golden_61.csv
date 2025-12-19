@@ -1,0 +1,4 @@
+CDSCode,School,City,EnrollmentK12,FRPMCount,FRPMPercent,FRPMCategory,SizeRank,SATTestTakers,SATReadingScore,SATMathScore,SATWritingScore,SATTotalScore,PercentOver1500,SATPerformanceCategory,TotalCharterSchools,AvgCharterEnrollment
+50711006112627,Hickman Charter,Hickman,602.0,132.0,0.219269102990033,Low FRPM,1,,,,,,,No SAT Data,3,368.0
+50711006052559,Hickman Elementary,Hickman,305.0,130.0,0.426229508196721,Low FRPM,2,,,,,,,No SAT Data,3,368.0
+50711006116388,Hickman Middle,Hickman,197.0,78.0,0.395939086294416,Low FRPM,3,,,,,,,No SAT Data,3,368.0

@@ -1,0 +1,35 @@
+name: bird-financial-095
+description: "BIRD Q183 (challenging): For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-183
+    description: "For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?"
+    messages:
+      - role: user
+        content: |
+          For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?
+          Evidence: Account owner demographics include gender distribution and average age. Transaction volumes include total income and expenses. Loan performance includes success rate calculated as successful loans divided by total loans. Statistics should be grouped by the year the account was opened.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_183.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-006
+description: "BIRD Q536 (simple): How many users with more than 10 views created their account after the year 2013?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-536
+    description: "How many users with more than 10 views created their account after the year 2013?"
+    messages:
+      - role: user
+        content: |
+          How many users with more than 10 views created their account after the year 2013?
+          Evidence: more than 10 views refers to Views > 10; created after the year 2013 refers to year (CreationDate) > 2013
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_536.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

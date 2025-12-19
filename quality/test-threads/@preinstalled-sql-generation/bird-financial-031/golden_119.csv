@@ -1,0 +1,22 @@
+account_id,district_name,district_region,urbanization_category,transaction_count,net_cash_flow,balance_volatility,client_count,owner_gender,avg_client_age,loan_count,total_loan_amount,avg_loan_duration_months,running_loans,finished_loans,defaulted_loans,risk_category
+1539,Hl.m. Praha,Prague,Highly Urban,452,273798.0,122170,1,F,50.6,0,,,0,0,0,No Loans
+2137,Kladno,central Bohemia,Moderately Urban,332,316673.0,73028,1,F,48.7,0,,,0,0,0,No Loans
+485,Kutna Hora,central Bohemia,Moderately Urban,605,457767.0,153821,1,F,28.0,0,,,0,0,0,No Loans
+539,Rakovnik,central Bohemia,Rural,353,273990.0,166711,1,F,14.8,0,,,0,0,0,No Loans
+66,Rychnov nad Kneznou,east Bohemia,Moderately Urban,316,293588.0,129413,1,F,37.8,0,,,0,0,0,No Loans
+3837,Rychnov nad Kneznou,east Bohemia,Moderately Urban,330,382590.0,72710,2,F,26.9,0,,,0,0,0,No Loans
+8212,Usti nad Orlici,east Bohemia,Moderately Urban,459,686422.0,172371,1,F,28.1,0,,,0,0,0,No Loans
+2464,Decin,north Bohemia,Highly Urban,447,247946.0,120956,1,F,50.3,0,,,0,0,0,No Loans
+5256,Olomouc,north Moravia,Moderately Urban,408,159462.0,151216,1,M,20.9,1,193968,36.0,1,0,0,Low Risk
+4013,Opava,north Moravia,Moderately Urban,360,256672.0,73259,1,M,40.8,0,,,0,0,0,No Loans
+7774,Ostrava - mesto,north Moravia,Highly Urban,437,647497.0,135394,1,M,31.0,0,,,0,0,0,No Loans
+5228,Vsetin,north Moravia,Moderately Urban,454,586114.0,141169,2,F,39.9,1,173808,24.0,1,0,0,Low Risk
+1050,Hodonin,south Moravia,Rural,421,459293.0,102728,2,F,44.8,0,,,0,0,0,No Loans
+1965,Hodonin,south Moravia,Rural,441,338604.0,155884,1,M,54.7,0,,,0,0,0,No Loans
+10227,Uherske Hradiste,south Moravia,Rural,387,513873.0,149482,1,F,43.4,0,,,0,0,0,No Loans
+2705,Vyskov,south Moravia,Moderately Urban,440,294811.0,69638,1,F,42.7,1,93888,36.0,1,0,0,Low Risk
+1286,Zdar nad Sazavou,south Moravia,Rural,468,515705.0,149859,1,M,43.6,0,,,0,0,0,No Loans
+7123,Zlin,south Moravia,Moderately Urban,470,264185.0,157171,1,F,35.3,1,47016,12.0,1,0,0,Low Risk
+273,Karlovy Vary,west Bohemia,Highly Urban,488,114891.0,62047,1,F,48.9,0,,,0,0,0,No Loans
+8073,Karlovy Vary,west Bohemia,Highly Urban,533,234199.0,138675,1,F,47.9,1,49320,12.0,0,1,0,Low Risk
+1527,Tachov,west Bohemia,Moderately Urban,389,550478.0,117328,1,F,18.2,1,164052,36.0,0,1,0,Low Risk

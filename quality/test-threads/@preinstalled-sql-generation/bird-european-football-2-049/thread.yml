@@ -1,0 +1,35 @@
+name: bird-european-football-2-049
+description: "BIRD Q1068 (moderate): From 2010 to 2015, what was the average overall rating of players who are higher than 170?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1068
+    description: "From 2010 to 2015, what was the average overall rating of players who are higher than 170?"
+    messages:
+      - role: user
+        content: |
+          From 2010 to 2015, what was the average overall rating of players who are higher than 170?
+          Evidence: from 2010 to 2015 refers to years between 2010 and 2015 inclusive based on the date field; average overall rating refers to the mean of all overall_rating values; higher than 170 refers to height greater than 170 cm
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1068.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

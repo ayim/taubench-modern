@@ -1,0 +1,35 @@
+name: bird-toxicology-038
+description: "BIRD Q232 (moderate): Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-232
+    description: "Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order."
+    messages:
+      - role: user
+        content: |
+          Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order.
+          Evidence: label = '-' means molecules are not carcinogenic; single type bond refers to bond_type = '-'; list top three molecules refers to return molecule_id and order by molecule_id;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_232.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

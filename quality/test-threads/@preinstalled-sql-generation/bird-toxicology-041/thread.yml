@@ -1,0 +1,35 @@
+name: bird-toxicology-041
+description: "BIRD Q235 (simple): How many molecules are carcinogenic and have the bromine element?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-235
+    description: "How many molecules are carcinogenic and have the bromine element?"
+    messages:
+      - role: user
+        content: |
+          How many molecules are carcinogenic and have the bromine element?
+          Evidence: label = '+' mean molecules are carcinogenic; have bromine element refers to element = 'br'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_235.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

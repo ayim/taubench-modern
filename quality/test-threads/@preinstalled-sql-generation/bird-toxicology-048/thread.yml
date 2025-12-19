@@ -1,0 +1,35 @@
+name: bird-toxicology-048
+description: "BIRD Q242 (moderate): Among all the atoms from 21 to 25, list all the molecules that are carcinogenic."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-242
+    description: "Among all the atoms from 21 to 25, list all the molecules that are carcinogenic."
+    messages:
+      - role: user
+        content: |
+          Among all the atoms from 21 to 25, list all the molecules that are carcinogenic.
+          Evidence: atoms from 21 to 25 refers to the last two digits of atom_id being between '21' and '25'; label = '+' mean molecules are carcinogenic
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_242.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

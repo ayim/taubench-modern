@@ -1,0 +1,35 @@
+name: bird-card-games-092
+description: "BIRD Q431 (challenging): Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-431
+    description: "Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response."
+    messages:
+      - role: user
+        content: |
+          Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response.
+          Evidence: not available outside of the United States refers to isForeignOnly = 0; has foil cards refers to isFoilOnly = 1; with Japanese writing on them refers to language = 'Japanese'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_431.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

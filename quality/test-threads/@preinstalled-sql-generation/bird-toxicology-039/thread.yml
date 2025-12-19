@@ -1,0 +1,35 @@
+name: bird-toxicology-039
+description: "BIRD Q233 (simple): Please list top two bonds that happened with the molecule TR006 in alphabetical order."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-233
+    description: "Please list top two bonds that happened with the molecule TR006 in alphabetical order."
+    messages:
+      - role: user
+        content: |
+          Please list top two bonds that happened with the molecule TR006 in alphabetical order.
+          Evidence: TR006 is the molecule id
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_233.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

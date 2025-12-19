@@ -1,0 +1,34 @@
+name: bird-financial-084
+description: "BIRD Q172 (simple): How many owner and disponent dispositions are there from account number 1 to account number 10?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-172
+    description: "How many owner and disponent dispositions are there from account number 1 to account number 10?"
+    messages:
+      - role: user
+        content: |
+          How many owner and disponent dispositions are there from account number 1 to account number 10?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_172.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-student-club-131
+description: "BIRD Q1442 (simple): What is the percentage of the events that went over budget?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1442
+    description: "What is the percentage of the events that went over budget?"
+    messages:
+      - role: user
+        content: |
+          What is the percentage of the events that went over budget?
+          Evidence: went over budget refers to a budget record where remaining < 0; a "over-budget event" is an event with at least one over-budget budget record; percentage = (Number of over-budget events ÷ Total number of events) × 100, where "Number of over-budget events" = COUNT(DISTINCT event_id with remaining < 0), "Total number of events" = COUNT(DISTINCT event.event_id)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1442.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

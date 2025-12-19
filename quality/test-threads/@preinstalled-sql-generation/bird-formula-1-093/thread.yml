@@ -1,0 +1,35 @@
+name: bird-formula-1-093
+description: "BIRD Q938 (moderate): Who was the champion of 2008's Australian Grand Prix and where can I know more about him?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-938
+    description: "Who was the champion of 2008's Australian Grand Prix and where can I know more about him?"
+    messages:
+      - role: user
+        content: |
+          Who was the champion of 2008's Australian Grand Prix and where can I know more about him?
+          Evidence: only champion's finished time is represented by 'HH:MM:SS.mmm'; where can I know more refers to url
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_938.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

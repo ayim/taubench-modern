@@ -1,0 +1,35 @@
+name: bird-codebase-community-114
+description: "BIRD Q644 (simple): Provide the last edit date and last edit user ID for the post \"Detecting a given face in a database of facial images\"."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-644
+    description: "Provide the last edit date and last edit user ID for the post \"Detecting a given face in a database of facial images\"."
+    messages:
+      - role: user
+        content: |
+          Provide the last edit date and last edit user ID for the post "Detecting a given face in a database of facial images".
+          Evidence: Title = 'Detecting a given face in a database of facial images';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_644.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

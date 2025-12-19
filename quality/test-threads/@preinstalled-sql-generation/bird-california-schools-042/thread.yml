@@ -1,0 +1,35 @@
+name: bird-california-schools-042
+description: "BIRD Q41 (simple): List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-41
+    description: "List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores."
+    messages:
+      - role: user
+        content: |
+          List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores.
+          Evidence: Exclusively virtual refers to Virtual = 'F'; respective counties means PARTITION BY County
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_41.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

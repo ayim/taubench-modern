@@ -1,0 +1,86 @@
+client_id,client_description,district_name,region,card_count,card_types,loan_count,total_loan_amount,avg_monthly_payment,loan_status,transaction_count,total_income,total_expense,net_cash_flow,savings_rate,loan_category,loan_rank_in_region
+8506,Client #8506 (Born: 1979-12-25),Jesenik,north Moravia,1,junior,1,495180,8253.0,C,76,770790,668206,102584,13.31%,High Loan,1
+8392,Client #8392 (Born: 1966-05-08),Liberec,north Bohemia,1,classic,1,475680,9910.0,C,161,712585,653497,59088,8.29%,High Loan,1
+414,Client #414 (Born: 1947-10-19),Nachod,east Bohemia,1,classic,1,468060,7801.0,C,216,1439997,1182807,257190,17.86%,High Loan,1
+3517,Client #3517 (Born: 1953-06-24),Frydek - Mistek,north Moravia,1,classic,1,437460,7291.0,C,85,681544,634705,46839,6.87%,High Loan,2
+2259,Client #2259 (Born: 1950-01-02),Prachatice,south Bohemia,1,classic,1,396120,6602.0,C,275,1937054,1375122,561932,29.01%,High Loan,1
+13750,Client #13750 (Born: 1980-11-13),Pribram,central Bohemia,1,junior,1,392460,6541.0,C,339,2153622,1950217,203405,9.44%,High Loan,1
+7959,Client #7959 (Born: 1978-06-29),Hl.m. Praha,Prague,1,junior,1,390660,6511.0,C,224,1697221,1522841,174380,10.27%,High Loan,1
+127,Client #127 (Born: 1950-12-27),Tabor,south Bohemia,1,classic,1,352704,7348.0,C,59,255490,234253,21237,8.31%,High Loan,2
+12643,Client #12643 (Born: 1962-07-20),Jesenik,north Moravia,1,classic,1,348120,5802.0,C,145,964134,666724,297410,30.85%,High Loan,3
+5245,Client #5245 (Born: 1942-03-18),Louny,north Bohemia,1,classic,1,327660,5461.0,C,143,843079,699456,143623,17.04%,High Loan,2
+6178,Client #6178 (Born: 1940-10-15),Hl.m. Praha,Prague,1,classic,1,323472,6739.0,Good Standing,453,2267420,1921506,345914,15.26%,High Loan,2
+9427,Client #9427 (Born: 1970-11-09),Uherske Hradiste,south Moravia,1,classic,1,320592,6679.0,C,283,2016160,1804664,211496,10.49%,High Loan,1
+12378,Client #12378 (Born: 1946-08-27),Sumperk,north Moravia,1,classic,1,311232,6484.0,C,263,2142225,1750410,391815,18.29%,High Loan,4
+12133,Client #12133 (Born: 1964-06-26),Plzen - jih,west Bohemia,1,classic,1,300600,5010.0,C,251,967338,710088,257250,26.59%,High Loan,1
+2489,Client #2489 (Born: 1975-01-28),Zlin,south Moravia,1,gold,1,293880,4898.0,D,224,1492897,1273348,219549,14.71%,High Loan,2
+5978,Client #5978 (Born: 1944-01-27),Decin,north Bohemia,1,gold,1,289920,6040.0,C,154,1067255,910855,156400,14.65%,High Loan,3
+1133,Client #1133 (Born: 1958-09-15),Litomerice,north Bohemia,1,gold,1,284280,4738.0,C,297,2070538,1697238,373300,18.03%,High Loan,4
+3984,Client #3984 (Born: 1964-03-13),Hl.m. Praha,Prague,1,classic,1,276084,7669.0,C,155,859611,628719,230892,26.86%,High Loan,3
+13089,Client #13089 (Born: 1979-02-14),Jindrichuv Hradec,south Bohemia,1,junior,1,269964,7499.0,C,120,882606,676431,206175,23.36%,High Loan,3
+7434,Client #7434 (Born: 1942-04-04),Chomutov,north Bohemia,1,classic,1,247920,5165.0,C,194,1348408,1156501,191907,14.23%,High Loan,5
+3257,Client #3257 (Born: 1978-05-11),Opava,north Moravia,1,junior,1,231168,4816.0,C,180,1173070,994644,178426,15.21%,High Loan,5
+12328,Client #12328 (Born: 1944-04-08),Hl.m. Praha,Prague,1,classic,1,218064,4543.0,C,133,592461,453156,139305,23.51%,High Loan,4
+13134,Client #13134 (Born: 1962-11-03),Hl.m. Praha,Prague,1,classic,1,197808,8242.0,C,116,1044161,959690,84471,8.09%,High Loan,5
+5366,Client #5366 (Born: 1971-09-20),Prostejov,south Moravia,1,classic,1,192744,5354.0,Good Standing,431,2383427,1961544,421883,17.7%,High Loan,3
+1157,Client #1157 (Born: 1958-12-30),Kladno,central Bohemia,1,classic,1,189060,3151.0,C,369,2232901,1674333,558568,25.02%,High Loan,2
+1020,Client #1020 (Born: 1977-05-10),Olomouc,north Moravia,1,classic,1,187104,7796.0,Good Standing,229,1481405,1189969,291436,19.67%,High Loan,6
+2686,Client #2686 (Born: 1951-03-24),Prachatice,south Bohemia,1,classic,1,182040,3034.0,C,306,2231138,1964518,266620,11.95%,High Loan,4
+6567,Client #6567 (Born: 1978-11-21),Chomutov,north Bohemia,1,junior,1,174744,7281.0,Default,530,2211062,2030452,180610,8.17%,High Loan,6
+10528,Client #10528 (Born: 1952-02-16),Pardubice,east Bohemia,1,classic,1,174048,3626.0,C,296,1587714,1271497,316217,19.92%,High Loan,2
+10543,Client #10543 (Born: 1945-02-23),Ceske Budejovice,south Bohemia,1,classic,1,173016,4806.0,C,339,1719886,1437687,282199,16.41%,High Loan,5
+2623,Client #2623 (Born: 1965-07-16),Jindrichuv Hradec,south Bohemia,1,classic,1,170256,7094.0,Good Standing,412,1712426,1639721,72705,4.25%,High Loan,6
+12396,Client #12396 (Born: 1970-01-17),Uherske Hradiste,south Moravia,1,classic,1,167100,2785.0,C,438,2670360,2367535,302825,11.34%,High Loan,4
+6039,Client #6039 (Born: 1958-07-03),Hl.m. Praha,Prague,1,classic,1,165168,4588.0,C,253,1126855,948476,178379,15.83%,High Loan,6
+2841,Client #2841 (Born: 1973-04-10),Pisek,south Bohemia,1,classic,1,159744,3328.0,C,199,1133237,987573,145664,12.85%,High Loan,7
+10040,Client #10040 (Born: 1968-10-30),Litomerice,north Bohemia,1,classic,1,155880,6495.0,Good Standing,392,2452240,2131780,320460,13.07%,High Loan,7
+7796,Client #7796 (Born: 1975-09-27),Svitavy,east Bohemia,1,classic,1,150912,4192.0,C,198,998183,706579,291604,29.21%,High Loan,3
+2063,Client #2063 (Born: 1950-09-26),Frydek - Mistek,north Moravia,1,classic,1,141948,3943.0,C,213,704750,650085,54665,7.76%,High Loan,7
+9569,Client #9569 (Born: 1950-07-18),Prachatice,south Bohemia,1,classic,1,140064,5836.0,C,194,1406101,1067238,338863,24.1%,High Loan,8
+1793,Client #1793 (Born: 1945-03-17),Usti nad Labem,north Bohemia,1,classic,1,123300,3425.0,C,162,1056573,918805,137768,13.04%,High Loan,8
+3763,Client #3763 (Born: 1977-08-12),Louny,north Bohemia,1,junior,1,123216,2567.0,C,439,2450563,2220378,230185,9.39%,High Loan,9
+370,Client #370 (Born: 1956-01-05),Novy Jicin,north Moravia,1,classic,1,112752,3132.0,C,176,509709,467259,42450,8.33%,High Loan,8
+272,Client #272 (Born: 1944-10-25),Karvina,north Moravia,1,classic,1,109344,9112.0,C,129,488799,444331,44468,9.1%,High Loan,9
+1197,Client #1197 (Born: 1966-10-02),Kutna Hora,central Bohemia,1,classic,1,108720,1812.0,C,105,646330,471822,174508,27.0%,High Loan,3
+2235,Client #2235 (Born: 1940-04-20),Pribram,central Bohemia,1,classic,1,105804,2939.0,Good Standing,462,1398009,1228392,169617,12.13%,High Loan,4
+810,Client #810 (Born: 1945-09-24),Jihlava,south Moravia,1,classic,1,102240,1704.0,C,263,527457,460512,66945,12.69%,High Loan,5
+5232,Client #5232 (Born: 1948-04-06),Ostrava - mesto,north Moravia,1,classic,1,100128,4172.0,C,245,1308217,1153186,155031,11.85%,High Loan,10
+11545,Client #11545 (Born: 1966-01-22),Hl.m. Praha,Prague,1,classic,1,99936,4164.0,C,347,1415419,1287567,127852,9.03%,Medium Loan,7
+5684,Client #5684 (Born: 1955-03-02),Mlada Boleslav,central Bohemia,1,classic,1,97176,4049.0,C,153,1313165,1077844,235321,17.92%,Medium Loan,5
+12079,Client #12079 (Born: 1972-08-12),Zlin,south Moravia,1,gold,1,96168,8014.0,Good Standing,407,1869485,1444243,425242,22.75%,Medium Loan,6
+2698,Client #2698 (Born: 1970-10-07),Tachov,west Bohemia,1,classic,1,92976,3874.0,Good Standing,420,2758557,2193928,564629,20.47%,Medium Loan,2
+2560,Client #2560 (Born: 1974-06-20),Karvina,north Moravia,1,classic,1,92400,7700.0,Good Standing,224,835813,689912,145901,17.46%,Medium Loan,11
+5253,Client #5253 (Born: 1946-10-07),Jesenik,north Moravia,1,gold,1,90156,7513.0,Good Standing,208,1716662,1373891,342771,19.97%,Medium Loan,12
+158,Client #158 (Born: 1945-07-03),Teplice,north Bohemia,1,classic,1,88440,7370.0,Good Standing,198,1285258,1065840,219418,17.07%,Medium Loan,10
+12750,Client #12750 (Born: 1940-05-25),Tabor,south Bohemia,1,classic,1,86880,7240.0,Good Standing,160,1416769,1264855,151914,10.72%,Medium Loan,9
+2501,Client #2501 (Born: 1940-12-04),Karvina,north Moravia,1,classic,1,86184,7182.0,Good Standing,269,1604927,1271978,332949,20.75%,Medium Loan,13
+11596,Client #11596 (Born: 1940-12-04),Karvina,north Moravia,1,classic,1,86184,7182.0,Good Standing,269,1605325,1268578,336747,20.98%,Medium Loan,13
+10479,Client #10479 (Born: 1955-10-20),Benesov,central Bohemia,1,classic,1,85860,1431.0,C,422,737625,658082,79543,10.78%,Medium Loan,6
+11371,Client #11371 (Born: 1941-11-04),Litomerice,north Bohemia,1,classic,1,83280,1735.0,C,286,737914,662830,75084,10.18%,Medium Loan,11
+5468,Client #5468 (Born: 1944-05-27),Frydek - Mistek,north Moravia,1,classic,1,81144,2254.0,C,119,954193,717166,237027,24.84%,Medium Loan,14
+10095,Client #10095 (Born: 1976-02-06),Praha - zapad,central Bohemia,1,junior,1,80340,6695.0,Good Standing,423,2909191,2356640,552551,18.99%,Medium Loan,7
+7186,Client #7186 (Born: 1944-06-01),Plzen - jih,west Bohemia,1,classic,1,78720,1640.0,C,112,454673,392240,62433,13.73%,Medium Loan,3
+9582,Client #9582 (Born: 1942-04-14),Benesov,central Bohemia,1,classic,1,77544,2154.0,C,169,1042422,883248,159174,15.27%,Medium Loan,8
+861,Client #861 (Born: 1956-09-13),Hl.m. Praha,Prague,1,classic,1,76944,6412.0,Good Standing,281,1413016,1181415,231601,16.39%,Medium Loan,8
+5873,Client #5873 (Born: 1979-04-06),Kolin,central Bohemia,1,junior,1,76080,6340.0,Good Standing,261,1386177,1102144,284033,20.49%,Medium Loan,9
+5333,Client #5333 (Born: 1967-05-29),Most,north Bohemia,1,classic,1,73836,2051.0,Good Standing,335,1390697,1129802,260895,18.76%,Medium Loan,12
+9717,Client #9717 (Born: 1952-11-10),Usti nad Orlici,east Bohemia,1,gold,1,72120,6010.0,Good Standing,260,1792178,1425520,366658,20.46%,Medium Loan,4
+2592,Client #2592 (Born: 1980-08-31),Hl.m. Praha,Prague,1,junior,1,71460,1985.0,C,228,870513,840934,29579,3.4%,Medium Loan,9
+6255,Client #6255 (Born: 1946-01-01),Brno - mesto,south Moravia,1,classic,1,58764,4897.0,C,74,459675,356275,103400,22.49%,Medium Loan,7
+11497,Client #11497 (Born: 1959-07-17),Sokolov,west Bohemia,1,classic,1,52128,2172.0,Good Standing,526,1601347,1384857,216490,13.52%,Medium Loan,4
+9593,Client #9593 (Born: 1968-01-28),Ostrava - mesto,north Moravia,1,classic,1,51696,2154.0,Good Standing,500,3203365,2844870,358495,11.19%,Medium Loan,15
+3414,Client #3414 (Born: 1947-10-17),Praha - zapad,central Bohemia,1,gold,1,50460,841.0,C,413,1071800,973750,98050,9.15%,Medium Loan,10
+8636,Client #8636 (Born: 1941-11-12),Novy Jicin,north Moravia,1,classic,1,49488,2062.0,C,87,400933,143661,257272,64.17%,Low Loan,16
+3616,Client #3616 (Born: 1964-04-14),Vsetin,north Moravia,1,classic,1,48744,1354.0,C,212,683295,644879,38416,5.62%,Low Loan,17
+9555,Client #9555 (Born: 1947-05-15),Rakovnik,central Bohemia,1,classic,1,45456,3788.0,C,97,460551,343211,117340,25.48%,Low Loan,11
+13694,Client #13694 (Born: 1976-01-20),Hl.m. Praha,Prague,1,classic,1,44940,3745.0,Good Standing,152,894586,631480,263106,29.41%,Low Loan,10
+4937,Client #4937 (Born: 1960-11-09),Brno - mesto,south Moravia,1,classic,1,41856,872.0,C,255,622370,570843,51527,8.28%,Low Loan,8
+11409,Client #11409 (Born: 1980-05-02),Hl.m. Praha,Prague,1,junior,1,39576,3298.0,Good Standing,643,2838387,2604799,233588,8.23%,Low Loan,11
+7855,Client #7855 (Born: 1964-01-30),Melnik,central Bohemia,1,classic,1,38496,3208.0,C,49,209114,169184,39930,19.09%,Low Loan,12
+2267,Client #2267 (Born: 1966-04-10),Hl.m. Praha,Prague,1,classic,1,37944,1054.0,C,169,810629,717469,93160,11.49%,Low Loan,12
+9929,Client #9929 (Born: 1967-07-19),Pardubice,east Bohemia,1,classic,1,35856,1494.0,C,168,683138,605864,77274,11.31%,Low Loan,5
+7286,Client #7286 (Born: 1970-02-10),Pardubice,east Bohemia,1,gold,1,28248,1177.0,Good Standing,353,1430205,1354473,75732,5.3%,Low Loan,6
+8366,Client #8366 (Born: 1960-05-21),Usti nad Labem,north Bohemia,1,classic,1,25944,1081.0,Good Standing,357,1696194,1628429,67765,4.0%,Low Loan,13
+5521,Client #5521 (Born: 1973-05-15),Nymburk,central Bohemia,1,classic,1,20220,1685.0,Good Standing,366,1986158,1666068,320090,16.12%,Low Loan,13
+6301,Client #6301 (Born: 1949-03-08),Brno - venkov,south Moravia,1,classic,1,14628,1219.0,Good Standing,637,1147858,1078592,69266,6.03%,Low Loan,9
+798,Client #798 (Born: 1940-02-12),Plzen - jih,west Bohemia,1,classic,1,12540,1045.0,Good Standing,276,577030,495904,81126,14.06%,Low Loan,5

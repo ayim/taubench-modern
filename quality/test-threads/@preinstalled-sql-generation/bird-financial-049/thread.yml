@@ -1,0 +1,35 @@
+name: bird-financial-049
+description: "BIRD Q137 (challenging): What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-137
+    description: "What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?"
+    messages:
+      - role: user
+        content: |
+          What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?
+          Evidence: Running loan contracts include status 'C' (running contract, OK so far) and status 'D' (running contract, client in debt). Remaining debt is calculated as loan amount minus total payments made (payments * duration).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_137.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

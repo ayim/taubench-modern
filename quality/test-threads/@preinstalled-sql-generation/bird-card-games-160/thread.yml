@@ -1,0 +1,35 @@
+name: bird-card-games-160
+description: "BIRD Q499 (moderate): How many translations of the name of the set \"Tenth Edition\"?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-499
+    description: "How many translations of the name of the set \"Tenth Edition\"?"
+    messages:
+      - role: user
+        content: |
+          How many translations of the name of the set "Tenth Edition"?
+          Evidence: set "Tenth Edition" refers to name = 'Tenth Edition'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_499.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

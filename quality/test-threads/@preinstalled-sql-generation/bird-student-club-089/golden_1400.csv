@@ -1,0 +1,2 @@
+CAST(SUM(CASE WHEN type = 'Community Service' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(type)
+10.0

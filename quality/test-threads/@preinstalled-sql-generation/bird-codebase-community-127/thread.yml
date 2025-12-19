@@ -1,0 +1,35 @@
+name: bird-codebase-community-127
+description: "BIRD Q657 (moderate): Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-657
+    description: "Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount."
+    messages:
+      - role: user
+        content: |
+          Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount.
+          Evidence: vote type of 8 refers to VoteTypeId = 8; the highest bounty amount refers to MAX(BountyAmount);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_657.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

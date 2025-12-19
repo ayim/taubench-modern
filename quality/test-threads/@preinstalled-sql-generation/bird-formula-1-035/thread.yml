@@ -1,0 +1,35 @@
+name: bird-formula-1-035
+description: "BIRD Q880 (challenging): Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-880
+    description: "Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?"
+    messages:
+      - role: user
+        content: |
+          Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?
+          Evidence: "Paul di Resta" refers to drivers.forename = 'Paul' AND drivers.surname = 'di Resta'; "No. 853 race" = results.raceId = 853, "next race" = results.raceId = 854; "fastest lap speed" = results.fastestLapSpeed (text type, must convert to REAL for calculation), with "percent faster" formula: ((853-speed - 854-speed) * 100) / 853-speed.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_880.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-financial-082
+description: "BIRD Q170 (simple): How many credit card withdrawals were recorded after 1995?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-170
+    description: "How many credit card withdrawals were recorded after 1995?"
+    messages:
+      - role: user
+        content: |
+          How many credit card withdrawals were recorded after 1995?
+          Evidence: Operation = 'VYBER KARTOU' means credit card withdrawals
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_170.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-student-club-061
+description: "BIRD Q1372 (simple): When did the member, Casey Mason, received the income?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1372
+    description: "When did the member, Casey Mason, received the income?"
+    messages:
+      - role: user
+        content: |
+          When did the member, Casey Mason, received the income?
+          Evidence: when the income was received refers to date_received
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1372.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-codebase-community-077
+description: "BIRD Q607 (simple): How many positive comments are there on the list?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-607
+    description: "How many positive comments are there on the list?"
+    messages:
+      - role: user
+        content: |
+          How many positive comments are there on the list?
+          Evidence: Positive comment refers to score > 60
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_607.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

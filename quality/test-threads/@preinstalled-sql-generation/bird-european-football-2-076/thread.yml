@@ -1,0 +1,35 @@
+name: bird-european-football-2-076
+description: "BIRD Q1095 (moderate): How much is the average build up play speed of the Heart of Midlothian team?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1095
+    description: "How much is the average build up play speed of the Heart of Midlothian team?"
+    messages:
+      - role: user
+        content: |
+          How much is the average build up play speed of the Heart of Midlothian team?
+          Evidence: Heart of Midlothian refers to team_long_name = 'Heart of Midlothian'; average build up play speed refers to  AVG(buildUpPlaySpeed)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1095.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

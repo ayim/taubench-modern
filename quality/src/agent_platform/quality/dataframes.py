@@ -23,6 +23,11 @@ class DataFrameMatchMode(StrEnum):
     KEYED = "keyed"
     """Sort both dataframes by specified key columns before comparing"""
 
+    VALUES_ONLY = "values_only"
+    """Compare row VALUE SETS only, ignoring column names (BIRD EX-style).
+    Converts each row to a tuple of values and compares as sets.
+    Two dataframes match if they have the same set of row value tuples."""
+
 
 class DataFrameComparator:
     """Compare two dataframes with configurable tolerance and ordering.
@@ -65,6 +70,10 @@ class DataFrameComparator:
         Returns:
             Dictionary with 'matched' (bool) and 'explanation' (str).
         """
+        # For VALUES_ONLY mode, skip column name checks entirely (BIRD EX-style)
+        if self.match_mode == DataFrameMatchMode.VALUES_ONLY:
+            return self._compare_values_only(compare_df.copy(), reference_df.copy())
+
         # Normalize column names (strip whitespace, lowercase for comparison)
         compare_df = compare_df.copy()
         reference_df = reference_df.copy()
@@ -120,6 +129,7 @@ class DataFrameComparator:
                 # Sort by all columns
                 return self._compare_all_columns_sorted(compare_df_aligned, reference_df)
             case _:
+                # VALUES_ONLY is handled early in compare(); this is for truly unknown modes
                 return {
                     "matched": False,
                     "explanation": f"Unknown match_mode: {self.match_mode}",
@@ -256,6 +266,105 @@ class DataFrameComparator:
 
         except Exception as e:
             return {"matched": False, "explanation": f"Aligned comparison error: {e!s}"}
+
+    @staticmethod
+    def _normalize_value(val) -> str | int | float | None:
+        """Normalize a value for comparison (similar to BIRD's approach).
+
+        Args:
+            val: The value to normalize.
+
+        Returns:
+            Normalized value (None, lowercase string, int, or rounded float).
+        """
+        if val is None or (isinstance(val, float) and str(val) == "nan"):
+            return None
+        if isinstance(val, str):
+            return val.strip().lower()
+        if isinstance(val, float):
+            # Round to reasonable precision and convert to int if whole number
+            if val == int(val):
+                return int(val)
+            return round(val, 10)
+        return val
+
+    def _df_to_value_set(self, df: pd.DataFrame) -> set[tuple]:
+        """Convert dataframe to set of normalized value tuples.
+
+        Args:
+            df: The dataframe to convert.
+
+        Returns:
+            Set of tuples, where each tuple is a normalized row.
+        """
+        rows = set()
+        for _, row in df.iterrows():
+            normalized_row = tuple(self._normalize_value(v) for v in row.values)
+            rows.add(normalized_row)
+        return rows
+
+    def _compare_values_only(self, compare_df: pd.DataFrame, reference_df: pd.DataFrame) -> dict[str, bool | str]:
+        """Compare dataframes by VALUE SETS only, ignoring column names (BIRD EX-style).
+
+        This mode converts each row to a tuple of normalized values and compares the
+        resulting sets. Two dataframes match if they have the same set of row tuples,
+        regardless of column names or row order.
+
+        Args:
+            compare_df: Compare dataframe.
+            reference_df: Reference dataframe.
+
+        Returns:
+            Dictionary with 'matched' and 'explanation'.
+        """
+        try:
+            compare_cols = list(compare_df.columns)
+            reference_cols = list(reference_df.columns)
+
+            compare_set = self._df_to_value_set(compare_df)
+            reference_set = self._df_to_value_set(reference_df)
+
+            if compare_set == reference_set:
+                return {
+                    "matched": True,
+                    "explanation": f"Value sets match ({len(compare_set)} unique rows)",
+                }
+
+            # Build detailed diagnostic information
+            details = []
+
+            # Check for column count mismatch (common issue)
+            if len(compare_cols) != len(reference_cols):
+                details.append(
+                    f"Column count mismatch: result has {len(compare_cols)} columns "
+                    f"({compare_cols}), golden has {len(reference_cols)} columns ({reference_cols})"
+                )
+
+            # Calculate row differences
+            missing_from_compare = reference_set - compare_set
+            extra_in_compare = compare_set - reference_set
+
+            if missing_from_compare:
+                details.append(f"{len(missing_from_compare)} rows missing from result")
+            if extra_in_compare:
+                details.append(f"{len(extra_in_compare)} extra rows in result")
+
+            # Add sample tuples for debugging (only if column counts match, otherwise too confusing)
+            if len(compare_cols) == len(reference_cols) and (missing_from_compare or extra_in_compare):
+                if missing_from_compare:
+                    sample_missing = list(missing_from_compare)[:2]
+                    details.append(f"Sample missing: {sample_missing}")
+                if extra_in_compare:
+                    sample_extra = list(extra_in_compare)[:2]
+                    details.append(f"Sample extra: {sample_extra}")
+
+            return {
+                "matched": False,
+                "explanation": f"Value set mismatch: {'; '.join(details)}",
+            }
+
+        except Exception as e:
+            return {"matched": False, "explanation": f"Values-only comparison error: {e!s}"}
 
 
 async def fetch_thread_dataframes(

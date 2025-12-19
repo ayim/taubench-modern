@@ -1,0 +1,35 @@
+name: bird-european-football-2-046
+description: "BIRD Q1065 (simple): Please list all team names which the speed class is fast."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1065
+    description: "Please list all team names which the speed class is fast."
+    messages:
+      - role: user
+        content: |
+          Please list all team names which the speed class is fast.
+          Evidence: team names refers to team_long_name; speed class refers to buildUpPlaySpeedClass; buildUpPlaySpeedClass = 'Fast';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1065.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

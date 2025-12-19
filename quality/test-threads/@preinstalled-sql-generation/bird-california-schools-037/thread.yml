@@ -1,0 +1,35 @@
+name: bird-california-schools-037
+description: "BIRD Q36 (challenging): Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-36
+    description: "Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names."
+    messages:
+      - role: user
+        content: |
+          Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.
+          Evidence: full name means first name, last name; There are at most 3 administrators for each school; SAT Scores are greater or equal to 1500 refers to NumGE1500
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_36.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

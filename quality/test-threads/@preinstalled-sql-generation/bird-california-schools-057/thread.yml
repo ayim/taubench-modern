@@ -1,0 +1,34 @@
+name: bird-california-schools-057
+description: "BIRD Q56 (simple): Of all the schools with a mailing state address in California, how many are active in San Joaquin city?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-56
+    description: "Of all the schools with a mailing state address in California, how many are active in San Joaquin city?"
+    messages:
+      - role: user
+        content: |
+          Of all the schools with a mailing state address in California, how many are active in San Joaquin city?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_56.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-037
+description: "BIRD Q1185 (challenging): For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1185
+    description: "For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?"
+    messages:
+      - role: user
+        content: |
+          For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?
+          Evidence: born on 1959/2/18 refers to Birthday = '1959-02-18'; calculation = SUBTRACT(SUM(Birthday = '1959-02-18' and Date like '1981-11-%' THEN `T-CHO`), SUM(Birthday = '1959-02-18' and Date like '1981-12-%' THEN `T-CHO`))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1185.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

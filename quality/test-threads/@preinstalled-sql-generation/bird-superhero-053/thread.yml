@@ -1,0 +1,35 @@
+name: bird-superhero-053
+description: "BIRD Q769 (challenging): Which superhero has the most durability published by Dark Horse Comics?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-769
+    description: "Which superhero has the most durability published by Dark Horse Comics?"
+    messages:
+      - role: user
+        content: |
+          Which superhero has the most durability published by Dark Horse Comics?
+          Evidence: most durability refers to MAX(attribute_value) WHERE attribute_name = 'Durability'; published by Dark Horse Comics refers to publisher_name = 'Dark Horse Comics'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_769.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

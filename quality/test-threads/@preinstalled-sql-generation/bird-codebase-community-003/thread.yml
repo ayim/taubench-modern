@@ -1,0 +1,35 @@
+name: bird-codebase-community-003
+description: "BIRD Q533 (simple): How many users last accessed the website after 2014/9/1?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-533
+    description: "How many users last accessed the website after 2014/9/1?"
+    messages:
+      - role: user
+        content: |
+          How many users last accessed the website after 2014/9/1?
+          Evidence: last accessed after 2014/9/1 refers to LastAccessDate > '2014-09-01'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_533.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

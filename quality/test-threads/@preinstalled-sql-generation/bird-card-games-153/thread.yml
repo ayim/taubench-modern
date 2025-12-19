@@ -1,0 +1,35 @@
+name: bird-card-games-153
+description: "BIRD Q492 (simple): For the set \"From the Vault: Lore\", what is its expansion type?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-492
+    description: "For the set \"From the Vault: Lore\", what is its expansion type?"
+    messages:
+      - role: user
+        content: |
+          For the set "From the Vault: Lore", what is its expansion type?
+          Evidence: set "From the Vault refers to name which contains 'From the Vault: Lore'; expansion type refers to type
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_492.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-063
+description: "BIRD Q402 (moderate): What is the percentage of Story Spotlight cards that do not have a text box?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-402
+    description: "What is the percentage of Story Spotlight cards that do not have a text box?"
+    messages:
+      - role: user
+        content: |
+          What is the percentage of Story Spotlight cards that do not have a text box?
+          Evidence: Story Spotlight cards that do not have a text box refers to isStorylight = 1 and isTextless = 1; Percentage = DIVIDE(SUM(count(id) where isStorySpotlight = 1 AND isTextless = 1 ), SUM(count(id) where isStorySpotlight = 1)) * 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_402.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

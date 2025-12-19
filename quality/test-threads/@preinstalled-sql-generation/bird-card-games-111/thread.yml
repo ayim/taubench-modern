@@ -1,0 +1,35 @@
+name: bird-card-games-111
+description: "BIRD Q450 (moderate): Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-450
+    description: "Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?"
+    messages:
+      - role: user
+        content: |
+          Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?
+          Evidence: designed by Aaron Miller refers to artist = 'Aaron Miller'; are icredibily powerful refers to cardKingdomFoilId is not null AND cardKingdomId is not null
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_450.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

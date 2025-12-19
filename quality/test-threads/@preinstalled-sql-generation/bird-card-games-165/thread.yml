@@ -1,0 +1,35 @@
+name: bird-card-games-165
+description: "BIRD Q504 (simple): How many cards are there in the set 'World Championship Decks 2004' with the converted mana cost as '3'."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-504
+    description: "How many cards are there in the set 'World Championship Decks 2004' with the converted mana cost as '3'."
+    messages:
+      - role: user
+        content: |
+          How many cards are there in the set 'World Championship Decks 2004' with the converted mana cost as '3'.
+          Evidence: the set 'World Championship Decks 2004' refers to name = 'World Championship Decks 2004'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_504.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

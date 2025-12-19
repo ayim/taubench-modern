@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-081
+description: "BIRD Q1229 (moderate): For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1229
+    description: "For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?"
+    messages:
+      - role: user
+        content: |
+          For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?
+          Evidence: triglyceride (TG) level beyond the normal range refers to TG > = 200; more than 50 years of age = SUBTRACT(year(current_timestamp), year(Birthday)) > 50;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1229.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

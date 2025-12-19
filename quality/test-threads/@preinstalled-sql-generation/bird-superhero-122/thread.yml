@@ -1,0 +1,34 @@
+name: bird-superhero-122
+description: "BIRD Q838 (simple): Provide the full name of the superhero named Alien."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-838
+    description: "Provide the full name of the superhero named Alien."
+    messages:
+      - role: user
+        content: |
+          Provide the full name of the superhero named Alien.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_838.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

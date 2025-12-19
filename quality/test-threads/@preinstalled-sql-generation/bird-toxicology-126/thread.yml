@@ -1,0 +1,35 @@
+name: bird-toxicology-126
+description: "BIRD Q320 (moderate): What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-320
+    description: "What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?"
+    messages:
+      - role: user
+        content: |
+          What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?
+          Evidence: type of bond refers to bond_type; double bond refers to bond_type = ' = '; single bond refers to bond_type = '-'; triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_320.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

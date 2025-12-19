@@ -1,0 +1,4501 @@
+client_id,district_id,A2
+1,18,Pisek
+2,1,Hl.m. Praha
+4,5,Kolin
+6,12,Pribram
+7,15,Cesky Krumlov
+8,51,Trutnov
+9,60,Prostejov
+10,57,Hodonin
+12,70,Karvina
+13,54,Brno - mesto
+14,76,Sumperk
+15,21,Tabor
+17,76,Sumperk
+19,47,Pardubice
+20,70,Karvina
+21,12,Pribram
+22,1,Hl.m. Praha
+24,43,Hradec Kralove
+25,21,Tabor
+26,74,Ostrava - mesto
+27,54,Brno - mesto
+28,1,Hl.m. Praha
+29,30,Sokolov
+30,74,Ostrava - mesto
+31,68,Frydek - Mistek
+32,52,Usti nad Orlici
+33,73,Opava
+36,7,Melnik
+38,36,Liberec
+39,68,Frydek - Mistek
+40,5,Kolin
+41,22,Domazlice
+42,67,Bruntal
+43,75,Prerov
+44,1,Hl.m. Praha
+45,20,Strakonice
+46,19,Prachatice
+47,36,Liberec
+48,64,Zlin
+49,72,Olomouc
+50,39,Most
+51,36,Liberec
+52,32,Ceska Lipa
+53,64,Zlin
+55,45,Jicin
+56,21,Tabor
+58,1,Hl.m. Praha
+59,1,Hl.m. Praha
+60,67,Bruntal
+61,16,Jindrichuv Hradec
+62,77,Vsetin
+63,4,Kladno
+64,20,Strakonice
+65,50,Svitavy
+66,1,Hl.m. Praha
+67,29,Rokycany
+68,43,Hradec Kralove
+70,70,Karvina
+72,47,Pardubice
+73,22,Domazlice
+75,64,Zlin
+76,36,Liberec
+77,48,Rychnov nad Kneznou
+78,16,Jindrichuv Hradec
+79,37,Litomerice
+80,64,Zlin
+81,8,Mlada Boleslav
+83,1,Hl.m. Praha
+85,1,Hl.m. Praha
+87,72,Olomouc
+89,1,Hl.m. Praha
+90,52,Usti nad Orlici
+91,63,Vyskov
+92,74,Ostrava - mesto
+93,3,Beroun
+94,43,Hradec Kralove
+96,74,Ostrava - mesto
+97,26,Plzen - mesto
+98,26,Plzen - mesto
+100,44,Chrudim
+101,68,Frydek - Mistek
+102,54,Brno - mesto
+105,31,Tachov
+106,68,Frydek - Mistek
+107,1,Hl.m. Praha
+108,17,Pelhrimov
+110,2,Benesov
+112,1,Hl.m. Praha
+114,68,Frydek - Mistek
+116,74,Ostrava - mesto
+118,55,Brno - venkov
+120,1,Hl.m. Praha
+121,41,Usti nad Labem
+122,35,Jablonec n. Nisou
+123,11,Praha - zapad
+124,44,Chrudim
+125,37,Litomerice
+127,21,Tabor
+128,63,Vyskov
+129,64,Zlin
+130,53,Blansko
+131,53,Blansko
+132,36,Liberec
+134,6,Kutna Hora
+136,55,Brno - venkov
+137,60,Prostejov
+138,68,Frydek - Mistek
+139,8,Mlada Boleslav
+141,31,Tachov
+142,68,Frydek - Mistek
+143,27,Plzen - jih
+144,65,Znojmo
+145,55,Brno - venkov
+146,31,Tachov
+147,21,Tabor
+149,55,Brno - venkov
+150,2,Benesov
+151,5,Kolin
+152,29,Rokycany
+153,2,Benesov
+154,74,Ostrava - mesto
+156,54,Brno - mesto
+157,52,Usti nad Orlici
+158,40,Teplice
+160,64,Zlin
+161,34,Chomutov
+162,75,Prerov
+163,74,Ostrava - mesto
+164,70,Karvina
+165,22,Domazlice
+167,38,Louny
+168,24,Karlovy Vary
+169,38,Louny
+171,51,Trutnov
+173,21,Tabor
+174,10,Praha - vychod
+175,31,Tachov
+176,4,Kladno
+178,8,Mlada Boleslav
+179,43,Hradec Kralove
+180,73,Opava
+181,76,Sumperk
+183,1,Hl.m. Praha
+185,77,Vsetin
+186,46,Nachod
+187,58,Jihlava
+188,64,Zlin
+189,11,Praha - zapad
+190,37,Litomerice
+192,70,Karvina
+193,23,Cheb
+194,28,Plzen - sever
+195,60,Prostejov
+197,30,Sokolov
+198,60,Prostejov
+199,25,Klatovy
+201,17,Pelhrimov
+202,29,Rokycany
+203,31,Tachov
+205,4,Kladno
+206,59,Kromeriz
+207,46,Nachod
+208,13,Rakovnik
+210,66,Zdar nad Sazavou
+212,52,Usti nad Orlici
+215,71,Novy Jicin
+216,1,Hl.m. Praha
+217,59,Kromeriz
+218,1,Hl.m. Praha
+219,55,Brno - venkov
+221,21,Tabor
+222,47,Pardubice
+223,43,Hradec Kralove
+224,77,Vsetin
+225,32,Ceska Lipa
+226,1,Hl.m. Praha
+227,5,Kolin
+228,54,Brno - mesto
+229,76,Sumperk
+230,74,Ostrava - mesto
+231,41,Usti nad Labem
+232,55,Brno - venkov
+233,69,Jesenik
+235,44,Chrudim
+236,70,Karvina
+238,4,Kladno
+239,1,Hl.m. Praha
+240,70,Karvina
+241,70,Karvina
+242,17,Pelhrimov
+243,63,Vyskov
+246,67,Bruntal
+247,1,Hl.m. Praha
+248,61,Trebic
+250,2,Benesov
+251,54,Brno - mesto
+252,37,Litomerice
+253,48,Rychnov nad Kneznou
+254,28,Plzen - sever
+255,27,Plzen - jih
+256,73,Opava
+257,22,Domazlice
+259,31,Tachov
+261,38,Louny
+262,77,Vsetin
+263,68,Frydek - Mistek
+264,28,Plzen - sever
+265,72,Olomouc
+266,19,Prachatice
+267,37,Litomerice
+268,39,Most
+269,15,Cesky Krumlov
+270,1,Hl.m. Praha
+272,70,Karvina
+273,27,Plzen - jih
+274,5,Kolin
+275,1,Hl.m. Praha
+276,1,Hl.m. Praha
+278,22,Domazlice
+280,45,Jicin
+282,73,Opava
+284,41,Usti nad Labem
+285,72,Olomouc
+287,50,Svitavy
+288,6,Kutna Hora
+289,69,Jesenik
+290,72,Olomouc
+292,15,Cesky Krumlov
+293,69,Jesenik
+294,55,Brno - venkov
+295,24,Karlovy Vary
+296,65,Znojmo
+297,65,Znojmo
+300,1,Hl.m. Praha
+301,28,Plzen - sever
+302,56,Breclav
+303,74,Ostrava - mesto
+304,19,Prachatice
+305,46,Nachod
+308,68,Frydek - Mistek
+309,37,Litomerice
+310,11,Praha - zapad
+311,64,Zlin
+312,2,Benesov
+313,24,Karlovy Vary
+315,54,Brno - mesto
+316,75,Prerov
+317,64,Zlin
+318,15,Cesky Krumlov
+319,19,Prachatice
+321,47,Pardubice
+322,38,Louny
+324,3,Beroun
+325,3,Beroun
+326,27,Plzen - jih
+328,1,Hl.m. Praha
+329,11,Praha - zapad
+330,24,Karlovy Vary
+331,76,Sumperk
+332,29,Rokycany
+333,38,Louny
+334,32,Ceska Lipa
+335,73,Opava
+336,39,Most
+338,25,Klatovy
+339,1,Hl.m. Praha
+341,69,Jesenik
+343,44,Chrudim
+344,54,Brno - mesto
+345,17,Pelhrimov
+347,71,Novy Jicin
+349,16,Jindrichuv Hradec
+350,25,Klatovy
+351,1,Hl.m. Praha
+352,56,Breclav
+353,7,Melnik
+354,49,Semily
+356,1,Hl.m. Praha
+358,7,Melnik
+359,66,Zdar nad Sazavou
+360,49,Semily
+361,74,Ostrava - mesto
+362,35,Jablonec n. Nisou
+364,77,Vsetin
+365,1,Hl.m. Praha
+367,60,Prostejov
+369,7,Melnik
+370,71,Novy Jicin
+371,4,Kladno
+372,34,Chomutov
+373,16,Jindrichuv Hradec
+374,26,Plzen - mesto
+375,61,Trebic
+376,14,Ceske Budejovice
+378,50,Svitavy
+380,41,Usti nad Labem
+381,73,Opava
+383,15,Cesky Krumlov
+385,45,Jicin
+386,62,Uherske Hradiste
+387,76,Sumperk
+388,36,Liberec
+389,47,Pardubice
+390,47,Pardubice
+391,47,Pardubice
+392,1,Hl.m. Praha
+394,52,Usti nad Orlici
+396,1,Hl.m. Praha
+397,75,Prerov
+398,61,Trebic
+399,54,Brno - mesto
+400,1,Hl.m. Praha
+402,3,Beroun
+403,42,Havlickuv Brod
+405,65,Znojmo
+406,36,Liberec
+407,73,Opava
+408,1,Hl.m. Praha
+409,74,Ostrava - mesto
+410,62,Uherske Hradiste
+411,17,Pelhrimov
+413,49,Semily
+414,46,Nachod
+416,1,Hl.m. Praha
+418,28,Plzen - sever
+419,64,Zlin
+420,18,Pisek
+421,54,Brno - mesto
+422,5,Kolin
+423,37,Litomerice
+424,65,Znojmo
+425,25,Klatovy
+426,72,Olomouc
+428,47,Pardubice
+429,50,Svitavy
+430,39,Most
+431,24,Karlovy Vary
+432,59,Kromeriz
+433,62,Uherske Hradiste
+434,70,Karvina
+435,20,Strakonice
+436,12,Pribram
+437,11,Praha - zapad
+438,32,Ceska Lipa
+439,51,Trutnov
+440,15,Cesky Krumlov
+441,1,Hl.m. Praha
+442,1,Hl.m. Praha
+444,74,Ostrava - mesto
+445,1,Hl.m. Praha
+447,23,Cheb
+448,77,Vsetin
+450,25,Klatovy
+451,12,Pribram
+452,55,Brno - venkov
+453,67,Bruntal
+454,38,Louny
+455,68,Frydek - Mistek
+456,25,Klatovy
+457,70,Karvina
+458,68,Frydek - Mistek
+459,32,Ceska Lipa
+461,68,Frydek - Mistek
+462,14,Ceske Budejovice
+463,38,Louny
+464,24,Karlovy Vary
+465,5,Kolin
+466,1,Hl.m. Praha
+468,72,Olomouc
+469,59,Kromeriz
+470,30,Sokolov
+471,44,Chrudim
+472,36,Liberec
+473,1,Hl.m. Praha
+474,46,Nachod
+476,1,Hl.m. Praha
+478,21,Tabor
+479,11,Praha - zapad
+481,69,Jesenik
+483,1,Hl.m. Praha
+484,28,Plzen - sever
+485,32,Ceska Lipa
+486,68,Frydek - Mistek
+487,1,Hl.m. Praha
+489,41,Usti nad Labem
+490,55,Brno - venkov
+491,63,Vyskov
+492,72,Olomouc
+493,41,Usti nad Labem
+494,1,Hl.m. Praha
+495,49,Semily
+496,70,Karvina
+497,74,Ostrava - mesto
+499,18,Pisek
+500,1,Hl.m. Praha
+501,25,Klatovy
+502,6,Kutna Hora
+503,73,Opava
+504,36,Liberec
+505,13,Rakovnik
+506,75,Prerov
+507,75,Prerov
+508,53,Blansko
+509,12,Pribram
+510,12,Pribram
+511,9,Nymburk
+512,1,Hl.m. Praha
+513,8,Mlada Boleslav
+515,1,Hl.m. Praha
+517,63,Vyskov
+518,54,Brno - mesto
+519,18,Pisek
+520,46,Nachod
+521,20,Strakonice
+522,1,Hl.m. Praha
+523,38,Louny
+524,30,Sokolov
+526,43,Hradec Kralove
+528,37,Litomerice
+529,69,Jesenik
+530,29,Rokycany
+531,27,Plzen - jih
+533,54,Brno - mesto
+534,64,Zlin
+535,26,Plzen - mesto
+536,63,Vyskov
+537,50,Svitavy
+538,5,Kolin
+540,19,Prachatice
+542,59,Kromeriz
+543,11,Praha - zapad
+544,63,Vyskov
+545,75,Prerov
+546,7,Melnik
+547,54,Brno - mesto
+548,49,Semily
+550,7,Melnik
+551,47,Pardubice
+552,1,Hl.m. Praha
+554,30,Sokolov
+556,29,Rokycany
+557,51,Trutnov
+558,43,Hradec Kralove
+559,32,Ceska Lipa
+560,71,Novy Jicin
+561,74,Ostrava - mesto
+562,49,Semily
+563,72,Olomouc
+565,64,Zlin
+566,47,Pardubice
+568,8,Mlada Boleslav
+569,73,Opava
+570,61,Trebic
+571,3,Beroun
+573,69,Jesenik
+574,1,Hl.m. Praha
+575,58,Jihlava
+577,1,Hl.m. Praha
+578,23,Cheb
+579,72,Olomouc
+581,70,Karvina
+582,1,Hl.m. Praha
+583,6,Kutna Hora
+584,33,Decin
+585,40,Teplice
+587,25,Klatovy
+588,16,Jindrichuv Hradec
+589,45,Jicin
+590,44,Chrudim
+591,5,Kolin
+592,26,Plzen - mesto
+593,60,Prostejov
+596,69,Jesenik
+597,55,Brno - venkov
+598,1,Hl.m. Praha
+601,56,Breclav
+603,13,Rakovnik
+604,1,Hl.m. Praha
+605,1,Hl.m. Praha
+606,73,Opava
+607,64,Zlin
+608,67,Bruntal
+609,52,Usti nad Orlici
+610,74,Ostrava - mesto
+611,36,Liberec
+613,1,Hl.m. Praha
+614,14,Ceske Budejovice
+615,68,Frydek - Mistek
+616,58,Jihlava
+617,70,Karvina
+618,57,Hodonin
+619,6,Kutna Hora
+621,76,Sumperk
+622,74,Ostrava - mesto
+623,24,Karlovy Vary
+625,60,Prostejov
+626,9,Nymburk
+627,17,Pelhrimov
+629,1,Hl.m. Praha
+630,61,Trebic
+631,70,Karvina
+632,67,Bruntal
+635,17,Pelhrimov
+637,39,Most
+638,54,Brno - mesto
+639,31,Tachov
+640,26,Plzen - mesto
+641,40,Teplice
+643,1,Hl.m. Praha
+644,35,Jablonec n. Nisou
+645,14,Ceske Budejovice
+646,34,Chomutov
+648,70,Karvina
+649,13,Rakovnik
+651,75,Prerov
+652,61,Trebic
+653,1,Hl.m. Praha
+654,64,Zlin
+655,32,Ceska Lipa
+656,54,Brno - mesto
+657,8,Mlada Boleslav
+659,24,Karlovy Vary
+660,16,Jindrichuv Hradec
+662,5,Kolin
+663,24,Karlovy Vary
+664,77,Vsetin
+665,14,Ceske Budejovice
+666,26,Plzen - mesto
+667,26,Plzen - mesto
+668,24,Karlovy Vary
+669,12,Pribram
+670,1,Hl.m. Praha
+671,10,Praha - vychod
+672,46,Nachod
+673,36,Liberec
+674,11,Praha - zapad
+675,50,Svitavy
+676,53,Blansko
+677,5,Kolin
+678,39,Most
+679,8,Mlada Boleslav
+681,15,Cesky Krumlov
+682,18,Pisek
+683,76,Sumperk
+684,3,Beroun
+685,72,Olomouc
+686,32,Ceska Lipa
+688,1,Hl.m. Praha
+689,70,Karvina
+690,38,Louny
+692,55,Brno - venkov
+694,29,Rokycany
+695,28,Plzen - sever
+697,1,Hl.m. Praha
+698,75,Prerov
+699,26,Plzen - mesto
+700,12,Pribram
+702,31,Tachov
+703,4,Kladno
+704,54,Brno - mesto
+705,19,Prachatice
+706,66,Zdar nad Sazavou
+707,1,Hl.m. Praha
+708,50,Svitavy
+709,1,Hl.m. Praha
+710,23,Cheb
+711,48,Rychnov nad Kneznou
+712,54,Brno - mesto
+713,20,Strakonice
+714,31,Tachov
+715,41,Usti nad Labem
+716,1,Hl.m. Praha
+717,54,Brno - mesto
+719,46,Nachod
+720,29,Rokycany
+721,43,Hradec Kralove
+722,62,Uherske Hradiste
+723,12,Pribram
+724,65,Znojmo
+725,75,Prerov
+726,16,Jindrichuv Hradec
+727,32,Ceska Lipa
+729,63,Vyskov
+731,74,Ostrava - mesto
+733,46,Nachod
+735,1,Hl.m. Praha
+737,74,Ostrava - mesto
+738,25,Klatovy
+739,72,Olomouc
+740,43,Hradec Kralove
+741,74,Ostrava - mesto
+742,1,Hl.m. Praha
+743,1,Hl.m. Praha
+744,26,Plzen - mesto
+745,52,Usti nad Orlici
+747,24,Karlovy Vary
+748,1,Hl.m. Praha
+750,70,Karvina
+751,70,Karvina
+752,72,Olomouc
+754,63,Vyskov
+755,72,Olomouc
+756,31,Tachov
+757,71,Novy Jicin
+758,68,Frydek - Mistek
+759,29,Rokycany
+760,57,Hodonin
+762,21,Tabor
+763,75,Prerov
+764,49,Semily
+765,65,Znojmo
+766,1,Hl.m. Praha
+768,32,Ceska Lipa
+769,40,Teplice
+772,64,Zlin
+773,4,Kladno
+774,70,Karvina
+775,51,Trutnov
+776,1,Hl.m. Praha
+778,13,Rakovnik
+779,69,Jesenik
+780,3,Beroun
+781,72,Olomouc
+782,21,Tabor
+783,27,Plzen - jih
+785,63,Vyskov
+786,53,Blansko
+787,3,Beroun
+788,47,Pardubice
+789,4,Kladno
+790,63,Vyskov
+791,68,Frydek - Mistek
+793,21,Tabor
+796,1,Hl.m. Praha
+797,8,Mlada Boleslav
+798,27,Plzen - jih
+803,35,Jablonec n. Nisou
+806,60,Prostejov
+807,53,Blansko
+808,31,Tachov
+809,49,Semily
+810,58,Jihlava
+812,39,Most
+813,70,Karvina
+814,17,Pelhrimov
+815,22,Domazlice
+816,17,Pelhrimov
+818,54,Brno - mesto
+819,74,Ostrava - mesto
+821,49,Semily
+822,37,Litomerice
+823,41,Usti nad Labem
+824,27,Plzen - jih
+825,74,Ostrava - mesto
+826,1,Hl.m. Praha
+827,10,Praha - vychod
+829,24,Karlovy Vary
+830,69,Jesenik
+831,2,Benesov
+832,67,Bruntal
+833,5,Kolin
+834,54,Brno - mesto
+835,28,Plzen - sever
+837,71,Novy Jicin
+839,1,Hl.m. Praha
+840,20,Strakonice
+841,69,Jesenik
+842,12,Pribram
+843,54,Brno - mesto
+844,55,Brno - venkov
+846,35,Jablonec n. Nisou
+847,49,Semily
+849,26,Plzen - mesto
+850,19,Prachatice
+851,25,Klatovy
+853,70,Karvina
+854,72,Olomouc
+855,58,Jihlava
+856,23,Cheb
+857,32,Ceska Lipa
+858,47,Pardubice
+859,75,Prerov
+861,1,Hl.m. Praha
+862,30,Sokolov
+863,54,Brno - mesto
+864,76,Sumperk
+866,38,Louny
+870,70,Karvina
+871,76,Sumperk
+872,35,Jablonec n. Nisou
+873,60,Prostejov
+874,14,Ceske Budejovice
+876,4,Kladno
+877,5,Kolin
+879,38,Louny
+880,49,Semily
+881,5,Kolin
+882,70,Karvina
+883,75,Prerov
+885,34,Chomutov
+886,34,Chomutov
+887,66,Zdar nad Sazavou
+888,28,Plzen - sever
+889,54,Brno - mesto
+890,77,Vsetin
+891,10,Praha - vychod
+892,42,Havlickuv Brod
+893,43,Hradec Kralove
+894,75,Prerov
+895,39,Most
+896,10,Praha - vychod
+898,38,Louny
+900,73,Opava
+901,3,Beroun
+902,23,Cheb
+903,31,Tachov
+904,1,Hl.m. Praha
+905,38,Louny
+906,65,Znojmo
+907,50,Svitavy
+908,51,Trutnov
+909,23,Cheb
+910,1,Hl.m. Praha
+911,43,Hradec Kralove
+912,76,Sumperk
+913,1,Hl.m. Praha
+914,1,Hl.m. Praha
+915,12,Pribram
+916,3,Beroun
+917,25,Klatovy
+918,26,Plzen - mesto
+921,7,Melnik
+922,22,Domazlice
+924,45,Jicin
+925,15,Cesky Krumlov
+926,1,Hl.m. Praha
+927,1,Hl.m. Praha
+928,66,Zdar nad Sazavou
+929,30,Sokolov
+930,68,Frydek - Mistek
+931,16,Jindrichuv Hradec
+932,3,Beroun
+933,33,Decin
+935,42,Havlickuv Brod
+937,1,Hl.m. Praha
+938,59,Kromeriz
+939,21,Tabor
+940,53,Blansko
+941,10,Praha - vychod
+942,12,Pribram
+944,39,Most
+946,54,Brno - mesto
+948,49,Semily
+949,3,Beroun
+950,47,Pardubice
+952,63,Vyskov
+953,25,Klatovy
+954,1,Hl.m. Praha
+955,57,Hodonin
+956,1,Hl.m. Praha
+957,56,Breclav
+959,11,Praha - zapad
+960,16,Jindrichuv Hradec
+961,15,Cesky Krumlov
+962,19,Prachatice
+963,64,Zlin
+964,10,Praha - vychod
+965,13,Rakovnik
+967,76,Sumperk
+968,69,Jesenik
+970,36,Liberec
+971,46,Nachod
+973,14,Ceske Budejovice
+975,1,Hl.m. Praha
+976,16,Jindrichuv Hradec
+977,76,Sumperk
+978,56,Breclav
+980,52,Usti nad Orlici
+981,5,Kolin
+984,20,Strakonice
+986,74,Ostrava - mesto
+987,60,Prostejov
+988,40,Teplice
+990,71,Novy Jicin
+991,32,Ceska Lipa
+992,19,Prachatice
+993,44,Chrudim
+994,36,Liberec
+996,1,Hl.m. Praha
+997,59,Kromeriz
+999,74,Ostrava - mesto
+1001,44,Chrudim
+1002,42,Havlickuv Brod
+1003,31,Tachov
+1004,3,Beroun
+1006,46,Nachod
+1008,46,Nachod
+1009,47,Pardubice
+1011,16,Jindrichuv Hradec
+1012,70,Karvina
+1014,1,Hl.m. Praha
+1015,62,Uherske Hradiste
+1017,6,Kutna Hora
+1018,53,Blansko
+1019,14,Ceske Budejovice
+1020,72,Olomouc
+1021,2,Benesov
+1022,31,Tachov
+1023,1,Hl.m. Praha
+1024,25,Klatovy
+1025,15,Cesky Krumlov
+1026,57,Hodonin
+1027,1,Hl.m. Praha
+1029,62,Uherske Hradiste
+1030,1,Hl.m. Praha
+1031,2,Benesov
+1032,77,Vsetin
+1034,52,Usti nad Orlici
+1035,13,Rakovnik
+1037,1,Hl.m. Praha
+1038,22,Domazlice
+1039,64,Zlin
+1040,71,Novy Jicin
+1041,72,Olomouc
+1042,17,Pelhrimov
+1044,9,Nymburk
+1045,60,Prostejov
+1046,1,Hl.m. Praha
+1047,16,Jindrichuv Hradec
+1048,70,Karvina
+1049,1,Hl.m. Praha
+1050,27,Plzen - jih
+1051,73,Opava
+1052,56,Breclav
+1054,63,Vyskov
+1055,4,Kladno
+1056,1,Hl.m. Praha
+1057,52,Usti nad Orlici
+1058,9,Nymburk
+1059,26,Plzen - mesto
+1062,9,Nymburk
+1064,1,Hl.m. Praha
+1065,2,Benesov
+1066,1,Hl.m. Praha
+1067,1,Hl.m. Praha
+1068,1,Hl.m. Praha
+1069,54,Brno - mesto
+1071,43,Hradec Kralove
+1072,14,Ceske Budejovice
+1073,34,Chomutov
+1075,70,Karvina
+1076,53,Blansko
+1077,46,Nachod
+1078,24,Karlovy Vary
+1079,3,Beroun
+1080,38,Louny
+1081,71,Novy Jicin
+1082,72,Olomouc
+1083,48,Rychnov nad Kneznou
+1085,60,Prostejov
+1086,74,Ostrava - mesto
+1088,47,Pardubice
+1089,1,Hl.m. Praha
+1090,35,Jablonec n. Nisou
+1091,59,Kromeriz
+1092,41,Usti nad Labem
+1093,62,Uherske Hradiste
+1094,30,Sokolov
+1096,1,Hl.m. Praha
+1098,60,Prostejov
+1099,65,Znojmo
+1100,59,Kromeriz
+1101,73,Opava
+1102,72,Olomouc
+1103,1,Hl.m. Praha
+1105,56,Breclav
+1107,60,Prostejov
+1108,62,Uherske Hradiste
+1109,58,Jihlava
+1110,10,Praha - vychod
+1111,61,Trebic
+1112,13,Rakovnik
+1113,11,Praha - zapad
+1114,59,Kromeriz
+1115,36,Liberec
+1116,69,Jesenik
+1117,20,Strakonice
+1119,54,Brno - mesto
+1120,41,Usti nad Labem
+1121,59,Kromeriz
+1122,20,Strakonice
+1124,21,Tabor
+1125,9,Nymburk
+1127,23,Cheb
+1128,7,Melnik
+1129,43,Hradec Kralove
+1130,70,Karvina
+1131,55,Brno - venkov
+1133,37,Litomerice
+1135,8,Mlada Boleslav
+1136,9,Nymburk
+1137,1,Hl.m. Praha
+1138,70,Karvina
+1140,18,Pisek
+1141,21,Tabor
+1142,59,Kromeriz
+1145,58,Jihlava
+1146,49,Semily
+1147,3,Beroun
+1148,41,Usti nad Labem
+1149,14,Ceske Budejovice
+1150,74,Ostrava - mesto
+1151,59,Kromeriz
+1152,74,Ostrava - mesto
+1153,70,Karvina
+1154,72,Olomouc
+1156,1,Hl.m. Praha
+1157,4,Kladno
+1158,1,Hl.m. Praha
+1159,64,Zlin
+1161,7,Melnik
+1162,26,Plzen - mesto
+1163,20,Strakonice
+1164,15,Cesky Krumlov
+1165,15,Cesky Krumlov
+1166,74,Ostrava - mesto
+1168,19,Prachatice
+1169,18,Pisek
+1170,12,Pribram
+1171,46,Nachod
+1172,54,Brno - mesto
+1174,29,Rokycany
+1175,1,Hl.m. Praha
+1177,77,Vsetin
+1178,1,Hl.m. Praha
+1179,73,Opava
+1180,21,Tabor
+1181,1,Hl.m. Praha
+1182,66,Zdar nad Sazavou
+1183,54,Brno - mesto
+1186,2,Benesov
+1187,32,Ceska Lipa
+1189,74,Ostrava - mesto
+1190,15,Cesky Krumlov
+1192,10,Praha - vychod
+1193,19,Prachatice
+1194,17,Pelhrimov
+1195,39,Most
+1196,22,Domazlice
+1197,6,Kutna Hora
+1198,72,Olomouc
+1199,64,Zlin
+1200,47,Pardubice
+1201,54,Brno - mesto
+1202,47,Pardubice
+1204,77,Vsetin
+1206,50,Svitavy
+1207,28,Plzen - sever
+1208,70,Karvina
+1209,54,Brno - mesto
+1210,6,Kutna Hora
+1211,1,Hl.m. Praha
+1212,13,Rakovnik
+1213,1,Hl.m. Praha
+1214,61,Trebic
+1215,45,Jicin
+1216,65,Znojmo
+1217,59,Kromeriz
+1218,74,Ostrava - mesto
+1219,1,Hl.m. Praha
+1220,40,Teplice
+1221,14,Ceske Budejovice
+1222,7,Melnik
+1223,52,Usti nad Orlici
+1224,56,Breclav
+1225,42,Havlickuv Brod
+1226,33,Decin
+1228,21,Tabor
+1229,19,Prachatice
+1231,20,Strakonice
+1233,68,Frydek - Mistek
+1234,23,Cheb
+1236,26,Plzen - mesto
+1237,57,Hodonin
+1238,74,Ostrava - mesto
+1239,11,Praha - zapad
+1240,32,Ceska Lipa
+1241,73,Opava
+1242,73,Opava
+1243,11,Praha - zapad
+1244,1,Hl.m. Praha
+1245,64,Zlin
+1246,70,Karvina
+1248,19,Prachatice
+1250,43,Hradec Kralove
+1251,1,Hl.m. Praha
+1253,14,Ceske Budejovice
+1254,3,Beroun
+1255,1,Hl.m. Praha
+1256,46,Nachod
+1257,35,Jablonec n. Nisou
+1259,18,Pisek
+1260,57,Hodonin
+1262,35,Jablonec n. Nisou
+1264,61,Trebic
+1265,57,Hodonin
+1266,10,Praha - vychod
+1267,29,Rokycany
+1269,1,Hl.m. Praha
+1270,13,Rakovnik
+1271,47,Pardubice
+1272,8,Mlada Boleslav
+1273,6,Kutna Hora
+1274,44,Chrudim
+1275,6,Kutna Hora
+1276,68,Frydek - Mistek
+1277,70,Karvina
+1278,72,Olomouc
+1279,16,Jindrichuv Hradec
+1280,34,Chomutov
+1282,52,Usti nad Orlici
+1283,70,Karvina
+1285,62,Uherske Hradiste
+1286,68,Frydek - Mistek
+1287,65,Znojmo
+1288,73,Opava
+1289,59,Kromeriz
+1290,35,Jablonec n. Nisou
+1291,1,Hl.m. Praha
+1292,14,Ceske Budejovice
+1293,1,Hl.m. Praha
+1295,74,Ostrava - mesto
+1296,55,Brno - venkov
+1297,64,Zlin
+1299,2,Benesov
+1300,45,Jicin
+1303,42,Havlickuv Brod
+1304,37,Litomerice
+1305,55,Brno - venkov
+1306,32,Ceska Lipa
+1307,74,Ostrava - mesto
+1308,69,Jesenik
+1309,16,Jindrichuv Hradec
+1310,41,Usti nad Labem
+1311,54,Brno - mesto
+1312,35,Jablonec n. Nisou
+1313,54,Brno - mesto
+1315,34,Chomutov
+1316,67,Bruntal
+1318,47,Pardubice
+1321,35,Jablonec n. Nisou
+1322,4,Kladno
+1323,70,Karvina
+1324,66,Zdar nad Sazavou
+1325,39,Most
+1326,55,Brno - venkov
+1327,20,Strakonice
+1328,42,Havlickuv Brod
+1329,26,Plzen - mesto
+1330,66,Zdar nad Sazavou
+1331,54,Brno - mesto
+1332,5,Kolin
+1333,48,Rychnov nad Kneznou
+1334,8,Mlada Boleslav
+1335,6,Kutna Hora
+1337,34,Chomutov
+1339,1,Hl.m. Praha
+1340,68,Frydek - Mistek
+1341,48,Rychnov nad Kneznou
+1343,1,Hl.m. Praha
+1345,32,Ceska Lipa
+1346,13,Rakovnik
+1347,13,Rakovnik
+1349,26,Plzen - mesto
+1350,1,Hl.m. Praha
+1352,56,Breclav
+1353,27,Plzen - jih
+1354,74,Ostrava - mesto
+1355,35,Jablonec n. Nisou
+1356,1,Hl.m. Praha
+1359,1,Hl.m. Praha
+1361,1,Hl.m. Praha
+1363,6,Kutna Hora
+1364,1,Hl.m. Praha
+1366,12,Pribram
+1367,60,Prostejov
+1369,41,Usti nad Labem
+1370,34,Chomutov
+1371,49,Semily
+1372,28,Plzen - sever
+1373,74,Ostrava - mesto
+1375,59,Kromeriz
+1376,31,Tachov
+1378,67,Bruntal
+1380,44,Chrudim
+1382,18,Pisek
+1383,29,Rokycany
+1384,40,Teplice
+1385,45,Jicin
+1387,35,Jablonec n. Nisou
+1388,5,Kolin
+1389,43,Hradec Kralove
+1390,59,Kromeriz
+1391,7,Melnik
+1392,50,Svitavy
+1394,49,Semily
+1396,39,Most
+1397,66,Zdar nad Sazavou
+1401,35,Jablonec n. Nisou
+1402,44,Chrudim
+1404,11,Praha - zapad
+1406,29,Rokycany
+1408,49,Semily
+1409,25,Klatovy
+1410,18,Pisek
+1412,6,Kutna Hora
+1413,11,Praha - zapad
+1414,70,Karvina
+1416,19,Prachatice
+1417,27,Plzen - jih
+1418,41,Usti nad Labem
+1419,74,Ostrava - mesto
+1421,20,Strakonice
+1422,69,Jesenik
+1424,8,Mlada Boleslav
+1425,12,Pribram
+1427,14,Ceske Budejovice
+1428,12,Pribram
+1430,64,Zlin
+1431,55,Brno - venkov
+1432,16,Jindrichuv Hradec
+1433,59,Kromeriz
+1435,52,Usti nad Orlici
+1438,29,Rokycany
+1439,29,Rokycany
+1440,1,Hl.m. Praha
+1441,42,Havlickuv Brod
+1443,29,Rokycany
+1445,68,Frydek - Mistek
+1446,70,Karvina
+1448,50,Svitavy
+1449,33,Decin
+1450,61,Trebic
+1452,72,Olomouc
+1453,29,Rokycany
+1454,73,Opava
+1456,70,Karvina
+1458,67,Bruntal
+1459,4,Kladno
+1460,23,Cheb
+1461,28,Plzen - sever
+1462,49,Semily
+1463,70,Karvina
+1464,36,Liberec
+1466,39,Most
+1467,65,Znojmo
+1468,77,Vsetin
+1469,69,Jesenik
+1470,1,Hl.m. Praha
+1472,1,Hl.m. Praha
+1473,1,Hl.m. Praha
+1474,45,Jicin
+1475,66,Zdar nad Sazavou
+1476,70,Karvina
+1478,4,Kladno
+1479,1,Hl.m. Praha
+1480,69,Jesenik
+1481,62,Uherske Hradiste
+1482,46,Nachod
+1483,1,Hl.m. Praha
+1485,7,Melnik
+1487,48,Rychnov nad Kneznou
+1488,31,Tachov
+1489,6,Kutna Hora
+1490,76,Sumperk
+1491,19,Prachatice
+1492,9,Nymburk
+1493,1,Hl.m. Praha
+1495,1,Hl.m. Praha
+1496,1,Hl.m. Praha
+1497,53,Blansko
+1499,74,Ostrava - mesto
+1500,1,Hl.m. Praha
+1501,68,Frydek - Mistek
+1502,68,Frydek - Mistek
+1503,58,Jihlava
+1505,25,Klatovy
+1506,22,Domazlice
+1508,67,Bruntal
+1509,62,Uherske Hradiste
+1510,34,Chomutov
+1511,13,Rakovnik
+1512,5,Kolin
+1513,74,Ostrava - mesto
+1514,68,Frydek - Mistek
+1516,38,Louny
+1517,66,Zdar nad Sazavou
+1518,3,Beroun
+1520,72,Olomouc
+1521,5,Kolin
+1522,52,Usti nad Orlici
+1523,29,Rokycany
+1524,30,Sokolov
+1525,1,Hl.m. Praha
+1527,49,Semily
+1528,57,Hodonin
+1529,43,Hradec Kralove
+1530,74,Ostrava - mesto
+1531,52,Usti nad Orlici
+1533,55,Brno - venkov
+1534,17,Pelhrimov
+1535,40,Teplice
+1536,37,Litomerice
+1537,54,Brno - mesto
+1539,32,Ceska Lipa
+1540,36,Liberec
+1542,31,Tachov
+1546,28,Plzen - sever
+1548,70,Karvina
+1550,8,Mlada Boleslav
+1554,55,Brno - venkov
+1555,65,Znojmo
+1556,66,Zdar nad Sazavou
+1557,35,Jablonec n. Nisou
+1558,11,Praha - zapad
+1559,72,Olomouc
+1561,1,Hl.m. Praha
+1563,3,Beroun
+1564,40,Teplice
+1565,71,Novy Jicin
+1566,15,Cesky Krumlov
+1567,50,Svitavy
+1569,70,Karvina
+1571,7,Melnik
+1572,1,Hl.m. Praha
+1574,18,Pisek
+1575,55,Brno - venkov
+1577,23,Cheb
+1578,40,Teplice
+1579,57,Hodonin
+1580,1,Hl.m. Praha
+1581,56,Breclav
+1582,54,Brno - mesto
+1583,1,Hl.m. Praha
+1584,1,Hl.m. Praha
+1585,60,Prostejov
+1587,23,Cheb
+1588,45,Jicin
+1589,48,Rychnov nad Kneznou
+1590,13,Rakovnik
+1591,42,Havlickuv Brod
+1592,56,Breclav
+1594,56,Breclav
+1595,56,Breclav
+1596,58,Jihlava
+1597,60,Prostejov
+1598,17,Pelhrimov
+1599,43,Hradec Kralove
+1601,42,Havlickuv Brod
+1603,26,Plzen - mesto
+1605,52,Usti nad Orlici
+1606,65,Znojmo
+1607,8,Mlada Boleslav
+1608,53,Blansko
+1610,68,Frydek - Mistek
+1611,59,Kromeriz
+1613,59,Kromeriz
+1614,21,Tabor
+1615,74,Ostrava - mesto
+1616,54,Brno - mesto
+1617,5,Kolin
+1618,23,Cheb
+1619,74,Ostrava - mesto
+1621,76,Sumperk
+1622,52,Usti nad Orlici
+1623,36,Liberec
+1624,9,Nymburk
+1628,12,Pribram
+1629,28,Plzen - sever
+1631,74,Ostrava - mesto
+1632,8,Mlada Boleslav
+1633,55,Brno - venkov
+1635,75,Prerov
+1637,21,Tabor
+1638,40,Teplice
+1639,1,Hl.m. Praha
+1640,51,Trutnov
+1641,31,Tachov
+1642,1,Hl.m. Praha
+1643,39,Most
+1644,56,Breclav
+1645,39,Most
+1646,8,Mlada Boleslav
+1647,71,Novy Jicin
+1648,46,Nachod
+1650,1,Hl.m. Praha
+1651,11,Praha - zapad
+1653,42,Havlickuv Brod
+1654,60,Prostejov
+1655,74,Ostrava - mesto
+1656,22,Domazlice
+1657,32,Ceska Lipa
+1658,52,Usti nad Orlici
+1659,1,Hl.m. Praha
+1660,1,Hl.m. Praha
+1661,47,Pardubice
+1662,53,Blansko
+1663,19,Prachatice
+1664,64,Zlin
+1666,1,Hl.m. Praha
+1668,59,Kromeriz
+1669,47,Pardubice
+1670,53,Blansko
+1671,57,Hodonin
+1673,48,Rychnov nad Kneznou
+1674,11,Praha - zapad
+1675,74,Ostrava - mesto
+1676,53,Blansko
+1679,67,Bruntal
+1680,29,Rokycany
+1681,34,Chomutov
+1682,69,Jesenik
+1683,15,Cesky Krumlov
+1685,60,Prostejov
+1686,1,Hl.m. Praha
+1688,32,Ceska Lipa
+1689,1,Hl.m. Praha
+1690,46,Nachod
+1691,17,Pelhrimov
+1692,62,Uherske Hradiste
+1693,45,Jicin
+1696,1,Hl.m. Praha
+1697,74,Ostrava - mesto
+1699,17,Pelhrimov
+1700,7,Melnik
+1702,53,Blansko
+1703,50,Svitavy
+1705,19,Prachatice
+1707,10,Praha - vychod
+1709,74,Ostrava - mesto
+1710,54,Brno - mesto
+1711,64,Zlin
+1713,65,Znojmo
+1714,58,Jihlava
+1717,66,Zdar nad Sazavou
+1718,75,Prerov
+1719,35,Jablonec n. Nisou
+1720,33,Decin
+1722,68,Frydek - Mistek
+1723,71,Novy Jicin
+1724,68,Frydek - Mistek
+1725,76,Sumperk
+1727,32,Ceska Lipa
+1729,76,Sumperk
+1730,40,Teplice
+1731,17,Pelhrimov
+1733,57,Hodonin
+1734,26,Plzen - mesto
+1736,41,Usti nad Labem
+1737,27,Plzen - jih
+1741,70,Karvina
+1742,1,Hl.m. Praha
+1743,3,Beroun
+1744,50,Svitavy
+1745,23,Cheb
+1746,11,Praha - zapad
+1748,55,Brno - venkov
+1749,50,Svitavy
+1750,23,Cheb
+1751,54,Brno - mesto
+1752,70,Karvina
+1753,60,Prostejov
+1754,57,Hodonin
+1755,65,Znojmo
+1756,1,Hl.m. Praha
+1758,35,Jablonec n. Nisou
+1759,63,Vyskov
+1760,64,Zlin
+1761,45,Jicin
+1762,61,Trebic
+1763,46,Nachod
+1764,66,Zdar nad Sazavou
+1765,9,Nymburk
+1768,29,Rokycany
+1769,12,Pribram
+1771,54,Brno - mesto
+1772,73,Opava
+1774,32,Ceska Lipa
+1775,73,Opava
+1776,30,Sokolov
+1777,69,Jesenik
+1779,37,Litomerice
+1780,54,Brno - mesto
+1781,67,Bruntal
+1782,19,Prachatice
+1783,1,Hl.m. Praha
+1784,2,Benesov
+1785,39,Most
+1786,63,Vyskov
+1788,1,Hl.m. Praha
+1789,61,Trebic
+1790,1,Hl.m. Praha
+1791,5,Kolin
+1792,54,Brno - mesto
+1793,41,Usti nad Labem
+1794,15,Cesky Krumlov
+1795,38,Louny
+1796,10,Praha - vychod
+1798,70,Karvina
+1799,36,Liberec
+1800,63,Vyskov
+1801,66,Zdar nad Sazavou
+1803,25,Klatovy
+1806,5,Kolin
+1807,47,Pardubice
+1809,24,Karlovy Vary
+1810,41,Usti nad Labem
+1811,1,Hl.m. Praha
+1812,36,Liberec
+1814,57,Hodonin
+1815,1,Hl.m. Praha
+1816,62,Uherske Hradiste
+1817,47,Pardubice
+1819,43,Hradec Kralove
+1820,50,Svitavy
+1821,1,Hl.m. Praha
+1822,71,Novy Jicin
+1823,1,Hl.m. Praha
+1824,69,Jesenik
+1825,51,Trutnov
+1826,35,Jablonec n. Nisou
+1828,69,Jesenik
+1829,51,Trutnov
+1830,33,Decin
+1831,51,Trutnov
+1832,1,Hl.m. Praha
+1833,30,Sokolov
+1834,7,Melnik
+1836,11,Praha - zapad
+1837,67,Bruntal
+1839,5,Kolin
+1841,67,Bruntal
+1842,9,Nymburk
+1843,48,Rychnov nad Kneznou
+1844,74,Ostrava - mesto
+1846,48,Rychnov nad Kneznou
+1847,52,Usti nad Orlici
+1848,6,Kutna Hora
+1849,57,Hodonin
+1850,52,Usti nad Orlici
+1851,31,Tachov
+1852,50,Svitavy
+1853,1,Hl.m. Praha
+1854,70,Karvina
+1856,54,Brno - mesto
+1860,1,Hl.m. Praha
+1861,46,Nachod
+1862,41,Usti nad Labem
+1863,54,Brno - mesto
+1864,22,Domazlice
+1866,1,Hl.m. Praha
+1867,1,Hl.m. Praha
+1868,60,Prostejov
+1869,1,Hl.m. Praha
+1871,1,Hl.m. Praha
+1872,69,Jesenik
+1874,1,Hl.m. Praha
+1875,15,Cesky Krumlov
+1876,72,Olomouc
+1877,47,Pardubice
+1879,21,Tabor
+1880,1,Hl.m. Praha
+1881,72,Olomouc
+1883,18,Pisek
+1884,59,Kromeriz
+1885,47,Pardubice
+1886,34,Chomutov
+1887,54,Brno - mesto
+1888,66,Zdar nad Sazavou
+1889,32,Ceska Lipa
+1890,14,Ceske Budejovice
+1891,62,Uherske Hradiste
+1892,66,Zdar nad Sazavou
+1894,1,Hl.m. Praha
+1895,47,Pardubice
+1896,48,Rychnov nad Kneznou
+1897,36,Liberec
+1898,73,Opava
+1899,10,Praha - vychod
+1900,23,Cheb
+1903,1,Hl.m. Praha
+1904,66,Zdar nad Sazavou
+1905,72,Olomouc
+1906,63,Vyskov
+1907,75,Prerov
+1908,1,Hl.m. Praha
+1909,35,Jablonec n. Nisou
+1910,67,Bruntal
+1911,48,Rychnov nad Kneznou
+1912,57,Hodonin
+1913,69,Jesenik
+1914,39,Most
+1916,28,Plzen - sever
+1917,69,Jesenik
+1919,30,Sokolov
+1920,42,Havlickuv Brod
+1921,1,Hl.m. Praha
+1923,1,Hl.m. Praha
+1924,67,Bruntal
+1925,37,Litomerice
+1927,77,Vsetin
+1929,65,Znojmo
+1930,38,Louny
+1931,16,Jindrichuv Hradec
+1932,15,Cesky Krumlov
+1934,70,Karvina
+1935,68,Frydek - Mistek
+1936,15,Cesky Krumlov
+1938,57,Hodonin
+1939,1,Hl.m. Praha
+1941,10,Praha - vychod
+1943,33,Decin
+1944,1,Hl.m. Praha
+1945,54,Brno - mesto
+1946,72,Olomouc
+1947,23,Cheb
+1948,71,Novy Jicin
+1950,26,Plzen - mesto
+1951,41,Usti nad Labem
+1952,52,Usti nad Orlici
+1954,69,Jesenik
+1955,66,Zdar nad Sazavou
+1956,1,Hl.m. Praha
+1957,63,Vyskov
+1959,1,Hl.m. Praha
+1960,22,Domazlice
+1961,45,Jicin
+1962,6,Kutna Hora
+1963,38,Louny
+1964,17,Pelhrimov
+1965,75,Prerov
+1966,19,Prachatice
+1967,1,Hl.m. Praha
+1969,53,Blansko
+1970,1,Hl.m. Praha
+1971,3,Beroun
+1972,1,Hl.m. Praha
+1973,60,Prostejov
+1974,10,Praha - vychod
+1976,72,Olomouc
+1977,10,Praha - vychod
+1978,18,Pisek
+1979,51,Trutnov
+1980,77,Vsetin
+1981,19,Prachatice
+1982,53,Blansko
+1984,1,Hl.m. Praha
+1985,6,Kutna Hora
+1988,13,Rakovnik
+1989,50,Svitavy
+1991,64,Zlin
+1993,1,Hl.m. Praha
+1995,50,Svitavy
+1996,1,Hl.m. Praha
+1997,1,Hl.m. Praha
+1998,40,Teplice
+1999,46,Nachod
+2000,39,Most
+2001,34,Chomutov
+2002,74,Ostrava - mesto
+2004,1,Hl.m. Praha
+2005,30,Sokolov
+2006,41,Usti nad Labem
+2008,47,Pardubice
+2009,12,Pribram
+2010,73,Opava
+2011,46,Nachod
+2013,1,Hl.m. Praha
+2015,1,Hl.m. Praha
+2016,55,Brno - venkov
+2018,56,Breclav
+2019,73,Opava
+2021,67,Bruntal
+2022,56,Breclav
+2024,62,Uherske Hradiste
+2025,39,Most
+2027,12,Pribram
+2029,6,Kutna Hora
+2030,5,Kolin
+2031,53,Blansko
+2032,1,Hl.m. Praha
+2034,36,Liberec
+2037,69,Jesenik
+2038,1,Hl.m. Praha
+2039,68,Frydek - Mistek
+2040,59,Kromeriz
+2041,68,Frydek - Mistek
+2042,49,Semily
+2043,77,Vsetin
+2044,32,Ceska Lipa
+2045,28,Plzen - sever
+2047,11,Praha - zapad
+2048,23,Cheb
+2049,70,Karvina
+2051,55,Brno - venkov
+2053,16,Jindrichuv Hradec
+2054,48,Rychnov nad Kneznou
+2055,56,Breclav
+2056,1,Hl.m. Praha
+2057,6,Kutna Hora
+2058,76,Sumperk
+2059,43,Hradec Kralove
+2061,63,Vyskov
+2063,68,Frydek - Mistek
+2064,53,Blansko
+2065,64,Zlin
+2066,1,Hl.m. Praha
+2067,56,Breclav
+2068,72,Olomouc
+2069,70,Karvina
+2070,70,Karvina
+2071,1,Hl.m. Praha
+2072,75,Prerov
+2073,22,Domazlice
+2074,24,Karlovy Vary
+2075,74,Ostrava - mesto
+2076,63,Vyskov
+2077,44,Chrudim
+2078,43,Hradec Kralove
+2079,72,Olomouc
+2080,60,Prostejov
+2081,46,Nachod
+2082,67,Bruntal
+2083,71,Novy Jicin
+2084,1,Hl.m. Praha
+2086,35,Jablonec n. Nisou
+2087,68,Frydek - Mistek
+2088,32,Ceska Lipa
+2089,70,Karvina
+2091,48,Rychnov nad Kneznou
+2092,72,Olomouc
+2093,48,Rychnov nad Kneznou
+2095,9,Nymburk
+2096,74,Ostrava - mesto
+2097,53,Blansko
+2099,1,Hl.m. Praha
+2100,33,Decin
+2102,51,Trutnov
+2103,18,Pisek
+2104,37,Litomerice
+2105,42,Havlickuv Brod
+2106,74,Ostrava - mesto
+2108,77,Vsetin
+2109,15,Cesky Krumlov
+2110,3,Beroun
+2111,57,Hodonin
+2112,21,Tabor
+2113,68,Frydek - Mistek
+2114,51,Trutnov
+2116,76,Sumperk
+2117,53,Blansko
+2118,1,Hl.m. Praha
+2119,30,Sokolov
+2121,64,Zlin
+2122,1,Hl.m. Praha
+2123,53,Blansko
+2124,68,Frydek - Mistek
+2125,71,Novy Jicin
+2126,52,Usti nad Orlici
+2128,38,Louny
+2129,75,Prerov
+2130,21,Tabor
+2131,39,Most
+2133,53,Blansko
+2135,24,Karlovy Vary
+2136,28,Plzen - sever
+2137,73,Opava
+2138,68,Frydek - Mistek
+2139,18,Pisek
+2141,28,Plzen - sever
+2142,21,Tabor
+2144,15,Cesky Krumlov
+2145,39,Most
+2146,65,Znojmo
+2147,69,Jesenik
+2148,31,Tachov
+2149,33,Decin
+2150,61,Trebic
+2152,17,Pelhrimov
+2153,36,Liberec
+2154,60,Prostejov
+2155,15,Cesky Krumlov
+2156,33,Decin
+2157,1,Hl.m. Praha
+2158,10,Praha - vychod
+2159,8,Mlada Boleslav
+2160,70,Karvina
+2161,59,Kromeriz
+2163,52,Usti nad Orlici
+2164,1,Hl.m. Praha
+2166,30,Sokolov
+2167,1,Hl.m. Praha
+2168,46,Nachod
+2170,70,Karvina
+2171,1,Hl.m. Praha
+2172,7,Melnik
+2173,56,Breclav
+2174,74,Ostrava - mesto
+2175,53,Blansko
+2176,18,Pisek
+2177,24,Karlovy Vary
+2178,46,Nachod
+2179,9,Nymburk
+2180,51,Trutnov
+2181,46,Nachod
+2182,75,Prerov
+2184,24,Karlovy Vary
+2185,20,Strakonice
+2186,1,Hl.m. Praha
+2187,40,Teplice
+2189,21,Tabor
+2190,28,Plzen - sever
+2192,1,Hl.m. Praha
+2194,50,Svitavy
+2195,40,Teplice
+2196,31,Tachov
+2197,47,Pardubice
+2198,17,Pelhrimov
+2200,66,Zdar nad Sazavou
+2201,44,Chrudim
+2203,10,Praha - vychod
+2204,54,Brno - mesto
+2205,55,Brno - venkov
+2206,10,Praha - vychod
+2207,70,Karvina
+2209,30,Sokolov
+2211,3,Beroun
+2212,52,Usti nad Orlici
+2213,3,Beroun
+2214,5,Kolin
+2215,10,Praha - vychod
+2216,1,Hl.m. Praha
+2218,43,Hradec Kralove
+2220,10,Praha - vychod
+2222,1,Hl.m. Praha
+2223,70,Karvina
+2224,54,Brno - mesto
+2225,62,Uherske Hradiste
+2226,74,Ostrava - mesto
+2227,42,Havlickuv Brod
+2228,23,Cheb
+2229,68,Frydek - Mistek
+2230,5,Kolin
+2231,21,Tabor
+2232,36,Liberec
+2235,12,Pribram
+2236,44,Chrudim
+2237,47,Pardubice
+2239,6,Kutna Hora
+2240,47,Pardubice
+2242,1,Hl.m. Praha
+2246,55,Brno - venkov
+2247,35,Jablonec n. Nisou
+2248,7,Melnik
+2249,32,Ceska Lipa
+2250,34,Chomutov
+2251,26,Plzen - mesto
+2252,37,Litomerice
+2254,72,Olomouc
+2255,50,Svitavy
+2256,70,Karvina
+2257,54,Brno - mesto
+2259,19,Prachatice
+2260,62,Uherske Hradiste
+2263,1,Hl.m. Praha
+2264,4,Kladno
+2265,52,Usti nad Orlici
+2266,16,Jindrichuv Hradec
+2267,1,Hl.m. Praha
+2268,10,Praha - vychod
+2269,48,Rychnov nad Kneznou
+2270,61,Trebic
+2274,9,Nymburk
+2276,44,Chrudim
+2277,1,Hl.m. Praha
+2278,76,Sumperk
+2279,52,Usti nad Orlici
+2280,10,Praha - vychod
+2281,76,Sumperk
+2282,60,Prostejov
+2283,1,Hl.m. Praha
+2286,54,Brno - mesto
+2287,47,Pardubice
+2288,32,Ceska Lipa
+2290,68,Frydek - Mistek
+2291,6,Kutna Hora
+2292,59,Kromeriz
+2293,1,Hl.m. Praha
+2294,32,Ceska Lipa
+2295,28,Plzen - sever
+2297,48,Rychnov nad Kneznou
+2299,6,Kutna Hora
+2300,35,Jablonec n. Nisou
+2302,74,Ostrava - mesto
+2303,61,Trebic
+2305,70,Karvina
+2307,26,Plzen - mesto
+2308,27,Plzen - jih
+2309,15,Cesky Krumlov
+2310,50,Svitavy
+2312,11,Praha - zapad
+2313,70,Karvina
+2314,34,Chomutov
+2316,1,Hl.m. Praha
+2317,1,Hl.m. Praha
+2318,20,Strakonice
+2319,14,Ceske Budejovice
+2320,60,Prostejov
+2321,68,Frydek - Mistek
+2322,64,Zlin
+2323,48,Rychnov nad Kneznou
+2324,27,Plzen - jih
+2325,2,Benesov
+2326,72,Olomouc
+2327,73,Opava
+2328,24,Karlovy Vary
+2329,18,Pisek
+2330,40,Teplice
+2331,42,Havlickuv Brod
+2332,60,Prostejov
+2335,66,Zdar nad Sazavou
+2336,12,Pribram
+2338,37,Litomerice
+2340,42,Havlickuv Brod
+2342,70,Karvina
+2343,1,Hl.m. Praha
+2344,3,Beroun
+2345,20,Strakonice
+2347,35,Jablonec n. Nisou
+2348,35,Jablonec n. Nisou
+2349,46,Nachod
+2351,38,Louny
+2352,70,Karvina
+2353,36,Liberec
+2354,1,Hl.m. Praha
+2355,6,Kutna Hora
+2356,52,Usti nad Orlici
+2358,60,Prostejov
+2361,9,Nymburk
+2363,72,Olomouc
+2364,56,Breclav
+2365,46,Nachod
+2366,35,Jablonec n. Nisou
+2368,64,Zlin
+2370,41,Usti nad Labem
+2371,70,Karvina
+2372,23,Cheb
+2373,70,Karvina
+2374,9,Nymburk
+2375,72,Olomouc
+2377,49,Semily
+2378,63,Vyskov
+2379,33,Decin
+2380,40,Teplice
+2382,62,Uherske Hradiste
+2383,31,Tachov
+2385,13,Rakovnik
+2387,77,Vsetin
+2388,42,Havlickuv Brod
+2389,25,Klatovy
+2390,57,Hodonin
+2391,27,Plzen - jih
+2392,26,Plzen - mesto
+2393,16,Jindrichuv Hradec
+2394,5,Kolin
+2395,8,Mlada Boleslav
+2396,41,Usti nad Labem
+2397,77,Vsetin
+2398,71,Novy Jicin
+2399,42,Havlickuv Brod
+2400,19,Prachatice
+2401,26,Plzen - mesto
+2402,41,Usti nad Labem
+2403,57,Hodonin
+2404,26,Plzen - mesto
+2406,49,Semily
+2407,64,Zlin
+2408,6,Kutna Hora
+2409,54,Brno - mesto
+2410,73,Opava
+2412,20,Strakonice
+2413,46,Nachod
+2414,54,Brno - mesto
+2416,72,Olomouc
+2417,48,Rychnov nad Kneznou
+2418,1,Hl.m. Praha
+2419,1,Hl.m. Praha
+2420,48,Rychnov nad Kneznou
+2422,68,Frydek - Mistek
+2423,42,Havlickuv Brod
+2424,54,Brno - mesto
+2425,6,Kutna Hora
+2426,74,Ostrava - mesto
+2428,1,Hl.m. Praha
+2429,70,Karvina
+2430,5,Kolin
+2431,75,Prerov
+2432,1,Hl.m. Praha
+2433,32,Ceska Lipa
+2434,42,Havlickuv Brod
+2435,16,Jindrichuv Hradec
+2436,25,Klatovy
+2437,45,Jicin
+2438,52,Usti nad Orlici
+2440,17,Pelhrimov
+2441,1,Hl.m. Praha
+2443,75,Prerov
+2444,4,Kladno
+2445,54,Brno - mesto
+2447,68,Frydek - Mistek
+2449,1,Hl.m. Praha
+2450,54,Brno - mesto
+2451,42,Havlickuv Brod
+2452,64,Zlin
+2453,13,Rakovnik
+2454,69,Jesenik
+2455,72,Olomouc
+2457,68,Frydek - Mistek
+2459,20,Strakonice
+2460,19,Prachatice
+2461,64,Zlin
+2462,19,Prachatice
+2463,7,Melnik
+2464,55,Brno - venkov
+2465,51,Trutnov
+2467,36,Liberec
+2468,71,Novy Jicin
+2469,54,Brno - mesto
+2470,53,Blansko
+2472,70,Karvina
+2473,20,Strakonice
+2474,42,Havlickuv Brod
+2475,44,Chrudim
+2476,75,Prerov
+2478,48,Rychnov nad Kneznou
+2479,31,Tachov
+2480,46,Nachod
+2481,6,Kutna Hora
+2482,34,Chomutov
+2484,68,Frydek - Mistek
+2485,20,Strakonice
+2486,76,Sumperk
+2487,67,Bruntal
+2488,1,Hl.m. Praha
+2489,64,Zlin
+2490,61,Trebic
+2491,5,Kolin
+2493,1,Hl.m. Praha
+2494,37,Litomerice
+2495,58,Jihlava
+2496,1,Hl.m. Praha
+2497,34,Chomutov
+2498,37,Litomerice
+2499,13,Rakovnik
+2500,24,Karlovy Vary
+2501,70,Karvina
+2502,1,Hl.m. Praha
+2503,54,Brno - mesto
+2504,61,Trebic
+2505,25,Klatovy
+2506,76,Sumperk
+2507,21,Tabor
+2508,72,Olomouc
+2510,72,Olomouc
+2511,35,Jablonec n. Nisou
+2513,41,Usti nad Labem
+2514,59,Kromeriz
+2515,12,Pribram
+2516,33,Decin
+2517,18,Pisek
+2519,29,Rokycany
+2520,62,Uherske Hradiste
+2521,55,Brno - venkov
+2522,74,Ostrava - mesto
+2524,36,Liberec
+2525,36,Liberec
+2526,1,Hl.m. Praha
+2527,44,Chrudim
+2528,25,Klatovy
+2529,70,Karvina
+2530,7,Melnik
+2531,4,Kladno
+2532,29,Rokycany
+2533,40,Teplice
+2534,1,Hl.m. Praha
+2535,1,Hl.m. Praha
+2536,64,Zlin
+2537,73,Opava
+2538,56,Breclav
+2539,32,Ceska Lipa
+2540,46,Nachod
+2542,3,Beroun
+2545,9,Nymburk
+2546,41,Usti nad Labem
+2547,48,Rychnov nad Kneznou
+2548,48,Rychnov nad Kneznou
+2549,70,Karvina
+2550,1,Hl.m. Praha
+2551,70,Karvina
+2552,74,Ostrava - mesto
+2553,34,Chomutov
+2554,64,Zlin
+2555,42,Havlickuv Brod
+2556,44,Chrudim
+2557,7,Melnik
+2558,30,Sokolov
+2559,8,Mlada Boleslav
+2560,70,Karvina
+2561,48,Rychnov nad Kneznou
+2562,42,Havlickuv Brod
+2563,74,Ostrava - mesto
+2565,64,Zlin
+2566,68,Frydek - Mistek
+2567,64,Zlin
+2569,69,Jesenik
+2571,43,Hradec Kralove
+2572,1,Hl.m. Praha
+2573,1,Hl.m. Praha
+2574,22,Domazlice
+2576,46,Nachod
+2577,70,Karvina
+2578,76,Sumperk
+2579,11,Praha - zapad
+2581,52,Usti nad Orlici
+2582,51,Trutnov
+2583,75,Prerov
+2584,4,Kladno
+2585,75,Prerov
+2586,8,Mlada Boleslav
+2588,75,Prerov
+2589,21,Tabor
+2590,42,Havlickuv Brod
+2592,1,Hl.m. Praha
+2594,55,Brno - venkov
+2596,31,Tachov
+2597,28,Plzen - sever
+2599,1,Hl.m. Praha
+2600,7,Melnik
+2601,37,Litomerice
+2603,38,Louny
+2604,22,Domazlice
+2606,31,Tachov
+2607,63,Vyskov
+2608,58,Jihlava
+2609,1,Hl.m. Praha
+2611,77,Vsetin
+2612,38,Louny
+2613,1,Hl.m. Praha
+2614,72,Olomouc
+2615,15,Cesky Krumlov
+2616,50,Svitavy
+2618,17,Pelhrimov
+2619,63,Vyskov
+2621,51,Trutnov
+2622,71,Novy Jicin
+2623,16,Jindrichuv Hradec
+2625,57,Hodonin
+2626,1,Hl.m. Praha
+2628,1,Hl.m. Praha
+2630,64,Zlin
+2631,18,Pisek
+2633,1,Hl.m. Praha
+2635,67,Bruntal
+2636,62,Uherske Hradiste
+2637,64,Zlin
+2638,1,Hl.m. Praha
+2639,45,Jicin
+2642,22,Domazlice
+2643,54,Brno - mesto
+2644,6,Kutna Hora
+2645,67,Bruntal
+2646,63,Vyskov
+2647,9,Nymburk
+2650,75,Prerov
+2652,41,Usti nad Labem
+2653,1,Hl.m. Praha
+2654,59,Kromeriz
+2655,44,Chrudim
+2656,54,Brno - mesto
+2657,73,Opava
+2658,11,Praha - zapad
+2659,46,Nachod
+2661,1,Hl.m. Praha
+2662,1,Hl.m. Praha
+2663,8,Mlada Boleslav
+2666,47,Pardubice
+2667,9,Nymburk
+2669,51,Trutnov
+2670,45,Jicin
+2671,35,Jablonec n. Nisou
+2672,7,Melnik
+2673,65,Znojmo
+2675,31,Tachov
+2676,61,Trebic
+2677,33,Decin
+2679,68,Frydek - Mistek
+2681,45,Jicin
+2683,48,Rychnov nad Kneznou
+2684,74,Ostrava - mesto
+2685,73,Opava
+2686,19,Prachatice
+2688,60,Prostejov
+2689,16,Jindrichuv Hradec
+2690,58,Jihlava
+2691,47,Pardubice
+2692,44,Chrudim
+2693,46,Nachod
+2694,15,Cesky Krumlov
+2696,2,Benesov
+2698,31,Tachov
+2700,34,Chomutov
+2701,1,Hl.m. Praha
+2702,7,Melnik
+2703,2,Benesov
+2704,1,Hl.m. Praha
+2705,43,Hradec Kralove
+2706,3,Beroun
+2707,45,Jicin
+2708,73,Opava
+2709,26,Plzen - mesto
+2712,25,Klatovy
+2713,36,Liberec
+2714,6,Kutna Hora
+2715,7,Melnik
+2716,25,Klatovy
+2717,46,Nachod
+2719,29,Rokycany
+2720,1,Hl.m. Praha
+2721,24,Karlovy Vary
+2724,35,Jablonec n. Nisou
+2726,1,Hl.m. Praha
+2728,74,Ostrava - mesto
+2729,1,Hl.m. Praha
+2730,52,Usti nad Orlici
+2731,48,Rychnov nad Kneznou
+2732,57,Hodonin
+2733,3,Beroun
+2735,64,Zlin
+2736,1,Hl.m. Praha
+2738,1,Hl.m. Praha
+2739,13,Rakovnik
+2740,36,Liberec
+2741,41,Usti nad Labem
+2742,65,Znojmo
+2743,50,Svitavy
+2745,54,Brno - mesto
+2746,1,Hl.m. Praha
+2747,6,Kutna Hora
+2749,14,Ceske Budejovice
+2751,68,Frydek - Mistek
+2752,48,Rychnov nad Kneznou
+2754,66,Zdar nad Sazavou
+2755,1,Hl.m. Praha
+2756,31,Tachov
+2758,1,Hl.m. Praha
+2759,2,Benesov
+2760,68,Frydek - Mistek
+2761,1,Hl.m. Praha
+2762,29,Rokycany
+2765,36,Liberec
+2766,70,Karvina
+2768,1,Hl.m. Praha
+2769,69,Jesenik
+2770,1,Hl.m. Praha
+2771,37,Litomerice
+2773,49,Semily
+2775,41,Usti nad Labem
+2776,31,Tachov
+2777,46,Nachod
+2778,57,Hodonin
+2779,29,Rokycany
+2781,46,Nachod
+2782,31,Tachov
+2783,1,Hl.m. Praha
+2784,36,Liberec
+2785,22,Domazlice
+2786,24,Karlovy Vary
+2787,41,Usti nad Labem
+2788,49,Semily
+2789,1,Hl.m. Praha
+2790,38,Louny
+2791,60,Prostejov
+2794,18,Pisek
+2796,15,Cesky Krumlov
+2797,28,Plzen - sever
+2798,65,Znojmo
+2799,26,Plzen - mesto
+2800,2,Benesov
+2801,75,Prerov
+2802,1,Hl.m. Praha
+2803,68,Frydek - Mistek
+2805,73,Opava
+2806,58,Jihlava
+2808,35,Jablonec n. Nisou
+2809,33,Decin
+2810,72,Olomouc
+2811,1,Hl.m. Praha
+2812,55,Brno - venkov
+2813,70,Karvina
+2814,19,Prachatice
+2815,35,Jablonec n. Nisou
+2817,1,Hl.m. Praha
+2818,54,Brno - mesto
+2819,8,Mlada Boleslav
+2820,77,Vsetin
+2821,45,Jicin
+2822,50,Svitavy
+2823,70,Karvina
+2824,39,Most
+2825,65,Znojmo
+2826,59,Kromeriz
+2827,63,Vyskov
+2828,14,Ceske Budejovice
+2829,33,Decin
+2830,51,Trutnov
+2831,68,Frydek - Mistek
+2832,13,Rakovnik
+2834,5,Kolin
+2835,27,Plzen - jih
+2836,38,Louny
+2838,65,Znojmo
+2839,72,Olomouc
+2841,18,Pisek
+2842,74,Ostrava - mesto
+2843,70,Karvina
+2844,51,Trutnov
+2845,7,Melnik
+2846,1,Hl.m. Praha
+2847,34,Chomutov
+2849,19,Prachatice
+2850,7,Melnik
+2851,54,Brno - mesto
+2852,26,Plzen - mesto
+2853,28,Plzen - sever
+2854,16,Jindrichuv Hradec
+2856,47,Pardubice
+2857,33,Decin
+2858,42,Havlickuv Brod
+2859,68,Frydek - Mistek
+2860,28,Plzen - sever
+2862,49,Semily
+2864,51,Trutnov
+2865,15,Cesky Krumlov
+2867,1,Hl.m. Praha
+2868,14,Ceske Budejovice
+2869,1,Hl.m. Praha
+2870,29,Rokycany
+2871,71,Novy Jicin
+2872,77,Vsetin
+2873,16,Jindrichuv Hradec
+2874,44,Chrudim
+2875,46,Nachod
+2876,1,Hl.m. Praha
+2877,59,Kromeriz
+2878,68,Frydek - Mistek
+2879,40,Teplice
+2880,60,Prostejov
+2881,12,Pribram
+2882,70,Karvina
+2883,30,Sokolov
+2884,40,Teplice
+2885,1,Hl.m. Praha
+2887,2,Benesov
+2888,1,Hl.m. Praha
+2889,10,Praha - vychod
+2890,62,Uherske Hradiste
+2892,3,Beroun
+2893,2,Benesov
+2894,70,Karvina
+2895,70,Karvina
+2896,1,Hl.m. Praha
+2897,40,Teplice
+2899,16,Jindrichuv Hradec
+2900,18,Pisek
+2901,25,Klatovy
+2902,8,Mlada Boleslav
+2904,64,Zlin
+2906,5,Kolin
+2908,1,Hl.m. Praha
+2909,26,Plzen - mesto
+2910,76,Sumperk
+2911,54,Brno - mesto
+2913,69,Jesenik
+2915,33,Decin
+2916,1,Hl.m. Praha
+2917,16,Jindrichuv Hradec
+2918,5,Kolin
+2920,44,Chrudim
+2921,64,Zlin
+2922,24,Karlovy Vary
+2923,35,Jablonec n. Nisou
+2924,18,Pisek
+2926,27,Plzen - jih
+2928,30,Sokolov
+2929,1,Hl.m. Praha
+2930,41,Usti nad Labem
+2932,70,Karvina
+2933,72,Olomouc
+2935,61,Trebic
+2936,3,Beroun
+2937,74,Ostrava - mesto
+2938,8,Mlada Boleslav
+2939,71,Novy Jicin
+2940,17,Pelhrimov
+2941,38,Louny
+2942,67,Bruntal
+2943,1,Hl.m. Praha
+2944,71,Novy Jicin
+2945,74,Ostrava - mesto
+2947,19,Prachatice
+2948,47,Pardubice
+2949,14,Ceske Budejovice
+2950,46,Nachod
+2951,76,Sumperk
+2952,52,Usti nad Orlici
+2953,3,Beroun
+2954,38,Louny
+2956,23,Cheb
+2957,23,Cheb
+2958,48,Rychnov nad Kneznou
+2959,54,Brno - mesto
+2960,1,Hl.m. Praha
+2962,1,Hl.m. Praha
+2964,8,Mlada Boleslav
+2965,30,Sokolov
+2966,65,Znojmo
+2967,76,Sumperk
+2968,40,Teplice
+2969,55,Brno - venkov
+2971,1,Hl.m. Praha
+2972,1,Hl.m. Praha
+2974,56,Breclav
+2975,33,Decin
+2976,57,Hodonin
+2977,39,Most
+2978,33,Decin
+2979,4,Kladno
+2980,11,Praha - zapad
+2981,16,Jindrichuv Hradec
+2982,6,Kutna Hora
+2984,60,Prostejov
+2986,14,Ceske Budejovice
+2988,33,Decin
+2989,17,Pelhrimov
+2990,32,Ceska Lipa
+2992,11,Praha - zapad
+2994,18,Pisek
+2995,35,Jablonec n. Nisou
+2996,1,Hl.m. Praha
+2997,1,Hl.m. Praha
+2998,1,Hl.m. Praha
+2999,74,Ostrava - mesto
+3000,41,Usti nad Labem
+3001,1,Hl.m. Praha
+3002,42,Havlickuv Brod
+3003,5,Kolin
+3005,72,Olomouc
+3006,22,Domazlice
+3007,76,Sumperk
+3008,73,Opava
+3009,62,Uherske Hradiste
+3011,74,Ostrava - mesto
+3012,70,Karvina
+3013,51,Trutnov
+3015,65,Znojmo
+3016,40,Teplice
+3017,2,Benesov
+3018,61,Trebic
+3019,30,Sokolov
+3020,32,Ceska Lipa
+3021,1,Hl.m. Praha
+3023,16,Jindrichuv Hradec
+3024,60,Prostejov
+3026,22,Domazlice
+3027,62,Uherske Hradiste
+3028,34,Chomutov
+3029,43,Hradec Kralove
+3030,61,Trebic
+3031,40,Teplice
+3035,70,Karvina
+3036,16,Jindrichuv Hradec
+3037,64,Zlin
+3038,6,Kutna Hora
+3039,55,Brno - venkov
+3041,4,Kladno
+3042,18,Pisek
+3043,63,Vyskov
+3044,36,Liberec
+3045,10,Praha - vychod
+3046,1,Hl.m. Praha
+3047,45,Jicin
+3048,16,Jindrichuv Hradec
+3049,38,Louny
+3051,65,Znojmo
+3054,74,Ostrava - mesto
+3055,51,Trutnov
+3056,38,Louny
+3058,49,Semily
+3059,61,Trebic
+3060,61,Trebic
+3062,41,Usti nad Labem
+3063,27,Plzen - jih
+3064,42,Havlickuv Brod
+3065,24,Karlovy Vary
+3066,54,Brno - mesto
+3067,57,Hodonin
+3069,21,Tabor
+3070,68,Frydek - Mistek
+3071,38,Louny
+3072,1,Hl.m. Praha
+3074,1,Hl.m. Praha
+3075,74,Ostrava - mesto
+3076,57,Hodonin
+3077,74,Ostrava - mesto
+3079,67,Bruntal
+3080,5,Kolin
+3082,52,Usti nad Orlici
+3083,41,Usti nad Labem
+3084,36,Liberec
+3085,53,Blansko
+3087,46,Nachod
+3088,40,Teplice
+3089,46,Nachod
+3090,32,Ceska Lipa
+3091,15,Cesky Krumlov
+3092,59,Kromeriz
+3093,35,Jablonec n. Nisou
+3094,48,Rychnov nad Kneznou
+3095,36,Liberec
+3096,74,Ostrava - mesto
+3097,48,Rychnov nad Kneznou
+3098,17,Pelhrimov
+3099,17,Pelhrimov
+3100,2,Benesov
+3101,1,Hl.m. Praha
+3102,61,Trebic
+3103,64,Zlin
+3104,4,Kladno
+3105,68,Frydek - Mistek
+3106,72,Olomouc
+3107,1,Hl.m. Praha
+3109,7,Melnik
+3110,54,Brno - mesto
+3112,24,Karlovy Vary
+3113,60,Prostejov
+3115,72,Olomouc
+3116,28,Plzen - sever
+3117,62,Uherske Hradiste
+3119,50,Svitavy
+3120,75,Prerov
+3121,57,Hodonin
+3123,1,Hl.m. Praha
+3124,5,Kolin
+3125,10,Praha - vychod
+3126,47,Pardubice
+3127,1,Hl.m. Praha
+3128,69,Jesenik
+3129,5,Kolin
+3130,19,Prachatice
+3131,1,Hl.m. Praha
+3132,1,Hl.m. Praha
+3133,31,Tachov
+3134,1,Hl.m. Praha
+3135,48,Rychnov nad Kneznou
+3136,1,Hl.m. Praha
+3137,70,Karvina
+3139,46,Nachod
+3141,9,Nymburk
+3142,68,Frydek - Mistek
+3143,21,Tabor
+3144,1,Hl.m. Praha
+3146,1,Hl.m. Praha
+3147,19,Prachatice
+3148,73,Opava
+3150,54,Brno - mesto
+3151,1,Hl.m. Praha
+3152,1,Hl.m. Praha
+3153,26,Plzen - mesto
+3155,44,Chrudim
+3156,68,Frydek - Mistek
+3157,1,Hl.m. Praha
+3158,1,Hl.m. Praha
+3159,60,Prostejov
+3160,20,Strakonice
+3161,22,Domazlice
+3162,55,Brno - venkov
+3163,1,Hl.m. Praha
+3165,58,Jihlava
+3166,31,Tachov
+3167,48,Rychnov nad Kneznou
+3170,76,Sumperk
+3172,64,Zlin
+3173,66,Zdar nad Sazavou
+3175,64,Zlin
+3176,1,Hl.m. Praha
+3177,24,Karlovy Vary
+3178,25,Klatovy
+3179,45,Jicin
+3181,27,Plzen - jih
+3182,18,Pisek
+3183,70,Karvina
+3184,5,Kolin
+3185,17,Pelhrimov
+3186,1,Hl.m. Praha
+3187,7,Melnik
+3188,68,Frydek - Mistek
+3190,1,Hl.m. Praha
+3191,54,Brno - mesto
+3192,6,Kutna Hora
+3193,73,Opava
+3194,51,Trutnov
+3195,2,Benesov
+3196,72,Olomouc
+3197,2,Benesov
+3199,1,Hl.m. Praha
+3201,66,Zdar nad Sazavou
+3202,56,Breclav
+3203,1,Hl.m. Praha
+3205,1,Hl.m. Praha
+3207,55,Brno - venkov
+3208,27,Plzen - jih
+3210,14,Ceske Budejovice
+3211,1,Hl.m. Praha
+3213,1,Hl.m. Praha
+3214,71,Novy Jicin
+3215,64,Zlin
+3216,58,Jihlava
+3217,61,Trebic
+3218,49,Semily
+3220,23,Cheb
+3222,21,Tabor
+3225,13,Rakovnik
+3226,1,Hl.m. Praha
+3227,59,Kromeriz
+3228,34,Chomutov
+3229,50,Svitavy
+3230,1,Hl.m. Praha
+3231,73,Opava
+3232,5,Kolin
+3233,1,Hl.m. Praha
+3234,67,Bruntal
+3235,46,Nachod
+3236,28,Plzen - sever
+3239,7,Melnik
+3240,67,Bruntal
+3241,26,Plzen - mesto
+3243,76,Sumperk
+3244,72,Olomouc
+3245,70,Karvina
+3246,66,Zdar nad Sazavou
+3247,69,Jesenik
+3248,28,Plzen - sever
+3249,17,Pelhrimov
+3251,7,Melnik
+3253,16,Jindrichuv Hradec
+3254,1,Hl.m. Praha
+3255,8,Mlada Boleslav
+3256,49,Semily
+3257,73,Opava
+3258,74,Ostrava - mesto
+3259,71,Novy Jicin
+3260,74,Ostrava - mesto
+3262,61,Trebic
+3264,63,Vyskov
+3265,47,Pardubice
+3267,61,Trebic
+3268,1,Hl.m. Praha
+3269,2,Benesov
+3270,12,Pribram
+3271,58,Jihlava
+3272,9,Nymburk
+3274,26,Plzen - mesto
+3276,1,Hl.m. Praha
+3277,42,Havlickuv Brod
+3279,66,Zdar nad Sazavou
+3281,74,Ostrava - mesto
+3282,29,Rokycany
+3283,10,Praha - vychod
+3284,2,Benesov
+3286,74,Ostrava - mesto
+3288,69,Jesenik
+3289,75,Prerov
+3290,11,Praha - zapad
+3291,52,Usti nad Orlici
+3292,18,Pisek
+3293,1,Hl.m. Praha
+3294,52,Usti nad Orlici
+3295,40,Teplice
+3296,23,Cheb
+3297,1,Hl.m. Praha
+3298,5,Kolin
+3299,76,Sumperk
+3300,53,Blansko
+3302,72,Olomouc
+3304,69,Jesenik
+3305,41,Usti nad Labem
+3306,59,Kromeriz
+3307,14,Ceske Budejovice
+3308,15,Cesky Krumlov
+3310,23,Cheb
+3311,51,Trutnov
+3312,70,Karvina
+3313,60,Prostejov
+3314,24,Karlovy Vary
+3316,1,Hl.m. Praha
+3319,1,Hl.m. Praha
+3321,13,Rakovnik
+3322,31,Tachov
+3323,74,Ostrava - mesto
+3324,26,Plzen - mesto
+3326,57,Hodonin
+3327,20,Strakonice
+3328,24,Karlovy Vary
+3329,54,Brno - mesto
+3331,70,Karvina
+3332,46,Nachod
+3333,10,Praha - vychod
+3334,1,Hl.m. Praha
+3335,19,Prachatice
+3336,64,Zlin
+3337,53,Blansko
+3338,69,Jesenik
+3339,31,Tachov
+3340,54,Brno - mesto
+3342,73,Opava
+3344,42,Havlickuv Brod
+3345,37,Litomerice
+3347,11,Praha - zapad
+3348,38,Louny
+3349,42,Havlickuv Brod
+3350,30,Sokolov
+3352,23,Cheb
+3354,62,Uherske Hradiste
+3355,38,Louny
+3356,73,Opava
+3357,63,Vyskov
+3358,16,Jindrichuv Hradec
+3359,1,Hl.m. Praha
+3360,43,Hradec Kralove
+3361,40,Teplice
+3365,1,Hl.m. Praha
+3366,54,Brno - mesto
+3368,14,Ceske Budejovice
+3369,1,Hl.m. Praha
+3370,25,Klatovy
+3372,1,Hl.m. Praha
+3373,47,Pardubice
+3375,74,Ostrava - mesto
+3376,11,Praha - zapad
+3378,5,Kolin
+3380,74,Ostrava - mesto
+3381,70,Karvina
+3382,54,Brno - mesto
+3384,41,Usti nad Labem
+3385,11,Praha - zapad
+3386,1,Hl.m. Praha
+3387,58,Jihlava
+3388,53,Blansko
+3389,39,Most
+3390,53,Blansko
+3391,42,Havlickuv Brod
+3392,1,Hl.m. Praha
+3393,73,Opava
+3394,66,Zdar nad Sazavou
+3395,4,Kladno
+3396,18,Pisek
+3397,24,Karlovy Vary
+3399,72,Olomouc
+3402,74,Ostrava - mesto
+3404,56,Breclav
+3405,40,Teplice
+3407,35,Jablonec n. Nisou
+3409,36,Liberec
+3410,54,Brno - mesto
+3412,57,Hodonin
+3414,11,Praha - zapad
+3415,54,Brno - mesto
+3416,35,Jablonec n. Nisou
+3418,70,Karvina
+3420,66,Zdar nad Sazavou
+3421,20,Strakonice
+3422,1,Hl.m. Praha
+3423,12,Pribram
+3424,64,Zlin
+3425,70,Karvina
+3426,73,Opava
+3427,42,Havlickuv Brod
+3429,46,Nachod
+3430,3,Beroun
+3431,70,Karvina
+3432,15,Cesky Krumlov
+3433,71,Novy Jicin
+3435,14,Ceske Budejovice
+3436,30,Sokolov
+3438,43,Hradec Kralove
+3439,62,Uherske Hradiste
+3440,1,Hl.m. Praha
+3441,75,Prerov
+3443,1,Hl.m. Praha
+3444,57,Hodonin
+3445,17,Pelhrimov
+3446,70,Karvina
+3447,54,Brno - mesto
+3448,1,Hl.m. Praha
+3449,27,Plzen - jih
+3450,25,Klatovy
+3451,19,Prachatice
+3453,56,Breclav
+3454,11,Praha - zapad
+3456,54,Brno - mesto
+3457,38,Louny
+3458,33,Decin
+3459,14,Ceske Budejovice
+3461,54,Brno - mesto
+3463,1,Hl.m. Praha
+3464,43,Hradec Kralove
+3465,30,Sokolov
+3466,1,Hl.m. Praha
+3468,68,Frydek - Mistek
+3469,1,Hl.m. Praha
+3470,52,Usti nad Orlici
+3471,1,Hl.m. Praha
+3472,70,Karvina
+3474,32,Ceska Lipa
+3475,19,Prachatice
+3476,52,Usti nad Orlici
+3477,37,Litomerice
+3478,1,Hl.m. Praha
+3480,15,Cesky Krumlov
+3482,71,Novy Jicin
+3483,70,Karvina
+3484,44,Chrudim
+3485,77,Vsetin
+3486,1,Hl.m. Praha
+3487,1,Hl.m. Praha
+3488,1,Hl.m. Praha
+3489,76,Sumperk
+3490,19,Prachatice
+3492,8,Mlada Boleslav
+3493,69,Jesenik
+3494,42,Havlickuv Brod
+3495,64,Zlin
+3497,39,Most
+3498,17,Pelhrimov
+3499,19,Prachatice
+3500,29,Rokycany
+3501,51,Trutnov
+3502,54,Brno - mesto
+3504,40,Teplice
+3505,20,Strakonice
+3506,1,Hl.m. Praha
+3507,32,Ceska Lipa
+3508,38,Louny
+3510,13,Rakovnik
+3511,74,Ostrava - mesto
+3512,49,Semily
+3513,70,Karvina
+3515,61,Trebic
+3516,58,Jihlava
+3517,68,Frydek - Mistek
+3518,33,Decin
+3519,74,Ostrava - mesto
+3520,8,Mlada Boleslav
+3521,4,Kladno
+3522,57,Hodonin
+3523,6,Kutna Hora
+3524,68,Frydek - Mistek
+3525,15,Cesky Krumlov
+3527,77,Vsetin
+3528,73,Opava
+3529,54,Brno - mesto
+3530,16,Jindrichuv Hradec
+3531,43,Hradec Kralove
+3532,56,Breclav
+3533,1,Hl.m. Praha
+3534,50,Svitavy
+3535,37,Litomerice
+3536,55,Brno - venkov
+3537,51,Trutnov
+3538,1,Hl.m. Praha
+3539,36,Liberec
+3540,72,Olomouc
+3542,10,Praha - vychod
+3544,1,Hl.m. Praha
+3545,68,Frydek - Mistek
+3546,3,Beroun
+3547,1,Hl.m. Praha
+3548,1,Hl.m. Praha
+3549,5,Kolin
+3550,54,Brno - mesto
+3552,44,Chrudim
+3554,22,Domazlice
+3556,6,Kutna Hora
+3558,54,Brno - mesto
+3559,57,Hodonin
+3562,1,Hl.m. Praha
+3564,62,Uherske Hradiste
+3565,44,Chrudim
+3566,65,Znojmo
+3567,1,Hl.m. Praha
+3568,1,Hl.m. Praha
+3569,67,Bruntal
+3570,15,Cesky Krumlov
+3571,25,Klatovy
+3572,48,Rychnov nad Kneznou
+3573,8,Mlada Boleslav
+3574,19,Prachatice
+3575,9,Nymburk
+3576,1,Hl.m. Praha
+3577,31,Tachov
+3578,72,Olomouc
+3580,6,Kutna Hora
+3581,33,Decin
+3582,38,Louny
+3583,15,Cesky Krumlov
+3585,29,Rokycany
+3586,60,Prostejov
+3588,76,Sumperk
+3589,12,Pribram
+3590,23,Cheb
+3591,9,Nymburk
+3594,13,Rakovnik
+3595,28,Plzen - sever
+3596,74,Ostrava - mesto
+3597,10,Praha - vychod
+3598,66,Zdar nad Sazavou
+3600,46,Nachod
+3601,19,Prachatice
+3603,42,Havlickuv Brod
+3605,71,Novy Jicin
+3606,63,Vyskov
+3607,18,Pisek
+3608,66,Zdar nad Sazavou
+3610,4,Kladno
+3611,30,Sokolov
+3612,19,Prachatice
+3614,43,Hradec Kralove
+3615,1,Hl.m. Praha
+3616,77,Vsetin
+3617,51,Trutnov
+3618,54,Brno - mesto
+3619,40,Teplice
+3620,21,Tabor
+3621,66,Zdar nad Sazavou
+3623,28,Plzen - sever
+3624,1,Hl.m. Praha
+3627,18,Pisek
+3628,11,Praha - zapad
+3629,42,Havlickuv Brod
+3630,64,Zlin
+3632,16,Jindrichuv Hradec
+3633,72,Olomouc
+3634,1,Hl.m. Praha
+3636,46,Nachod
+3637,64,Zlin
+3638,49,Semily
+3639,73,Opava
+3640,75,Prerov
+3642,19,Prachatice
+3643,26,Plzen - mesto
+3644,75,Prerov
+3645,34,Chomutov
+3646,33,Decin
+3648,3,Beroun
+3649,10,Praha - vychod
+3650,64,Zlin
+3651,35,Jablonec n. Nisou
+3652,1,Hl.m. Praha
+3654,25,Klatovy
+3655,24,Karlovy Vary
+3656,62,Uherske Hradiste
+3658,27,Plzen - jih
+3659,42,Havlickuv Brod
+3660,65,Znojmo
+3661,51,Trutnov
+3662,5,Kolin
+3663,69,Jesenik
+3667,15,Cesky Krumlov
+3669,10,Praha - vychod
+3670,44,Chrudim
+3671,10,Praha - vychod
+3673,1,Hl.m. Praha
+3674,17,Pelhrimov
+3675,70,Karvina
+3676,10,Praha - vychod
+3678,1,Hl.m. Praha
+3679,72,Olomouc
+3681,1,Hl.m. Praha
+3683,74,Ostrava - mesto
+3684,16,Jindrichuv Hradec
+3685,74,Ostrava - mesto
+3686,61,Trebic
+3687,60,Prostejov
+3689,9,Nymburk
+3690,44,Chrudim
+3691,11,Praha - zapad
+3693,15,Cesky Krumlov
+3695,55,Brno - venkov
+3697,9,Nymburk
+3698,44,Chrudim
+3699,1,Hl.m. Praha
+3701,73,Opava
+3702,76,Sumperk
+3703,17,Pelhrimov
+3704,72,Olomouc
+3705,40,Teplice
+3707,74,Ostrava - mesto
+3708,46,Nachod
+3710,59,Kromeriz
+3711,66,Zdar nad Sazavou
+3712,56,Breclav
+3713,41,Usti nad Labem
+3714,8,Mlada Boleslav
+3716,74,Ostrava - mesto
+3717,71,Novy Jicin
+3719,54,Brno - mesto
+3721,64,Zlin
+3722,1,Hl.m. Praha
+3723,18,Pisek
+3724,57,Hodonin
+3727,33,Decin
+3728,66,Zdar nad Sazavou
+3730,59,Kromeriz
+3732,66,Zdar nad Sazavou
+3733,1,Hl.m. Praha
+3734,15,Cesky Krumlov
+3735,18,Pisek
+3737,12,Pribram
+3738,1,Hl.m. Praha
+3739,3,Beroun
+3740,46,Nachod
+3741,16,Jindrichuv Hradec
+3742,56,Breclav
+3745,68,Frydek - Mistek
+3746,66,Zdar nad Sazavou
+3747,1,Hl.m. Praha
+3748,70,Karvina
+3749,65,Znojmo
+3750,1,Hl.m. Praha
+3751,33,Decin
+3753,1,Hl.m. Praha
+3754,1,Hl.m. Praha
+3755,37,Litomerice
+3756,12,Pribram
+3757,5,Kolin
+3758,53,Blansko
+3760,18,Pisek
+3761,48,Rychnov nad Kneznou
+3762,60,Prostejov
+3763,38,Louny
+3765,67,Bruntal
+3766,1,Hl.m. Praha
+3767,14,Ceske Budejovice
+3769,54,Brno - mesto
+3770,33,Decin
+3771,48,Rychnov nad Kneznou
+3773,33,Decin
+3774,1,Hl.m. Praha
+3775,46,Nachod
+3776,74,Ostrava - mesto
+3779,6,Kutna Hora
+3780,37,Litomerice
+3781,17,Pelhrimov
+3782,66,Zdar nad Sazavou
+3783,1,Hl.m. Praha
+3785,5,Kolin
+3786,13,Rakovnik
+3787,21,Tabor
+3788,56,Breclav
+3789,66,Zdar nad Sazavou
+3790,48,Rychnov nad Kneznou
+3791,72,Olomouc
+3792,69,Jesenik
+3793,39,Most
+3794,37,Litomerice
+3795,12,Pribram
+3796,3,Beroun
+3798,1,Hl.m. Praha
+3799,2,Benesov
+3800,38,Louny
+3802,67,Bruntal
+3803,4,Kladno
+3805,68,Frydek - Mistek
+3806,54,Brno - mesto
+3807,33,Decin
+3808,57,Hodonin
+3811,6,Kutna Hora
+3812,1,Hl.m. Praha
+3813,2,Benesov
+3814,1,Hl.m. Praha
+3815,28,Plzen - sever
+3816,1,Hl.m. Praha
+3817,77,Vsetin
+3818,71,Novy Jicin
+3821,22,Domazlice
+3822,48,Rychnov nad Kneznou
+3823,63,Vyskov
+3824,41,Usti nad Labem
+3826,33,Decin
+3829,71,Novy Jicin
+3830,18,Pisek
+3831,39,Most
+3833,19,Prachatice
+3834,1,Hl.m. Praha
+3835,61,Trebic
+3836,77,Vsetin
+3837,39,Most
+3838,65,Znojmo
+3840,50,Svitavy
+3841,26,Plzen - mesto
+3842,74,Ostrava - mesto
+3843,4,Kladno
+3844,71,Novy Jicin
+3845,1,Hl.m. Praha
+3846,42,Havlickuv Brod
+3847,6,Kutna Hora
+3848,45,Jicin
+3849,1,Hl.m. Praha
+3850,45,Jicin
+3852,10,Praha - vychod
+3853,59,Kromeriz
+3854,24,Karlovy Vary
+3855,29,Rokycany
+3856,1,Hl.m. Praha
+3857,72,Olomouc
+3858,18,Pisek
+3860,74,Ostrava - mesto
+3861,11,Praha - zapad
+3862,40,Teplice
+3863,1,Hl.m. Praha
+3865,1,Hl.m. Praha
+3868,66,Zdar nad Sazavou
+3869,17,Pelhrimov
+3870,4,Kladno
+3872,8,Mlada Boleslav
+3873,23,Cheb
+3874,61,Trebic
+3875,1,Hl.m. Praha
+3877,38,Louny
+3880,29,Rokycany
+3881,45,Jicin
+3883,1,Hl.m. Praha
+3884,72,Olomouc
+3885,70,Karvina
+3886,51,Trutnov
+3887,67,Bruntal
+3890,3,Beroun
+3891,75,Prerov
+3892,41,Usti nad Labem
+3893,1,Hl.m. Praha
+3894,29,Rokycany
+3896,5,Kolin
+3897,4,Kladno
+3898,1,Hl.m. Praha
+3899,55,Brno - venkov
+3900,1,Hl.m. Praha
+3902,65,Znojmo
+3903,1,Hl.m. Praha
+3904,29,Rokycany
+3906,64,Zlin
+3907,1,Hl.m. Praha
+3908,73,Opava
+3910,37,Litomerice
+3911,31,Tachov
+3912,1,Hl.m. Praha
+3913,8,Mlada Boleslav
+3914,52,Usti nad Orlici
+3915,20,Strakonice
+3916,47,Pardubice
+3918,5,Kolin
+3919,35,Jablonec n. Nisou
+3920,44,Chrudim
+3921,28,Plzen - sever
+3922,1,Hl.m. Praha
+3924,56,Breclav
+3925,45,Jicin
+3926,54,Brno - mesto
+3927,61,Trebic
+3928,77,Vsetin
+3929,74,Ostrava - mesto
+3930,1,Hl.m. Praha
+3932,59,Kromeriz
+3934,12,Pribram
+3935,71,Novy Jicin
+3936,36,Liberec
+3938,1,Hl.m. Praha
+3939,40,Teplice
+3942,53,Blansko
+3943,1,Hl.m. Praha
+3944,68,Frydek - Mistek
+3946,1,Hl.m. Praha
+3947,23,Cheb
+3948,44,Chrudim
+3950,70,Karvina
+3952,52,Usti nad Orlici
+3953,14,Ceske Budejovice
+3954,64,Zlin
+3956,21,Tabor
+3958,37,Litomerice
+3959,30,Sokolov
+3960,8,Mlada Boleslav
+3961,53,Blansko
+3962,74,Ostrava - mesto
+3963,76,Sumperk
+3964,74,Ostrava - mesto
+3965,1,Hl.m. Praha
+3967,36,Liberec
+3969,4,Kladno
+3970,46,Nachod
+3971,1,Hl.m. Praha
+3972,1,Hl.m. Praha
+3973,1,Hl.m. Praha
+3974,68,Frydek - Mistek
+3975,64,Zlin
+3976,43,Hradec Kralove
+3977,8,Mlada Boleslav
+3978,18,Pisek
+3979,54,Brno - mesto
+3980,1,Hl.m. Praha
+3981,19,Prachatice
+3982,45,Jicin
+3983,1,Hl.m. Praha
+3984,1,Hl.m. Praha
+3985,75,Prerov
+3987,67,Bruntal
+3988,53,Blansko
+3990,29,Rokycany
+3991,11,Praha - zapad
+3992,71,Novy Jicin
+3993,14,Ceske Budejovice
+3994,21,Tabor
+3995,1,Hl.m. Praha
+3996,36,Liberec
+3997,13,Rakovnik
+3998,75,Prerov
+3999,30,Sokolov
+4000,40,Teplice
+4001,66,Zdar nad Sazavou
+4002,25,Klatovy
+4003,8,Mlada Boleslav
+4004,30,Sokolov
+4006,25,Klatovy
+4007,23,Cheb
+4009,28,Plzen - sever
+4010,4,Kladno
+4011,62,Uherske Hradiste
+4012,56,Breclav
+4013,1,Hl.m. Praha
+4014,17,Pelhrimov
+4015,65,Znojmo
+4016,13,Rakovnik
+4018,3,Beroun
+4019,11,Praha - zapad
+4020,5,Kolin
+4021,45,Jicin
+4022,1,Hl.m. Praha
+4024,3,Beroun
+4026,76,Sumperk
+4027,16,Jindrichuv Hradec
+4029,17,Pelhrimov
+4030,44,Chrudim
+4031,67,Bruntal
+4032,35,Jablonec n. Nisou
+4033,51,Trutnov
+4034,58,Jihlava
+4036,25,Klatovy
+4037,1,Hl.m. Praha
+4040,59,Kromeriz
+4042,1,Hl.m. Praha
+4043,70,Karvina
+4044,22,Domazlice
+4046,1,Hl.m. Praha
+4048,4,Kladno
+4049,4,Kladno
+4050,47,Pardubice
+4051,74,Ostrava - mesto
+4053,70,Karvina
+4054,42,Havlickuv Brod
+4055,74,Ostrava - mesto
+4056,63,Vyskov
+4057,70,Karvina
+4059,54,Brno - mesto
+4060,44,Chrudim
+4061,8,Mlada Boleslav
+4062,71,Novy Jicin
+4063,45,Jicin
+4065,73,Opava
+4066,30,Sokolov
+4067,21,Tabor
+4068,11,Praha - zapad
+4069,68,Frydek - Mistek
+4071,1,Hl.m. Praha
+4073,24,Karlovy Vary
+4075,8,Mlada Boleslav
+4076,49,Semily
+4077,68,Frydek - Mistek
+4078,23,Cheb
+4079,27,Plzen - jih
+4080,21,Tabor
+4081,9,Nymburk
+4082,58,Jihlava
+4083,74,Ostrava - mesto
+4084,55,Brno - venkov
+4086,63,Vyskov
+4087,64,Zlin
+4088,68,Frydek - Mistek
+4090,23,Cheb
+4091,29,Rokycany
+4092,14,Ceske Budejovice
+4093,1,Hl.m. Praha
+4094,2,Benesov
+4095,25,Klatovy
+4098,13,Rakovnik
+4099,12,Pribram
+4100,74,Ostrava - mesto
+4101,1,Hl.m. Praha
+4102,4,Kladno
+4104,23,Cheb
+4105,16,Jindrichuv Hradec
+4106,1,Hl.m. Praha
+4107,49,Semily
+4108,43,Hradec Kralove
+4109,63,Vyskov
+4112,38,Louny
+4113,76,Sumperk
+4114,63,Vyskov
+4115,33,Decin
+4116,36,Liberec
+4117,53,Blansko
+4118,28,Plzen - sever
+4119,62,Uherske Hradiste
+4121,23,Cheb
+4122,39,Most
+4124,19,Prachatice
+4125,31,Tachov
+4126,70,Karvina
+4129,75,Prerov
+4131,48,Rychnov nad Kneznou
+4132,42,Havlickuv Brod
+4134,1,Hl.m. Praha
+4136,31,Tachov
+4137,21,Tabor
+4138,11,Praha - zapad
+4139,74,Ostrava - mesto
+4140,70,Karvina
+4141,9,Nymburk
+4142,36,Liberec
+4143,27,Plzen - jih
+4145,73,Opava
+4146,9,Nymburk
+4147,64,Zlin
+4149,1,Hl.m. Praha
+4151,73,Opava
+4153,32,Ceska Lipa
+4155,59,Kromeriz
+4156,5,Kolin
+4157,1,Hl.m. Praha
+4158,35,Jablonec n. Nisou
+4160,16,Jindrichuv Hradec
+4161,22,Domazlice
+4163,4,Kladno
+4164,45,Jicin
+4165,53,Blansko
+4166,1,Hl.m. Praha
+4167,6,Kutna Hora
+4169,58,Jihlava
+4171,1,Hl.m. Praha
+4172,1,Hl.m. Praha
+4173,52,Usti nad Orlici
+4174,63,Vyskov
+4175,13,Rakovnik
+4176,32,Ceska Lipa
+4177,34,Chomutov
+4178,32,Ceska Lipa
+4179,54,Brno - mesto
+4180,63,Vyskov
+4181,76,Sumperk
+4182,16,Jindrichuv Hradec
+4184,8,Mlada Boleslav
+4185,51,Trutnov
+4186,38,Louny
+4187,25,Klatovy
+4188,1,Hl.m. Praha
+4189,64,Zlin
+4190,17,Pelhrimov
+4191,32,Ceska Lipa
+4192,76,Sumperk
+4193,8,Mlada Boleslav
+4194,63,Vyskov
+4196,55,Brno - venkov
+4198,23,Cheb
+4201,3,Beroun
+4203,71,Novy Jicin
+4205,30,Sokolov
+4206,22,Domazlice
+4207,58,Jihlava
+4209,70,Karvina
+4210,40,Teplice
+4211,22,Domazlice
+4212,53,Blansko
+4213,64,Zlin
+4215,41,Usti nad Labem
+4217,9,Nymburk
+4218,48,Rychnov nad Kneznou
+4219,51,Trutnov
+4220,33,Decin
+4221,63,Vyskov
+4222,60,Prostejov
+4223,54,Brno - mesto
+4224,42,Havlickuv Brod
+4225,76,Sumperk
+4226,31,Tachov
+4227,51,Trutnov
+4229,36,Liberec
+4230,74,Ostrava - mesto
+4231,1,Hl.m. Praha
+4232,70,Karvina
+4233,46,Nachod
+4234,70,Karvina
+4235,9,Nymburk
+4236,42,Havlickuv Brod
+4237,2,Benesov
+4238,41,Usti nad Labem
+4239,70,Karvina
+4240,46,Nachod
+4241,20,Strakonice
+4243,7,Melnik
+4244,68,Frydek - Mistek
+4246,36,Liberec
+4247,26,Plzen - mesto
+4248,9,Nymburk
+4249,52,Usti nad Orlici
+4250,72,Olomouc
+4251,75,Prerov
+4253,16,Jindrichuv Hradec
+4254,65,Znojmo
+4255,66,Zdar nad Sazavou
+4256,70,Karvina
+4257,1,Hl.m. Praha
+4258,44,Chrudim
+4259,10,Praha - vychod
+4260,12,Pribram
+4261,34,Chomutov
+4262,59,Kromeriz
+4263,73,Opava
+4264,74,Ostrava - mesto
+4265,59,Kromeriz
+4266,1,Hl.m. Praha
+4267,24,Karlovy Vary
+4269,45,Jicin
+4270,58,Jihlava
+4272,42,Havlickuv Brod
+4273,18,Pisek
+4274,70,Karvina
+4275,49,Semily
+4276,74,Ostrava - mesto
+4278,33,Decin
+4279,51,Trutnov
+4280,55,Brno - venkov
+4281,54,Brno - mesto
+4282,23,Cheb
+4283,27,Plzen - jih
+4284,68,Frydek - Mistek
+4286,6,Kutna Hora
+4287,62,Uherske Hradiste
+4288,70,Karvina
+4289,66,Zdar nad Sazavou
+4290,32,Ceska Lipa
+4291,58,Jihlava
+4292,72,Olomouc
+4293,4,Kladno
+4295,18,Pisek
+4296,57,Hodonin
+4298,33,Decin
+4299,50,Svitavy
+4300,1,Hl.m. Praha
+4301,14,Ceske Budejovice
+4302,30,Sokolov
+4303,21,Tabor
+4304,5,Kolin
+4305,40,Teplice
+4307,1,Hl.m. Praha
+4308,44,Chrudim
+4309,39,Most
+4310,65,Znojmo
+4311,59,Kromeriz
+4312,72,Olomouc
+4313,7,Melnik
+4314,58,Jihlava
+4315,74,Ostrava - mesto
+4316,1,Hl.m. Praha
+4317,53,Blansko
+4318,43,Hradec Kralove
+4320,66,Zdar nad Sazavou
+4321,19,Prachatice
+4323,40,Teplice
+4325,55,Brno - venkov
+4326,1,Hl.m. Praha
+4328,59,Kromeriz
+4329,64,Zlin
+4330,33,Decin
+4331,5,Kolin
+4332,57,Hodonin
+4333,1,Hl.m. Praha
+4335,54,Brno - mesto
+4336,1,Hl.m. Praha
+4337,29,Rokycany
+4338,30,Sokolov
+4339,59,Kromeriz
+4340,1,Hl.m. Praha
+4341,76,Sumperk
+4342,63,Vyskov
+4343,27,Plzen - jih
+4344,54,Brno - mesto
+4345,18,Pisek
+4346,3,Beroun
+4347,75,Prerov
+4348,3,Beroun
+4349,1,Hl.m. Praha
+4352,72,Olomouc
+4353,28,Plzen - sever
+4355,1,Hl.m. Praha
+4358,70,Karvina
+4359,43,Hradec Kralove
+4360,19,Prachatice
+4361,46,Nachod
+4362,50,Svitavy
+4364,22,Domazlice
+4365,29,Rokycany
+4367,14,Ceske Budejovice
+4368,32,Ceska Lipa
+4369,53,Blansko
+4370,59,Kromeriz
+4371,32,Ceska Lipa
+4372,3,Beroun
+4373,51,Trutnov
+4376,70,Karvina
+4377,48,Rychnov nad Kneznou
+4380,1,Hl.m. Praha
+4381,56,Breclav
+4382,18,Pisek
+4383,21,Tabor
+4384,10,Praha - vychod
+4385,21,Tabor
+4386,53,Blansko
+4387,52,Usti nad Orlici
+4388,4,Kladno
+4389,10,Praha - vychod
+4390,7,Melnik
+4393,1,Hl.m. Praha
+4394,38,Louny
+4395,36,Liberec
+4396,63,Vyskov
+4398,77,Vsetin
+4399,61,Trebic
+4400,54,Brno - mesto
+4401,8,Mlada Boleslav
+4402,23,Cheb
+4403,36,Liberec
+4404,31,Tachov
+4405,47,Pardubice
+4406,1,Hl.m. Praha
+4407,53,Blansko
+4408,62,Uherske Hradiste
+4410,24,Karlovy Vary
+4411,54,Brno - mesto
+4413,74,Ostrava - mesto
+4414,50,Svitavy
+4415,4,Kladno
+4416,67,Bruntal
+4417,1,Hl.m. Praha
+4418,28,Plzen - sever
+4420,55,Brno - venkov
+4421,1,Hl.m. Praha
+4422,76,Sumperk
+4423,27,Plzen - jih
+4424,21,Tabor
+4426,26,Plzen - mesto
+4427,30,Sokolov
+4428,38,Louny
+4429,64,Zlin
+4431,58,Jihlava
+4432,1,Hl.m. Praha
+4433,1,Hl.m. Praha
+4434,64,Zlin
+4436,27,Plzen - jih
+4437,70,Karvina
+4439,70,Karvina
+4440,33,Decin
+4442,23,Cheb
+4444,77,Vsetin
+4446,71,Novy Jicin
+4448,70,Karvina
+4449,8,Mlada Boleslav
+4450,67,Bruntal
+4451,50,Svitavy
+4452,70,Karvina
+4453,61,Trebic
+4455,70,Karvina
+4456,30,Sokolov
+4457,1,Hl.m. Praha
+4458,45,Jicin
+4459,1,Hl.m. Praha
+4461,50,Svitavy
+4462,1,Hl.m. Praha
+4463,76,Sumperk
+4464,53,Blansko
+4465,74,Ostrava - mesto
+4466,75,Prerov
+4467,20,Strakonice
+4469,8,Mlada Boleslav
+4471,64,Zlin
+4472,74,Ostrava - mesto
+4473,1,Hl.m. Praha
+4474,3,Beroun
+4476,3,Beroun
+4477,14,Ceske Budejovice
+4479,2,Benesov
+4480,74,Ostrava - mesto
+4481,1,Hl.m. Praha
+4482,56,Breclav
+4483,63,Vyskov
+4484,37,Litomerice
+4485,36,Liberec
+4487,22,Domazlice
+4489,76,Sumperk
+4491,2,Benesov
+4492,16,Jindrichuv Hradec
+4493,33,Decin
+4494,54,Brno - mesto
+4495,66,Zdar nad Sazavou
+4496,10,Praha - vychod
+4498,31,Tachov
+4500,17,Pelhrimov
+4501,70,Karvina
+4502,21,Tabor
+4504,33,Decin
+4506,43,Hradec Kralove
+4507,1,Hl.m. Praha
+4508,54,Brno - mesto
+4510,34,Chomutov
+4511,51,Trutnov
+4512,1,Hl.m. Praha
+4514,65,Znojmo
+4515,59,Kromeriz
+4516,1,Hl.m. Praha
+4518,5,Kolin
+4519,70,Karvina
+4520,1,Hl.m. Praha
+4521,1,Hl.m. Praha
+4522,68,Frydek - Mistek
+4524,77,Vsetin
+4526,9,Nymburk
+4527,1,Hl.m. Praha
+4528,28,Plzen - sever
+4529,37,Litomerice
+4531,64,Zlin
+4532,39,Most
+4533,64,Zlin
+4534,38,Louny
+4535,1,Hl.m. Praha
+4536,44,Chrudim
+4539,55,Brno - venkov
+4540,69,Jesenik
+4541,32,Ceska Lipa
+4542,29,Rokycany
+4543,1,Hl.m. Praha
+4544,52,Usti nad Orlici
+4545,3,Beroun
+4546,23,Cheb
+4547,22,Domazlice
+4548,7,Melnik
+4549,10,Praha - vychod
+4550,72,Olomouc
+4551,19,Prachatice
+4553,1,Hl.m. Praha
+4554,70,Karvina
+4555,52,Usti nad Orlici
+4556,74,Ostrava - mesto
+4557,44,Chrudim
+4559,31,Tachov
+4560,9,Nymburk
+4561,40,Teplice
+4562,25,Klatovy
+4563,10,Praha - vychod
+4565,21,Tabor
+4567,70,Karvina
+4568,70,Karvina
+4569,6,Kutna Hora
+4570,1,Hl.m. Praha
+4571,1,Hl.m. Praha
+4572,10,Praha - vychod
+4573,5,Kolin
+4574,20,Strakonice
+4575,36,Liberec
+4576,53,Blansko
+4577,64,Zlin
+4578,15,Cesky Krumlov
+4579,74,Ostrava - mesto
+4580,30,Sokolov
+4581,1,Hl.m. Praha
+4582,44,Chrudim
+4583,61,Trebic
+4584,7,Melnik
+4585,9,Nymburk
+4587,36,Liberec
+4588,53,Blansko
+4589,38,Louny
+4590,1,Hl.m. Praha
+4591,43,Hradec Kralove
+4592,1,Hl.m. Praha
+4593,72,Olomouc
+4594,1,Hl.m. Praha
+4596,74,Ostrava - mesto
+4597,1,Hl.m. Praha
+4598,25,Klatovy
+4600,70,Karvina
+4601,74,Ostrava - mesto
+4603,69,Jesenik
+4604,1,Hl.m. Praha
+4605,18,Pisek
+4606,8,Mlada Boleslav
+4607,74,Ostrava - mesto
+4608,41,Usti nad Labem
+4609,7,Melnik
+4610,34,Chomutov
+4611,1,Hl.m. Praha
+4612,44,Chrudim
+4615,56,Breclav
+4617,45,Jicin
+4619,77,Vsetin
+4620,54,Brno - mesto
+4622,50,Svitavy
+4623,68,Frydek - Mistek
+4624,48,Rychnov nad Kneznou
+4626,3,Beroun
+4627,1,Hl.m. Praha
+4629,76,Sumperk
+4631,8,Mlada Boleslav
+4632,1,Hl.m. Praha
+4633,62,Uherske Hradiste
+4634,67,Bruntal
+4636,48,Rychnov nad Kneznou
+4637,61,Trebic
+4638,33,Decin
+4639,20,Strakonice
+4640,75,Prerov
+4641,8,Mlada Boleslav
+4643,1,Hl.m. Praha
+4644,20,Strakonice
+4647,8,Mlada Boleslav
+4648,33,Decin
+4649,45,Jicin
+4650,54,Brno - mesto
+4651,2,Benesov
+4652,53,Blansko
+4653,4,Kladno
+4654,2,Benesov
+4656,1,Hl.m. Praha
+4657,15,Cesky Krumlov
+4658,33,Decin
+4659,50,Svitavy
+4660,60,Prostejov
+4661,1,Hl.m. Praha
+4662,43,Hradec Kralove
+4663,72,Olomouc
+4664,38,Louny
+4665,26,Plzen - mesto
+4667,25,Klatovy
+4670,51,Trutnov
+4672,44,Chrudim
+4673,69,Jesenik
+4674,59,Kromeriz
+4675,23,Cheb
+4677,3,Beroun
+4678,21,Tabor
+4679,10,Praha - vychod
+4680,72,Olomouc
+4681,1,Hl.m. Praha
+4683,51,Trutnov
+4684,1,Hl.m. Praha
+4685,62,Uherske Hradiste
+4686,39,Most
+4687,16,Jindrichuv Hradec
+4689,50,Svitavy
+4690,1,Hl.m. Praha
+4692,43,Hradec Kralove
+4693,42,Havlickuv Brod
+4695,52,Usti nad Orlici
+4697,27,Plzen - jih
+4698,45,Jicin
+4699,13,Rakovnik
+4700,70,Karvina
+4701,22,Domazlice
+4704,12,Pribram
+4705,1,Hl.m. Praha
+4706,58,Jihlava
+4708,18,Pisek
+4709,54,Brno - mesto
+4710,52,Usti nad Orlici
+4712,37,Litomerice
+4713,13,Rakovnik
+4715,1,Hl.m. Praha
+4716,10,Praha - vychod
+4717,32,Ceska Lipa
+4718,2,Benesov
+4719,23,Cheb
+4720,33,Decin
+4721,65,Znojmo
+4722,8,Mlada Boleslav
+4723,1,Hl.m. Praha
+4724,53,Blansko
+4725,34,Chomutov
+4727,74,Ostrava - mesto
+4729,18,Pisek
+4730,68,Frydek - Mistek
+4731,52,Usti nad Orlici
+4732,70,Karvina
+4733,1,Hl.m. Praha
+4734,72,Olomouc
+4736,56,Breclav
+4737,24,Karlovy Vary
+4739,37,Litomerice
+4740,28,Plzen - sever
+4741,74,Ostrava - mesto
+4742,61,Trebic
+4744,6,Kutna Hora
+4745,23,Cheb
+4746,39,Most
+4747,76,Sumperk
+4749,57,Hodonin
+4750,70,Karvina
+4751,35,Jablonec n. Nisou
+4752,7,Melnik
+4754,27,Plzen - jih
+4755,71,Novy Jicin
+4756,22,Domazlice
+4758,50,Svitavy
+4760,70,Karvina
+4762,76,Sumperk
+4763,1,Hl.m. Praha
+4764,54,Brno - mesto
+4765,48,Rychnov nad Kneznou
+4766,22,Domazlice
+4767,26,Plzen - mesto
+4768,1,Hl.m. Praha
+4769,22,Domazlice
+4771,64,Zlin
+4772,6,Kutna Hora
+4773,33,Decin
+4774,59,Kromeriz
+4776,1,Hl.m. Praha
+4777,64,Zlin
+4779,52,Usti nad Orlici
+4780,54,Brno - mesto
+4781,9,Nymburk
+4782,25,Klatovy
+4783,31,Tachov
+4784,42,Havlickuv Brod
+4786,54,Brno - mesto
+4787,36,Liberec
+4788,39,Most
+4789,24,Karlovy Vary
+4790,75,Prerov
+4791,51,Trutnov
+4792,20,Strakonice
+4793,55,Brno - venkov
+4794,20,Strakonice
+4795,74,Ostrava - mesto
+4796,7,Melnik
+4797,59,Kromeriz
+4798,37,Litomerice
+4799,75,Prerov
+4801,23,Cheb
+4802,26,Plzen - mesto
+4803,67,Bruntal
+4804,51,Trutnov
+4805,1,Hl.m. Praha
+4806,19,Prachatice
+4807,25,Klatovy
+4808,23,Cheb
+4809,19,Prachatice
+4811,77,Vsetin
+4812,1,Hl.m. Praha
+4813,43,Hradec Kralove
+4814,54,Brno - mesto
+4815,15,Cesky Krumlov
+4817,12,Pribram
+4818,1,Hl.m. Praha
+4819,62,Uherske Hradiste
+4820,2,Benesov
+4821,35,Jablonec n. Nisou
+4823,7,Melnik
+4824,54,Brno - mesto
+4826,25,Klatovy
+4831,27,Plzen - jih
+4832,56,Breclav
+4833,30,Sokolov
+4836,73,Opava
+4837,56,Breclav
+4853,58,Jihlava
+4861,57,Hodonin
+4862,1,Hl.m. Praha
+4863,1,Hl.m. Praha
+4877,45,Jicin
+4882,36,Liberec
+4886,23,Cheb
+4892,34,Chomutov
+4901,72,Olomouc
+4904,38,Louny
+4906,64,Zlin
+4915,40,Teplice
+4916,52,Usti nad Orlici
+4918,11,Praha - zapad
+4919,49,Semily
+4923,66,Zdar nad Sazavou
+4925,45,Jicin
+4927,72,Olomouc
+4928,9,Nymburk
+4929,74,Ostrava - mesto
+4930,1,Hl.m. Praha
+4937,54,Brno - mesto
+4941,60,Prostejov
+4942,38,Louny
+4944,58,Jihlava
+4949,54,Brno - mesto
+4956,6,Kutna Hora
+4959,77,Vsetin
+4961,54,Brno - mesto
+4968,50,Svitavy
+4969,64,Zlin
+4972,70,Karvina
+4974,5,Kolin
+4976,36,Liberec
+4979,7,Melnik
+4989,28,Plzen - sever
+4992,55,Brno - venkov
+4993,1,Hl.m. Praha
+5002,65,Znojmo
+5010,42,Havlickuv Brod
+5012,27,Plzen - jih
+5013,74,Ostrava - mesto
+5016,1,Hl.m. Praha
+5028,28,Plzen - sever
+5030,1,Hl.m. Praha
+5046,1,Hl.m. Praha
+5050,62,Uherske Hradiste
+5056,67,Bruntal
+5067,21,Tabor
+5072,1,Hl.m. Praha
+5081,1,Hl.m. Praha
+5093,55,Brno - venkov
+5107,18,Pisek
+5111,50,Svitavy
+5117,52,Usti nad Orlici
+5126,43,Hradec Kralove
+5127,70,Karvina
+5128,70,Karvina
+5132,51,Trutnov
+5133,66,Zdar nad Sazavou
+5134,56,Breclav
+5137,5,Kolin
+5138,28,Plzen - sever
+5141,54,Brno - mesto
+5143,77,Vsetin
+5145,26,Plzen - mesto
+5149,15,Cesky Krumlov
+5152,43,Hradec Kralove
+5159,39,Most
+5163,43,Hradec Kralove
+5164,1,Hl.m. Praha
+5171,64,Zlin
+5175,63,Vyskov
+5180,1,Hl.m. Praha
+5189,74,Ostrava - mesto
+5200,33,Decin
+5203,61,Trebic
+5204,47,Pardubice
+5212,72,Olomouc
+5213,1,Hl.m. Praha
+5214,47,Pardubice
+5217,74,Ostrava - mesto
+5223,2,Benesov
+5224,29,Rokycany
+5232,74,Ostrava - mesto
+5233,31,Tachov
+5236,25,Klatovy
+5237,1,Hl.m. Praha
+5240,74,Ostrava - mesto
+5241,63,Vyskov
+5243,2,Benesov
+5245,38,Louny
+5246,31,Tachov
+5247,47,Pardubice
+5249,5,Kolin
+5253,69,Jesenik
+5263,1,Hl.m. Praha
+5273,39,Most
+5275,28,Plzen - sever
+5277,44,Chrudim
+5281,73,Opava
+5283,23,Cheb
+5284,51,Trutnov
+5287,77,Vsetin
+5308,41,Usti nad Labem
+5312,71,Novy Jicin
+5318,74,Ostrava - mesto
+5320,24,Karlovy Vary
+5322,73,Opava
+5323,14,Ceske Budejovice
+5325,66,Zdar nad Sazavou
+5333,39,Most
+5334,48,Rychnov nad Kneznou
+5337,32,Ceska Lipa
+5347,41,Usti nad Labem
+5352,40,Teplice
+5353,48,Rychnov nad Kneznou
+5354,30,Sokolov
+5358,54,Brno - mesto
+5362,47,Pardubice
+5364,62,Uherske Hradiste
+5366,60,Prostejov
+5374,63,Vyskov
+5376,14,Ceske Budejovice
+5379,60,Prostejov
+5384,73,Opava
+5385,67,Bruntal
+5389,17,Pelhrimov
+5392,16,Jindrichuv Hradec
+5393,4,Kladno
+5395,45,Jicin
+5397,72,Olomouc
+5399,24,Karlovy Vary
+5402,70,Karvina
+5404,58,Jihlava
+5409,54,Brno - mesto
+5413,33,Decin
+5420,61,Trebic
+5433,50,Svitavy
+5441,33,Decin
+5445,69,Jesenik
+5450,8,Mlada Boleslav
+5460,63,Vyskov
+5461,9,Nymburk
+5468,68,Frydek - Mistek
+5469,63,Vyskov
+5472,53,Blansko
+5473,70,Karvina
+5478,33,Decin
+5487,56,Breclav
+5517,27,Plzen - jih
+5521,9,Nymburk
+5526,27,Plzen - jih
+5530,12,Pribram
+5531,4,Kladno
+5539,74,Ostrava - mesto
+5563,1,Hl.m. Praha
+5565,3,Beroun
+5574,9,Nymburk
+5579,77,Vsetin
+5606,4,Kladno
+5617,56,Breclav
+5618,63,Vyskov
+5642,70,Karvina
+5684,8,Mlada Boleslav
+5699,73,Opava
+5701,2,Benesov
+5704,66,Zdar nad Sazavou
+5722,64,Zlin
+5727,54,Brno - mesto
+5736,1,Hl.m. Praha
+5753,39,Most
+5760,66,Zdar nad Sazavou
+5774,46,Nachod
+5788,72,Olomouc
+5801,26,Plzen - mesto
+5826,15,Cesky Krumlov
+5858,52,Usti nad Orlici
+5860,47,Pardubice
+5866,67,Bruntal
+5873,5,Kolin
+5911,14,Ceske Budejovice
+5928,42,Havlickuv Brod
+5965,12,Pribram
+5977,43,Hradec Kralove
+5978,33,Decin
+6001,60,Prostejov
+6015,54,Brno - mesto
+6033,1,Hl.m. Praha
+6034,20,Strakonice
+6039,1,Hl.m. Praha
+6042,53,Blansko
+6052,31,Tachov
+6067,70,Karvina
+6077,54,Brno - mesto
+6112,43,Hradec Kralove
+6114,66,Zdar nad Sazavou
+6115,13,Rakovnik
+6122,6,Kutna Hora
+6144,74,Ostrava - mesto
+6175,72,Olomouc
+6178,1,Hl.m. Praha
+6183,1,Hl.m. Praha
+6185,58,Jihlava
+6191,68,Frydek - Mistek
+6196,68,Frydek - Mistek
+6235,5,Kolin
+6255,54,Brno - mesto
+6257,75,Prerov
+6272,1,Hl.m. Praha
+6275,13,Rakovnik
+6299,1,Hl.m. Praha
+6301,55,Brno - venkov
+6317,77,Vsetin
+6342,8,Mlada Boleslav
+6349,72,Olomouc
+6359,64,Zlin
+6363,4,Kladno
+6366,49,Semily
+6367,44,Chrudim
+6383,15,Cesky Krumlov
+6391,34,Chomutov
+6408,47,Pardubice
+6417,40,Teplice
+6422,28,Plzen - sever
+6452,64,Zlin
+6468,70,Karvina
+6469,4,Kladno
+6473,76,Sumperk
+6478,70,Karvina
+6481,54,Brno - mesto
+6485,48,Rychnov nad Kneznou
+6499,44,Chrudim
+6501,1,Hl.m. Praha
+6511,47,Pardubice
+6544,66,Zdar nad Sazavou
+6546,15,Cesky Krumlov
+6551,24,Karlovy Vary
+6552,71,Novy Jicin
+6567,34,Chomutov
+6571,72,Olomouc
+6604,1,Hl.m. Praha
+6610,57,Hodonin
+6616,52,Usti nad Orlici
+6619,13,Rakovnik
+6644,1,Hl.m. Praha
+6691,43,Hradec Kralove
+6698,43,Hradec Kralove
+6729,15,Cesky Krumlov
+6731,13,Rakovnik
+6749,9,Nymburk
+6753,15,Cesky Krumlov
+6764,19,Prachatice
+6789,70,Karvina
+6798,61,Trebic
+6803,5,Kolin
+6827,59,Kromeriz
+6829,10,Praha - vychod
+6844,53,Blansko
+6886,66,Zdar nad Sazavou
+6892,1,Hl.m. Praha
+6895,42,Havlickuv Brod
+6906,64,Zlin
+6922,14,Ceske Budejovice
+6924,17,Pelhrimov
+6936,52,Usti nad Orlici
+6944,43,Hradec Kralove
+6946,74,Ostrava - mesto
+6967,44,Chrudim
+6978,72,Olomouc
+6987,1,Hl.m. Praha
+7010,70,Karvina
+7043,77,Vsetin
+7065,5,Kolin
+7100,44,Chrudim
+7102,75,Prerov
+7112,76,Sumperk
+7127,54,Brno - mesto
+7150,45,Jicin
+7166,15,Cesky Krumlov
+7186,27,Plzen - jih
+7195,50,Svitavy
+7234,11,Praha - zapad
+7241,1,Hl.m. Praha
+7286,47,Pardubice
+7291,6,Kutna Hora
+7299,1,Hl.m. Praha
+7311,56,Breclav
+7324,1,Hl.m. Praha
+7325,24,Karlovy Vary
+7327,49,Semily
+7339,19,Prachatice
+7348,6,Kutna Hora
+7366,29,Rokycany
+7390,1,Hl.m. Praha
+7411,54,Brno - mesto
+7422,74,Ostrava - mesto
+7434,34,Chomutov
+7435,67,Bruntal
+7521,74,Ostrava - mesto
+7567,5,Kolin
+7576,38,Louny
+7586,56,Breclav
+7594,64,Zlin
+7614,64,Zlin
+7632,1,Hl.m. Praha
+7672,26,Plzen - mesto
+7678,3,Beroun
+7683,74,Ostrava - mesto
+7723,48,Rychnov nad Kneznou
+7727,31,Tachov
+7753,31,Tachov
+7765,1,Hl.m. Praha
+7772,1,Hl.m. Praha
+7787,34,Chomutov
+7796,50,Svitavy
+7800,16,Jindrichuv Hradec
+7814,61,Trebic
+7815,12,Pribram
+7843,6,Kutna Hora
+7855,7,Melnik
+7862,74,Ostrava - mesto
+7863,72,Olomouc
+7864,34,Chomutov
+7914,38,Louny
+7959,1,Hl.m. Praha
+7970,74,Ostrava - mesto
+7980,16,Jindrichuv Hradec
+8013,72,Olomouc
+8030,1,Hl.m. Praha
+8064,54,Brno - mesto
+8074,61,Trebic
+8076,16,Jindrichuv Hradec
+8089,35,Jablonec n. Nisou
+8091,49,Semily
+8096,38,Louny
+8105,48,Rychnov nad Kneznou
+8130,62,Uherske Hradiste
+8200,1,Hl.m. Praha
+8217,1,Hl.m. Praha
+8276,43,Hradec Kralove
+8287,14,Ceske Budejovice
+8295,15,Cesky Krumlov
+8327,48,Rychnov nad Kneznou
+8333,60,Prostejov
+8342,76,Sumperk
+8356,3,Beroun
+8359,74,Ostrava - mesto
+8362,74,Ostrava - mesto
+8366,41,Usti nad Labem
+8392,36,Liberec
+8432,38,Louny
+8463,75,Prerov
+8489,75,Prerov
+8502,51,Trutnov
+8506,69,Jesenik
+8510,55,Brno - venkov
+8548,57,Hodonin
+8568,1,Hl.m. Praha
+8571,54,Brno - mesto
+8598,64,Zlin
+8610,1,Hl.m. Praha
+8615,12,Pribram
+8636,71,Novy Jicin
+8661,1,Hl.m. Praha
+8666,7,Melnik
+8667,77,Vsetin
+8670,5,Kolin
+8677,49,Semily
+8692,71,Novy Jicin
+8726,10,Praha - vychod
+8737,17,Pelhrimov
+8764,70,Karvina
+8777,11,Praha - zapad
+9173,1,Hl.m. Praha
+9196,21,Tabor
+9202,68,Frydek - Mistek
+9217,19,Prachatice
+9226,64,Zlin
+9231,1,Hl.m. Praha
+9236,4,Kladno
+9250,1,Hl.m. Praha
+9273,39,Most
+9276,4,Kladno
+9313,9,Nymburk
+9316,63,Vyskov
+9340,54,Brno - mesto
+9346,43,Hradec Kralove
+9362,56,Breclav
+9366,72,Olomouc
+9370,59,Kromeriz
+9403,16,Jindrichuv Hradec
+9417,21,Tabor
+9418,1,Hl.m. Praha
+9427,62,Uherske Hradiste
+9433,72,Olomouc
+9450,68,Frydek - Mistek
+9456,40,Teplice
+9457,46,Nachod
+9505,1,Hl.m. Praha
+9546,50,Svitavy
+9555,13,Rakovnik
+9569,19,Prachatice
+9582,2,Benesov
+9593,74,Ostrava - mesto
+9606,52,Usti nad Orlici
+9611,23,Cheb
+9616,74,Ostrava - mesto
+9641,64,Zlin
+9663,19,Prachatice
+9670,38,Louny
+9675,60,Prostejov
+9680,36,Liberec
+9702,1,Hl.m. Praha
+9715,75,Prerov
+9717,52,Usti nad Orlici
+9721,34,Chomutov
+9755,23,Cheb
+9760,27,Plzen - jih
+9775,70,Karvina
+9798,69,Jesenik
+9820,59,Kromeriz
+9833,51,Trutnov
+9844,55,Brno - venkov
+9846,54,Brno - mesto
+9872,9,Nymburk
+9880,10,Praha - vychod
+9914,36,Liberec
+9915,44,Chrudim
+9929,47,Pardubice
+9930,9,Nymburk
+9933,1,Hl.m. Praha
+9945,1,Hl.m. Praha
+9973,24,Karlovy Vary
+9987,73,Opava
+9995,54,Brno - mesto
+9997,67,Bruntal
+10023,59,Kromeriz
+10040,37,Litomerice
+10043,45,Jicin
+10046,5,Kolin
+10066,64,Zlin
+10070,9,Nymburk
+10075,48,Rychnov nad Kneznou
+10076,26,Plzen - mesto
+10090,29,Rokycany
+10095,11,Praha - zapad
+10145,52,Usti nad Orlici
+10159,50,Svitavy
+10198,31,Tachov
+10200,13,Rakovnik
+10209,59,Kromeriz
+10269,70,Karvina
+10273,51,Trutnov
+10275,77,Vsetin
+10282,1,Hl.m. Praha
+10287,48,Rychnov nad Kneznou
+10303,64,Zlin
+10350,29,Rokycany
+10355,14,Ceske Budejovice
+10382,20,Strakonice
+10389,20,Strakonice
+10459,4,Kladno
+10475,19,Prachatice
+10479,2,Benesov
+10492,70,Karvina
+10510,23,Cheb
+10517,54,Brno - mesto
+10528,47,Pardubice
+10543,14,Ceske Budejovice
+10555,1,Hl.m. Praha
+10563,68,Frydek - Mistek
+10566,74,Ostrava - mesto
+10636,64,Zlin
+10639,2,Benesov
+10654,46,Nachod
+10662,60,Prostejov
+10702,17,Pelhrimov
+10714,66,Zdar nad Sazavou
+10746,53,Blansko
+10777,70,Karvina
+10798,1,Hl.m. Praha
+10813,1,Hl.m. Praha
+10818,64,Zlin
+10828,1,Hl.m. Praha
+10912,15,Cesky Krumlov
+10960,28,Plzen - sever
+10963,1,Hl.m. Praha
+10987,62,Uherske Hradiste
+10997,1,Hl.m. Praha
+11004,63,Vyskov
+11008,51,Trutnov
+11034,1,Hl.m. Praha
+11050,70,Karvina
+11063,64,Zlin
+11083,61,Trebic
+11093,40,Teplice
+11105,70,Karvina
+11114,1,Hl.m. Praha
+11121,72,Olomouc
+11123,47,Pardubice
+11126,1,Hl.m. Praha
+11130,1,Hl.m. Praha
+11136,1,Hl.m. Praha
+11147,5,Kolin
+11149,43,Hradec Kralove
+11195,47,Pardubice
+11208,10,Praha - vychod
+11250,26,Plzen - mesto
+11252,32,Ceska Lipa
+11266,9,Nymburk
+11271,18,Pisek
+11274,64,Zlin
+11286,56,Breclav
+11304,28,Plzen - sever
+11314,45,Jicin
+11319,1,Hl.m. Praha
+11327,72,Olomouc
+11329,69,Jesenik
+11331,70,Karvina
+11337,29,Rokycany
+11359,11,Praha - zapad
+11362,51,Trutnov
+11371,37,Litomerice
+11372,11,Praha - zapad
+11379,74,Ostrava - mesto
+11381,57,Hodonin
+11405,68,Frydek - Mistek
+11409,1,Hl.m. Praha
+11461,68,Frydek - Mistek
+11491,36,Liberec
+11497,30,Sokolov
+11516,59,Kromeriz
+11545,1,Hl.m. Praha
+11574,1,Hl.m. Praha
+11596,70,Karvina
+11598,54,Brno - mesto
+11609,59,Kromeriz
+11637,73,Opava
+11662,1,Hl.m. Praha
+11676,5,Kolin
+11683,7,Melnik
+11685,64,Zlin
+11686,21,Tabor
+11701,9,Nymburk
+11709,1,Hl.m. Praha
+11713,59,Kromeriz
+11732,19,Prachatice
+11754,62,Uherske Hradiste
+11755,4,Kladno
+11768,1,Hl.m. Praha
+11794,31,Tachov
+11804,74,Ostrava - mesto
+11851,65,Znojmo
+11855,11,Praha - zapad
+11857,70,Karvina
+11860,70,Karvina
+11866,1,Hl.m. Praha
+11873,38,Louny
+11874,1,Hl.m. Praha
+11886,61,Trebic
+11906,76,Sumperk
+11911,8,Mlada Boleslav
+11943,68,Frydek - Mistek
+11947,70,Karvina
+11976,54,Brno - mesto
+11978,54,Brno - mesto
+12003,74,Ostrava - mesto
+12050,52,Usti nad Orlici
+12079,64,Zlin
+12092,68,Frydek - Mistek
+12095,11,Praha - zapad
+12102,20,Strakonice
+12133,27,Plzen - jih
+12144,12,Pribram
+12163,1,Hl.m. Praha
+12181,1,Hl.m. Praha
+12220,60,Prostejov
+12303,24,Karlovy Vary
+12308,64,Zlin
+12324,8,Mlada Boleslav
+12325,8,Mlada Boleslav
+12328,1,Hl.m. Praha
+12344,1,Hl.m. Praha
+12358,17,Pelhrimov
+12376,4,Kladno
+12378,76,Sumperk
+12382,1,Hl.m. Praha
+12396,62,Uherske Hradiste
+12416,1,Hl.m. Praha
+12432,55,Brno - venkov
+12464,1,Hl.m. Praha
+12468,22,Domazlice
+12485,34,Chomutov
+12490,34,Chomutov
+12547,70,Karvina
+12561,38,Louny
+12568,44,Chrudim
+12577,62,Uherske Hradiste
+12586,27,Plzen - jih
+12599,44,Chrudim
+12616,27,Plzen - jih
+12625,54,Brno - mesto
+12643,69,Jesenik
+12662,14,Ceske Budejovice
+12695,68,Frydek - Mistek
+12726,8,Mlada Boleslav
+12729,36,Liberec
+12738,23,Cheb
+12750,21,Tabor
+12754,55,Brno - venkov
+12756,22,Domazlice
+12802,1,Hl.m. Praha
+12810,39,Most
+12840,60,Prostejov
+12843,66,Zdar nad Sazavou
+12844,72,Olomouc
+12850,72,Olomouc
+12859,1,Hl.m. Praha
+12890,70,Karvina
+12908,12,Pribram
+12943,55,Brno - venkov
+12986,40,Teplice
+12991,51,Trutnov
+13044,52,Usti nad Orlici
+13051,55,Brno - venkov
+13071,41,Usti nad Labem
+13089,16,Jindrichuv Hradec
+13090,2,Benesov
+13095,76,Sumperk
+13098,1,Hl.m. Praha
+13102,8,Mlada Boleslav
+13113,11,Praha - zapad
+13123,60,Prostejov
+13134,1,Hl.m. Praha
+13151,73,Opava
+13171,19,Prachatice
+13172,36,Liberec
+13190,71,Novy Jicin
+13201,45,Jicin
+13231,1,Hl.m. Praha
+13246,46,Nachod
+13260,67,Bruntal
+13261,75,Prerov
+13276,76,Sumperk
+13285,34,Chomutov
+13290,16,Jindrichuv Hradec
+13346,50,Svitavy
+13380,65,Znojmo
+13404,48,Rychnov nad Kneznou
+13405,32,Ceska Lipa
+13406,76,Sumperk
+13412,1,Hl.m. Praha
+13417,25,Klatovy
+13447,50,Svitavy
+13451,44,Chrudim
+13468,25,Klatovy
+13480,16,Jindrichuv Hradec
+13490,18,Pisek
+13539,1,Hl.m. Praha
+13548,1,Hl.m. Praha
+13556,32,Ceska Lipa
+13576,72,Olomouc
+13588,46,Nachod
+13590,59,Kromeriz
+13603,11,Praha - zapad
+13608,37,Litomerice
+13620,16,Jindrichuv Hradec
+13640,28,Plzen - sever
+13657,1,Hl.m. Praha
+13673,39,Most
+13687,75,Prerov
+13690,70,Karvina
+13694,1,Hl.m. Praha
+13750,12,Pribram
+13803,1,Hl.m. Praha
+13820,33,Decin
+13845,15,Cesky Krumlov
+13852,5,Kolin
+13886,74,Ostrava - mesto
+13912,50,Svitavy
+13915,44,Chrudim
+13921,62,Uherske Hradiste
+13923,7,Melnik
+13924,54,Brno - mesto
+13931,8,Mlada Boleslav
+13955,1,Hl.m. Praha
+13968,61,Trebic
+13971,67,Bruntal
+13998,74,Ostrava - mesto

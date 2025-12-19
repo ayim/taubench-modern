@@ -1,0 +1,35 @@
+name: bird-codebase-community-018
+description: "BIRD Q548 (simple): What is the location of the owner of the post \"Eliciting priors from experts\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-548
+    description: "What is the location of the owner of the post \"Eliciting priors from experts\"?"
+    messages:
+      - role: user
+        content: |
+          What is the location of the owner of the post "Eliciting priors from experts"?
+          Evidence: Owner refers to OwnerUserId; 'Eliciting priors from experts' is the Title of post
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_548.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-128
+description: "BIRD Q467 (simple): How many cards are there in the base set of \"Hauptset Zehnte Edition\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-467
+    description: "How many cards are there in the base set of \"Hauptset Zehnte Edition\"?"
+    messages:
+      - role: user
+        content: |
+          How many cards are there in the base set of "Hauptset Zehnte Edition"?
+          Evidence: "Hauptset Zehnte Edition" refers to translation = 'Hauptset Zehnte Edition'; number of cards refers to baseSetSize
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_467.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

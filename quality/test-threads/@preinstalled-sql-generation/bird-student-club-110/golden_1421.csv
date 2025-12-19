@@ -1,0 +1,2 @@
+CAST(SUM(CASE WHEN T2.major_name = 'Business' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(T1.member_id)
+3.8461538461538463

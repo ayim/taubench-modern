@@ -1,0 +1,35 @@
+name: bird-formula-1-064
+description: "BIRD Q909 (moderate): Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-909
+    description: "Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?"
+    messages:
+      - role: user
+        content: |
+          Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?
+          Evidence: European Grand Prix races refers to races.name = 'European Grand Prix'; "hosted in Germany" refers to circuits.country = 'Germany' (circuits table links to races via circuitId); percentage = (COUNT(DISTINCT races.raceId where circuits.country = 'Germany' and races.name = 'European Grand Prix') ÷ COUNT(DISTINCT races.raceId where races.name = 'European Grand Prix')) × 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_909.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

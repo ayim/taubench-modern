@@ -1,0 +1,35 @@
+name: bird-california-schools-003
+description: "BIRD Q2 (challenging): For charter schools in Fresno County Office of Education, provide their location details, enrollment information, FRPM eligibility rates, SAT performance metrics, and rankings. Include the year each school opened and whether it's currently active or closed, categorizing schools by their FRPM percentage levels."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-2
+    description: "For charter schools in Fresno County Office of Education, provide their location details, enrollment information, FRPM eligibility rates, SAT performance metrics, and rankings. Include the year each school opened and whether it's currently active or closed, categorizing schools by their FRPM percentage levels."
+    messages:
+      - role: user
+        content: |
+          For charter schools in Fresno County Office of Education, provide their location details, enrollment information, FRPM eligibility rates, SAT performance metrics, and rankings. Include the year each school opened and whether it's currently active or closed, categorizing schools by their FRPM percentage levels.
+          Evidence: Charter schools refers to `Charter School (Y/N)` = 1; FRPM refers to Free or Reduced Price Meal program eligibility; Schools with FRPM > 75% are High FRPM, 50-75% are Medium FRPM, and below 50% are Low FRPM
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_2.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

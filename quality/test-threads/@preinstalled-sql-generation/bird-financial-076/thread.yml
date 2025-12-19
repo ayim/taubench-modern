@@ -1,0 +1,35 @@
+name: bird-financial-076
+description: "BIRD Q164 (challenging): For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-164
+    description: "For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards."
+    messages:
+      - role: user
+        content: |
+          For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards.
+          Evidence: Account owner refers to disp.type = 'OWNER'; transaction history includes total income (type = 'PRIJEM'), total expense (type = 'VYDAJ'), and net balance.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_164.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-financial-093
+description: "BIRD Q181 (challenging): For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-181
+    description: "For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?"
+    messages:
+      - role: user
+        content: |
+          For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?
+          Evidence: Female refers to gender = 'F'; total payments = monthly payments * duration; interest paid = total payments - loan amount; income category is based on total income compared to loan amount (High: >2x loan, Medium: >1x loan, Low: otherwise)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_181.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

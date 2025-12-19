@@ -1,0 +1,35 @@
+name: bird-codebase-community-035
+description: "BIRD Q565 (moderate): User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-565
+    description: "User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?"
+    messages:
+      - role: user
+        content: |
+          User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?
+          Evidence: user no. 23853 refers to UserId = '23853'; at 9:08:18 on 2013/7/12 refers to CreationDate = '2013-07-12 09:08:18.0'; not well-finished refers to ClosedDate IS NULL and vice versa
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_565.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

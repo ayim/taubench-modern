@@ -1,0 +1,35 @@
+name: bird-formula-1-108
+description: "BIRD Q953 (simple): How many French constructors have a lap number of over 50?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-953
+    description: "How many French constructors have a lap number of over 50?"
+    messages:
+      - role: user
+        content: |
+          How many French constructors have a lap number of over 50?
+          Evidence: lap numbers of over 50 refers to laps > 50;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_953.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

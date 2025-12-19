@@ -1,0 +1,35 @@
+name: bird-formula-1-023
+description: "BIRD Q868 (simple): Where is Malaysian Grand Prix held? Give the location coordinates."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-868
+    description: "Where is Malaysian Grand Prix held? Give the location coordinates."
+    messages:
+      - role: user
+        content: |
+          Where is Malaysian Grand Prix held? Give the location coordinates.
+          Evidence: location coordinates refers to (lat, lng); Malaysian Grand Prix refers to races.name = 'Malaysian Grand Prix'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_868.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

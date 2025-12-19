@@ -1,0 +1,35 @@
+name: bird-financial-070
+description: "BIRD Q158 (challenging): For the account that placed order 33333, provide a comprehensive profile including the district's economic ranking by salary, account transaction history, ownership details, loan status, and order information."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-158
+    description: "For the account that placed order 33333, provide a comprehensive profile including the district's economic ranking by salary, account transaction history, ownership details, loan status, and order information."
+    messages:
+      - role: user
+        content: |
+          For the account that placed order 33333, provide a comprehensive profile including the district's economic ranking by salary, account transaction history, ownership details, loan status, and order information.
+          Evidence: PRIJEM refers to incoming transactions (credits), VYDAJ refers to outgoing transactions (debits). Loan status A, B, or C indicates active loans.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_158.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

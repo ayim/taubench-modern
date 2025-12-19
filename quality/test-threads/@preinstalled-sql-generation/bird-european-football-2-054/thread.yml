@@ -1,0 +1,36 @@
+name: bird-european-football-2-054
+description: "BIRD Q1073 (moderate): How many matches were held in the league Germany 1. Bundesliga from August to October 2008?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1073
+    description: "How many matches were held in the league Germany 1. Bundesliga from August to October 2008?"
+    messages:
+      - role: user
+        content: |
+          How many matches were held in the league Germany 1. Bundesliga
+          from August to October 2008?
+          Evidence: [Remove Evidence]
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1073.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

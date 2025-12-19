@@ -1,0 +1,35 @@
+name: bird-codebase-community-075
+description: "BIRD Q605 (simple): How many users obtained the \"Announcer\" badge?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-605
+    description: "How many users obtained the \"Announcer\" badge?"
+    messages:
+      - role: user
+        content: |
+          How many users obtained the "Announcer" badge?
+          Evidence: "Announcer" is the Name of badge; user refers to UserId
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_605.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

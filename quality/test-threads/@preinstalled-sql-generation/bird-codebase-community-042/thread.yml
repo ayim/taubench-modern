@@ -1,0 +1,35 @@
+name: bird-codebase-community-042
+description: "BIRD Q572 (moderate): How many views did the post titled 'Integration of Weka and/or RapidMiner into Informatica PowerCenter/Developer' get?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-572
+    description: "How many views did the post titled 'Integration of Weka and/or RapidMiner into Informatica PowerCenter/Developer' get?"
+    messages:
+      - role: user
+        content: |
+          How many views did the post titled 'Integration of Weka and/or RapidMiner into Informatica PowerCenter/Developer' get?
+          Evidence: "Integration of Weka and/or RapidMiner into Informatica PowerCenter/Developer" is the Title of post; views refers to ViewCount
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_572.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

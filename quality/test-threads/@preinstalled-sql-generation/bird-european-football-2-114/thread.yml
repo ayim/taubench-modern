@@ -1,0 +1,35 @@
+name: bird-european-football-2-114
+description: "BIRD Q1133 (simple): How many football players born after the 1990s have the first name 'Aaron'?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1133
+    description: "How many football players born after the 1990s have the first name 'Aaron'?"
+    messages:
+      - role: user
+        content: |
+          How many football players born after the 1990s have the first name 'Aaron'?
+          Evidence: first name 'Aaron' refers to player_name LIKE 'Aaron%'; born after the 1990s refers to birthday > '1990'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1133.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

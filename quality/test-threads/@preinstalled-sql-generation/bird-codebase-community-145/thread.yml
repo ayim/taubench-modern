@@ -1,0 +1,35 @@
+name: bird-codebase-community-145
+description: "BIRD Q675 (simple): How many users whose reputations are higher than 2000 and the number of views is higher than 1000?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-675
+    description: "How many users whose reputations are higher than 2000 and the number of views is higher than 1000?"
+    messages:
+      - role: user
+        content: |
+          How many users whose reputations are higher than 2000 and the number of views is higher than 1000?
+          Evidence: reputations are higher than 2000 refer to Reputation > 2000; number of views is higher than 1000 refers to Views > 1000;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_675.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

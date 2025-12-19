@@ -1,0 +1,2 @@
+COUNT(DISTINCT client.client_id)
+22

@@ -1,0 +1,35 @@
+name: bird-card-games-119
+description: "BIRD Q458 (simple): How many artists have designed a card with a black border color and is available in both \"arena\" and \"mtgo\" printing type?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-458
+    description: "How many artists have designed a card with a black border color and is available in both \"arena\" and \"mtgo\" printing type?"
+    messages:
+      - role: user
+        content: |
+          How many artists have designed a card with a black border color and is available in both "arena" and "mtgo" printing type?
+          Evidence: available in both "arena" and "mtgo" refers to availability like '%arena,mtgo%'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_458.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

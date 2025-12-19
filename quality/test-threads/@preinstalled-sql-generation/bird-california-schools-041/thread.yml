@@ -1,0 +1,35 @@
+name: bird-california-schools-041
+description: "BIRD Q40 (moderate): What is the telephone number for the school with the lowest average score in reading in Fresno Unified?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-40
+    description: "What is the telephone number for the school with the lowest average score in reading in Fresno Unified?"
+    messages:
+      - role: user
+        content: |
+          What is the telephone number for the school with the lowest average score in reading in Fresno Unified?
+          Evidence: Fresno Unified is a name of district;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_40.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

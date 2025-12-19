@@ -1,0 +1,35 @@
+name: bird-superhero-108
+description: "BIRD Q824 (moderate): Identify superheroes who can control wind and list their names in alphabetical order."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-824
+    description: "Identify superheroes who can control wind and list their names in alphabetical order."
+    messages:
+      - role: user
+        content: |
+          Identify superheroes who can control wind and list their names in alphabetical order.
+          Evidence: superheroes refers to superhero_name; can control wind refers to power_name = 'Wind Control';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_824.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

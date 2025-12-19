@@ -1,0 +1,35 @@
+name: bird-european-football-2-043
+description: "BIRD Q1062 (moderate): Which players had an overall rating of over 80 from 2008 to 2010? Please list player names."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1062
+    description: "Which players had an overall rating of over 80 from 2008 to 2010? Please list player names."
+    messages:
+      - role: user
+        content: |
+          Which players had an overall rating of over 80 from 2008 to 2010? Please list player names.
+          Evidence: overall_rating > 80; from 2008 to 2010 refers to strftime('%Y', date) BETWEEN '2008' AND '2010';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1062.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

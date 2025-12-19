@@ -1,0 +1,35 @@
+name: bird-codebase-community-050
+description: "BIRD Q580 (simple): Name 10 users with the badge name 'Necromancer.'"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-580
+    description: "Name 10 users with the badge name 'Necromancer.'"
+    messages:
+      - role: user
+        content: |
+          Name 10 users with the badge name 'Necromancer.'
+          Evidence: 'Necromancer' is the Name of badge; users refers to DisplayName
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_580.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

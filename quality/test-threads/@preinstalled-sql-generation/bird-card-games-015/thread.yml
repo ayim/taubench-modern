@@ -1,0 +1,35 @@
+name: bird-card-games-015
+description: "BIRD Q354 (simple): How many types of cards does the artist Aaron Boyd illustrated about card art?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-354
+    description: "How many types of cards does the artist Aaron Boyd illustrated about card art?"
+    messages:
+      - role: user
+        content: |
+          How many types of cards does the artist Aaron Boyd illustrated about card art?
+          Evidence: 'Aaron Boyd' is artist;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_354.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

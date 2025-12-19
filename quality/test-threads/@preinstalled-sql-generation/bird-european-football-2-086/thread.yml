@@ -1,0 +1,35 @@
+name: bird-european-football-2-086
+description: "BIRD Q1105 (moderate): How was Francesco Migliore's attacking work rate on 2015/5/1?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1105
+    description: "How was Francesco Migliore's attacking work rate on 2015/5/1?"
+    messages:
+      - role: user
+        content: |
+          How was Francesco Migliore's attacking work rate on 2015/5/1?
+          Evidence: Francesco Migliore refers to player_name = 'Francesco Migliore'; on 2015/5/1 refers to date LIKE '2015-05-01%';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1105.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

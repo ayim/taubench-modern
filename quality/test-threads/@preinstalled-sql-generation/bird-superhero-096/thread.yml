@@ -1,0 +1,35 @@
+name: bird-superhero-096
+description: "BIRD Q812 (simple): List down at least five full names of superheroes with blue eyes."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-812
+    description: "List down at least five full names of superheroes with blue eyes."
+    messages:
+      - role: user
+        content: |
+          List down at least five full names of superheroes with blue eyes.
+          Evidence: blue eyes refers to colour.colour = 'Blue' WHERE eye_colour_id = colour.id; Name of superheroes refers to superhero_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_812.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

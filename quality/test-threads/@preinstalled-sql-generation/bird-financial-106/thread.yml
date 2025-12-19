@@ -1,0 +1,35 @@
+name: bird-financial-106
+description: "BIRD Q194 (moderate): Provide the IDs and age of the client with high level credit card, which is eligible for loans."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-194
+    description: "Provide the IDs and age of the client with high level credit card, which is eligible for loans."
+    messages:
+      - role: user
+        content: |
+          Provide the IDs and age of the client with high level credit card, which is eligible for loans.
+          Evidence: the credit card is high-level refers to card.type = 'gold'; eligible for loans refers to disp.type = 'OWNER'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_194.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

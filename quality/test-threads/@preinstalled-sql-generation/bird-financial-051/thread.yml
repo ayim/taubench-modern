@@ -1,0 +1,35 @@
+name: bird-financial-051
+description: "BIRD Q139 (challenging): What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-139
+    description: "What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?"
+    messages:
+      - role: user
+        content: |
+          What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?
+          Evidence: Gold credit card owners refer to cards with type = 'gold' and disposition type = 'OWNER'. High balance accounts refer to accounts where avg_balance > 1000.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_139.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

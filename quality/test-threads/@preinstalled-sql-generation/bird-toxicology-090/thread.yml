@@ -1,0 +1,35 @@
+name: bird-toxicology-090
+description: "BIRD Q284 (moderate): Determine the bond type that is formed in the chemical compound containing element Carbon."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-284
+    description: "Determine the bond type that is formed in the chemical compound containing element Carbon."
+    messages:
+      - role: user
+        content: |
+          Determine the bond type that is formed in the chemical compound containing element Carbon.
+          Evidence: Carbon refers to element = 'c'; double bond refers to bond_type = ' = '; single bond refers to bond_type = '-'; triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_284.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-097
+description: "BIRD Q1245 (moderate): For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1245
+    description: "For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?"
+    messages:
+      - role: user
+        content: |
+          For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?
+          Evidence: examinations done after 1997/1/1 refers to `Examination Date` > '1997-01-01'; normal activated partial prothrom bin time refesr to APTT < 45;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1245.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

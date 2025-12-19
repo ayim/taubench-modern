@@ -1,0 +1,35 @@
+name: bird-european-football-2-068
+description: "BIRD Q1087 (simple): Among the players whose height is over 180, how many of them have a volley score of over 70?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1087
+    description: "Among the players whose height is over 180, how many of them have a volley score of over 70?"
+    messages:
+      - role: user
+        content: |
+          Among the players whose height is over 180, how many of them have a volley score of over 70?
+          Evidence: A volley in football refers to a player's ability to strike the ball while it is in the air. Height is measured in centimeters.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1087.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

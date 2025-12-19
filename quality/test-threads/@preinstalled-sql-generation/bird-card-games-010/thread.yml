@@ -1,0 +1,35 @@
+name: bird-card-games-010
+description: "BIRD Q349 (moderate): Name the card and artist with the most ruling information. Also state if the card is a promotional printing."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-349
+    description: "Name the card and artist with the most ruling information. Also state if the card is a promotional printing."
+    messages:
+      - role: user
+        content: |
+          Name the card and artist with the most ruling information. Also state if the card is a promotional printing.
+          Evidence: with the most ruling information refers to Max(count(rulings.uuid)); the card is the promotional printing refers to isPromo = 1;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_349.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

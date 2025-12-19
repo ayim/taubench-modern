@@ -1,0 +1,35 @@
+name: bird-superhero-046
+description: "BIRD Q762 (simple): Which power do superheroes have the most of?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-762
+    description: "Which power do superheroes have the most of?"
+    messages:
+      - role: user
+        content: |
+          Which power do superheroes have the most of?
+          Evidence: power that superheroes have the most refers to MAX(COUNT(power_name))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_762.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

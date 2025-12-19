@@ -1,0 +1,35 @@
+name: bird-toxicology-043
+description: "BIRD Q237 (moderate): Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-237
+    description: "Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not."
+    messages:
+      - role: user
+        content: |
+          Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not.
+          Evidence: TR001_10 is the atom id; label = '+' mean molecules are carcinogenic
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_237.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

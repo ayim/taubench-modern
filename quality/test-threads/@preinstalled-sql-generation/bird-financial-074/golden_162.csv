@@ -1,0 +1,2 @@
+region,district_name,account_id,account_opening_date,has_loan,loan_amount,loan_status,transaction_count,total_income,total_expense,net_balance,last_transaction_date,avg_transaction_amount,clients_in_same_region
+east Bohemia,Trutnov,2932,1993-05-04,No,0,N/A,655,2821377,2573180,248197,1998-12-31,8563.056488549619,660

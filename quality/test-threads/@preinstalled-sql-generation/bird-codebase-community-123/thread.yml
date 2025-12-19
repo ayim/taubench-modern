@@ -1,0 +1,35 @@
+name: bird-codebase-community-123
+description: "BIRD Q653 (simple): What is the owner's display name of the most popular post?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-653
+    description: "What is the owner's display name of the most popular post?"
+    messages:
+      - role: user
+        content: |
+          What is the owner's display name of the most popular post?
+          Evidence: Higher view count means the post has higher popularity; the most popular post refers to MAX(ViewCount);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_653.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

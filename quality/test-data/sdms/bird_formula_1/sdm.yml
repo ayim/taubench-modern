@@ -1,0 +1,1489 @@
+name: Formula 1 Analytics
+tables:
+- name: drivers
+  synonyms:
+  - f1_drivers
+  - driver_master
+  - driver_directory
+  - driver_profiles
+  base_table:
+    table: drivers
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: driverid
+    name: driverid
+    synonyms:
+    - driver_id_key
+    - driver_identifier
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a driver.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: driverref
+    name: driverref
+    synonyms:
+    - driver_reference_slug
+    - driver_ref_name
+    data_type: string
+    description: Stable reference string (slug) for the driver, typically used in
+      URLs or external references.
+    sample_values:
+    - hamilton
+    - heidfeld
+    - rosberg
+    - alonso
+    - kovalainen
+  - expr: number
+    name: number
+    synonyms:
+    - driver_car_number
+    - driver_race_number
+    data_type: int64
+    description: Driver car number (race number) used in a season/era.
+    sample_values:
+    - 44
+    - 6
+    - 14
+  - expr: code
+    name: code
+    synonyms:
+    - driver_code_abbrev
+    - driver_short_code
+    - driver_three_letter_code
+    data_type: string
+    description: Short driver code (often three letters) used in timing screens and
+      results (may be null for some drivers).
+    sample_values:
+    - HAM
+    - HEI
+    - ROS
+    - ALO
+    - KOV
+  - expr: forename
+    name: forename
+    synonyms:
+    - driver_first_name
+    - driver_given_name
+    data_type: string
+    description: Driver first/given name.
+    sample_values:
+    - Lewis
+    - Nick
+    - Nico
+    - Fernando
+    - Heikki
+  - expr: surname
+    name: surname
+    synonyms:
+    - driver_last_name
+    - driver_family_name
+    data_type: string
+    description: Driver last/family name.
+    sample_values:
+    - Hamilton
+    - Heidfeld
+    - Rosberg
+    - Alonso
+    - Kovalainen
+  - expr: nationality
+    name: nationality
+    synonyms:
+    - driver_nationality
+    - driver_country_of_origin
+    data_type: string
+    description: Driver nationality.
+    sample_values:
+    - British
+    - German
+    - German
+    - Spanish
+    - Finnish
+  - expr: url
+    name: url
+    synonyms:
+    - driver_wikipedia_url
+    - driver_profile_url
+    data_type: string
+    description: Reference URL for the driver (commonly a Wikipedia page).
+    sample_values:
+    - http://en.wikipedia.org/wiki/Lewis_Hamilton
+    - http://en.wikipedia.org/wiki/Nick_Heidfeld
+    - http://en.wikipedia.org/wiki/Nico_Rosberg
+    - http://en.wikipedia.org/wiki/Fernando_Alonso
+    - http://en.wikipedia.org/wiki/Heikki_Kovalainen
+  description: Driver dimension table with one row per Formula 1 driver, including
+    name, nationality, and reference links.
+  time_dimensions:
+  - expr: dob
+    name: dob
+    synonyms:
+    - driver_date_of_birth
+    - driver_birth_date
+    data_type: date
+    description: Driver date of birth.
+    sample_values:
+    - '1985-01-07'
+    - '1977-05-10'
+    - '1985-06-27'
+    - '1981-07-29'
+    - '1981-10-19'
+- name: seasons
+  synonyms:
+  - f1_seasons
+  - season_list
+  - championship_seasons
+  base_table:
+    table: seasons
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: url
+    name: url
+    synonyms:
+    - season_wikipedia_url
+    - season_reference_url
+    data_type: string
+    description: Reference URL for the season (commonly a Wikipedia page for that
+      year).
+    sample_values:
+    - http://en.wikipedia.org/wiki/1950_Formula_One_season
+    - http://en.wikipedia.org/wiki/1951_Formula_One_season
+    - http://en.wikipedia.org/wiki/1952_Formula_One_season
+    - http://en.wikipedia.org/wiki/1953_Formula_One_season
+    - http://en.wikipedia.org/wiki/1954_Formula_One_season
+  description: Season dimension table with one row per Formula 1 championship year
+    and a reference link.
+  time_dimensions:
+  - expr: year
+    name: year
+    synonyms:
+    - season_year
+    - championship_year
+    data_type: '!int64'
+    description: Championship season year.
+    sample_values:
+    - 1950
+    - 1951
+    - 1952
+    - 1953
+    - 1954
+- name: qualifying
+  facts:
+  - expr: q1
+    name: q1
+    synonyms:
+    - qualifying_q1_time
+    - q1_lap_time
+    data_type: string
+    description: Best lap time in Q1 (time format as recorded, e.g., m:ss.mmm).
+    sample_values:
+    - '1:35.347'
+    - '1:35.645'
+    - '1:35.227'
+    - '1:35.392'
+    - '1:35.205'
+  - expr: q2
+    name: q2
+    synonyms:
+    - qualifying_q2_time
+    - q2_lap_time
+    data_type: string
+    description: Best lap time in Q2 (time format as recorded, e.g., m:ss.mmm).
+    sample_values:
+    - '1:34.412'
+    - '1:34.188'
+    - '1:34.759'
+    - '1:34.627'
+    - '1:34.960'
+  - expr: q3
+    name: q3
+    synonyms:
+    - qualifying_q3_time
+    - q3_lap_time
+    data_type: string
+    description: Best lap time in Q3 (time format as recorded, e.g., m:ss.mmm).
+    sample_values:
+    - '1:35.748'
+    - '1:36.230'
+    - '1:36.613'
+    - '1:36.709'
+    - '1:36.711'
+  synonyms:
+  - qualifying_results
+  - grid_positions
+  - qualifying_times
+  base_table:
+    table: qualifying
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: qualifyid
+    name: qualifyid
+    synonyms:
+    - qualifying_record_id
+    - qualifying_row_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a qualifying record.
+    sample_values:
+    - 23
+    - 24
+    - 25
+    - 26
+    - 27
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - qualifying_race_id
+    - qualifying_event_id
+    data_type: int64
+    description: Race/event identifier that the qualifying session belongs to.
+    sample_values:
+    - 19
+    - 19
+    - 19
+    - 19
+    - 19
+  - expr: driverid
+    name: driverid
+    synonyms:
+    - qualifying_driver_id
+    - qualifying_driver_key
+    data_type: int64
+    description: Driver who set the qualifying times.
+    sample_values:
+    - 13
+    - 8
+    - 5
+    - 1
+    - 15
+  - expr: constructorid
+    name: constructorid
+    synonyms:
+    - qualifying_constructor_id
+    - qualifying_team_id
+    data_type: int64
+    description: Constructor (team) for the qualifying entry.
+    sample_values:
+    - 6
+    - 6
+    - 1
+    - 1
+    - 7
+  - expr: number
+    name: number
+    synonyms:
+    - qualifying_car_number
+    - qualifying_entry_number
+    data_type: int64
+    description: Car/entry number used in qualifying for this record.
+    sample_values:
+    - 2
+    - 1
+    - 23
+    - 22
+    - 11
+  - expr: position
+    name: position
+    synonyms:
+    - qualifying_position
+    - grid_qualifying_rank
+    data_type: int64
+    description: Qualifying position (1 = pole position).
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  description: Qualifying session results by race, driver, and constructor, including
+    Q1/Q2/Q3 times and qualifying position.
+- name: constructorresults
+  facts:
+  - expr: points
+    name: points
+    synonyms:
+    - constructor_race_points
+    - team_points_scored
+    data_type: float32
+    description: Points scored by the constructor in the specified race.
+    sample_values:
+    - 14.0
+    - 8.0
+    - 9.0
+    - 5.0
+    - 2.0
+  synonyms:
+  - team_race_points
+  - constructor_race_results
+  - constructor_points_by_race
+  base_table:
+    table: constructorresults
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: constructorresultsid
+    name: constructorresultsid
+    synonyms:
+    - constructor_results_record_id
+    - constructor_results_row_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a constructor result record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - constructor_results_race_id
+    - team_result_race_id
+    data_type: int64
+    description: Race/event identifier for the constructor result.
+    sample_values:
+    - 18
+    - 18
+    - 18
+    - 18
+    - 18
+  - expr: constructorid
+    name: constructorid
+    synonyms:
+    - constructor_result_constructor_id
+    - team_result_team_id
+    data_type: int64
+    description: Constructor (team) identifier for the result.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: status
+    name: status
+    synonyms:
+    - constructor_result_status_text
+    - team_result_status
+    data_type: string
+    description: Text status for the constructor result (when available).
+  description: Constructor-level results per race, including points scored and status
+    for the constructor entry.
+- name: pitstops
+  facts:
+  - expr: duration
+    name: duration
+    synonyms:
+    - pitstop_duration_seconds_text
+    - pit_stop_duration_text
+    data_type: string
+    description: Pit stop duration as recorded (often in seconds with decimals, stored
+      as text).
+    sample_values:
+    - '22.552'
+    - '22.611'
+    - '25.382'
+    - '22.466'
+    - '23.900'
+  - expr: milliseconds
+    name: milliseconds
+    synonyms:
+    - pitstop_duration_ms
+    - pit_stop_milliseconds
+    data_type: int64
+    description: Pit stop duration in milliseconds.
+    sample_values:
+    - 22552
+    - 22611
+    - 25382
+    - 22466
+    - 23900
+  synonyms:
+  - pit_stop_events
+  - pit_stop_times
+  - pitstop_log
+  base_table:
+    table: pitstops
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - pitstop_race_id
+    - pitstop_event_race_id
+    data_type: '!int64'
+    description: Race/event identifier for the pit stop.
+    sample_values:
+    - 842
+    - 842
+    - 842
+    - 842
+    - 842
+  - expr: driverid
+    name: driverid
+    synonyms:
+    - pitstop_driver_id
+    - pitstop_driver_key
+    data_type: '!int64'
+    description: Driver who made the pit stop.
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 2
+  - expr: stop
+    name: stop
+    synonyms:
+    - pitstop_sequence_number
+    - pit_stop_number
+    data_type: '!int64'
+    description: Sequential stop number for the driver within the race (1 = first
+      pit stop).
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 1
+  - expr: lap
+    name: lap
+    synonyms:
+    - pitstop_lap_number
+    - pit_stop_lap
+    data_type: int64
+    description: Lap number on which the pit stop occurred.
+    sample_values:
+    - 12
+    - 24
+    - 37
+    - 52
+    - 13
+  description: Pit stop events by race and driver, including lap number, stop sequence,
+    and pit stop duration.
+  time_dimensions:
+  - expr: time
+    name: time
+    synonyms:
+    - pitstop_time_of_day
+    - pit_stop_timestamp_text
+    data_type: string
+    description: Clock time when the pit stop occurred (local race time, stored as
+      text).
+    sample_values:
+    - '16:24:40'
+    - '16:45:48'
+    - '17:08:28'
+    - '17:34:48'
+    - '16:26:28'
+- name: circuits
+  synonyms:
+  - race_circuits
+  - tracks
+  - grand_prix_circuits
+  base_table:
+    table: circuits
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: circuitid
+    name: circuitid
+    synonyms:
+    - circuit_id_key
+    - track_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a circuit/track.
+    sample_values:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+  - expr: circuitref
+    name: circuitref
+    synonyms:
+    - circuit_reference_slug
+    - track_ref_name
+    data_type: string
+    description: Stable circuit reference string (slug) used in external references.
+    sample_values:
+    - sepang
+    - bahrain
+    - catalunya
+    - istanbul
+    - monaco
+  - expr: name
+    name: name
+    synonyms:
+    - circuit_name
+    - track_name_full
+    data_type: string
+    description: Official circuit name.
+    sample_values:
+    - Sepang International Circuit
+    - Bahrain International Circuit
+    - Circuit de Barcelona-Catalunya
+    - Istanbul Park
+    - Circuit de Monaco
+  - expr: location
+    name: location
+    synonyms:
+    - circuit_city
+    - track_location_city
+    data_type: string
+    description: City or locality where the circuit is located.
+    sample_values:
+    - Kuala Lumpur
+    - Sakhir
+    - Montmeló
+    - Istanbul
+    - Monte-Carlo
+  - expr: country
+    name: country
+    synonyms:
+    - circuit_country
+    - track_country
+    data_type: string
+    description: Country where the circuit is located.
+    sample_values:
+    - Malaysia
+    - Bahrain
+    - Spain
+    - Turkey
+    - Monaco
+  - expr: lat
+    name: lat
+    synonyms:
+    - circuit_latitude
+    - track_lat
+    data_type: float32
+    description: Latitude of the circuit location.
+    sample_values:
+    - 2.7608299255371094
+    - 26.032499313354492
+    - 41.56999969482422
+    - 40.951698303222656
+    - 43.73469924926758
+  - expr: lng
+    name: lng
+    synonyms:
+    - circuit_longitude
+    - track_lng
+    data_type: float32
+    description: Longitude of the circuit location.
+    sample_values:
+    - 101.73799896240234
+    - 50.51060104370117
+    - 2.2611100673675537
+    - 29.405000686645508
+    - 7.420559883117676
+  - expr: alt
+    name: alt
+    synonyms:
+    - circuit_altitude_meters
+    - track_altitude
+    data_type: int64
+    description: Circuit altitude above sea level (often in meters; may be null).
+  - expr: url
+    name: url
+    synonyms:
+    - circuit_wikipedia_url
+    - track_reference_url
+    data_type: string
+    description: Reference URL for the circuit (commonly a Wikipedia page).
+    sample_values:
+    - http://en.wikipedia.org/wiki/Sepang_International_Circuit
+    - http://en.wikipedia.org/wiki/Bahrain_International_Circuit
+    - http://en.wikipedia.org/wiki/Circuit_de_Barcelona-Catalunya
+    - http://en.wikipedia.org/wiki/Istanbul_Park
+    - http://en.wikipedia.org/wiki/Circuit_de_Monaco
+  description: Circuit (track) dimension table with geographic and reference details
+    for each race venue.
+- name: laptimes
+  facts:
+  - expr: milliseconds
+    name: milliseconds
+    synonyms:
+    - lap_time_ms
+    - lap_milliseconds
+    data_type: int64
+    description: Lap time duration in milliseconds.
+    sample_values:
+    - 112965
+    - 101865
+    - 100869
+    - 102006
+    - 100427
+  - expr: time
+    name: time
+    synonyms:
+    - lap_time_text
+    - lap_time_formatted
+    data_type: string
+    description: Lap time duration formatted as text (e.g., m:ss.mmm).
+    sample_values:
+    - '1:52.965'
+    - '1:41.865'
+    - '1:40.869'
+    - '1:42.006'
+    - '1:40.427'
+  synonyms:
+  - lap_time_records
+  - lap_pace_data
+  - lap_by_lap_times
+  base_table:
+    table: laptimes
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - laptime_race_id
+    - lap_times_race_key
+    data_type: '!int64'
+    description: Race/event identifier for the lap time.
+    sample_values:
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+  - expr: driverid
+    name: driverid
+    synonyms:
+    - laptime_driver_id
+    - lap_times_driver_key
+    data_type: '!int64'
+    description: Driver who set the lap time.
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  - expr: lap
+    name: lap
+    synonyms:
+    - lap_number
+    - lap_index
+    data_type: '!int64'
+    description: Lap number within the race.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: position
+    name: position
+    synonyms:
+    - lap_running_position
+    - position_on_lap
+    data_type: int64
+    description: Driver's running position at the end of the lap.
+    sample_values:
+    - 10
+    - 10
+    - 10
+    - 11
+    - 11
+  description: Lap-by-lap timing data for each driver in a race, including lap time
+    and position on that lap.
+- name: status
+  synonyms:
+  - result_status_codes
+  - finish_status_lookup
+  - race_status_list
+  base_table:
+    table: status
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: statusid
+    name: statusid
+    synonyms:
+    - status_id_key
+    - result_status_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a status value.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: status
+    name: status
+    synonyms:
+    - status_description
+    - finish_status_text
+    data_type: string
+    description: Human-readable status label describing the result outcome.
+    sample_values:
+    - Finished
+    - Disqualified
+    - Accident
+    - Collision
+    - Engine
+  description: Lookup table translating status identifiers to human-readable race
+    result status (e.g., Finished, Accident).
+- name: constructorstandings
+  facts:
+  - expr: points
+    name: points
+    synonyms:
+    - constructor_standings_points
+    - team_championship_points
+    data_type: float32
+    description: Cumulative championship points for the constructor after the specified
+      race.
+    sample_values:
+    - 14.0
+    - 8.0
+    - 9.0
+    - 5.0
+    - 2.0
+  - expr: wins
+    name: wins
+    synonyms:
+    - constructor_cumulative_wins
+    - team_total_wins
+    data_type: int64
+    description: Cumulative number of wins for the constructor after the specified
+      race.
+    sample_values:
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+  synonyms:
+  - team_championship_standings
+  - constructor_leaderboard
+  - constructors_points_table
+  base_table:
+    table: constructorstandings
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: constructorstandingsid
+    name: constructorstandingsid
+    synonyms:
+    - constructor_standings_record_id
+    - constructor_standings_row_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a constructor standings record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - constructor_standings_race_id
+    - team_standings_race_key
+    data_type: int64
+    description: Race/event identifier indicating when the standings snapshot was
+      taken (after this race).
+    sample_values:
+    - 18
+    - 18
+    - 18
+    - 18
+    - 18
+  - expr: constructorid
+    name: constructorid
+    synonyms:
+    - constructor_standings_constructor_id
+    - team_standings_team_id
+    data_type: int64
+    description: Constructor (team) identifier for the standings record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: position
+    name: position
+    synonyms:
+    - constructor_championship_position
+    - team_standings_rank
+    data_type: int64
+    description: Constructor championship rank after the specified race (1 = leading).
+    sample_values:
+    - 1
+    - 3
+    - 2
+    - 4
+    - 5
+  - expr: positiontext
+    name: positiontext
+    synonyms:
+    - constructor_position_text
+    - team_rank_text
+    data_type: string
+    description: Text representation of the constructor position (typically the same
+      as position).
+    sample_values:
+    - '1'
+    - '3'
+    - '2'
+    - '4'
+    - '5'
+  description: Constructor (team) championship standings after each race, including
+    cumulative points, rank, and wins.
+- name: races
+  synonyms:
+  - grand_prix_events
+  - race_calendar
+  - race_schedule
+  base_table:
+    table: races
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - race_id_key
+    - event_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a race event.
+    sample_values:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+  - expr: round
+    name: round
+    synonyms:
+    - season_round_number
+    - championship_round
+    data_type: int64
+    description: Round number of the race within the season.
+    sample_values:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+  - expr: circuitid
+    name: circuitid
+    synonyms:
+    - race_circuit_id
+    - event_track_id
+    data_type: int64
+    description: Circuit identifier where the race was held.
+    sample_values:
+    - 2
+    - 17
+    - 3
+    - 4
+    - 6
+  - expr: name
+    name: name
+    synonyms:
+    - race_name
+    - grand_prix_name
+    data_type: string
+    description: Official race name (e.g., Monaco Grand Prix).
+    sample_values:
+    - Malaysian Grand Prix
+    - Chinese Grand Prix
+    - Bahrain Grand Prix
+    - Spanish Grand Prix
+    - Monaco Grand Prix
+  - expr: url
+    name: url
+    synonyms:
+    - race_wikipedia_url
+    - race_reference_url
+    data_type: string
+    description: Reference URL for the race (commonly a Wikipedia page).
+    sample_values:
+    - http://en.wikipedia.org/wiki/2009_Malaysian_Grand_Prix
+    - http://en.wikipedia.org/wiki/2009_Chinese_Grand_Prix
+    - http://en.wikipedia.org/wiki/2009_Bahrain_Grand_Prix
+    - http://en.wikipedia.org/wiki/2009_Spanish_Grand_Prix
+    - http://en.wikipedia.org/wiki/2009_Monaco_Grand_Prix
+  description: 'Race event dimension table containing the Formula 1 calendar: race
+    name, date/time, round, circuit, and season year.'
+  time_dimensions:
+  - expr: date
+    name: date
+    synonyms:
+    - race_date
+    - event_date
+    data_type: date
+    description: Race date.
+    sample_values:
+    - '2009-04-05'
+    - '2009-04-19'
+    - '2009-04-26'
+    - '2009-05-10'
+    - '2009-05-24'
+  - expr: time
+    name: time
+    synonyms:
+    - race_start_time_text
+    - event_start_time
+    data_type: string
+    description: Scheduled start time of the race (local time, stored as text).
+    sample_values:
+    - 09:00:00
+    - 07:00:00
+    - '12:00:00'
+    - '12:00:00'
+    - '12:00:00'
+  - expr: year
+    name: year
+    synonyms:
+    - race_season_year
+    - event_year
+    data_type: int64
+    description: Season year that the race belongs to.
+    sample_values:
+    - 2009
+    - 2009
+    - 2009
+    - 2009
+    - 2009
+- name: constructors
+  synonyms:
+  - f1_teams
+  - constructors_master
+  - team_directory
+  base_table:
+    table: constructors
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: constructorid
+    name: constructorid
+    synonyms:
+    - constructor_id_key
+    - team_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a constructor (team).
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: constructorref
+    name: constructorref
+    synonyms:
+    - constructor_reference_slug
+    - team_ref_name
+    data_type: string
+    description: Stable reference string (slug) for the constructor used in external
+      references.
+    sample_values:
+    - mclaren
+    - bmw_sauber
+    - williams
+    - renault
+    - toro_rosso
+  - expr: name
+    name: name
+    synonyms:
+    - constructor_name
+    - team_name
+    data_type: string
+    description: Constructor (team) name.
+    sample_values:
+    - McLaren
+    - BMW Sauber
+    - Williams
+    - Renault
+    - Toro Rosso
+  - expr: nationality
+    name: nationality
+    synonyms:
+    - constructor_nationality
+    - team_nationality
+    data_type: string
+    description: Constructor nationality.
+    sample_values:
+    - British
+    - German
+    - British
+    - French
+    - Italian
+  - expr: url
+    name: url
+    synonyms:
+    - constructor_wikipedia_url
+    - team_reference_url
+    data_type: string
+    description: Reference URL for the constructor (commonly a Wikipedia page).
+    sample_values:
+    - http://en.wikipedia.org/wiki/McLaren
+    - http://en.wikipedia.org/wiki/BMW_Sauber
+    - http://en.wikipedia.org/wiki/Williams_Grand_Prix_Engineering
+    - http://en.wikipedia.org/wiki/Renault_F1
+    - http://en.wikipedia.org/wiki/Scuderia_Toro_Rosso
+  description: Constructor (team) dimension table containing team name, nationality,
+    and reference identifiers.
+- name: results
+  facts:
+  - expr: fastestlap
+    name: fastestlap
+    synonyms:
+    - fastest_lap_number
+    - best_lap_number
+    data_type: int64
+    description: Lap number on which the driver set their fastest lap in the race
+      (if recorded).
+    sample_values:
+    - 37
+    - 39
+    - 19
+    - 53
+    - 53
+  - expr: fastestlapspeed
+    name: fastestlapspeed
+    synonyms:
+    - fastest_lap_speed_kmh_text
+    - best_lap_speed_text
+    data_type: string
+    description: Speed for the driver's fastest lap (typically km/h, stored as text).
+    sample_values:
+    - '209.158'
+    - '208.033'
+    - '208.031'
+    - '207.715'
+    - '209.033'
+  - expr: fastestlaptime
+    name: fastestlaptime
+    synonyms:
+    - fastest_lap_time_text
+    - best_lap_time_formatted
+    data_type: string
+    description: Fastest lap time for the driver (formatted as text, e.g., m:ss.mmm).
+    sample_values:
+    - '1:35.405'
+    - '1:35.921'
+    - '1:35.922'
+    - '1:36.068'
+    - '1:35.462'
+  - expr: laps
+    name: laps
+    synonyms:
+    - laps_completed
+    - completed_laps
+    data_type: int64
+    description: Number of laps completed by the driver in the race.
+    sample_values:
+    - 56
+    - 56
+    - 56
+    - 56
+    - 56
+  - expr: milliseconds
+    name: milliseconds
+    synonyms:
+    - finish_time_ms
+    - race_time_milliseconds
+    data_type: int64
+    description: Total race time in milliseconds for the driver when available (often
+      only meaningful for classified finishers).
+    sample_values:
+    - 5478555
+    - 5498125
+    - 5517005
+    - 5524387
+    - 5525103
+  - expr: points
+    name: points
+    synonyms:
+    - race_points_scored
+    - points_awarded
+    data_type: float32
+    description: Championship points awarded to the driver for this race.
+    sample_values:
+    - 10.0
+    - 8.0
+    - 6.0
+    - 5.0
+    - 4.0
+  - expr: time
+    name: time
+    synonyms:
+    - finish_time_text
+    - race_time_gap_text
+    data_type: string
+    description: Displayed finish time or time gap to winner (winner shows full race
+      time; others often show +gap), stored as text.
+    sample_values:
+    - '1:31:18.555'
+    - '+19.570'
+    - '+38.450'
+    - '+45.832'
+    - '+46.548'
+  synonyms:
+  - race_results
+  - finishing_results
+  - race_classification
+  base_table:
+    table: results
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: resultid
+    name: resultid
+    synonyms:
+    - race_result_id_key
+    - results_row_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a race result record.
+    sample_values:
+    - 23
+    - 24
+    - 25
+    - 26
+    - 27
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - results_race_id
+    - race_result_event_id
+    data_type: int64
+    description: Race/event identifier for the result.
+    sample_values:
+    - 19
+    - 19
+    - 19
+    - 19
+    - 19
+  - expr: driverid
+    name: driverid
+    synonyms:
+    - result_driver_id
+    - results_driver_key
+    data_type: int64
+    description: Driver identifier for the race result.
+    sample_values:
+    - 8
+    - 9
+    - 5
+    - 15
+    - 1
+  - expr: constructorid
+    name: constructorid
+    synonyms:
+    - result_constructor_id
+    - results_team_id
+    data_type: int64
+    description: Constructor (team) identifier for the driver in this race.
+    sample_values:
+    - 6
+    - 2
+    - 1
+    - 7
+    - 1
+  - expr: number
+    name: number
+    synonyms:
+    - results_car_number
+    - race_entry_number
+    data_type: int64
+    description: Car/entry number for the driver in this race result record.
+    sample_values:
+    - 1
+    - 4
+    - 23
+    - 11
+    - 22
+  - expr: grid
+    name: grid
+    synonyms:
+    - starting_grid_position
+    - start_position
+    data_type: int64
+    description: Starting grid position (qualifying start position) for the race.
+    sample_values:
+    - 2
+    - 4
+    - 8
+    - 3
+    - 9
+  - expr: position
+    name: position
+    synonyms:
+    - finish_position
+    - final_position
+    data_type: int64
+    description: Finishing position if classified (1 = winner).
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: positiontext
+    name: positiontext
+    synonyms:
+    - finish_position_text
+    - position_string
+    data_type: string
+    description: Text representation of the finishing position (may include non-numeric
+      values for non-classified results).
+    sample_values:
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+  - expr: positionorder
+    name: positionorder
+    synonyms:
+    - finish_position_order
+    - classification_order
+    data_type: int64
+    description: Numeric position order used for sorting results (more consistently
+      populated than position text).
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: rank
+    name: rank
+    synonyms:
+    - fastest_lap_rank
+    - best_lap_rank
+    data_type: int64
+    description: Rank of the driver's fastest lap compared to other drivers in the
+      race (1 = fastest).
+    sample_values:
+    - 2
+    - 6
+    - 7
+    - 8
+    - 3
+  - expr: statusid
+    name: statusid
+    synonyms:
+    - results_status_id
+    - finish_status_id_key
+    data_type: int64
+    description: Status identifier describing whether/how the driver finished (joins
+      to status table).
+    sample_values:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+  description: Driver-level race results for each event, including grid start, finish
+    position, points, status, and fastest lap information.
+- name: driverstandings
+  facts:
+  - expr: points
+    name: points
+    synonyms:
+    - driver_standings_points
+    - driver_championship_points
+    data_type: float32
+    description: Cumulative championship points for the driver after the specified
+      race.
+    sample_values:
+    - 10.0
+    - 8.0
+    - 6.0
+    - 5.0
+    - 4.0
+  - expr: wins
+    name: wins
+    synonyms:
+    - driver_cumulative_wins
+    - driver_total_wins
+    data_type: int64
+    description: Cumulative number of race wins for the driver after the specified
+      race.
+    sample_values:
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+  synonyms:
+  - driver_championship_standings
+  - driver_leaderboard
+  - drivers_points_table
+  base_table:
+    table: driverstandings
+    schema: public
+    database: null
+    data_connection_name: postgres-spar
+  dimensions:
+  - expr: driverstandingsid
+    name: driverstandingsid
+    synonyms:
+    - driver_standings_record_id
+    - driver_standings_row_id
+    data_type: '!int64'
+    description: Surrogate key uniquely identifying a driver standings record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: raceid
+    name: raceid
+    synonyms:
+    - driver_standings_race_id
+    - driver_standings_race_key
+    data_type: int64
+    description: Race/event identifier indicating when the standings snapshot was
+      taken (after this race).
+    sample_values:
+    - 18
+    - 18
+    - 18
+    - 18
+    - 18
+  - expr: driverid
+    name: driverid
+    synonyms:
+    - driver_standings_driver_id
+    - driver_standings_driver_key
+    data_type: int64
+    description: Driver identifier for the standings record.
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: position
+    name: position
+    synonyms:
+    - driver_championship_position
+    - driver_standings_rank
+    data_type: int64
+    description: Driver championship rank after the specified race (1 = leading).
+    sample_values:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - expr: positiontext
+    name: positiontext
+    synonyms:
+    - driver_position_text
+    - driver_rank_text
+    data_type: string
+    description: Text representation of the driver position (typically the same as
+      position).
+    sample_values:
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+  description: Driver championship standings after each race, including cumulative
+    points, rank, and wins.
+description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
+  \ circuits\n\nColumns:\n- **circuit Id ** (unique identification number of the circuit\
+  \ ) - Type: integer \n- **circuit reference name ** (circuit reference name ) -\
+  \ Type: text\n (full name of circuit ) - Type: text\n (location of circuit ) - Type:\
+  \ text\n (country of circuit ) - Type: text\n- **latitude  ** (latitude of location\
+  \ of circuit ) - Type: real\n- **longitude  ** (longitude of location of circuit\
+  \ ) - Type: real - commonsense evidence:  Location coordinates: (lat, lng)\n (url\
+  \ ) - Type: text\n\n## Table: constructorResults\n\nColumns:\n- **constructor Results\
+  \ Id** (constructor Results Id) - Type: integer\n- **race Id** (race id) - Type:\
+  \ integer\n- **constructor Id** (constructor id) - Type: integer\n (points) - Type:\
+  \ real\n (status) - Type: text\n\n## Table: constructorStandings\n\nColumns:\n-\
+  \ **constructor Standings Id ** (unique identification of the constructor standing\
+  \ records ) - Type: integer \n- **race id ** (id number identifying which races\
+  \ ) - Type: integer \n- **constructor id ** (id number identifying which id ) -\
+  \ Type: integer \n (how many points acquired in each race )\n (position or track\
+  \ of circuits ) - Type: integer \n- **position text ** - Type: text - same with\
+  \ position, not quite useful\n (wins ) - Type: integer \n\n## Table: constructors\n\
+  \nColumns:\n- **constructor Id ** (the unique identification number identifying\
+  \ constructors ) - Type: integer \n- **Constructor Reference name ** (Constructor\
+  \ Reference name ) - Type: text\n (full name of the constructor ) - Type: text\n\
+  \ (nationality of the constructor ) - Type: text\n (the introduction website of\
+  \ the constructor ) - Type: text - commonsense evidence:  How to find out the detailed\
+  \ introduction of the constructor: through its url\n (wins ) - Type: integer \n\n\
+  ## Table: driverStandings\n\nColumns:\n- **driver Standings Id ** (the unique identification\
+  \ number identifying driver standing records ) - Type: integer\n- **constructor\
+  \ Reference name ** (id number identifying which races ) - Type: integer\n (id number\
+  \ identifying which drivers ) - Type: integer\n (how many points acquired in each\
+  \ race ) - Type: real\n (position or track of circuits ) - Type: integer\n- **position\
+  \ text ** - Type: text - same with position, not quite useful\n (wins ) - Type:\
+  \ integer\n\n## Table: drivers\n\nColumns:\n- **driver ID ** (the unique identification\
+  \ number identifying each driver) - Type: integer\n- **driver reference name **\
+  \ (driver reference name ) - Type: text\n (number ) - Type: integer\n (abbreviated\
+  \ code for drivers ) - Type: text - if \"null\" or empty, it means it doesn't have\
+  \ code\n (forename ) - Type: text\n (surname ) - Type: text\n- **date of birth **\
+  \ (date of birth ) - Type: date\n (nationality of drivers ) - Type: text\n (the\
+  \ introduction website of the drivers ) - Type: text\n\n## Table: lapTimes\n\nColumns:\n\
+  - **race ID ** (the identification number identifying race) - Type: integer \n-\
+  \ **driver ID ** (the identification number identifying each driver ) - Type: integer\
+  \ \n (lap number ) - Type: integer \n (position or track of circuits  ) - Type:\
+  \ integer \n (lap time  ) - Type: text - in minutes / seconds / ...\n (milliseconds\
+  \ ) - Type: integer \n\n## Table: pitStops\n\nColumns:\n- **race ID ** (the identification\
+  \ number identifying race ) - Type: integer \n- **driver ID ** (the identification\
+  \ number identifying each driver ) - Type: integer \n (stop number ) - Type: integer\
+  \ \n (lap number ) - Type: integer \n (time ) - Type: text - exact time\n (duration\
+  \ time ) - Type: text - seconds/\n (milliseconds ) - Type: integer \n\n## Table:\
+  \ qualifying\n\n## Table: races\n\nColumns:\n- **race ID ** (the unique identification\
+  \ number identifying the race ) - Type: integer \n (year ) - Type: integer \n (round\
+  \ ) - Type: integer \n- **Circuit Id ** (circuit Id ) - Type: integer \n (name of\
+  \ the race ) - Type: text\n (duration time ) - Type: date\n (time of the location\
+  \ ) - Type: text\n (introduction of races ) - Type: text\n\n## Table: results\n\n\
+  Columns:\n- **Result ID ** (the unique identification number identifying race result\
+  \ ) - Type: integer\n- **race ID ** (the identification number identifying the race\
+  \ ) - Type: integer \n- **driver ID** (the identification number identifying the\
+  \ driver ) - Type: integer \n- **constructor Id ** (the identification number identifying\
+  \ which constructors ) - Type: integer \n (number  ) - Type: integer \n (the number\
+  \ identifying the area where cars are set into a grid formation in order to start\
+  \ the race. ) - Type: integer \n (The finishing position or track of circuits )\
+  \ - Type: integer \n- **position text ** - Type: text - not quite useful\n- **position\
+  \ order ** (the finishing order of positions ) - Type: integer \n (points ) - Type:\
+  \ real\n (lap number ) - Type: integer \n (finish time ) - Type: text - commonsense\
+  \ evidence:  1. if the value exists, it means the driver finished the race.  2.\
+  \ Only the time of the champion shows in the format of \"minutes: seconds.millionsecond\"\
+  , the time of the other drivers shows as \"seconds.millionsecond\" , which means\
+  \ their actual time is the time of the champion adding the value in this cell.\n\
+  \ (the actual finishing time of drivers in milliseconds  ) - Type: integer  - the\
+  \ actual finishing time of drivers\n- **fastest lap ** (fastest lap number ) - Type:\
+  \ integer \n (starting rank positioned by fastest lap speed) - Type: integer \n\
+  - **fastest Lap Time** (fastest Lap Time) - Type: text - faster (smaller in the\
+  \ value) \"fastestLapTime\" leads to higher rank (smaller is higher rank)\n- **fastest\
+  \ Lap Speed ** (fastest Lap Speed ) - Type: text - (km / h)\n- **status Id ** (status\
+  \ ID ) - Type: integer - its category description appear in the table status\n\n\
+  ## Table: seasons\n\nColumns:\n- **race ID ** (the unique identification number\
+  \ identifying the race) - Type: integer\n (website link of season race introduction\
+  \ ) - Type: text\n\n## Table: status\n\nColumns:\n- **status ID** (the unique identification\
+  \ number identifying status) - Type: integer\n (full name of status ) - Type: text\n"

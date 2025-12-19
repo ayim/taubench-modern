@@ -1,0 +1,35 @@
+name: bird-california-schools-080
+description: "BIRD Q79 (challenging): For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-79
+    description: "For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment."
+    messages:
+      - role: user
+        content: |
+          For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment.
+          Evidence: Fully virtual schools refer to schools where Virtual = 'F'. Charter schools are identified by Charter School (Y/N) = 1. FRPM refers to Free or Reduced Price Meal program eligibility.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_79.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

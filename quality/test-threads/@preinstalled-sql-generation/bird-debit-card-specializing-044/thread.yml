@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-044
+description: "BIRD Q1513 (simple): Which country's gas station had the first paid cusomer in 2012/8/25?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1513
+    description: "Which country's gas station had the first paid cusomer in 2012/8/25?"
+    messages:
+      - role: user
+        content: |
+          Which country's gas station had the first paid cusomer in 2012/8/25?
+          Evidence: '2012/8/25' can be represented by '2012-08-25'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1513.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

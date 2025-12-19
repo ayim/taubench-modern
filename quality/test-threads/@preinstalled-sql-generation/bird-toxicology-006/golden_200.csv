@@ -1,0 +1,3 @@
+molecule_id,atom_count,bond_count,carbon_count,nitrogen_count,triple_bond_count,nitrogen_triple_bonds,carbon_containing_triple_bonds,bond_category
+TR041,14,14,112,28,28,0,4,Multiple Triple Bonds
+TR499,4,3,0,0,4,0,0,Multiple Triple Bonds

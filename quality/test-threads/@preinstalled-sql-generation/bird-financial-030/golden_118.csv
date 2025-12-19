@@ -1,0 +1,17 @@
+region,loan_size_category,total_loans,running_ok_loans,percentage_running_ok,avg_loan_amount,avg_duration,overall_percentage,diff_from_overall
+Prague,Medium,22,12,54.55,79086.0,26.727272727272727,48.04,6.5
+Prague,Small,19,5,26.32,31504.42,18.31578947368421,45.24,-18.92
+central Bohemia,Medium,30,14,46.67,76041.6,28.0,48.04,-1.38
+central Bohemia,Small,13,7,53.85,34567.38,20.307692307692307,45.24,8.61
+east Bohemia,Medium,13,7,53.85,75149.54,33.23076923076923,48.04,5.8
+east Bohemia,Small,14,6,42.86,33226.29,20.571428571428573,45.24,-2.38
+north Bohemia,Medium,15,5,33.33,77961.6,30.4,48.04,-14.71
+north Bohemia,Small,16,11,68.75,28403.25,26.25,45.24,23.51
+north Moravia,Medium,30,11,36.67,76556.8,24.8,48.04,-11.38
+north Moravia,Small,22,11,50.0,37456.91,23.454545454545453,45.24,4.76
+south Bohemia,Medium,12,4,33.33,79806.0,25.0,48.04,-14.71
+south Bohemia,Small,8,2,25.0,32524.5,16.5,45.24,-20.24
+south Moravia,Medium,35,21,60.0,75314.74,30.857142857142858,48.04,11.96
+south Moravia,Small,24,10,41.67,29026.0,22.5,45.24,-3.57
+west Bohemia,Medium,22,12,54.55,79012.91,33.27272727272727,48.04,6.5
+west Bohemia,Small,10,5,50.0,27536.4,28.8,45.24,4.76

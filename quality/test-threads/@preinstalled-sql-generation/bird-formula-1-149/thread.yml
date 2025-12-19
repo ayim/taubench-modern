@@ -1,0 +1,35 @@
+name: bird-formula-1-149
+description: "BIRD Q994 (challenging): Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-994
+    description: "Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team."
+    messages:
+      - role: user
+        content: |
+          Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team.
+          Evidence: Monaco Grand Priz refers to the race; race in year between 1980 and 2010
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_994.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

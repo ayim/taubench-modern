@@ -1,0 +1,35 @@
+name: bird-european-football-2-030
+description: "BIRD Q1049 (simple): How many matches in the 2015/2016 season were held in Scotland Premier League?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1049
+    description: "How many matches in the 2015/2016 season were held in Scotland Premier League?"
+    messages:
+      - role: user
+        content: |
+          How many matches in the 2015/2016 season were held in Scotland Premier League?
+          Evidence: Scotland Premier League refers to League.name = 'Scotland Premier League';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1049.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

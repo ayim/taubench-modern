@@ -1,0 +1,35 @@
+name: bird-financial-036
+description: "BIRD Q124 (challenging): For 60-month loans, show me the top 3 largest loans in each district, including the district's average salary, loan details, client demographics, transaction history, and calculated interest rate. Order the results by highest average salary and loan amount."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-124
+    description: "For 60-month loans, show me the top 3 largest loans in each district, including the district's average salary, loan details, client demographics, transaction history, and calculated interest rate. Order the results by highest average salary and loan amount."
+    messages:
+      - role: user
+        content: |
+          For 60-month loans, show me the top 3 largest loans in each district, including the district's average salary, loan details, client demographics, transaction history, and calculated interest rate. Order the results by highest average salary and loan amount.
+          Evidence: A2 refers to district name; A11 refers to average salary; loan status: A = Finished - OK, B = Finished - Default, C = Running - OK, D = Running - Default; interest rate is calculated as (total payments - loan amount) / loan amount * 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_124.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

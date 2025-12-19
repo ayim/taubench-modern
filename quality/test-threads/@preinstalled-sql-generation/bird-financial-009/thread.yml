@@ -1,0 +1,35 @@
+name: bird-financial-009
+description: "BIRD Q97 (challenging): For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-97
+    description: "For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume."
+    messages:
+      - role: user
+        content: |
+          For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume.
+          Evidence: Post-transaction issuance refers to frequency = 'POPLATEK PO OBRATU'. Disponent refers to disposition type = 'DISPONENT'. Status 'A' indicates active loans while 'B' indicates completed loans.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_97.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

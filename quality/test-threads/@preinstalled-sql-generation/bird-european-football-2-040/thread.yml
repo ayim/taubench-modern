@@ -1,0 +1,35 @@
+name: bird-european-football-2-040
+description: "BIRD Q1059 (simple): Please list player names which are higher than 180."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1059
+    description: "Please list player names which are higher than 180."
+    messages:
+      - role: user
+        content: |
+          Please list player names which are higher than 180.
+          Evidence: height>180;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1059.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

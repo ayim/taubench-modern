@@ -1,0 +1,35 @@
+name: bird-card-games-169
+description: "BIRD Q508 (moderate): What are the available printing types of the cards that doesn't have a text box created by Aleksi Briclot?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-508
+    description: "What are the available printing types of the cards that doesn't have a text box created by Aleksi Briclot?"
+    messages:
+      - role: user
+        content: |
+          What are the available printing types of the cards that doesn't have a text box created by Aleksi Briclot?
+          Evidence: created by Aleksi Briclot refers to artist = 'Aleksi Briclot'; doesn't have a text box refers to isTextless = 1; available printing types refers to availability
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_508.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

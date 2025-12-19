@@ -1,0 +1,35 @@
+name: bird-european-football-2-102
+description: "BIRD Q1121 (moderate): Calculate the total home team goal scored by home teams whose player 1's age is 30 years old and below."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1121
+    description: "Calculate the total home team goal scored by home teams whose player 1's age is 30 years old and below."
+    messages:
+      - role: user
+        content: |
+          Calculate the total home team goal scored by home teams whose player 1's age is 30 years old and below.
+          Evidence: age are 30 years old and below refers to SUBTRACT(datetime(CURRENT_TIMESTAMP,'localtime'), datetime(birthday) < 31)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1121.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

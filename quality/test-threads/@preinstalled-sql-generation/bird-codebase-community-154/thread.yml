@@ -1,0 +1,35 @@
+name: bird-codebase-community-154
+description: "BIRD Q684 (simple): Identify the percentage of teenage users."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-684
+    description: "Identify the percentage of teenage users."
+    messages:
+      - role: user
+        content: |
+          Identify the percentage of teenage users.
+          Evidence: teenage users are defined as those with age between 13 and 18 years old;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_684.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

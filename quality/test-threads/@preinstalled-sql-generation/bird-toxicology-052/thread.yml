@@ -1,0 +1,35 @@
+name: bird-toxicology-052
+description: "BIRD Q246 (moderate): List the bond type and the bond ID of the atom 45."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-246
+    description: "List the bond type and the bond ID of the atom 45."
+    messages:
+      - role: user
+        content: |
+          List the bond type and the bond ID of the atom 45.
+          Evidence: bond ID of atom 45 refers to SUBSTR(atom_id, 7, 2) + 0 = 45; double bond refers to bond_type = ' = '; single bond refers to bond_type = '-'; triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_246.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

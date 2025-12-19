@@ -1,0 +1,35 @@
+name: bird-toxicology-033
+description: "BIRD Q227 (simple): What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-227
+    description: "What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places."
+    messages:
+      - role: user
+        content: |
+          What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places.
+          Evidence: label = '+' mean molecules are carcinogenic; percentage = DIVIDE(SUM(label = '+'), COUNT(molecule_id)) as percent
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_227.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

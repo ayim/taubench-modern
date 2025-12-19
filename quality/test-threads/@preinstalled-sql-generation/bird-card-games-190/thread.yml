@@ -1,0 +1,35 @@
+name: bird-card-games-190
+description: "BIRD Q529 (moderate): Find and list the names of sets which doesn't have Japanese translation but have Korean translation."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-529
+    description: "Find and list the names of sets which doesn't have Japanese translation but have Korean translation."
+    messages:
+      - role: user
+        content: |
+          Find and list the names of sets which doesn't have Japanese translation but have Korean translation.
+          Evidence: names of sets refers to name; doesn't have Japanese translation refers to language not like '%Japanese%'; have Korean translation refers to language = 'Korean'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_529.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

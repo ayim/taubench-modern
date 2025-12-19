@@ -1,0 +1,35 @@
+name: bird-card-games-141
+description: "BIRD Q480 (moderate): What is the Italian flavor text of the card \"Ancestor's Chosen\"?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-480
+    description: "What is the Italian flavor text of the card \"Ancestor's Chosen\"?"
+    messages:
+      - role: user
+        content: |
+          What is the Italian flavor text of the card "Ancestor's Chosen"?
+          Evidence: [Remove Evidence]
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_480.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

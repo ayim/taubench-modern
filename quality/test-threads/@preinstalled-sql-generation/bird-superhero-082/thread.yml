@@ -1,0 +1,35 @@
+name: bird-superhero-082
+description: "BIRD Q798 (moderate): What is the publisher for Hawkman, Karate Kid and Speedy?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-798
+    description: "What is the publisher for Hawkman, Karate Kid and Speedy?"
+    messages:
+      - role: user
+        content: |
+          What is the publisher for Hawkman, Karate Kid and Speedy?
+          Evidence: publisher refers to publisher_name; Hawkman refers to superhero_name = 'Hawkman'; Karate Kid refers to superhero_name = 'Karate Kid'; Speedy refers to superhero_name = 'Speedy';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_798.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

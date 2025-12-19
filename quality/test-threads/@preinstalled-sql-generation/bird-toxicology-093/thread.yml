@@ -1,0 +1,35 @@
+name: bird-toxicology-093
+description: "BIRD Q287 (moderate): Among all chemical compounds that contain molecule TR047, identify the percent that form a double-bond."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-287
+    description: "Among all chemical compounds that contain molecule TR047, identify the percent that form a double-bond."
+    messages:
+      - role: user
+        content: |
+          Among all chemical compounds that contain molecule TR047, identify the percent that form a double-bond.
+          Evidence: TR047 is the molecule id; double bond refers to bond_type = ' = '; percentage = DIVIDE(SUM(bond_type = ' = '), COUNT(all bond_id)) as percent where molecule_id = 'TR047'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_287.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

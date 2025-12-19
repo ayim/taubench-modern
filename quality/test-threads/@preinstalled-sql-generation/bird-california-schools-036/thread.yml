@@ -1,0 +1,35 @@
+name: bird-california-schools-036
+description: "BIRD Q35 (moderate): What is the administrator's email address of the chartered school with the fewest students enrolled in grades 1 through 12?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-35
+    description: "What is the administrator's email address of the chartered school with the fewest students enrolled in grades 1 through 12?"
+    messages:
+      - role: user
+        content: |
+          What is the administrator's email address of the chartered school with the fewest students enrolled in grades 1 through 12?
+          Evidence: Chartered schools are identified by a binary indicator where 1 represents a chartered school. Students enrolled in grades 1 through 12 refers to the total enrollment count for those grade levels.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_35.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

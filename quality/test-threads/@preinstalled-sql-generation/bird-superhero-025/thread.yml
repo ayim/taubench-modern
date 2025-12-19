@@ -1,0 +1,35 @@
+name: bird-superhero-025
+description: "BIRD Q741 (simple): What is the name of the superhero that has the most powers?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-741
+    description: "What is the name of the superhero that has the most powers?"
+    messages:
+      - role: user
+        content: |
+          What is the name of the superhero that has the most powers?
+          Evidence: name of the superhero refers to superhero_name; superhero that has the most powers refers to MAX(COUNT(superhero_name))
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_741.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

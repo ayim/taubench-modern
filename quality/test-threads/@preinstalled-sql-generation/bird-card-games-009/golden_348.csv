@@ -1,0 +1,16 @@
+text
+You can’t choose any one mode more than once.
+"If any of the targets become illegal, the remaining targets are affected as appropriate."
+"If you choose more than one mode, you perform the modes in the order specified. For example, if you choose to counter target spell, return target nonland permanent to its owner’s hand, and have target player draw a card, that permanent will be on the batt"
+"Sublime Epiphany’s second mode counters only activated and triggered abilities already on the stack. It doesn’t prevent abilities from being activated or from triggering later in the turn, and it has no effect on static abilities."
+Activated abilities are written in the form “[Cost]: [Effect].” Some keyword abilities (such as equip) are activated abilities and will have colons in their reminder texts.
+"Triggered abilities use the word “when,” “whenever,” or “at.” They’re often written as “[Trigger condition], [effect].” Some keyword abilities (such as prowess) are triggered abilities and will have “when,” “whenever,” or “at” in their reminder text."
+"Abilities that create replacement effects, such as a permanent entering the battlefield tapped or with counters on it, can’t be countered. Abilities that apply “as [this creature] enters the battlefield” are also replacement effects and can’t be countered"
+"Sublime Epiphany’s second mode can’t counter an activated or triggered mana ability. An activated mana ability is one that adds mana to a player’s mana pool as it resolves, doesn’t have a target, and isn’t a loyalty ability. A triggered mana ability is on"
+"If you counter a delayed triggered ability that triggered at the beginning of the “next” occurrence of a specified step or phase, that ability won’t trigger again the following time that phase or step occurs."
+"If you choose the third and fourth modes and target the same creature you control both times, you’ll return it and then create a token that’s a copy of it, using its copiable values as it last appeared on the battlefield. This is because the legality of t"
+"The token copies exactly what is printed on the creature and nothing else (unless that creature is a token or is copying something else; see below). It doesn’t copy whether that creature is tapped or untapped, whether it has any counters on it or Auras an"
+"If the copied creature is itself a token, the token created by Sublime Epiphany copies the original characteristics of that token as stated by the effect that created it."
+"If the copied creature is copying something else, the token enters the battlefield as whatever that creature is copying."
+"If the copied creature has {X} in its mana cost, X is 0."
+Any enters-the-battlefield abilities of the copied creature will trigger when the token enters the battlefield. Any “As [this creature] enters the battlefield” or “[This creature] enters the battlefield with” abilities of the copied creature will also wor

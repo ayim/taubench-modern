@@ -1,0 +1,35 @@
+name: bird-student-club-147
+description: "BIRD Q1458 (moderate): Calculate the difference in the percentage of members in New Jersey and Vermont."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1458
+    description: "Calculate the difference in the percentage of members in New Jersey and Vermont."
+    messages:
+      - role: user
+        content: |
+          Calculate the difference in the percentage of members in New Jersey and Vermont.
+          Evidence: SUBTRACT( DIVIDE( SUM(state = 'New Jersey'), COUNT(position = 'Member')), DIVIDE( SUM(state = 'Vermont'), COUNT(position = 'Member')) )
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1458.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

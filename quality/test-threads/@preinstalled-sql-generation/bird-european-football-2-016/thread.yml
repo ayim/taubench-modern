@@ -1,0 +1,35 @@
+name: bird-european-football-2-016
+description: "BIRD Q1035 (simple): Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1035
+    description: "Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed."
+    messages:
+      - role: user
+        content: |
+          Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed.
+          Evidence: teams with more than 50 but less than 60 build-up play speed refers to buildUpPlaySpeed >50 AND buildUpPlaySpeed <60; 
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1035.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

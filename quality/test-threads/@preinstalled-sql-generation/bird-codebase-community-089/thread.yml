@@ -1,0 +1,35 @@
+name: bird-codebase-community-089
+description: "BIRD Q619 (simple): How many adults who obtained the badge Supporter?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-619
+    description: "How many adults who obtained the badge Supporter?"
+    messages:
+      - role: user
+        content: |
+          How many adults who obtained the badge Supporter?
+          Evidence: Supporter is the Name of badge; adult refers to Age BETWEEN 19 AND 65
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_619.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

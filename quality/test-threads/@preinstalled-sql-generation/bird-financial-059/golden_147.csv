@@ -1,0 +1,22 @@
+district_name,age_category,client_count,account_count,avg_transactions_per_account,avg_net_balance,avg_loan_amount,total_active_loans,active_loans_per_100_clients
+Ceske Budejovice,Young,1,1,170.0,12585.0,0.0,0,0.0
+Ceske Budejovice,Middle-aged,10,10,248.1,94208.6,42489.6,0,0.0
+Ceske Budejovice,Senior,14,14,242.36,90878.79,36527.14,1,7.14
+Cesky Krumlov,Middle-aged,7,7,301.71,40021.0,0.0,0,0.0
+Cesky Krumlov,Senior,17,17,182.65,89802.47,3931.76,0,0.0
+Jindrichuv Hradec,Young,1,1,69.0,85851.0,0.0,0,0.0
+Jindrichuv Hradec,Middle-aged,12,12,212.67,78368.08,36685.0,1,8.33
+Jindrichuv Hradec,Senior,16,16,240.31,117526.0,13327.5,2,12.5
+Pelhrimov,Young,1,1,122.0,22748.0,0.0,0,0.0
+Pelhrimov,Middle-aged,10,10,310.0,69521.9,2107.2,1,10.0
+Pelhrimov,Senior,12,12,195.42,62641.25,20782.0,1,8.33
+Pisek,Young,2,2,183.5,53927.5,0.0,0,0.0
+Pisek,Middle-aged,11,11,231.91,103152.18,28560.0,1,9.09
+Pisek,Senior,9,9,187.44,60494.44,0.0,0,0.0
+Prachatice,Middle-aged,11,11,270.18,59878.45,37086.55,0,0.0
+Prachatice,Senior,15,15,175.93,151850.07,71011.2,0,0.0
+Strakonice,Young,1,1,159.0,282325.0,0.0,0,0.0
+Strakonice,Middle-aged,7,7,295.71,82535.29,65538.86,0,0.0
+Strakonice,Senior,11,11,321.45,91314.27,20056.36,0,0.0
+Tabor,Middle-aged,11,11,305.36,76505.73,8875.64,1,9.09
+Tabor,Senior,16,16,238.38,88718.13,38560.5,2,12.5

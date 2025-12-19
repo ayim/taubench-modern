@@ -1,0 +1,35 @@
+name: bird-formula-1-139
+description: "BIRD Q984 (simple): What is the website of the constructor who tallied the most total wins."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-984
+    description: "What is the website of the constructor who tallied the most total wins."
+    messages:
+      - role: user
+        content: |
+          What is the website of the constructor who tallied the most total wins.
+          Evidence: introduction website refers to url;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_984.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

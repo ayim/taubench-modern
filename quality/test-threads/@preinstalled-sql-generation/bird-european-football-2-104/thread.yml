@@ -1,0 +1,35 @@
+name: bird-european-football-2-104
+description: "BIRD Q1123 (simple): What is the name of players with the highest potential?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1123
+    description: "What is the name of players with the highest potential?"
+    messages:
+      - role: user
+        content: |
+          What is the name of players with the highest potential?
+          Evidence: highest potential refers to MAX(potential)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1123.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

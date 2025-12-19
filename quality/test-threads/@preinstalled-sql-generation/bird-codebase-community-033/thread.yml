@@ -1,0 +1,35 @@
+name: bird-codebase-community-033
+description: "BIRD Q563 (moderate): User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-563
+    description: "User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?"
+    messages:
+      - role: user
+        content: |
+          User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?
+          Evidence: user no. 3025 refers to UserId = '3025'; comment at 20:29:39 on 2014/4/23 refers to CreationDate = '2014/4/23 20:29:39.0'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_563.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

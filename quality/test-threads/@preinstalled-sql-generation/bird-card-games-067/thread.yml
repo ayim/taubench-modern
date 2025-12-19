@@ -1,0 +1,35 @@
+name: bird-card-games-067
+description: "BIRD Q406 (simple): List by ID all Creature-type cards with legal status."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-406
+    description: "List by ID all Creature-type cards with legal status."
+    messages:
+      - role: user
+        content: |
+          List by ID all Creature-type cards with legal status.
+          Evidence: legal status refer to status = 'legal'; Creature-type cards refer to types = 'Creature';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_406.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

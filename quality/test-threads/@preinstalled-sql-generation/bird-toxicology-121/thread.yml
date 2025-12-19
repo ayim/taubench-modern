@@ -1,0 +1,35 @@
+name: bird-toxicology-121
+description: "BIRD Q315 (simple): Among the molecules which contain \"cl\" element, which of them are carcinogenic?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-315
+    description: "Among the molecules which contain \"cl\" element, which of them are carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          Among the molecules which contain "cl" element, which of them are carcinogenic?
+          Evidence: label = '+' mean molecules are carcinogenic;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_315.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

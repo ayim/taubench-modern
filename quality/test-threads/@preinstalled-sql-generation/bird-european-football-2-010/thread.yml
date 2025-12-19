@@ -1,0 +1,35 @@
+name: bird-european-football-2-010
+description: "BIRD Q1029 (moderate): What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1029
+    description: "What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?"
+    messages:
+      - role: user
+        content: |
+          What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?
+          Evidence: speeds at which attacks are put together refers to buildUpPlaySpeed;highest build up play speed refers to MAX(buildUpPlaySpeed)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1029.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

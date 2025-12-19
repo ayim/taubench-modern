@@ -1,0 +1,35 @@
+name: bird-codebase-community-128
+description: "BIRD Q658 (simple): What are the titles of the top 5 posts with the highest popularity?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-658
+    description: "What are the titles of the top 5 posts with the highest popularity?"
+    messages:
+      - role: user
+        content: |
+          What are the titles of the top 5 posts with the highest popularity?
+          Evidence: Higher view count means the post has higher popularity; "top 5 posts with the highest popularity" refers to the first 5 posts sorted by ViewCount in descending order (supplemented by Id in ascending order for stable results when ViewCount is the same).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_658.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-041
+description: "BIRD Q1510 (simple): What is the average total price of the transactions taken place in gas stations in the Czech Republic?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1510
+    description: "What is the average total price of the transactions taken place in gas stations in the Czech Republic?"
+    messages:
+      - role: user
+        content: |
+          What is the average total price of the transactions taken place in gas stations in the Czech Republic?
+          Evidence: Gas station in the Czech Republic implies that Country = 'CZE'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1510.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

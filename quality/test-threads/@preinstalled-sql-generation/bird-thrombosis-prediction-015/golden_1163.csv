@@ -1,0 +1,2 @@
+"MIN(STRFTIME('%Y', `First Date`) - STRFTIME('%Y', Birthday))"
+-10

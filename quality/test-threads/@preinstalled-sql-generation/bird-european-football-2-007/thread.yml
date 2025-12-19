@@ -1,0 +1,35 @@
+name: bird-european-football-2-007
+description: "BIRD Q1026 (moderate): Which home team had lost the fewest matches in the 2016 season?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1026
+    description: "Which home team had lost the fewest matches in the 2016 season?"
+    messages:
+      - role: user
+        content: |
+          Which home team had lost the fewest matches in the 2016 season?
+          Evidence: A home team loses a match when it scores fewer goals than the away team; the 2016 season is represented as '2015/2016' in the data;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1026.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

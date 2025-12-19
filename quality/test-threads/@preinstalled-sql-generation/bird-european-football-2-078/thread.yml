@@ -1,0 +1,35 @@
+name: bird-european-football-2-078
+description: "BIRD Q1097 (simple): What is Aaron Lennox's total crossing score?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1097
+    description: "What is Aaron Lennox's total crossing score?"
+    messages:
+      - role: user
+        content: |
+          What is Aaron Lennox's total crossing score?
+          Evidence: Aaron Lennox's refers to T2.player_name = 'Aaron Lennox'; total crossing score refers to SUM(crossing)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1097.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

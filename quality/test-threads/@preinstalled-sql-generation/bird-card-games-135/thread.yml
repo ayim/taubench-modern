@@ -1,0 +1,35 @@
+name: bird-card-games-135
+description: "BIRD Q474 (moderate): Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-474
+    description: "Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?"
+    messages:
+      - role: user
+        content: |
+          Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?
+          Evidence: Italian translation refers to language is 'Italian'; have a translation means translation is not null; base set number of under 100 refers to baseSetSize is less than 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_474.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

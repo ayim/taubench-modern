@@ -1,0 +1,35 @@
+name: bird-toxicology-092
+description: "BIRD Q286 (simple): Among all chemical compounds identified in the database, what percent of compounds form a triple-bond."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-286
+    description: "Among all chemical compounds identified in the database, what percent of compounds form a triple-bond."
+    messages:
+      - role: user
+        content: |
+          Among all chemical compounds identified in the database, what percent of compounds form a triple-bond.
+          Evidence: triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_286.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

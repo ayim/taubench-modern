@@ -1,0 +1,35 @@
+name: bird-card-games-051
+description: "BIRD Q390 (simple): What are the colors of cards from ID 1-20? What are the format of these cards?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-390
+    description: "What are the colors of cards from ID 1-20? What are the format of these cards?"
+    messages:
+      - role: user
+        content: |
+          What are the colors of cards from ID 1-20? What are the format of these cards?
+          Evidence: ID 1-20 refers to id BETWEEN 1 and 20;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_390.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-toxicology-046
+description: "BIRD Q240 (challenging): List all the elements of the toxicology of the molecule \"TR004\"."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-240
+    description: "List all the elements of the toxicology of the molecule \"TR004\"."
+    messages:
+      - role: user
+        content: |
+          List all the elements of the toxicology of the molecule "TR004".
+          Evidence: TR004 is the molecule id;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_240.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

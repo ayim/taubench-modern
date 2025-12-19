@@ -1,0 +1,35 @@
+name: bird-student-club-133
+description: "BIRD Q1444 (simple): List the expenses that spend more than fifty dollars on average."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1444
+    description: "List the expenses that spend more than fifty dollars on average."
+    messages:
+      - role: user
+        content: |
+          List the expenses that spend more than fifty dollars on average.
+          Evidence: expense refers to expense_description; spend more than fifty dollars on average refers to DIVIDE( SUM(cost), COUNT(expense_id) ) > 50
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1444.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-european-football-2-052
+description: "BIRD Q1071 (challenging): List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1071
+    description: "List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team."
+    messages:
+      - role: user
+        content: |
+          List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team.
+          Evidence: build up play speed refers to buildUpPlaySpeed; buildUpPlaySpeed = 31; build up play dribbling refers to buildUpPlayDribbling; buildUpPlayDribbling = 53; build up play passing refers to buildUpPlayPassing; buildUpPlayPassing = 32; short name of the team refers to team_short_name;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1071.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

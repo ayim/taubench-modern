@@ -1,0 +1,35 @@
+name: bird-formula-1-006
+description: "BIRD Q851 (simple): What positions did constructor Renault achieve in the standings?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-851
+    description: "What positions did constructor Renault achieve in the standings?"
+    messages:
+      - role: user
+        content: |
+          What positions did constructor Renault achieve in the standings?
+          Evidence: Renault is a name of constructor.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_851.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

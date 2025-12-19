@@ -1,0 +1,35 @@
+name: bird-financial-040
+description: "BIRD Q128 (moderate): List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-128
+    description: "List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders."
+    messages:
+      - role: user
+        content: |
+          List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders.
+          Evidence: A2 refers to districts; Female refers to gender = 'F'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_128.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

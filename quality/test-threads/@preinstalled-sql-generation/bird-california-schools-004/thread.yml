@@ -1,0 +1,35 @@
+name: bird-california-schools-004
+description: "BIRD Q3 (challenging): For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-3
+    description: "For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate."
+    messages:
+      - role: user
+        content: |
+          For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate.
+          Evidence: Non-charter schools have Charter School (Y/N) = 0. FRPM stands for Free or Reduced Price Meal program. High-performing despite high FRPM means FRPM percentage > 70% and percentage of students scoring >= 1500 on SAT > 20%. Low-performing despite low FRPM means FRPM percentage < 30% and percentage of students scoring >= 1500 on SAT < 10%.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_3.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

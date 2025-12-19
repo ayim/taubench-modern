@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-162
+description: "BIRD Q1310 (simple): For the male patients that have a normal prothrombin time, what is their average prothrombin time?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1310
+    description: "For the male patients that have a normal prothrombin time, what is their average prothrombin time?"
+    messages:
+      - role: user
+        content: |
+          For the male patients that have a normal prothrombin time, what is their average prothrombin time?
+          Evidence: male refers to Sex = 'M'; normal prothrombin time refer to PT < 14; average prothrombin time = AVG(PT);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1310.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-formula-1-068
+description: "BIRD Q913 (simple): In which country can I find the circuit with the highest latitude?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-913
+    description: "In which country can I find the circuit with the highest latitude?"
+    messages:
+      - role: user
+        content: |
+          In which country can I find the circuit with the highest latitude?
+          Evidence: highest latitude refers to max(lat)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_913.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

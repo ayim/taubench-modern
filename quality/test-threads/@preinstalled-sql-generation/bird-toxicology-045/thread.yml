@@ -1,0 +1,35 @@
+name: bird-toxicology-045
+description: "BIRD Q239 (simple): How many connections does the atom 19 have?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-239
+    description: "How many connections does the atom 19 have?"
+    messages:
+      - role: user
+        content: |
+          How many connections does the atom 19 have?
+          Evidence: connections refers to bond_id; atom 19 refers to atom_id with atom number 19
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_239.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

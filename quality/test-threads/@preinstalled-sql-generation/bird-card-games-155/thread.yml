@@ -1,0 +1,35 @@
+name: bird-card-games-155
+description: "BIRD Q494 (challenging): For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-494
+    description: "For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values."
+    messages:
+      - role: user
+        content: |
+          For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values.
+          Evidence: all cards illustrated by Jim Pavelec refers to artist = 'Jim Pavelec'; the text of the ruling refers to text; cards have missing or degraded properties and values if hasContentWarning = 1 else it doesn't have;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_494.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

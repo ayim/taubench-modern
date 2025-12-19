@@ -1,0 +1,36 @@
+name: bird-student-club-080
+description: "BIRD Q1391 (simple): What is the ratio of students majoring in finance to those majoring in physics?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1391
+    description: "What is the ratio of students majoring in finance to those majoring in physics?"
+    messages:
+      - role: user
+        content: |
+          What is the ratio of students majoring in finance to those majoring in physics?
+          Evidence: Students are members. They are represented by the member table. 
+          Ratio = (Count of students (members) majoring in Finance) divided by (Count of students (members) majoring in Physics).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1391.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

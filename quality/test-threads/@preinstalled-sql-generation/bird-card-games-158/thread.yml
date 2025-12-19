@@ -1,0 +1,35 @@
+name: bird-card-games-158
+description: "BIRD Q497 (simple): List the expansion type of the set \"Huitième édition\"."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-497
+    description: "List the expansion type of the set \"Huitième édition\"."
+    messages:
+      - role: user
+        content: |
+          List the expansion type of the set "Huitième édition".
+          Evidence: the set "Huitième édition" refers to translation = 'Huitième édition'; expansion type refers to type
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_497.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

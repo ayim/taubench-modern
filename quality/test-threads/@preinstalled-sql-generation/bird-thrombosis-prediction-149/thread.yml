@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-149
+description: "BIRD Q1297 (moderate): For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1297
+    description: "For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?"
+    messages:
+      - role: user
+        content: |
+          For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?
+          Evidence: total cholesterol is higher than normal refers to `T-CHO` > = 250; negative measure of degree of coagulation refers to KCT = '-' ;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1297.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-card-games-062
+description: "BIRD Q401 (moderate): What percentage of legendary frame effect cards that are only available in online game variations?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-401
+    description: "What percentage of legendary frame effect cards that are only available in online game variations?"
+    messages:
+      - role: user
+        content: |
+          What percentage of legendary frame effect cards that are only available in online game variations?
+          Evidence: only available in online game variationsrefer to isOnlineOnly =1 ; legendary frame effect cards refer to frameEffects = 'legendary'; percentage refer to DIVIDE(COUNT(isOnlineOnly=1), COUNT(id)) from cards where frameEffects = 'legendary'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_401.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

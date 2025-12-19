@@ -1,0 +1,35 @@
+name: bird-codebase-community-027
+description: "BIRD Q557 (moderate): Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-557
+    description: "Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?"
+    messages:
+      - role: user
+        content: |
+          Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?
+          Evidence: score of over 5 refers to Score > 5; elder user refers to Age > 65; percentage = Divide (Count(Id where Age>65), Count(Id)) * 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_557.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

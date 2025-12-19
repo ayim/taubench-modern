@@ -1,0 +1,35 @@
+name: bird-toxicology-040
+description: "BIRD Q234 (moderate): How many bonds which involved atom 12 does molecule TR009 have?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-234
+    description: "How many bonds which involved atom 12 does molecule TR009 have?"
+    messages:
+      - role: user
+        content: |
+          How many bonds which involved atom 12 does molecule TR009 have?
+          Evidence: TR009 is the molecule id;  involved atom 12 refers to atom_id = 'TR009_12' or atom_id2 = 'TR009_12'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_234.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

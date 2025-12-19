@@ -1,0 +1,35 @@
+name: bird-codebase-community-183
+description: "BIRD Q713 (simple): What is the up vote number of the user that commented \"R is also lazy evaluated.\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-713
+    description: "What is the up vote number of the user that commented \"R is also lazy evaluated.\"?"
+    messages:
+      - role: user
+        content: |
+          What is the up vote number of the user that commented "R is also lazy evaluated."?
+          Evidence: commented "R is also lazy evaluated." refers to Text of the comment;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_713.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

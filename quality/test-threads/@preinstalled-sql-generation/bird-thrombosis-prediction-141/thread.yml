@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-141
+description: "BIRD Q1289 (moderate): For the patients who are diagnosed with SJS, how many of them have a normal level of total protein?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1289
+    description: "For the patients who are diagnosed with SJS, how many of them have a normal level of total protein?"
+    messages:
+      - role: user
+        content: |
+          For the patients who are diagnosed with SJS, how many of them have a normal level of total protein?
+          Evidence: diagnosed with SJS refers to Diagnosis = 'SJS'; normal level of total protein refers to TP > 6.0 and TP < 8.5;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1289.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

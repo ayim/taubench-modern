@@ -1,0 +1,35 @@
+name: bird-codebase-community-163
+description: "BIRD Q693 (simple): Identify the number of posts and comments left by the user, who has the latest created user account."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-693
+    description: "Identify the number of posts and comments left by the user, who has the latest created user account."
+    messages:
+      - role: user
+        content: |
+          Identify the number of posts and comments left by the user, who has the latest created user account.
+          Evidence: the latest created user account refers to MAX(CreationDate);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_693.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

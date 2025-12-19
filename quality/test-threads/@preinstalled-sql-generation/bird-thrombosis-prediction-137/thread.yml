@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-137
+description: "BIRD Q1285 (moderate): When is the latest patient's medical data recorded? This patient should have an abnormal level of lactate dehydrogenase."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1285
+    description: "When is the latest patient's medical data recorded? This patient should have an abnormal level of lactate dehydrogenase."
+    messages:
+      - role: user
+        content: |
+          When is the latest patient's medical data recorded? This patient should have an abnormal level of lactate dehydrogenase.
+          Evidence: latest patient refers to ID with MAX('First Date'); abnormal level of lactate dehydrogenase refers to LDH > = 500;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1285.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

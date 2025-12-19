@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-090
+description: "BIRD Q1238 (moderate): Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1238
+    description: "Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex."
+    messages:
+      - role: user
+        content: |
+          Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex.
+          Evidence: diagnosed with SLE refers to Diagnosis = 'SLE'; The larger the birthday value, the younger the person is, and vice versa; normal hemoglobin level refers to 10 < HGB < 17;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1238.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-financial-065
+description: "BIRD Q153 (challenging): For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-153
+    description: "For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?"
+    messages:
+      - role: user
+        content: |
+          For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?
+          Evidence: Account owners refer to disp.type = 'OWNER'. Good loans refer to status = 'A' and bad loans refer to status = 'B'. Account balance is calculated as total income minus total expense.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_153.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

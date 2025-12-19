@@ -1,0 +1,35 @@
+name: bird-toxicology-054
+description: "BIRD Q248 (simple): What are the atoms of the triple bond with the molecule \"TR041\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-248
+    description: "What are the atoms of the triple bond with the molecule \"TR041\"?"
+    messages:
+      - role: user
+        content: |
+          What are the atoms of the triple bond with the molecule "TR041"?
+          Evidence: TR041 is the molecule id; triple bond refers to bond_type = '#';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_248.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

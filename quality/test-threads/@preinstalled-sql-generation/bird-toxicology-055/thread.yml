@@ -1,0 +1,35 @@
+name: bird-toxicology-055
+description: "BIRD Q249 (challenging): What are the elements of the atoms of TR144_8_19?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-249
+    description: "What are the elements of the atoms of TR144_8_19?"
+    messages:
+      - role: user
+        content: |
+          What are the elements of the atoms of TR144_8_19?
+          Evidence: TR144_8_19 is the bond id; 
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_249.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

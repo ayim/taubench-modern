@@ -1,0 +1,35 @@
+name: bird-student-club-103
+description: "BIRD Q1414 (simple): State the name of major that Phillip Cullen has joined."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1414
+    description: "State the name of major that Phillip Cullen has joined."
+    messages:
+      - role: user
+        content: |
+          State the name of major that Phillip Cullen has joined.
+          Evidence: name of major refers to major_name
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1414.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

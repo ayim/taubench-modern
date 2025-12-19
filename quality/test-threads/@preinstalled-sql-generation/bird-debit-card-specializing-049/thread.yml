@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-049
+description: "BIRD Q1518 (simple): For the deal happened at 2012/8/24 12:42:00, which country was it?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1518
+    description: "For the deal happened at 2012/8/24 12:42:00, which country was it?"
+    messages:
+      - role: user
+        content: |
+          For the deal happened at 2012/8/24 12:42:00, which country was it?
+          Evidence: '2012/8/24 12:42:00' can refer to date = '2012-08-24' AND T1.time = '12:42:00' in the database
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1518.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

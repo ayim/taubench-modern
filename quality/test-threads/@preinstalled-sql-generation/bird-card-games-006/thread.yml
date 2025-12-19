@@ -1,0 +1,35 @@
+name: bird-card-games-006
+description: "BIRD Q345 (moderate): For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-345
+    description: "For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format."
+    messages:
+      - role: user
+        content: |
+          For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format.
+          Evidence: Artifact type of cards refers to types = 'Artifact'; cards without multiple faces are those that don't have a side designation; vintage refers to a play format.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_345.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

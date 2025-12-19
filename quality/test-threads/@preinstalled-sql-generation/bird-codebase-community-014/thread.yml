@@ -1,0 +1,35 @@
+name: bird-codebase-community-014
+description: "BIRD Q544 (moderate): What is the display name of the user who last edited the post \"Examples for teaching: Correlation does not mean causation\"?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-544
+    description: "What is the display name of the user who last edited the post \"Examples for teaching: Correlation does not mean causation\"?"
+    messages:
+      - role: user
+        content: |
+          What is the display name of the user who last edited the post "Examples for teaching: Correlation does not mean causation"?
+          Evidence: "Examples for teaching: Correlation does not mean causation" is the Title of post; user who last edited refers to LastEditorUserId
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_544.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

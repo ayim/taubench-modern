@@ -1,0 +1,35 @@
+name: bird-card-games-016
+description: "BIRD Q355 (simple): What is the keyword found on card 'Angel of Mercy'?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-355
+    description: "What is the keyword found on card 'Angel of Mercy'?"
+    messages:
+      - role: user
+        content: |
+          What is the keyword found on card 'Angel of Mercy'?
+          Evidence: Angel of Mercy' is the name of card;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_355.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

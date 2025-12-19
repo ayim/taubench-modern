@@ -1,0 +1,35 @@
+name: bird-european-football-2-015
+description: "BIRD Q1034 (simple): List the players' api id who had the highest above average overall ratings in 2010."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1034
+    description: "List the players' api id who had the highest above average overall ratings in 2010."
+    messages:
+      - role: user
+        content: |
+          List the players' api id who had the highest above average overall ratings in 2010.
+          Evidence: highest above average overall ratings refers to MAX(overall_rating); in 2010 refers to substr(date,1,4) = '2010';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1034.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

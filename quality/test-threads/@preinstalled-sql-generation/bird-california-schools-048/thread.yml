@@ -1,0 +1,35 @@
+name: bird-california-schools-048
+description: "BIRD Q47 (moderate): What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-47
+    description: "What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?"
+    messages:
+      - role: user
+        content: |
+          What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?
+          Evidence: Elementary School District refers to DOC = 52; Monthly average number of schools that opened in 1980 = count(schools that opened in 1980) / 12
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_47.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

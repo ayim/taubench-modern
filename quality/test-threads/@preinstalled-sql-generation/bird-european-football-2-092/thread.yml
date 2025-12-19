@@ -1,0 +1,35 @@
+name: bird-european-football-2-092
+description: "BIRD Q1111 (moderate): State the chance creation passing class for \"PEC Zwolle\" on 2013/9/20."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1111
+    description: "State the chance creation passing class for \"PEC Zwolle\" on 2013/9/20."
+    messages:
+      - role: user
+        content: |
+          State the chance creation passing class for "PEC Zwolle" on 2013/9/20.
+          Evidence: "PEC Zwolle" refers to team_long_name = 'PEC Zwolle'; on 2013/9/20 refers to date = '2013-09-20 00:00:00'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1111.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

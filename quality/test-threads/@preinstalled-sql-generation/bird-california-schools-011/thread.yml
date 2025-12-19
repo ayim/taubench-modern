@@ -1,0 +1,35 @@
+name: bird-california-schools-011
+description: "BIRD Q10 (challenging): For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-10
+    description: "For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status."
+    messages:
+      - role: user
+        content: |
+          For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.
+          Evidence: FRPM refers to Free or Reduced Price Meal program. Schools with more than 10 test takers are considered to have statistically significant results.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_10.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

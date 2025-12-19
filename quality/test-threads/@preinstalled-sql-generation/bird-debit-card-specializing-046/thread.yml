@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-046
+description: "BIRD Q1515 (simple): What segment did the customer have at 2012/8/23 21:20:00?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1515
+    description: "What segment did the customer have at 2012/8/23 21:20:00?"
+    messages:
+      - role: user
+        content: |
+          What segment did the customer have at 2012/8/23 21:20:00?
+          Evidence: '2012/8/23' can be represented by '2012-08-23'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1515.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-european-football-2-069
+description: "BIRD Q1088 (moderate): Please list the names of the players whose volley score and dribbling score are over 70."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1088
+    description: "Please list the names of the players whose volley score and dribbling score are over 70."
+    messages:
+      - role: user
+        content: |
+          Please list the names of the players whose volley score and dribbling score are over 70.
+          Evidence: volley score are over 70 refers to volleys > 70; dribbling score refers to dribbling are over 70 refers to dribbling > 70;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1088.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

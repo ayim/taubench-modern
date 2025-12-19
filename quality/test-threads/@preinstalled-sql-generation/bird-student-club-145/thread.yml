@@ -1,0 +1,35 @@
+name: bird-student-club-145
+description: "BIRD Q1456 (moderate): List the full name of the top five members who spend the most money in the descending order of spending."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1456
+    description: "List the full name of the top five members who spend the most money in the descending order of spending."
+    messages:
+      - role: user
+        content: |
+          List the full name of the top five members who spend the most money in the descending order of spending.
+          Evidence: full name refers to first_name, last_name; spend the most money refers to SUM(expense.cost) for each member
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1456.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

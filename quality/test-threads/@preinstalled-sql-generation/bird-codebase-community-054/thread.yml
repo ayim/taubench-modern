@@ -1,0 +1,35 @@
+name: bird-codebase-community-054
+description: "BIRD Q584 (moderate): Write all the comments left by users who edited the post titled 'Why square the difference instead of taking the absolute value in standard deviation?'"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-584
+    description: "Write all the comments left by users who edited the post titled 'Why square the difference instead of taking the absolute value in standard deviation?'"
+    messages:
+      - role: user
+        content: |
+          Write all the comments left by users who edited the post titled 'Why square the difference instead of taking the absolute value in standard deviation?'
+          Evidence: "Why square the difference instead of taking the absolute value in standard deviation?" is the Title of post;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_584.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

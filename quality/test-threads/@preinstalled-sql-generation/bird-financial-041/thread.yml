@@ -1,0 +1,35 @@
+name: bird-financial-041
+description: "BIRD Q129 (moderate): Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-129
+    description: "Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?"
+    messages:
+      - role: user
+        content: |
+          Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?
+          Evidence: Non-credit card withdraws refers to type = 'VYDAJ'; January 1996 can be found by date LIKE '1996-01%' in the database; A2 means district names
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_129.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

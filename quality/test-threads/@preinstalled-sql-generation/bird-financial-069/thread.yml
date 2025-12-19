@@ -1,0 +1,35 @@
+name: bird-financial-069
+description: "BIRD Q157 (challenging): For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-157
+    description: "For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?"
+    messages:
+      - role: user
+        content: |
+          For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?
+          Evidence: A15 refers to number of committed crimes in 1995; A16 refers to number of committed crimes in 1996; status = 'B' means bad loan
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_157.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

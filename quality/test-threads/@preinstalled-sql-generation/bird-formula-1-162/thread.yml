@@ -1,0 +1,35 @@
+name: bird-formula-1-162
+description: "BIRD Q1007 (simple): What was the longest time that Lewis Hamilton had spent at a pit stop?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-1007
+    description: "What was the longest time that Lewis Hamilton had spent at a pit stop?"
+    messages:
+      - role: user
+        content: |
+          What was the longest time that Lewis Hamilton had spent at a pit stop?
+          Evidence: longest time refes to MAX(duration);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1007.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

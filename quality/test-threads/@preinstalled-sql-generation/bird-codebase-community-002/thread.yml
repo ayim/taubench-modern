@@ -1,0 +1,35 @@
+name: bird-codebase-community-002
+description: "BIRD Q532 (simple): Please list the display names of all the users whose accounts were created in the year 2011."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-532
+    description: "Please list the display names of all the users whose accounts were created in the year 2011."
+    messages:
+      - role: user
+        content: |
+          Please list the display names of all the users whose accounts were created in the year 2011.
+          Evidence: No evidence needed
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_532.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

@@ -1,0 +1,35 @@
+name: bird-financial-031
+description: "BIRD Q119 (challenging): For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-119
+    description: "For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment."
+    messages:
+      - role: user
+        content: |
+          For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment.
+          Evidence: 'POPLATEK PO OBRATU' means statement issued after transaction. District names are in A2, regions in A3, and A10 represents the ratio of urban inhabitants. Transaction types: 'PRIJEM' = income, 'VYDAJ' = expense. Loan status: 'A' = running contract, 'B' = finished contract, 'C' = defaulted loan.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_119.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

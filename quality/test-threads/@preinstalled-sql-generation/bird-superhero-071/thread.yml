@@ -1,0 +1,35 @@
+name: bird-superhero-071
+description: "BIRD Q787 (simple): What are the race and alignment of Cameron Hicks?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-787
+    description: "What are the race and alignment of Cameron Hicks?"
+    messages:
+      - role: user
+        content: |
+          What are the race and alignment of Cameron Hicks?
+          Evidence: Cameron Hicks refers to superhero_name = 'Cameron Hicks';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_787.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

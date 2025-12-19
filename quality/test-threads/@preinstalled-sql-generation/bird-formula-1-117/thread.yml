@@ -1,0 +1,35 @@
+name: bird-formula-1-117
+description: "BIRD Q962 (challenging): From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-962
+    description: "From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?"
+    messages:
+      - role: user
+        content: |
+          From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?
+          Evidence: born before 1985 refers to year(dob)<1985; in 2000 to 2005 refers to year between 2000 and 2005; percentage = Divide(COUNT(driverId where year (dob) <1985 and laps >50),COUNT(DriverID where year between 2000 and 2005) *100;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_962.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

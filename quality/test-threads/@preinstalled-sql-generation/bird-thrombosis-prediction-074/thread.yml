@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-074
+description: "BIRD Q1222 (simple): How many male patients have creatinine index out of the normal range?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1222
+    description: "How many male patients have creatinine index out of the normal range?"
+    messages:
+      - role: user
+        content: |
+          How many male patients have creatinine index out of the normal range?
+          Evidence: creatinine (CRE) out of the normal range refers to CRE > = 1.5; Male refers to Sex = 'M'. Since multiple records may exist per patient, each male patient is counted only once, even if they have multiple results with creatinine index out of the normal range.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1222.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

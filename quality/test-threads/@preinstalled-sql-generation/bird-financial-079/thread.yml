@@ -1,0 +1,35 @@
+name: bird-financial-079
+description: "BIRD Q167 (simple): List all the clients' IDs whose junior credit cards were issued after 1996."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-167
+    description: "List all the clients' IDs whose junior credit cards were issued after 1996."
+    messages:
+      - role: user
+        content: |
+          List all the clients' IDs whose junior credit cards were issued after 1996.
+          Evidence: After 1996 means date > = '1997-01-01
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_167.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

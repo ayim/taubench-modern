@@ -1,0 +1,35 @@
+name: bird-european-football-2-124
+description: "BIRD Q1143 (simple): What was the highest score of the home team in the Netherlands Eredivisie league?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1143
+    description: "What was the highest score of the home team in the Netherlands Eredivisie league?"
+    messages:
+      - role: user
+        content: |
+          What was the highest score of the home team in the Netherlands Eredivisie league?
+          Evidence: highest score of the home team refers to MAX(home_team_goal)
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1143.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

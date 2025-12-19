@@ -1,0 +1,35 @@
+name: bird-superhero-104
+description: "BIRD Q820 (moderate): How strong is the Hulk?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-820
+    description: "How strong is the Hulk?"
+    messages:
+      - role: user
+        content: |
+          How strong is the Hulk?
+          Evidence: how strong refers to attribute_value WHERE attribute_name = 'Strength'; the Hulk refers to superhero_name = 'Hulk';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_820.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

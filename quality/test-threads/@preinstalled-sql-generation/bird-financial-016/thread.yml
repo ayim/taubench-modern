@@ -1,0 +1,35 @@
+name: bird-financial-016
+description: "BIRD Q104 (challenging): For the transaction of 840 on October 14, 1998, provide detailed information about the account including when it was opened, how long it had been open, the account owner's gender and age at the time, the total number of transactions up to that date, how many cards were issued, and whether the account had a loan before this transaction."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-104
+    description: "For the transaction of 840 on October 14, 1998, provide detailed information about the account including when it was opened, how long it had been open, the account owner's gender and age at the time, the total number of transactions up to that date, how many cards were issued, and whether the account had a loan before this transaction."
+    messages:
+      - role: user
+        content: |
+          For the transaction of 840 on October 14, 1998, provide detailed information about the account including when it was opened, how long it had been open, the account owner's gender and age at the time, the total number of transactions up to that date, how many cards were issued, and whether the account had a loan before this transaction.
+          Evidence: Transaction date is 1998-10-14 and transaction amount is 840. Account owner refers to disposition type = 'OWNER'.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_104.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

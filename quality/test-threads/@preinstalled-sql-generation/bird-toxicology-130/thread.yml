@@ -1,0 +1,35 @@
+name: bird-toxicology-130
+description: "BIRD Q324 (simple): Find the percentage of atoms with single bond."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-324
+    description: "Find the percentage of atoms with single bond."
+    messages:
+      - role: user
+        content: |
+          Find the percentage of atoms with single bond.
+          Evidence: single bond refers to bond_type = '-'; percentage is calculated as (single bonds / total bonds) × 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_324.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

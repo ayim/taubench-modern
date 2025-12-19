@@ -1,0 +1,35 @@
+name: bird-card-games-136
+description: "BIRD Q475 (simple): How many cards in the set Coldsnap have a black border color?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-475
+    description: "How many cards in the set Coldsnap have a black border color?"
+    messages:
+      - role: user
+        content: |
+          How many cards in the set Coldsnap have a black border color?
+          Evidence: card set Coldsnap refers to name = 'Coldsnap'; black border color refers to borderColor = 'black'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_475.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

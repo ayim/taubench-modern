@@ -1,0 +1,35 @@
+name: bird-formula-1-088
+description: "BIRD Q933 (moderate): What was Lewis Hamilton's final rank in the 2008 Chinese Grand Prix?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-933
+    description: "What was Lewis Hamilton's final rank in the 2008 Chinese Grand Prix?"
+    messages:
+      - role: user
+        content: |
+          What was Lewis Hamilton's final rank in the 2008 Chinese Grand Prix?
+          Evidence: Lewis Hamilton refers to the full name of the driver; Full name of the driver refers to drivers.forename and drivers.surname; final rank refers to positionOrder; Chinese Grand Prix refers to races.name = 'Chinese Grand Prix';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_933.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

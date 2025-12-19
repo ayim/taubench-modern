@@ -1,0 +1,35 @@
+name: bird-card-games-024
+description: "BIRD Q363 (simple): How many cards of legalities whose status is restricted are found in a starter deck?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-363
+    description: "How many cards of legalities whose status is restricted are found in a starter deck?"
+    messages:
+      - role: user
+        content: |
+          How many cards of legalities whose status is restricted are found in a starter deck?
+          Evidence: restricted refers to status = 'Restricted'; found in the starter deck refers to isStarter = 1;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_363.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

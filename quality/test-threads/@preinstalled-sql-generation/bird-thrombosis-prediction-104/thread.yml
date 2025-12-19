@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-104
+description: "BIRD Q1252 (moderate): Among the patients with a normal Ig G level, how many of them have symptoms?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1252
+    description: "Among the patients with a normal Ig G level, how many of them have symptoms?"
+    messages:
+      - role: user
+        content: |
+          Among the patients with a normal Ig G level, how many of them have symptoms?
+          Evidence: normal Ig G level refers to IGG > 900 and IGG < 2000; have symptoms refers to Symptoms IS NOT NULL;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1252.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

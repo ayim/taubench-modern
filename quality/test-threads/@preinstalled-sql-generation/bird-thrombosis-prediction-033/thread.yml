@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-033
+description: "BIRD Q1181 (moderate): For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1181
+    description: "For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?"
+    messages:
+      - role: user
+        content: |
+          For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?
+          Evidence: how old at that time refers to SUBTRACT(year(test date), year(Birthday)); uric acid level as 8.4 refers to UA = '8.4'; 1991/10/21 refers to Date = '1991-10-21'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1181.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

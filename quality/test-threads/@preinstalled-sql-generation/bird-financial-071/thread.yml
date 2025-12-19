@@ -1,0 +1,35 @@
+name: bird-financial-071
+description: "BIRD Q159 (simple): List all the withdrawals in cash transactions that the client with the id 3356 makes."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-159
+    description: "List all the withdrawals in cash transactions that the client with the id 3356 makes."
+    messages:
+      - role: user
+        content: |
+          List all the withdrawals in cash transactions that the client with the id 3356 makes.
+          Evidence: operation = 'VYBER' refers to withdrawal in cash
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_159.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

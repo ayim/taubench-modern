@@ -1,0 +1,35 @@
+name: bird-formula-1-086
+description: "BIRD Q931 (moderate): What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-931
+    description: "What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?"
+    messages:
+      - role: user
+        content: |
+          What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?
+          Evidence: the fastest lap speed among all refers to max(fastestLapSpeed); Spanish Grand Prix refers to races.name = 'Spanish Grand Prix';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_931.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

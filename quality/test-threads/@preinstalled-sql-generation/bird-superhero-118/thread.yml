@@ -1,0 +1,35 @@
+name: bird-superhero-118
+description: "BIRD Q834 (challenging): Among all superheroes created by George Lucas, identify the percentage of female superheroes."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-834
+    description: "Among all superheroes created by George Lucas, identify the percentage of female superheroes."
+    messages:
+      - role: user
+        content: |
+          Among all superheroes created by George Lucas, identify the percentage of female superheroes.
+          Evidence: created by George Lucas refers to publisher_name = 'George Lucas'; percentage is the ratio of female superheroes to total superheroes multiplied by 100; female refers to gender 'Female'.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_834.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

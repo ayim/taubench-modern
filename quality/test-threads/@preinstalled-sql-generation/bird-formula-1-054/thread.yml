@@ -1,0 +1,35 @@
+name: bird-formula-1-054
+description: "BIRD Q899 (moderate): List circuits which host 4 f1 races from year 1990 to 2000."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-899
+    description: "List circuits which host 4 f1 races from year 1990 to 2000."
+    messages:
+      - role: user
+        content: |
+          List circuits which host 4 f1 races from year 1990 to 2000.
+          Evidence: from year 1990 to 2000 refers to year(date) between 1990 and 2000;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_899.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

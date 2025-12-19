@@ -1,0 +1,35 @@
+name: bird-european-football-2-075
+description: "BIRD Q1094 (challenging): How much higher in percentage is Ariel Borysiuk's overall rating than that of Paulin Puel?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1094
+    description: "How much higher in percentage is Ariel Borysiuk's overall rating than that of Paulin Puel?"
+    messages:
+      - role: user
+        content: |
+          How much higher in percentage is Ariel Borysiuk's overall rating than that of Paulin Puel?
+          Evidence: how much higher in percentage = MULTIPLY(DIVIDE(SUBTRACT(overall_rating WHERE player_name = 'Ariel Borysiuk', overall_rating WHERE player_name = 'Paulin Puel'), overall_rating WHERE player_name = 'Paulin Puel'), 100);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1094.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

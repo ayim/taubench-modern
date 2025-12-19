@@ -1,0 +1,35 @@
+name: bird-codebase-community-028
+description: "BIRD Q558 (simple): How many votes did the user No.58 take on 2010/7/19?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-558
+    description: "How many votes did the user No.58 take on 2010/7/19?"
+    messages:
+      - role: user
+        content: |
+          How many votes did the user No.58 take on 2010/7/19?
+          Evidence: user no. 58 refers to UserId = 58; on 2010/7/19 refers to CreationDate = '2010-07-19'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_558.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

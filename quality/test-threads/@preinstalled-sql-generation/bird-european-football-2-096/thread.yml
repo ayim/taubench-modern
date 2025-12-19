@@ -1,0 +1,35 @@
+name: bird-european-football-2-096
+description: "BIRD Q1115 (challenging): What percentage is Landon Donovan's overall rating higher than Jordan Bowery on 2013/7/12?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1115
+    description: "What percentage is Landon Donovan's overall rating higher than Jordan Bowery on 2013/7/12?"
+    messages:
+      - role: user
+        content: |
+          What percentage is Landon Donovan's overall rating higher than Jordan Bowery on 2013/7/12?
+          Evidence: Landon Donovan's refers to player_name = 'Landon Donovan'; Jordan Bowery refers to player_name = 'Jordan Bowery'; percentage refers to DIVIDE(SUBTRACT(player_name = 'Landon Donovan' overall_rating; player_name = 'Jordan Bowery' overall_rating), player_name = 'Landon Donovan' overall_rating)*100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1115.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

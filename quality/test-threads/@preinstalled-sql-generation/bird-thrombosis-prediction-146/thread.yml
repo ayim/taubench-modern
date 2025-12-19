@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-146
+description: "BIRD Q1294 (moderate): Please list the patient's ID whose creatinine level is normal and whose anti Cardiolipin antibody concentration level is the highest."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1294
+    description: "Please list the patient's ID whose creatinine level is normal and whose anti Cardiolipin antibody concentration level is the highest."
+    messages:
+      - role: user
+        content: |
+          Please list the patient's ID whose creatinine level is normal and whose anti Cardiolipin antibody concentration level is the highest.
+          Evidence: creatinine level is normal refers to CRE < 1.5; anti Cardiolipin antibody concentration level is the highest refers to MAX(aCL IgA);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1294.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

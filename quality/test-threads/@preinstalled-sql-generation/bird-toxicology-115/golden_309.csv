@@ -1,0 +1,1 @@
+atom_id,COUNT(DISTINCT T2.bond_type)

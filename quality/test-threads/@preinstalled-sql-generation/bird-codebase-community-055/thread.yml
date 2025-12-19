@@ -1,0 +1,35 @@
+name: bird-codebase-community-055
+description: "BIRD Q585 (simple): How much is the total bounty amount of the post titled about 'data'"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-585
+    description: "How much is the total bounty amount of the post titled about 'data'"
+    messages:
+      - role: user
+        content: |
+          How much is the total bounty amount of the post titled about 'data'
+          Evidence: About data means the title contains 'data'; total bounty amount is the sum of all bounty amounts for these posts.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_585.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

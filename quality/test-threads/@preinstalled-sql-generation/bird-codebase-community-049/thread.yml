@@ -1,0 +1,35 @@
+name: bird-codebase-community-049
+description: "BIRD Q579 (simple): Write all comments made on the post titled 'How does gentle boosting differ from AdaBoost?'"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-579
+    description: "Write all comments made on the post titled 'How does gentle boosting differ from AdaBoost?'"
+    messages:
+      - role: user
+        content: |
+          Write all comments made on the post titled 'How does gentle boosting differ from AdaBoost?'
+          Evidence: "How does gentle boosting differ from AdaBoost?" is the Title of post; comments refers to Text
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_579.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

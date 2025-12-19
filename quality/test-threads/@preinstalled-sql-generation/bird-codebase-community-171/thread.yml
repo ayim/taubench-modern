@@ -1,0 +1,35 @@
+name: bird-codebase-community-171
+description: "BIRD Q701 (challenging): Among all the posts posted by the most influential user, identify the percentage with a score above 50."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-701
+    description: "Among all the posts posted by the most influential user, identify the percentage with a score above 50."
+    messages:
+      - role: user
+        content: |
+          Among all the posts posted by the most influential user, identify the percentage with a score above 50.
+          Evidence: The most influential user is defined as the user with the highest reputation; the percentage is calculated based on the proportion of posts with a score above 50 among all posts by that user;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_701.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

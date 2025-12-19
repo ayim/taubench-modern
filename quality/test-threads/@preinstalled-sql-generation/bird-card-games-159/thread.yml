@@ -1,0 +1,35 @@
+name: bird-card-games-159
+description: "BIRD Q498 (moderate): What's the French name of the set of cards with \"Tendo Ice Bridge\" is in?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-498
+    description: "What's the French name of the set of cards with \"Tendo Ice Bridge\" is in?"
+    messages:
+      - role: user
+        content: |
+          What's the French name of the set of cards with "Tendo Ice Bridge" is in?
+          Evidence: French refers to language = 'French'; "Tendo Ice Bridge" is a translated name of a card; translated name refers to translation
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_498.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

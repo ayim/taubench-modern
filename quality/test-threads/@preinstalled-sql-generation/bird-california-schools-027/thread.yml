@@ -1,0 +1,36 @@
+name: bird-california-schools-027
+description: "BIRD Q26 (moderate): State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-26
+    description: "State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17."
+    messages:
+      - role: user
+        content: |
+          State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17.
+          Evidence: Full communication address should include Street, City, State and zip code if any.
+          Free or reduced price meals can be shortened to FRPM.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_26.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

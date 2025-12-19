@@ -1,0 +1,35 @@
+name: bird-codebase-community-093
+description: "BIRD Q623 (simple): How many elders obtained the \"Supporter\" badge?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-623
+    description: "How many elders obtained the \"Supporter\" badge?"
+    messages:
+      - role: user
+        content: |
+          How many elders obtained the "Supporter" badge?
+          Evidence: "Supporter" is the Name of badge;  elders refers to Age > 65
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_623.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

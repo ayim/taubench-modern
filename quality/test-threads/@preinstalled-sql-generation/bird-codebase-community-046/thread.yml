@@ -1,0 +1,35 @@
+name: bird-codebase-community-046
+description: "BIRD Q576 (simple): Name the user that commented 'thank you user93!'"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-576
+    description: "Name the user that commented 'thank you user93!'"
+    messages:
+      - role: user
+        content: |
+          Name the user that commented 'thank you user93!'
+          Evidence: "thank you user93" is the Text of comment; user refers to DisplayName
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_576.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

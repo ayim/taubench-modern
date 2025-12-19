@@ -1,0 +1,35 @@
+name: bird-card-games-157
+description: "BIRD Q496 (simple): How many cards are there in the set of \"Rinascita di Alara\"?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-496
+    description: "How many cards are there in the set of \"Rinascita di Alara\"?"
+    messages:
+      - role: user
+        content: |
+          How many cards are there in the set of "Rinascita di Alara"?
+          Evidence: set of "Rinascita di Alara" is a translation of a set.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_496.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

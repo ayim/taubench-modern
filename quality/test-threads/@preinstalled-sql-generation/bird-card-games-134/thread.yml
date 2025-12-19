@@ -1,0 +1,35 @@
+name: bird-card-games-134
+description: "BIRD Q473 (moderate): Is the set of cards with Adarkar Valkyrie only available outside the United States?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-473
+    description: "Is the set of cards with Adarkar Valkyrie only available outside the United States?"
+    messages:
+      - role: user
+        content: |
+          Is the set of cards with Adarkar Valkyrie only available outside the United States?
+          Evidence: card set Adarkar Valkyrie refers to name = 'Adarkar Valkyrie'; isForeignOnly = 1 means only available outside the United States;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_473.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

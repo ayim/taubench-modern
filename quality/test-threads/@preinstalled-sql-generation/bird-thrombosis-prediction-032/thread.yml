@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-032
+description: "BIRD Q1180 (moderate): Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1180
+    description: "Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?"
+    messages:
+      - role: user
+        content: |
+          Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?
+          Evidence: man refers to SEX = 'M'; woman refers to SEX = 'F'; ALT glutamic pylvic transaminase status got 9 means GPT = 9; 1992/6/12 refers to Date = '1992-06-12';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1180.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

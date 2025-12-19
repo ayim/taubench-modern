@@ -1,0 +1,35 @@
+name: bird-financial-030
+description: "BIRD Q118 (challenging): For loans under $100,000, what is the percentage of loans running with no issues in each region and loan size category, and how does each region's performance compare to the overall average?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-118
+    description: "For loans under $100,000, what is the percentage of loans running with no issues in each region and loan size category, and how does each region's performance compare to the overall average?"
+    messages:
+      - role: user
+        content: |
+          For loans under $100,000, what is the percentage of loans running with no issues in each region and loan size category, and how does each region's performance compare to the overall average?
+          Evidence: Status = 'C' means running contract with no issues; Small loans are under $50,000, Medium loans are $50,000-$99,999; Percentage is calculated by dividing loans with status 'C' by total loans and multiplying by 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_118.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

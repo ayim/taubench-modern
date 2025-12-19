@@ -1,0 +1,35 @@
+name: bird-california-schools-088
+description: "BIRD Q87 (challenging): What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-87
+    description: "What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?"
+    messages:
+      - role: user
+        content: |
+          What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?
+          Evidence: Intermediate/Middle Schools refers to SOC = '62'; Unified School District refers to DOC = '54'; years between 2009 and 2010 can refer to 'between 1/1/2009 to 12/31/2010'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_87.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

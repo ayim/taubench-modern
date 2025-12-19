@@ -1,0 +1,35 @@
+name: bird-california-schools-020
+description: "BIRD Q19 (challenging): For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-19
+    description: "For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals."
+    messages:
+      - role: user
+        content: |
+          For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals.
+          Evidence: Charter status refers to Charter School (Y/N) = 1 for charter schools. Free or reduced price meal eligibility refers to Percent (%) Eligible FRPM (K-12).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_19.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

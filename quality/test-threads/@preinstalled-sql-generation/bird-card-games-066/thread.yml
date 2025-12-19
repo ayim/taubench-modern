@@ -1,0 +1,35 @@
+name: bird-card-games-066
+description: "BIRD Q405 (moderate): How many Brazilian Portuguese translated sets are inside the Commander block?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-405
+    description: "How many Brazilian Portuguese translated sets are inside the Commander block?"
+    messages:
+      - role: user
+        content: |
+          How many Brazilian Portuguese translated sets are inside the Commander block?
+          Evidence: Commander block refer to block = 'Commander'; sets refer to code = setCode; Portuguese refer to language = 'Portuguese (Brasil)'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_405.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

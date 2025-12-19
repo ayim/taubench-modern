@@ -1,0 +1,35 @@
+name: bird-financial-046
+description: "BIRD Q134 (challenging): For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-134
+    description: "For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there."
+    messages:
+      - role: user
+        content: |
+          For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there.
+          Evidence: A16 refers to the number of committed crimes in 1996; A15 refers to the number of committed crimes in 1995
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_134.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

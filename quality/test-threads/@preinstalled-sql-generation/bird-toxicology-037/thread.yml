@@ -1,0 +1,35 @@
+name: bird-toxicology-037
+description: "BIRD Q231 (challenging): Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-231
+    description: "Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?"
+    messages:
+      - role: user
+        content: |
+          Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?
+          Evidence: TR010 is the molecule id; majority of the bond found refers to MAX(COUNT(bond_type)); carcinogenic molecules refer to molecules with label = '+';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_231.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

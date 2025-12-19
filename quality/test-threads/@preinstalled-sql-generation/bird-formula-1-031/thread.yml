@@ -1,0 +1,35 @@
+name: bird-formula-1-031
+description: "BIRD Q876 (simple): For the race happened in 2015/11/29, how many drivers did not finish the race?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-876
+    description: "For the race happened in 2015/11/29, how many drivers did not finish the race?"
+    messages:
+      - role: user
+        content: |
+          For the race happened in 2015/11/29, how many drivers did not finish the race?
+          Evidence: Drivers who did not finish the race have NULL values in the time field.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_876.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

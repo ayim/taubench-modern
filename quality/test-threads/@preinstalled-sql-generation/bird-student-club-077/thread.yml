@@ -1,0 +1,35 @@
+name: bird-student-club-077
+description: "BIRD Q1388 (moderate): Which students manage to generate the highest income. State his/her full name along with the income source."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1388
+    description: "Which students manage to generate the highest income. State his/her full name along with the income source."
+    messages:
+      - role: user
+        content: |
+          Which students manage to generate the highest income. State his/her full name along with the income source.
+          Evidence: full name refers to first_name, last_name; generate the highest income refers to the total income amount
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1388.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

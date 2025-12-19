@@ -1,0 +1,35 @@
+name: bird-formula-1-140
+description: "BIRD Q985 (simple): Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-985
+    description: "Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap."
+    messages:
+      - role: user
+        content: |
+          Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap.
+          Evidence: slowest time refers to Max(time);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_985.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

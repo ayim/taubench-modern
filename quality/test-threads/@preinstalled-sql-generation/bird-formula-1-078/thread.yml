@@ -1,0 +1,34 @@
+name: bird-formula-1-078
+description: "BIRD Q923 (simple): How many Formula_1 races took place on the circuits in Italy?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-923
+    description: "How many Formula_1 races took place on the circuits in Italy?"
+    messages:
+      - role: user
+        content: |
+          How many Formula_1 races took place on the circuits in Italy?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_923.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

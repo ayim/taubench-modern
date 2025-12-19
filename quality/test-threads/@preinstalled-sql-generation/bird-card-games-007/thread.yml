@@ -1,0 +1,35 @@
+name: bird-card-games-007
+description: "BIRD Q346 (moderate): List all the card id and artist with unknown power which are legal for commander play format."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-346
+    description: "List all the card id and artist with unknown power which are legal for commander play format."
+    messages:
+      - role: user
+        content: |
+          List all the card id and artist with unknown power which are legal for commander play format.
+          Evidence: unknown power refers to power = '*' or POWER IS NULL; commander play format refers to format = 'commander'; legal for commander play format refers to format = 'commander' where status = 'Legal'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_346.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

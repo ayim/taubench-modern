@@ -1,0 +1,35 @@
+name: bird-financial-027
+description: "BIRD Q115 (challenging): What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-115
+    description: "What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?"
+    messages:
+      - role: user
+        content: |
+          What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?
+          Evidence: Percentage of male clients = (number of male clients / total number of clients) * 100. Male refers to gender = 'M'. A3 is the region name, A2 is the district name, and A4 contains the number of inhabitants.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_115.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

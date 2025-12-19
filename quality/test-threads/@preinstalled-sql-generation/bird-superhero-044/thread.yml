@@ -1,0 +1,35 @@
+name: bird-superhero-044
+description: "BIRD Q760 (challenging): In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-760
+    description: "In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?"
+    messages:
+      - role: user
+        content: |
+          In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?
+          Evidence: heroes published by Marvel Comics refers to publisher_name = 'Marvel Comics'; percentage is calculated as (Marvel Comics heroes / total heroes) * 100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_760.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

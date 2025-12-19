@@ -1,0 +1,37 @@
+name: bird-formula-1-153
+description: "BIRD Q998 (simple): In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-998
+    description: "In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?"
+    messages:
+      - role: user
+        content: |
+          In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?
+          Evidence: victories refer to wins; 91st refers to points
+          
+          
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_998.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

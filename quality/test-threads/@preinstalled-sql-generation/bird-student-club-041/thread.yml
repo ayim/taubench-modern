@@ -1,0 +1,35 @@
+name: bird-student-club-041
+description: "BIRD Q1352 (moderate): For all the club members from \"Business\" major, how many of them wear medium size t-shirt?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1352
+    description: "For all the club members from \"Business\" major, how many of them wear medium size t-shirt?"
+    messages:
+      - role: user
+        content: |
+          For all the club members from "Business" major, how many of them wear medium size t-shirt?
+          Evidence: 'Business' is a major name; wear medium size t-shirt refers to t_shirt_size = 'Medium'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1352.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

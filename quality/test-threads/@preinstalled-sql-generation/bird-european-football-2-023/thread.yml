@@ -1,0 +1,35 @@
+name: bird-european-football-2-023
+description: "BIRD Q1042 (challenging): List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1042
+    description: "List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season."
+    messages:
+      - role: user
+        content: |
+          List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season.
+          Evidence: The 2009/2010 season is represented as '2009/2010' in the data; to determine if home teams score more on average, compare the average goals scored by home teams across all matches to the average goals scored by away teams across all matches in that season.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1042.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

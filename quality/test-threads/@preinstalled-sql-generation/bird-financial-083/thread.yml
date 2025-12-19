@@ -1,0 +1,35 @@
+name: bird-financial-083
+description: "BIRD Q171 (moderate): What was the difference in the number of crimes committed in East and North Bohemia in 1996?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-171
+    description: "What was the difference in the number of crimes committed in East and North Bohemia in 1996?"
+    messages:
+      - role: user
+        content: |
+          What was the difference in the number of crimes committed in East and North Bohemia in 1996?
+          Evidence: Difference in no. of committed crimes between 2 regions = Total no. of committed crimes in 1996 in north Bohemia - Total no. of committed crimes in 1996 in e ast Bohemia. A3 refers to region. Data about no. of committed crimes 1996 appears in A16
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_171.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

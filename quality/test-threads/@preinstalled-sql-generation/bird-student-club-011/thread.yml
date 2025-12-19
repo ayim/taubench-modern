@@ -1,0 +1,35 @@
+name: bird-student-club-011
+description: "BIRD Q1322 (moderate): Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+
+thread:
+  - name: bird-question-1322
+    description: "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?"
+    messages:
+      - role: user
+        content: |
+          Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?
+          Evidence: meetings events refers to type = 'Meeting'; attended by more than 10 members refers to COUNT(event_id) > 10
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1322.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

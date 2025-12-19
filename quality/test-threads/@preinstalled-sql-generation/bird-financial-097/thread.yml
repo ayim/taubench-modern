@@ -1,0 +1,35 @@
+name: bird-financial-097
+description: "BIRD Q185 (moderate): What proportion of customers who have accounts at the Prague branch are female?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-185
+    description: "What proportion of customers who have accounts at the Prague branch are female?"
+    messages:
+      - role: user
+        content: |
+          What proportion of customers who have accounts at the Prague branch are female?
+          Evidence: Female refers to gender = 'F'; Proportion = [number of female clients with accounts in the Prague region / number of clients with accounts in the Prague region] * 100%.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_185.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

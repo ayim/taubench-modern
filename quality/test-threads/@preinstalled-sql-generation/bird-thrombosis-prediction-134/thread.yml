@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-134
+description: "BIRD Q1282 (simple): Please list the top three patients' birthdays with the highest glutamic pylvic transaminase in the normal range."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1282
+    description: "Please list the top three patients' birthdays with the highest glutamic pylvic transaminase in the normal range."
+    messages:
+      - role: user
+        content: |
+          Please list the top three patients' birthdays with the highest glutamic pylvic transaminase in the normal range.
+          Evidence: normal range for GPT is below 60
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1282.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

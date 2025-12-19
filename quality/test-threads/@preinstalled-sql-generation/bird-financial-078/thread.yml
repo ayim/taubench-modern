@@ -1,0 +1,35 @@
+name: bird-financial-078
+description: "BIRD Q166 (challenging): What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+
+thread:
+  - name: bird-question-166
+    description: "What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?"
+    messages:
+      - role: user
+        content: |
+          What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?
+          Evidence: Good loans refer to status = 'A'; bad loans refer to status = 'B'. PRIJEM represents incoming transactions and VYDAJ represents outgoing transactions.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_166.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

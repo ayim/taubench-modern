@@ -1,0 +1,35 @@
+name: bird-superhero-085
+description: "BIRD Q801 (moderate): Find the ratio between male superheroes and female superheroes."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-801
+    description: "Find the ratio between male superheroes and female superheroes."
+    messages:
+      - role: user
+        content: |
+          Find the ratio between male superheroes and female superheroes.
+          Evidence: ratio = DIVIDE(SUM(gender_id = 1) / SUM(gender_id = 2)); male superheroes refers to gender = 'Male'; female superheroes refers to gender = 'Female';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_801.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

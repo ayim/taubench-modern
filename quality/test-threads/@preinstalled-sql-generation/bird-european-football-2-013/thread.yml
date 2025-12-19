@@ -1,0 +1,35 @@
+name: bird-european-football-2-013
+description: "BIRD Q1032 (moderate): Give the name of the league with the highest matches of all time and how many matches were played in the said league."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1032
+    description: "Give the name of the league with the highest matches of all time and how many matches were played in the said league."
+    messages:
+      - role: user
+        content: |
+          Give the name of the league with the highest matches of all time and how many matches were played in the said league.
+          Evidence:  league with highest matches of all time refers to MAX(COUNT(league_id));
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1032.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

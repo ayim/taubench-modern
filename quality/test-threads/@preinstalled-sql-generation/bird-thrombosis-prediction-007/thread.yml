@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-007
+description: "BIRD Q1155 (simple): List the patient ID, sex and birthday of patient with LDH beyond normal range."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1155
+    description: "List the patient ID, sex and birthday of patient with LDH beyond normal range."
+    messages:
+      - role: user
+        content: |
+          List the patient ID, sex and birthday of patient with LDH beyond normal range.
+          Evidence: LDH beyond normal range refers to LDH > '500';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1155.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

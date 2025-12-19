@@ -1,0 +1,35 @@
+name: bird-codebase-community-085
+description: "BIRD Q615 (moderate): Among the users who obtained the \"Organizer\" badges, calculate the percentage of users who are teenagers."
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-615
+    description: "Among the users who obtained the \"Organizer\" badges, calculate the percentage of users who are teenagers."
+    messages:
+      - role: user
+        content: |
+          Among the users who obtained the "Organizer" badges, calculate the percentage of users who are teenagers.
+          Evidence: teenager refers to Age BETWEEN 13 AND 18; percentage = Divide (Count(UserId where Age BETWEEN 13 AND 18), Count(UserId)) *100
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_615.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

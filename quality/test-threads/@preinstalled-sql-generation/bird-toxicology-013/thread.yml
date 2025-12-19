@@ -1,0 +1,35 @@
+name: bird-toxicology-013
+description: "BIRD Q207 (challenging): For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-207
+    description: "For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?"
+    messages:
+      - role: user
+        content: |
+          For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?
+          Evidence: Double bonds refer to bond_type = '='. Only consider molecules that contain at least one double bond.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_207.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

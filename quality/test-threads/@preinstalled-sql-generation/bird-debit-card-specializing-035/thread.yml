@@ -1,0 +1,35 @@
+name: bird-debit-card-specializing-035
+description: "BIRD Q1504 (simple): What is the average total price of the transactions taken place in January, 2012?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+
+thread:
+  - name: bird-question-1504
+    description: "What is the average total price of the transactions taken place in January, 2012?"
+    messages:
+      - role: user
+        content: |
+          What is the average total price of the transactions taken place in January, 2012?
+          Evidence: In January, 2012 means Date contains '2012-01'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1504.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

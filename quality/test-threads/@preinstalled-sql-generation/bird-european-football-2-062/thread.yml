@@ -1,0 +1,35 @@
+name: bird-european-football-2-062
+description: "BIRD Q1081 (simple): Which country is the Belgium Jupiler League from?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1081
+    description: "Which country is the Belgium Jupiler League from?"
+    messages:
+      - role: user
+        content: |
+          Which country is the Belgium Jupiler League from?
+          Evidence: Belgium Jupiler League refers to League.name = 'Belgium Jupiler League';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1081.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

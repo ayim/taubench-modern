@@ -1,0 +1,2 @@
+district_id,district_name,region,account_open_date,days_account_open_before_loan,avg_salary,unemployment_rate_1995,salary_rank,unemployment_rank,num_clients,male_clients,female_clients,avg_client_age,transactions_before_loan,total_income_before_loan
+31,Tachov,west Bohemia,1993-03-24,519.0,8930,3.5,1,1,59,28,31,41.451571363936935,93,696154

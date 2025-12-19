@@ -1,0 +1,35 @@
+name: bird-codebase-community-147
+description: "BIRD Q677 (simple): How many posts did Jay Stevens have in 2010?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-677
+    description: "How many posts did Jay Stevens have in 2010?"
+    messages:
+      - role: user
+        content: |
+          How many posts did Jay Stevens have in 2010?
+          Evidence: DisplayName = 'Jay Stevens'; in 2010 refers to YEAR(CreationDate) = 2010;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_677.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

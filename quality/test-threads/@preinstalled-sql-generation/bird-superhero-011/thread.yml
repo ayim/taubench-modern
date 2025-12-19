@@ -1,0 +1,35 @@
+name: bird-superhero-011
+description: "BIRD Q727 (simple): Who is the publisher of Sauron?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-727
+    description: "Who is the publisher of Sauron?"
+    messages:
+      - role: user
+        content: |
+          Who is the publisher of Sauron?
+          Evidence: the publisher refers to publisher_name; Sauron refers to superhero_name = 'Sauron'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_727.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

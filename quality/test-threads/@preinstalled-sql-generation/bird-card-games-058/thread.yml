@@ -1,0 +1,35 @@
+name: bird-card-games-058
+description: "BIRD Q397 (moderate): What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+
+thread:
+  - name: bird-question-397
+    description: "What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?"
+    messages:
+      - role: user
+        content: |
+          What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?
+          Evidence: available in paper and mtgo refers to availability = 'mtgo,paper'; frameVersion = 2003;borderColor = 'black'
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_397.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

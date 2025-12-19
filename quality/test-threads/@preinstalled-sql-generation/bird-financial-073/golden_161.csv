@@ -1,0 +1,2 @@
+client_id,gender,client_age,card_type,card_issued_date,card_age,district_name,region,avg_salary,district_salary_rank,total_transactions,total_income,total_expense,customer_segment,loan_count
+13539,M,47,junior,1995-05-02,30,Hl.m. Praha,Prague,12541,1,571,3230713,2684264,Standard,1

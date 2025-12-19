@@ -1,0 +1,2 @@
+"SUM(IIF(A3 = 'north Bohemia', A16, 0)) - SUM(IIF(A3 = 'east Bohemia', A16, 0))"
+17734

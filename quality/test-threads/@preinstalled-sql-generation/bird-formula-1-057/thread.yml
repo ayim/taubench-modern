@@ -1,0 +1,35 @@
+name: bird-formula-1-057
+description: "BIRD Q902 (simple): Which race was Alex Yoong in when he was in track number less than 20?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-902
+    description: "Which race was Alex Yoong in when he was in track number less than 20?"
+    messages:
+      - role: user
+        content: |
+          Which race was Alex Yoong in when he was in track number less than 20?
+          Evidence: Alex Yoong refers to the full name of the driver; Full name of the driver refers to drivers.forename and drivers.surname;track number less than 10 refers to position < 20
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_902.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

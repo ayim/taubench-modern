@@ -1,0 +1,35 @@
+name: bird-european-football-2-073
+description: "BIRD Q1092 (simple): Give the name of the league which had the most matches in the 2008/2009 season?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1092
+    description: "Give the name of the league which had the most matches in the 2008/2009 season?"
+    messages:
+      - role: user
+        content: |
+          Give the name of the league which had the most matches in the 2008/2009 season?
+          Evidence: The league with the most matches is the one with the highest count of matches during that season.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1092.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

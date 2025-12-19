@@ -1,0 +1,35 @@
+name: bird-european-football-2-128
+description: "BIRD Q1147 (simple): Please name one player whose overall strength is the greatest."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1147
+    description: "Please name one player whose overall strength is the greatest."
+    messages:
+      - role: user
+        content: |
+          Please name one player whose overall strength is the greatest.
+          Evidence: overall strength is the greatest refers to highest in overall rating
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1147.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

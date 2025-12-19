@@ -1,0 +1,35 @@
+name: bird-codebase-community-126
+description: "BIRD Q656 (simple): Describe the display name of the parent ID for child post with the highest score."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-656
+    description: "Describe the display name of the parent ID for child post with the highest score."
+    messages:
+      - role: user
+        content: |
+          Describe the display name of the parent ID for child post with the highest score.
+          Evidence: If the parent id is not null, the post is the child post; the highest score refers to MAX(Score);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_656.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

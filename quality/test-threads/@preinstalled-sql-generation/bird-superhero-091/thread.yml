@@ -1,0 +1,35 @@
+name: bird-superhero-091
+description: "BIRD Q807 (simple): What is the superpowers of the superhero has Helen Parr as their full name?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-807
+    description: "What is the superpowers of the superhero has Helen Parr as their full name?"
+    messages:
+      - role: user
+        content: |
+          What is the superpowers of the superhero has Helen Parr as their full name?
+          Evidence: superpowers refers to power_name; Helen Parr is the full name of superhero;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_807.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

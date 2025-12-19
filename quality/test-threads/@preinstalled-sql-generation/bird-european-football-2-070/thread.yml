@@ -1,0 +1,35 @@
+name: bird-european-football-2-070
+description: "BIRD Q1089 (simple): How many matches in the 2008/2009 season were held in Belgium?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football 2 BIRD benchmark database
+
+thread:
+  - name: bird-question-1089
+    description: "How many matches in the 2008/2009 season were held in Belgium?"
+    messages:
+      - role: user
+        content: |
+          How many matches in the 2008/2009 season were held in Belgium?
+          Evidence: Belgium refers to Country.name = 'Belgium';
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1089.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

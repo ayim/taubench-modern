@@ -1,0 +1,35 @@
+name: bird-codebase-community-158
+description: "BIRD Q688 (simple): Identify the number of posts that have been viewed over 35000 times but have received no comments from other users."
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+
+thread:
+  - name: bird-question-688
+    description: "Identify the number of posts that have been viewed over 35000 times but have received no comments from other users."
+    messages:
+      - role: user
+        content: |
+          Identify the number of posts that have been viewed over 35000 times but have received no comments from other users.
+          Evidence: have been viewed over 35000 times refers to ViewCount > 35000; received no comments refers to CommentCount = 0;
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_688.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

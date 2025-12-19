@@ -1,0 +1,35 @@
+name: bird-california-schools-053
+description: "BIRD Q52 (simple): What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-52
+    description: "What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?"
+    messages:
+      - role: user
+        content: |
+          What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?
+          Evidence: Total SAT scores can be computed by AvgScrRead + AvgScrMath + AvgScrWrite
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_52.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

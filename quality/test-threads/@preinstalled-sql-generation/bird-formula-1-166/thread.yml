@@ -1,0 +1,35 @@
+name: bird-formula-1-166
+description: "BIRD Q1011 (challenging): Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names."
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+
+thread:
+  - name: bird-question-1011
+    description: "Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names."
+    messages:
+      - role: user
+        content: |
+          Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names.
+          Evidence: shortest lap time refers to MIN(time); the time format for the shortest lap time is 'MM:SS.mmm' or 'M:SS.mmm'; full name of the driver refers to forename, surname
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1011.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

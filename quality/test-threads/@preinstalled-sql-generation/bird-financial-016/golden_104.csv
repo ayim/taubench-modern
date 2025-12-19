@@ -1,0 +1,2 @@
+account_id,account_opening_date,transaction_date,days_account_open_before_transaction,amount,balance,district_name,region,client_id,gender_full,age_at_transaction,total_transactions_to_date,cards_issued,has_loan_before_transaction
+496,1993-02-26,1998-10-14,2056,840,39380,Jesenik,north Moravia,596,Male,49,389,0,No

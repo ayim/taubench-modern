@@ -1,0 +1,35 @@
+name: bird-superhero-086
+description: "BIRD Q802 (simple): Who is the tallest superhero?"
+difficulty: simple
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+
+thread:
+  - name: bird-question-802
+    description: "Who is the tallest superhero?"
+    messages:
+      - role: user
+        content: |
+          Who is the tallest superhero?
+          Evidence: who refers to superhero_name; tallest superhero refers to MAX(height_cm);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_802.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

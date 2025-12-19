@@ -1,0 +1,35 @@
+name: bird-thrombosis-prediction-045
+description: "BIRD Q1193 (moderate): Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?"
+difficulty: moderate
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+
+thread:
+  - name: bird-question-1193
+    description: "Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?"
+    messages:
+      - role: user
+        content: |
+          Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?
+          Evidence: Excluding all P only ANA Pattern refers to `ANA Pattern`! = 'P'; women refers to SEX = 'F'; born between 1980 and 1989 refers to BIRTHDAY
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_1193.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

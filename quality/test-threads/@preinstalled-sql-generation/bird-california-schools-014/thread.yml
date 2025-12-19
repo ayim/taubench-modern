@@ -1,0 +1,35 @@
+name: bird-california-schools-014
+description: "BIRD Q13 (challenging): What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?"
+difficulty: challenging
+timeout_seconds: 600
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+
+thread:
+  - name: bird-question-13
+    description: "What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?"
+    messages:
+      - role: user
+        content: |
+          What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?
+          Evidence: SAT excellence rate = NumGE1500 / NumTstTakr. Poverty rate refers to Percent (%) Eligible FRPM (K-12). Schools are classified as High Poverty (>75%), Medium Poverty (>50%), Low Poverty (>25%), or Very Low Poverty (≤25%).
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_13.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).
