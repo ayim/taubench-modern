@@ -24,6 +24,7 @@ from agent_platform.server.storage.types import JSONValue, StaleThreadsResult
 if TYPE_CHECKING:
     from agent_platform.core import MCPServer, MCPServerSource
     from agent_platform.core.mcp.mcp_server import MCPServerWithMetadata, MCPServerWithOAuthConfig
+    from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
     from agent_platform.server.work_items.rest import AgentWorkItemsSummaryResponse
 
 
@@ -568,10 +569,10 @@ class AbstractStorage(ABC):
     async def update_mcp_server(
         self,
         mcp_server_id: str,
-        mcp_server: "MCPServer",
+        mcp_server_update: "MCPServerUpdate",
         mcp_server_source: "MCPServerSource",
     ) -> None:
-        """Update an MCP server."""
+        """Update an MCP server. Only updates fields that are provided (not None) in mcp_server_update."""
 
     @abstractmethod
     async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:

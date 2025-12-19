@@ -1,15 +1,8 @@
-from datetime import UTC, datetime
-from sqlite3 import IntegrityError
-
 from structlog import get_logger
 
-from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithMetadata
+from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.server.storage.common import CommonMixin
-from agent_platform.server.storage.errors import (
-    ConfigDecryptionError,
-    MCPServerNotFoundError,
-    MCPServerWithNameAlreadyExistsError,
-)
+from agent_platform.server.storage.errors import ConfigDecryptionError, MCPServerNotFoundError
 from agent_platform.server.storage.sqlite.cursor import CursorMixin
 
 
@@ -23,70 +16,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
     # -------------------------------------------------------------------------
     # MCP Servers
     # -------------------------------------------------------------------------
-
-    async def get_mcp_server(self, mcp_server_id: str) -> MCPServer:
-        """Get an MCP server by ID."""
-        # 1. Validate the uuid
-        self._validate_uuid(mcp_server_id)
-
-        # TODO: Implement a sync method to add or remove MCP servers from the list
-        # before get_mcp_server is called, ensuring the database matches the source list.
-
-        async with self._cursor() as cur:
-            # 2. Get the MCP server
-            await cur.execute(
-                """
-                SELECT enc_config FROM v2_mcp_server
-                WHERE mcp_server_id = ?
-                """,
-                (mcp_server_id,),
-            )
-
-            # 3. No MCP server found?
-            if not (row := await cur.fetchone()):
-                raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
-
-            # 4. Decrypt and return the MCP server from enc_config
-            encrypted_config = row[0]
-            try:
-                config_dict = self._decrypt_config(encrypted_config)
-                return MCPServer.model_validate(config_dict)
-            except Exception as e:
-                raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {mcp_server_id}") from e
-
-    async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> MCPServerWithMetadata:
-        """Get an MCP server by ID with its source and deployment info."""
-        # 1. Validate the uuid
-        self._validate_uuid(mcp_server_id)
-
-        async with self._cursor() as cur:
-            # 2. Get the MCP server
-            await cur.execute(
-                """
-                SELECT enc_config, source, mcp_runtime_deployment_id FROM v2_mcp_server
-                WHERE mcp_server_id = ?
-                """,
-                (mcp_server_id,),
-            )
-
-            # 3. No MCP server found?
-            if not (row := await cur.fetchone()):
-                raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
-
-            # 4. Decrypt and return the MCP server with metadata
-            encrypted_config = row[0]
-            try:
-                config_dict = self._decrypt_config(encrypted_config)
-                mcp_server = MCPServer.model_validate(config_dict)
-                source = MCPServerSource(row[1])
-                deployment_id = row[2]
-                return MCPServerWithMetadata(
-                    server=mcp_server,
-                    source=source,
-                    deployment_id=deployment_id,
-                )
-            except Exception as e:
-                raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {mcp_server_id}") from e
 
     async def list_mcp_servers(self) -> dict[str, MCPServer]:
         """List all MCP servers."""
@@ -112,46 +41,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 try:
                     config_dict = self._decrypt_config(encrypted_config)
                     result[server_id] = MCPServer.model_validate(config_dict)
-                except Exception as e:
-                    # Skip corrupted entries but log for monitoring
-                    self._logger.warning(f"Skipping MCP server {server_id} due to decryption failure: {e}")
-                    continue
-            return result
-
-    async def list_mcp_servers_with_metadata(
-        self,
-    ) -> dict[str, MCPServerWithMetadata]:
-        """List all MCP servers with their source and deployment info."""
-
-        async with self._cursor() as cur:
-            # 2. Get all MCP servers with source and deployment_id
-            await cur.execute(
-                """
-                SELECT mcp_server_id, enc_config, source, mcp_runtime_deployment_id
-                FROM v2_mcp_server
-                ORDER BY created_at DESC
-                """,
-            )
-
-            # 3. No MCP servers found?
-            if not (rows := await cur.fetchall()):
-                return {}
-
-            # 4. Decrypt and return MCP servers as dict of id -> MCPServerWithMetadata
-            result: dict[str, MCPServerWithMetadata] = {}
-            for row in rows:
-                server_id = row[0]
-                encrypted_config = row[1]
-                try:
-                    config_dict = self._decrypt_config(encrypted_config)
-                    mcp_server = MCPServer.model_validate(config_dict)
-                    source = MCPServerSource(row[2])
-                    deployment_id = row[3]
-                    result[server_id] = MCPServerWithMetadata(
-                        server=mcp_server,
-                        source=source,
-                        deployment_id=deployment_id,
-                    )
                 except Exception as e:
                     # Skip corrupted entries but log for monitoring
                     self._logger.warning(f"Skipping MCP server {server_id} due to decryption failure: {e}")
@@ -206,54 +95,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
 
             # 4. Return the MCP servers as a dict of name -> id
             return {row[1]: row[0] for row in rows}
-
-    async def update_mcp_server(
-        self,
-        mcp_server_id: str,
-        mcp_server: MCPServer,
-        mcp_server_source: MCPServerSource,
-    ) -> None:
-        """Update an MCP server."""
-        # 1. Validate the uuid
-        self._validate_uuid(mcp_server_id)
-
-        # 2. Prepare the config as encrypted JSON
-        config_dict = mcp_server.model_dump()
-        encrypted_config = self._encrypt_config(config_dict)
-        now = datetime.now(UTC).isoformat()
-
-        # 3. Update the MCP server
-        try:
-            async with self._transaction() as cur:
-                await cur.execute(
-                    """
-                    UPDATE v2_mcp_server
-                    SET
-                        name = ?,
-                        enc_config = ?,
-                        source = ?,
-                        updated_at = ?
-                    WHERE mcp_server_id = ?
-                    """,
-                    (
-                        mcp_server.name,
-                        encrypted_config,
-                        mcp_server_source.value,
-                        now,
-                        mcp_server_id,
-                    ),
-                )
-
-                # 4. Check if update succeeded
-                if cur.rowcount == 0:
-                    raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
-        except IntegrityError as e:
-            error_msg = str(e).lower()
-            if "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
-                raise MCPServerWithNameAlreadyExistsError(
-                    f"MCP server with name '{mcp_server.name}' and source '{mcp_server_source.value}' already exists",
-                ) from e
-            raise
 
     async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:
         """

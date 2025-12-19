@@ -36,6 +36,7 @@ async def test_mcp_server_crud_operations(
     sample_mcp_server_http: MCPServer,
 ) -> None:
     """Test Create, Read, Update, and Delete operations for MCP servers."""
+    from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
 
     # Create
     await storage.create_mcp_server(sample_mcp_server_http, MCPServerSource.API)
@@ -58,7 +59,7 @@ async def test_mcp_server_crud_operations(
     assert server_by_id.transport == sample_mcp_server_http.transport
 
     # Update
-    updated_server = MCPServer(
+    updated_server = MCPServerUpdate(
         name="updated-test-server",
         transport="streamable-http",
         url="https://updated.example.com/mcp",

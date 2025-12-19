@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from pytest_regressions.data_regression import DataRegressionFixture
 
 from agent_platform.server.storage.errors import ConfigDecryptionError
 
@@ -157,6 +158,91 @@ def test_update_mcp_server(client: TestClient, sample_mcp_server_payload: dict):
     assert data["name"] == "updated-test-server"
     assert data["url"] == "https://updated.example.com/mcp"
     assert data["headers"] == {"Authorization": "Bearer updated-token"}
+
+
+def test_update_mcp_server_with_oauth_config(client: TestClient, data_regression: DataRegressionFixture):
+    """Test updating an MCP server with OAuth config."""
+
+    mcp_server_payload = {
+        "name": "test-api-server",
+        "transport": "streamable-http",
+        "url": "https://api.example.com/mcp",
+    }
+
+    # Create a server
+    create_response = client.post("/api/v2/private/mcp-servers/", json=mcp_server_payload)
+    assert create_response.status_code == 200
+
+    server_id = create_response.json()["mcp_server_id"]
+
+    def check_current_state(basename):
+        get_response = client.get(f"/api/v2/private/mcp-servers/{server_id}")
+
+        check = get_response.json()
+        check.pop("mcp_server_id")
+        data_regression.check(check, basename=basename)
+
+    check_current_state("0_initial")
+
+    # Update just force_serial_tool_calls
+    update_response = client.put(f"/api/v2/private/mcp-servers/{server_id}", json={"force_serial_tool_calls": True})
+    assert update_response.status_code == 200
+
+    check_current_state("1_updated_force_serial_tool_calls")
+
+    # Try to update with invalid authentication_type
+    update_response = client.put(
+        f"/api/v2/private/mcp-servers/{server_id}", json={"oauth_config": {"authentication_type": "invalid"}}
+    )
+    assert update_response.status_code == 422
+
+    # State should be kept the same
+    check_current_state("1_updated_force_serial_tool_calls")
+
+    # Try to update with valid authentication_type
+    update_response = client.put(
+        f"/api/v2/private/mcp-servers/{server_id}",
+        json={"oauth_config": {"authentication_type": "oauth2-client-credentials"}},
+    )
+    assert update_response.status_code == 200
+
+    check_current_state("2_updated_authentication_type")
+
+    # Now, update the oauth metadata
+    update_response = client.put(
+        f"/api/v2/private/mcp-servers/{server_id}",
+        json={
+            "oauth_config": {
+                "authentication_metadata": {
+                    "client_id": "test-client-id",
+                    "client_secret": "test-client-secret",
+                    "scope": "test-scope",
+                    "endpoint": "test-endpoint",
+                }
+            }
+        },
+    )
+    assert update_response.status_code == 200, update_response.text
+
+    check_current_state("3_updated_oauth_metadata")
+
+    # Now, update the oauth metadata with some unexpected fields
+    update_response = client.put(
+        f"/api/v2/private/mcp-servers/{server_id}",
+        json={
+            "oauth_config": {
+                "authentication_metadata": {
+                    "my-client_id": "test-client-id",
+                    "scope": "test-scope",
+                    "my-endpoint": "test-endpoint",
+                }
+            }
+        },
+    )
+    assert update_response.status_code == 422, update_response.text
+
+    # No changes should be applied
+    check_current_state("3_updated_oauth_metadata")
 
 
 def test_update_mcp_server_not_found(client: TestClient, sample_mcp_server_payload: dict):
@@ -584,7 +670,7 @@ def test_get_mcp_server_decryption_error(client: TestClient, sample_mcp_server_p
         else:
             error_message = response_data.get("detail", "")
 
-        assert "corrupted and cannot be decrypted" in error_message
+        assert "Failed to decrypt MCP server configuration" in error_message
         assert server_id in error_message
 
 
@@ -596,10 +682,10 @@ def test_list_mcp_servers_with_partial_decryption_failure(client: TestClient, sa
 
     # Mock the storage method to return partial results (simulate some entries skipped due to
     # decryption errors)
-    from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithMetadata
+    from agent_platform.core.mcp.mcp_server import MCPServerSource, MCPServerWithMetadata, MCPServerWithOAuthConfig
 
     # Simulate that only one server is returned (others were skipped due to decryption errors)
-    mock_server = MCPServer.model_validate(
+    mock_server = MCPServerWithOAuthConfig.model_validate(
         {
             "name": "working-server",
             "transport": "streamable-http",

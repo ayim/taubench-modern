@@ -18,9 +18,7 @@ from agent_platform.core.payloads.document_intelligence import (
     ParseJobResult,
     SplitJobResult,
 )
-from agent_platform.core.payloads.document_intelligence_config import (
-    DocumentIntelligenceConfigPayload,
-)
+from agent_platform.core.payloads.document_intelligence_config import DocumentIntelligenceConfigPayload
 from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
 
 HEADER_INDEX = 0
@@ -315,6 +313,17 @@ class AgentServerClient:
     def list_mcp_servers(self) -> dict[str, dict]:
         """Lists all MCP servers (provides MCP server ID -> MCP server object mapping as the response)"""
         url = urljoin(self.base_url + "/", "mcp-servers/")
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+
+    def get_mcp_server(self, mcp_server_id: str) -> dict:
+        """Gets a MCP server by ID."""
+        url = urljoin(self.base_url + "/", f"mcp-servers/{mcp_server_id}")
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",

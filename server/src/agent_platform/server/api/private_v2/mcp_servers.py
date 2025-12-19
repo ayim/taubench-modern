@@ -14,7 +14,8 @@ from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
 from agent_platform.core.mcp.mcp_types import deserialize_mcp_variables
 from agent_platform.core.payloads import MCPServerResponse
-from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
+from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate, MCPServerUpdate
+from agent_platform.core.payloads.mcp_server_response import MCPServerWithOAuthConfigResponse
 from agent_platform.server.api.dependencies import MCPQuotaCheck, StorageDependency
 from agent_platform.server.env_vars import SEMA4AI_AGENT_SERVER_MCP_SERVERS_CONFIG_FILE
 from agent_platform.server.mcp_runtime import MCPRuntimeConfig, delete_deployment
@@ -328,7 +329,22 @@ async def _sync_file_based_mcp_servers(storage: StorageDependency) -> None:
                     # Server exists - update it and change source to FILE
                     mcp_server_id, _, _ = mcp_server
                     logger.info(f"Syncing existing MCP server '{server.name}'")
-                    await storage.update_mcp_server(mcp_server_id, server, MCPServerSource.FILE)
+                    # Convert MCPServer to MCPServerUpdate for full update
+                    update_payload = MCPServerUpdate(
+                        name=server.name,
+                        transport=server.transport,
+                        url=server.url,
+                        headers=server.headers,
+                        command=server.command,
+                        args=server.args,
+                        env=server.env,
+                        cwd=server.cwd,
+                        force_serial_tool_calls=server.force_serial_tool_calls,
+                        type=server.type,
+                        mcp_server_metadata=server.mcp_server_metadata,
+                        oauth_config=None,  # File-based servers don't have OAuth config
+                    )
+                    await storage.update_mcp_server(mcp_server_id, update_payload, MCPServerSource.FILE)
                 else:
                     # Server doesn't exist - create it with source FILE
                     logger.info(f"Creating new MCP server '{server.name}' from file")
@@ -435,10 +451,10 @@ async def create_hosted_mcp_server(
     return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, mcp_server, is_hosted=True)
 
 
-@router.get("/", response_model=dict[str, MCPServerResponse])
+@router.get("/", response_model=dict[str, MCPServerWithOAuthConfigResponse])  # GET /api/v2/mcp-servers
 async def list_mcp_servers(
     storage: StorageDependency,
-) -> dict[str, MCPServerResponse]:
+) -> dict[str, MCPServerWithOAuthConfigResponse]:
     """List all MCP servers."""
     # Sync file-based servers before listing
     try:
@@ -449,7 +465,7 @@ async def list_mcp_servers(
     try:
         servers_with_metadata = await storage.list_mcp_servers_with_metadata()
         return {
-            server_id: MCPServerResponse.from_mcp_server(
+            server_id: MCPServerWithOAuthConfigResponse.from_mcp_server_with_oauth_config(
                 server_id, meta.source, meta.server, is_hosted=meta.deployment_id is not None
             )
             for server_id, meta in servers_with_metadata.items()
@@ -460,11 +476,11 @@ async def list_mcp_servers(
         raise
 
 
-@router.get("/{mcp_server_id}", response_model=MCPServerResponse)
-async def get_mcp_server(
+@router.get("/{mcp_server_id}", response_model=MCPServerWithOAuthConfigResponse)
+async def get_mcp_server(  # GET /api/v2/mcp-servers/{mcp_server_id}
     mcp_server_id: str,
     storage: StorageDependency,
-) -> MCPServerResponse:
+) -> MCPServerWithOAuthConfigResponse:
     """Get a specific MCP server by ID."""
     try:
         # Sync file-based servers before getting
@@ -474,32 +490,34 @@ async def get_mcp_server(
             logger.error(f"Failed to sync file-based MCP servers in get endpoint: {e}")
 
         meta = await storage.get_mcp_server_with_metadata(mcp_server_id)
-        return MCPServerResponse.from_mcp_server(
+        return MCPServerWithOAuthConfigResponse.from_mcp_server_with_oauth_config(
             mcp_server_id, meta.source, meta.server, is_hosted=meta.deployment_id is not None
         )
     except MCPServerNotFoundError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"MCP server {mcp_server_id} not found",
+        raise PlatformHTTPError(
+            ErrorCode.NOT_FOUND,
+            message=f"MCP server {mcp_server_id} not found",
         ) from e
     except ConfigDecryptionError as e:
         logger.error(f"Failed to decrypt MCP server configuration for {mcp_server_id}: {e}")
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Configuration data for MCP server {mcp_server_id} is corrupted and cannot be decrypted",
+        raise PlatformHTTPError(
+            ErrorCode.UNEXPECTED,
+            message=f"Failed to decrypt MCP server configuration for {mcp_server_id}: {e}",
         ) from e
 
 
 @router.put("/{mcp_server_id}", response_model=MCPServerResponse)
-async def update_mcp_server(
+async def update_mcp_server(  # PUT /api/v2/mcp-servers/{mcp_server_id}
     mcp_server_id: str,
-    payload: MCPServer,
+    payload: MCPServerUpdate,
     storage: StorageDependency,
 ) -> MCPServerResponse:
     """Update an existing MCP server by ID"""
     try:
         await storage.update_mcp_server(mcp_server_id, payload, MCPServerSource.API)
-        return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, payload)
+        # Get the updated server to return in response
+        meta = await storage.get_mcp_server_with_metadata(mcp_server_id)
+        return MCPServerResponse.from_mcp_server(mcp_server_id, MCPServerSource.API, meta.server)
     except MCPServerNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

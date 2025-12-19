@@ -236,6 +236,8 @@ class TestSyncFileBasedMcpServers:
     @pytest.mark.asyncio
     async def test_sync_with_existing_server_update(self, mock_storage):
         """Test sync behavior when updating existing servers."""
+        from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
+
         mock_storage.list_mcp_servers_by_source.return_value = {}
 
         existing_server = MCPServer(name="NPX", transport="stdio", command="old-command")
@@ -259,7 +261,10 @@ class TestSyncFileBasedMcpServers:
             await _sync_file_based_mcp_servers(mock_storage)
 
         # Should update the existing server and change source to FILE
-        mock_storage.update_mcp_server.assert_called_once_with("server-id-1", updated_server, MCPServerSource.FILE)
+        mock_storage.update_mcp_server.assert_called_once()
+        assert mock_storage.update_mcp_server.call_args[0][0] == "server-id-1"
+        assert isinstance(mock_storage.update_mcp_server.call_args[0][1], MCPServerUpdate)
+        assert mock_storage.update_mcp_server.call_args[0][2] == MCPServerSource.FILE
 
     @pytest.mark.asyncio
     async def test_sync_removes_obsolete_file_servers(self, mock_storage):
@@ -288,6 +293,8 @@ class TestSyncFileBasedMcpServers:
     @pytest.mark.asyncio
     async def test_sync_mixed_operations(self, mock_storage):
         """Test sync with mixed operations: create, update, delete."""
+        from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
+
         # Mock existing FILE servers
         mock_storage.list_mcp_servers_by_source.return_value = {
             "keep-and-update": "server-id-1",
@@ -320,9 +327,10 @@ class TestSyncFileBasedMcpServers:
         mock_storage.delete_mcp_server.assert_called_once_with(["server-id-2"])
 
         # Should update the existing server
-        mock_storage.update_mcp_server.assert_called_once_with(
-            "server-id-1", servers_from_file[0], MCPServerSource.FILE
-        )
+        mock_storage.update_mcp_server.assert_called_once()
+        assert mock_storage.update_mcp_server.call_args[0][0] == "server-id-1"
+        assert isinstance(mock_storage.update_mcp_server.call_args[0][1], MCPServerUpdate)
+        assert mock_storage.update_mcp_server.call_args[0][2] == MCPServerSource.FILE
 
         # Should create the new server
         mock_storage.create_mcp_server.assert_called_once_with(servers_from_file[1], MCPServerSource.FILE)

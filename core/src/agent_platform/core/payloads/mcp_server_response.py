@@ -2,14 +2,15 @@
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from pydantic.fields import Field
 
 from agent_platform.core.agent_package.metadata.agent_metadata import (
     AgentPackageMetadata,
 )
-from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource
+from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithOAuthConfig
 from agent_platform.core.mcp.mcp_types import MCPVariables
+from agent_platform.core.oauth.oauth_models import AuthenticationType
 
 MCPServerType = Literal["generic_mcp", "sema4ai_action_server"]
 MCPTransport = Literal["auto", "streamable-http", "sse", "stdio"]
@@ -121,6 +122,101 @@ class MCPServerResponse(MCPServerCoreResponse):
             cwd=mcp_server.cwd,
             type=mcp_server.type,
             force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            is_hosted=is_hosted,
+            mcp_server_metadata=metadata,
+        )
+
+
+class AuthenticationMetadataClientCredentialsResponse(BaseModel):
+    """
+    Metadata for OAuth2 client credentials authentication.
+    """
+
+    client_id: Annotated[
+        str, Field(description="The (redacted) client ID for the OAuth2 client credentials authentication.")
+    ]
+    client_secret: Annotated[
+        str, Field(description="The (redacted) client secret for the OAuth2 client credentials authentication.")
+    ]
+    scope: Annotated[
+        str,
+        Field(
+            description="The (whitespace-separated) list of scopes for the OAuth2 client credentials authentication."
+        ),
+    ]
+    endpoint: Annotated[str, Field(description="The endpoint to use for the OAuth2 client credentials authentication.")]
+
+
+class MCPServerWithOAuthConfigResponse(MCPServerResponse):
+    authentication_type: Annotated[
+        AuthenticationType,
+        Field(description="The type of authentication to use. "),
+    ] = AuthenticationType.NONE
+
+    authentication_metadata: Annotated[
+        AuthenticationMetadataClientCredentialsResponse | dict[str, str] | None,
+        Field(description="Metadata of the OAuth2 authentication to use."),
+    ] = None
+
+    @classmethod
+    def _redact_string(cls, string: str | SecretStr) -> str:
+        """Redact a string showing just the first and last characters."""
+        if isinstance(string, SecretStr):
+            string = string.get_secret_value()
+        return f"{string[:1]}*****{string[-1:]}"
+
+    @classmethod
+    def from_mcp_server_with_oauth_config(
+        cls,
+        mcp_server_id: str,
+        source: MCPServerSource,
+        mcp_server: MCPServerWithOAuthConfig,
+        is_hosted: bool = False,
+    ) -> "MCPServerWithOAuthConfigResponse":
+        """Create MCPServerWithOAuthConfigResponse from MCP server data."""
+        from agent_platform.core.oauth.oauth_models import AuthenticationMetadataClientCredentials
+
+        metadata = None
+        if mcp_server.mcp_server_metadata is not None:
+            metadata = AgentPackageMetadata.model_validate(mcp_server.mcp_server_metadata)
+
+        authentication_type = AuthenticationType.NONE
+        authentication_metadata = None
+
+        if mcp_server.oauth_config is not None:
+            authentication_type = mcp_server.oauth_config.authentication_type
+            found_authentication_metadata = mcp_server.oauth_config.authentication_metadata
+            if found_authentication_metadata is not None:
+                if isinstance(found_authentication_metadata, AuthenticationMetadataClientCredentials):
+                    authentication_metadata = AuthenticationMetadataClientCredentialsResponse(
+                        client_id=cls._redact_string(found_authentication_metadata.client_id),
+                        client_secret=cls._redact_string(found_authentication_metadata.client_secret),
+                        scope=found_authentication_metadata.scope,
+                        endpoint=found_authentication_metadata.endpoint,
+                    )
+                elif isinstance(found_authentication_metadata, dict):
+                    # Not an expected format: redact everything
+                    authentication_metadata = {}
+                    for key, value in found_authentication_metadata.items():
+                        authentication_metadata[key] = cls._redact_string(value)
+                else:
+                    authentication_metadata = None
+
+        return cls(
+            mcp_server_id=mcp_server_id,
+            source=source,
+            name=mcp_server.name,
+            transport=mcp_server.transport,
+            url=mcp_server.url,
+            headers=mcp_server.headers,
+            command=mcp_server.command,
+            args=mcp_server.args,
+            env=mcp_server.env,
+            cwd=mcp_server.cwd,
+            type=mcp_server.type,
+            force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            authentication_type=authentication_type,
+            authentication_metadata=authentication_metadata,
             is_hosted=is_hosted,
             mcp_server_metadata=metadata,
         )

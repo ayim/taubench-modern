@@ -51,7 +51,14 @@ from agent_platform.server.storage.errors import (
 if typing.TYPE_CHECKING:
     from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
-    from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerSource, MCPServerWithOAuthConfig
+    from agent_platform.core.mcp.mcp_server import (
+        MCPServer,
+        MCPServerSource,
+        MCPServerWithMetadata,
+        MCPServerWithOAuthConfig,
+    )
+    from agent_platform.core.oauth.oauth_models import OAuthConfig
+    from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
     from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
     from agent_platform.server.storage.types import StaleThreadsResult
 
@@ -605,13 +612,209 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return mcp_server_id
 
+    async def get_mcp_server(self, mcp_server_id: str) -> "MCPServer":
+        """Get an MCP server by ID."""
+        from agent_platform.core.mcp.mcp_server import MCPServer
+        from agent_platform.server.storage.errors import ConfigDecryptionError, MCPServerNotFoundError
+
+        # 1. Validate the uuid
+        self._validate_uuid(mcp_server_id)
+
+        # 2. Get the MCP server
+        mcp_server_table = self._get_table("mcp_server")
+        stmt = sa.select(mcp_server_table.c.enc_config).where(mcp_server_table.c.mcp_server_id == mcp_server_id)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().first()
+
+        # 3. No MCP server found?
+        if not row:
+            raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
+
+        # 4. Decrypt and return the MCP server from enc_config
+        encrypted_config = row["enc_config"]
+        try:
+            # Handle JSONB in postgres (it comes as dict) vs TEXT in sqlite (it comes as str)
+            if not isinstance(encrypted_config, str):
+                encrypted_config = json.dumps(encrypted_config)
+            config_dict = self._decrypt_config(encrypted_config)
+            return MCPServer.model_validate(config_dict)
+        except Exception as e:
+            raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {mcp_server_id}") from e
+
+    def _build_oauth_config_from_row(self, row, server_id: str) -> "OAuthConfig | None":
+        """Build OAuthConfig from database row fields.
+
+        Args:
+            row: Database row containing authentication_type and authentication_metadata_enc
+            server_id: Server ID for logging purposes
+
+        Returns:
+            OAuthConfig if authentication_type is present, None otherwise
+        """
+        from agent_platform.core.oauth.oauth_models import AuthenticationType, OAuthConfig
+
+        authentication_type_str = row.get("authentication_type")
+        authentication_metadata_enc = row.get("authentication_metadata_enc")
+
+        if not authentication_type_str:
+            return None
+
+        try:
+            authentication_type = AuthenticationType(authentication_type_str)
+        except ValueError as e:
+            logger.critical(f"Invalid authentication_type '{authentication_type_str}' for MCP server {server_id}: {e}")
+            return None
+
+        authentication_metadata = None
+        if authentication_metadata_enc:
+            try:
+                metadata_dict = self._decrypt_config(authentication_metadata_enc)
+                authentication_metadata = metadata_dict
+            except Exception as e:
+                logger.warning(f"Failed to decrypt authentication metadata for MCP server {server_id}: {e}")
+
+        return OAuthConfig(
+            authentication_type=authentication_type,
+            authentication_metadata=authentication_metadata,
+        )
+
+    def _build_mcp_server_with_oauth_from_row(self, row, server_id: str) -> "MCPServerWithOAuthConfig":
+        """Build MCPServerWithOAuthConfig from database row.
+
+        Args:
+            row: Database row containing enc_config, authentication_type, and authentication_metadata_enc
+            server_id: Server ID for logging purposes
+
+        Returns:
+            MCPServerWithOAuthConfig instance
+
+        Raises:
+            ConfigDecryptionError: If decryption fails
+        """
+        from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerWithOAuthConfig
+        from agent_platform.server.storage.errors import ConfigDecryptionError
+
+        encrypted_config = row["enc_config"]
+        # Handle JSONB in postgres (it comes as dict) vs TEXT in sqlite (it comes as str)
+        if not isinstance(encrypted_config, str):
+            encrypted_config = json.dumps(encrypted_config)
+        try:
+            config_dict = self._decrypt_config(encrypted_config)
+        except Exception as e:
+            raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {server_id}") from e
+
+        mcp_server = MCPServer.model_validate(config_dict)
+
+        # Build OAuthConfig from database fields
+        oauth_config = self._build_oauth_config_from_row(row, server_id)
+
+        # Create MCPServerWithOAuthConfig by passing all MCPServer fields
+        return MCPServerWithOAuthConfig(
+            name=mcp_server.name,
+            transport=mcp_server.transport,
+            url=mcp_server.url,
+            headers=mcp_server.headers,
+            command=mcp_server.command,
+            args=mcp_server.args,
+            env=mcp_server.env,
+            cwd=mcp_server.cwd,
+            force_serial_tool_calls=mcp_server.force_serial_tool_calls,
+            type=mcp_server.type,
+            mcp_server_metadata=mcp_server.mcp_server_metadata,
+            oauth_config=oauth_config,
+        )
+
+    async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> "MCPServerWithMetadata":
+        """Get an MCP server by ID with its source and deployment info."""
+        from agent_platform.core.mcp.mcp_server import MCPServerSource, MCPServerWithMetadata
+        from agent_platform.server.storage.errors import MCPServerNotFoundError
+
+        # 1. Validate the uuid
+        self._validate_uuid(mcp_server_id)
+
+        # 2. Get the MCP server with source, deployment_id, and OAuth info
+        mcp_server_table = self._get_table("mcp_server")
+        stmt = sa.select(
+            mcp_server_table.c.enc_config,
+            mcp_server_table.c.source,
+            mcp_server_table.c.mcp_runtime_deployment_id,
+            mcp_server_table.c.authentication_type,
+            mcp_server_table.c.authentication_metadata_enc,
+        ).where(mcp_server_table.c.mcp_server_id == mcp_server_id)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            row = result.mappings().first()
+
+        # 3. No MCP server found?
+        if not row:
+            raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
+
+        # 4. Decrypt and return the MCP server with metadata
+        mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, mcp_server_id)
+
+        source = MCPServerSource(row["source"])
+        raw_deployment_id = row["mcp_runtime_deployment_id"]
+        deployment_id = str(raw_deployment_id) if raw_deployment_id else None
+        return MCPServerWithMetadata(
+            server=mcp_server_with_oauth,
+            source=source,
+            deployment_id=deployment_id,
+        )
+
+    async def list_mcp_servers_with_metadata(
+        self,
+    ) -> dict[str, "MCPServerWithMetadata"]:
+        """List all MCP servers with their source and deployment info."""
+        from agent_platform.core.mcp.mcp_server import MCPServerSource, MCPServerWithMetadata
+
+        # 1. Get all MCP servers
+        mcp_server_table = self._get_table("mcp_server")
+        stmt = sa.select(
+            mcp_server_table.c.mcp_server_id,
+            mcp_server_table.c.enc_config,
+            mcp_server_table.c.source,
+            mcp_server_table.c.mcp_runtime_deployment_id,
+            mcp_server_table.c.authentication_type,
+            mcp_server_table.c.authentication_metadata_enc,
+        ).order_by(mcp_server_table.c.created_at.desc())
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        # 2. No MCP servers found?
+        if not rows:
+            return {}
+
+        # 3. Decrypt and return MCP servers as dict of id -> MCPServerWithMetadata
+        result_dict: dict[str, MCPServerWithMetadata] = {}
+        for row in rows:
+            server_id = str(row["mcp_server_id"])
+            try:
+                mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, server_id)
+
+                source = MCPServerSource(row["source"])
+                raw_deployment_id = row["mcp_runtime_deployment_id"]
+                deployment_id = str(raw_deployment_id) if raw_deployment_id else None
+                result_dict[server_id] = MCPServerWithMetadata(
+                    server=mcp_server_with_oauth,
+                    source=source,
+                    deployment_id=deployment_id,
+                )
+            except Exception as e:
+                # Skip corrupted entries but log for monitoring
+                logger.exception(f"Skipping MCP server {server_id} due to error loading: {e}")
+                continue
+        return result_dict
+
     async def get_mcp_servers_and_oauth_info_by_ids(
         self, mcp_server_ids: list[str]
     ) -> dict[str, "MCPServerWithOAuthConfig"]:
         """Get multiple MCP servers by their IDs with OAuth configuration."""
-        from agent_platform.core.mcp.mcp_server import MCPServer, MCPServerWithOAuthConfig
-        from agent_platform.core.oauth.oauth_models import AuthenticationType, OAuthConfig
-        from agent_platform.server.storage.errors import ConfigDecryptionError
+        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
 
         if not mcp_server_ids:
             return {}
@@ -635,62 +838,119 @@ class BaseStorage(AbstractStorage, CommonMixin):
         result_dict: dict[str, MCPServerWithOAuthConfig] = {}
         for row in rows:
             server_id = str(row["mcp_server_id"])
-            encrypted_config = row["enc_config"]
-            try:
-                if not isinstance(encrypted_config, str):
-                    encrypted_config = json.dumps(encrypted_config)
-                config_dict = self._decrypt_config(encrypted_config)
-                mcp_server = MCPServer.model_validate(config_dict)
-
-                # Build OAuthConfig from database fields
-                authentication_type_str = row.get("authentication_type")
-                authentication_metadata_enc = row.get("authentication_metadata_enc")
-
-                oauth_config: OAuthConfig | None = None
-                authentication_metadata = None
-                authentication_type = AuthenticationType.NONE
-
-                if authentication_type_str:
-                    try:
-                        authentication_type = AuthenticationType(authentication_type_str)
-                    except ValueError as e:
-                        logger.critical(
-                            f"Invalid authentication_type '{authentication_type_str}' for MCP server {server_id}: {e}"
-                        )
-                    else:
-                        if authentication_metadata_enc:
-                            try:
-                                metadata_dict = self._decrypt_config(authentication_metadata_enc)
-                                authentication_metadata = metadata_dict
-                            except Exception as e:
-                                logger.warning(
-                                    f"Failed to decrypt authentication metadata for MCP server {server_id}: {e}"
-                                )
-
-                        oauth_config = OAuthConfig(
-                            authentication_type=authentication_type,
-                            authentication_metadata=authentication_metadata,
-                        )
-
-                # Create MCPServerWithOAuthConfig by passing all MCPServer fields
-                result_dict[server_id] = MCPServerWithOAuthConfig(
-                    name=mcp_server.name,
-                    transport=mcp_server.transport,
-                    url=mcp_server.url,
-                    headers=mcp_server.headers,
-                    command=mcp_server.command,
-                    args=mcp_server.args,
-                    env=mcp_server.env,
-                    cwd=mcp_server.cwd,
-                    force_serial_tool_calls=mcp_server.force_serial_tool_calls,
-                    type=mcp_server.type,
-                    mcp_server_metadata=mcp_server.mcp_server_metadata,
-                    oauth_config=oauth_config,
-                )
-            except Exception as e:
-                raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {server_id}") from e
+            result_dict[server_id] = self._build_mcp_server_with_oauth_from_row(row, server_id)
 
         return result_dict
+
+    async def update_mcp_server(
+        self,
+        mcp_server_id: str,
+        mcp_server_update: "MCPServerUpdate",
+        mcp_server_source: "MCPServerSource",
+    ) -> None:
+        """Update an MCP server. Only updates fields that are provided (not None) in mcp_server_update."""
+        from agent_platform.core.oauth.oauth_models import AuthenticationType
+        from agent_platform.server.storage.errors import MCPServerNotFoundError, MCPServerWithNameAlreadyExistsError
+
+        # Validate the uuid
+        self._validate_uuid(mcp_server_id)
+
+        # Get the changed fields
+        changed_fields = mcp_server_update.model_dump(exclude_unset=True)
+        if not changed_fields:
+            return
+
+        values: dict[str, Any] = {"updated_at": datetime.now(UTC)}
+
+        # Fetch existing encrypted config and OAuth config to merge updates
+        mcp_server_table = self._get_table("mcp_server")
+        select_stmt = sa.select(
+            mcp_server_table.c.enc_config,
+            mcp_server_table.c.authentication_type,
+            mcp_server_table.c.authentication_metadata_enc,
+        ).where(mcp_server_table.c.mcp_server_id == mcp_server_id)
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(select_stmt)
+            row = result.mappings().first()
+            if not row:
+                raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
+
+        # Handle updates to regular MCP server fields (stored in enc_config)
+        oauth_config_update = changed_fields.pop("oauth_config", None)
+        if changed_fields:
+            # Decrypt existing config
+            encrypted_config = row["enc_config"]
+            if not isinstance(encrypted_config, str):
+                encrypted_config = json.dumps(encrypted_config)
+            config_dict = self._decrypt_config(encrypted_config)
+
+            # Merge updates into existing config
+            config_dict.update(changed_fields)
+
+            # Re-encrypt and add to values
+            values["enc_config"] = self._encrypt_config(config_dict)
+            if self._sa_engine.dialect.name == "postgresql":
+                try:
+                    values["enc_config"] = json.loads(values["enc_config"])
+                except Exception:
+                    logger.warning("The encoded information given by `self._encrypt_config` is not a valid JSON string")
+
+        # Handle updates to OAuth config
+        if oauth_config_update is not None:
+            # Get existing OAuth config if any
+            # Set authentication_type and encrypt metadata
+            if "authentication_type" in oauth_config_update:
+                new_auth_type = AuthenticationType(oauth_config_update["authentication_type"])
+                values["authentication_type"] = new_auth_type.value
+
+            if "authentication_metadata" in oauth_config_update:
+                new_auth_metadata = oauth_config_update["authentication_metadata"]
+                from pydantic.main import BaseModel
+                from pydantic.types import SecretStr
+
+                def convert_secret_str_to_str(obj: Any) -> Any:
+                    """Recursively convert SecretStr instances to str."""
+                    if isinstance(obj, SecretStr):
+                        return obj.get_secret_value()
+                    elif isinstance(obj, dict):
+                        return {key: convert_secret_str_to_str(value) for key, value in obj.items()}
+                    elif isinstance(obj, list):
+                        return [convert_secret_str_to_str(item) for item in obj]
+                    elif isinstance(obj, BaseModel):
+                        return convert_secret_str_to_str(obj.model_dump())
+                    else:
+                        return obj  # Could be None
+
+                new_auth_metadata = convert_secret_str_to_str(new_auth_metadata)
+                values["authentication_metadata_enc"] = self._encrypt_config(new_auth_metadata)
+
+        # Update the MCP server using SQLAlchemy
+        update_stmt = (
+            sa.update(mcp_server_table).where(mcp_server_table.c.mcp_server_id == mcp_server_id).values(**values)
+        )
+
+        try:
+            async with self._write_connection() as conn:
+                result = await conn.execute(update_stmt)
+                # Check if update succeeded
+                if result.rowcount == 0:
+                    raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
+        except IntegrityError as e:
+            if self._sa_engine.dialect.name == "postgresql":
+                if "idx_mcp_server_name_source" in str(e):
+                    name = mcp_server_update.name if mcp_server_update.name is not None else "unknown"
+                    raise MCPServerWithNameAlreadyExistsError(
+                        f"MCP server with name '{name}' and source '{mcp_server_source.value}' already exists",
+                    ) from e
+            else:
+                error_msg = str(e).lower()
+                if "unique constraint failed: v2_mcp_server.name, v2_mcp_server.source" in error_msg:
+                    name = mcp_server_update.name if mcp_server_update.name is not None else "unknown"
+                    raise MCPServerWithNameAlreadyExistsError(
+                        f"MCP server with name '{name}' and source '{mcp_server_source.value}' already exists",
+                    ) from e
+            raise
 
     # -------------------------------------------------------------------------
     # Agent Data Connections

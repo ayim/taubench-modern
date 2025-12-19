@@ -3654,7 +3654,7 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": {
-                    "$ref": "#/components/schemas/MCPServerResponse"
+                    "$ref": "#/components/schemas/MCPServerWithOAuthConfigResponse"
                   },
                   "type": "object",
                   "title": "Response List Mcp Servers Mcp Servers  Get"
@@ -3766,7 +3766,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MCPServerResponse"
+                  "$ref": "#/components/schemas/MCPServerWithOAuthConfigResponse"
                 }
               }
             }
@@ -3804,7 +3804,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MCPServer"
+                "$ref": "#/components/schemas/MCPServerUpdate"
               }
             }
           }
@@ -11128,6 +11128,34 @@
         "required": ["agent_id", "agent_name", "work_items_status_counts"],
         "title": "AgentWorkItemsSummaryResponse"
       },
+      "AuthenticationMetadataClientCredentialsResponse": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "The (redacted) client ID for the OAuth2 client credentials authentication."
+          },
+          "client_secret": {
+            "type": "string",
+            "title": "Client Secret",
+            "description": "The (redacted) client secret for the OAuth2 client credentials authentication."
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "description": "The (whitespace-separated) list of scopes for the OAuth2 client credentials authentication."
+          },
+          "endpoint": {
+            "type": "string",
+            "title": "Endpoint",
+            "description": "The endpoint to use for the OAuth2 client credentials authentication."
+          }
+        },
+        "type": "object",
+        "required": ["client_id", "client_secret", "scope", "endpoint"],
+        "title": "AuthenticationMetadataClientCredentialsResponse",
+        "description": "Metadata for OAuth2 client credentials authentication."
+      },
       "AuthenticationType": {
         "type": "string",
         "enum": [
@@ -16682,6 +16710,485 @@
         "type": "string",
         "enum": ["FILE", "API"],
         "title": "MCPServerSource"
+      },
+      "MCPServerUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "transport": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["auto", "streamable-http", "sse", "stdio"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "headers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headers"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command"
+          },
+          "args": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args"
+          },
+          "env": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Env"
+          },
+          "cwd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cwd"
+          },
+          "force_serial_tool_calls": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Force Serial Tool Calls"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["generic_mcp", "sema4ai_action_server"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "mcp_server_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mcp Server Metadata"
+          },
+          "oauth_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPServerUpdateAuthConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MCPServerUpdate"
+      },
+      "MCPServerUpdateAuthConfig": {
+        "properties": {
+          "authentication_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "authentication_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPServerUpdateAuthMetadataClientCredentials"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "MCPServerUpdateAuthConfig"
+      },
+      "MCPServerUpdateAuthMetadataClientCredentials": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "format": "password",
+            "title": "Client Id",
+            "writeOnly": true
+          },
+          "client_secret": {
+            "type": "string",
+            "format": "password",
+            "title": "Client Secret",
+            "writeOnly": true
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "endpoint": {
+            "type": "string",
+            "title": "Endpoint"
+          }
+        },
+        "type": "object",
+        "required": ["client_id", "client_secret", "scope", "endpoint"],
+        "title": "MCPServerUpdateAuthMetadataClientCredentials"
+      },
+      "MCPServerWithOAuthConfigResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the MCP server."
+          },
+          "transport": {
+            "type": "string",
+            "enum": ["auto", "streamable-http", "sse", "stdio"],
+            "title": "Transport",
+            "description": "Transport protocol to use when connecting to the MCP server."
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "The URL of the MCP server."
+          },
+          "headers": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headers",
+            "description": "Headers used for configuring requests & connections to the MCP server."
+          },
+          "command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command",
+            "description": "The command to run the MCP server."
+          },
+          "args": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Args",
+            "description": "The arguments to pass to the MCP server command."
+          },
+          "env": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeString"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeSecret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeOAuth2Secret"
+                        },
+                        {
+                          "$ref": "#/components/schemas/MCPVariableTypeDataServerInfo"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "type",
+                        "mapping": {
+                          "data-server-info": "#/components/schemas/MCPVariableTypeDataServerInfo",
+                          "oauth2-secret": "#/components/schemas/MCPVariableTypeOAuth2Secret",
+                          "secret": "#/components/schemas/MCPVariableTypeSecret",
+                          "string": "#/components/schemas/MCPVariableTypeString"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Env",
+            "description": "Environment variables to merge with agent-server's env vars."
+          },
+          "cwd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cwd",
+            "description": "Working directory to run the MCP server command in."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["generic_mcp", "sema4ai_action_server"],
+            "title": "Type",
+            "description": "The type of MCP server.",
+            "default": "generic_mcp"
+          },
+          "force_serial_tool_calls": {
+            "type": "boolean",
+            "title": "Force Serial Tool Calls",
+            "description": "If true, all tool calls are executed under a lock.",
+            "default": false
+          },
+          "mcp_server_id": {
+            "type": "string",
+            "title": "Mcp Server Id",
+            "description": "The unique identifier of the MCP server."
+          },
+          "source": {
+            "$ref": "#/components/schemas/MCPServerSource",
+            "description": "The source of the MCP server (FILE or API)."
+          },
+          "is_hosted": {
+            "type": "boolean",
+            "title": "Is Hosted",
+            "description": "Whether this MCP server is hosted on our MCP Runtime.\n            True for servers deployed via agent package upload.",
+            "default": false
+          },
+          "mcp_server_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentPackageMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metadata from agent package inspection for hosted MCP servers.\n            Contains action packages, secrets, and other package information."
+          },
+          "authentication_type": {
+            "$ref": "#/components/schemas/AuthenticationType",
+            "description": "The type of authentication to use. ",
+            "default": "none"
+          },
+          "authentication_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMetadataClientCredentialsResponse"
+              },
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authentication Metadata",
+            "description": "Metadata of the OAuth2 authentication to use."
+          }
+        },
+        "type": "object",
+        "required": ["name", "transport", "mcp_server_id", "source"],
+        "title": "MCPServerWithOAuthConfigResponse"
       },
       "MCPToolDetail": {
         "properties": {

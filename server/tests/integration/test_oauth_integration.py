@@ -7,6 +7,8 @@ import pytest
 from agent_platform.orchestrator.bootstrap_base import is_debugger_active
 
 if typing.TYPE_CHECKING:
+    from pytest_regressions.data_regression import DataRegressionFixture
+
     from agent_platform.core.oauth.oauth_models import AuthenticationMetadataClientCredentials
 
 pytest_plugins = [
@@ -177,6 +179,7 @@ async def test_oauth2_client_credentials_integration_mcp_server_configuration(
     live_custom_mcp_server_with_auth: str,
     live_custom_oauth2_client_credentials_server: AuthenticationMetadataClientCredentials,
     openai_api_key: str,
+    data_regression: DataRegressionFixture,
 ):
     """Test OAuth2 client credentials integration with a real MCP server.
 
@@ -206,6 +209,20 @@ async def test_oauth2_client_credentials_integration_mcp_server_configuration(
     client_credentials_scope = live_custom_oauth2_client_credentials_server.scope
 
     mcp_server_url = live_custom_mcp_server_with_auth + "/mcp"
+
+    print(f"AuthenticationType: {AuthenticationType.OAUTH2_CLIENT_CREDENTIALS}")
+    print(f"client_id: {client_credentials_client_id}")
+    print(f"client_secret: {client_credentials_client_secret}")
+    print(f"scope: {client_credentials_scope}")
+    print(f"endpoint: {client_credentials_endpoint}")
+    print(f"mcp_server_url: {mcp_server_url}")
+    # Note: running this test will actually create an MCP server that requires
+    # OAuth2 client credentials authentication (i.e.: machine-to-machine authentication).
+    # For manual tests it's possible to uncomment the line below and then run the test
+    # manually (then when paused one can use the printed information to configure the
+    # MCP server to test it manually)
+
+    # input("Press Enter to continue...")
 
     # Step 1: Create an MCP server with OAuth config via the API
     # The MCP server will be automatically deleted when the context exits
@@ -240,6 +257,26 @@ async def test_oauth2_client_credentials_integration_mcp_server_configuration(
         assert mcp_server["mcp_server_id"] == mcp_server_id, (
             f"id mismatch: {mcp_server['mcp_server_id']} != {mcp_server_id}"
         )
+
+        # Ok, now check that the MCP server has the oauth config
+        # we need to redact items that change between runs:
+        # authentication_metadata.endpoint
+        # mcp_server_id
+        # url
+        mcp_server_redacted = mcp_server.copy()
+        mcp_server_redacted["authentication_metadata"]["endpoint"] = "REDACTED"
+        mcp_server_redacted["mcp_server_id"] = "REDACTED"
+        mcp_server_redacted["url"] = "REDACTED"
+        data_regression.check(mcp_server_redacted)
+
+        # Now, check the agen /mcp-servers/{mcp_server_id} endpoint (should have
+        # the same content as the list endpoint)
+        mcp_server = agent_client.get_mcp_server(mcp_server_id)
+        mcp_server_redacted = mcp_server.copy()
+        mcp_server_redacted["authentication_metadata"]["endpoint"] = "REDACTED"
+        mcp_server_redacted["mcp_server_id"] = "REDACTED"
+        mcp_server_redacted["url"] = "REDACTED"
+        data_regression.check(mcp_server_redacted)
 
         agent_id = agent_client.create_agent_and_return_agent_id(
             runbook="""

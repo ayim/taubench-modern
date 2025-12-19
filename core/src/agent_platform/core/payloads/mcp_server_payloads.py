@@ -97,3 +97,32 @@ class MCPServerCreate(BaseModel):
             mcp_server_metadata=self.mcp_server_metadata,
             oauth_config=self.oauth_config.to_oauth_config() if self.oauth_config else None,
         )
+
+
+class MCPServerUpdateAuthMetadataClientCredentials(BaseModel):
+    # All fields are required (the credentials must be passed as a whole object)
+    client_id: SecretStr
+    client_secret: SecretStr
+    scope: str  # whitespace separated list of scopes (as the oauth2 spec says)
+    endpoint: str
+
+
+class MCPServerUpdateAuthConfig(BaseModel):
+    authentication_type: AuthenticationType | None = None
+    authentication_metadata: MCPServerUpdateAuthMetadataClientCredentials | None = None
+
+
+class MCPServerUpdate(BaseModel):
+    # Same fields as MCPServerCreate, but all fields are optional (but when given, they'll be set, even if null).
+    name: str | None = None
+    transport: Transport | None = None
+    url: str | None = None
+    headers: MCPVariables | None = None
+    command: str | None = None
+    args: list[str] | None = None
+    env: MCPVariables | None = None
+    cwd: str | None = None
+    force_serial_tool_calls: bool | None = None
+    type: MCPServerType | None = None
+    mcp_server_metadata: dict[str, Any] | None = None
+    oauth_config: MCPServerUpdateAuthConfig | None = None

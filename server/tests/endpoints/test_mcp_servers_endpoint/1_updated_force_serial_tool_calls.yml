@@ -1,0 +1,15 @@
+args: null
+authentication_metadata: null
+authentication_type: none
+command: null
+cwd: null
+env: null
+force_serial_tool_calls: true
+headers: null
+is_hosted: false
+mcp_server_metadata: null
+name: test-api-server
+source: API
+transport: streamable-http
+type: generic_mcp
+url: https://api.example.com/mcp

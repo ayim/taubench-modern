@@ -222,9 +222,9 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
                 status="online",
             )
         except Exception as e:
-            logger.error(f"Error getting tool definitions for MCP server {mcp_server.name}: {e}")
+            logger.error(f"Error getting tool definitions for MCP server {mcp_server_with_oauth_config.name}: {e}")
             mcp_server_details = MCPServerDetail(
-                name=mcp_server.name,
+                name=mcp_server_with_oauth_config.name,
                 actions=[],
                 status="offline",
             )

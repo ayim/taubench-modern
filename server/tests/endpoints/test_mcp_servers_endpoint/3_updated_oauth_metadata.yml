@@ -1,0 +1,19 @@
+args: null
+authentication_metadata:
+  client_id: t*****d
+  client_secret: t*****t
+  endpoint: test-endpoint
+  scope: test-scope
+authentication_type: oauth2-client-credentials
+command: null
+cwd: null
+env: null
+force_serial_tool_calls: true
+headers: null
+is_hosted: false
+mcp_server_metadata: null
+name: test-api-server
+source: API
+transport: streamable-http
+type: generic_mcp
+url: https://api.example.com/mcp

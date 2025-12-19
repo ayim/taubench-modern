@@ -26,8 +26,8 @@ class MCPServerSource(str, Enum):
 class MCPServerWithMetadata:
     """MCP server with its source and deployment information."""
 
-    server: "MCPServer"
-    """The MCP server configuration."""
+    server: "MCPServerWithOAuthConfig"
+    """The MCP server configuration with OAuth information."""
 
     source: MCPServerSource
     """The source of the MCP server (FILE or API)."""
@@ -394,8 +394,6 @@ class MCPServerWithOAuthConfig(MCPServer):
     def model_validate(cls, data: dict) -> "MCPServerWithOAuthConfig":
         """Deserializes the MCP server with OAuth config from a dictionary.
         Useful for JSON deserialization."""
-        from agent_platform.core.oauth.oauth_models import OAuthConfig
-
         data = data.copy()
 
         # Extract oauth_config if present
