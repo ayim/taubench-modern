@@ -1,3 +1,5 @@
+import asyncio
+import typing
 import uuid
 from collections import defaultdict
 from http import HTTPStatus
@@ -30,6 +32,9 @@ from agent_platform.server.api.dependencies import AgentQuotaCheck, PlatformPara
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.kernel.tools_caching import ToolDefinitionCache
+
+if typing.TYPE_CHECKING:
+    from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -113,6 +118,46 @@ async def _fetch_action_packages_data(url: str, api_key: str) -> dict[str, Actio
                 raise Exception(f"HTTP {response.status}: Failed to fetch action packages")
 
 
+async def _process_single_action_package_url(url: str, packages: list[ActionPackage]) -> list[ActionPackageDetail]:
+    """Process action packages from a single URL and return their details."""
+    action_details = []
+    try:
+        # Get the first package to extract api_key (they should all be the same for same URL)
+        api_key = packages[0].api_key.get_secret_value() if packages[0].api_key else ""
+
+        # Fetch action packages data from /api/actionPackages
+        action_packages_data = await _fetch_action_packages_data(url, api_key)
+
+        # Create package details directly from server response
+        for pkg_name, package_info in action_packages_data.items():
+            actions = package_info.get("actions", [])
+            version = package_info.get("version", "1.0.0")
+            package_actions = [ActionDetail(name=action) for action in actions]
+
+            # Only create package if it has actions
+            if package_actions:
+                action_package_details = ActionPackageDetail(
+                    name=pkg_name,
+                    actions=package_actions,
+                    version=version,
+                    status="online",
+                )
+                action_details.append(action_package_details)
+
+    except Exception as e:
+        logger.error(f"Error processing action packages from {url}: {e}")
+        for package in packages:
+            action_package_details = ActionPackageDetail(
+                name=package.name,
+                actions=[],
+                version=package.version,
+                status="offline",
+            )
+            action_details.append(action_package_details)
+
+    return action_details
+
+
 async def _process_action_packages(agent) -> list[ActionPackageDetail]:
     """Process action packages and return their details."""
     all_action_details = []
@@ -123,43 +168,51 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
         if action_package.url:
             url_to_packages[action_package.url].append(action_package)
 
-    # Fetch action packages data once per unique URL
-    for url, packages in url_to_packages.items():
-        try:
-            # Get the first package to extract api_key (they should all be the same for same URL)
-            api_key = packages[0].api_key.get_secret_value() if packages[0].api_key else ""
-
-            # Fetch action packages data from /api/actionPackages
-            action_packages_data = await _fetch_action_packages_data(url, api_key)
-
-            # Create package details directly from server response
-            for pkg_name, package_info in action_packages_data.items():
-                actions = package_info.get("actions", [])
-                version = package_info.get("version", "1.0.0")
-                package_actions = [ActionDetail(name=action) for action in actions]
-
-                # Only create package if it has actions
-                if package_actions:
-                    action_package_details = ActionPackageDetail(
-                        name=pkg_name,
-                        actions=package_actions,
-                        version=version,
-                        status="online",
-                    )
-                    all_action_details.append(action_package_details)
-
-        except Exception as e:
-            logger.error(f"Error processing action packages from {url}: {e}")
-            for package in packages:
-                action_package_details = ActionPackageDetail(
-                    name=package.name,
-                    actions=[],
-                    version=package.version,
-                    status="offline",
-                )
-                all_action_details.append(action_package_details)
+    # Fetch action packages data concurrently for all unique URLs
+    if url_to_packages:
+        for result in await asyncio.gather(
+            *[_process_single_action_package_url(url, packages) for url, packages in url_to_packages.items()],
+        ):
+            all_action_details.extend(result)
 
     return all_action_details
+
+
+async def _process_single_mcp_server(
+    user: AuthedUser,
+    storage: StorageDependency,
+    data_server_details: DataServerDetails | None,
+    mcp_server_with_oauth_config: "MCPServerWithOAuthConfig",
+    selected_tool_names: list[str],
+    has_selected_tools: bool,
+) -> MCPServerDetail:
+    """Process a single MCP server and return its details."""
+    try:
+        tool_defs = await mcp_server_with_oauth_config.to_tool_definitions(
+            user_id=user.user_id,
+            storage=storage,
+            data_server_details=data_server_details,
+        )
+
+        allowed_actions = [
+            # Only filter out MCP tools based on SelectedTools if there are any SelectedTools present.
+            MCPToolDetail(name=tool_def.name)
+            for tool_def in tool_defs
+            if (not has_selected_tools or tool_def.name in selected_tool_names)
+        ]
+
+        return MCPServerDetail(
+            name=mcp_server_with_oauth_config.name,
+            actions=allowed_actions,
+            status="online",
+        )
+    except Exception as e:
+        logger.error(f"Error getting tool definitions for MCP server {mcp_server_with_oauth_config.name}: {e}")
+        return MCPServerDetail(
+            name=mcp_server_with_oauth_config.name,
+            actions=[],
+            status="offline",
+        )
 
 
 async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: AuthedUser) -> list[MCPServerDetail]:
@@ -196,39 +249,22 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
                 )
             )
 
-    for mcp_server_with_oauth_config in all_mcp_servers:
-        try:
-            tool_defs = await mcp_server_with_oauth_config.to_tool_definitions(
-                user_id=user.user_id,
-                storage=storage,
-                data_server_details=data_server_details,
-            )
+    # Collect tool definitions concurrently
+    selected_tools = agent.selected_tools.tools if agent.selected_tools else []
+    selected_tool_names = [tool.name for tool in selected_tools]
+    has_selected_tools = len(selected_tool_names) > 0
 
-            selected_tools = agent.selected_tools.tools if agent.selected_tools else []
-
-            selected_tool_names = [tool.name for tool in selected_tools]
-            has_selected_tools = len(selected_tool_names) > 0
-
-            allowed_actions = [
-                # Only filter out MCP tools based on SelectedTools if there are any SelectedTools present.
-                MCPToolDetail(name=tool_def.name)
-                for tool_def in tool_defs
-                if (not has_selected_tools or tool_def.name in selected_tool_names)
-            ]
-
-            mcp_server_details = MCPServerDetail(
-                name=mcp_server_with_oauth_config.name,
-                actions=allowed_actions,
-                status="online",
-            )
-        except Exception as e:
-            logger.error(f"Error getting tool definitions for MCP server {mcp_server_with_oauth_config.name}: {e}")
-            mcp_server_details = MCPServerDetail(
-                name=mcp_server_with_oauth_config.name,
-                actions=[],
-                status="offline",
-            )
-        all_mcp_server_details.append(mcp_server_details)
+    # Execute all tool definition collection concurrently
+    all_mcp_server_details: list[MCPServerDetail] = list(
+        await asyncio.gather(
+            *[
+                _process_single_mcp_server(
+                    user, storage, data_server_details, mcp_server, selected_tool_names, has_selected_tools
+                )
+                for mcp_server in all_mcp_servers
+            ],
+        )
+    )
 
     return all_mcp_server_details
 
@@ -501,8 +537,10 @@ async def get_agent_details(
     if not agent:
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Agent not found")
 
-    action_packages = await _process_action_packages(agent)
-    mcp_servers = await _process_mcp_servers(agent, storage, user)
+    action_packages, mcp_servers = await asyncio.gather(
+        _process_action_packages(agent),
+        _process_mcp_servers(agent, storage, user),
+    )
 
     return AgentDetails(
         runbook=agent.runbook_structured.raw_text,
