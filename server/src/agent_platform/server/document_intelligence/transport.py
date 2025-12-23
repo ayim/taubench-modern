@@ -6,9 +6,12 @@ services, bypassing HTTP overhead.
 """
 
 import logging
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
+import sema4ai_http
 from sema4ai_docint.agent_server_client.transport.direct import DirectTransport
 
 from agent_platform.core.context import AgentServerContext
@@ -112,7 +115,8 @@ class DirectKernelTransport(DirectTransport):
         """Get a file from storage by reference.
 
         This provides direct access to files via the file manager, bypassing
-        the HTTP API entirely.
+        the HTTP API entirely. Handles both local (file://) and remote (HTTP/S)
+        file URLs - for remote files, downloads to a temporary file.
 
         Args:
             name: The file reference/name to retrieve
@@ -137,9 +141,30 @@ class DirectKernelTransport(DirectTransport):
         if not file.file_path:
             raise FileNotFoundError(f"File {name} has no file_path")
 
-        # Convert file:// URI to filesystem path, decoding URL-encoded characters
-        fs_path = url_to_fs_path(file.file_path)
-        return Path(fs_path)
+        # Refresh to get a valid/fresh URL (handles presigned URL expiration in cloud)
+        refreshed_files = await self._file_manager.refresh_file_paths([file])
+        if not refreshed_files or not refreshed_files[0].file_path:
+            raise FileNotFoundError(f"File {name} path not available after refresh")
+
+        file_url = refreshed_files[0].file_path
+        parsed_url = urlparse(file_url)
+
+        if parsed_url.scheme == "file":
+            fs_path = url_to_fs_path(file_url)
+            return Path(fs_path)
+
+        # Remote URL (HTTP/HTTPS presigned URL) - download to temp file
+        try:
+            response = sema4ai_http.get(file_url)
+            response.raise_for_status()
+        except Exception as e:
+            raise FileNotFoundError(f"Failed to download file {name}: {e!s}") from e
+
+        # Preserve file extension for proper handling downstream
+        suffix = Path(parsed_url.path).suffix or Path(name).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            temp_file.write(response.response.data)
+            return Path(temp_file.name)
 
     async def upload_file_bytes(
         self,
