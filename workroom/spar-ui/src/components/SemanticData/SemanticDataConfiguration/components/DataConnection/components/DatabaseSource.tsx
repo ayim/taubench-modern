@@ -19,12 +19,13 @@ import { SparUIFeatureFlag } from '../../../../../../api';
 
 export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const {
-    databaseInspectionState: { isLoading, error, inspectionResult },
+    databaseInspectionState: { isLoading, error, errorDetails, inspectionResult },
   } = useContext(DataConnectionFormContext);
   const [isCreatingNewDataConnection, setIsCreatingNewDataConnection] = useState(false);
   const { data: supportedSemanticDataEngines = [], isLoading: isLoadingSupportedSemanticDataEngines } =
     useSupportedSemanticDataEnginesQuery({});
   const [showInspectionMismatches, setShowInspectionMismatches] = useState(false);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
   const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
 
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
@@ -73,6 +74,25 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
         {isLoading ? (
           <Box display="flex" alignItems="center" gap="$8" pt="$16">
             <IconLoading /> <Typography>Validating connection...</Typography>
+          </Box>
+        ) : null}
+
+        {errorDetails ? (
+          <Box mt="$24">
+            <Link
+              as="button"
+              type="button"
+              variant="secondary"
+              onClick={() => setShowErrorDetails(!showErrorDetails)}
+              iconAfter={IconChevronDown}
+            >
+              {showErrorDetails ? 'Hide' : 'Show'} details
+            </Link>
+            {showErrorDetails && (
+              <Box mt="$12" backgroundColor="background.panels" borderRadius="$16" p="$16" borderColor="border.subtle">
+                {errorDetails}
+              </Box>
+            )}
           </Box>
         ) : null}
 

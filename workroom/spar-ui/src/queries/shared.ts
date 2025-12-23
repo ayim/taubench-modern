@@ -40,6 +40,7 @@ type QueryErrorDetails = {
   // eslint-disable-next-line @typescript-eslint/ban-types
   code?: `${QueryErrorCode}` | (string & {});
   resource?: ResourceType;
+  details?: string;
 };
 
 export class QueryError extends Error {
@@ -57,6 +58,7 @@ export class QueryError extends Error {
           ? (details.code as QueryErrorCode)
           : undefined,
       resource: details?.resource,
+      details: details?.details,
     };
   }
 }

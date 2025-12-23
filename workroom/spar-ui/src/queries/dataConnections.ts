@@ -173,6 +173,7 @@ export const useDataConnectionDatabaseInspectMutation = createSparMutation<
       throw new QueryError(response.message || 'Failed to inspect data connection', {
         code: response.code,
         resource: ResourceType.DataConnection,
+        details: response.details,
       });
     }
 

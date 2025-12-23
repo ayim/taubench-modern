@@ -29,6 +29,7 @@ type InitParam<Init> =
 type ApiError = {
   code: string;
   message: string;
+  details?: string;
 };
 
 type ApiResponse<Success> =
@@ -486,6 +487,7 @@ export class AgentAPIClient {
           success: false,
           code: responseError.error.code,
           message: responseError.error.message,
+          details: responseError.error.details,
         };
       };
     })<Paths>();

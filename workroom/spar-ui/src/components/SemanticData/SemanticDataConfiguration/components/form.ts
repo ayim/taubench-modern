@@ -13,6 +13,7 @@ export enum DataSourceType {
 export type DatabaseInspectionState = {
   isLoading: boolean;
   error: string | undefined;
+  errorDetails?: string;
   inspectionResult: InspectedTableInfo | undefined;
   requiresInspection: boolean;
 };

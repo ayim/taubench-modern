@@ -4,6 +4,7 @@ import { HttpMethod, PathsWithMethod, RequiredKeysOf, SuccessResponseJSON } from
 export type ApiError = {
   code: string;
   message: string;
+  details?: string;
 };
 
 type ApiResponse<Success> = { data: Success; success: true } | (ApiError & { success: false });
