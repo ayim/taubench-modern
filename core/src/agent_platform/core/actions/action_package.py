@@ -181,6 +181,9 @@ class ActionPackageDetail:
     version: str
     status: Literal["online", "offline"]
 
+    # A message showing the reason for the status when offline
+    status_details: str | None = None
+
 
 @dataclass(frozen=True)
 class AgentDetails:

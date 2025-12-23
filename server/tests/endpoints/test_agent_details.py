@@ -106,9 +106,11 @@ async def test_agent_details_one_action_package_offline(mock_user, mock_storage)
     )
     agent = create_test_agent(action_packages=[action_package])
 
+    error_message = "Failed to fetch action packages"
+
     with patch(
         "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
-        side_effect=Exception("Failed to fetch action packages"),
+        side_effect=Exception(error_message),
     ):
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
@@ -122,6 +124,7 @@ async def test_agent_details_one_action_package_offline(mock_user, mock_storage)
     assert result.action_packages[0].name == "test_package"
     assert result.action_packages[0].version == "1.0.0"
     assert result.action_packages[0].status == "offline"
+    assert result.action_packages[0].status_details == error_message
     assert len(result.action_packages[0].actions) == 0
 
 
@@ -184,9 +187,11 @@ async def test_agent_details_two_action_packages_both_offline(mock_user, mock_st
     ]
     agent = create_test_agent(action_packages=action_packages)
 
+    error_message = "Failed to fetch action packages"
+
     with patch(
         "agent_platform.server.api.private_v2.agents._fetch_action_packages_data",
-        side_effect=Exception("Failed to fetch action packages"),
+        side_effect=Exception(error_message),
     ):
         mock_storage.get_agent.return_value = agent
         result = await get_agent_details(
@@ -202,6 +207,7 @@ async def test_agent_details_two_action_packages_both_offline(mock_user, mock_st
         assert package.version == "1.0.0"
         assert package.status == "offline"
         assert len(package.actions) == 0
+        assert package.status_details == error_message
 
 
 async def test_agent_details_two_action_packages_mixed_status(mock_user, mock_storage):

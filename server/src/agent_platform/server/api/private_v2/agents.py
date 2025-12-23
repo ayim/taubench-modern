@@ -152,6 +152,7 @@ async def _process_single_action_package_url(url: str, packages: list[ActionPack
                 actions=[],
                 version=package.version,
                 status="offline",
+                status_details=str(e),
             )
             action_details.append(action_package_details)
 
@@ -212,14 +213,13 @@ async def _process_single_mcp_server(
             name=mcp_server_with_oauth_config.name,
             actions=[],
             status="offline",
+            status_details=str(e),
         )
 
 
 async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: AuthedUser) -> list[MCPServerDetail]:
     """Process MCP servers and return their details."""
     from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
-
-    all_mcp_server_details = []
 
     # Get data server details for MCP context
     data_server_details = None

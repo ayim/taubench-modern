@@ -9785,6 +9785,17 @@ export const spec = {
             enum: ['online', 'offline'],
             title: 'Status',
           },
+          status_details: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Status Details',
+          },
         },
         type: 'object',
         required: ['name', 'actions', 'version', 'status'],
@@ -16605,6 +16616,17 @@ export const spec = {
             type: 'string',
             enum: ['online', 'offline'],
             title: 'Status',
+          },
+          status_details: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Status Details',
           },
         },
         type: 'object',

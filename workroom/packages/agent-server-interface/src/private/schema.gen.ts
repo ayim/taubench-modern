@@ -3455,6 +3455,8 @@ export interface components {
        * @enum {string}
        */
       status: 'online' | 'offline';
+      /** Status Details */
+      status_details?: string | null;
     };
     /** ActionPackageMetadataAction */
     ActionPackageMetadataAction: {
@@ -6712,6 +6714,8 @@ export interface components {
        * @enum {string}
        */
       status: 'online' | 'offline';
+      /** Status Details */
+      status_details?: string | null;
     };
     /** MCPServerResponse */
     MCPServerResponse: {
