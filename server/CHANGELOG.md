@@ -1,3 +1,15 @@
+# Sema4.ai Agent Server 2.2.11 (2025-12-23)
+
+* SDM-290 Properly surface terminal errors through "Generate SQL" tool [#2016](https://github.com/Sema4AI/agent-platform/pull/2016)
+* [ENG-59] Improve get-agent-details to provide the actual errors instead of just offline status [#2022](https://github.com/Sema4AI/agent-platform/pull/2022)
+* Fix get file for cloud stored files on DirectTransport [#2008](https://github.com/Sema4AI/agent-platform/pull/2008)
+* [ENG-23] Provide OAuth information for list/get/update MCP APIs. [#1997](https://github.com/Sema4AI/agent-platform/pull/1997)
+* feat: adding unified ReactAgentPackageResult model, wiring up /package/read endpoint [#2001](https://github.com/Sema4AI/agent-platform/pull/2001)
+* SDM-297: feat: improve assembly info display with connection details [#2017](https://github.com/Sema4AI/agent-platform/pull/2017)
+* SDM-284 Remove duplicate sample values when creating an SDM [#2011](https://github.com/Sema4AI/agent-platform/pull/2011)
+* [ENG-50] mprove get-agent-details to collect information concurrently [#2010](https://github.com/Sema4AI/agent-platform/pull/2010)
+* [ENG-56] The /mcp/tools API should not use existing OAuth tokens in the client credentials grant type. [#2014](https://github.com/Sema4AI/agent-platform/pull/2014)
+
 # Sema4.ai Agent Server 2.2.10 (2025-12-18)
 
 * gemini 3 flash in server/spar [#1977](https://github.com/Sema4AI/agent-platform/pull/1977)
