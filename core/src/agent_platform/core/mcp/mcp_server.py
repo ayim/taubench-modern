@@ -292,6 +292,7 @@ class MCPServerWithOAuthConfig(MCPServer):
         additional_headers: dict | None = None,
         data_server_details: DataServerDetails | None = None,
         mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
+        use_caches: bool = True,
     ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions.
 
@@ -309,9 +310,9 @@ class MCPServerWithOAuthConfig(MCPServer):
         url = self.url
         token = None
         if url is not None:
-            token = await storage.get_mcp_oauth_token(user_id, url, decrypt=True)
-            if token is not None:
-                if token.access_token is not None:
+            if use_caches:
+                token = await storage.get_mcp_oauth_token(user_id, url, decrypt=True)
+                if token is not None and token.access_token:
                     additional_headers["Authorization"] = f"Bearer {token.access_token}"
 
             if "Authorization" not in additional_headers:

@@ -63,6 +63,7 @@ class ToolsInterface(ABC):
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
+        use_caches: bool = True,
     ) -> CollectedTools:
         """Converts a list of MCP servers into a list of tool definitions.
 

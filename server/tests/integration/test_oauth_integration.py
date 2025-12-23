@@ -120,6 +120,7 @@ async def test_oauth2_client_credentials_integration_validate_mcp_server(
     base_url_agent_server_session: str,
     live_custom_mcp_server_with_auth: str,
     live_custom_oauth2_client_credentials_server: AuthenticationMetadataClientCredentials,
+    data_regression: DataRegressionFixture,
 ):
     """Test OAuth2 client credentials integration with a real MCP server.
 
@@ -142,6 +143,36 @@ async def test_oauth2_client_credentials_integration_validate_mcp_server(
         mcp_server = MCPServer(name="test-oauth-mcp-server", transport="streamable-http", url=mcp_server_url)
         mcp_server_payload = mcp_server.model_dump()
 
+        def redact_urls(data: dict, url: str) -> dict:
+            if isinstance(data, dict):
+                return {k: redact_urls(v, url) for k, v in data.items()}
+            elif isinstance(data, list):
+                return [redact_urls(item, url) for item in data]
+            elif isinstance(data, str) and url in data:
+                return data.replace(url, "<REDACTED_URL>")
+            return data
+
+        async def check_no_oauth_use_case():
+            # Check without the OAuth config (should give an issue)
+            list_tools_response = await client.post(
+                f"{base_url_agent_server}/api/v2/capabilities/mcp/tools",
+                json={
+                    "mcp_servers": [dict(**mcp_server_payload)],
+                },
+            )
+            assert list_tools_response.status_code == 200, (
+                f"Failed to list tools: {list_tools_response.status_code} {list_tools_response.text}"
+            )
+            list_tools_data = list_tools_response.json()
+            # Redact any entry that contains the url (as it can change between runs)
+            list_tools_data = redact_urls(list_tools_data, mcp_server_url)
+            for result in list_tools_data["results"]:
+                assert result.get("issues"), f"Expected issues when listing tools without OAuth config: {result}"
+            data_regression.check(list_tools_data, basename="list_tools_data_without_oauth_config")
+
+        await check_no_oauth_use_case()
+
+        # Now, add the OAuth config (should work)
         oauth_config = OAuthConfig(
             authentication_type=AuthenticationType.OAUTH2_CLIENT_CREDENTIALS,
             authentication_metadata=dict(
@@ -165,11 +196,11 @@ async def test_oauth2_client_credentials_integration_validate_mcp_server(
             f"Failed to list tools: {list_tools_response.status_code} {list_tools_response.text}"
         )
         list_tools_data = list_tools_response.json()
-        assert "results" in list_tools_data, f"Failed to list tools: {list_tools_data}"
-        for result in list_tools_data["results"]:
-            assert result["server"]["name"] == mcp_server.name, f"Failed to list tools: {result}"
-            assert not result["issues"], f"Failed to list tools: {result['issues']}"
-            assert result["tools"], f"Failed to list tools: {result['tools']}"
+        # Redact the '/results/server/url` (as it can change between runs)
+        list_tools_data = redact_urls(list_tools_data, mcp_server_url)
+        data_regression.check(list_tools_data)
+
+        await check_no_oauth_use_case()
 
 
 @pytest.mark.integration

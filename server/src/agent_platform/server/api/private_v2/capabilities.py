@@ -349,9 +349,26 @@ async def list_mcp_tools(
     agent_server_tools_interface.attach_kernel(kernel)
 
     async def _per_server(mcp_server_with_oauth_config: MCPServerWithOAuthConfig):
+        from agent_platform.core.oauth.oauth_models import AuthenticationType
         # Create task first, then wait with timeout to avoid cancel scope issues
+
+        url = mcp_server_with_oauth_config.url
+
+        use_caches: bool = True
+        if url:
+            # In the case of client credentials authentication, we cannot use the cache
+            # (because this API is used to verify that the details are valid, getting a token
+            # from the cache is not what we want) -- same if we don't have any oauth config at all.
+            use_caches = bool(
+                mcp_server_with_oauth_config.oauth_config
+                and mcp_server_with_oauth_config.oauth_config.authentication_type
+                != AuthenticationType.OAUTH2_CLIENT_CREDENTIALS
+            )
+
         timeout = 30.0
-        task = asyncio.create_task(agent_server_tools_interface.from_mcp_servers([mcp_server_with_oauth_config]))
+        task = asyncio.create_task(
+            agent_server_tools_interface.from_mcp_servers([mcp_server_with_oauth_config], use_caches=use_caches)
+        )
 
         try:
             mcp_result = await asyncio.wait_for(task, timeout=timeout)

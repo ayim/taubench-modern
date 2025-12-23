@@ -430,6 +430,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         self,
         mcp_servers: list[MCPServerWithOAuthConfig],
         additional_headers: dict | None = None,
+        use_caches: bool = True,
     ) -> CollectedTools:
         """Same contract as _fetch_action_tools()."""
         from agent_platform.core.tools.collected_tools import CollectedTools
@@ -473,6 +474,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     additional_headers=additional_headers,
                     data_server_details=data_server_details,
                     mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
+                    use_caches=use_caches,
                 )
                 return CollectedTools(tools=tools, issues=[])
             except Exception as exc:
@@ -561,6 +563,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         # tool definition time (can be overriden at
         # tool invocation time using extra_headers)
         additional_headers: dict | None = None,
+        use_caches: bool = True,
     ) -> CollectedTools:
         from agent_platform.core.tools.collected_tools import CollectedTools
 
@@ -568,11 +571,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         seen_urls = set()
 
         async def _fetch(
-            mcp_server_with_oauth_config: MCPServerWithOAuthConfig, additional_headers: dict | None = None
+            mcp_server_with_oauth_config: MCPServerWithOAuthConfig,
+            additional_headers: dict | None = None,
+            use_caches: bool = True,
         ):
             return await self._fetch_mcp_tools(
                 [mcp_server_with_oauth_config],
                 additional_headers=additional_headers,
+                use_caches=use_caches,
             )
 
         # Apply agent-level selected_tools filtering
@@ -590,11 +596,19 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if mcp_server_with_oauth_config.url:
                 seen_urls.add(mcp_server_with_oauth_config.url)
 
-            collected_tools = await self._cache.get_or_fetch(
-                kind="mcp_servers",
-                key=mcp_server_with_oauth_config.cache_key,
-                fetch_coro=_fetch(mcp_server_with_oauth_config, additional_headers=additional_headers),
-            )
+            if use_caches:
+                collected_tools = await self._cache.get_or_fetch(
+                    kind="mcp_servers",
+                    key=mcp_server_with_oauth_config.cache_key,
+                    fetch_coro=_fetch(
+                        mcp_server_with_oauth_config, additional_headers=additional_headers, use_caches=use_caches
+                    ),
+                )
+            else:
+                collected_tools = await _fetch(
+                    mcp_server_with_oauth_config, additional_headers=additional_headers, use_caches=use_caches
+                )
+
             if agent_selected_tools_set:
                 collected_tools.filter_tools(agent_selected_tools_set)
             all_collected_tools.merge(collected_tools)

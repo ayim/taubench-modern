@@ -1,0 +1,17 @@
+results:
+- issues:
+  - "Error acquiring tool definitions from MCP server:\n  name='test-oauth-mcp-server'\
+    \ url='<REDACTED_URL>'\n  exception=Client error '401 Unauthorized' for url '<REDACTED_URL>'\n\
+    For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+  server:
+    args: null
+    command: null
+    cwd: null
+    env: null
+    force_serial_tool_calls: false
+    headers: null
+    name: test-oauth-mcp-server
+    transport: streamable-http
+    type: generic_mcp
+    url: <REDACTED_URL>
+  tools: []

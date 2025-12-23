@@ -1,3 +1,4 @@
+import typing
 from dataclasses import dataclass
 
 import pytest
@@ -8,6 +9,9 @@ from agent_platform.core.user import User
 from agent_platform.server.api.private_v2.capabilities import router as capabilities_router
 from agent_platform.server.auth.handlers import auth_user
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.sqlite.sqlite import SQLiteStorage
 
 
 @dataclass
@@ -39,20 +43,31 @@ def fastapi_app(stub_user: User) -> FastAPI:
 
 
 @pytest.fixture
-def client(fastapi_app: FastAPI) -> TestClient:
+def client(fastapi_app: FastAPI, sqlite_storage: "SQLiteStorage") -> TestClient:
+    """
+    Fixture that creates a TestClient for the FastAPI app.
+
+    Note that it also initialized the SQLite storage instance (as the storage must be
+    in place for the related tests to work).
+    """
     return TestClient(fastapi_app)
 
 
 @pytest.mark.asyncio
 async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.MonkeyPatch):
-    import typing
-
     from agent_platform.core.tools.tool_definition import ToolDefinition
 
     dummy_tool: ToolDefinition = typing.cast(ToolDefinition, DummyTool(name="echo", description="", input_schema={}))
 
-    async def fake_from_mcp_servers(self, servers, additional_headers=None):
+    async def fake_from_mcp_servers(self, servers, additional_headers=None, use_caches=True):
         from agent_platform.core.tools.collected_tools import CollectedTools
+
+        for server in servers:
+            if not server.url:
+                assert use_caches, "Use caches should be enabled for this test"
+
+            else:
+                assert not use_caches, "Use caches should be disabled for this test"
 
         return CollectedTools(tools=[dummy_tool], issues=[])
 
@@ -89,14 +104,19 @@ async def test_list_mcp_tools_endpoint(client: TestClient, monkeypatch: pytest.M
 
 @pytest.mark.asyncio
 async def test_list_mcp_tools_endpoint_with_different_transport(client: TestClient, monkeypatch: pytest.MonkeyPatch):
-    import typing
-
     from agent_platform.core.tools.tool_definition import ToolDefinition
 
     dummy_tool: ToolDefinition = typing.cast(ToolDefinition, DummyTool(name="echo", description="", input_schema={}))
 
-    async def fake_from_mcp_servers(self, servers, additional_headers=None):
+    async def fake_from_mcp_servers(self, servers, additional_headers=None, use_caches=True):
         from agent_platform.core.tools.collected_tools import CollectedTools
+
+        for server in servers:
+            if not server.url:
+                assert use_caches, "Use caches should be enabled for this test"
+
+            else:
+                assert not use_caches, "Use caches should be disabled for this test"
 
         return CollectedTools(tools=[dummy_tool], issues=[])
 
