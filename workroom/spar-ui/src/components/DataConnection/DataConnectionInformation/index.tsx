@@ -59,7 +59,7 @@ export const DataConnectionInformation: FC<Props> = ({
     return dataConnection ? Object.entries(getGeneralDataConnectionDetails(dataConnection)) : null;
   }, [dataConnection]);
 
-  const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
+  const { enabled: canConfigureAgents } = useFeatureFlag(SparUIFeatureFlag.canConfigureAgents);
 
   const ErrorIcon = error?.level === 'error' ? IconStatusError : IconStatusDisabled;
   const errorIconColor = error?.level === 'error' ? 'content.error' : 'background.notification';
@@ -119,7 +119,7 @@ export const DataConnectionInformation: FC<Props> = ({
                 {action}
               </Box>
             )}
-            {dataConnection && !error && canCreateAgents && (
+            {dataConnection && !error && canConfigureAgents && (
               <Box display="flex" pt="$12" justifyContent="flex-end">
                 <Button onClick={() => setIsUpdateConnectionOpen(true)} flex={1} round>
                   Configure Connection

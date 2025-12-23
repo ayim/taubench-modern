@@ -141,7 +141,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       return {
         level: 'error' as const,
         title: 'Connection Failed',
-        description: `Unable to connect to the data source. ${canConfigureAgents ? 'Please check your configuration settings.' : 'Please contact someone with the appropriate permissions.'}`,
+        description: `Unable to connect to the data source. ${canConfigureAgents ? 'Please check your configuration settings.' : 'Please contact your admin to update the connection details.'}`,
       };
     }
 
