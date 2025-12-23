@@ -128,6 +128,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   });
 
   const isResultsStepDisabled = isFetchingCachedSchema || isGeneratingSchema || isExtracting;
+  const isTaskRunning = isGeneratingSchema || isExtracting;
 
   const handleTabChange = useCallback(
     (newTab: number) => {
@@ -190,17 +191,21 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   };
 
   const handleClose = useCallback(() => {
-    if (hasChanges) {
+    if (isTaskRunning || hasChanges) {
       setOpenExitConfirmation(true);
     } else {
       onClose();
     }
-  }, [hasChanges, onClose]);
+  }, [isTaskRunning, hasChanges, onClose]);
 
   const handleConfirmClose = useCallback(() => {
     setOpenExitConfirmation(false);
     onClose();
   }, [onClose]);
+
+  const handleCancelClose = useCallback(() => {
+    setOpenExitConfirmation(false);
+  }, []);
 
   const handleAnnotationCreate = useCallback(
     (selection: {
@@ -331,6 +336,26 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   });
   const shouldAllowRegenerating = activeTab === 0 && !isResultsStepDisabled;
   const shouldAllowSendingToThread = activeTab === 1 && !isExtracting && sendingResultsEnabled;
+
+  const shouldShowExitConfirmation = openExitConfirmation && (isTaskRunning || hasChanges);
+
+  // Exit confirmation dialog content based on current state
+  const exitConfirmationContent = useMemo(() => {
+    if (isTaskRunning) {
+      const operation = isGeneratingSchema ? 'Schema generation' : 'Data extraction';
+      return {
+        title: `${operation} in progress`,
+        message: `${operation} is running. Close now and check back later for results.`,
+        cancelLabel: 'No, wait for results',
+      };
+    }
+    return {
+      title: 'Unsaved changes',
+      message:
+        'You have unsaved changes to the extraction configuration. If you close now, these changes will be lost.',
+      cancelLabel: 'No, continue editing',
+    };
+  }, [isTaskRunning, isGeneratingSchema]);
 
   const onShowResultsInThread = useCallback(() => {
     if (sendingResultsEnabled) {
@@ -519,19 +544,17 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
         isExtracting={isExtracting}
       />
 
-      <Dialog open={openExitConfirmation} onClose={() => setOpenExitConfirmation(false)} size="medium">
+      <Dialog open={shouldShowExitConfirmation} onClose={handleCancelClose} size="medium">
         <Dialog.Header>
-          <Dialog.Header.Title title="Are you sure?" />
+          <Dialog.Header.Title title={exitConfirmationContent.title} />
         </Dialog.Header>
-        <Dialog.Content>
-          You have unsaved changes to the extraction configuration. If you close now, these changes will be lost.
-        </Dialog.Content>
+        <Dialog.Content>{exitConfirmationContent.message}</Dialog.Content>
         <Dialog.Actions>
           <Button variant="primary" onClick={handleConfirmClose}>
             Yes, close
           </Button>
-          <Button variant="secondary" onClick={() => setOpenExitConfirmation(false)}>
-            No, continue editing
+          <Button variant="secondary" onClick={handleCancelClose}>
+            {exitConfirmationContent.cancelLabel}
           </Button>
         </Dialog.Actions>
       </Dialog>
