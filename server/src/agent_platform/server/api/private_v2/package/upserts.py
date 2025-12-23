@@ -132,13 +132,6 @@ async def upsert_agent_from_package(
     )
     await storage.upsert_agent(user.user_id, as_agent)
 
-    # Import semantic data models if present in the package
-    await upsert_semantic_data_models(
-        agent_id=aid,
-        sdms=read_package_result.semantic_data_models_map,
-        storage=storage,
-    )
-
     # Reload orchestrator to include new/updated agent in routing map
     orchestrator = OtelOrchestrator.get_instance()
     await orchestrator.reload_from_storage(storage)
@@ -147,7 +140,35 @@ async def upsert_agent_from_package(
     # We might technically clear on a create here, which shouldn't be
     # problem (even if it's not strictly necessary)
     ToolDefinitionCache().clear_for_agent(as_agent)
-    return AgentCompat.from_agent(as_agent)
+
+    # We've written this Agent to storage. If we get an error after this point, we have
+    # to clean up after ourselves.
+    try:
+        # Import semantic data models if present in the package
+        await upsert_semantic_data_models(
+            agent_id=aid,
+            sdms=read_package_result.semantic_data_models_map,
+            storage=storage,
+        )
+
+        return AgentCompat.from_agent(as_agent)
+    except Exception as e:
+        # Try to restore the original agent def'n if it existed prior (update case)
+        if existing_agent:
+            try:
+                await storage.upsert_agent(user.user_id, existing_agent)
+            except Exception as e2:
+                logger.exception("Failed to restore original agent after failed update.", agent_id=aid, error=e2)
+                # fall through to raise the original error
+        else:
+            # Delete the agent if it didn't exist prior (create case)
+            try:
+                await storage.delete_agent(user.user_id, aid)
+            except Exception as e2:
+                logger.exception("Failed to delete agent during cleanup. Agent is orphaned!", agent_id=aid, error=e2)
+                # fall through to raise the original error
+
+        raise e
 
 
 async def upsert_semantic_data_models(

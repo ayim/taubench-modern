@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.agent import Agent
@@ -13,6 +14,7 @@ if typing.TYPE_CHECKING:
     )
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.files import UploadedFile
+    from agent_platform.core.payloads.agent_package import AgentPackagePayload
     from agent_platform.core.thread import Thread
     from agent_platform.core.work_items.work_item import WorkItem
     from agent_platform.server.auth.handlers import AuthedUser
@@ -376,3 +378,98 @@ class SampleModelCreator:
             storage=self.storage,
         )
         return data_frame
+
+    def obtain_sample_agent_package_payload(self) -> AgentPackagePayload:
+        """Create a sample AgentPackagePayload for testing."""
+        from agent_platform.core.mcp.mcp_server import MCPServer
+        from agent_platform.core.payloads.agent_package import (
+            AgentPackagePayload,
+            AgentPackagePayloadActionServer,
+            AgentPackagePayloadLangsmith,
+        )
+
+        return AgentPackagePayload(
+            name="Test Package Agent",
+            agent_package_url="https://example.com/agent-package.zip",
+            model={"provider": "OpenAI", "name": "gpt-4"},
+            action_servers=[
+                AgentPackagePayloadActionServer(
+                    url="https://action-server.example.com",
+                    api_key="test-api-key-123",
+                )
+            ],
+            mcp_servers=[MCPServer(name="test-mcp", url="https://mcp.example.com")],
+            langsmith=AgentPackagePayloadLangsmith(
+                api_key="langsmith-key-123",
+                api_url="https://langsmith.example.com",
+                project_name="test-project",
+            ),
+        )
+
+    def obtain_mock_agent_package_handler(self, custom_spec: dict | None = None) -> AsyncMock:
+        """Create a mock AgentPackageHandler for testing.
+
+        Args:
+            custom_spec: Optional custom package spec. If not provided, uses a default spec.
+
+        Returns:
+            A mocked AgentPackageHandler with the specified spec.
+        """
+        from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
+
+        if custom_spec is None:
+            custom_spec = {}
+
+        if "spec" not in custom_spec:
+            custom_spec["spec"] = {
+                "agent-package": {
+                    "spec-version": "v2",
+                    "agents": [
+                        {
+                            "name": "Test Agent",
+                            "description": "A test agent for package endpoints",
+                            "version": "1.0.0",
+                            "action-packages": [
+                                {
+                                    "name": "test-action-package",
+                                    "organization": "test-org",
+                                    "version": "1.0.0",
+                                }
+                            ],
+                            "metadata": {"mode": "conversational"},
+                        }
+                    ],
+                }
+            }
+
+        if "runbook_text" not in custom_spec:
+            custom_spec["runbook_text"] = "# Test Runbook\nYou are a helpful assistant."
+
+        handler = AsyncMock()
+
+        handler.read_agent_spec = AsyncMock(return_value=AgentSpec.model_validate(custom_spec["spec"]))
+        handler.get_spec_agent = AsyncMock(
+            return_value=SpecAgent.model_validate(custom_spec["spec"]["agent-package"]["agents"][0])
+        )
+
+        # Configure the mock to behave as an asynchronous context manager
+        handler.__enter__.return_value = handler
+        handler.__exit__.return_value = None
+
+        handler.read_runbook = AsyncMock(return_value=None)
+        handler.read_conversation_guide_raw = AsyncMock(return_value=None)
+        handler.read_semantic_data_model_raw = AsyncMock(return_value=None)
+        handler.get_spooled_file_bytes = AsyncMock(return_value=b"")
+        handler.read_all_semantic_data_models = AsyncMock(return_value={})
+        handler.read_conversation_guide = AsyncMock(return_value=[])
+
+        if "runbook_text" in custom_spec:
+            handler.read_runbook = AsyncMock(return_value=custom_spec["runbook_text"])
+
+        if "question_groups" in custom_spec:
+            handler.read_conversation_guide = AsyncMock(return_value=custom_spec["question_groups"])
+
+        if "semantic_data_models" in custom_spec:
+            handler.read_semantic_data_models = AsyncMock(return_value=custom_spec["semantic_data_models"])
+
+        return handler
