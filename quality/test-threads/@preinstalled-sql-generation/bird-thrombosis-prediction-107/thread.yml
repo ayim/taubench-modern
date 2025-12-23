@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-107
-description: "BIRD Q1255 (moderate): For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?"
+description: 'BIRD Q1255 (moderate): For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1255
-    description: "For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?"
+    description: 'For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?'
     messages:
       - role: user
         content: |

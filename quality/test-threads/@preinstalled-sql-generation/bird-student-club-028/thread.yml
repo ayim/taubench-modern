@@ -1,5 +1,5 @@
 name: bird-student-club-028
-description: "BIRD Q1339 (challenging): Calculate the total average cost that Elijah Allen spent in the events on September and October."
+description: 'BIRD Q1339 (challenging): Calculate the total average cost that Elijah Allen spent in the events on September and October.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1339
-    description: "Calculate the total average cost that Elijah Allen spent in the events on September and October."
+    description: 'Calculate the total average cost that Elijah Allen spent in the events on September and October.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-020
-description: "BIRD Q214 (simple): What type of label is not on molecules with atoms with tin?"
+description: 'BIRD Q214 (simple): What type of label is not on molecules with atoms with tin?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-214
-    description: "What type of label is not on molecules with atoms with tin?"
+    description: 'What type of label is not on molecules with atoms with tin?'
     messages:
       - role: user
         content: |

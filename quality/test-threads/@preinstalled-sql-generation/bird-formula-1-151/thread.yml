@@ -1,5 +1,5 @@
 name: bird-formula-1-151
-description: "BIRD Q996 (simple): What is the annual average number of races held during the first 10 years of the 21st century?"
+description: 'BIRD Q996 (simple): What is the annual average number of races held during the first 10 years of the 21st century?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-996
-    description: "What is the annual average number of races held during the first 10 years of the 21st century?"
+    description: 'What is the annual average number of races held during the first 10 years of the 21st century?'
     messages:
       - role: user
         content: |

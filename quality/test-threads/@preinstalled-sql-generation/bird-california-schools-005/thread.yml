@@ -1,5 +1,5 @@
 name: bird-california-schools-005
-description: "BIRD Q4 (moderate): Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1."
+description: 'BIRD Q4 (moderate): Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-4
-    description: "Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1."
+    description: 'Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-069
-description: "BIRD Q157 (challenging): For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?"
+description: 'BIRD Q157 (challenging): For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-157
-    description: "For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?"
+    description: 'For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?'
     messages:
       - role: user
         content: |

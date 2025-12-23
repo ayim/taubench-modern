@@ -1,5 +1,5 @@
 name: bird-card-games-101
-description: "BIRD Q440 (simple): Which foreign language used by \"A Pedra Fellwar\"?"
+description: 'BIRD Q440 (simple): Which foreign language used by "A Pedra Fellwar"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-440
-    description: "Which foreign language used by \"A Pedra Fellwar\"?"
+    description: 'Which foreign language used by "A Pedra Fellwar"?'
     messages:
       - role: user
         content: |

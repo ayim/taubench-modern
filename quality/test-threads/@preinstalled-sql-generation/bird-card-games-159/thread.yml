@@ -1,5 +1,5 @@
 name: bird-card-games-159
-description: "BIRD Q498 (moderate): What's the French name of the set of cards with \"Tendo Ice Bridge\" is in?"
+description: 'BIRD Q498 (moderate): What''s the French name of the set of cards with "Tendo Ice Bridge" is in?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-498
-    description: "What's the French name of the set of cards with \"Tendo Ice Bridge\" is in?"
+    description: 'What''s the French name of the set of cards with "Tendo Ice Bridge" is in?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-016
-description: "BIRD Q1164 (moderate): How many of the patients with the most serious thrombosis cases examined in 1997 are women?"
+description: 'BIRD Q1164 (moderate): How many of the patients with the most serious thrombosis cases examined in 1997 are women?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1164
-    description: "How many of the patients with the most serious thrombosis cases examined in 1997 are women?"
+    description: 'How many of the patients with the most serious thrombosis cases examined in 1997 are women?'
     messages:
       - role: user
         content: |

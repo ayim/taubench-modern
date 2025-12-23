@@ -1,5 +1,5 @@
 name: bird-financial-078
-description: "BIRD Q166 (challenging): What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?"
+description: 'BIRD Q166 (challenging): What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-166
-    description: "What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?"
+    description: 'What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?'
     messages:
       - role: user
         content: |

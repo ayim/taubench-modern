@@ -1,5 +1,5 @@
 name: bird-codebase-community-029
-description: "BIRD Q559 (simple): Indicate the creation date of the maximum number of votes."
+description: 'BIRD Q559 (simple): Indicate the creation date of the maximum number of votes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-559
-    description: "Indicate the creation date of the maximum number of votes."
+    description: 'Indicate the creation date of the maximum number of votes.'
     messages:
       - role: user
         content: |

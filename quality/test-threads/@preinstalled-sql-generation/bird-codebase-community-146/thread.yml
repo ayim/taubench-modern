@@ -1,5 +1,5 @@
 name: bird-codebase-community-146
-description: "BIRD Q676 (simple): Please list all display names of users who are adults."
+description: 'BIRD Q676 (simple): Please list all display names of users who are adults.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-676
-    description: "Please list all display names of users who are adults."
+    description: 'Please list all display names of users who are adults.'
     messages:
       - role: user
         content: |

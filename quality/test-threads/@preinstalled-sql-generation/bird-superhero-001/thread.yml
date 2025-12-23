@@ -1,5 +1,5 @@
 name: bird-superhero-001
-description: "BIRD Q717 (simple): Please list all the superpowers of 3-D Man."
+description: 'BIRD Q717 (simple): Please list all the superpowers of 3-D Man.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-717
-    description: "Please list all the superpowers of 3-D Man."
+    description: 'Please list all the superpowers of 3-D Man.'
     messages:
       - role: user
         content: |

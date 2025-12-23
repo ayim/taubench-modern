@@ -1,5 +1,5 @@
 name: bird-california-schools-034
-description: "BIRD Q33 (moderate): If there are any, what are the websites address of the schools with a free meal count of 1,900-2,000 to students aged 5-17? Include the name of the school."
+description: 'BIRD Q33 (moderate): If there are any, what are the websites address of the schools with a free meal count of 1,900-2,000 to students aged 5-17? Include the name of the school.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-33
-    description: "If there are any, what are the websites address of the schools with a free meal count of 1,900-2,000 to students aged 5-17? Include the name of the school."
+    description: 'If there are any, what are the websites address of the schools with a free meal count of 1,900-2,000 to students aged 5-17? Include the name of the school.'
     messages:
       - role: user
         content: |

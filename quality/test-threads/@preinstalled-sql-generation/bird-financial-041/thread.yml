@@ -1,5 +1,5 @@
 name: bird-financial-041
-description: "BIRD Q129 (moderate): Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?"
+description: 'BIRD Q129 (moderate): Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-129
-    description: "Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?"
+    description: 'Which are the top ten withdrawals (non-credit card) by district names for the month of January 1996?'
     messages:
       - role: user
         content: |

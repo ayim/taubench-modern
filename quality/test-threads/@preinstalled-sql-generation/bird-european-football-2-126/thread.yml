@@ -1,5 +1,5 @@
 name: bird-european-football-2-126
-description: "BIRD Q1145 (simple): Which top 4 leagues had the most games in the 2015-2016 season?"
+description: 'BIRD Q1145 (simple): Which top 4 leagues had the most games in the 2015-2016 season?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1145
-    description: "Which top 4 leagues had the most games in the 2015-2016 season?"
+    description: 'Which top 4 leagues had the most games in the 2015-2016 season?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-103
-description: "BIRD Q633 (moderate): Which post by slashnick has the most answers count? State the post ID."
+description: 'BIRD Q633 (moderate): Which post by slashnick has the most answers count? State the post ID.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-633
-    description: "Which post by slashnick has the most answers count? State the post ID."
+    description: 'Which post by slashnick has the most answers count? State the post ID.'
     messages:
       - role: user
         content: |

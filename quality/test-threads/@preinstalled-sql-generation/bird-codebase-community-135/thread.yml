@@ -1,5 +1,5 @@
 name: bird-codebase-community-135
-description: "BIRD Q665 (moderate): What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?"
+description: 'BIRD Q665 (moderate): What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-665
-    description: "What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?"
+    description: 'What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?'
     messages:
       - role: user
         content: |

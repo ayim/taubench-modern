@@ -1,5 +1,5 @@
 name: bird-toxicology-122
-description: "BIRD Q316 (simple): Among the molecules which contain \"c\" element, which of them are not carcinogenic?"
+description: 'BIRD Q316 (simple): Among the molecules which contain "c" element, which of them are not carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-316
-    description: "Among the molecules which contain \"c\" element, which of them are not carcinogenic?"
+    description: 'Among the molecules which contain "c" element, which of them are not carcinogenic?'
     messages:
       - role: user
         content: |

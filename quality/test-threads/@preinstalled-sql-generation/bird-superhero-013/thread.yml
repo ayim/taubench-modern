@@ -1,5 +1,5 @@
 name: bird-superhero-013
-description: "BIRD Q729 (simple): What is the average height of the superheroes from Marvel Comics?"
+description: 'BIRD Q729 (simple): What is the average height of the superheroes from Marvel Comics?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-729
-    description: "What is the average height of the superheroes from Marvel Comics?"
+    description: 'What is the average height of the superheroes from Marvel Comics?'
     messages:
       - role: user
         content: |

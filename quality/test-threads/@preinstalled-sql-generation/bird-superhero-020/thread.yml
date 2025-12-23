@@ -1,5 +1,5 @@
 name: bird-superhero-020
-description: "BIRD Q736 (moderate): Who is the dumbest superhero?"
+description: 'BIRD Q736 (moderate): Who is the dumbest superhero?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-736
-    description: "Who is the dumbest superhero?"
+    description: 'Who is the dumbest superhero?'
     messages:
       - role: user
         content: |

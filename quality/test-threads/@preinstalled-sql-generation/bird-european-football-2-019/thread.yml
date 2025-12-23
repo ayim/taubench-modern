@@ -1,5 +1,5 @@
 name: bird-european-football-2-019
-description: "BIRD Q1038 (moderate): List the top 5 leagues in ascending order of the number of goals made in all seasons combined."
+description: 'BIRD Q1038 (moderate): List the top 5 leagues in ascending order of the number of goals made in all seasons combined.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1038
-    description: "List the top 5 leagues in ascending order of the number of goals made in all seasons combined."
+    description: 'List the top 5 leagues in ascending order of the number of goals made in all seasons combined.'
     messages:
       - role: user
         content: |

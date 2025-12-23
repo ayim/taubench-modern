@@ -1,5 +1,5 @@
 name: bird-financial-072
-description: "BIRD Q160 (simple): Among the weekly issuance accounts, how many have a loan of under 200000?"
+description: 'BIRD Q160 (simple): Among the weekly issuance accounts, how many have a loan of under 200000?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-160
-    description: "Among the weekly issuance accounts, how many have a loan of under 200000?"
+    description: 'Among the weekly issuance accounts, how many have a loan of under 200000?'
     messages:
       - role: user
         content: |

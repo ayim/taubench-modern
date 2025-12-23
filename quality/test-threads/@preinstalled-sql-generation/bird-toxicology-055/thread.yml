@@ -1,5 +1,5 @@
 name: bird-toxicology-055
-description: "BIRD Q249 (challenging): What are the elements of the atoms of TR144_8_19?"
+description: 'BIRD Q249 (challenging): What are the elements of the atoms of TR144_8_19?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-249
-    description: "What are the elements of the atoms of TR144_8_19?"
+    description: 'What are the elements of the atoms of TR144_8_19?'
     messages:
       - role: user
         content: |
           What are the elements of the atoms of TR144_8_19?
-          Evidence: TR144_8_19 is the bond id; 
+          Evidence: TR144_8_19 is the bond id;
 
 target-platforms:
   - name: openai

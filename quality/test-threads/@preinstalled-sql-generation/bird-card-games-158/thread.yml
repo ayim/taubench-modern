@@ -1,5 +1,5 @@
 name: bird-card-games-158
-description: "BIRD Q497 (simple): List the expansion type of the set \"Huitième édition\"."
+description: 'BIRD Q497 (simple): List the expansion type of the set "Huitième édition".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-497
-    description: "List the expansion type of the set \"Huitième édition\"."
+    description: 'List the expansion type of the set "Huitième édition".'
     messages:
       - role: user
         content: |

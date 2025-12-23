@@ -1,5 +1,5 @@
 name: bird-california-schools-067
-description: "BIRD Q66 (challenging): For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance."
+description: 'BIRD Q66 (challenging): For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-66
-    description: "For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance."
+    description: 'For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance.'
     messages:
       - role: user
         content: |

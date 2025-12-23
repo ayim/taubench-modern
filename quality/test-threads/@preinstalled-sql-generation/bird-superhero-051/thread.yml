@@ -1,5 +1,5 @@
 name: bird-superhero-051
-description: "BIRD Q767 (simple): What is the proportion of superheroes with no skin colour?"
+description: 'BIRD Q767 (simple): What is the proportion of superheroes with no skin colour?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-767
-    description: "What is the proportion of superheroes with no skin colour?"
+    description: 'What is the proportion of superheroes with no skin colour?'
     messages:
       - role: user
         content: |

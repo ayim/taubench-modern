@@ -14,13 +14,10 @@ Another data frame (description)
 
 #### SQL Query:
 
-    ```sql
     SELECT * FROM test_data_frame_single_column
-    ```
 
 #### Full SQL Query (with dependencies resolved, referencing logical table names):
 
-    ```sql
     WITH test_data_frame AS (
       SELECT
         *
@@ -33,7 +30,6 @@ Another data frame (description)
     SELECT
       *
     FROM test_data_frame_single_column
-    ```
 
 ## Dependencies
 
@@ -48,9 +44,7 @@ Another data frame (description)
 
 #### SQL Query:
 
-    ```sql
     SELECT Category FROM test_data_frame
-    ```
 
 ## Data Frame: `test_data_frame`
 
@@ -62,9 +56,7 @@ Another data frame (description)
 
 #### SQL Query:
 
-    ```sql
     SELECT * FROM file_data
-    ```
 #### SQL Dialect: duckdb
 
 ## Semantic Data Model: `file_data`

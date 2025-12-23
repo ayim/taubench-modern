@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-097
-description: "BIRD Q1245 (moderate): For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?"
+description: 'BIRD Q1245 (moderate): For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1245
-    description: "For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?"
+    description: 'For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?'
     messages:
       - role: user
         content: |

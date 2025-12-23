@@ -1,5 +1,5 @@
 name: bird-formula-1-071
-description: "BIRD Q916 (simple): Please list the surnames of all the Italian drivers."
+description: 'BIRD Q916 (simple): Please list the surnames of all the Italian drivers.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-916
-    description: "Please list the surnames of all the Italian drivers."
+    description: 'Please list the surnames of all the Italian drivers.'
     messages:
       - role: user
         content: |

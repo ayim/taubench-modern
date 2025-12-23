@@ -1,5 +1,5 @@
 name: bird-toxicology-065
-description: "BIRD Q259 (simple): How many elements are there for single bond molecules?"
+description: 'BIRD Q259 (simple): How many elements are there for single bond molecules?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-259
-    description: "How many elements are there for single bond molecules?"
+    description: 'How many elements are there for single bond molecules?'
     messages:
       - role: user
         content: |

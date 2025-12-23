@@ -1,5 +1,5 @@
 name: bird-superhero-129
-description: "BIRD Q845 (moderate): List the power of superheroes with height greater than 80% of the average height of all superheroes."
+description: 'BIRD Q845 (moderate): List the power of superheroes with height greater than 80% of the average height of all superheroes.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-845
-    description: "List the power of superheroes with height greater than 80% of the average height of all superheroes."
+    description: 'List the power of superheroes with height greater than 80% of the average height of all superheroes.'
     messages:
       - role: user
         content: |

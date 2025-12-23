@@ -1,5 +1,5 @@
 name: bird-codebase-community-097
-description: "BIRD Q627 (simple): How many users were adult?"
+description: 'BIRD Q627 (simple): How many users were adult?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-627
-    description: "How many users were adult?"
+    description: 'How many users were adult?'
     messages:
       - role: user
         content: |

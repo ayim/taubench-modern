@@ -1,5 +1,5 @@
 name: bird-european-football-2-018
-description: "BIRD Q1037 (challenging): Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992."
+description: 'BIRD Q1037 (challenging): Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1037
-    description: "Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992."
+    description: 'Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992.'
     messages:
       - role: user
         content: |

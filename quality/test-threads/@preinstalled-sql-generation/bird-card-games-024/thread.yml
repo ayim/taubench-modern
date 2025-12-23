@@ -1,5 +1,5 @@
 name: bird-card-games-024
-description: "BIRD Q363 (simple): How many cards of legalities whose status is restricted are found in a starter deck?"
+description: 'BIRD Q363 (simple): How many cards of legalities whose status is restricted are found in a starter deck?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-363
-    description: "How many cards of legalities whose status is restricted are found in a starter deck?"
+    description: 'How many cards of legalities whose status is restricted are found in a starter deck?'
     messages:
       - role: user
         content: |

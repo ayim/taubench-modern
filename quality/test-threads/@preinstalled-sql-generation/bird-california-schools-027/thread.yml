@@ -1,5 +1,5 @@
 name: bird-california-schools-027
-description: "BIRD Q26 (moderate): State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17."
+description: 'BIRD Q26 (moderate): State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-26
-    description: "State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17."
+    description: 'State the names and full communication addresses of high schools in Monterey that offer more than 800 free or reduced-priced meals for ages 15-17.'
     messages:
       - role: user
         content: |

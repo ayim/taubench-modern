@@ -1,5 +1,5 @@
 name: bird-formula-1-055
-description: "BIRD Q900 (simple): List circuits in USA which hosted f1 races in 2006. State the name and location of circuit and the name of the race it hosted."
+description: 'BIRD Q900 (simple): List circuits in USA which hosted f1 races in 2006. State the name and location of circuit and the name of the race it hosted.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-900
-    description: "List circuits in USA which hosted f1 races in 2006. State the name and location of circuit and the name of the race it hosted."
+    description: 'List circuits in USA which hosted f1 races in 2006. State the name and location of circuit and the name of the race it hosted.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-102
-description: "BIRD Q818 (challenging): Among the bad superheroes, what is the percentage of female superheroes?"
+description: 'BIRD Q818 (challenging): Among the bad superheroes, what is the percentage of female superheroes?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-818
-    description: "Among the bad superheroes, what is the percentage of female superheroes?"
+    description: 'Among the bad superheroes, what is the percentage of female superheroes?'
     messages:
       - role: user
         content: |

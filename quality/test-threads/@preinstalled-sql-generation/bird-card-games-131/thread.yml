@@ -1,5 +1,5 @@
 name: bird-card-games-131
-description: "BIRD Q470 (simple): When was the set of cards with \"Ancestor's Chosen\" released?"
+description: 'BIRD Q470 (simple): When was the set of cards with "Ancestor''s Chosen" released?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-470
-    description: "When was the set of cards with \"Ancestor's Chosen\" released?"
+    description: 'When was the set of cards with "Ancestor''s Chosen" released?'
     messages:
       - role: user
         content: |

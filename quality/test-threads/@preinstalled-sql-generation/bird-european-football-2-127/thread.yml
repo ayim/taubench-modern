@@ -1,5 +1,5 @@
 name: bird-european-football-2-127
-description: "BIRD Q1146 (moderate): Please provide the full name of the away team that scored the most goals."
+description: 'BIRD Q1146 (moderate): Please provide the full name of the away team that scored the most goals.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1146
-    description: "Please provide the full name of the away team that scored the most goals."
+    description: 'Please provide the full name of the away team that scored the most goals.'
     messages:
       - role: user
         content: |

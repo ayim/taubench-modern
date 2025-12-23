@@ -1,5 +1,5 @@
 name: bird-superhero-036
-description: "BIRD Q752 (simple): Give the name of the alien superheroes."
+description: 'BIRD Q752 (simple): Give the name of the alien superheroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-752
-    description: "Give the name of the alien superheroes."
+    description: 'Give the name of the alien superheroes.'
     messages:
       - role: user
         content: |
           Give the name of the alien superheroes.
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

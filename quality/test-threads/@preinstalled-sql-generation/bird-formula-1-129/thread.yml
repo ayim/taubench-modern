@@ -1,5 +1,5 @@
 name: bird-formula-1-129
-description: "BIRD Q974 (simple): Which racing year has the overall fastest lap time recorded?"
+description: 'BIRD Q974 (simple): Which racing year has the overall fastest lap time recorded?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-974
-    description: "Which racing year has the overall fastest lap time recorded?"
+    description: 'Which racing year has the overall fastest lap time recorded?'
     messages:
       - role: user
         content: |

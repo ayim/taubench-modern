@@ -1,5 +1,5 @@
 name: bird-codebase-community-141
-description: "BIRD Q671 (simple): What is the display name of the user who acquired the first Autobiographer badge?"
+description: 'BIRD Q671 (simple): What is the display name of the user who acquired the first Autobiographer badge?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-671
-    description: "What is the display name of the user who acquired the first Autobiographer badge?"
+    description: 'What is the display name of the user who acquired the first Autobiographer badge?'
     messages:
       - role: user
         content: |

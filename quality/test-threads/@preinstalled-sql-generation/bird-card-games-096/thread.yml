@@ -1,5 +1,5 @@
 name: bird-card-games-096
-description: "BIRD Q435 (simple): How many card border with black color ? List out the card id."
+description: 'BIRD Q435 (simple): How many card border with black color ? List out the card id.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-435
-    description: "How many card border with black color ? List out the card id."
+    description: 'How many card border with black color ? List out the card id.'
     messages:
       - role: user
         content: |

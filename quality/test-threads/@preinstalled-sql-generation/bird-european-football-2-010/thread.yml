@@ -1,5 +1,5 @@
 name: bird-european-football-2-010
-description: "BIRD Q1029 (moderate): What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?"
+description: 'BIRD Q1029 (moderate): What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1029
-    description: "What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?"
+    description: 'What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?'
     messages:
       - role: user
         content: |

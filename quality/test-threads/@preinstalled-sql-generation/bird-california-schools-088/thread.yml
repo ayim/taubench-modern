@@ -1,5 +1,5 @@
 name: bird-california-schools-088
-description: "BIRD Q87 (challenging): What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?"
+description: 'BIRD Q87 (challenging): What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-87
-    description: "What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?"
+    description: 'What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?'
     messages:
       - role: user
         content: |

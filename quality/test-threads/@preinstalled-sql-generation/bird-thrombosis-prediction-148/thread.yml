@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-148
-description: "BIRD Q1296 (moderate): What is the anti-nucleus antibody concentration of the patient whose total bilirubin is the highest in the normal range?"
+description: 'BIRD Q1296 (moderate): What is the anti-nucleus antibody concentration of the patient whose total bilirubin is the highest in the normal range?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1296
-    description: "What is the anti-nucleus antibody concentration of the patient whose total bilirubin is the highest in the normal range?"
+    description: 'What is the anti-nucleus antibody concentration of the patient whose total bilirubin is the highest in the normal range?'
     messages:
       - role: user
         content: |

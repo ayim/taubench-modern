@@ -1,5 +1,5 @@
 name: bird-card-games-010
-description: "BIRD Q349 (moderate): Name the card and artist with the most ruling information. Also state if the card is a promotional printing."
+description: 'BIRD Q349 (moderate): Name the card and artist with the most ruling information. Also state if the card is a promotional printing.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-349
-    description: "Name the card and artist with the most ruling information. Also state if the card is a promotional printing."
+    description: 'Name the card and artist with the most ruling information. Also state if the card is a promotional printing.'
     messages:
       - role: user
         content: |

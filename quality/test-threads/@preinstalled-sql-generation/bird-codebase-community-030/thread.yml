@@ -1,5 +1,5 @@
 name: bird-codebase-community-030
-description: "BIRD Q560 (simple): Give the number of \"Revival\" badges."
+description: 'BIRD Q560 (simple): Give the number of "Revival" badges.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-560
-    description: "Give the number of \"Revival\" badges."
+    description: 'Give the number of "Revival" badges.'
     messages:
       - role: user
         content: |

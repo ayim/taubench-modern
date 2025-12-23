@@ -1,5 +1,5 @@
 name: bird-student-club-006
-description: "BIRD Q1317 (moderate): Among the students from the Student_Club who attended the event \"Women's Soccer\", how many of them want a T-shirt that's in medium size?"
+description: 'BIRD Q1317 (moderate): Among the students from the Student_Club who attended the event "Women''s Soccer", how many of them want a T-shirt that''s in medium size?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1317
-    description: "Among the students from the Student_Club who attended the event \"Women's Soccer\", how many of them want a T-shirt that's in medium size?"
+    description: 'Among the students from the Student_Club who attended the event "Women''s Soccer", how many of them want a T-shirt that''s in medium size?'
     messages:
       - role: user
         content: |

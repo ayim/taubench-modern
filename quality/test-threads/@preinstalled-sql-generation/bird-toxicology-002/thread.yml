@@ -1,5 +1,5 @@
 name: bird-toxicology-002
-description: "BIRD Q196 (challenging): For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?"
+description: 'BIRD Q196 (challenging): For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-196
-    description: "For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?"
+    description: 'For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?'
     messages:
       - role: user
         content: |

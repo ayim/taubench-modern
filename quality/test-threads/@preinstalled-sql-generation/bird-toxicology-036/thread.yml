@@ -1,5 +1,5 @@
 name: bird-toxicology-036
-description: "BIRD Q230 (challenging): What are the elements of molecule TR060 and its label?"
+description: 'BIRD Q230 (challenging): What are the elements of molecule TR060 and its label?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-230
-    description: "What are the elements of molecule TR060 and its label?"
+    description: 'What are the elements of molecule TR060 and its label?'
     messages:
       - role: user
         content: |
           What are the elements of molecule TR060 and its label?
-          Evidence: TR060 is the molecule id; 
+          Evidence: TR060 is the molecule id;
 
 target-platforms:
   - name: openai

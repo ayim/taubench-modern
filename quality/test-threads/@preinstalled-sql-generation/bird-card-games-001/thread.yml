@@ -1,5 +1,5 @@
 name: bird-card-games-001
-description: "BIRD Q340 (simple): Which are the cards that have incredibly powerful foils."
+description: 'BIRD Q340 (simple): Which are the cards that have incredibly powerful foils.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-340
-    description: "Which are the cards that have incredibly powerful foils."
+    description: 'Which are the cards that have incredibly powerful foils.'
     messages:
       - role: user
         content: |

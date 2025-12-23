@@ -1,5 +1,5 @@
 name: bird-european-football-2-072
-description: "BIRD Q1091 (moderate): How many matches were held in the Belgium Jupiler League in April, 2009?"
+description: 'BIRD Q1091 (moderate): How many matches were held in the Belgium Jupiler League in April, 2009?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1091
-    description: "How many matches were held in the Belgium Jupiler League in April, 2009?"
+    description: 'How many matches were held in the Belgium Jupiler League in April, 2009?'
     messages:
       - role: user
         content: |

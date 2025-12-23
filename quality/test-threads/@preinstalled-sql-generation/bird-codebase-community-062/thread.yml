@@ -1,5 +1,5 @@
 name: bird-codebase-community-062
-description: "BIRD Q592 (simple): How many users are awarded with more than 5 badges?"
+description: 'BIRD Q592 (simple): How many users are awarded with more than 5 badges?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-592
-    description: "How many users are awarded with more than 5 badges?"
+    description: 'How many users are awarded with more than 5 badges?'
     messages:
       - role: user
         content: |

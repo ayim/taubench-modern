@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-014
-description: "BIRD Q1483 (simple): How much did customer 6 consume in total between August and November 2013?"
+description: 'BIRD Q1483 (simple): How much did customer 6 consume in total between August and November 2013?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1483
-    description: "How much did customer 6 consume in total between August and November 2013?"
+    description: 'How much did customer 6 consume in total between August and November 2013?'
     messages:
       - role: user
         content: |

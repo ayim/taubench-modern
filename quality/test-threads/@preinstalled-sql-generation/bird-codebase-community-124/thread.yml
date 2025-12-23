@@ -1,5 +1,5 @@
 name: bird-codebase-community-124
-description: "BIRD Q654 (moderate): Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag."
+description: 'BIRD Q654 (moderate): Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-654
-    description: "Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag."
+    description: 'Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag.'
     messages:
       - role: user
         content: |
           Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag.
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

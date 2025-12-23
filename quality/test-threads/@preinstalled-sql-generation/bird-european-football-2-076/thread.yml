@@ -1,5 +1,5 @@
 name: bird-european-football-2-076
-description: "BIRD Q1095 (moderate): How much is the average build up play speed of the Heart of Midlothian team?"
+description: 'BIRD Q1095 (moderate): How much is the average build up play speed of the Heart of Midlothian team?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1095
-    description: "How much is the average build up play speed of the Heart of Midlothian team?"
+    description: 'How much is the average build up play speed of the Heart of Midlothian team?'
     messages:
       - role: user
         content: |

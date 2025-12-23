@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-018
-description: "BIRD Q1166 (simple): What are the symptoms observed by the youngest patient to ever did a medical examination? Identify their diagnosis."
+description: 'BIRD Q1166 (simple): What are the symptoms observed by the youngest patient to ever did a medical examination? Identify their diagnosis.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1166
-    description: "What are the symptoms observed by the youngest patient to ever did a medical examination? Identify their diagnosis."
+    description: 'What are the symptoms observed by the youngest patient to ever did a medical examination? Identify their diagnosis.'
     messages:
       - role: user
         content: |

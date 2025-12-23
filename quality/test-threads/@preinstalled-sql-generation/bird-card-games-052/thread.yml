@@ -1,5 +1,5 @@
 name: bird-card-games-052
-description: "BIRD Q391 (moderate): Among the Artifact cards, which are black color and comes with foreign languague translation?"
+description: 'BIRD Q391 (moderate): Among the Artifact cards, which are black color and comes with foreign languague translation?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-391
-    description: "Among the Artifact cards, which are black color and comes with foreign languague translation?"
+    description: 'Among the Artifact cards, which are black color and comes with foreign languague translation?'
     messages:
       - role: user
         content: |

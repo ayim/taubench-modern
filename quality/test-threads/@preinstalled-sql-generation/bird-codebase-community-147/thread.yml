@@ -1,5 +1,5 @@
 name: bird-codebase-community-147
-description: "BIRD Q677 (simple): How many posts did Jay Stevens have in 2010?"
+description: 'BIRD Q677 (simple): How many posts did Jay Stevens have in 2010?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-677
-    description: "How many posts did Jay Stevens have in 2010?"
+    description: 'How many posts did Jay Stevens have in 2010?'
     messages:
       - role: user
         content: |

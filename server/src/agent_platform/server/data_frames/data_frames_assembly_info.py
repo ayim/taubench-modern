@@ -1,6 +1,6 @@
 # ruff: noqa: PLR0912, PLR0915, C901, E501
 import typing
-from typing import TypedDict
+from typing import Required, TypedDict
 
 from structlog.stdlib import get_logger
 
@@ -10,10 +10,50 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_frames_kernel import Dependencies
     from agent_platform.server.data_frames.data_node import DataNodeResult
+    from agent_platform.server.storage.base import BaseStorage
 
 logger = get_logger(__name__)
 
 NodeKind = typing.Literal["assembly_info", "data_frame", "semantic_data_model", "data_frame_source"]
+
+
+def _extract_connection_details_for_assembly_info(engine: str, config: typing.Any) -> dict[str, str | None]:
+    """Extract connection details from a data connection configuration for assembly info display.
+
+    Args:
+        engine: The database engine type (e.g., "postgres", "snowflake")
+        config: The connection configuration object
+
+    Returns:
+        Dictionary with connection details keys: connection_hostname, connection_accountname,
+        connection_user, connection_database. Values are None if not applicable for the engine.
+    """
+    details: dict[str, str | None] = {
+        "connection_hostname": None,
+        "connection_accountname": None,
+        "connection_user": None,
+        "connection_database": None,
+    }
+
+    if engine in ("postgres", "pgvector", "redshift", "mysql", "mssql", "timescaledb"):
+        details["connection_hostname"] = getattr(config, "host", None)
+        details["connection_user"] = getattr(config, "user", None)
+        details["connection_database"] = getattr(config, "database", None)
+    elif engine == "oracle":
+        details["connection_hostname"] = getattr(config, "host", None)
+        details["connection_user"] = getattr(config, "user", None)
+    elif engine == "snowflake":
+        details["connection_accountname"] = getattr(config, "account", None)
+        details["connection_user"] = getattr(config, "user", None)
+        details["connection_database"] = getattr(config, "database", None)
+    elif engine == "databricks":
+        details["connection_hostname"] = getattr(config, "server_hostname", None)
+    elif engine == "bigquery":
+        details["connection_database"] = getattr(config, "project_id", None)
+    # Note: Other engines (sqlite)
+    # don't have connection details we want to display
+
+    return details
 
 
 # TypedDict definitions for each node kind
@@ -55,15 +95,19 @@ class DataFrameNodeInMemory(DataFrameNodeBase):
 DataFrameNode = DataFrameNodeSqlComputation | DataFrameNodeFile | DataFrameNodeInMemory
 
 
-class SemanticDataModelNodeDatabase(TypedDict):
+class SemanticDataModelNodeDatabase(TypedDict, total=False):
     """Node data for semantic_data_model with database source."""
 
-    logical_table_name: str
-    source: typing.Literal["database"]
+    logical_table_name: Required[str]
+    source: Required[typing.Literal["database"]]
     data_connection_id: str | None
     database: str | None
     schema: str | None
     table: str | None
+    connection_hostname: str | None
+    connection_accountname: str | None
+    connection_user: str | None
+    connection_database: str | None
 
 
 class SemanticDataModelNodeFile(TypedDict):
@@ -124,6 +168,45 @@ class _Node:
         }
         result["children"] = {k: v.to_dict() for k, v in self.children.items()}
         return result
+
+    async def enrich_connection_details(self, storage: "BaseStorage") -> None:
+        """Enrich nodes with connection details by fetching data connections."""
+        if self.kind == "semantic_data_model" and self.data:
+            data = typing.cast(SemanticDataModelNode, self.data)
+            if data.get("source") == "database":
+                db_data = typing.cast(SemanticDataModelNodeDatabase, data)
+                data_connection_id = db_data.get("data_connection_id")
+                if data_connection_id:
+                    try:
+                        from agent_platform.server.storage.errors import DataConnectionNotFoundError
+
+                        connection = await storage.get_data_connection(data_connection_id)
+                        config = connection.configuration
+
+                        # Extract connection details based on engine type
+                        connection_details = _extract_connection_details_for_assembly_info(connection.engine, config)
+                        db_data["connection_hostname"] = connection_details["connection_hostname"]
+                        db_data["connection_accountname"] = connection_details["connection_accountname"]
+                        db_data["connection_user"] = connection_details["connection_user"]
+                        db_data["connection_database"] = connection_details["connection_database"]
+                    except DataConnectionNotFoundError:
+                        # Connection was deleted or doesn't exist - log and continue without details
+                        logger.warning(
+                            "Data connection not found when enriching assembly info",
+                            data_connection_id=data_connection_id,
+                        )
+                    except Exception as e:
+                        # Other errors (e.g., decryption failures) - log and continue without details
+                        logger.warning(
+                            "Failed to enrich connection details",
+                            data_connection_id=data_connection_id,
+                            error=str(e),
+                            exc_info=True,
+                        )
+
+        # Recursively enrich children
+        for child_node in self.children.values():
+            await child_node.enrich_connection_details(storage)
 
     def _extract_dependency_summary(self, indent: int = 0) -> str:
         """
@@ -239,9 +322,7 @@ class _Node:
                     lines.append(f"{indent_str}#### SQL Query:")
                     lines.append("")
                     prefix = indent_str + "    "
-                    lines.append(f"{prefix}```sql")
                     lines.append(textwrap.indent(sql_query, prefix))
-                    lines.append(f"{prefix}```")
                     if sql_dialect:
                         lines.append(f"{indent_str}#### SQL Dialect: {sql_dialect}")
                     lines.append(f"{indent_str}")
@@ -254,9 +335,7 @@ class _Node:
                     )
                     lines.append("")
                     prefix = indent_str + "    "
-                    lines.append(f"{prefix}```sql")
                     lines.append(textwrap.indent(full_sql_query_logical_str, prefix))
-                    lines.append(f"{prefix}```")
                     lines.append(f"{indent_str}")
 
             elif input_id_type == "file":
@@ -290,14 +369,28 @@ class _Node:
             if source == "database":
                 db_data = typing.cast(SemanticDataModelNodeDatabase, data)
                 lines.append(f"{indent_str}#### Source: Database")
-                data_connection_id = db_data.get("data_connection_id")
+                connection_hostname = db_data.get("connection_hostname")
+                connection_accountname = db_data.get("connection_accountname")
+                connection_user = db_data.get("connection_user")
+                connection_database = db_data.get("connection_database")
                 database = db_data.get("database")
                 schema = db_data.get("schema")
                 table = db_data.get("table")
-                if data_connection_id:
-                    lines.append(f"{indent_str}- Data Connection ID: `{data_connection_id}`")
-                if database:
+
+                # Display connection details if available, otherwise fall back to connection ID
+                if connection_hostname:
+                    lines.append(f"{indent_str}- Hostname: `{connection_hostname}`")
+                elif connection_accountname:
+                    lines.append(f"{indent_str}- Account: `{connection_accountname}`")
+
+                if connection_user:
+                    lines.append(f"{indent_str}- User: `{connection_user}`")
+
+                if connection_database:
+                    lines.append(f"{indent_str}- Database: `{connection_database}`")
+                elif database:
                     lines.append(f"{indent_str}- Database: `{database}`")
+
                 if schema:
                     lines.append(f"{indent_str}- Schema: `{schema}`")
                 if table:
@@ -584,6 +677,21 @@ class AssemblyInfo:
 
         as_tree = self.to_tree()
         return yaml.safe_dump(as_tree.to_dict())
+
+    async def to_markdown(self, storage: "BaseStorage | None" = None) -> str:
+        """Convert assembly info to markdown, optionally enriching with connection details.
+
+        Args:
+            storage: Optional storage instance to fetch connection details from.
+                    If provided, connection details will be enriched in the markdown output.
+        """
+        if not self._initial_data_frame:
+            return "No initial data frame provided (information incomplete)"
+
+        as_tree = self.to_tree()
+        if storage is not None:
+            await as_tree.enrich_connection_details(storage)
+        return as_tree.as_markdown()
 
     def __str__(self) -> str:
         if not self._initial_data_frame:

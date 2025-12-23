@@ -1,5 +1,5 @@
 name: bird-superhero-069
-description: "BIRD Q785 (simple): Describe the names of neutral alignment superheroes."
+description: 'BIRD Q785 (simple): Describe the names of neutral alignment superheroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-785
-    description: "Describe the names of neutral alignment superheroes."
+    description: 'Describe the names of neutral alignment superheroes.'
     messages:
       - role: user
         content: |

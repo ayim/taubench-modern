@@ -1,5 +1,5 @@
 name: bird-card-games-134
-description: "BIRD Q473 (moderate): Is the set of cards with Adarkar Valkyrie only available outside the United States?"
+description: 'BIRD Q473 (moderate): Is the set of cards with Adarkar Valkyrie only available outside the United States?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-473
-    description: "Is the set of cards with Adarkar Valkyrie only available outside the United States?"
+    description: 'Is the set of cards with Adarkar Valkyrie only available outside the United States?'
     messages:
       - role: user
         content: |

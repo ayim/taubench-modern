@@ -1,5 +1,5 @@
 name: bird-card-games-179
-description: "BIRD Q518 (moderate): Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition."
+description: 'BIRD Q518 (moderate): Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-518
-    description: "Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition."
+    description: 'Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-100
-description: "BIRD Q439 (simple): List out the set name of the set code \"ALL\"."
+description: 'BIRD Q439 (simple): List out the set name of the set code "ALL".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-439
-    description: "List out the set name of the set code \"ALL\"."
+    description: 'List out the set name of the set code "ALL".'
     messages:
       - role: user
         content: |

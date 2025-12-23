@@ -1,5 +1,5 @@
 name: bird-formula-1-122
-description: "BIRD Q967 (simple): State code numbers of top 3 youngest drivers. How many Netherlandic drivers among them?"
+description: 'BIRD Q967 (simple): State code numbers of top 3 youngest drivers. How many Netherlandic drivers among them?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-967
-    description: "State code numbers of top 3 youngest drivers. How many Netherlandic drivers among them?"
+    description: 'State code numbers of top 3 youngest drivers. How many Netherlandic drivers among them?'
     messages:
       - role: user
         content: |

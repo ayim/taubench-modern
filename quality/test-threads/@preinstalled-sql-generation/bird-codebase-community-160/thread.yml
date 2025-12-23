@@ -1,5 +1,5 @@
 name: bird-codebase-community-160
-description: "BIRD Q690 (simple): Identify the latest badge awarded to the user with the display name Emmett."
+description: 'BIRD Q690 (simple): Identify the latest badge awarded to the user with the display name Emmett.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-690
-    description: "Identify the latest badge awarded to the user with the display name Emmett."
+    description: 'Identify the latest badge awarded to the user with the display name Emmett.'
     messages:
       - role: user
         content: |

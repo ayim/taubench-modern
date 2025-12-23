@@ -1,5 +1,5 @@
 name: bird-formula-1-058
-description: "BIRD Q903 (moderate): How many times did Michael Schumacher won from races hosted in Sepang International Circuit?"
+description: 'BIRD Q903 (moderate): How many times did Michael Schumacher won from races hosted in Sepang International Circuit?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-903
-    description: "How many times did Michael Schumacher won from races hosted in Sepang International Circuit?"
+    description: 'How many times did Michael Schumacher won from races hosted in Sepang International Circuit?'
     messages:
       - role: user
         content: |

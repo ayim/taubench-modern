@@ -1,5 +1,5 @@
 name: bird-student-club-122
-description: "BIRD Q1433 (simple): Which counties have zip codes with post office boxes?"
+description: 'BIRD Q1433 (simple): Which counties have zip codes with post office boxes?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1433
-    description: "Which counties have zip codes with post office boxes?"
+    description: 'Which counties have zip codes with post office boxes?'
     messages:
       - role: user
         content: |

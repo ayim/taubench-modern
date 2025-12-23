@@ -1,5 +1,5 @@
 name: bird-toxicology-089
-description: "BIRD Q283 (moderate): Identify whether the chemical compound that contains Calcium is carcinogenic."
+description: 'BIRD Q283 (moderate): Identify whether the chemical compound that contains Calcium is carcinogenic.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-283
-    description: "Identify whether the chemical compound that contains Calcium is carcinogenic."
+    description: 'Identify whether the chemical compound that contains Calcium is carcinogenic.'
     messages:
       - role: user
         content: |

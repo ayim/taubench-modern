@@ -1,5 +1,5 @@
 name: bird-financial-031
-description: "BIRD Q119 (challenging): For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment."
+description: 'BIRD Q119 (challenging): For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-119
-    description: "For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment."
+    description: 'For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment.'
     messages:
       - role: user
         content: |

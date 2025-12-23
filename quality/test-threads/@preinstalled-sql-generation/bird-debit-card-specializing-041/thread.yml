@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-041
-description: "BIRD Q1510 (simple): What is the average total price of the transactions taken place in gas stations in the Czech Republic?"
+description: 'BIRD Q1510 (simple): What is the average total price of the transactions taken place in gas stations in the Czech Republic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1510
-    description: "What is the average total price of the transactions taken place in gas stations in the Czech Republic?"
+    description: 'What is the average total price of the transactions taken place in gas stations in the Czech Republic?'
     messages:
       - role: user
         content: |

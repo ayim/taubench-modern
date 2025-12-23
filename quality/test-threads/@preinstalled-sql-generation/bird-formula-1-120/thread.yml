@@ -1,5 +1,5 @@
 name: bird-formula-1-120
-description: "BIRD Q965 (simple): List out the Id number of races which were hold in 2009."
+description: 'BIRD Q965 (simple): List out the Id number of races which were hold in 2009.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-965
-    description: "List out the Id number of races which were hold in 2009."
+    description: 'List out the Id number of races which were hold in 2009.'
     messages:
       - role: user
         content: |

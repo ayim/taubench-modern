@@ -1,5 +1,5 @@
 name: bird-student-club-126
-description: "BIRD Q1437 (challenging): Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event."
+description: 'BIRD Q1437 (challenging): Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1437
-    description: "Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event."
+    description: 'Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event.'
     messages:
       - role: user
         content: |

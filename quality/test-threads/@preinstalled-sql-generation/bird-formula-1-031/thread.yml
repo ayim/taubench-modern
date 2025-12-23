@@ -1,5 +1,5 @@
 name: bird-formula-1-031
-description: "BIRD Q876 (simple): For the race happened in 2015/11/29, how many drivers did not finish the race?"
+description: 'BIRD Q876 (simple): For the race happened in 2015/11/29, how many drivers did not finish the race?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-876
-    description: "For the race happened in 2015/11/29, how many drivers did not finish the race?"
+    description: 'For the race happened in 2015/11/29, how many drivers did not finish the race?'
     messages:
       - role: user
         content: |

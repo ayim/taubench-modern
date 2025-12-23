@@ -1,5 +1,5 @@
 name: bird-european-football-2-007
-description: "BIRD Q1026 (moderate): Which home team had lost the fewest matches in the 2016 season?"
+description: 'BIRD Q1026 (moderate): Which home team had lost the fewest matches in the 2016 season?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1026
-    description: "Which home team had lost the fewest matches in the 2016 season?"
+    description: 'Which home team had lost the fewest matches in the 2016 season?'
     messages:
       - role: user
         content: |

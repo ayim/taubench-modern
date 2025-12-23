@@ -1,5 +1,5 @@
 name: bird-codebase-community-011
-description: "BIRD Q541 (simple): What is the display name of the user who is the owner of the most valuable post?"
+description: 'BIRD Q541 (simple): What is the display name of the user who is the owner of the most valuable post?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-541
-    description: "What is the display name of the user who is the owner of the most valuable post?"
+    description: 'What is the display name of the user who is the owner of the most valuable post?'
     messages:
       - role: user
         content: |

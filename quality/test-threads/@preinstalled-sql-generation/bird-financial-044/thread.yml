@@ -1,5 +1,5 @@
 name: bird-financial-044
-description: "BIRD Q132 (simple): What is the average loan amount by male borrowers?"
+description: 'BIRD Q132 (simple): What is the average loan amount by male borrowers?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-132
-    description: "What is the average loan amount by male borrowers?"
+    description: 'What is the average loan amount by male borrowers?'
     messages:
       - role: user
         content: |

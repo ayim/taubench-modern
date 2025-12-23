@@ -1,5 +1,5 @@
 name: bird-european-football-2-061
-description: "BIRD Q1080 (moderate): Among the players whose preferred foot was the left foot when attacking, how many of them would remain in his position when the team attacked?"
+description: 'BIRD Q1080 (moderate): Among the players whose preferred foot was the left foot when attacking, how many of them would remain in his position when the team attacked?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1080
-    description: "Among the players whose preferred foot was the left foot when attacking, how many of them would remain in his position when the team attacked?"
+    description: 'Among the players whose preferred foot was the left foot when attacking, how many of them would remain in his position when the team attacked?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-019
-description: "BIRD Q358 (simple): What is the border color of card \"Ancestor's Chosen\"?"
+description: 'BIRD Q358 (simple): What is the border color of card "Ancestor''s Chosen"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-358
-    description: "What is the border color of card \"Ancestor's Chosen\"?"
+    description: 'What is the border color of card "Ancestor''s Chosen"?'
     messages:
       - role: user
         content: |

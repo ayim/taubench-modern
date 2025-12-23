@@ -1,5 +1,5 @@
 name: bird-codebase-community-145
-description: "BIRD Q675 (simple): How many users whose reputations are higher than 2000 and the number of views is higher than 1000?"
+description: 'BIRD Q675 (simple): How many users whose reputations are higher than 2000 and the number of views is higher than 1000?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-675
-    description: "How many users whose reputations are higher than 2000 and the number of views is higher than 1000?"
+    description: 'How many users whose reputations are higher than 2000 and the number of views is higher than 1000?'
     messages:
       - role: user
         content: |

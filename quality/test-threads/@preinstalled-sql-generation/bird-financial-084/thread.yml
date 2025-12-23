@@ -1,5 +1,5 @@
 name: bird-financial-084
-description: "BIRD Q172 (simple): How many owner and disponent dispositions are there from account number 1 to account number 10?"
+description: 'BIRD Q172 (simple): How many owner and disponent dispositions are there from account number 1 to account number 10?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-172
-    description: "How many owner and disponent dispositions are there from account number 1 to account number 10?"
+    description: 'How many owner and disponent dispositions are there from account number 1 to account number 10?'
     messages:
       - role: user
         content: |

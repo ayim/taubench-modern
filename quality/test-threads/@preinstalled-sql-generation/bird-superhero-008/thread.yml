@@ -1,5 +1,5 @@
 name: bird-superhero-008
-description: "BIRD Q724 (challenging): Please list the superhero names of all the superheroes that have blue eyes and blond hair."
+description: 'BIRD Q724 (challenging): Please list the superhero names of all the superheroes that have blue eyes and blond hair.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-724
-    description: "Please list the superhero names of all the superheroes that have blue eyes and blond hair."
+    description: 'Please list the superhero names of all the superheroes that have blue eyes and blond hair.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-046
-description: "BIRD Q1357 (simple): State the date Connor Hilton paid his/her dues."
+description: 'BIRD Q1357 (simple): State the date Connor Hilton paid his/her dues.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1357
-    description: "State the date Connor Hilton paid his/her dues."
+    description: 'State the date Connor Hilton paid his/her dues.'
     messages:
       - role: user
         content: |

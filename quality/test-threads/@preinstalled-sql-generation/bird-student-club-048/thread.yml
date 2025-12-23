@@ -1,5 +1,5 @@
 name: bird-student-club-048
-description: "BIRD Q1359 (challenging): How many times was the budget in Advertisement for \"Yearly Kickoff\" meeting more than \"October Meeting\"?"
+description: 'BIRD Q1359 (challenging): How many times was the budget in Advertisement for "Yearly Kickoff" meeting more than "October Meeting"?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1359
-    description: "How many times was the budget in Advertisement for \"Yearly Kickoff\" meeting more than \"October Meeting\"?"
+    description: 'How many times was the budget in Advertisement for "Yearly Kickoff" meeting more than "October Meeting"?'
     messages:
       - role: user
         content: |

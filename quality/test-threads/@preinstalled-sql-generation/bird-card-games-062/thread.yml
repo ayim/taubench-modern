@@ -1,5 +1,5 @@
 name: bird-card-games-062
-description: "BIRD Q401 (moderate): What percentage of legendary frame effect cards that are only available in online game variations?"
+description: 'BIRD Q401 (moderate): What percentage of legendary frame effect cards that are only available in online game variations?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-401
-    description: "What percentage of legendary frame effect cards that are only available in online game variations?"
+    description: 'What percentage of legendary frame effect cards that are only available in online game variations?'
     messages:
       - role: user
         content: |

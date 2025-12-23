@@ -1,5 +1,5 @@
 name: bird-card-games-098
-description: "BIRD Q437 (simple): Among black card borders, which card has full artwork?"
+description: 'BIRD Q437 (simple): Among black card borders, which card has full artwork?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-437
-    description: "Among black card borders, which card has full artwork?"
+    description: 'Among black card borders, which card has full artwork?'
     messages:
       - role: user
         content: |

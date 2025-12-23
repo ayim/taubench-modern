@@ -1,5 +1,5 @@
 name: bird-toxicology-043
-description: "BIRD Q237 (moderate): Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not."
+description: 'BIRD Q237 (moderate): Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-237
-    description: "Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not."
+    description: 'Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not.'
     messages:
       - role: user
         content: |

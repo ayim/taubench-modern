@@ -1,5 +1,5 @@
 name: bird-european-football-2-088
-description: "BIRD Q1107 (moderate): When was the first time did Kevin Constant have his highest crossing score? Give the date."
+description: 'BIRD Q1107 (moderate): When was the first time did Kevin Constant have his highest crossing score? Give the date.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1107
-    description: "When was the first time did Kevin Constant have his highest crossing score? Give the date."
+    description: 'When was the first time did Kevin Constant have his highest crossing score? Give the date.'
     messages:
       - role: user
         content: |

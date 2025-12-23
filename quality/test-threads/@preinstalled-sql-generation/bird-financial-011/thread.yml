@@ -1,5 +1,5 @@
 name: bird-financial-011
-description: "BIRD Q99 (moderate): Among the accounts who have loan validity more than 12 months, list out the accounts that have the highest approved amount and have account opening date in 1993."
+description: 'BIRD Q99 (moderate): Among the accounts who have loan validity more than 12 months, list out the accounts that have the highest approved amount and have account opening date in 1993.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-99
-    description: "Among the accounts who have loan validity more than 12 months, list out the accounts that have the highest approved amount and have account opening date in 1993."
+    description: 'Among the accounts who have loan validity more than 12 months, list out the accounts that have the highest approved amount and have account opening date in 1993.'
     messages:
       - role: user
         content: |

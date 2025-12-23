@@ -1,5 +1,5 @@
 name: bird-financial-081
-description: "BIRD Q169 (challenging): What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?"
+description: 'BIRD Q169 (challenging): What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-169
-    description: "What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?"
+    description: 'What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?'
     messages:
       - role: user
         content: |

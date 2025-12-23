@@ -1,5 +1,5 @@
 name: bird-codebase-community-070
-description: "BIRD Q600 (simple): List out all post that are related to post ID 61217 and what is the popularity of this post?"
+description: 'BIRD Q600 (simple): List out all post that are related to post ID 61217 and what is the popularity of this post?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-600
-    description: "List out all post that are related to post ID 61217 and what is the popularity of this post?"
+    description: 'List out all post that are related to post ID 61217 and what is the popularity of this post?'
     messages:
       - role: user
         content: |

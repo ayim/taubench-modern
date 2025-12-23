@@ -1,5 +1,5 @@
 name: bird-card-games-147
-description: "BIRD Q486 (moderate): What is the percentage of the cards with a converted mana cost of 7 in the set Coldsnap?"
+description: 'BIRD Q486 (moderate): What is the percentage of the cards with a converted mana cost of 7 in the set Coldsnap?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-486
-    description: "What is the percentage of the cards with a converted mana cost of 7 in the set Coldsnap?"
+    description: 'What is the percentage of the cards with a converted mana cost of 7 in the set Coldsnap?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-126
-description: "BIRD Q320 (moderate): What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?"
+description: 'BIRD Q320 (moderate): What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-320
-    description: "What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?"
+    description: 'What is the type of the bond which is presenting the connection between two atoms TR000_1 and TR000_2?'
     messages:
       - role: user
         content: |

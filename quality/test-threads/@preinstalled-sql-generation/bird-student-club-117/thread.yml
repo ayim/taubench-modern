@@ -1,5 +1,5 @@
 name: bird-student-club-117
-description: "BIRD Q1428 (moderate): List the city and state of members enrolled under electrical and computer engineering department."
+description: 'BIRD Q1428 (moderate): List the city and state of members enrolled under electrical and computer engineering department.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1428
-    description: "List the city and state of members enrolled under electrical and computer engineering department."
+    description: 'List the city and state of members enrolled under electrical and computer engineering department.'
     messages:
       - role: user
         content: |

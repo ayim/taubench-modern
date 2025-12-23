@@ -1,5 +1,5 @@
 name: bird-toxicology-100
-description: "BIRD Q294 (simple): Which bond ids are double-bond with carcinogenic compound?"
+description: 'BIRD Q294 (simple): Which bond ids are double-bond with carcinogenic compound?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-294
-    description: "Which bond ids are double-bond with carcinogenic compound?"
+    description: 'Which bond ids are double-bond with carcinogenic compound?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-046
-description: "BIRD Q134 (challenging): For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there."
+description: 'BIRD Q134 (challenging): For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-134
-    description: "For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there."
+    description: 'For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there.'
     messages:
       - role: user
         content: |

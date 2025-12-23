@@ -1,5 +1,5 @@
 name: bird-toxicology-038
-description: "BIRD Q232 (moderate): Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order."
+description: 'BIRD Q232 (moderate): Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-232
-    description: "Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order."
+    description: 'Please list top three molecules that have single bonds between two atoms and are not carcinogenic in alphabetical order.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-126
-description: "BIRD Q971 (simple): Please state the reference name of the oldest German driver."
+description: 'BIRD Q971 (simple): Please state the reference name of the oldest German driver.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-971
-    description: "Please state the reference name of the oldest German driver."
+    description: 'Please state the reference name of the oldest German driver.'
     messages:
       - role: user
         content: |

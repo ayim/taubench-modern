@@ -1,5 +1,5 @@
 name: bird-toxicology-004
-description: "BIRD Q198 (challenging): On average how many carcinogenic molecules are single bonded?"
+description: 'BIRD Q198 (challenging): On average how many carcinogenic molecules are single bonded?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-198
-    description: "On average how many carcinogenic molecules are single bonded?"
+    description: 'On average how many carcinogenic molecules are single bonded?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-095
-description: "BIRD Q811 (simple): Give the alignment and superpowers of the superhero named Atom IV."
+description: 'BIRD Q811 (simple): Give the alignment and superpowers of the superhero named Atom IV.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-811
-    description: "Give the alignment and superpowers of the superhero named Atom IV."
+    description: 'Give the alignment and superpowers of the superhero named Atom IV.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-022
-description: "BIRD Q21 (challenging): For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?"
+description: 'BIRD Q21 (challenging): For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-21
-    description: "For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?"
+    description: 'For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?'
     messages:
       - role: user
         content: |

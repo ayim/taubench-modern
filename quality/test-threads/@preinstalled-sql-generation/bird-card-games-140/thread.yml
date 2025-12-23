@@ -1,5 +1,5 @@
 name: bird-card-games-140
-description: "BIRD Q479 (moderate): Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?"
+description: 'BIRD Q479 (moderate): Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-479
-    description: "Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?"
+    description: 'Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?'
     messages:
       - role: user
         content: |

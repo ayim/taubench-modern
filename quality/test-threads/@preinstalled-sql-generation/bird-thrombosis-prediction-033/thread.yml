@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-033
-description: "BIRD Q1181 (moderate): For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?"
+description: 'BIRD Q1181 (moderate): For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1181
-    description: "For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?"
+    description: 'For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?'
     messages:
       - role: user
         content: |

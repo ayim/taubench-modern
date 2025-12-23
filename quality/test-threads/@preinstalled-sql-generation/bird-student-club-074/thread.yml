@@ -1,5 +1,5 @@
 name: bird-student-club-074
-description: "BIRD Q1385 (simple): Which students were able to generate income more than $40?"
+description: 'BIRD Q1385 (simple): Which students were able to generate income more than $40?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1385
-    description: "Which students were able to generate income more than $40?"
+    description: 'Which students were able to generate income more than $40?'
     messages:
       - role: user
         content: |

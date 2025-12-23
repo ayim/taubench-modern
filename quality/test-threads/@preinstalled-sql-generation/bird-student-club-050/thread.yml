@@ -1,5 +1,5 @@
 name: bird-student-club-050
-description: "BIRD Q1361 (simple): What is the total cost of the pizzas for all the events?"
+description: 'BIRD Q1361 (simple): What is the total cost of the pizzas for all the events?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1361
-    description: "What is the total cost of the pizzas for all the events?"
+    description: 'What is the total cost of the pizzas for all the events?'
     messages:
       - role: user
         content: |

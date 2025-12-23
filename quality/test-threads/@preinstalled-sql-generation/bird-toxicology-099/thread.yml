@@ -1,5 +1,5 @@
 name: bird-toxicology-099
-description: "BIRD Q293 (simple): How many atoms belong to the molecule labeled with carcinogenic compounds?"
+description: 'BIRD Q293 (simple): How many atoms belong to the molecule labeled with carcinogenic compounds?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-293
-    description: "How many atoms belong to the molecule labeled with carcinogenic compounds?"
+    description: 'How many atoms belong to the molecule labeled with carcinogenic compounds?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-068
-description: "BIRD Q407 (moderate): Lists all types of cards in German."
+description: 'BIRD Q407 (moderate): Lists all types of cards in German.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-407
-    description: "Lists all types of cards in German."
+    description: 'Lists all types of cards in German.'
     messages:
       - role: user
         content: |

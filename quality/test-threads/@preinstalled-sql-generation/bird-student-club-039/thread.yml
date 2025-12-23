@@ -1,5 +1,5 @@
 name: bird-student-club-039
-description: "BIRD Q1350 (moderate): What is the status of the event which bought \"Post Cards, Posters\" on 2019/8/20?"
+description: 'BIRD Q1350 (moderate): What is the status of the event which bought "Post Cards, Posters" on 2019/8/20?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1350
-    description: "What is the status of the event which bought \"Post Cards, Posters\" on 2019/8/20?"
+    description: 'What is the status of the event which bought "Post Cards, Posters" on 2019/8/20?'
     messages:
       - role: user
         content: |

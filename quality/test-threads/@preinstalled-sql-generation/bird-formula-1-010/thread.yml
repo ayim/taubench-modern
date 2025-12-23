@@ -1,5 +1,5 @@
 name: bird-formula-1-010
-description: "BIRD Q855 (simple): Where can I find the information about the races held on Sepang International Circuit?"
+description: 'BIRD Q855 (simple): Where can I find the information about the races held on Sepang International Circuit?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-855
-    description: "Where can I find the information about the races held on Sepang International Circuit?"
+    description: 'Where can I find the information about the races held on Sepang International Circuit?'
     messages:
       - role: user
         content: |

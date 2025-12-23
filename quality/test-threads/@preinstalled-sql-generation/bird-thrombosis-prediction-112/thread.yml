@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-112
-description: "BIRD Q1260 (simple): Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test."
+description: 'BIRD Q1260 (simple): Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1260
-    description: "Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test."
+    description: 'Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test.'
     messages:
       - role: user
         content: |

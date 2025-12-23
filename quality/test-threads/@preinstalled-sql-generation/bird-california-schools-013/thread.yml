@@ -1,5 +1,5 @@
 name: bird-california-schools-013
-description: "BIRD Q12 (challenging): Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?"
+description: 'BIRD Q12 (challenging): Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-12
-    description: "Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?"
+    description: 'Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?'
     messages:
       - role: user
         content: |

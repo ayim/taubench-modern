@@ -1,5 +1,5 @@
 name: bird-codebase-community-171
-description: "BIRD Q701 (challenging): Among all the posts posted by the most influential user, identify the percentage with a score above 50."
+description: 'BIRD Q701 (challenging): Among all the posts posted by the most influential user, identify the percentage with a score above 50.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-701
-    description: "Among all the posts posted by the most influential user, identify the percentage with a score above 50."
+    description: 'Among all the posts posted by the most influential user, identify the percentage with a score above 50.'
     messages:
       - role: user
         content: |

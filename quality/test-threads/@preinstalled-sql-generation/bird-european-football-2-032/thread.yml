@@ -1,5 +1,5 @@
 name: bird-european-football-2-032
-description: "BIRD Q1051 (simple): List all the football player with the highest potential score."
+description: 'BIRD Q1051 (simple): List all the football player with the highest potential score.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1051
-    description: "List all the football player with the highest potential score."
+    description: 'List all the football player with the highest potential score.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-023
-description: "BIRD Q217 (simple): Identify all the atoms that are connected to the atoms of the TR181 molecule."
+description: 'BIRD Q217 (simple): Identify all the atoms that are connected to the atoms of the TR181 molecule.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-217
-    description: "Identify all the atoms that are connected to the atoms of the TR181 molecule."
+    description: 'Identify all the atoms that are connected to the atoms of the TR181 molecule.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-030
-description: "BIRD Q1178 (simple): What was the gender of the first AORTITIS diagnosed patient?"
+description: 'BIRD Q1178 (simple): What was the gender of the first AORTITIS diagnosed patient?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1178
-    description: "What was the gender of the first AORTITIS diagnosed patient?"
+    description: 'What was the gender of the first AORTITIS diagnosed patient?'
     messages:
       - role: user
         content: |

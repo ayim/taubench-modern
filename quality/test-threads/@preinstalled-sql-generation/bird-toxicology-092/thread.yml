@@ -1,5 +1,5 @@
 name: bird-toxicology-092
-description: "BIRD Q286 (simple): Among all chemical compounds identified in the database, what percent of compounds form a triple-bond."
+description: 'BIRD Q286 (simple): Among all chemical compounds identified in the database, what percent of compounds form a triple-bond.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-286
-    description: "Among all chemical compounds identified in the database, what percent of compounds form a triple-bond."
+    description: 'Among all chemical compounds identified in the database, what percent of compounds form a triple-bond.'
     messages:
       - role: user
         content: |

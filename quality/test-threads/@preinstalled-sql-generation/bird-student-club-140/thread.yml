@@ -1,5 +1,5 @@
 name: bird-student-club-140
-description: "BIRD Q1451 (challenging): Among the members who incurred expenses in more than one event, who paid the most amount?"
+description: 'BIRD Q1451 (challenging): Among the members who incurred expenses in more than one event, who paid the most amount?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1451
-    description: "Among the members who incurred expenses in more than one event, who paid the most amount?"
+    description: 'Among the members who incurred expenses in more than one event, who paid the most amount?'
     messages:
       - role: user
         content: |

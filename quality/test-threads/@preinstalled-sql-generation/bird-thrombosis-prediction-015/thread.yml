@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-015
-description: "BIRD Q1163 (simple): What was the age of the youngest patient when they initially arrived at the hospital?"
+description: 'BIRD Q1163 (simple): What was the age of the youngest patient when they initially arrived at the hospital?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1163
-    description: "What was the age of the youngest patient when they initially arrived at the hospital?"
+    description: 'What was the age of the youngest patient when they initially arrived at the hospital?'
     messages:
       - role: user
         content: |

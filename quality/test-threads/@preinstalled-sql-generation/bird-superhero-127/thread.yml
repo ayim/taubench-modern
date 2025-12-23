@@ -1,5 +1,5 @@
 name: bird-superhero-127
-description: "BIRD Q843 (simple): List the hero ID of superheroes who have intelligence as their power."
+description: 'BIRD Q843 (simple): List the hero ID of superheroes who have intelligence as their power.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-843
-    description: "List the hero ID of superheroes who have intelligence as their power."
+    description: 'List the hero ID of superheroes who have intelligence as their power.'
     messages:
       - role: user
         content: |

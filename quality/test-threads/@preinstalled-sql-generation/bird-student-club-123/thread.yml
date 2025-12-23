@@ -1,5 +1,5 @@
 name: bird-student-club-123
-description: "BIRD Q1434 (simple): What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?"
+description: 'BIRD Q1434 (simple): What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1434
-    description: "What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?"
+    description: 'What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?'
     messages:
       - role: user
         content: |

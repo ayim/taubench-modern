@@ -1,5 +1,5 @@
 name: bird-formula-1-115
-description: "BIRD Q960 (moderate): What is the average of fastest lap speed in the 2009 Spanish Grand Prix race?"
+description: 'BIRD Q960 (moderate): What is the average of fastest lap speed in the 2009 Spanish Grand Prix race?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-960
-    description: "What is the average of fastest lap speed in the 2009 Spanish Grand Prix race?"
+    description: 'What is the average of fastest lap speed in the 2009 Spanish Grand Prix race?'
     messages:
       - role: user
         content: |

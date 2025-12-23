@@ -1,5 +1,5 @@
 name: bird-codebase-community-034
-description: "BIRD Q564 (simple): Give the comment text of the post with only one comment and parent id 107829."
+description: 'BIRD Q564 (simple): Give the comment text of the post with only one comment and parent id 107829.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-564
-    description: "Give the comment text of the post with only one comment and parent id 107829."
+    description: 'Give the comment text of the post with only one comment and parent id 107829.'
     messages:
       - role: user
         content: |

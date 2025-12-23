@@ -1,5 +1,5 @@
 name: bird-financial-101
-description: "BIRD Q189 (moderate): Name the account numbers of female clients who are oldest and have lowest average salary?"
+description: 'BIRD Q189 (moderate): Name the account numbers of female clients who are oldest and have lowest average salary?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-189
-    description: "Name the account numbers of female clients who are oldest and have lowest average salary?"
+    description: 'Name the account numbers of female clients who are oldest and have lowest average salary?'
     messages:
       - role: user
         content: |

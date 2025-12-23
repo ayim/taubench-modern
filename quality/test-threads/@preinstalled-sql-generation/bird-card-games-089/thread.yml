@@ -1,5 +1,5 @@
 name: bird-card-games-089
-description: "BIRD Q428 (simple): What is the name of set number 5 and its translation?"
+description: 'BIRD Q428 (simple): What is the name of set number 5 and its translation?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-428
-    description: "What is the name of set number 5 and its translation?"
+    description: 'What is the name of set number 5 and its translation?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-142
-description: "BIRD Q481 (simple): Please list all the foreign languages in which the card \"Ancestor's Chosen\" has a flavor text."
+description: 'BIRD Q481 (simple): Please list all the foreign languages in which the card "Ancestor''s Chosen" has a flavor text.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-481
-    description: "Please list all the foreign languages in which the card \"Ancestor's Chosen\" has a flavor text."
+    description: 'Please list all the foreign languages in which the card "Ancestor''s Chosen" has a flavor text.'
     messages:
       - role: user
         content: |

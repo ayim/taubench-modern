@@ -1,5 +1,5 @@
 name: bird-codebase-community-102
-description: "BIRD Q632 (simple): How many votes were made by Harlan?"
+description: 'BIRD Q632 (simple): How many votes were made by Harlan?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-632
-    description: "How many votes were made by Harlan?"
+    description: 'How many votes were made by Harlan?'
     messages:
       - role: user
         content: |

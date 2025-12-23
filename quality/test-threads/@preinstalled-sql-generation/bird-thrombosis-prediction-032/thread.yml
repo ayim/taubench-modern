@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-032
-description: "BIRD Q1180 (moderate): Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?"
+description: 'BIRD Q1180 (moderate): Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1180
-    description: "Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?"
+    description: 'Was the patient a man or a woman whose ALT glutamic pylvic transaminase status got 9 on 1992-6-12?'
     messages:
       - role: user
         content: |

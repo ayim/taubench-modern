@@ -1,5 +1,5 @@
 name: bird-codebase-community-027
-description: "BIRD Q557 (moderate): Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?"
+description: 'BIRD Q557 (moderate): Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-557
-    description: "Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?"
+    description: 'Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?'
     messages:
       - role: user
         content: |

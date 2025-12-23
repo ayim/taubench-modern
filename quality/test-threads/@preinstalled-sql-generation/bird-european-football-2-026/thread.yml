@@ -1,5 +1,5 @@
 name: bird-european-football-2-026
-description: "BIRD Q1045 (simple): What is the attacking work rate of the football playerr Franco Zennaro?"
+description: 'BIRD Q1045 (simple): What is the attacking work rate of the football playerr Franco Zennaro?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1045
-    description: "What is the attacking work rate of the football playerr Franco Zennaro?"
+    description: 'What is the attacking work rate of the football playerr Franco Zennaro?'
     messages:
       - role: user
         content: |

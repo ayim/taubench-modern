@@ -1,5 +1,5 @@
 name: bird-student-club-125
-description: "BIRD Q1436 (simple): Please provide links to events for members who have paid more than 50 dollar."
+description: 'BIRD Q1436 (simple): Please provide links to events for members who have paid more than 50 dollar.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1436
-    description: "Please provide links to events for members who have paid more than 50 dollar."
+    description: 'Please provide links to events for members who have paid more than 50 dollar.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-058
-description: "BIRD Q252 (simple): What are the atoms that can bond with the atom that has the element lead?"
+description: 'BIRD Q252 (simple): What are the atoms that can bond with the atom that has the element lead?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-252
-    description: "What are the atoms that can bond with the atom that has the element lead?"
+    description: 'What are the atoms that can bond with the atom that has the element lead?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-008
-description: "BIRD Q96 (challenging): What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?"
+description: 'BIRD Q96 (challenging): What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-96
-    description: "What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?"
+    description: 'What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?'
     messages:
       - role: user
         content: |

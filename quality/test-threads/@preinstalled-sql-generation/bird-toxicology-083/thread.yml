@@ -1,5 +1,5 @@
 name: bird-toxicology-083
-description: "BIRD Q277 (challenging): What are the toxicology elements associated with bond ID TR000_1_2?"
+description: 'BIRD Q277 (challenging): What are the toxicology elements associated with bond ID TR000_1_2?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-277
-    description: "What are the toxicology elements associated with bond ID TR000_1_2?"
+    description: 'What are the toxicology elements associated with bond ID TR000_1_2?'
     messages:
       - role: user
         content: |

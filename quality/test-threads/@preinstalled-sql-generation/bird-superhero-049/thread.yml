@@ -1,5 +1,5 @@
 name: bird-superhero-049
-description: "BIRD Q765 (simple): How many heroes have stealth power?"
+description: 'BIRD Q765 (simple): How many heroes have stealth power?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-765
-    description: "How many heroes have stealth power?"
+    description: 'How many heroes have stealth power?'
     messages:
       - role: user
         content: |
           How many heroes have stealth power?
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

@@ -1,5 +1,5 @@
 name: bird-student-club-072
-description: "BIRD Q1383 (simple): State the name of students from Georgetown, South Carolina."
+description: 'BIRD Q1383 (simple): State the name of students from Georgetown, South Carolina.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1383
-    description: "State the name of students from Georgetown, South Carolina."
+    description: 'State the name of students from Georgetown, South Carolina.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-117
-description: "BIRD Q833 (simple): Name the superhero, otherwise known as Charles Chandler."
+description: 'BIRD Q833 (simple): Name the superhero, otherwise known as Charles Chandler.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-833
-    description: "Name the superhero, otherwise known as Charles Chandler."
+    description: 'Name the superhero, otherwise known as Charles Chandler.'
     messages:
       - role: user
         content: |

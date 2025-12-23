@@ -1,5 +1,5 @@
 name: bird-toxicology-128
-description: "BIRD Q322 (challenging): What is the element of toxicology for the atom with the ID of TR000_1?"
+description: 'BIRD Q322 (challenging): What is the element of toxicology for the atom with the ID of TR000_1?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-322
-    description: "What is the element of toxicology for the atom with the ID of TR000_1?"
+    description: 'What is the element of toxicology for the atom with the ID of TR000_1?'
     messages:
       - role: user
         content: |

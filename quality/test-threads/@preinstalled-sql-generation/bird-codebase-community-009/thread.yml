@@ -1,5 +1,5 @@
 name: bird-codebase-community-009
-description: "BIRD Q539 (simple): Who is the owner of the post \"Eliciting priors from experts\"?"
+description: 'BIRD Q539 (simple): Who is the owner of the post "Eliciting priors from experts"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-539
-    description: "Who is the owner of the post \"Eliciting priors from experts\"?"
+    description: 'Who is the owner of the post "Eliciting priors from experts"?'
     messages:
       - role: user
         content: |

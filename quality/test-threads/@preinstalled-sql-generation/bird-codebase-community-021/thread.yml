@@ -1,5 +1,5 @@
 name: bird-codebase-community-021
-description: "BIRD Q551 (simple): How many badges has the user csgillespie obtained?"
+description: 'BIRD Q551 (simple): How many badges has the user csgillespie obtained?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-551
-    description: "How many badges has the user csgillespie obtained?"
+    description: 'How many badges has the user csgillespie obtained?'
     messages:
       - role: user
         content: |

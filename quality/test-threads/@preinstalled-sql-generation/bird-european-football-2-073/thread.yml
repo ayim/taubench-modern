@@ -1,5 +1,5 @@
 name: bird-european-football-2-073
-description: "BIRD Q1092 (simple): Give the name of the league which had the most matches in the 2008/2009 season?"
+description: 'BIRD Q1092 (simple): Give the name of the league which had the most matches in the 2008/2009 season?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1092
-    description: "Give the name of the league which had the most matches in the 2008/2009 season?"
+    description: 'Give the name of the league which had the most matches in the 2008/2009 season?'
     messages:
       - role: user
         content: |

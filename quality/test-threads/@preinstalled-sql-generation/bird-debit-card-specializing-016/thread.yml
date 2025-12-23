@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-016
-description: "BIRD Q1485 (simple): How much more was customer 7 consuming in April 2013 than customer 5?"
+description: 'BIRD Q1485 (simple): How much more was customer 7 consuming in April 2013 than customer 5?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1485
-    description: "How much more was customer 7 consuming in April 2013 than customer 5?"
+    description: 'How much more was customer 7 consuming in April 2013 than customer 5?'
     messages:
       - role: user
         content: |

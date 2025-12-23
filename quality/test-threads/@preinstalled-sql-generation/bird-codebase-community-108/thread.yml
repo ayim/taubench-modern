@@ -1,5 +1,5 @@
 name: bird-codebase-community-108
-description: "BIRD Q638 (simple): List all the name of users that obtained the Organizer Badges."
+description: 'BIRD Q638 (simple): List all the name of users that obtained the Organizer Badges.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-638
-    description: "List all the name of users that obtained the Organizer Badges."
+    description: 'List all the name of users that obtained the Organizer Badges.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-063
-description: "BIRD Q593 (simple): How many users from New York have a teacher and supporter badge?"
+description: 'BIRD Q593 (simple): How many users from New York have a teacher and supporter badge?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-593
-    description: "How many users from New York have a teacher and supporter badge?"
+    description: 'How many users from New York have a teacher and supporter badge?'
     messages:
       - role: user
         content: |

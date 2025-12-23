@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-054
-description: "BIRD Q1523 (simple): Which country was the card owner of No.667467 in?"
+description: 'BIRD Q1523 (simple): Which country was the card owner of No.667467 in?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1523
-    description: "Which country was the card owner of No.667467 in?"
+    description: 'Which country was the card owner of No.667467 in?'
     messages:
       - role: user
         content: |

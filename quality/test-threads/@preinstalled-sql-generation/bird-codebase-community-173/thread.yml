@@ -1,5 +1,5 @@
 name: bird-codebase-community-173
-description: "BIRD Q703 (simple): Among the tags with tag ID below 15, how many of them have 20 count of posts and below?"
+description: 'BIRD Q703 (simple): Among the tags with tag ID below 15, how many of them have 20 count of posts and below?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-703
-    description: "Among the tags with tag ID below 15, how many of them have 20 count of posts and below?"
+    description: 'Among the tags with tag ID below 15, how many of them have 20 count of posts and below?'
     messages:
       - role: user
         content: |

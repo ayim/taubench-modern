@@ -1,5 +1,5 @@
 name: bird-superhero-089
-description: "BIRD Q805 (simple): List the full names of superheroes with missing weight."
+description: 'BIRD Q805 (simple): List the full names of superheroes with missing weight.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-805
-    description: "List the full names of superheroes with missing weight."
+    description: 'List the full names of superheroes with missing weight.'
     messages:
       - role: user
         content: |

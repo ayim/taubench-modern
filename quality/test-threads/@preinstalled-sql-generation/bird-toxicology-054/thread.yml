@@ -1,5 +1,5 @@
 name: bird-toxicology-054
-description: "BIRD Q248 (simple): What are the atoms of the triple bond with the molecule \"TR041\"?"
+description: 'BIRD Q248 (simple): What are the atoms of the triple bond with the molecule "TR041"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-248
-    description: "What are the atoms of the triple bond with the molecule \"TR041\"?"
+    description: 'What are the atoms of the triple bond with the molecule "TR041"?'
     messages:
       - role: user
         content: |

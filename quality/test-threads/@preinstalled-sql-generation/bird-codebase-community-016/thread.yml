@@ -1,5 +1,5 @@
 name: bird-codebase-community-016
-description: "BIRD Q546 (simple): Please list the display names of all the users who owns a post that is well-finished."
+description: 'BIRD Q546 (simple): Please list the display names of all the users who owns a post that is well-finished.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-546
-    description: "Please list the display names of all the users who owns a post that is well-finished."
+    description: 'Please list the display names of all the users who owns a post that is well-finished.'
     messages:
       - role: user
         content: |

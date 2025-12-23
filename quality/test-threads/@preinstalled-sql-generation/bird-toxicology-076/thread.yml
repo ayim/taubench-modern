@@ -1,5 +1,5 @@
 name: bird-toxicology-076
-description: "BIRD Q270 (moderate): Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?"
+description: 'BIRD Q270 (moderate): Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-270
-    description: "Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?"
+    description: 'Among the molecules with element Calcium, are they mostly carcinogenic or non carcinogenic?'
     messages:
       - role: user
         content: |

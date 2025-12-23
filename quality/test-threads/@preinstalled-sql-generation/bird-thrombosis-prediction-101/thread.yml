@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-101
-description: "BIRD Q1249 (simple): Please list the disease names of the patients that have a proteinuria level higher than normal."
+description: 'BIRD Q1249 (simple): Please list the disease names of the patients that have a proteinuria level higher than normal.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1249
-    description: "Please list the disease names of the patients that have a proteinuria level higher than normal."
+    description: 'Please list the disease names of the patients that have a proteinuria level higher than normal.'
     messages:
       - role: user
         content: |

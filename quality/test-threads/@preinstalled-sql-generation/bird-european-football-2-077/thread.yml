@@ -1,5 +1,5 @@
 name: bird-european-football-2-077
-description: "BIRD Q1096 (moderate): Calculate the average overall rating of Pietro Marino."
+description: 'BIRD Q1096 (moderate): Calculate the average overall rating of Pietro Marino.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1096
-    description: "Calculate the average overall rating of Pietro Marino."
+    description: 'Calculate the average overall rating of Pietro Marino.'
     messages:
       - role: user
         content: |

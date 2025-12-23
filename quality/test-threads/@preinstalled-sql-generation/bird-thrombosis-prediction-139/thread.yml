@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-139
-description: "BIRD Q1287 (moderate): Among the patients followed at the outpatient clinic, how many of them have a normal level of alkaliphophatase?"
+description: 'BIRD Q1287 (moderate): Among the patients followed at the outpatient clinic, how many of them have a normal level of alkaliphophatase?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1287
-    description: "Among the patients followed at the outpatient clinic, how many of them have a normal level of alkaliphophatase?"
+    description: 'Among the patients followed at the outpatient clinic, how many of them have a normal level of alkaliphophatase?'
     messages:
       - role: user
         content: |

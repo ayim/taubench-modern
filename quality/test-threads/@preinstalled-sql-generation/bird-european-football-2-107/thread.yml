@@ -1,5 +1,5 @@
 name: bird-european-football-2-107
-description: "BIRD Q1126 (simple): State the names of players who played in matches held in Belgium."
+description: 'BIRD Q1126 (simple): State the names of players who played in matches held in Belgium.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1126
-    description: "State the names of players who played in matches held in Belgium."
+    description: 'State the names of players who played in matches held in Belgium.'
     messages:
       - role: user
         content: |

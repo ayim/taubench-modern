@@ -1,5 +1,5 @@
 name: bird-european-football-2-084
-description: "BIRD Q1103 (moderate): What was the overall rating for Aaron Mooy on 2016/2/4?"
+description: 'BIRD Q1103 (moderate): What was the overall rating for Aaron Mooy on 2016/2/4?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1103
-    description: "What was the overall rating for Aaron Mooy on 2016/2/4?"
+    description: 'What was the overall rating for Aaron Mooy on 2016/2/4?'
     messages:
       - role: user
         content: |

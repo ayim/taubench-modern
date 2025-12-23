@@ -1,5 +1,5 @@
 name: bird-student-club-043
-description: "BIRD Q1354 (simple): State the major name for the Vice President of the club."
+description: 'BIRD Q1354 (simple): State the major name for the Vice President of the club.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1354
-    description: "State the major name for the Vice President of the club."
+    description: 'State the major name for the Vice President of the club.'
     messages:
       - role: user
         content: |

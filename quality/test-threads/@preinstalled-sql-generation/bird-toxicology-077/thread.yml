@@ -1,5 +1,5 @@
 name: bird-toxicology-077
-description: "BIRD Q271 (simple): Does bond id TR001_1_8 have both element of chlorine and carbon?"
+description: 'BIRD Q271 (simple): Does bond id TR001_1_8 have both element of chlorine and carbon?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-271
-    description: "Does bond id TR001_1_8 have both element of chlorine and carbon?"
+    description: 'Does bond id TR001_1_8 have both element of chlorine and carbon?'
     messages:
       - role: user
         content: |

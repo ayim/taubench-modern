@@ -1,5 +1,5 @@
 name: bird-formula-1-061
-description: "BIRD Q906 (moderate): Which was Lewis Hamilton first race? What was his points recorded for his first race event?"
+description: 'BIRD Q906 (moderate): Which was Lewis Hamilton first race? What was his points recorded for his first race event?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-906
-    description: "Which was Lewis Hamilton first race? What was his points recorded for his first race event?"
+    description: 'Which was Lewis Hamilton first race? What was his points recorded for his first race event?'
     messages:
       - role: user
         content: |

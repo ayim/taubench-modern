@@ -1,5 +1,5 @@
 name: bird-card-games-022
-description: "BIRD Q361 (simple): How many cards of legalities whose status is restricted have text boxes?"
+description: 'BIRD Q361 (simple): How many cards of legalities whose status is restricted have text boxes?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-361
-    description: "How many cards of legalities whose status is restricted have text boxes?"
+    description: 'How many cards of legalities whose status is restricted have text boxes?'
     messages:
       - role: user
         content: |

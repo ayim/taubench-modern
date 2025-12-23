@@ -1,5 +1,5 @@
 name: bird-european-football-2-027
-description: "BIRD Q1046 (moderate): What is the ADO Den Haag team freedom of movement in the 1st two thirds of the pitch?"
+description: 'BIRD Q1046 (moderate): What is the ADO Den Haag team freedom of movement in the 1st two thirds of the pitch?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1046
-    description: "What is the ADO Den Haag team freedom of movement in the 1st two thirds of the pitch?"
+    description: 'What is the ADO Den Haag team freedom of movement in the 1st two thirds of the pitch?'
     messages:
       - role: user
         content: |

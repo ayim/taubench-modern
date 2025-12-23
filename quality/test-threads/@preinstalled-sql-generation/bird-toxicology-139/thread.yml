@@ -1,5 +1,5 @@
 name: bird-toxicology-139
-description: "BIRD Q333 (simple): In the molecule TR008, how many carbons are present?"
+description: 'BIRD Q333 (simple): In the molecule TR008, how many carbons are present?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-333
-    description: "In the molecule TR008, how many carbons are present?"
+    description: 'In the molecule TR008, how many carbons are present?'
     messages:
       - role: user
         content: |

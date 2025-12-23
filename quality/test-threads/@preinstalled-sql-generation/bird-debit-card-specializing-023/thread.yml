@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-023
-description: "BIRD Q1492 (simple): What percentage of KAM customers pay in euros?"
+description: 'BIRD Q1492 (simple): What percentage of KAM customers pay in euros?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1492
-    description: "What percentage of KAM customers pay in euros?"
+    description: 'What percentage of KAM customers pay in euros?'
     messages:
       - role: user
         content: |

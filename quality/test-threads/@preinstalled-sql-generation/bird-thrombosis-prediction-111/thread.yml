@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-111
-description: "BIRD Q1259 (moderate): Please list the diseases of the patients born after 1985-1-1 and have a normal Rhuematoid Factor."
+description: 'BIRD Q1259 (moderate): Please list the diseases of the patients born after 1985-1-1 and have a normal Rhuematoid Factor.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1259
-    description: "Please list the diseases of the patients born after 1985-1-1 and have a normal Rhuematoid Factor."
+    description: 'Please list the diseases of the patients born after 1985-1-1 and have a normal Rhuematoid Factor.'
     messages:
       - role: user
         content: |

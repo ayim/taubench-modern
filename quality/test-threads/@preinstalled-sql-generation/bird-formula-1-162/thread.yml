@@ -1,5 +1,5 @@
 name: bird-formula-1-162
-description: "BIRD Q1007 (simple): What was the longest time that Lewis Hamilton had spent at a pit stop?"
+description: 'BIRD Q1007 (simple): What was the longest time that Lewis Hamilton had spent at a pit stop?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1007
-    description: "What was the longest time that Lewis Hamilton had spent at a pit stop?"
+    description: 'What was the longest time that Lewis Hamilton had spent at a pit stop?'
     messages:
       - role: user
         content: |

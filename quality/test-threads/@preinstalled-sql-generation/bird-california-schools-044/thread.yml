@@ -1,5 +1,5 @@
 name: bird-california-schools-044
-description: "BIRD Q43 (moderate): What is the average math score of the school with the lowest average score for all subjects, and in which county is it located?"
+description: 'BIRD Q43 (moderate): What is the average math score of the school with the lowest average score for all subjects, and in which county is it located?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-43
-    description: "What is the average math score of the school with the lowest average score for all subjects, and in which county is it located?"
+    description: 'What is the average math score of the school with the lowest average score for all subjects, and in which county is it located?'
     messages:
       - role: user
         content: |

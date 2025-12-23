@@ -1,5 +1,5 @@
 name: bird-european-football-2-108
-description: "BIRD Q1127 (moderate): Locate players with vision scores of 90 and above, state the country of these players."
+description: 'BIRD Q1127 (moderate): Locate players with vision scores of 90 and above, state the country of these players.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1127
-    description: "Locate players with vision scores of 90 and above, state the country of these players."
+    description: 'Locate players with vision scores of 90 and above, state the country of these players.'
     messages:
       - role: user
         content: |

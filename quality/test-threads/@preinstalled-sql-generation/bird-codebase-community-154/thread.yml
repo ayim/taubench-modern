@@ -1,5 +1,5 @@
 name: bird-codebase-community-154
-description: "BIRD Q684 (simple): Identify the percentage of teenage users."
+description: 'BIRD Q684 (simple): Identify the percentage of teenage users.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-684
-    description: "Identify the percentage of teenage users."
+    description: 'Identify the percentage of teenage users.'
     messages:
       - role: user
         content: |

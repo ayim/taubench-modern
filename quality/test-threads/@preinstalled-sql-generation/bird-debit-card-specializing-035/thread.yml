@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-035
-description: "BIRD Q1504 (simple): What is the average total price of the transactions taken place in January, 2012?"
+description: 'BIRD Q1504 (simple): What is the average total price of the transactions taken place in January, 2012?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1504
-    description: "What is the average total price of the transactions taken place in January, 2012?"
+    description: 'What is the average total price of the transactions taken place in January, 2012?'
     messages:
       - role: user
         content: |

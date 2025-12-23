@@ -1,5 +1,5 @@
 name: bird-superhero-094
-description: "BIRD Q810 (simple): What is the most common race of the superhero with maximum attribute value?"
+description: 'BIRD Q810 (simple): What is the most common race of the superhero with maximum attribute value?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-810
-    description: "What is the most common race of the superhero with maximum attribute value?"
+    description: 'What is the most common race of the superhero with maximum attribute value?'
     messages:
       - role: user
         content: |

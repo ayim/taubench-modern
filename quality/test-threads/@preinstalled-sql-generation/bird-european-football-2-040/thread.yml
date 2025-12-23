@@ -1,5 +1,5 @@
 name: bird-european-football-2-040
-description: "BIRD Q1059 (simple): Please list player names which are higher than 180."
+description: 'BIRD Q1059 (simple): Please list player names which are higher than 180.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1059
-    description: "Please list player names which are higher than 180."
+    description: 'Please list player names which are higher than 180.'
     messages:
       - role: user
         content: |

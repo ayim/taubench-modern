@@ -1,5 +1,5 @@
 name: bird-formula-1-157
-description: "BIRD Q1002 (moderate): As of the present, what is the full name of the youngest racer? Indicate her nationality and the name of the race to which he/she first joined."
+description: 'BIRD Q1002 (moderate): As of the present, what is the full name of the youngest racer? Indicate her nationality and the name of the race to which he/she first joined.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1002
-    description: "As of the present, what is the full name of the youngest racer? Indicate her nationality and the name of the race to which he/she first joined."
+    description: 'As of the present, what is the full name of the youngest racer? Indicate her nationality and the name of the race to which he/she first joined.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-053
-description: "BIRD Q898 (simple): How old is the youngest Japanese driver? What is his name?"
+description: 'BIRD Q898 (simple): How old is the youngest Japanese driver? What is his name?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-898
-    description: "How old is the youngest Japanese driver? What is his name?"
+    description: 'How old is the youngest Japanese driver? What is his name?'
     messages:
       - role: user
         content: |

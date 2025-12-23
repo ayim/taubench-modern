@@ -1,5 +1,5 @@
 name: bird-financial-054
-description: "BIRD Q142 (simple): Which accounts placed orders for household payment in Pisek?"
+description: 'BIRD Q142 (simple): Which accounts placed orders for household payment in Pisek?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-142
-    description: "Which accounts placed orders for household payment in Pisek?"
+    description: 'Which accounts placed orders for household payment in Pisek?'
     messages:
       - role: user
         content: |

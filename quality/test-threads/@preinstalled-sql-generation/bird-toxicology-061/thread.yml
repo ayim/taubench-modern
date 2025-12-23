@@ -1,5 +1,5 @@
 name: bird-toxicology-061
-description: "BIRD Q255 (moderate): What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places."
+description: 'BIRD Q255 (moderate): What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-255
-    description: "What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places."
+    description: 'What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places.'
     messages:
       - role: user
         content: |

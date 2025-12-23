@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-047
-description: "BIRD Q1195 (moderate): What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?"
+description: 'BIRD Q1195 (moderate): What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1195
-    description: "What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?"
+    description: 'What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?'
     messages:
       - role: user
         content: |

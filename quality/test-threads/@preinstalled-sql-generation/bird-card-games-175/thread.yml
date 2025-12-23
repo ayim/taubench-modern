@@ -1,5 +1,5 @@
 name: bird-card-games-175
-description: "BIRD Q514 (simple): In duels, what are the top 10 cards with the highest converted mana cost?"
+description: 'BIRD Q514 (simple): In duels, what are the top 10 cards with the highest converted mana cost?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-514
-    description: "In duels, what are the top 10 cards with the highest converted mana cost?"
+    description: 'In duels, what are the top 10 cards with the highest converted mana cost?'
     messages:
       - role: user
         content: |

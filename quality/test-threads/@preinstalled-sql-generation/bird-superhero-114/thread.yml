@@ -1,5 +1,5 @@
 name: bird-superhero-114
-description: "BIRD Q830 (moderate): Identify the weakest attribute of the Black Panther."
+description: 'BIRD Q830 (moderate): Identify the weakest attribute of the Black Panther.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-830
-    description: "Identify the weakest attribute of the Black Panther."
+    description: 'Identify the weakest attribute of the Black Panther.'
     messages:
       - role: user
         content: |

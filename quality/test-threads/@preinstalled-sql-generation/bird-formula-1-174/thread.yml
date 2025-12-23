@@ -1,5 +1,5 @@
 name: bird-formula-1-174
-description: "BIRD Q1019 (moderate): What is the average lap time in milliseconds of all the lap records set on the various circuits in Italy?"
+description: 'BIRD Q1019 (moderate): What is the average lap time in milliseconds of all the lap records set on the various circuits in Italy?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1019
-    description: "What is the average lap time in milliseconds of all the lap records set on the various circuits in Italy?"
+    description: 'What is the average lap time in milliseconds of all the lap records set on the various circuits in Italy?'
     messages:
       - role: user
         content: |

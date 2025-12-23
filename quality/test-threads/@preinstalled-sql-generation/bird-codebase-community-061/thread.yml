@@ -1,5 +1,5 @@
 name: bird-codebase-community-061
-description: "BIRD Q591 (simple): How many users are awarded with supporter badge during year 2011?"
+description: 'BIRD Q591 (simple): How many users are awarded with supporter badge during year 2011?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-591
-    description: "How many users are awarded with supporter badge during year 2011?"
+    description: 'How many users are awarded with supporter badge during year 2011?'
     messages:
       - role: user
         content: |

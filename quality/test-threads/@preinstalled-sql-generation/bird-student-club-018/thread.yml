@@ -1,5 +1,5 @@
 name: bird-student-club-018
-description: "BIRD Q1329 (simple): What county did Sherri Ramsey grew up?"
+description: 'BIRD Q1329 (simple): What county did Sherri Ramsey grew up?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1329
-    description: "What county did Sherri Ramsey grew up?"
+    description: 'What county did Sherri Ramsey grew up?'
     messages:
       - role: user
         content: |

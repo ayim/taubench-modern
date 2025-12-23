@@ -1,5 +1,5 @@
 name: bird-superhero-082
-description: "BIRD Q798 (moderate): What is the publisher for Hawkman, Karate Kid and Speedy?"
+description: 'BIRD Q798 (moderate): What is the publisher for Hawkman, Karate Kid and Speedy?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-798
-    description: "What is the publisher for Hawkman, Karate Kid and Speedy?"
+    description: 'What is the publisher for Hawkman, Karate Kid and Speedy?'
     messages:
       - role: user
         content: |

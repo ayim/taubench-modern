@@ -1,5 +1,5 @@
 name: bird-student-club-037
-description: "BIRD Q1348 (simple): For all the budgets for \"November Meeting\", how many of them had exceeded the budget?"
+description: 'BIRD Q1348 (simple): For all the budgets for "November Meeting", how many of them had exceeded the budget?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1348
-    description: "For all the budgets for \"November Meeting\", how many of them had exceeded the budget?"
+    description: 'For all the budgets for "November Meeting", how many of them had exceeded the budget?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-004
-description: "BIRD Q343 (simple): Name all cards with 2015 frame style ranking below 100 on EDHRec."
+description: 'BIRD Q343 (simple): Name all cards with 2015 frame style ranking below 100 on EDHRec.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-343
-    description: "Name all cards with 2015 frame style ranking below 100 on EDHRec."
+    description: 'Name all cards with 2015 frame style ranking below 100 on EDHRec.'
     messages:
       - role: user
         content: |

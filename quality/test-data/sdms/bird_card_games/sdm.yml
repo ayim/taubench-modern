@@ -1,1440 +1,1440 @@
 name: MTG Card Catalog
 tables:
-- name: foreign_data
-  synonyms:
-  - localized card text
-  - foreign language card data
-  - translated card details
-  base_table:
-    table: foreign_data
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    data_type: '!int64'
-    description: Surrogate identifier for this foreign-language row.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: flavortext
-    name: flavortext
+  - name: foreign_data
     synonyms:
-    - foreign flavor text
-    data_type: string
-    description: Flavor text in the specified foreign language for the card printing.
-    sample_values:
-    - „Es ist der Wille aller, und meine Hand, die ihn ausführt."
-    - '"La voluntad de todos, realizada por mi mano."'
-    - « La volonté de tous passe par ma main. »
-    - '"La volontà di tutti, eseguita per mano mia."'
-    - すべての意思を、この手で成そう。
-  - expr: language
-    name: language
-    synonyms:
-    - translation language
-    data_type: string
-    description: Language of the localized card fields (e.g., German, Japanese).
-    sample_values:
-    - German
-    - Spanish
-    - French
-    - Italian
-    - Japanese
-  - expr: multiverseid
-    name: multiverseid
-    synonyms:
-    - foreign multiverse id
-    data_type: int64
-    description: Multiverse identifier associated with the localized printing (if
-      available).
-    sample_values:
-    - 148411
-    - 150317
-    - 149934
-    - 148794
-    - 148028
-  - expr: name
-    name: name
-    synonyms:
-    - foreign card name
-    data_type: string
-    description: Card name translated into the specified language.
-    sample_values:
-    - Ausgewählter der Ahnfrau
-    - Elegido de la Antepasada
-    - Élu de l'Ancêtre
-    - Prescelto dell'Antenata
-    - 祖神に選ばれし者
-  - expr: text
-    name: text
-    synonyms:
-    - foreign rules text
-    data_type: string
-    description: Rules text (oracle text) translated into the specified language.
-    sample_values:
-    - 'Erstschlag (Diese Kreatur fügt Kampfschaden vor Kreaturen ohne Erstschlag zu.)
+      - localized card text
+      - foreign language card data
+      - translated card details
+    base_table:
+      table: foreign_data
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        data_type: '!int64'
+        description: Surrogate identifier for this foreign-language row.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: flavortext
+        name: flavortext
+        synonyms:
+          - foreign flavor text
+        data_type: string
+        description: Flavor text in the specified foreign language for the card printing.
+        sample_values:
+          - „Es ist der Wille aller, und meine Hand, die ihn ausführt."
+          - '"La voluntad de todos, realizada por mi mano."'
+          - « La volonté de tous passe par ma main. »
+          - '"La volontà di tutti, eseguita per mano mia."'
+          - すべての意思を、この手で成そう。
+      - expr: language
+        name: language
+        synonyms:
+          - translation language
+        data_type: string
+        description: Language of the localized card fields (e.g., German, Japanese).
+        sample_values:
+          - German
+          - Spanish
+          - French
+          - Italian
+          - Japanese
+      - expr: multiverseid
+        name: multiverseid
+        synonyms:
+          - foreign multiverse id
+        data_type: int64
+        description: Multiverse identifier associated with the localized printing (if
+          available).
+        sample_values:
+          - 148411
+          - 150317
+          - 149934
+          - 148794
+          - 148028
+      - expr: name
+        name: name
+        synonyms:
+          - foreign card name
+        data_type: string
+        description: Card name translated into the specified language.
+        sample_values:
+          - Ausgewählter der Ahnfrau
+          - Elegido de la Antepasada
+          - Élu de l'Ancêtre
+          - Prescelto dell'Antenata
+          - 祖神に選ばれし者
+      - expr: text
+        name: text
+        synonyms:
+          - foreign rules text
+        data_type: string
+        description: Rules text (oracle text) translated into the specified language.
+        sample_values:
+          - 'Erstschlag (Diese Kreatur fügt Kampfschaden vor Kreaturen ohne Erstschlag zu.)
 
-      Wenn der Ausgewählte der Ahnfrau ins Spiel kommt, erhältst du 1 Lebenspunkt
-      für jede Karte in deinem Friedhof dazu.'
-    - 'Daña primero. (Esta criatura hace daño de combate antes que las criaturas sin
-      la habilidad de dañar primero.)
+            Wenn der Ausgewählte der Ahnfrau ins Spiel kommt, erhältst du 1 Lebenspunkt
+            für jede Karte in deinem Friedhof dazu.'
+          - 'Daña primero. (Esta criatura hace daño de combate antes que las criaturas sin
+            la habilidad de dañar primero.)
 
-      Cuando el Elegido de la Antepasada entre en juego, ganas 1 vida por cada carta
-      en tu cementerio.'
-    - 'Initiative (Cette créature inflige des blessures de combat avant les créatures
-      sans l''initiative.)
+            Cuando el Elegido de la Antepasada entre en juego, ganas 1 vida por cada carta
+            en tu cementerio.'
+          - "Initiative (Cette créature inflige des blessures de combat avant les créatures
+            sans l'initiative.)
 
-      Quand l''Élu de l''Ancêtre arrive en jeu, vous gagnez 1 point de vie pour chaque
-      carte dans votre cimetière.'
-    - 'Attacco improvviso (Questa creatura infligge danno da combattimento prima delle
-      creature senza attacco improvviso.)
+            Quand l'Élu de l'Ancêtre arrive en jeu, vous gagnez 1 point de vie pour chaque
+            carte dans votre cimetière."
+          - "Attacco improvviso (Questa creatura infligge danno da combattimento prima delle
+            creature senza attacco improvviso.)
 
-      Quando il Prescelto dell''Antenata entra in gioco, guadagni 1 punto vita per
-      ogni carta nel tuo cimitero.'
-    - '先制攻撃 （このクリーチャーは先制攻撃を持たないクリーチャーよりも先に戦闘ダメージを与える。）
+            Quando il Prescelto dell'Antenata entra in gioco, guadagni 1 punto vita per
+            ogni carta nel tuo cimitero."
+          - '先制攻撃 （このクリーチャーは先制攻撃を持たないクリーチャーよりも先に戦闘ダメージを与える。）
 
-      祖神に選ばれし者が場に出たとき、あなたはあなたの墓地にあるカード１枚につき１点のライフを得る。'
-  - expr: type
-    name: type
-    synonyms:
-    - foreign type line
-    data_type: string
-    description: Type line translated into the specified language (includes supertypes
-      and subtypes).
-    sample_values:
-    - Kreatur — Mensch, Kleriker
-    - Criatura — Clérigo humano
-    - 'Créature : humain et clerc'
-    - Creatura — Chierico Umano
-    - クリーチャー — 人間・クレリック
-  - expr: uuid
-    name: uuid
-    synonyms:
-    - card printing uuid
-    data_type: string
-    description: UUID of the specific card printing this localized row belongs to;
-      joins to cards.uuid.
-    sample_values:
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-  description: Localized (non-English) card fields for a specific card printing/language,
-    including translated name, type line, rules text, and flavor text. Join to cards
-    via uuid.
-- name: set_translations
-  synonyms:
-  - set name localization
-  - translated set names
-  - set translations
-  base_table:
-    table: set_translations
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    data_type: '!int64'
-    description: Surrogate identifier for this set translation row.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: language
-    name: language
-    synonyms:
-    - set translation language
-    data_type: string
-    description: Language of the set name translation.
-    sample_values:
-    - Chinese Simplified
-    - Chinese Traditional
-    - French
-    - German
-    - Italian
-  - expr: setcode
-    name: setcode
-    synonyms:
-    - translated set code
-    data_type: string
-    description: Set code the translation applies to; joins to sets.code.
-    sample_values:
-    - 10E
-    - 10E
-    - 10E
-    - 10E
-    - 10E
-  - expr: translation
-    name: translation
-    synonyms:
-    - localized set name
-    data_type: string
-    description: Set name translated into the specified language.
-    sample_values:
-    - 核心系列第十版
-    - 核心系列第十版
-    - Dixième édition
-    - Hauptset Zehnte Edition
-    - Set Base Decima Edizione
-  description: Translations of MTG set (expansion) names by language. Join to sets
-    via setcode.
-- name: legalities
-  synonyms:
-  - format legality
-  - play format legality
-  - card legality list
-  base_table:
-    table: legalities
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    data_type: '!int64'
-    description: Surrogate identifier for this legality record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: format
-    name: format
-    synonyms:
-    - mtg format
-    data_type: string
-    description: Gameplay format the legality applies to (e.g., modern, commander).
-    sample_values:
-    - commander
-    - duel
-    - legacy
-    - modern
-    - penny
-  - expr: status
-    name: status
-    synonyms:
-    - legality status
-    data_type: string
-    description: Legality result in the given format (e.g., Legal, Banned, Restricted).
-    sample_values:
-    - Legal
-    - Legal
-    - Legal
-    - Legal
-    - Legal
-  - expr: uuid
-    name: uuid
-    synonyms:
-    - legalities card uuid
-    data_type: string
-    description: UUID of the card printing the legality applies to; joins to cards.uuid.
-    sample_values:
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-  description: Per-card legality status for each gameplay format (e.g., Commander,
-    Modern). Join to cards via uuid.
-- name: sets
-  facts:
-  - expr: basesetsize
-    name: basesetsize
-    synonyms:
-    - base set size
-    data_type: int64
-    description: Number of cards in the set excluding supplemental/promotional additions
-      (base size).
-    sample_values:
-    - 383
-    - 302
-    - 332
-    - 306
-    - 378
-  - expr: totalsetsize
-    name: totalsetsize
-    synonyms:
-    - total set size
-    data_type: int64
-    description: Total number of cards in the set including supplemental/promotional
-      items (as defined by the source).
-    sample_values:
-    - 508
-    - 302
-    - 384
-    - 306
-    - 378
-  synonyms:
-  - mtg expansion sets
-  - set catalog
-  - expansion metadata
-  base_table:
-    table: sets
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    data_type: '!int64'
-    description: Surrogate identifier for the set record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: block
-    name: block
-    synonyms:
-    - set block
-    data_type: string
-    description: Block or product grouping the set belongs to (when applicable).
-    sample_values:
-    - Core Set
-    - Core Set
-    - Core Set
-  - expr: booster
-    name: booster
-    synonyms:
-    - booster pack definition
-    data_type: string
-    description: Serialized definition of booster pack collation and probabilities
-      for the set (if provided).
-    sample_values:
-    - '{''default'': {''boosters'': [{''contents'': {''basic'': 1, ''common'': 10,
-      ''rare'': 1, ''uncommon'': 3}, ''weight'': 1913922}, {''contents'': {''basic'':
-      1, ''common'': 9, ''foilCommon'': 1, ''rare'': 1, ''uncommon'': 3}, ''weight'':
-      318987}, {''contents'': {''basic'': 1, ''common'': 10, '
-    - '{''default'': {''boosters'': [{''contents'': {''common'': 11, ''rare'': 1,
-      ''uncommon'': 3}, ''weight'': 1}], ''boostersTotalWeight'': 1, ''sheets'': {''common'':
-      {''cards'': {''0ab4e3e6-f9fe-5fdc-9697-fd20690a0e15'': 1, ''0b326a61-0389-54e2-ac58-7bb47ca88202'':
-      1, ''0f099574-e9f7-'
-    - '{''default'': {''boosters'': [{''contents'': {''common'': 8, ''dedicatedFoil2xm'':
-      2, ''rareMythic'': 2, ''uncommon'': 3}, ''weight'': 1}], ''boostersTotalWeight'':
-      1, ''sheets'': {''common'': {''balanceColors'': True, ''cards'': {''01df4e32-7fe4-5b8d-9460-0f08fa29153e'':
-      1, ''032c60'
-    - '{''default'': {''boosters'': [{''contents'': {''common'': 11, ''rare'': 1,
-      ''uncommon'': 3}, ''weight'': 1}], ''boostersTotalWeight'': 1, ''sheets'': {''common'':
-      {''cards'': {''06ab1cc7-cc5e-55aa-a1d6-0c174ef0af7d'': 1, ''08313acd-3e35-59b0-b018-c197d67bb74b'':
-      1, ''08c502ff-65f8-'
-  - expr: code
-    name: code
-    synonyms:
-    - expansion code
-    data_type: string
-    description: Primary set code (e.g., 10E, 2XM) used to identify the set; joins
-      to cards.setcode and set_translations.setcode.
-    sample_values:
-    - 10E
-    - 2ED
-    - 2XM
-    - 3ED
-    - 4BB
-  - expr: isfoilonly
-    name: isfoilonly
-    synonyms:
-    - set foil only flag
-    data_type: int64
-    description: Indicates whether the set is only available in foil (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isforeignonly
-    name: isforeignonly
-    synonyms:
-    - set foreign only flag
-    data_type: int64
-    description: Indicates whether the set was released only outside the USA (1) or
-      not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 1
-  - expr: isnonfoilonly
-    name: isnonfoilonly
-    synonyms:
-    - set nonfoil only flag
-    data_type: int64
-    description: Indicates whether the set is only available in non-foil (1) or not
-      (0).
-    sample_values:
-    - 0
-    - 1
-    - 0
-    - 1
-    - 0
-  - expr: isonlineonly
-    name: isonlineonly
-    synonyms:
-    - set online only flag
-    data_type: int64
-    description: Indicates whether the set is available only on digital platforms
-      (1) or also in paper (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: ispartialpreview
-    name: ispartialpreview
-    synonyms:
-    - preview set flag
-    data_type: int64
-    description: Indicates whether the set data is incomplete because it was captured
-      during a preview/spoiler period (1) or complete (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: keyrunecode
-    name: keyrunecode
-    synonyms:
-    - keyrune icon code
-    data_type: string
-    description: Keyrune code used for displaying the set icon in Keyrune-based tooling.
-    sample_values:
-    - 10E
-    - 2ED
-    - 2XM
-    - 3ED
-    - 4ED
-  - expr: mcmid
-    name: mcmid
-    synonyms:
-    - mcm set id
-    data_type: int64
-    description: MagicCardMarket (MCM) identifier for the set.
-    sample_values:
-    - 74
-    - 3204
-  - expr: mcmidextras
-    name: mcmidextras
-    synonyms:
-    - mcm extra set id
-    data_type: int64
-    description: Secondary MagicCardMarket set identifier when the set is split across
-      multiple MCM entries.
-    sample_values:
-    - 3209
-  - expr: mcmname
-    name: mcmname
-    synonyms:
-    - mcm set name
-    data_type: string
-    description: Set name as listed on MagicCardMarket.
-    sample_values:
-    - Tenth Edition
-    - Double Masters
-  - expr: mtgocode
-    name: mtgocode
-    synonyms:
-    - mtgo set code
-    data_type: string
-    description: 'Set code used on Magic: The Gathering Online (MTGO), if applicable.'
-    sample_values:
-    - 10E
-    - 2XM
-  - expr: name
-    name: name
-    synonyms:
-    - expansion name
-    data_type: string
-    description: Official English name of the set/expansion.
-    sample_values:
-    - Tenth Edition
-    - Unlimited Edition
-    - Double Masters
-    - Revised Edition
-    - Fourth Edition Foreign Black Border
-  - expr: parentcode
-    name: parentcode
-    synonyms:
-    - parent set code
-    data_type: string
-    description: Parent set code for variant sets (promotions, guild kits, etc.);
-      null when not a variant.
-  - expr: tcgplayergroupid
-    name: tcgplayergroupid
-    synonyms:
-    - tcgplayer set group id
-    data_type: int64
-    description: TCGplayer group identifier for the set.
-    sample_values:
-    - 1
-    - 115
-    - 2655
-    - 97
-  - expr: type
-    name: type
-    synonyms:
-    - set product type
-    data_type: string
-    description: Set product type/category (e.g., core, expansion, masters).
-    sample_values:
-    - core
-    - core
-    - masters
-    - core
-    - core
-  description: Reference list of MTG sets/expansions with release information, platform
-    availability, and marketplace identifiers.
-  time_dimensions:
-  - expr: releasedate
-    name: releasedate
-    synonyms:
-    - set release date
-    data_type: date
-    description: Release date of the set.
-    sample_values:
-    - '2007-07-13'
-    - '1993-12-01'
-    - '2020-08-07'
-    - '1994-04-01'
-    - '1995-04-01'
-- name: cards
-  facts:
-  - expr: convertedmanacost
-    name: convertedmanacost
-    synonyms:
-    - mana value
-    data_type: float32
-    description: Converted mana cost / mana value (numeric cost to cast the spell).
-    sample_values:
-    - 7.0
-    - 5.0
-    - 4.0
-    - 4.0
-    - 1.0
-  - expr: edhrecrank
-    name: edhrecrank
-    synonyms:
-    - edhrec rank
-    data_type: int64
-    description: Popularity rank on EDHREC (lower numbers generally indicate more
-      popular cards).
-    sample_values:
-    - 15650
-    - 12702
-    - 11081
-    - 12901
-    - 3988
-  - expr: faceconvertedmanacost
-    name: faceconvertedmanacost
-    synonyms:
-    - face mana value
-    data_type: float32
-    description: Mana value for a specific face/half of a multi-faced card (when applicable).
-  synonyms:
-  - mtg card list
-  - card printings
-  - card reference
-  base_table:
-    table: cards
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    data_type: '!int64'
-    description: Surrogate identifier for the card printing record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: artist
-    name: artist
-    synonyms:
-    - card artist
-    data_type: string
-    description: Name of the artist who illustrated the card artwork.
-    sample_values:
-    - Pete Venters
-    - Volkan Baǵa
-    - Justin Sweet
-    - Matthew D. Wilson
-    - Rebecca Guay
-  - expr: asciiname
-    name: asciiname
-    synonyms:
-    - ascii card name
-    data_type: string
-    description: ASCII-formatted card name with special Unicode characters removed
-      (useful for matching/search).
-  - expr: availability
-    name: availability
-    synonyms:
-    - printing availability
-    data_type: string
-    description: Comma-separated list of platforms where this printing is available
-      (e.g., paper, mtgo, arena).
-    sample_values:
-    - mtgo,paper
-    - mtgo,paper
-    - mtgo,paper
-    - mtgo,paper
-    - mtgo,paper
-  - expr: bordercolor
-    name: bordercolor
-    synonyms:
-    - card border color
-    data_type: string
-    description: Border color/style for the printing (e.g., black, white, silver,
-      borderless).
-    sample_values:
-    - black
-    - black
-    - black
-    - black
-    - black
-  - expr: cardkingdomfoilid
-    name: cardkingdomfoilid
-    synonyms:
-    - card kingdom foil id
-    data_type: string
-    description: Card Kingdom product identifier for the foil version of this card
-      printing (if applicable).
-    sample_values:
-    - '123094'
-    - '123095'
-  - expr: cardkingdomid
-    name: cardkingdomid
-    synonyms:
-    - card kingdom id
-    data_type: string
-    description: Card Kingdom product identifier for this card printing.
-    sample_values:
-    - '122719'
-    - '122720'
-    - '122725'
-    - '122726'
-    - '122727'
-  - expr: coloridentity
-    name: coloridentity
-    synonyms:
-    - commander color identity
-    data_type: string
-    description: Commander color identity letters derived from mana cost, color indicator,
-      and rules text.
-    sample_values:
-    - W
-    - W
-    - W
-    - W
-    - W
-  - expr: colorindicator
-    name: colorindicator
-    synonyms:
-    - color indicator
-    data_type: string
-    description: Colors present in the card's color indicator (symbols printed before
-      the type line), if any.
-  - expr: colors
-    name: colors
-    synonyms:
-    - card colors
-    data_type: string
-    description: Colors of the card derived from mana cost and/or color indicator
-      (may be empty for some cards).
-    sample_values:
-    - W
-    - W
-    - W
-    - W
-    - W
-  - expr: dueldeck
-    name: dueldeck
-    synonyms:
-    - duel deck name
-    data_type: string
-    description: Name/identifier of the Duel Deck product this printing belongs to,
-      if applicable.
-  - expr: facename
-    name: facename
-    synonyms:
-    - card face name
-    data_type: string
-    description: Name printed on a specific face of a multi-faced card (when applicable).
-  - expr: flavorname
-    name: flavorname
-    synonyms:
-    - promotional flavor name
-    data_type: string
-    description: Promotional name printed above the true card name on certain special
-      printings (no gameplay function).
-  - expr: flavortext
-    name: flavortext
-    synonyms:
-    - english flavor text
-    data_type: string
-    description: Flavor text (italic lore text) for the card printing, when present.
-    sample_values:
-    - Every tear shed is a drop of immortality.
-    - The perfect antidote for a tightly packed formation.
-    - Life is measured in inches. To a healer, every one of those inches is precious.
-  - expr: frameeffects
-    name: frameeffects
-    synonyms:
-    - frame effects
-    data_type: string
-    description: Special visual frame effects applied to the card frame (e.g., etched,
-      extendedart, showcase).
-  - expr: frameversion
-    name: frameversion
-    synonyms:
-    - frame version
-    data_type: string
-    description: Card frame style era/version (e.g., 1997, 2003, 2015).
-    sample_values:
-    - '2003'
-    - '2003'
-    - '2003'
-    - '2003'
-    - '2003'
-  - expr: hand
-    name: hand
-    synonyms:
-    - max hand size modifier
-    data_type: string
-    description: Starting maximum hand size modifier for this card (used in some game
-      variants), typically formatted with +/-.
-  - expr: hasalternativedecklimit
-    name: hasalternativedecklimit
-    synonyms:
-    - alternate deck limit flag
-    data_type: int64
-    description: Indicates whether this card allows a non-standard deck copy limit
-      (1) or follows the default limit (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: hascontentwarning
-    name: hascontentwarning
-    synonyms:
-    - content warning flag
-    data_type: int64
-    description: Indicates whether Wizards of the Coast marked this printing for sensitive
-      content (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: hasfoil
-    name: hasfoil
-    synonyms:
-    - foil available flag
-    data_type: int64
-    description: Indicates whether this printing exists in foil (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 1
-    - 1
-  - expr: hasnonfoil
-    name: hasnonfoil
-    synonyms:
-    - nonfoil available flag
-    data_type: int64
-    description: Indicates whether this printing exists in non-foil (1) or not (0).
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  - expr: isalternative
-    name: isalternative
-    synonyms:
-    - alternate printing flag
-    data_type: int64
-    description: Indicates whether this row represents an alternate variation of an
-      original printing (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isfullart
-    name: isfullart
-    synonyms:
-    - full art flag
-    data_type: int64
-    description: Indicates whether the printing uses full-art treatment (1) or not
-      (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isonlineonly
-    name: isonlineonly
-    synonyms:
-    - online only printing flag
-    data_type: int64
-    description: Indicates whether the printing is available only in digital products
-      (1) or also in paper (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isoversized
-    name: isoversized
-    synonyms:
-    - oversized card flag
-    data_type: int64
-    description: Indicates whether the card is printed in an oversized format (1)
-      or normal size (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: ispromo
-    name: ispromo
-    synonyms:
-    - promotional printing flag
-    data_type: int64
-    description: Indicates whether the printing is promotional (1) or a regular release
-      (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isreprint
-    name: isreprint
-    synonyms:
-    - reprint flag
-    data_type: int64
-    description: Indicates whether this printing is a reprint (1) rather than the
-      card's first printing (0).
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  - expr: isreserved
-    name: isreserved
-    synonyms:
-    - reserved list flag
-    data_type: int64
-    description: Indicates whether the card is on the Reserved List (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isstarter
-    name: isstarter
-    synonyms:
-    - starter deck flag
-    data_type: int64
-    description: Indicates whether the printing appears in a starter-style product
-      (e.g., Planeswalker decks) (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: isstoryspotlight
-    name: isstoryspotlight
-    synonyms:
-    - story spotlight flag
-    data_type: int64
-    description: Indicates whether the card is designated as a Story Spotlight card
-      (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: istextless
-    name: istextless
-    synonyms:
-    - textless printing flag
-    data_type: int64
-    description: Indicates whether the printing has no text box (1) or includes a
-      text box (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: istimeshifted
-    name: istimeshifted
-    synonyms:
-    - timeshifted flag
-    data_type: int64
-    description: Indicates whether the printing is timeshifted (1) or not (0).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: keywords
-    name: keywords
-    synonyms:
-    - card keywords
-    data_type: string
-    description: Comma-separated keyword abilities present on the card (e.g., Flying,
-      First strike).
-    sample_values:
-    - First strike
-    - Flying
-    - Flying
-  - expr: layout
-    name: layout
-    synonyms:
-    - card layout
-    data_type: string
-    description: Card layout type (e.g., normal, split, transform, token).
-    sample_values:
-    - normal
-    - normal
-    - normal
-    - normal
-    - normal
-  - expr: leadershipskills
-    name: leadershipskills
-    synonyms:
-    - commander eligibility
-    data_type: string
-    description: Formats where the card is eligible to be a commander/leader (when
-      applicable).
-  - expr: life
-    name: life
-    synonyms:
-    - starting life modifier
-    data_type: string
-    description: Starting life total modifier associated with the card for certain
-      variants, typically formatted with +/-.
-  - expr: loyalty
-    name: loyalty
-    synonyms:
-    - planeswalker loyalty
-    data_type: string
-    description: Starting loyalty value for Planeswalker cards; null/empty when not
-      applicable.
-  - expr: manacost
-    name: manacost
-    synonyms:
-    - mana cost symbols
-    data_type: string
-    description: Mana cost as a string of bracketed symbols (e.g., {3}{W}).
-    sample_values:
-    - '{5}{W}{W}'
-    - '{4}{W}'
-    - '{3}{W}'
-    - '{3}{W}'
-    - '{W}'
-  - expr: mcmid
-    name: mcmid
-    synonyms:
-    - mcm product id
-    data_type: string
-    description: MagicCardMarket product identifier for this card printing.
-    sample_values:
-    - '16165'
-    - '16166'
-    - '16171'
-    - '16172'
-    - '16173'
-  - expr: mcmmetaid
-    name: mcmmetaid
-    synonyms:
-    - mcm meta product id
-    data_type: string
-    description: MagicCardMarket meta identifier grouping related products/printings.
-    sample_values:
-    - '156'
-    - '176'
-    - '368'
-    - '423'
-    - '432'
-  - expr: mtgarenaid
-    name: mtgarenaid
-    synonyms:
-    - arena card id
-    data_type: string
-    description: 'Magic: The Gathering Arena identifier for this card, if available.'
-  - expr: mtgjsonv4id
-    name: mtgjsonv4id
-    synonyms:
-    - mtgjson id
-    data_type: string
-    description: MTGJSON v4 UUID identifier for this card printing.
-    sample_values:
-    - ad41be73-582f-58ed-abd4-a88c1f616ac3
-    - 9eb2e54c-a12b-5e88-a9c0-d8c84c52d59c
-    - c0de6fd8-367a-50fb-b2f4-2b8fa5aeb7d9
-    - bfbb65b1-f1bb-5355-9495-fb094f9b0782
-    - a634f6df-fd74-54d9-a56c-3fdd2ad3e9bf
-  - expr: mtgofoilid
-    name: mtgofoilid
-    synonyms:
-    - mtgo foil id
-    data_type: string
-    description: MTGO identifier for the foil version of this card printing.
-    sample_values:
-    - '27501'
-    - '26993'
-    - '27473'
-    - '27327'
-    - '27095'
-  - expr: mtgoid
-    name: mtgoid
-    synonyms:
-    - mtgo card id
-    data_type: string
-    description: 'Magic: The Gathering Online (MTGO) identifier for this card printing.'
-    sample_values:
-    - '27500'
-    - '26992'
-    - '27472'
-    - '27326'
-    - '27094'
-  - expr: multiverseid
-    name: multiverseid
-    synonyms:
-    - gatherer multiverse id
-    data_type: string
-    description: Wizards 'Multiverse ID' for this printing (GATHERER identifier),
-      stored as text.
-    sample_values:
-    - '130550'
-    - '129465'
-    - '129470'
-    - '129477'
-    - '132106'
-  - expr: name
-    name: name
-    synonyms:
-    - card name
-    data_type: string
-    description: English card name for this printing.
-    sample_values:
-    - Ancestor's Chosen
-    - Angel of Mercy
-    - Aven Cloudchaser
-    - Ballista Squad
-    - Bandage
-  - expr: number
-    name: number
-    synonyms:
-    - collector number
-    data_type: string
-    description: Collector number of the card within the set (may include letters
-      for variants).
-    sample_values:
-    - '1'
-    - '2'
-    - '7'
-    - '8'
-    - '9'
-  - expr: originaltext
-    name: originaltext
-    synonyms:
-    - printed rules text
-    data_type: string
-    description: Rules text as originally printed (may differ from current oracle
-      text).
-    sample_values:
-    - 'First strike (This creature deals combat damage before creatures without first
-      strike.)
+            祖神に選ばれし者が場に出たとき、あなたはあなたの墓地にあるカード１枚につき１点のライフを得る。'
+      - expr: type
+        name: type
+        synonyms:
+          - foreign type line
+        data_type: string
+        description: Type line translated into the specified language (includes supertypes
+          and subtypes).
+        sample_values:
+          - Kreatur — Mensch, Kleriker
+          - Criatura — Clérigo humano
+          - 'Créature : humain et clerc'
+          - Creatura — Chierico Umano
+          - クリーチャー — 人間・クレリック
+      - expr: uuid
+        name: uuid
+        synonyms:
+          - card printing uuid
+        data_type: string
+        description: UUID of the specific card printing this localized row belongs to;
+          joins to cards.uuid.
+        sample_values:
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+    description: Localized (non-English) card fields for a specific card printing/language,
+      including translated name, type line, rules text, and flavor text. Join to cards
+      via uuid.
+  - name: set_translations
+    synonyms:
+      - set name localization
+      - translated set names
+      - set translations
+    base_table:
+      table: set_translations
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        data_type: '!int64'
+        description: Surrogate identifier for this set translation row.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: language
+        name: language
+        synonyms:
+          - set translation language
+        data_type: string
+        description: Language of the set name translation.
+        sample_values:
+          - Chinese Simplified
+          - Chinese Traditional
+          - French
+          - German
+          - Italian
+      - expr: setcode
+        name: setcode
+        synonyms:
+          - translated set code
+        data_type: string
+        description: Set code the translation applies to; joins to sets.code.
+        sample_values:
+          - 10E
+          - 10E
+          - 10E
+          - 10E
+          - 10E
+      - expr: translation
+        name: translation
+        synonyms:
+          - localized set name
+        data_type: string
+        description: Set name translated into the specified language.
+        sample_values:
+          - 核心系列第十版
+          - 核心系列第十版
+          - Dixième édition
+          - Hauptset Zehnte Edition
+          - Set Base Decima Edizione
+    description: Translations of MTG set (expansion) names by language. Join to sets
+      via setcode.
+  - name: legalities
+    synonyms:
+      - format legality
+      - play format legality
+      - card legality list
+    base_table:
+      table: legalities
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        data_type: '!int64'
+        description: Surrogate identifier for this legality record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: format
+        name: format
+        synonyms:
+          - mtg format
+        data_type: string
+        description: Gameplay format the legality applies to (e.g., modern, commander).
+        sample_values:
+          - commander
+          - duel
+          - legacy
+          - modern
+          - penny
+      - expr: status
+        name: status
+        synonyms:
+          - legality status
+        data_type: string
+        description: Legality result in the given format (e.g., Legal, Banned, Restricted).
+        sample_values:
+          - Legal
+          - Legal
+          - Legal
+          - Legal
+          - Legal
+      - expr: uuid
+        name: uuid
+        synonyms:
+          - legalities card uuid
+        data_type: string
+        description: UUID of the card printing the legality applies to; joins to cards.uuid.
+        sample_values:
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+    description: Per-card legality status for each gameplay format (e.g., Commander,
+      Modern). Join to cards via uuid.
+  - name: sets
+    facts:
+      - expr: basesetsize
+        name: basesetsize
+        synonyms:
+          - base set size
+        data_type: int64
+        description: Number of cards in the set excluding supplemental/promotional additions
+          (base size).
+        sample_values:
+          - 383
+          - 302
+          - 332
+          - 306
+          - 378
+      - expr: totalsetsize
+        name: totalsetsize
+        synonyms:
+          - total set size
+        data_type: int64
+        description: Total number of cards in the set including supplemental/promotional
+          items (as defined by the source).
+        sample_values:
+          - 508
+          - 302
+          - 384
+          - 306
+          - 378
+    synonyms:
+      - mtg expansion sets
+      - set catalog
+      - expansion metadata
+    base_table:
+      table: sets
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        data_type: '!int64'
+        description: Surrogate identifier for the set record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: block
+        name: block
+        synonyms:
+          - set block
+        data_type: string
+        description: Block or product grouping the set belongs to (when applicable).
+        sample_values:
+          - Core Set
+          - Core Set
+          - Core Set
+      - expr: booster
+        name: booster
+        synonyms:
+          - booster pack definition
+        data_type: string
+        description: Serialized definition of booster pack collation and probabilities
+          for the set (if provided).
+        sample_values:
+          - "{'default': {'boosters': [{'contents': {'basic': 1, 'common': 10,
+            'rare': 1, 'uncommon': 3}, 'weight': 1913922}, {'contents': {'basic':
+            1, 'common': 9, 'foilCommon': 1, 'rare': 1, 'uncommon': 3}, 'weight':
+            318987}, {'contents': {'basic': 1, 'common': 10, "
+          - "{'default': {'boosters': [{'contents': {'common': 11, 'rare': 1,
+            'uncommon': 3}, 'weight': 1}], 'boostersTotalWeight': 1, 'sheets': {'common':
+            {'cards': {'0ab4e3e6-f9fe-5fdc-9697-fd20690a0e15': 1, '0b326a61-0389-54e2-ac58-7bb47ca88202':
+            1, '0f099574-e9f7-"
+          - "{'default': {'boosters': [{'contents': {'common': 8, 'dedicatedFoil2xm':
+            2, 'rareMythic': 2, 'uncommon': 3}, 'weight': 1}], 'boostersTotalWeight':
+            1, 'sheets': {'common': {'balanceColors': True, 'cards': {'01df4e32-7fe4-5b8d-9460-0f08fa29153e':
+            1, '032c60"
+          - "{'default': {'boosters': [{'contents': {'common': 11, 'rare': 1,
+            'uncommon': 3}, 'weight': 1}], 'boostersTotalWeight': 1, 'sheets': {'common':
+            {'cards': {'06ab1cc7-cc5e-55aa-a1d6-0c174ef0af7d': 1, '08313acd-3e35-59b0-b018-c197d67bb74b':
+            1, '08c502ff-65f8-"
+      - expr: code
+        name: code
+        synonyms:
+          - expansion code
+        data_type: string
+        description: Primary set code (e.g., 10E, 2XM) used to identify the set; joins
+          to cards.setcode and set_translations.setcode.
+        sample_values:
+          - 10E
+          - 2ED
+          - 2XM
+          - 3ED
+          - 4BB
+      - expr: isfoilonly
+        name: isfoilonly
+        synonyms:
+          - set foil only flag
+        data_type: int64
+        description: Indicates whether the set is only available in foil (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isforeignonly
+        name: isforeignonly
+        synonyms:
+          - set foreign only flag
+        data_type: int64
+        description: Indicates whether the set was released only outside the USA (1) or
+          not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 1
+      - expr: isnonfoilonly
+        name: isnonfoilonly
+        synonyms:
+          - set nonfoil only flag
+        data_type: int64
+        description: Indicates whether the set is only available in non-foil (1) or not
+          (0).
+        sample_values:
+          - 0
+          - 1
+          - 0
+          - 1
+          - 0
+      - expr: isonlineonly
+        name: isonlineonly
+        synonyms:
+          - set online only flag
+        data_type: int64
+        description: Indicates whether the set is available only on digital platforms
+          (1) or also in paper (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: ispartialpreview
+        name: ispartialpreview
+        synonyms:
+          - preview set flag
+        data_type: int64
+        description: Indicates whether the set data is incomplete because it was captured
+          during a preview/spoiler period (1) or complete (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: keyrunecode
+        name: keyrunecode
+        synonyms:
+          - keyrune icon code
+        data_type: string
+        description: Keyrune code used for displaying the set icon in Keyrune-based tooling.
+        sample_values:
+          - 10E
+          - 2ED
+          - 2XM
+          - 3ED
+          - 4ED
+      - expr: mcmid
+        name: mcmid
+        synonyms:
+          - mcm set id
+        data_type: int64
+        description: MagicCardMarket (MCM) identifier for the set.
+        sample_values:
+          - 74
+          - 3204
+      - expr: mcmidextras
+        name: mcmidextras
+        synonyms:
+          - mcm extra set id
+        data_type: int64
+        description: Secondary MagicCardMarket set identifier when the set is split across
+          multiple MCM entries.
+        sample_values:
+          - 3209
+      - expr: mcmname
+        name: mcmname
+        synonyms:
+          - mcm set name
+        data_type: string
+        description: Set name as listed on MagicCardMarket.
+        sample_values:
+          - Tenth Edition
+          - Double Masters
+      - expr: mtgocode
+        name: mtgocode
+        synonyms:
+          - mtgo set code
+        data_type: string
+        description: 'Set code used on Magic: The Gathering Online (MTGO), if applicable.'
+        sample_values:
+          - 10E
+          - 2XM
+      - expr: name
+        name: name
+        synonyms:
+          - expansion name
+        data_type: string
+        description: Official English name of the set/expansion.
+        sample_values:
+          - Tenth Edition
+          - Unlimited Edition
+          - Double Masters
+          - Revised Edition
+          - Fourth Edition Foreign Black Border
+      - expr: parentcode
+        name: parentcode
+        synonyms:
+          - parent set code
+        data_type: string
+        description: Parent set code for variant sets (promotions, guild kits, etc.);
+          null when not a variant.
+      - expr: tcgplayergroupid
+        name: tcgplayergroupid
+        synonyms:
+          - tcgplayer set group id
+        data_type: int64
+        description: TCGplayer group identifier for the set.
+        sample_values:
+          - 1
+          - 115
+          - 2655
+          - 97
+      - expr: type
+        name: type
+        synonyms:
+          - set product type
+        data_type: string
+        description: Set product type/category (e.g., core, expansion, masters).
+        sample_values:
+          - core
+          - core
+          - masters
+          - core
+          - core
+    description: Reference list of MTG sets/expansions with release information, platform
+      availability, and marketplace identifiers.
+    time_dimensions:
+      - expr: releasedate
+        name: releasedate
+        synonyms:
+          - set release date
+        data_type: date
+        description: Release date of the set.
+        sample_values:
+          - '2007-07-13'
+          - '1993-12-01'
+          - '2020-08-07'
+          - '1994-04-01'
+          - '1995-04-01'
+  - name: cards
+    facts:
+      - expr: convertedmanacost
+        name: convertedmanacost
+        synonyms:
+          - mana value
+        data_type: float32
+        description: Converted mana cost / mana value (numeric cost to cast the spell).
+        sample_values:
+          - 7.0
+          - 5.0
+          - 4.0
+          - 4.0
+          - 1.0
+      - expr: edhrecrank
+        name: edhrecrank
+        synonyms:
+          - edhrec rank
+        data_type: int64
+        description: Popularity rank on EDHREC (lower numbers generally indicate more
+          popular cards).
+        sample_values:
+          - 15650
+          - 12702
+          - 11081
+          - 12901
+          - 3988
+      - expr: faceconvertedmanacost
+        name: faceconvertedmanacost
+        synonyms:
+          - face mana value
+        data_type: float32
+        description: Mana value for a specific face/half of a multi-faced card (when applicable).
+    synonyms:
+      - mtg card list
+      - card printings
+      - card reference
+    base_table:
+      table: cards
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        data_type: '!int64'
+        description: Surrogate identifier for the card printing record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: artist
+        name: artist
+        synonyms:
+          - card artist
+        data_type: string
+        description: Name of the artist who illustrated the card artwork.
+        sample_values:
+          - Pete Venters
+          - Volkan Baǵa
+          - Justin Sweet
+          - Matthew D. Wilson
+          - Rebecca Guay
+      - expr: asciiname
+        name: asciiname
+        synonyms:
+          - ascii card name
+        data_type: string
+        description: ASCII-formatted card name with special Unicode characters removed
+          (useful for matching/search).
+      - expr: availability
+        name: availability
+        synonyms:
+          - printing availability
+        data_type: string
+        description: Comma-separated list of platforms where this printing is available
+          (e.g., paper, mtgo, arena).
+        sample_values:
+          - mtgo,paper
+          - mtgo,paper
+          - mtgo,paper
+          - mtgo,paper
+          - mtgo,paper
+      - expr: bordercolor
+        name: bordercolor
+        synonyms:
+          - card border color
+        data_type: string
+        description: Border color/style for the printing (e.g., black, white, silver,
+          borderless).
+        sample_values:
+          - black
+          - black
+          - black
+          - black
+          - black
+      - expr: cardkingdomfoilid
+        name: cardkingdomfoilid
+        synonyms:
+          - card kingdom foil id
+        data_type: string
+        description: Card Kingdom product identifier for the foil version of this card
+          printing (if applicable).
+        sample_values:
+          - '123094'
+          - '123095'
+      - expr: cardkingdomid
+        name: cardkingdomid
+        synonyms:
+          - card kingdom id
+        data_type: string
+        description: Card Kingdom product identifier for this card printing.
+        sample_values:
+          - '122719'
+          - '122720'
+          - '122725'
+          - '122726'
+          - '122727'
+      - expr: coloridentity
+        name: coloridentity
+        synonyms:
+          - commander color identity
+        data_type: string
+        description: Commander color identity letters derived from mana cost, color indicator,
+          and rules text.
+        sample_values:
+          - W
+          - W
+          - W
+          - W
+          - W
+      - expr: colorindicator
+        name: colorindicator
+        synonyms:
+          - color indicator
+        data_type: string
+        description: Colors present in the card's color indicator (symbols printed before
+          the type line), if any.
+      - expr: colors
+        name: colors
+        synonyms:
+          - card colors
+        data_type: string
+        description: Colors of the card derived from mana cost and/or color indicator
+          (may be empty for some cards).
+        sample_values:
+          - W
+          - W
+          - W
+          - W
+          - W
+      - expr: dueldeck
+        name: dueldeck
+        synonyms:
+          - duel deck name
+        data_type: string
+        description: Name/identifier of the Duel Deck product this printing belongs to,
+          if applicable.
+      - expr: facename
+        name: facename
+        synonyms:
+          - card face name
+        data_type: string
+        description: Name printed on a specific face of a multi-faced card (when applicable).
+      - expr: flavorname
+        name: flavorname
+        synonyms:
+          - promotional flavor name
+        data_type: string
+        description: Promotional name printed above the true card name on certain special
+          printings (no gameplay function).
+      - expr: flavortext
+        name: flavortext
+        synonyms:
+          - english flavor text
+        data_type: string
+        description: Flavor text (italic lore text) for the card printing, when present.
+        sample_values:
+          - Every tear shed is a drop of immortality.
+          - The perfect antidote for a tightly packed formation.
+          - Life is measured in inches. To a healer, every one of those inches is precious.
+      - expr: frameeffects
+        name: frameeffects
+        synonyms:
+          - frame effects
+        data_type: string
+        description: Special visual frame effects applied to the card frame (e.g., etched,
+          extendedart, showcase).
+      - expr: frameversion
+        name: frameversion
+        synonyms:
+          - frame version
+        data_type: string
+        description: Card frame style era/version (e.g., 1997, 2003, 2015).
+        sample_values:
+          - '2003'
+          - '2003'
+          - '2003'
+          - '2003'
+          - '2003'
+      - expr: hand
+        name: hand
+        synonyms:
+          - max hand size modifier
+        data_type: string
+        description: Starting maximum hand size modifier for this card (used in some game
+          variants), typically formatted with +/-.
+      - expr: hasalternativedecklimit
+        name: hasalternativedecklimit
+        synonyms:
+          - alternate deck limit flag
+        data_type: int64
+        description: Indicates whether this card allows a non-standard deck copy limit
+          (1) or follows the default limit (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: hascontentwarning
+        name: hascontentwarning
+        synonyms:
+          - content warning flag
+        data_type: int64
+        description: Indicates whether Wizards of the Coast marked this printing for sensitive
+          content (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: hasfoil
+        name: hasfoil
+        synonyms:
+          - foil available flag
+        data_type: int64
+        description: Indicates whether this printing exists in foil (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 1
+          - 1
+      - expr: hasnonfoil
+        name: hasnonfoil
+        synonyms:
+          - nonfoil available flag
+        data_type: int64
+        description: Indicates whether this printing exists in non-foil (1) or not (0).
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+      - expr: isalternative
+        name: isalternative
+        synonyms:
+          - alternate printing flag
+        data_type: int64
+        description: Indicates whether this row represents an alternate variation of an
+          original printing (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isfullart
+        name: isfullart
+        synonyms:
+          - full art flag
+        data_type: int64
+        description: Indicates whether the printing uses full-art treatment (1) or not
+          (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isonlineonly
+        name: isonlineonly
+        synonyms:
+          - online only printing flag
+        data_type: int64
+        description: Indicates whether the printing is available only in digital products
+          (1) or also in paper (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isoversized
+        name: isoversized
+        synonyms:
+          - oversized card flag
+        data_type: int64
+        description: Indicates whether the card is printed in an oversized format (1)
+          or normal size (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: ispromo
+        name: ispromo
+        synonyms:
+          - promotional printing flag
+        data_type: int64
+        description: Indicates whether the printing is promotional (1) or a regular release
+          (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isreprint
+        name: isreprint
+        synonyms:
+          - reprint flag
+        data_type: int64
+        description: Indicates whether this printing is a reprint (1) rather than the
+          card's first printing (0).
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+      - expr: isreserved
+        name: isreserved
+        synonyms:
+          - reserved list flag
+        data_type: int64
+        description: Indicates whether the card is on the Reserved List (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isstarter
+        name: isstarter
+        synonyms:
+          - starter deck flag
+        data_type: int64
+        description: Indicates whether the printing appears in a starter-style product
+          (e.g., Planeswalker decks) (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: isstoryspotlight
+        name: isstoryspotlight
+        synonyms:
+          - story spotlight flag
+        data_type: int64
+        description: Indicates whether the card is designated as a Story Spotlight card
+          (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: istextless
+        name: istextless
+        synonyms:
+          - textless printing flag
+        data_type: int64
+        description: Indicates whether the printing has no text box (1) or includes a
+          text box (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: istimeshifted
+        name: istimeshifted
+        synonyms:
+          - timeshifted flag
+        data_type: int64
+        description: Indicates whether the printing is timeshifted (1) or not (0).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: keywords
+        name: keywords
+        synonyms:
+          - card keywords
+        data_type: string
+        description: Comma-separated keyword abilities present on the card (e.g., Flying,
+          First strike).
+        sample_values:
+          - First strike
+          - Flying
+          - Flying
+      - expr: layout
+        name: layout
+        synonyms:
+          - card layout
+        data_type: string
+        description: Card layout type (e.g., normal, split, transform, token).
+        sample_values:
+          - normal
+          - normal
+          - normal
+          - normal
+          - normal
+      - expr: leadershipskills
+        name: leadershipskills
+        synonyms:
+          - commander eligibility
+        data_type: string
+        description: Formats where the card is eligible to be a commander/leader (when
+          applicable).
+      - expr: life
+        name: life
+        synonyms:
+          - starting life modifier
+        data_type: string
+        description: Starting life total modifier associated with the card for certain
+          variants, typically formatted with +/-.
+      - expr: loyalty
+        name: loyalty
+        synonyms:
+          - planeswalker loyalty
+        data_type: string
+        description: Starting loyalty value for Planeswalker cards; null/empty when not
+          applicable.
+      - expr: manacost
+        name: manacost
+        synonyms:
+          - mana cost symbols
+        data_type: string
+        description: Mana cost as a string of bracketed symbols (e.g., {3}{W}).
+        sample_values:
+          - '{5}{W}{W}'
+          - '{4}{W}'
+          - '{3}{W}'
+          - '{3}{W}'
+          - '{W}'
+      - expr: mcmid
+        name: mcmid
+        synonyms:
+          - mcm product id
+        data_type: string
+        description: MagicCardMarket product identifier for this card printing.
+        sample_values:
+          - '16165'
+          - '16166'
+          - '16171'
+          - '16172'
+          - '16173'
+      - expr: mcmmetaid
+        name: mcmmetaid
+        synonyms:
+          - mcm meta product id
+        data_type: string
+        description: MagicCardMarket meta identifier grouping related products/printings.
+        sample_values:
+          - '156'
+          - '176'
+          - '368'
+          - '423'
+          - '432'
+      - expr: mtgarenaid
+        name: mtgarenaid
+        synonyms:
+          - arena card id
+        data_type: string
+        description: 'Magic: The Gathering Arena identifier for this card, if available.'
+      - expr: mtgjsonv4id
+        name: mtgjsonv4id
+        synonyms:
+          - mtgjson id
+        data_type: string
+        description: MTGJSON v4 UUID identifier for this card printing.
+        sample_values:
+          - ad41be73-582f-58ed-abd4-a88c1f616ac3
+          - 9eb2e54c-a12b-5e88-a9c0-d8c84c52d59c
+          - c0de6fd8-367a-50fb-b2f4-2b8fa5aeb7d9
+          - bfbb65b1-f1bb-5355-9495-fb094f9b0782
+          - a634f6df-fd74-54d9-a56c-3fdd2ad3e9bf
+      - expr: mtgofoilid
+        name: mtgofoilid
+        synonyms:
+          - mtgo foil id
+        data_type: string
+        description: MTGO identifier for the foil version of this card printing.
+        sample_values:
+          - '27501'
+          - '26993'
+          - '27473'
+          - '27327'
+          - '27095'
+      - expr: mtgoid
+        name: mtgoid
+        synonyms:
+          - mtgo card id
+        data_type: string
+        description: 'Magic: The Gathering Online (MTGO) identifier for this card printing.'
+        sample_values:
+          - '27500'
+          - '26992'
+          - '27472'
+          - '27326'
+          - '27094'
+      - expr: multiverseid
+        name: multiverseid
+        synonyms:
+          - gatherer multiverse id
+        data_type: string
+        description: Wizards 'Multiverse ID' for this printing (GATHERER identifier),
+          stored as text.
+        sample_values:
+          - '130550'
+          - '129465'
+          - '129470'
+          - '129477'
+          - '132106'
+      - expr: name
+        name: name
+        synonyms:
+          - card name
+        data_type: string
+        description: English card name for this printing.
+        sample_values:
+          - Ancestor's Chosen
+          - Angel of Mercy
+          - Aven Cloudchaser
+          - Ballista Squad
+          - Bandage
+      - expr: number
+        name: number
+        synonyms:
+          - collector number
+        data_type: string
+        description: Collector number of the card within the set (may include letters
+          for variants).
+        sample_values:
+          - '1'
+          - '2'
+          - '7'
+          - '8'
+          - '9'
+      - expr: originaltext
+        name: originaltext
+        synonyms:
+          - printed rules text
+        data_type: string
+        description: Rules text as originally printed (may differ from current oracle
+          text).
+        sample_values:
+          - "First strike (This creature deals combat damage before creatures without first
+            strike.)
 
-      When Ancestor''s Chosen comes into play, you gain 1 life for each card in your
-      graveyard.'
-    - 'Flying (This creature can''t be blocked except by creatures with flying or
-      reach.)
+            When Ancestor's Chosen comes into play, you gain 1 life for each card in your
+            graveyard."
+          - "Flying (This creature can't be blocked except by creatures with flying or
+            reach.)
 
-      When Angel of Mercy comes into play, you gain 3 life.'
-    - 'Flying (This creature can''t be blocked except by creatures with flying or
-      reach.)
+            When Angel of Mercy comes into play, you gain 3 life."
+          - "Flying (This creature can't be blocked except by creatures with flying or
+            reach.)
 
-      When Aven Cloudchaser comes into play, destroy target enchantment.'
-    - '{X}{W}, {T}: Ballista Squad deals X damage to target attacking or blocking
-      creature.'
-    - 'Prevent the next 1 damage that would be dealt to target creature or player
-      this turn.
+            When Aven Cloudchaser comes into play, destroy target enchantment."
+          - '{X}{W}, {T}: Ballista Squad deals X damage to target attacking or blocking
+            creature.'
+          - 'Prevent the next 1 damage that would be dealt to target creature or player
+            this turn.
 
-      Draw a card.'
-  - expr: originaltype
-    name: originaltype
-    synonyms:
-    - printed type line
-    data_type: string
-    description: Type line as originally printed (may differ from current type line).
-    sample_values:
-    - Creature - Human Cleric
-    - Creature - Angel
-    - Creature - Bird Soldier
-    - Creature - Human Rebel
-    - Instant
-  - expr: otherfaceids
-    name: otherfaceids
-    synonyms:
-    - other face uuids
-    data_type: string
-    description: UUIDs of related faces/parts for multi-faced or meld cards.
-  - expr: power
-    name: power
-    synonyms:
-    - creature power
-    data_type: string
-    description: Power value for creature cards (may be *, 0, or special symbols for
-      variable values).
-    sample_values:
-    - '4'
-    - '3'
-    - '2'
-    - '2'
-  - expr: printings
-    name: printings
-    synonyms:
-    - all printing set codes
-    data_type: string
-    description: Comma-separated set codes where this card has been printed.
-    sample_values:
-    - 10E,JUD,UMA
-    - 10E,8ED,9ED,DDC,DVD,IMA,INV,JMP,MB1,P02,PS11,PSAL,S99
-    - 10E,8ED,9ED,ODY
-    - 10E,9ED,MMQ
-    - 10E,STH,TPR
-  - expr: promotypes
-    name: promotypes
-    synonyms:
-    - promo categories
-    data_type: string
-    description: Comma-separated list of promotional type tags for this printing (if
-      any).
-  - expr: purchaseurls
-    name: purchaseurls
-    synonyms:
-    - purchase links
-    data_type: string
-    description: Serialized links to marketplaces where the card printing can be purchased
-      (e.g., Card Kingdom, Cardmarket, TCGplayer).
-    sample_values:
-    - '{''cardKingdom'': ''https://mtgjson.com/links/9fb51af0ad6f0736'', ''cardmarket'':
-      ''https://mtgjson.com/links/ace8861194ee0b6a'', ''tcgplayer'': ''https://mtgjson.com/links/4843cea124a0d515''}'
-    - '{''cardKingdom'': ''https://mtgjson.com/links/027095d094e58f5b'', ''cardmarket'':
-      ''https://mtgjson.com/links/f6fb5098e1cd1b1e'', ''tcgplayer'': ''https://mtgjson.com/links/56c4b57293f350ef''}'
-    - '{''cardKingdom'': ''https://mtgjson.com/links/9246105d88032a9f'', ''cardmarket'':
-      ''https://mtgjson.com/links/dcdfe48e6a8f9e1e'', ''tcgplayer'': ''https://mtgjson.com/links/3ce595aabe276f80''}'
-    - '{''cardKingdom'': ''https://mtgjson.com/links/d702da7661073a13'', ''cardKingdomFoil'':
-      ''https://mtgjson.com/links/fbb773ed07f117ac'', ''cardmarket'': ''https://mtgjson.com/links/f04d4a0c97f986fe'',
-      ''tcgplayer'': ''https://mtgjson.com/links/1e6874adc6cbd28f''}'
-    - '{''cardKingdom'': ''https://mtgjson.com/links/a072a876146b29bc'', ''cardKingdomFoil'':
-      ''https://mtgjson.com/links/30995197ba8fc8c1'', ''cardmarket'': ''https://mtgjson.com/links/35a66170a09a59c7'',
-      ''tcgplayer'': ''https://mtgjson.com/links/d091fd8b400df945''}'
-  - expr: rarity
-    name: rarity
-    synonyms:
-    - card rarity
-    data_type: string
-    description: Rarity of the card printing (e.g., common, uncommon, rare, mythic).
-    sample_values:
-    - uncommon
-    - uncommon
-    - common
-    - uncommon
-    - common
-  - expr: scryfallid
-    name: scryfallid
-    synonyms:
-    - scryfall card id
-    data_type: string
-    description: Scryfall identifier for this specific card printing.
-    sample_values:
-    - 7a5cd03c-4227-4551-aa4b-7d119f0468b5
-    - 8f7980d4-da43-4d6d-ad16-14b8a34ae91d
-    - 407110e9-19af-4ff5-97b2-c03225031a73
-    - a4d17394-b9c4-43f6-9a6d-2c7c7ecb1d74
-    - c9c17e3b-4d7f-4472-afe1-8e9358b82f2c
-  - expr: scryfallillustrationid
-    name: scryfallillustrationid
-    synonyms:
-    - scryfall illustration id
-    data_type: string
-    description: Scryfall illustration identifier shared across printings that use
-      the same art.
-    sample_values:
-    - be2f7173-c8b7-4172-a388-9b2c6b3c16e5
-    - e4d6c53f-e936-4be8-8b70-47c2be863b20
-    - 2eb663cd-020a-46d8-a6d9-bb63d4b5c848
-    - 8464353d-099c-47ba-a0eb-e08b7b76b464
-    - af3d1d9e-8a04-4ba5-aa96-9ea678daaa2b
-  - expr: scryfalloracleid
-    name: scryfalloracleid
-    synonyms:
-    - scryfall oracle id
-    data_type: string
-    description: Scryfall oracle identifier grouping all printings of the same oracle
-      card.
-    sample_values:
-    - fc2ccab7-cab1-4463-b73d-898070136d74
-    - a2daaf32-dbfe-4618-892e-0da24f63a44a
-    - 48bda7dd-d023-41e8-8c28-e0cfda0d07ca
-    - 5973725c-6e1f-4d7e-bcef-3d867ea4c244
-    - c664df64-0103-462b-a0f8-c483b152974a
-  - expr: setcode
-    name: setcode
-    synonyms:
-    - card printing set code
-    data_type: string
-    description: Set code where this printing appears; joins to sets.code.
-    sample_values:
-    - 10E
-    - 10E
-    - 10E
-    - 10E
-    - 10E
-  - expr: side
-    name: side
-    synonyms:
-    - card side
-    data_type: string
-    description: Identifier of the side/face for multi-faced cards (e.g., a/b), when
-      applicable.
-  - expr: subtypes
-    name: subtypes
-    synonyms:
-    - card subtypes
-    data_type: string
-    description: Comma-separated list of subtypes (creature types, spell subtypes)
-      appearing after the em dash.
-    sample_values:
-    - Human,Cleric
-    - Angel
-    - Bird,Soldier
-    - Human,Rebel
-  - expr: supertypes
-    name: supertypes
-    synonyms:
-    - card supertypes
-    data_type: string
-    description: Comma-separated list of supertypes (e.g., Legendary, Basic, Snow),
-      when present.
-  - expr: tcgplayerproductid
-    name: tcgplayerproductid
-    synonyms:
-    - tcgplayer product id
-    data_type: string
-    description: TCGplayer product identifier for this card printing.
-    sample_values:
-    - '15032'
-    - '15033'
-    - '15045'
-    - '15048'
-    - '15049'
-  - expr: text
-    name: text
-    synonyms:
-    - oracle rules text
-    data_type: string
-    description: Current oracle rules text for the card printing.
-    sample_values:
-    - 'First strike (This creature deals combat damage before creatures without first
-      strike.)
+            Draw a card.'
+      - expr: originaltype
+        name: originaltype
+        synonyms:
+          - printed type line
+        data_type: string
+        description: Type line as originally printed (may differ from current type line).
+        sample_values:
+          - Creature - Human Cleric
+          - Creature - Angel
+          - Creature - Bird Soldier
+          - Creature - Human Rebel
+          - Instant
+      - expr: otherfaceids
+        name: otherfaceids
+        synonyms:
+          - other face uuids
+        data_type: string
+        description: UUIDs of related faces/parts for multi-faced or meld cards.
+      - expr: power
+        name: power
+        synonyms:
+          - creature power
+        data_type: string
+        description: Power value for creature cards (may be *, 0, or special symbols for
+          variable values).
+        sample_values:
+          - '4'
+          - '3'
+          - '2'
+          - '2'
+      - expr: printings
+        name: printings
+        synonyms:
+          - all printing set codes
+        data_type: string
+        description: Comma-separated set codes where this card has been printed.
+        sample_values:
+          - 10E,JUD,UMA
+          - 10E,8ED,9ED,DDC,DVD,IMA,INV,JMP,MB1,P02,PS11,PSAL,S99
+          - 10E,8ED,9ED,ODY
+          - 10E,9ED,MMQ
+          - 10E,STH,TPR
+      - expr: promotypes
+        name: promotypes
+        synonyms:
+          - promo categories
+        data_type: string
+        description: Comma-separated list of promotional type tags for this printing (if
+          any).
+      - expr: purchaseurls
+        name: purchaseurls
+        synonyms:
+          - purchase links
+        data_type: string
+        description: Serialized links to marketplaces where the card printing can be purchased
+          (e.g., Card Kingdom, Cardmarket, TCGplayer).
+        sample_values:
+          - "{'cardKingdom': 'https://mtgjson.com/links/9fb51af0ad6f0736', 'cardmarket':
+            'https://mtgjson.com/links/ace8861194ee0b6a', 'tcgplayer': 'https://mtgjson.com/links/4843cea124a0d515'}"
+          - "{'cardKingdom': 'https://mtgjson.com/links/027095d094e58f5b', 'cardmarket':
+            'https://mtgjson.com/links/f6fb5098e1cd1b1e', 'tcgplayer': 'https://mtgjson.com/links/56c4b57293f350ef'}"
+          - "{'cardKingdom': 'https://mtgjson.com/links/9246105d88032a9f', 'cardmarket':
+            'https://mtgjson.com/links/dcdfe48e6a8f9e1e', 'tcgplayer': 'https://mtgjson.com/links/3ce595aabe276f80'}"
+          - "{'cardKingdom': 'https://mtgjson.com/links/d702da7661073a13', 'cardKingdomFoil':
+            'https://mtgjson.com/links/fbb773ed07f117ac', 'cardmarket': 'https://mtgjson.com/links/f04d4a0c97f986fe',
+            'tcgplayer': 'https://mtgjson.com/links/1e6874adc6cbd28f'}"
+          - "{'cardKingdom': 'https://mtgjson.com/links/a072a876146b29bc', 'cardKingdomFoil':
+            'https://mtgjson.com/links/30995197ba8fc8c1', 'cardmarket': 'https://mtgjson.com/links/35a66170a09a59c7',
+            'tcgplayer': 'https://mtgjson.com/links/d091fd8b400df945'}"
+      - expr: rarity
+        name: rarity
+        synonyms:
+          - card rarity
+        data_type: string
+        description: Rarity of the card printing (e.g., common, uncommon, rare, mythic).
+        sample_values:
+          - uncommon
+          - uncommon
+          - common
+          - uncommon
+          - common
+      - expr: scryfallid
+        name: scryfallid
+        synonyms:
+          - scryfall card id
+        data_type: string
+        description: Scryfall identifier for this specific card printing.
+        sample_values:
+          - 7a5cd03c-4227-4551-aa4b-7d119f0468b5
+          - 8f7980d4-da43-4d6d-ad16-14b8a34ae91d
+          - 407110e9-19af-4ff5-97b2-c03225031a73
+          - a4d17394-b9c4-43f6-9a6d-2c7c7ecb1d74
+          - c9c17e3b-4d7f-4472-afe1-8e9358b82f2c
+      - expr: scryfallillustrationid
+        name: scryfallillustrationid
+        synonyms:
+          - scryfall illustration id
+        data_type: string
+        description: Scryfall illustration identifier shared across printings that use
+          the same art.
+        sample_values:
+          - be2f7173-c8b7-4172-a388-9b2c6b3c16e5
+          - e4d6c53f-e936-4be8-8b70-47c2be863b20
+          - 2eb663cd-020a-46d8-a6d9-bb63d4b5c848
+          - 8464353d-099c-47ba-a0eb-e08b7b76b464
+          - af3d1d9e-8a04-4ba5-aa96-9ea678daaa2b
+      - expr: scryfalloracleid
+        name: scryfalloracleid
+        synonyms:
+          - scryfall oracle id
+        data_type: string
+        description: Scryfall oracle identifier grouping all printings of the same oracle
+          card.
+        sample_values:
+          - fc2ccab7-cab1-4463-b73d-898070136d74
+          - a2daaf32-dbfe-4618-892e-0da24f63a44a
+          - 48bda7dd-d023-41e8-8c28-e0cfda0d07ca
+          - 5973725c-6e1f-4d7e-bcef-3d867ea4c244
+          - c664df64-0103-462b-a0f8-c483b152974a
+      - expr: setcode
+        name: setcode
+        synonyms:
+          - card printing set code
+        data_type: string
+        description: Set code where this printing appears; joins to sets.code.
+        sample_values:
+          - 10E
+          - 10E
+          - 10E
+          - 10E
+          - 10E
+      - expr: side
+        name: side
+        synonyms:
+          - card side
+        data_type: string
+        description: Identifier of the side/face for multi-faced cards (e.g., a/b), when
+          applicable.
+      - expr: subtypes
+        name: subtypes
+        synonyms:
+          - card subtypes
+        data_type: string
+        description: Comma-separated list of subtypes (creature types, spell subtypes)
+          appearing after the em dash.
+        sample_values:
+          - Human,Cleric
+          - Angel
+          - Bird,Soldier
+          - Human,Rebel
+      - expr: supertypes
+        name: supertypes
+        synonyms:
+          - card supertypes
+        data_type: string
+        description: Comma-separated list of supertypes (e.g., Legendary, Basic, Snow),
+          when present.
+      - expr: tcgplayerproductid
+        name: tcgplayerproductid
+        synonyms:
+          - tcgplayer product id
+        data_type: string
+        description: TCGplayer product identifier for this card printing.
+        sample_values:
+          - '15032'
+          - '15033'
+          - '15045'
+          - '15048'
+          - '15049'
+      - expr: text
+        name: text
+        synonyms:
+          - oracle rules text
+        data_type: string
+        description: Current oracle rules text for the card printing.
+        sample_values:
+          - "First strike (This creature deals combat damage before creatures without first
+            strike.)
 
-      When Ancestor''s Chosen enters the battlefield, you gain 1 life for each card
-      in your graveyard.'
-    - 'Flying
+            When Ancestor's Chosen enters the battlefield, you gain 1 life for each card
+            in your graveyard."
+          - 'Flying
 
-      When Angel of Mercy enters the battlefield, you gain 3 life.'
-    - 'Flying (This creature can''t be blocked except by creatures with flying or
-      reach.)
+            When Angel of Mercy enters the battlefield, you gain 3 life.'
+          - "Flying (This creature can't be blocked except by creatures with flying or
+            reach.)
 
-      When Aven Cloudchaser enters the battlefield, destroy target enchantment.'
-    - '{X}{W}, {T}: Ballista Squad deals X damage to target attacking or blocking
-      creature.'
-    - 'Prevent the next 1 damage that would be dealt to any target this turn.
+            When Aven Cloudchaser enters the battlefield, destroy target enchantment."
+          - '{X}{W}, {T}: Ballista Squad deals X damage to target attacking or blocking
+            creature.'
+          - 'Prevent the next 1 damage that would be dealt to any target this turn.
 
-      Draw a card.'
-  - expr: toughness
-    name: toughness
+            Draw a card.'
+      - expr: toughness
+        name: toughness
+        synonyms:
+          - creature toughness
+        data_type: string
+        description: Toughness value for creature cards (may be *, 0, or special symbols
+          for variable values).
+        sample_values:
+          - '4'
+          - '3'
+          - '2'
+          - '2'
+      - expr: type
+        name: type
+        synonyms:
+          - current type line
+        data_type: string
+        description: Current type line including supertypes and subtypes (e.g., Creature
+          — Bird Soldier).
+        sample_values:
+          - Creature — Human Cleric
+          - Creature — Angel
+          - Creature — Bird Soldier
+          - Creature — Human Rebel
+          - Instant
+      - expr: types
+        name: types
+        synonyms:
+          - primary card types
+        data_type: string
+        description: Comma-separated list of main card types (e.g., Creature, Instant,
+          Land).
+        sample_values:
+          - Creature
+          - Creature
+          - Creature
+          - Creature
+          - Instant
+      - expr: uuid
+        name: uuid
+        synonyms:
+          - printing uuid
+        data_type: string
+        description: Unique UUID for the specific card printing; primary join key to legalities,
+          rulings, and foreign_data.
+        sample_values:
+          - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
+          - 57aaebc1-850c-503d-9f6e-bb8d00d8bf7c
+          - 8ac972b5-9f6e-5cc8-91c3-b9a40a98232e
+          - a69b404f-144a-5317-b10e-7d9dce135b24
+          - 6d268c95-c176-5766-9a46-c14f739aba1c
+      - expr: variations
+        name: variations
+        synonyms:
+          - variation uuids
+        data_type: string
+        description: UUIDs of alternate variations related to this printing (alternate
+          art/frames, etc.), when provided.
+        sample_values:
+          - b7c19924-b4bf-56fc-aa73-f586e940bd42
+          - 8fd4e2eb-3eb4-50ea-856b-ef638fa47f8a
+          - 6adaf14d-43e3-521a-adf1-960c808e5b1a
+      - expr: watermark
+        name: watermark
+        synonyms:
+          - card watermark
+        data_type: string
+        description: Name of the watermark printed on the card (faction/guild/brand),
+          when present.
+    description: Card printings catalog with gameplay attributes (mana cost, colors,
+      types), identifiers across platforms/marketplaces, and printing metadata such
+      as set code and rarity.
+    time_dimensions:
+      - expr: originalreleasedate
+        name: originalreleasedate
+        synonyms:
+          - original promo release date
+        data_type: string
+        description: Original release date for certain promotional printings outside normal
+          set release windows (ISO 8601 when present).
+  - name: rulings
     synonyms:
-    - creature toughness
-    data_type: string
-    description: Toughness value for creature cards (may be *, 0, or special symbols
-      for variable values).
-    sample_values:
-    - '4'
-    - '3'
-    - '2'
-    - '2'
-  - expr: type
-    name: type
-    synonyms:
-    - current type line
-    data_type: string
-    description: Current type line including supertypes and subtypes (e.g., Creature
-      — Bird Soldier).
-    sample_values:
-    - Creature — Human Cleric
-    - Creature — Angel
-    - Creature — Bird Soldier
-    - Creature — Human Rebel
-    - Instant
-  - expr: types
-    name: types
-    synonyms:
-    - primary card types
-    data_type: string
-    description: Comma-separated list of main card types (e.g., Creature, Instant,
-      Land).
-    sample_values:
-    - Creature
-    - Creature
-    - Creature
-    - Creature
-    - Instant
-  - expr: uuid
-    name: uuid
-    synonyms:
-    - printing uuid
-    data_type: string
-    description: Unique UUID for the specific card printing; primary join key to legalities,
-      rulings, and foreign_data.
-    sample_values:
-    - 5f8287b1-5bb6-5f4c-ad17-316a40d5bb0c
-    - 57aaebc1-850c-503d-9f6e-bb8d00d8bf7c
-    - 8ac972b5-9f6e-5cc8-91c3-b9a40a98232e
-    - a69b404f-144a-5317-b10e-7d9dce135b24
-    - 6d268c95-c176-5766-9a46-c14f739aba1c
-  - expr: variations
-    name: variations
-    synonyms:
-    - variation uuids
-    data_type: string
-    description: UUIDs of alternate variations related to this printing (alternate
-      art/frames, etc.), when provided.
-    sample_values:
-    - b7c19924-b4bf-56fc-aa73-f586e940bd42
-    - 8fd4e2eb-3eb4-50ea-856b-ef638fa47f8a
-    - 6adaf14d-43e3-521a-adf1-960c808e5b1a
-  - expr: watermark
-    name: watermark
-    synonyms:
-    - card watermark
-    data_type: string
-    description: Name of the watermark printed on the card (faction/guild/brand),
-      when present.
-  description: Card printings catalog with gameplay attributes (mana cost, colors,
-    types), identifiers across platforms/marketplaces, and printing metadata such
-    as set code and rarity.
-  time_dimensions:
-  - expr: originalreleasedate
-    name: originalreleasedate
-    synonyms:
-    - original promo release date
-    data_type: string
-    description: Original release date for certain promotional printings outside normal
-      set release windows (ISO 8601 when present).
-- name: rulings
-  synonyms:
-  - official rulings
-  - card rulings log
-  - oracle rulings
-  base_table:
-    table: rulings
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    data_type: '!int64'
-    description: Surrogate identifier for the ruling record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: text
-    name: text
-    synonyms:
-    - ruling text
-    data_type: string
-    description: Full text of the official ruling/clarification.
-    sample_values:
-    - You draw the card when Bandage resolves, not when the damage is actually prevented.
-    - If you double a negative life total, you do the real math. A life total of -10
-      becomes -20.
-    - Beacon of Immortality’s effect counts as life gain (or life loss, if the life
-      total was negative) for effects that trigger on or replace life gain (or life
-      loss).
-    - If a Beacon is countered or doesn’t resolve, it’s put into its owner’s graveyard,
-      not shuffled into the library.
-    - The affected creature’s last known existence on the battlefield is checked to
-      determine its toughness.
-  - expr: uuid
-    name: uuid
-    synonyms:
-    - rulings card uuid
-    data_type: string
-    description: UUID of the card printing the ruling applies to; joins to cards.uuid.
-    sample_values:
-    - 6d268c95-c176-5766-9a46-c14f739aba1c
-    - 56f4935b-f6c5-59b9-88bf-9bcce20247ce
-    - 56f4935b-f6c5-59b9-88bf-9bcce20247ce
-    - 56f4935b-f6c5-59b9-88bf-9bcce20247ce
-    - 7fef665c-36a1-5f7a-9299-cf8938708710
-  description: Official rules clarifications (rulings) for card printings, including
-    ruling text and effective date. Join to cards via uuid.
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - ruling date
-    data_type: date
-    description: Date the ruling was published/effective.
-    sample_values:
-    - '2007-07-15'
-    - '2007-02-01'
-    - '2007-07-15'
-    - '2007-07-15'
-    - '2010-08-15'
+      - official rulings
+      - card rulings log
+      - oracle rulings
+    base_table:
+      table: rulings
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        data_type: '!int64'
+        description: Surrogate identifier for the ruling record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: text
+        name: text
+        synonyms:
+          - ruling text
+        data_type: string
+        description: Full text of the official ruling/clarification.
+        sample_values:
+          - You draw the card when Bandage resolves, not when the damage is actually prevented.
+          - If you double a negative life total, you do the real math. A life total of -10
+            becomes -20.
+          - Beacon of Immortality’s effect counts as life gain (or life loss, if the life
+            total was negative) for effects that trigger on or replace life gain (or life
+            loss).
+          - If a Beacon is countered or doesn’t resolve, it’s put into its owner’s graveyard,
+            not shuffled into the library.
+          - The affected creature’s last known existence on the battlefield is checked to
+            determine its toughness.
+      - expr: uuid
+        name: uuid
+        synonyms:
+          - rulings card uuid
+        data_type: string
+        description: UUID of the card printing the ruling applies to; joins to cards.uuid.
+        sample_values:
+          - 6d268c95-c176-5766-9a46-c14f739aba1c
+          - 56f4935b-f6c5-59b9-88bf-9bcce20247ce
+          - 56f4935b-f6c5-59b9-88bf-9bcce20247ce
+          - 56f4935b-f6c5-59b9-88bf-9bcce20247ce
+          - 7fef665c-36a1-5f7a-9299-cf8938708710
+    description: Official rules clarifications (rulings) for card printings, including
+      ruling text and effective date. Join to cards via uuid.
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - ruling date
+        data_type: date
+        description: Date the ruling was published/effective.
+        sample_values:
+          - '2007-07-15'
+          - '2007-02-01'
+          - '2007-07-15'
+          - '2007-07-15'
+          - '2010-08-15'
 description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
   \ cards\n\nColumns:\n- **unique id number identifying the cards** - Type: integer\n\
   \ (The name of the artist that illustrated the card art.) - Type: text\n- **ascii\

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-050
-description: "BIRD Q1198 (simple): How many female patients were given an APS diagnosis?"
+description: 'BIRD Q1198 (simple): How many female patients were given an APS diagnosis?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1198
-    description: "How many female patients were given an APS diagnosis?"
+    description: 'How many female patients were given an APS diagnosis?'
     messages:
       - role: user
         content: |

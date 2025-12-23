@@ -1,5 +1,5 @@
 name: bird-toxicology-001
-description: "BIRD Q195 (challenging): For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type."
+description: 'BIRD Q195 (challenging): For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-195
-    description: "For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type."
+    description: 'For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type.'
     messages:
       - role: user
         content: |

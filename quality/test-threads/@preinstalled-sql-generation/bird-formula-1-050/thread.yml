@@ -1,5 +1,5 @@
 name: bird-formula-1-050
-description: "BIRD Q895 (moderate): What is the average lap time for Lewis Hamilton in the 2009 Malaysian Grand Prix?"
+description: 'BIRD Q895 (moderate): What is the average lap time for Lewis Hamilton in the 2009 Malaysian Grand Prix?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-895
-    description: "What is the average lap time for Lewis Hamilton in the 2009 Malaysian Grand Prix?"
+    description: 'What is the average lap time for Lewis Hamilton in the 2009 Malaysian Grand Prix?'
     messages:
       - role: user
         content: |

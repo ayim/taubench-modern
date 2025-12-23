@@ -1,5 +1,5 @@
 name: bird-card-games-180
-description: "BIRD Q519 (simple): What is the language of the \"Battlebond\" set?"
+description: 'BIRD Q519 (simple): What is the language of the "Battlebond" set?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-519
-    description: "What is the language of the \"Battlebond\" set?"
+    description: 'What is the language of the "Battlebond" set?'
     messages:
       - role: user
         content: |

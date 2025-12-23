@@ -1,5 +1,5 @@
 name: bird-codebase-community-041
-description: "BIRD Q571 (moderate): For the user No.24, how many times is the number of his/her posts compared to his/her votes?"
+description: 'BIRD Q571 (moderate): For the user No.24, how many times is the number of his/her posts compared to his/her votes?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-571
-    description: "For the user No.24, how many times is the number of his/her posts compared to his/her votes?"
+    description: 'For the user No.24, how many times is the number of his/her posts compared to his/her votes?'
     messages:
       - role: user
         content: |

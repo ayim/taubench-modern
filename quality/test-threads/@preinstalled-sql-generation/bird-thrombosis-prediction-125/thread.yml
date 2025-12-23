@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-125
-description: "BIRD Q1273 (moderate): How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?"
+description: 'BIRD Q1273 (moderate): How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1273
-    description: "How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?"
+    description: 'How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?'
     messages:
       - role: user
         content: |

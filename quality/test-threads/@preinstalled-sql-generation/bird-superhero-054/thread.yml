@@ -1,5 +1,5 @@
 name: bird-superhero-054
-description: "BIRD Q770 (simple): What is the eyes colour of Abraham Sapien?"
+description: 'BIRD Q770 (simple): What is the eyes colour of Abraham Sapien?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-770
-    description: "What is the eyes colour of Abraham Sapien?"
+    description: 'What is the eyes colour of Abraham Sapien?'
     messages:
       - role: user
         content: |

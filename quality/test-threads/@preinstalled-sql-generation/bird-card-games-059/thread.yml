@@ -1,5 +1,5 @@
 name: bird-card-games-059
-description: "BIRD Q398 (simple): What is the  unconverted mana do all the cards created by Rob Alexander cost in total?"
+description: 'BIRD Q398 (simple): What is the  unconverted mana do all the cards created by Rob Alexander cost in total?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-398
-    description: "What is the  unconverted mana do all the cards created by Rob Alexander cost in total?"
+    description: 'What is the  unconverted mana do all the cards created by Rob Alexander cost in total?'
     messages:
       - role: user
         content: |

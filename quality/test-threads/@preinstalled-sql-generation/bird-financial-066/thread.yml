@@ -1,5 +1,5 @@
 name: bird-financial-066
-description: "BIRD Q154 (challenging): What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?"
+description: 'BIRD Q154 (challenging): What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-154
-    description: "What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?"
+    description: 'What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?'
     messages:
       - role: user
         content: |

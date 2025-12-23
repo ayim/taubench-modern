@@ -1,5 +1,5 @@
 name: bird-financial-043
-description: "BIRD Q131 (moderate): Which district has highest active loan?"
+description: 'BIRD Q131 (moderate): Which district has highest active loan?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-131
-    description: "Which district has highest active loan?"
+    description: 'Which district has highest active loan?'
     messages:
       - role: user
         content: |

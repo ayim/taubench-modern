@@ -1,5 +1,5 @@
 name: bird-formula-1-047
-description: "BIRD Q892 (moderate): State the driver with the most points scored. Find his full name with that points."
+description: 'BIRD Q892 (moderate): State the driver with the most points scored. Find his full name with that points.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-892
-    description: "State the driver with the most points scored. Find his full name with that points."
+    description: 'State the driver with the most points scored. Find his full name with that points.'
     messages:
       - role: user
         content: |

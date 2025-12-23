@@ -1,5 +1,5 @@
 name: bird-toxicology-079
-description: "BIRD Q273 (moderate): What is the percentage of element chlorine in carcinogenic molecules?"
+description: 'BIRD Q273 (moderate): What is the percentage of element chlorine in carcinogenic molecules?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-273
-    description: "What is the percentage of element chlorine in carcinogenic molecules?"
+    description: 'What is the percentage of element chlorine in carcinogenic molecules?'
     messages:
       - role: user
         content: |

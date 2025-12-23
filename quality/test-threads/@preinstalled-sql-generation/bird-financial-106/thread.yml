@@ -1,5 +1,5 @@
 name: bird-financial-106
-description: "BIRD Q194 (moderate): Provide the IDs and age of the client with high level credit card, which is eligible for loans."
+description: 'BIRD Q194 (moderate): Provide the IDs and age of the client with high level credit card, which is eligible for loans.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-194
-    description: "Provide the IDs and age of the client with high level credit card, which is eligible for loans."
+    description: 'Provide the IDs and age of the client with high level credit card, which is eligible for loans.'
     messages:
       - role: user
         content: |

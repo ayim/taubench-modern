@@ -1,5 +1,5 @@
 name: bird-formula-1-078
-description: "BIRD Q923 (simple): How many Formula_1 races took place on the circuits in Italy?"
+description: 'BIRD Q923 (simple): How many Formula_1 races took place on the circuits in Italy?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-923
-    description: "How many Formula_1 races took place on the circuits in Italy?"
+    description: 'How many Formula_1 races took place on the circuits in Italy?'
     messages:
       - role: user
         content: |

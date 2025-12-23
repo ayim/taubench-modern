@@ -1,5 +1,5 @@
 name: bird-student-club-033
-description: "BIRD Q1344 (simple): What was the notes of the fundraising on 2019/9/14?"
+description: 'BIRD Q1344 (simple): What was the notes of the fundraising on 2019/9/14?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1344
-    description: "What was the notes of the fundraising on 2019/9/14?"
+    description: 'What was the notes of the fundraising on 2019/9/14?'
     messages:
       - role: user
         content: |

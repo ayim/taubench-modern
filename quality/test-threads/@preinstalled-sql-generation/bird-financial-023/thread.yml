@@ -1,5 +1,5 @@
 name: bird-financial-023
-description: "BIRD Q111 (challenging): What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?"
+description: 'BIRD Q111 (challenging): What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-111
-    description: "What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?"
+    description: 'What are the comprehensive statistics for accounts opened in Litomerice in 1996, including client demographics, transaction activity, loan information, and quarterly distribution of account openings?'
     messages:
       - role: user
         content: |

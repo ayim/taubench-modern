@@ -1,5 +1,5 @@
 name: bird-student-club-054
-description: "BIRD Q1365 (simple): What are the expenses of the budget with the lowest remaining?"
+description: 'BIRD Q1365 (simple): What are the expenses of the budget with the lowest remaining?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1365
-    description: "What are the expenses of the budget with the lowest remaining?"
+    description: 'What are the expenses of the budget with the lowest remaining?'
     messages:
       - role: user
         content: |

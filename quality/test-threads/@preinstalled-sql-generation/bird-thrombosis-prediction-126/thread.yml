@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-126
-description: "BIRD Q1274 (moderate): For the patients whose anti-SSB are normal, how many of them have other symptoms observed in their examination?"
+description: 'BIRD Q1274 (moderate): For the patients whose anti-SSB are normal, how many of them have other symptoms observed in their examination?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1274
-    description: "For the patients whose anti-SSB are normal, how many of them have other symptoms observed in their examination?"
+    description: 'For the patients whose anti-SSB are normal, how many of them have other symptoms observed in their examination?'
     messages:
       - role: user
         content: |

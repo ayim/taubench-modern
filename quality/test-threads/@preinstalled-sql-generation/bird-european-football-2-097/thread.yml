@@ -15,7 +15,7 @@ thread:
       - role: user
         content: |
           List down the tallest players' name.
-          Evidence: tallest refers to rank based on the height in descending order; Most tallest players refers to rank = 1 
+          Evidence: tallest refers to rank based on the height in descending order; Most tallest players refers to rank = 1
 
 target-platforms:
   - name: openai

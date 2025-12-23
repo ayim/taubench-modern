@@ -1,5 +1,5 @@
 name: bird-codebase-community-134
-description: "BIRD Q664 (simple): What is the sum of score of the post on 2010-07-19?"
+description: 'BIRD Q664 (simple): What is the sum of score of the post on 2010-07-19?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-664
-    description: "What is the sum of score of the post on 2010-07-19?"
+    description: 'What is the sum of score of the post on 2010-07-19?'
     messages:
       - role: user
         content: |

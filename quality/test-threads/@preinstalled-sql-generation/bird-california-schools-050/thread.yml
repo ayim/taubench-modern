@@ -1,5 +1,5 @@
 name: bird-california-schools-050
-description: "BIRD Q49 (moderate): Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date."
+description: 'BIRD Q49 (moderate): Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-49
-    description: "Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date."
+    description: 'Which different county has the most number of closed schools? Please provide the name of each school as well as the closure date.'
     messages:
       - role: user
         content: |

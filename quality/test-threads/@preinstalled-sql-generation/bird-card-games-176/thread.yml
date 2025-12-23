@@ -1,5 +1,5 @@
 name: bird-card-games-176
-description: "BIRD Q515 (moderate): When was the oldest mythic card released and what are its legal play formats?"
+description: 'BIRD Q515 (moderate): When was the oldest mythic card released and what are its legal play formats?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-515
-    description: "When was the oldest mythic card released and what are its legal play formats?"
+    description: 'When was the oldest mythic card released and what are its legal play formats?'
     messages:
       - role: user
         content: |

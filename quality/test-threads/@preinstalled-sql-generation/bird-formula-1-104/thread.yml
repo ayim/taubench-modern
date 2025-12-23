@@ -1,5 +1,5 @@
 name: bird-formula-1-104
-description: "BIRD Q949 (simple): Which constructor has the highest point?"
+description: 'BIRD Q949 (simple): Which constructor has the highest point?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-949
-    description: "Which constructor has the highest point?"
+    description: 'Which constructor has the highest point?'
     messages:
       - role: user
         content: |

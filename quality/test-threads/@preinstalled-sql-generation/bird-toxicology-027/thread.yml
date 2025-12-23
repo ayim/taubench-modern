@@ -1,5 +1,5 @@
 name: bird-toxicology-027
-description: "BIRD Q221 (simple): What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?"
+description: 'BIRD Q221 (simple): What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-221
-    description: "What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?"
+    description: 'What are the atoms that are bonded in the molecule TR001 with the bond ID of TR001_2_6?'
     messages:
       - role: user
         content: |

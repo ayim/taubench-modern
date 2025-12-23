@@ -1,5 +1,5 @@
 name: bird-formula-1-062
-description: "BIRD Q907 (simple): List all races in 2017 and the hosting country order by date of the event."
+description: 'BIRD Q907 (simple): List all races in 2017 and the hosting country order by date of the event.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-907
-    description: "List all races in 2017 and the hosting country order by date of the event."
+    description: 'List all races in 2017 and the hosting country order by date of the event.'
     messages:
       - role: user
         content: |

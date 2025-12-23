@@ -1,5 +1,5 @@
 name: bird-toxicology-044
-description: "BIRD Q238 (simple): How many molecules have a triple bond type?"
+description: 'BIRD Q238 (simple): How many molecules have a triple bond type?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-238
-    description: "How many molecules have a triple bond type?"
+    description: 'How many molecules have a triple bond type?'
     messages:
       - role: user
         content: |

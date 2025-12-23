@@ -1,5 +1,5 @@
 name: bird-toxicology-103
-description: "BIRD Q297 (simple): Which atoms contain element carbon and are part of non-carcinogenic compounds?"
+description: 'BIRD Q297 (simple): Which atoms contain element carbon and are part of non-carcinogenic compounds?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-297
-    description: "Which atoms contain element carbon and are part of non-carcinogenic compounds?"
+    description: 'Which atoms contain element carbon and are part of non-carcinogenic compounds?'
     messages:
       - role: user
         content: |

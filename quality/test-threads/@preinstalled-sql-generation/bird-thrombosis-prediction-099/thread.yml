@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-099
-description: "BIRD Q1247 (challenging): Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?"
+description: 'BIRD Q1247 (challenging): Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1247
-    description: "Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?"
+    description: 'Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?'
     messages:
       - role: user
         content: |

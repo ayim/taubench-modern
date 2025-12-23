@@ -1,5 +1,5 @@
 name: bird-california-schools-082
-description: "BIRD Q81 (moderate): In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name."
+description: 'BIRD Q81 (moderate): In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-81
-    description: "In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name."
+    description: 'In which city can you find the school in the state of California with the lowest latitude coordinates and what is its lowest grade? Indicate the school name.'
     messages:
       - role: user
         content: |

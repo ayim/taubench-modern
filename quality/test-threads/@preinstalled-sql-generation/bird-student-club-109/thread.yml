@@ -1,5 +1,5 @@
 name: bird-student-club-109
-description: "BIRD Q1420 (simple): State the name of major that Vice President has joined."
+description: 'BIRD Q1420 (simple): State the name of major that Vice President has joined.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1420
-    description: "State the name of major that Vice President has joined."
+    description: 'State the name of major that Vice President has joined.'
     messages:
       - role: user
         content: |

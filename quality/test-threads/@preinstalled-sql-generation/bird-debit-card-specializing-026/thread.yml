@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-026
-description: "BIRD Q1495 (simple): Which client ID consumed the most in September 2013?"
+description: 'BIRD Q1495 (simple): Which client ID consumed the most in September 2013?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1495
-    description: "Which client ID consumed the most in September 2013?"
+    description: 'Which client ID consumed the most in September 2013?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-139
-description: "BIRD Q1450 (simple): In the events with budget more than forty, list the location at which the event is happening."
+description: 'BIRD Q1450 (simple): In the events with budget more than forty, list the location at which the event is happening.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1450
-    description: "In the events with budget more than forty, list the location at which the event is happening."
+    description: 'In the events with budget more than forty, list the location at which the event is happening.'
     messages:
       - role: user
         content: |

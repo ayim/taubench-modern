@@ -1,5 +1,5 @@
 name: bird-card-games-017
-description: "BIRD Q356 (simple): How many cards have infinite power?"
+description: 'BIRD Q356 (simple): How many cards have infinite power?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-356
-    description: "How many cards have infinite power?"
+    description: 'How many cards have infinite power?'
     messages:
       - role: user
         content: |

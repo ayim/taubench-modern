@@ -1,5 +1,5 @@
 name: bird-superhero-063
-description: "BIRD Q779 (simple): How many powers does Amazo hero have?"
+description: 'BIRD Q779 (simple): How many powers does Amazo hero have?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-779
-    description: "How many powers does Amazo hero have?"
+    description: 'How many powers does Amazo hero have?'
     messages:
       - role: user
         content: |

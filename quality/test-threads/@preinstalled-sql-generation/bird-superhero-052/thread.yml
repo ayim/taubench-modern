@@ -1,5 +1,5 @@
 name: bird-superhero-052
-description: "BIRD Q768 (simple): How many superheroes were published by Dark Horse Comics?"
+description: 'BIRD Q768 (simple): How many superheroes were published by Dark Horse Comics?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-768
-    description: "How many superheroes were published by Dark Horse Comics?"
+    description: 'How many superheroes were published by Dark Horse Comics?'
     messages:
       - role: user
         content: |

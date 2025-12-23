@@ -1,5 +1,5 @@
 name: bird-superhero-110
-description: "BIRD Q826 (simple): Identify the heaviest superhero in DC Comics."
+description: 'BIRD Q826 (simple): Identify the heaviest superhero in DC Comics.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-826
-    description: "Identify the heaviest superhero in DC Comics."
+    description: 'Identify the heaviest superhero in DC Comics.'
     messages:
       - role: user
         content: |

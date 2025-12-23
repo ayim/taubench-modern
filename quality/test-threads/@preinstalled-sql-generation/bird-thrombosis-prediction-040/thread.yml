@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-040
-description: "BIRD Q1188 (simple): How many female patients born in 1964 were admitted to the hospital? List them by ID."
+description: 'BIRD Q1188 (simple): How many female patients born in 1964 were admitted to the hospital? List them by ID.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1188
-    description: "How many female patients born in 1964 were admitted to the hospital? List them by ID."
+    description: 'How many female patients born in 1964 were admitted to the hospital? List them by ID.'
     messages:
       - role: user
         content: |

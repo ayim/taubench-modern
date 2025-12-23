@@ -1,5 +1,5 @@
 name: bird-formula-1-111
-description: "BIRD Q956 (simple): Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames."
+description: 'BIRD Q956 (simple): Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-956
-    description: "Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames."
+    description: 'Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames.'
     messages:
       - role: user
         content: |

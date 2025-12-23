@@ -1,5 +1,5 @@
 name: bird-codebase-community-082
-description: "BIRD Q612 (simple): What is the name of badge that the user whose display name is \"Pierre\" obtained?"
+description: 'BIRD Q612 (simple): What is the name of badge that the user whose display name is "Pierre" obtained?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-612
-    description: "What is the name of badge that the user whose display name is \"Pierre\" obtained?"
+    description: 'What is the name of badge that the user whose display name is "Pierre" obtained?'
     messages:
       - role: user
         content: |

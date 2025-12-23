@@ -1,5 +1,5 @@
 name: bird-california-schools-033
-description: "BIRD Q32 (challenging): For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?"
+description: 'BIRD Q32 (challenging): For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-32
-    description: "For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?"
+    description: 'For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?'
     messages:
       - role: user
         content: |

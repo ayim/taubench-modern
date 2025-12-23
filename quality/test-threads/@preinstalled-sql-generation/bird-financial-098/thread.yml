@@ -1,5 +1,5 @@
 name: bird-financial-098
-description: "BIRD Q186 (moderate): What percentage of male clients request for weekly statements to be issued?"
+description: 'BIRD Q186 (moderate): What percentage of male clients request for weekly statements to be issued?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-186
-    description: "What percentage of male clients request for weekly statements to be issued?"
+    description: 'What percentage of male clients request for weekly statements to be issued?'
     messages:
       - role: user
         content: |

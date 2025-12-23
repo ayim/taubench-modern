@@ -1,5 +1,5 @@
 name: bird-european-football-2-002
-description: "BIRD Q1021 (simple): What is the height of the tallest player? Indicate his name."
+description: 'BIRD Q1021 (simple): What is the height of the tallest player? Indicate his name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1021
-    description: "What is the height of the tallest player? Indicate his name."
+    description: 'What is the height of the tallest player? Indicate his name.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-028
-description: "BIRD Q1497 (simple): Which SME customer consumed the least in June 2012?"
+description: 'BIRD Q1497 (simple): Which SME customer consumed the least in June 2012?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1497
-    description: "Which SME customer consumed the least in June 2012?"
+    description: 'Which SME customer consumed the least in June 2012?'
     messages:
       - role: user
         content: |

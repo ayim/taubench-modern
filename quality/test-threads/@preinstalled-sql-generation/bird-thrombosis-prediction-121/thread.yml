@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-121
-description: "BIRD Q1269 (moderate): Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70."
+description: 'BIRD Q1269 (moderate): Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1269
-    description: "Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70."
+    description: 'Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70.'
     messages:
       - role: user
         content: |

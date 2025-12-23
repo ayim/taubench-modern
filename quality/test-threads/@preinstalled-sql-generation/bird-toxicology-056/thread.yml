@@ -1,5 +1,5 @@
 name: bird-toxicology-056
-description: "BIRD Q250 (moderate): Of all the carcinogenic molecules, which one has the most double bonds?"
+description: 'BIRD Q250 (moderate): Of all the carcinogenic molecules, which one has the most double bonds?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-250
-    description: "Of all the carcinogenic molecules, which one has the most double bonds?"
+    description: 'Of all the carcinogenic molecules, which one has the most double bonds?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-021
-description: "BIRD Q215 (challenging): How many atoms with iodine and with sulfur type elements are there in single bond molecules?"
+description: 'BIRD Q215 (challenging): How many atoms with iodine and with sulfur type elements are there in single bond molecules?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-215
-    description: "How many atoms with iodine and with sulfur type elements are there in single bond molecules?"
+    description: 'How many atoms with iodine and with sulfur type elements are there in single bond molecules?'
     messages:
       - role: user
         content: |

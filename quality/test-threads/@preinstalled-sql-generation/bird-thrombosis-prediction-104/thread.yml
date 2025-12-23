@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-104
-description: "BIRD Q1252 (moderate): Among the patients with a normal Ig G level, how many of them have symptoms?"
+description: 'BIRD Q1252 (moderate): Among the patients with a normal Ig G level, how many of them have symptoms?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1252
-    description: "Among the patients with a normal Ig G level, how many of them have symptoms?"
+    description: 'Among the patients with a normal Ig G level, how many of them have symptoms?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-027
-description: "BIRD Q872 (simple): In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?"
+description: 'BIRD Q872 (simple): In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-872
-    description: "In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?"
+    description: 'In the race No. 45, for the driver who had the Q3 time as 0:01:33, what is his abbreviated code?'
     messages:
       - role: user
         content: |

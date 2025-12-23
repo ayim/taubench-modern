@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-042
-description: "BIRD Q1190 (challenging): What percentage of patients with a proteinuria level within the normal range have a uric acid level below the normal range?"
+description: 'BIRD Q1190 (challenging): What percentage of patients with a proteinuria level within the normal range have a uric acid level below the normal range?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1190
-    description: "What percentage of patients with a proteinuria level within the normal range have a uric acid level below the normal range?"
+    description: 'What percentage of patients with a proteinuria level within the normal range have a uric acid level below the normal range?'
     messages:
       - role: user
         content: |

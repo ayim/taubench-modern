@@ -1,5 +1,5 @@
 name: bird-student-club-008
-description: "BIRD Q1319 (simple): Which college is the vice president of the Student_Club from?"
+description: 'BIRD Q1319 (simple): Which college is the vice president of the Student_Club from?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1319
-    description: "Which college is the vice president of the Student_Club from?"
+    description: 'Which college is the vice president of the Student_Club from?'
     messages:
       - role: user
         content: |

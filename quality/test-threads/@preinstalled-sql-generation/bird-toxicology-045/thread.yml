@@ -1,5 +1,5 @@
 name: bird-toxicology-045
-description: "BIRD Q239 (simple): How many connections does the atom 19 have?"
+description: 'BIRD Q239 (simple): How many connections does the atom 19 have?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-239
-    description: "How many connections does the atom 19 have?"
+    description: 'How many connections does the atom 19 have?'
     messages:
       - role: user
         content: |

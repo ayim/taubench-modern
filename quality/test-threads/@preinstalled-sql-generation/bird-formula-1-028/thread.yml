@@ -1,5 +1,5 @@
 name: bird-formula-1-028
-description: "BIRD Q873 (simple): What is the actual finish time for Bruce McLaren in the race No.743?"
+description: 'BIRD Q873 (simple): What is the actual finish time for Bruce McLaren in the race No.743?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-873
-    description: "What is the actual finish time for Bruce McLaren in the race No.743?"
+    description: 'What is the actual finish time for Bruce McLaren in the race No.743?'
     messages:
       - role: user
         content: |

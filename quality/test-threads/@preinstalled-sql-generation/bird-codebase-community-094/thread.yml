@@ -1,5 +1,5 @@
 name: bird-codebase-community-094
-description: "BIRD Q624 (simple): What is the name of user with the ID of 30?"
+description: 'BIRD Q624 (simple): What is the name of user with the ID of 30?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-624
-    description: "What is the name of user with the ID of 30?"
+    description: 'What is the name of user with the ID of 30?'
     messages:
       - role: user
         content: |

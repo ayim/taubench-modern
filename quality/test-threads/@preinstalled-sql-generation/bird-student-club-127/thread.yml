@@ -1,5 +1,5 @@
 name: bird-student-club-127
-description: "BIRD Q1438 (simple): Please indicate the college of the person whose first name is Katy with the link to the major \"rec1N0upiVLy5esTO\"."
+description: 'BIRD Q1438 (simple): Please indicate the college of the person whose first name is Katy with the link to the major "rec1N0upiVLy5esTO".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1438
-    description: "Please indicate the college of the person whose first name is Katy with the link to the major \"rec1N0upiVLy5esTO\"."
+    description: 'Please indicate the college of the person whose first name is Katy with the link to the major "rec1N0upiVLy5esTO".'
     messages:
       - role: user
         content: |

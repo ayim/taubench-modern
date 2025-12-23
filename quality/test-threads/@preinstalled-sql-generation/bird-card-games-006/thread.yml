@@ -1,5 +1,5 @@
 name: bird-card-games-006
-description: "BIRD Q345 (moderate): For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format."
+description: 'BIRD Q345 (moderate): For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-345
-    description: "For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format."
+    description: 'For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format.'
     messages:
       - role: user
         content: |

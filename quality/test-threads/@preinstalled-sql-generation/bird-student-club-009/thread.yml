@@ -1,5 +1,5 @@
 name: bird-student-club-009
-description: "BIRD Q1320 (simple): Please list the event names of all the events attended by Maya Mclean."
+description: 'BIRD Q1320 (simple): Please list the event names of all the events attended by Maya Mclean.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1320
-    description: "Please list the event names of all the events attended by Maya Mclean."
+    description: 'Please list the event names of all the events attended by Maya Mclean.'
     messages:
       - role: user
         content: |

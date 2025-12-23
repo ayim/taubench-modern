@@ -1,5 +1,5 @@
 name: bird-formula-1-063
-description: "BIRD Q908 (simple): What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted."
+description: 'BIRD Q908 (simple): What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-908
-    description: "What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted."
+    description: 'What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted.'
     messages:
       - role: user
         content: |

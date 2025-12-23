@@ -1,5 +1,5 @@
 name: bird-student-club-049
-description: "BIRD Q1360 (moderate): What percentage was the budget for Parking to the total budget for the \"November Speaker\"?"
+description: 'BIRD Q1360 (moderate): What percentage was the budget for Parking to the total budget for the "November Speaker"?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1360
-    description: "What percentage was the budget for Parking to the total budget for the \"November Speaker\"?"
+    description: 'What percentage was the budget for Parking to the total budget for the "November Speaker"?'
     messages:
       - role: user
         content: |

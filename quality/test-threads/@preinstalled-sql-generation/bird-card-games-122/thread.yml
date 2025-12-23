@@ -1,5 +1,5 @@
 name: bird-card-games-122
-description: "BIRD Q461 (simple): Please list the names of the top 3 cards with the highest converted mana cost and have a 2003 card frame style."
+description: 'BIRD Q461 (simple): Please list the names of the top 3 cards with the highest converted mana cost and have a 2003 card frame style.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-461
-    description: "Please list the names of the top 3 cards with the highest converted mana cost and have a 2003 card frame style."
+    description: 'Please list the names of the top 3 cards with the highest converted mana cost and have a 2003 card frame style.'
     messages:
       - role: user
         content: |

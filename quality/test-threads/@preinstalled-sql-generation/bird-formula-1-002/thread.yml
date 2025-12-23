@@ -1,5 +1,5 @@
 name: bird-formula-1-002
-description: "BIRD Q847 (simple): What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?"
+description: 'BIRD Q847 (simple): What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-847
-    description: "What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?"
+    description: 'What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?'
     messages:
       - role: user
         content: |

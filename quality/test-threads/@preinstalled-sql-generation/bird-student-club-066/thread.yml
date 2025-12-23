@@ -1,5 +1,5 @@
 name: bird-student-club-066
-description: "BIRD Q1377 (simple): How many student have the position of president?"
+description: 'BIRD Q1377 (simple): How many student have the position of president?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1377
-    description: "How many student have the position of president?"
+    description: 'How many student have the position of president?'
     messages:
       - role: user
         content: |

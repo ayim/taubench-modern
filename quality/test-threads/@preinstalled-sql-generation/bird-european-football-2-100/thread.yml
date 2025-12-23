@@ -1,5 +1,5 @@
 name: bird-european-football-2-100
-description: "BIRD Q1119 (simple): How many home team goal have been scored by Aaron Lennon?"
+description: 'BIRD Q1119 (simple): How many home team goal have been scored by Aaron Lennon?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1119
-    description: "How many home team goal have been scored by Aaron Lennon?"
+    description: 'How many home team goal have been scored by Aaron Lennon?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-109
-description: "BIRD Q825 (moderate): Identify the gender of the superhero who has the ability of Phoenix Force."
+description: 'BIRD Q825 (moderate): Identify the gender of the superhero who has the ability of Phoenix Force.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-825
-    description: "Identify the gender of the superhero who has the ability of Phoenix Force."
+    description: 'Identify the gender of the superhero who has the ability of Phoenix Force.'
     messages:
       - role: user
         content: |
           Identify the gender of the superhero who has the ability of Phoenix Force.
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

@@ -1,5 +1,5 @@
 name: bird-european-football-2-094
-description: "BIRD Q1113 (moderate): For the team \"Hannover 96\", what was its defence aggression class on 2015/9/10?"
+description: 'BIRD Q1113 (moderate): For the team "Hannover 96", what was its defence aggression class on 2015/9/10?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1113
-    description: "For the team \"Hannover 96\", what was its defence aggression class on 2015/9/10?"
+    description: 'For the team "Hannover 96", what was its defence aggression class on 2015/9/10?'
     messages:
       - role: user
         content: |

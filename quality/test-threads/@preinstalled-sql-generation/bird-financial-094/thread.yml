@@ -1,5 +1,5 @@
 name: bird-financial-094
-description: "BIRD Q182 (moderate): How many male customers who were born between 1974 and 1976 have made a payment on their home in excess of $4000?"
+description: 'BIRD Q182 (moderate): How many male customers who were born between 1974 and 1976 have made a payment on their home in excess of $4000?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-182
-    description: "How many male customers who were born between 1974 and 1976 have made a payment on their home in excess of $4000?"
+    description: 'How many male customers who were born between 1974 and 1976 have made a payment on their home in excess of $4000?'
     messages:
       - role: user
         content: |

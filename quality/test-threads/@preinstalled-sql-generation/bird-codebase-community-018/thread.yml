@@ -1,5 +1,5 @@
 name: bird-codebase-community-018
-description: "BIRD Q548 (simple): What is the location of the owner of the post \"Eliciting priors from experts\"?"
+description: 'BIRD Q548 (simple): What is the location of the owner of the post "Eliciting priors from experts"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-548
-    description: "What is the location of the owner of the post \"Eliciting priors from experts\"?"
+    description: 'What is the location of the owner of the post "Eliciting priors from experts"?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-038
-description: "BIRD Q754 (simple): What is the superpower of hero ID 56?"
+description: 'BIRD Q754 (simple): What is the superpower of hero ID 56?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-754
-    description: "What is the superpower of hero ID 56?"
+    description: 'What is the superpower of hero ID 56?'
     messages:
       - role: user
         content: |
           What is the superpower of hero ID 56?
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

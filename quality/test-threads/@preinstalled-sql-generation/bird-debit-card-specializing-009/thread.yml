@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-009
-description: "BIRD Q1478 (simple): Which segment had the least consumption?"
+description: 'BIRD Q1478 (simple): Which segment had the least consumption?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1478
-    description: "Which segment had the least consumption?"
+    description: 'Which segment had the least consumption?'
     messages:
       - role: user
         content: |

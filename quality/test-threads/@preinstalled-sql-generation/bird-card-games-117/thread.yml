@@ -1,5 +1,5 @@
 name: bird-card-games-117
-description: "BIRD Q456 (simple): What's the list of all types for the card \"Molimo, Maro-Sorcerer\"?"
+description: 'BIRD Q456 (simple): What''s the list of all types for the card "Molimo, Maro-Sorcerer"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-456
-    description: "What's the list of all types for the card \"Molimo, Maro-Sorcerer\"?"
+    description: 'What''s the list of all types for the card "Molimo, Maro-Sorcerer"?'
     messages:
       - role: user
         content: |

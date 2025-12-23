@@ -1,5 +1,5 @@
 name: bird-student-club-071
-description: "BIRD Q1382 (moderate): Among the students majored in interior design, who have attended the Community Theater event?"
+description: 'BIRD Q1382 (moderate): Among the students majored in interior design, who have attended the Community Theater event?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1382
-    description: "Among the students majored in interior design, who have attended the Community Theater event?"
+    description: 'Among the students majored in interior design, who have attended the Community Theater event?'
     messages:
       - role: user
         content: |

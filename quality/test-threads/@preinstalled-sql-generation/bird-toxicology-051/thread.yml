@@ -1,5 +1,5 @@
 name: bird-toxicology-051
-description: "BIRD Q245 (moderate): What is the average number of bonds the atoms with the element iodine have?"
+description: 'BIRD Q245 (moderate): What is the average number of bonds the atoms with the element iodine have?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-245
-    description: "What is the average number of bonds the atoms with the element iodine have?"
+    description: 'What is the average number of bonds the atoms with the element iodine have?'
     messages:
       - role: user
         content: |

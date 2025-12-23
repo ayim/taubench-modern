@@ -1,5 +1,5 @@
 name: bird-toxicology-112
-description: "BIRD Q306 (challenging): Which molecules have triple bonds and list all the elements they contain."
+description: 'BIRD Q306 (challenging): Which molecules have triple bonds and list all the elements they contain.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-306
-    description: "Which molecules have triple bonds and list all the elements they contain."
+    description: 'Which molecules have triple bonds and list all the elements they contain.'
     messages:
       - role: user
         content: |

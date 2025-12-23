@@ -1,5 +1,5 @@
 name: bird-toxicology-080
-description: "BIRD Q274 (simple): List the toxicology elements associated with molecule TR001."
+description: 'BIRD Q274 (simple): List the toxicology elements associated with molecule TR001.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-274
-    description: "List the toxicology elements associated with molecule TR001."
+    description: 'List the toxicology elements associated with molecule TR001.'
     messages:
       - role: user
         content: |

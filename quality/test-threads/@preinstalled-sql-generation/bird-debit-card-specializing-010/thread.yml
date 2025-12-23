@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-010
-description: "BIRD Q1479 (moderate): Which year recorded the most consumption of gas paid in CZK?"
+description: 'BIRD Q1479 (moderate): Which year recorded the most consumption of gas paid in CZK?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1479
-    description: "Which year recorded the most consumption of gas paid in CZK?"
+    description: 'Which year recorded the most consumption of gas paid in CZK?'
     messages:
       - role: user
         content: |

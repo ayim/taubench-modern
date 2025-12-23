@@ -1,5 +1,5 @@
 name: bird-financial-014
-description: "BIRD Q102 (simple): State different accounts who have account opening date before 1997 and own an amount of money greater than 3000USD"
+description: 'BIRD Q102 (simple): State different accounts who have account opening date before 1997 and own an amount of money greater than 3000USD'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-102
-    description: "State different accounts who have account opening date before 1997 and own an amount of money greater than 3000USD"
+    description: 'State different accounts who have account opening date before 1997 and own an amount of money greater than 3000USD'
     messages:
       - role: user
         content: |

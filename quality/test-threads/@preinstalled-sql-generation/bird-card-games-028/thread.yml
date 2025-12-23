@@ -1,5 +1,5 @@
 name: bird-card-games-028
-description: "BIRD Q367 (simple): Please provide the names of the artists who illustrated the card art in Phyrexian."
+description: 'BIRD Q367 (simple): Please provide the names of the artists who illustrated the card art in Phyrexian.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-367
-    description: "Please provide the names of the artists who illustrated the card art in Phyrexian."
+    description: 'Please provide the names of the artists who illustrated the card art in Phyrexian.'
     messages:
       - role: user
         content: |

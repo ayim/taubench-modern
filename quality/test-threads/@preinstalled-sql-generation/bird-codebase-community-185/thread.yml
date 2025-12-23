@@ -1,5 +1,5 @@
 name: bird-codebase-community-185
-description: "BIRD Q715 (simple): In comments with score between 1 to 5, list down the display names of the users with 0 down votes."
+description: 'BIRD Q715 (simple): In comments with score between 1 to 5, list down the display names of the users with 0 down votes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-715
-    description: "In comments with score between 1 to 5, list down the display names of the users with 0 down votes."
+    description: 'In comments with score between 1 to 5, list down the display names of the users with 0 down votes.'
     messages:
       - role: user
         content: |

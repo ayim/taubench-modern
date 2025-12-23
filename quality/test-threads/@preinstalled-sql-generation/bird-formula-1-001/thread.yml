@@ -1,5 +1,5 @@
 name: bird-formula-1-001
-description: "BIRD Q846 (moderate): Please list the reference names of the drivers who are eliminated in the first period in race number 20."
+description: 'BIRD Q846 (moderate): Please list the reference names of the drivers who are eliminated in the first period in race number 20.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-846
-    description: "Please list the reference names of the drivers who are eliminated in the first period in race number 20."
+    description: 'Please list the reference names of the drivers who are eliminated in the first period in race number 20.'
     messages:
       - role: user
         content: |

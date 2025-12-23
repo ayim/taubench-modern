@@ -1,5 +1,5 @@
 name: bird-formula-1-030
-description: "BIRD Q875 (simple): Show me the season page of year when the race No. 901 took place."
+description: 'BIRD Q875 (simple): Show me the season page of year when the race No. 901 took place.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-875
-    description: "Show me the season page of year when the race No. 901 took place."
+    description: 'Show me the season page of year when the race No. 901 took place.'
     messages:
       - role: user
         content: |

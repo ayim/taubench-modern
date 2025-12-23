@@ -1,5 +1,5 @@
 name: bird-card-games-105
-description: "BIRD Q444 (simple): Name the foreign name of the card that has boros watermark? List out the type of this card."
+description: 'BIRD Q444 (simple): Name the foreign name of the card that has boros watermark? List out the type of this card.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-444
-    description: "Name the foreign name of the card that has boros watermark? List out the type of this card."
+    description: 'Name the foreign name of the card that has boros watermark? List out the type of this card.'
     messages:
       - role: user
         content: |

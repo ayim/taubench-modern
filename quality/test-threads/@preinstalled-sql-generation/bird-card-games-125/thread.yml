@@ -1,5 +1,5 @@
 name: bird-card-games-125
-description: "BIRD Q464 (simple): Please list the names of the cards in the set \"Hauptset Zehnte Edition\"."
+description: 'BIRD Q464 (simple): Please list the names of the cards in the set "Hauptset Zehnte Edition".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-464
-    description: "Please list the names of the cards in the set \"Hauptset Zehnte Edition\"."
+    description: 'Please list the names of the cards in the set "Hauptset Zehnte Edition".'
     messages:
       - role: user
         content: |

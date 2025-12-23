@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-036
-description: "BIRD Q1184 (simple): For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?"
+description: 'BIRD Q1184 (simple): For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1184
-    description: "For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?"
+    description: 'For the patient whose birthday was 1959/3/1, what symptoms did he/she have during the examination on 1993/9/27?'
     messages:
       - role: user
         content: |

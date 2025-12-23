@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-001
-description: "BIRD Q1149 (moderate): Are there more in-patient or outpatient who were male? What is the deviation in percentage?"
+description: 'BIRD Q1149 (moderate): Are there more in-patient or outpatient who were male? What is the deviation in percentage?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1149
-    description: "Are there more in-patient or outpatient who were male? What is the deviation in percentage?"
+    description: 'Are there more in-patient or outpatient who were male? What is the deviation in percentage?'
     messages:
       - role: user
         content: |

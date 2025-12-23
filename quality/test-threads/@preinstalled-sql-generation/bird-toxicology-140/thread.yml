@@ -1,5 +1,5 @@
 name: bird-toxicology-140
-description: "BIRD Q334 (challenging): What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?"
+description: 'BIRD Q334 (challenging): What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-334
-    description: "What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?"
+    description: 'What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?'
     messages:
       - role: user
         content: |

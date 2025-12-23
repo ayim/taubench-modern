@@ -1,5 +1,5 @@
 name: bird-superhero-023
-description: "BIRD Q739 (moderate): What are the names of the superheroes with the power of death touch?"
+description: 'BIRD Q739 (moderate): What are the names of the superheroes with the power of death touch?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-739
-    description: "What are the names of the superheroes with the power of death touch?"
+    description: 'What are the names of the superheroes with the power of death touch?'
     messages:
       - role: user
         content: |

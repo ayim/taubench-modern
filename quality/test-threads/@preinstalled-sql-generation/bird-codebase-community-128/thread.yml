@@ -1,5 +1,5 @@
 name: bird-codebase-community-128
-description: "BIRD Q658 (simple): What are the titles of the top 5 posts with the highest popularity?"
+description: 'BIRD Q658 (simple): What are the titles of the top 5 posts with the highest popularity?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-658
-    description: "What are the titles of the top 5 posts with the highest popularity?"
+    description: 'What are the titles of the top 5 posts with the highest popularity?'
     messages:
       - role: user
         content: |

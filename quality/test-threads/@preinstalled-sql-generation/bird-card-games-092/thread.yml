@@ -1,5 +1,5 @@
 name: bird-card-games-092
-description: "BIRD Q431 (challenging): Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response."
+description: 'BIRD Q431 (challenging): Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-431
-    description: "Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response."
+    description: 'Which set is not available outside of the United States and has foil cards with Japanese writing on them? Please include the set ID in your response.'
     messages:
       - role: user
         content: |

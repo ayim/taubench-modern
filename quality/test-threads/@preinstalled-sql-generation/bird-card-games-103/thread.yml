@@ -1,5 +1,5 @@
 name: bird-card-games-103
-description: "BIRD Q442 (simple): Mention the base set size and set code of the set that was in block named \"Masques\" and \"Mirage\"."
+description: 'BIRD Q442 (simple): Mention the base set size and set code of the set that was in block named "Masques" and "Mirage".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-442
-    description: "Mention the base set size and set code of the set that was in block named \"Masques\" and \"Mirage\"."
+    description: 'Mention the base set size and set code of the set that was in block named "Masques" and "Mirage".'
     messages:
       - role: user
         content: |

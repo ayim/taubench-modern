@@ -1,5 +1,5 @@
 name: bird-card-games-108
-description: "BIRD Q447 (simple): Give the code of sets have expansion commander type?"
+description: 'BIRD Q447 (simple): Give the code of sets have expansion commander type?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-447
-    description: "Give the code of sets have expansion commander type?"
+    description: 'Give the code of sets have expansion commander type?'
     messages:
       - role: user
         content: |

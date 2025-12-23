@@ -1,5 +1,5 @@
 name: bird-financial-102
-description: "BIRD Q190 (challenging): What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?"
+description: 'BIRD Q190 (challenging): What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-190
-    description: "What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?"
+    description: 'What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?'
     messages:
       - role: user
         content: |

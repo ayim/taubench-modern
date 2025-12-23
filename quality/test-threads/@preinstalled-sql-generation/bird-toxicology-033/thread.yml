@@ -1,5 +1,5 @@
 name: bird-toxicology-033
-description: "BIRD Q227 (simple): What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places."
+description: 'BIRD Q227 (simple): What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-227
-    description: "What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places."
+    description: 'What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-031
-description: "BIRD Q30 (simple): Which cities have the top 5 lowest enrollment number for students in grades 1 through 12?"
+description: 'BIRD Q30 (simple): Which cities have the top 5 lowest enrollment number for students in grades 1 through 12?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-30
-    description: "Which cities have the top 5 lowest enrollment number for students in grades 1 through 12?"
+    description: 'Which cities have the top 5 lowest enrollment number for students in grades 1 through 12?'
     messages:
       - role: user
         content: |

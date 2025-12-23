@@ -1,5 +1,5 @@
 name: bird-financial-092
-description: "BIRD Q180 (moderate): Please provide a list of clients who were born between 1983 and 1987 and whose account branch is in East Bohemia, along with their IDs."
+description: 'BIRD Q180 (moderate): Please provide a list of clients who were born between 1983 and 1987 and whose account branch is in East Bohemia, along with their IDs.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-180
-    description: "Please provide a list of clients who were born between 1983 and 1987 and whose account branch is in East Bohemia, along with their IDs."
+    description: 'Please provide a list of clients who were born between 1983 and 1987 and whose account branch is in East Bohemia, along with their IDs.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-016
-description: "BIRD Q210 (simple): What atoms are connected in single type bonds?"
+description: 'BIRD Q210 (simple): What atoms are connected in single type bonds?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-210
-    description: "What atoms are connected in single type bonds?"
+    description: 'What atoms are connected in single type bonds?'
     messages:
       - role: user
         content: |

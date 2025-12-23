@@ -1,5 +1,5 @@
 name: bird-toxicology-006
-description: "BIRD Q200 (challenging): For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds."
+description: 'BIRD Q200 (challenging): For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-200
-    description: "For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds."
+    description: 'For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds.'
     messages:
       - role: user
         content: |

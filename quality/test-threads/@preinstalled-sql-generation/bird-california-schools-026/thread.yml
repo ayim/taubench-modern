@@ -1,5 +1,5 @@
 name: bird-california-schools-026
-description: "BIRD Q25 (moderate): Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?"
+description: 'BIRD Q25 (moderate): Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-25
-    description: "Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?"
+    description: 'Name schools in Riverside which the average of average math score for SAT is grater than 400, what is the type of educational option that these school provides?'
     messages:
       - role: user
         content: |

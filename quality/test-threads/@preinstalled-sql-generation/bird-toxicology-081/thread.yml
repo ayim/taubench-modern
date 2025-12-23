@@ -1,5 +1,5 @@
 name: bird-toxicology-081
-description: "BIRD Q275 (simple): Give me the molecule ID of the double bond type."
+description: 'BIRD Q275 (simple): Give me the molecule ID of the double bond type.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-275
-    description: "Give me the molecule ID of the double bond type."
+    description: 'Give me the molecule ID of the double bond type.'
     messages:
       - role: user
         content: |

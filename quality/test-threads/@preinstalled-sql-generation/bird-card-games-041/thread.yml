@@ -1,5 +1,5 @@
 name: bird-card-games-041
-description: "BIRD Q380 (simple): List the edhrecRank for cards with frame version 2015."
+description: 'BIRD Q380 (simple): List the edhrecRank for cards with frame version 2015.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-380
-    description: "List the edhrecRank for cards with frame version 2015."
+    description: 'List the edhrecRank for cards with frame version 2015.'
     messages:
       - role: user
         content: |

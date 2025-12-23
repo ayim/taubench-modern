@@ -1,5 +1,5 @@
 name: bird-california-schools-085
-description: "BIRD Q84 (simple): What are the two most common first names among the school administrators? Indicate the district to which they administer."
+description: 'BIRD Q84 (simple): What are the two most common first names among the school administrators? Indicate the district to which they administer.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-84
-    description: "What are the two most common first names among the school administrators? Indicate the district to which they administer."
+    description: 'What are the two most common first names among the school administrators? Indicate the district to which they administer.'
     messages:
       - role: user
         content: |

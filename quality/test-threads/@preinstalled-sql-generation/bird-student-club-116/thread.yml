@@ -1,5 +1,5 @@
 name: bird-student-club-116
-description: "BIRD Q1427 (moderate): What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?"
+description: 'BIRD Q1427 (moderate): What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1427
-    description: "What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?"
+    description: 'What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?'
     messages:
       - role: user
         content: |
           What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?
-          Evidence: budget category refers to category; events located at refers to location; type = 'Guest Speaker'; 0 budget spent refers to spent = 0; 
+          Evidence: budget category refers to category; events located at refers to location; type = 'Guest Speaker'; 0 budget spent refers to spent = 0;
 
 target-platforms:
   - name: openai

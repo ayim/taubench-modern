@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-062
-description: "BIRD Q1210 (simple): What is the average index of the lactate dehydrogenase (LDH) for all patients with lactate dehydrogenase (LDH) within the normal range."
+description: 'BIRD Q1210 (simple): What is the average index of the lactate dehydrogenase (LDH) for all patients with lactate dehydrogenase (LDH) within the normal range.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1210
-    description: "What is the average index of the lactate dehydrogenase (LDH) for all patients with lactate dehydrogenase (LDH) within the normal range."
+    description: 'What is the average index of the lactate dehydrogenase (LDH) for all patients with lactate dehydrogenase (LDH) within the normal range.'
     messages:
       - role: user
         content: |

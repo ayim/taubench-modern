@@ -1,5 +1,5 @@
 name: bird-european-football-2-052
-description: "BIRD Q1071 (challenging): List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team."
+description: 'BIRD Q1071 (challenging): List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1071
-    description: "List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team."
+    description: 'List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team.'
     messages:
       - role: user
         content: |

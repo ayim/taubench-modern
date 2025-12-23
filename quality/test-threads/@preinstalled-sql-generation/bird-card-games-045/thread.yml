@@ -1,5 +1,5 @@
 name: bird-card-games-045
-description: "BIRD Q384 (simple): List down the uuid for legacy cards and the foreign language of these cards."
+description: 'BIRD Q384 (simple): List down the uuid for legacy cards and the foreign language of these cards.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-384
-    description: "List down the uuid for legacy cards and the foreign language of these cards."
+    description: 'List down the uuid for legacy cards and the foreign language of these cards.'
     messages:
       - role: user
         content: |

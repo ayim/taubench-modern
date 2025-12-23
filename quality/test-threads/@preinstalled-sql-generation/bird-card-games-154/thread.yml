@@ -1,5 +1,5 @@
 name: bird-card-games-154
-description: "BIRD Q493 (simple): For the set \"Commander 2014 Oversized\" , give its parent code."
+description: 'BIRD Q493 (simple): For the set "Commander 2014 Oversized" , give its parent code.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-493
-    description: "For the set \"Commander 2014 Oversized\" , give its parent code."
+    description: 'For the set "Commander 2014 Oversized" , give its parent code.'
     messages:
       - role: user
         content: |

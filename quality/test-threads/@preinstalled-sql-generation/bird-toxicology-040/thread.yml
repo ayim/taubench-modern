@@ -1,5 +1,5 @@
 name: bird-toxicology-040
-description: "BIRD Q234 (moderate): How many bonds which involved atom 12 does molecule TR009 have?"
+description: 'BIRD Q234 (moderate): How many bonds which involved atom 12 does molecule TR009 have?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-234
-    description: "How many bonds which involved atom 12 does molecule TR009 have?"
+    description: 'How many bonds which involved atom 12 does molecule TR009 have?'
     messages:
       - role: user
         content: |

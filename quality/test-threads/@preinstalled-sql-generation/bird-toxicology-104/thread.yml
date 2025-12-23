@@ -1,5 +1,5 @@
 name: bird-toxicology-104
-description: "BIRD Q298 (moderate): Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen."
+description: 'BIRD Q298 (moderate): Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-298
-    description: "Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen."
+    description: 'Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen.'
     messages:
       - role: user
         content: |

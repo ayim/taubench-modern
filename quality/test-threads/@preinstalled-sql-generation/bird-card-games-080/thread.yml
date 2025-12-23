@@ -1,5 +1,5 @@
 name: bird-card-games-080
-description: "BIRD Q419 (simple): How many color cards with no borders have been ranked higher than 12000 on EDHRec?"
+description: 'BIRD Q419 (simple): How many color cards with no borders have been ranked higher than 12000 on EDHRec?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-419
-    description: "How many color cards with no borders have been ranked higher than 12000 on EDHRec?"
+    description: 'How many color cards with no borders have been ranked higher than 12000 on EDHRec?'
     messages:
       - role: user
         content: |

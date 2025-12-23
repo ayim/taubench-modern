@@ -1,5 +1,5 @@
 name: bird-superhero-040
-description: "BIRD Q756 (simple): How many bad superheroes are there?"
+description: 'BIRD Q756 (simple): How many bad superheroes are there?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-756
-    description: "How many bad superheroes are there?"
+    description: 'How many bad superheroes are there?'
     messages:
       - role: user
         content: |

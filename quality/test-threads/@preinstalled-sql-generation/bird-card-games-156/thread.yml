@@ -1,5 +1,5 @@
 name: bird-card-games-156
-description: "BIRD Q495 (simple): What was the release date for the set which card \"Evacuation\" in it?"
+description: 'BIRD Q495 (simple): What was the release date for the set which card "Evacuation" in it?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-495
-    description: "What was the release date for the set which card \"Evacuation\" in it?"
+    description: 'What was the release date for the set which card "Evacuation" in it?'
     messages:
       - role: user
         content: |

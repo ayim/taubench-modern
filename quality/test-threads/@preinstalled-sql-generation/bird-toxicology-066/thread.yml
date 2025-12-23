@@ -1,5 +1,5 @@
 name: bird-toxicology-066
-description: "BIRD Q260 (moderate): Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine."
+description: 'BIRD Q260 (moderate): Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-260
-    description: "Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine."
+    description: 'Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine.'
     messages:
       - role: user
         content: |

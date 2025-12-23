@@ -1,5 +1,5 @@
 name: bird-formula-1-132
-description: "BIRD Q977 (simple): From race no. 50 to 100, how many finishers have been disqualified?"
+description: 'BIRD Q977 (simple): From race no. 50 to 100, how many finishers have been disqualified?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-977
-    description: "From race no. 50 to 100, how many finishers have been disqualified?"
+    description: 'From race no. 50 to 100, how many finishers have been disqualified?'
     messages:
       - role: user
         content: |

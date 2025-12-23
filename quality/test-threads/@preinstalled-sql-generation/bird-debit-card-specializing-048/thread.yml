@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-048
-description: "BIRD Q1517 (simple): For the earliest customer, what segment did he/she have?"
+description: 'BIRD Q1517 (simple): For the earliest customer, what segment did he/she have?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1517
-    description: "For the earliest customer, what segment did he/she have?"
+    description: 'For the earliest customer, what segment did he/she have?'
     messages:
       - role: user
         content: |

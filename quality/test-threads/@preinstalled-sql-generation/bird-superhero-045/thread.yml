@@ -1,5 +1,5 @@
 name: bird-superhero-045
-description: "BIRD Q761 (moderate): Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes."
+description: 'BIRD Q761 (moderate): Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-761
-    description: "Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes."
+    description: 'Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes.'
     messages:
       - role: user
         content: |

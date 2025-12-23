@@ -1,5 +1,5 @@
 name: bird-toxicology-095
-description: "BIRD Q289 (simple): Is molecule TR151 carcinogenic?"
+description: 'BIRD Q289 (simple): Is molecule TR151 carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-289
-    description: "Is molecule TR151 carcinogenic?"
+    description: 'Is molecule TR151 carcinogenic?'
     messages:
       - role: user
         content: |

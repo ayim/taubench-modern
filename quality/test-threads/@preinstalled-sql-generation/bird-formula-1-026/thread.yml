@@ -1,5 +1,5 @@
 name: bird-formula-1-026
-description: "BIRD Q871 (simple): For the driver who had the Q2 time as 0:01:15 in race No. 347, where is he from?"
+description: 'BIRD Q871 (simple): For the driver who had the Q2 time as 0:01:15 in race No. 347, where is he from?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-871
-    description: "For the driver who had the Q2 time as 0:01:15 in race No. 347, where is he from?"
+    description: 'For the driver who had the Q2 time as 0:01:15 in race No. 347, where is he from?'
     messages:
       - role: user
         content: |

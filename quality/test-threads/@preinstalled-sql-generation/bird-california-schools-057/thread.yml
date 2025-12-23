@@ -1,5 +1,5 @@
 name: bird-california-schools-057
-description: "BIRD Q56 (simple): Of all the schools with a mailing state address in California, how many are active in San Joaquin city?"
+description: 'BIRD Q56 (simple): Of all the schools with a mailing state address in California, how many are active in San Joaquin city?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-56
-    description: "Of all the schools with a mailing state address in California, how many are active in San Joaquin city?"
+    description: 'Of all the schools with a mailing state address in California, how many are active in San Joaquin city?'
     messages:
       - role: user
         content: |

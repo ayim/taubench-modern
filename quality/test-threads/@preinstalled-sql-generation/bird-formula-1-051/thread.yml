@@ -1,5 +1,5 @@
 name: bird-formula-1-051
-description: "BIRD Q896 (challenging): Calculate the percentage whereby Hamilton was not at the 1st track of the the f1 circuit since 2010."
+description: 'BIRD Q896 (challenging): Calculate the percentage whereby Hamilton was not at the 1st track of the the f1 circuit since 2010.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-896
-    description: "Calculate the percentage whereby Hamilton was not at the 1st track of the the f1 circuit since 2010."
+    description: 'Calculate the percentage whereby Hamilton was not at the 1st track of the the f1 circuit since 2010.'
     messages:
       - role: user
         content: |

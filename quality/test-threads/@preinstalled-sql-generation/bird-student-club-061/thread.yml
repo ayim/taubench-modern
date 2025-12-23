@@ -1,5 +1,5 @@
 name: bird-student-club-061
-description: "BIRD Q1372 (simple): When did the member, Casey Mason, received the income?"
+description: 'BIRD Q1372 (simple): When did the member, Casey Mason, received the income?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1372
-    description: "When did the member, Casey Mason, received the income?"
+    description: 'When did the member, Casey Mason, received the income?'
     messages:
       - role: user
         content: |

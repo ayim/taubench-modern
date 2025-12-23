@@ -1,5 +1,5 @@
 name: bird-superhero-042
-description: "BIRD Q758 (moderate): Provide the hair colour of the human superhero who is 185 cm tall."
+description: 'BIRD Q758 (moderate): Provide the hair colour of the human superhero who is 185 cm tall.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-758
-    description: "Provide the hair colour of the human superhero who is 185 cm tall."
+    description: 'Provide the hair colour of the human superhero who is 185 cm tall.'
     messages:
       - role: user
         content: |

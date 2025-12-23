@@ -1,5 +1,5 @@
 name: bird-codebase-community-014
-description: "BIRD Q544 (moderate): What is the display name of the user who last edited the post \"Examples for teaching: Correlation does not mean causation\"?"
+description: 'BIRD Q544 (moderate): What is the display name of the user who last edited the post "Examples for teaching: Correlation does not mean causation"?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-544
-    description: "What is the display name of the user who last edited the post \"Examples for teaching: Correlation does not mean causation\"?"
+    description: 'What is the display name of the user who last edited the post "Examples for teaching: Correlation does not mean causation"?'
     messages:
       - role: user
         content: |

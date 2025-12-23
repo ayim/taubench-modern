@@ -1,5 +1,5 @@
 name: bird-formula-1-173
-description: "BIRD Q1018 (simple): What was the average time in milliseconds Lewis Hamilton spent at a pit stop during Formula_1 races?"
+description: 'BIRD Q1018 (simple): What was the average time in milliseconds Lewis Hamilton spent at a pit stop during Formula_1 races?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1018
-    description: "What was the average time in milliseconds Lewis Hamilton spent at a pit stop during Formula_1 races?"
+    description: 'What was the average time in milliseconds Lewis Hamilton spent at a pit stop during Formula_1 races?'
     messages:
       - role: user
         content: |

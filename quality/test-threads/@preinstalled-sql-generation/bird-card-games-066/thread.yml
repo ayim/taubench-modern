@@ -1,5 +1,5 @@
 name: bird-card-games-066
-description: "BIRD Q405 (moderate): How many Brazilian Portuguese translated sets are inside the Commander block?"
+description: 'BIRD Q405 (moderate): How many Brazilian Portuguese translated sets are inside the Commander block?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-405
-    description: "How many Brazilian Portuguese translated sets are inside the Commander block?"
+    description: 'How many Brazilian Portuguese translated sets are inside the Commander block?'
     messages:
       - role: user
         content: |

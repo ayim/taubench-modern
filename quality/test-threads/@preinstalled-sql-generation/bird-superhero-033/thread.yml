@@ -1,5 +1,5 @@
 name: bird-superhero-033
-description: "BIRD Q749 (simple): Provide the superpowers of the superhero called Deathlok."
+description: 'BIRD Q749 (simple): Provide the superpowers of the superhero called Deathlok.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-749
-    description: "Provide the superpowers of the superhero called Deathlok."
+    description: 'Provide the superpowers of the superhero called Deathlok.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-007
-description: "BIRD Q201 (moderate): What is the percentage of carbon in double-bond molecules?"
+description: 'BIRD Q201 (moderate): What is the percentage of carbon in double-bond molecules?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-201
-    description: "What is the percentage of carbon in double-bond molecules?"
+    description: 'What is the percentage of carbon in double-bond molecules?'
     messages:
       - role: user
         content: |

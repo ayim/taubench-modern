@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-127
-description: "BIRD Q1275 (moderate): Among the patients who has a normal level of anti-centromere and a normal level of anti-SSB, how many of them are male?"
+description: 'BIRD Q1275 (moderate): Among the patients who has a normal level of anti-centromere and a normal level of anti-SSB, how many of them are male?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1275
-    description: "Among the patients who has a normal level of anti-centromere and a normal level of anti-SSB, how many of them are male?"
+    description: 'Among the patients who has a normal level of anti-centromere and a normal level of anti-SSB, how many of them are male?'
     messages:
       - role: user
         content: |

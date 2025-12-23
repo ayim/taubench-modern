@@ -1,5 +1,5 @@
 name: bird-superhero-068
-description: "BIRD Q784 (simple): Provide the full names of vampire heroes."
+description: 'BIRD Q784 (simple): Provide the full names of vampire heroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-784
-    description: "Provide the full names of vampire heroes."
+    description: 'Provide the full names of vampire heroes.'
     messages:
       - role: user
         content: |

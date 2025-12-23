@@ -1,5 +1,5 @@
 name: bird-toxicology-072
-description: "BIRD Q266 (simple): Calculate the total carcinogenic molecules for molecule id from TR000 to TR030."
+description: 'BIRD Q266 (simple): Calculate the total carcinogenic molecules for molecule id from TR000 to TR030.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-266
-    description: "Calculate the total carcinogenic molecules for molecule id from TR000 to TR030."
+    description: 'Calculate the total carcinogenic molecules for molecule id from TR000 to TR030.'
     messages:
       - role: user
         content: |

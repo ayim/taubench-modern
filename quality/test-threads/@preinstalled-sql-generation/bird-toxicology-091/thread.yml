@@ -1,5 +1,5 @@
 name: bird-toxicology-091
-description: "BIRD Q285 (challenging): Name chemical elements that form a bond TR001_10_11."
+description: 'BIRD Q285 (challenging): Name chemical elements that form a bond TR001_10_11.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-285
-    description: "Name chemical elements that form a bond TR001_10_11."
+    description: 'Name chemical elements that form a bond TR001_10_11.'
     messages:
       - role: user
         content: |

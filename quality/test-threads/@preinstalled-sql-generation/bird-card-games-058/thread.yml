@@ -1,5 +1,5 @@
 name: bird-card-games-058
-description: "BIRD Q397 (moderate): What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?"
+description: 'BIRD Q397 (moderate): What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-397
-    description: "What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?"
+    description: 'What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?'
     messages:
       - role: user
         content: |

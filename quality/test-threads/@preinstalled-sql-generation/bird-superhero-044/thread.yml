@@ -1,5 +1,5 @@
 name: bird-superhero-044
-description: "BIRD Q760 (challenging): In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?"
+description: 'BIRD Q760 (challenging): In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-760
-    description: "In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?"
+    description: 'In superheroes with height between 150 to 180, what is the percentage of heroes published by Marvel Comics?'
     messages:
       - role: user
         content: |

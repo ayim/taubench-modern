@@ -1,5 +1,5 @@
 name: bird-card-games-060
-description: "BIRD Q399 (simple): Lists all types of cards available in arena."
+description: 'BIRD Q399 (simple): Lists all types of cards available in arena.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,13 +10,13 @@ sdms:
 
 thread:
   - name: bird-question-399
-    description: "Lists all types of cards available in arena."
+    description: 'Lists all types of cards available in arena.'
     messages:
       - role: user
         content: |
           Lists all types of cards available in arena.
           Evidence: all types refer to subtypes and supertypes
-          
+
           availble in arena refers to availability = 'arena'
 
 target-platforms:

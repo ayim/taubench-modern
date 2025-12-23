@@ -1,5 +1,5 @@
 name: bird-european-football-2-129
-description: "BIRD Q1148 (moderate): What is the percentage of players that are under 180 cm who have an overall strength of more than 70?"
+description: 'BIRD Q1148 (moderate): What is the percentage of players that are under 180 cm who have an overall strength of more than 70?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1148
-    description: "What is the percentage of players that are under 180 cm who have an overall strength of more than 70?"
+    description: 'What is the percentage of players that are under 180 cm who have an overall strength of more than 70?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-043
-description: "BIRD Q1512 (simple): Which customer paid the most in 2012/8/25? If there is a tie, list any one customer."
+description: 'BIRD Q1512 (simple): Which customer paid the most in 2012/8/25? If there is a tie, list any one customer.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1512
-    description: "Which customer paid the most in 2012/8/25? If there is a tie, list any one customer."
+    description: 'Which customer paid the most in 2012/8/25? If there is a tie, list any one customer.'
     messages:
       - role: user
         content: |

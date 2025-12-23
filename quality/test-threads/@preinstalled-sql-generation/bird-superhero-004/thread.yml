@@ -1,5 +1,5 @@
 name: bird-superhero-004
-description: "BIRD Q720 (simple): Please list the full names of all the superheroes with over 15 super powers."
+description: 'BIRD Q720 (simple): Please list the full names of all the superheroes with over 15 super powers.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-720
-    description: "Please list the full names of all the superheroes with over 15 super powers."
+    description: 'Please list the full names of all the superheroes with over 15 super powers.'
     messages:
       - role: user
         content: |

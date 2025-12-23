@@ -1,5 +1,5 @@
 name: bird-student-club-057
-description: "BIRD Q1368 (simple): What does the person with the phone number \"809-555-3360\" major in?"
+description: 'BIRD Q1368 (simple): What does the person with the phone number "809-555-3360" major in?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1368
-    description: "What does the person with the phone number \"809-555-3360\" major in?"
+    description: 'What does the person with the phone number "809-555-3360" major in?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-092
-description: "BIRD Q1240 (moderate): From laboratory examinations in 1991, what is the average hematoclit level that is lower than the normal range."
+description: 'BIRD Q1240 (moderate): From laboratory examinations in 1991, what is the average hematoclit level that is lower than the normal range.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1240
-    description: "From laboratory examinations in 1991, what is the average hematoclit level that is lower than the normal range."
+    description: 'From laboratory examinations in 1991, what is the average hematoclit level that is lower than the normal range.'
     messages:
       - role: user
         content: |

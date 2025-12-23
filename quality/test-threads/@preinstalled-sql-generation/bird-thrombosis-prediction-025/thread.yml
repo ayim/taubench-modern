@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-025
-description: "BIRD Q1173 (challenging): What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?"
+description: 'BIRD Q1173 (challenging): What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1173
-    description: "What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?"
+    description: 'What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?'
     messages:
       - role: user
         content: |

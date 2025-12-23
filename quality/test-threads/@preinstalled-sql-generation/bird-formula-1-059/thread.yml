@@ -1,5 +1,5 @@
 name: bird-formula-1-059
-description: "BIRD Q904 (moderate): State the race and year of race in which Michael Schumacher had his fastest lap."
+description: 'BIRD Q904 (moderate): State the race and year of race in which Michael Schumacher had his fastest lap.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-904
-    description: "State the race and year of race in which Michael Schumacher had his fastest lap."
+    description: 'State the race and year of race in which Michael Schumacher had his fastest lap.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-025
-description: "BIRD Q741 (simple): What is the name of the superhero that has the most powers?"
+description: 'BIRD Q741 (simple): What is the name of the superhero that has the most powers?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-741
-    description: "What is the name of the superhero that has the most powers?"
+    description: 'What is the name of the superhero that has the most powers?'
     messages:
       - role: user
         content: |

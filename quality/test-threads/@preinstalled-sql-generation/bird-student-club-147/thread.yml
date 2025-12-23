@@ -1,5 +1,5 @@
 name: bird-student-club-147
-description: "BIRD Q1458 (moderate): Calculate the difference in the percentage of members in New Jersey and Vermont."
+description: 'BIRD Q1458 (moderate): Calculate the difference in the percentage of members in New Jersey and Vermont.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1458
-    description: "Calculate the difference in the percentage of members in New Jersey and Vermont."
+    description: 'Calculate the difference in the percentage of members in New Jersey and Vermont.'
     messages:
       - role: user
         content: |

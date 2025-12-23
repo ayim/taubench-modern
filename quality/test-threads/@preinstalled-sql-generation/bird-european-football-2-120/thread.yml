@@ -1,5 +1,5 @@
 name: bird-european-football-2-120
-description: "BIRD Q1139 (challenging): What was the final score for the match on September 24, 2008, in the Belgian Jupiler League between the home team and the away team?"
+description: 'BIRD Q1139 (challenging): What was the final score for the match on September 24, 2008, in the Belgian Jupiler League between the home team and the away team?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1139
-    description: "What was the final score for the match on September 24, 2008, in the Belgian Jupiler League between the home team and the away team?"
+    description: 'What was the final score for the match on September 24, 2008, in the Belgian Jupiler League between the home team and the away team?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-163
-description: "BIRD Q693 (simple): Identify the number of posts and comments left by the user, who has the latest created user account."
+description: 'BIRD Q693 (simple): Identify the number of posts and comments left by the user, who has the latest created user account.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-693
-    description: "Identify the number of posts and comments left by the user, who has the latest created user account."
+    description: 'Identify the number of posts and comments left by the user, who has the latest created user account.'
     messages:
       - role: user
         content: |

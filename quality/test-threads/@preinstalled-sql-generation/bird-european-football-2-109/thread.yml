@@ -1,5 +1,5 @@
 name: bird-european-football-2-109
-description: "BIRD Q1128 (simple): Which country has the highest average weight among all players who participated in matches in that country?"
+description: 'BIRD Q1128 (simple): Which country has the highest average weight among all players who participated in matches in that country?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1128
-    description: "Which country has the highest average weight among all players who participated in matches in that country?"
+    description: 'Which country has the highest average weight among all players who participated in matches in that country?'
     messages:
       - role: user
         content: |

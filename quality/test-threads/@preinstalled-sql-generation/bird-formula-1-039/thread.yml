@@ -1,5 +1,5 @@
 name: bird-formula-1-039
-description: "BIRD Q884 (moderate): List the names of all races that occurred in the earliest recorded year and month."
+description: 'BIRD Q884 (moderate): List the names of all races that occurred in the earliest recorded year and month.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-884
-    description: "List the names of all races that occurred in the earliest recorded year and month."
+    description: 'List the names of all races that occurred in the earliest recorded year and month.'
     messages:
       - role: user
         content: |

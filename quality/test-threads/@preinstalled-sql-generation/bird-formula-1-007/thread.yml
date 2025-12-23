@@ -1,5 +1,5 @@
 name: bird-formula-1-007
-description: "BIRD Q852 (moderate): How many races in the year 2010 are held on grand prixs outside Asia and Europe?"
+description: 'BIRD Q852 (moderate): How many races in the year 2010 are held on grand prixs outside Asia and Europe?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-852
-    description: "How many races in the year 2010 are held on grand prixs outside Asia and Europe?"
+    description: 'How many races in the year 2010 are held on grand prixs outside Asia and Europe?'
     messages:
       - role: user
         content: |

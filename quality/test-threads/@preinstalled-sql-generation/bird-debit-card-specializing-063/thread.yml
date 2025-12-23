@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-063
-description: "BIRD Q1532 (simple): Which country had the gas station that sold the most expensive product id No.2 for one unit?"
+description: 'BIRD Q1532 (simple): Which country had the gas station that sold the most expensive product id No.2 for one unit?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1532
-    description: "Which country had the gas station that sold the most expensive product id No.2 for one unit?"
+    description: 'Which country had the gas station that sold the most expensive product id No.2 for one unit?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-002
-description: "BIRD Q718 (simple): How many superheroes have the super power of \"Super Strength\"?"
+description: 'BIRD Q718 (simple): How many superheroes have the super power of "Super Strength"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-718
-    description: "How many superheroes have the super power of \"Super Strength\"?"
+    description: 'How many superheroes have the super power of "Super Strength"?'
     messages:
       - role: user
         content: |

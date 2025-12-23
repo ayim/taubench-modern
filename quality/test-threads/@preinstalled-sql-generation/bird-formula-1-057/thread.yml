@@ -1,5 +1,5 @@
 name: bird-formula-1-057
-description: "BIRD Q902 (simple): Which race was Alex Yoong in when he was in track number less than 20?"
+description: 'BIRD Q902 (simple): Which race was Alex Yoong in when he was in track number less than 20?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-902
-    description: "Which race was Alex Yoong in when he was in track number less than 20?"
+    description: 'Which race was Alex Yoong in when he was in track number less than 20?'
     messages:
       - role: user
         content: |

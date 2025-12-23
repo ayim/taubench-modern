@@ -183,3 +183,151 @@ async def test_data_frames_assembly_info(
     # At this point, just check that it returned something (not empty string)
     for data_frame_name, info in assembly_info.items():
         file_regression.check(info, basename=f"test_data_frames_assembly_info_{data_frame_name}")
+
+
+@pytest.mark.asyncio
+async def test_data_frames_assembly_info_with_database_connection(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+    client: TestClient,
+    test_user,
+    fastapi_app,
+):
+    """Test that assembly info shows connection details (hostname/user/database) instead of Data Connection ID."""
+    from agent_platform.core.data_connections.data_connections import DataConnection
+    from agent_platform.core.data_frames.data_frames import PlatformDataFrame
+    from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
+    from agent_platform.server.data_frames.data_frames_assembly_info import AssemblyInfo
+    from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    # Setup model creator
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+
+    # Create agent and thread
+    agent = await model_creator.obtain_sample_agent()
+    thread = await model_creator.obtain_sample_thread()
+
+    # Create a PostgreSQL data connection with known values
+    dc = DataConnection(
+        id="test-postgres-conn-123",
+        name="Test PostgreSQL Connection",
+        description="Test connection for assembly info",
+        engine="postgres",
+        configuration=PostgresDataConnectionConfiguration(
+            host="test-db.example.com",
+            port=5432,
+            database="test_database",
+            user="test_user",
+            password="test_password",
+        ),
+        external_id=None,
+        created_at=None,
+        updated_at=None,
+    )
+    await sqlite_storage.set_data_connection(dc)
+
+    # Create a semantic data model with database connection
+    semantic_model = {
+        "name": "test_db_semantic_model",
+        "description": "Test semantic model with database connection",
+        "tables": [
+            {
+                "name": "customers",
+                "base_table": {
+                    "database": "test_database",
+                    "schema": "public",
+                    "table": "customers",
+                    "data_connection_id": dc.id,
+                },
+                "dimensions": [
+                    {"name": "id", "expr": "id", "data_type": "INTEGER"},
+                    {"name": "name", "expr": "name", "data_type": "TEXT"},
+                ],
+            }
+        ],
+    }
+
+    semantic_data_model_id = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model,
+        data_connection_ids=[dc.id],
+        file_references=[],
+    )
+
+    # Associate model to agent and thread
+    await sqlite_storage.set_agent_semantic_data_models(
+        agent_id=agent.agent_id, semantic_data_model_ids=[semantic_data_model_id]
+    )
+    await sqlite_storage.set_thread_semantic_data_models(
+        thread_id=thread.thread_id, semantic_data_model_ids=[semantic_data_model_id]
+    )
+
+    # Create a data frame directly (without executing SQL) to test assembly info
+    # We'll create it with sql_computation type that references the semantic model
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from agent_platform.core.data_frames.data_frames import DataFrameSource
+
+    user_id = await model_creator.get_user_id()
+    data_frame = PlatformDataFrame(
+        data_frame_id=str(uuid4()),
+        name="customers_data_frame",
+        user_id=user_id,
+        agent_id=agent.agent_id,
+        thread_id=thread.thread_id,
+        num_rows=0,  # Not executed, so 0 rows
+        num_columns=0,  # Not executed, so 0 columns
+        column_headers=[],
+        input_id_type="sql_computation",
+        created_at=datetime.now(UTC),
+        computation="SELECT * FROM customers LIMIT 5",
+        computation_input_sources={
+            "customers": DataFrameSource(
+                source_type="semantic_data_model",
+                base_table={
+                    "database": "test_database",
+                    "schema": "public",
+                    "table": "customers",
+                    "data_connection_id": dc.id,
+                },
+                logical_table_name="customers",
+            ),
+        },
+        parquet_contents=None,
+        extra_data=PlatformDataFrame.build_extra_data(sql_dialect="postgres"),
+        description=None,
+        file_id=None,
+        file_ref=None,
+        sheet_name=None,
+    )
+    await sqlite_storage.save_data_frame(data_frame)
+
+    # Build dependencies the same way resolve_data_frame would
+    # This tests the real dependency building logic
+    data_frames_kernel = DataFramesKernel(sqlite_storage, test_user, thread.thread_id)
+    name_to_data_frame = await data_frames_kernel._get_name_to_data_frame()
+
+    # This will build dependencies correctly from the data frame's computation_input_sources
+    dependencies = await data_frames_kernel._compute_data_frame_graph(data_frame, name_to_data_frame)
+
+    # Now test assembly info generation with real dependencies
+    assembly_info = AssemblyInfo()
+    assembly_info.set_initial_data_frame(data_frame)
+    assembly_info.set_dependencies(dependencies)
+
+    info = await assembly_info.to_markdown(storage=sqlite_storage)
+
+    # Verify that connection details are shown instead of "Data Connection ID"
+    assert "Data Connection ID" not in info, "Should not show 'Data Connection ID'"
+    assert "Hostname: `test-db.example.com`" in info, "Should show hostname"
+    assert "User: `test_user`" in info, "Should show user"
+    assert "Database: `test_database`" in info, "Should show database"
+    assert "Schema: `public`" in info, "Should show schema"
+    assert "Table: `customers`" in info, "Should show table"
+
+    # Verify the semantic data model section shows connection details
+    assert "## Semantic Data Model: `customers`" in info
+    assert "#### Source: Database" in info

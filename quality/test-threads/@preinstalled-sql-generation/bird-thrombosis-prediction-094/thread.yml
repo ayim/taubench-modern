@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-094
-description: "BIRD Q1242 (challenging): For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level."
+description: 'BIRD Q1242 (challenging): For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1242
-    description: "For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level."
+    description: 'For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level.'
     messages:
       - role: user
         content: |

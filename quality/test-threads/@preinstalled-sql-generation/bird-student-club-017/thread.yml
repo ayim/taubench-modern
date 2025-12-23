@@ -1,5 +1,5 @@
 name: bird-student-club-017
-description: "BIRD Q1328 (simple): List the last name of all the students who majored Law and Constitutional Studies.  "
+description: 'BIRD Q1328 (simple): List the last name of all the students who majored Law and Constitutional Studies.  '
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1328
-    description: "List the last name of all the students who majored Law and Constitutional Studies.  "
+    description: 'List the last name of all the students who majored Law and Constitutional Studies.  '
     messages:
       - role: user
         content: |
           List the last name of all the students who majored Law and Constitutional Studies. 
-          
+
           Evidence: 'Law and Constitutional Studies' is the major name
 
 target-platforms:

@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-047
-description: "BIRD Q1516 (moderate): How many transactions were paid in CZK in the morning of 2012/8/26?"
+description: 'BIRD Q1516 (moderate): How many transactions were paid in CZK in the morning of 2012/8/26?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1516
-    description: "How many transactions were paid in CZK in the morning of 2012/8/26?"
+    description: 'How many transactions were paid in CZK in the morning of 2012/8/26?'
     messages:
       - role: user
         content: |

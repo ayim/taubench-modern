@@ -1,5 +1,5 @@
 name: bird-student-club-121
-description: "BIRD Q1432 (moderate): Among the members with t-shirt size of medium, what is the percentage of the amount 50 received by the Student_Club?"
+description: 'BIRD Q1432 (moderate): Among the members with t-shirt size of medium, what is the percentage of the amount 50 received by the Student_Club?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1432
-    description: "Among the members with t-shirt size of medium, what is the percentage of the amount 50 received by the Student_Club?"
+    description: 'Among the members with t-shirt size of medium, what is the percentage of the amount 50 received by the Student_Club?'
     messages:
       - role: user
         content: |

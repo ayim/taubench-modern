@@ -1,5 +1,5 @@
 name: bird-formula-1-023
-description: "BIRD Q868 (simple): Where is Malaysian Grand Prix held? Give the location coordinates."
+description: 'BIRD Q868 (simple): Where is Malaysian Grand Prix held? Give the location coordinates.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-868
-    description: "Where is Malaysian Grand Prix held? Give the location coordinates."
+    description: 'Where is Malaysian Grand Prix held? Give the location coordinates.'
     messages:
       - role: user
         content: |

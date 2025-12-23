@@ -1,5 +1,5 @@
 name: bird-card-games-025
-description: "BIRD Q364 (simple): What is the status of card \"Cloudchaser Eagle\"?"
+description: 'BIRD Q364 (simple): What is the status of card "Cloudchaser Eagle"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-364
-    description: "What is the status of card \"Cloudchaser Eagle\"?"
+    description: 'What is the status of card "Cloudchaser Eagle"?'
     messages:
       - role: user
         content: |

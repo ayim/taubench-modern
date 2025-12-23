@@ -1,5 +1,5 @@
 name: bird-card-games-035
-description: "BIRD Q374 (simple): How many black border cards are only available on mtgo?"
+description: 'BIRD Q374 (simple): How many black border cards are only available on mtgo?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,13 +10,13 @@ sdms:
 
 thread:
   - name: bird-question-374
-    description: "How many black border cards are only available on mtgo?"
+    description: 'How many black border cards are only available on mtgo?'
     messages:
       - role: user
         content: |
           How many black border cards are only available on mtgo?
           Evidence: black border card refers to borderColor = black; available on mtgo refers to availability = mtgo;
-          
+
           add quotes for string = 'black' and = 'mtgo'
 
 target-platforms:

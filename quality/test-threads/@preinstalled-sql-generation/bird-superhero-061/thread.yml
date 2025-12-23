@@ -1,5 +1,5 @@
 name: bird-superhero-061
-description: "BIRD Q777 (simple): What is the gender of Agent 13 hero?"
+description: 'BIRD Q777 (simple): What is the gender of Agent 13 hero?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-777
-    description: "What is the gender of Agent 13 hero?"
+    description: 'What is the gender of Agent 13 hero?'
     messages:
       - role: user
         content: |

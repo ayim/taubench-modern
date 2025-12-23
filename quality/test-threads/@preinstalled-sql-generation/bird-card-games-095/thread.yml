@@ -1,5 +1,5 @@
 name: bird-card-games-095
-description: "BIRD Q434 (moderate): How many sets are available just in Japanese and not in Magic: The Gathering Online?"
+description: 'BIRD Q434 (moderate): How many sets are available just in Japanese and not in Magic: The Gathering Online?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-434
-    description: "How many sets are available just in Japanese and not in Magic: The Gathering Online?"
+    description: 'How many sets are available just in Japanese and not in Magic: The Gathering Online?'
     messages:
       - role: user
         content: |

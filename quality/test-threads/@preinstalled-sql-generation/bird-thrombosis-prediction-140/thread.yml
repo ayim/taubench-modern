@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-140
-description: "BIRD Q1288 (simple): Please list the diagnosis of the patients whose total protein is lower than normal."
+description: 'BIRD Q1288 (simple): Please list the diagnosis of the patients whose total protein is lower than normal.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1288
-    description: "Please list the diagnosis of the patients whose total protein is lower than normal."
+    description: 'Please list the diagnosis of the patients whose total protein is lower than normal.'
     messages:
       - role: user
         content: |

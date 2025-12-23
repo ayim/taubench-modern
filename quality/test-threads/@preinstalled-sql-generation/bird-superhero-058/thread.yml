@@ -1,5 +1,5 @@
 name: bird-superhero-058
-description: "BIRD Q774 (simple): Which group does superhero A-Bomb belong to?"
+description: 'BIRD Q774 (simple): Which group does superhero A-Bomb belong to?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-774
-    description: "Which group does superhero A-Bomb belong to?"
+    description: 'Which group does superhero A-Bomb belong to?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-048
-description: "BIRD Q47 (moderate): What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?"
+description: 'BIRD Q47 (moderate): What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-47
-    description: "What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?"
+    description: 'What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?'
     messages:
       - role: user
         content: |

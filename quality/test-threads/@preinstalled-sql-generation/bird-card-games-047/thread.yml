@@ -1,5 +1,5 @@
 name: bird-card-games-047
-description: "BIRD Q386 (simple): How many legal cards are having future frame version?"
+description: 'BIRD Q386 (simple): How many legal cards are having future frame version?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-386
-    description: "How many legal cards are having future frame version?"
+    description: 'How many legal cards are having future frame version?'
     messages:
       - role: user
         content: |

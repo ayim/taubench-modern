@@ -1,5 +1,5 @@
 name: bird-superhero-104
-description: "BIRD Q820 (moderate): How strong is the Hulk?"
+description: 'BIRD Q820 (moderate): How strong is the Hulk?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-820
-    description: "How strong is the Hulk?"
+    description: 'How strong is the Hulk?'
     messages:
       - role: user
         content: |

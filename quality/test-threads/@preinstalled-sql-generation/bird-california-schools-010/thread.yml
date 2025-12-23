@@ -1,5 +1,5 @@
 name: bird-california-schools-010
-description: "BIRD Q9 (simple): Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?"
+description: 'BIRD Q9 (simple): Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-9
-    description: "Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?"
+    description: 'Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?'
     messages:
       - role: user
         content: |

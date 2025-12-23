@@ -1,5 +1,5 @@
 name: bird-formula-1-005
-description: "BIRD Q850 (simple): Please give the name of the race held on the circuits in Germany."
+description: 'BIRD Q850 (simple): Please give the name of the race held on the circuits in Germany.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-850
-    description: "Please give the name of the race held on the circuits in Germany."
+    description: 'Please give the name of the race held on the circuits in Germany.'
     messages:
       - role: user
         content: |

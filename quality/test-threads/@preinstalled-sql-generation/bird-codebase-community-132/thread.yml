@@ -1,5 +1,5 @@
 name: bird-codebase-community-132
-description: "BIRD Q662 (simple): How many posts with votes that were created in 2011 have a bounty of 50?"
+description: 'BIRD Q662 (simple): How many posts with votes that were created in 2011 have a bounty of 50?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-662
-    description: "How many posts with votes that were created in 2011 have a bounty of 50?"
+    description: 'How many posts with votes that were created in 2011 have a bounty of 50?'
     messages:
       - role: user
         content: |

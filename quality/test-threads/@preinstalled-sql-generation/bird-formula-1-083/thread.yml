@@ -1,5 +1,5 @@
 name: bird-formula-1-083
-description: "BIRD Q928 (moderate): Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name."
+description: 'BIRD Q928 (moderate): Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-928
-    description: "Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name."
+    description: 'Which driver ranked the first in the Canadian Grand Prix in 2007? Please give his reference name.'
     messages:
       - role: user
         content: |

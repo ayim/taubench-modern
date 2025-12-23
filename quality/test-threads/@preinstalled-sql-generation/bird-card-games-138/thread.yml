@@ -1,5 +1,5 @@
 name: bird-card-games-138
-description: "BIRD Q477 (challenging): Which of the following artists, Jeremy Jarvis, Aaron Miller or Chippy, have designed a card in the set Coldsnap."
+description: 'BIRD Q477 (challenging): Which of the following artists, Jeremy Jarvis, Aaron Miller or Chippy, have designed a card in the set Coldsnap.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-477
-    description: "Which of the following artists, Jeremy Jarvis, Aaron Miller or Chippy, have designed a card in the set Coldsnap."
+    description: 'Which of the following artists, Jeremy Jarvis, Aaron Miller or Chippy, have designed a card in the set Coldsnap.'
     messages:
       - role: user
         content: |

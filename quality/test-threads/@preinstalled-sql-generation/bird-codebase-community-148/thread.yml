@@ -1,5 +1,5 @@
 name: bird-codebase-community-148
-description: "BIRD Q678 (simple): Which post by Harvey Motulsky has the most views? Please give the id and title of this post."
+description: 'BIRD Q678 (simple): Which post by Harvey Motulsky has the most views? Please give the id and title of this post.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-678
-    description: "Which post by Harvey Motulsky has the most views? Please give the id and title of this post."
+    description: 'Which post by Harvey Motulsky has the most views? Please give the id and title of this post.'
     messages:
       - role: user
         content: |

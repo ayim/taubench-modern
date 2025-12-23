@@ -1,5 +1,5 @@
 name: bird-superhero-003
-description: "BIRD Q719 (moderate): Among the superheroes with the super power of \"Super Strength\", how many of them have a height of over 200cm?"
+description: 'BIRD Q719 (moderate): Among the superheroes with the super power of "Super Strength", how many of them have a height of over 200cm?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-719
-    description: "Among the superheroes with the super power of \"Super Strength\", how many of them have a height of over 200cm?"
+    description: 'Among the superheroes with the super power of "Super Strength", how many of them have a height of over 200cm?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-184
-description: "BIRD Q523 (challenging): What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card."
+description: 'BIRD Q523 (challenging): What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-523
-    description: "What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card."
+    description: 'What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-035
-description: "BIRD Q1346 (simple): Tell the phone number of \"Carlo Jacobs\"."
+description: 'BIRD Q1346 (simple): Tell the phone number of "Carlo Jacobs".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1346
-    description: "Tell the phone number of \"Carlo Jacobs\"."
+    description: 'Tell the phone number of "Carlo Jacobs".'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-022
-description: "BIRD Q110 (simple): What is the disposition id of the client who made 5100 USD transaction in 1998/9/2?"
+description: 'BIRD Q110 (simple): What is the disposition id of the client who made 5100 USD transaction in 1998/9/2?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-110
-    description: "What is the disposition id of the client who made 5100 USD transaction in 1998/9/2?"
+    description: 'What is the disposition id of the client who made 5100 USD transaction in 1998/9/2?'
     messages:
       - role: user
         content: |

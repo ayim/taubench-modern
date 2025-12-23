@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-088
-description: "BIRD Q1236 (challenging): For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital."
+description: 'BIRD Q1236 (challenging): For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1236
-    description: "For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital."
+    description: 'For all the female patient age 50 and above, who has abnormal red blood cell count. State if they were admitted to hospital.'
     messages:
       - role: user
         content: |

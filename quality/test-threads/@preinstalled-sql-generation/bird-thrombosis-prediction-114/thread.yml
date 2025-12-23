@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-114
-description: "BIRD Q1262 (moderate): How many patients with a normal level of complement 3 have a P pattern observed in the sheet of ANA examination?"
+description: 'BIRD Q1262 (moderate): How many patients with a normal level of complement 3 have a P pattern observed in the sheet of ANA examination?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1262
-    description: "How many patients with a normal level of complement 3 have a P pattern observed in the sheet of ANA examination?"
+    description: 'How many patients with a normal level of complement 3 have a P pattern observed in the sheet of ANA examination?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-073
-description: "BIRD Q267 (moderate): List down the bond type for molecules from molecule id TR000 to TR050."
+description: 'BIRD Q267 (moderate): List down the bond type for molecules from molecule id TR000 to TR050.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-267
-    description: "List down the bond type for molecules from molecule id TR000 to TR050."
+    description: 'List down the bond type for molecules from molecule id TR000 to TR050.'
     messages:
       - role: user
         content: |

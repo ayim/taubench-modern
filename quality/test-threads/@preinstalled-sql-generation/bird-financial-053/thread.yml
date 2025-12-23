@@ -1,5 +1,5 @@
 name: bird-financial-053
-description: "BIRD Q141 (simple): Which districts have transactions greater than USD$10,000 in 1997?"
+description: 'BIRD Q141 (simple): Which districts have transactions greater than USD$10,000 in 1997?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-141
-    description: "Which districts have transactions greater than USD$10,000 in 1997?"
+    description: 'Which districts have transactions greater than USD$10,000 in 1997?'
     messages:
       - role: user
         content: |

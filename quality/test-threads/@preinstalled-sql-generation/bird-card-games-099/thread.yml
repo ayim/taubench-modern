@@ -1,5 +1,5 @@
 name: bird-card-games-099
-description: "BIRD Q438 (simple): Point out the language of set id \"174\"?"
+description: 'BIRD Q438 (simple): Point out the language of set id "174"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-438
-    description: "Point out the language of set id \"174\"?"
+    description: 'Point out the language of set id "174"?'
     messages:
       - role: user
         content: |

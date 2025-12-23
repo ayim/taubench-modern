@@ -1,5 +1,5 @@
 name: bird-european-football-2-125
-description: "BIRD Q1144 (simple): Please state the finishing rate and curve score of the player who has the heaviest weight."
+description: 'BIRD Q1144 (simple): Please state the finishing rate and curve score of the player who has the heaviest weight.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1144
-    description: "Please state the finishing rate and curve score of the player who has the heaviest weight."
+    description: 'Please state the finishing rate and curve score of the player who has the heaviest weight.'
     messages:
       - role: user
         content: |

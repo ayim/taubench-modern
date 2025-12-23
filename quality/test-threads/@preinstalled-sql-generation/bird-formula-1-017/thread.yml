@@ -1,5 +1,5 @@
 name: bird-formula-1-017
-description: "BIRD Q862 (simple): For the Bahrain Grand Prix in 2007, how many drivers not finished the game?"
+description: 'BIRD Q862 (simple): For the Bahrain Grand Prix in 2007, how many drivers not finished the game?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-862
-    description: "For the Bahrain Grand Prix in 2007, how many drivers not finished the game?"
+    description: 'For the Bahrain Grand Prix in 2007, how many drivers not finished the game?'
     messages:
       - role: user
         content: |

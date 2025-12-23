@@ -1,5 +1,5 @@
 name: bird-card-games-015
-description: "BIRD Q354 (simple): How many types of cards does the artist Aaron Boyd illustrated about card art?"
+description: 'BIRD Q354 (simple): How many types of cards does the artist Aaron Boyd illustrated about card art?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-354
-    description: "How many types of cards does the artist Aaron Boyd illustrated about card art?"
+    description: 'How many types of cards does the artist Aaron Boyd illustrated about card art?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-099
-description: "BIRD Q629 (simple): Calculate the ratio of votes in 2010 and 2011."
+description: 'BIRD Q629 (simple): Calculate the ratio of votes in 2010 and 2011.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-629
-    description: "Calculate the ratio of votes in 2010 and 2011."
+    description: 'Calculate the ratio of votes in 2010 and 2011.'
     messages:
       - role: user
         content: |

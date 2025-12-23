@@ -1,5 +1,5 @@
 name: bird-card-games-097
-description: "BIRD Q436 (simple): How many cards have frame effect as extendedart? List out the id of those cards."
+description: 'BIRD Q436 (simple): How many cards have frame effect as extendedart? List out the id of those cards.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,14 +10,13 @@ sdms:
 
 thread:
   - name: bird-question-436
-    description: "How many cards have frame effect as extendedart? List out the id of those cards."
+    description: 'How many cards have frame effect as extendedart? List out the id of those cards.'
     messages:
       - role: user
         content: |
           How many cards have frame effect as extendedart? List out the id of those cards.
           Evidence: 
           frame effect as extendedart refers to frameEffects = 'extendedart'
-          
 
 target-platforms:
   - name: openai

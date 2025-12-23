@@ -1,5 +1,5 @@
 name: bird-financial-035
-description: "BIRD Q123 (challenging): For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount."
+description: 'BIRD Q123 (challenging): For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-123
-    description: "For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount."
+    description: 'For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount.'
     messages:
       - role: user
         content: |

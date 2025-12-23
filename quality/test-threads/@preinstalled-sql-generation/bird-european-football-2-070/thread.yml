@@ -1,5 +1,5 @@
 name: bird-european-football-2-070
-description: "BIRD Q1089 (simple): How many matches in the 2008/2009 season were held in Belgium?"
+description: 'BIRD Q1089 (simple): How many matches in the 2008/2009 season were held in Belgium?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1089
-    description: "How many matches in the 2008/2009 season were held in Belgium?"
+    description: 'How many matches in the 2008/2009 season were held in Belgium?'
     messages:
       - role: user
         content: |

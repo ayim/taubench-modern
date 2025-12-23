@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-155
-description: "BIRD Q1303 (simple): When is the birthday of the oldest patient whose blood glucose is abnormal?"
+description: 'BIRD Q1303 (simple): When is the birthday of the oldest patient whose blood glucose is abnormal?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1303
-    description: "When is the birthday of the oldest patient whose blood glucose is abnormal?"
+    description: 'When is the birthday of the oldest patient whose blood glucose is abnormal?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-133
-description: "BIRD Q978 (simple): List the circuits in Austria along with their location and coordinates."
+description: 'BIRD Q978 (simple): List the circuits in Austria along with their location and coordinates.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-978
-    description: "List the circuits in Austria along with their location and coordinates."
+    description: 'List the circuits in Austria along with their location and coordinates.'
     messages:
       - role: user
         content: |

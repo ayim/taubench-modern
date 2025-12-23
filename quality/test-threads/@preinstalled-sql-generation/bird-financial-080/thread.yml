@@ -1,5 +1,5 @@
 name: bird-financial-080
-description: "BIRD Q168 (moderate): What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?"
+description: 'BIRD Q168 (moderate): What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-168
-    description: "What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?"
+    description: 'What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?'
     messages:
       - role: user
         content: |

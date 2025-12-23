@@ -1,5 +1,5 @@
 name: bird-student-club-141
-description: "BIRD Q1452 (moderate): What is the average amount paid by students in a position other than a member?"
+description: 'BIRD Q1452 (moderate): What is the average amount paid by students in a position other than a member?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1452
-    description: "What is the average amount paid by students in a position other than a member?"
+    description: 'What is the average amount paid by students in a position other than a member?'
     messages:
       - role: user
         content: |

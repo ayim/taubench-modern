@@ -1,5 +1,5 @@
 name: bird-financial-087
-description: "BIRD Q175 (challenging): For accounts with owner disposition that request statements after each transaction, what are the regional and district-level statistics including the number of accounts, average district salary, loan adoption rate, average loan amount, transaction activity, and account balances?"
+description: 'BIRD Q175 (challenging): For accounts with owner disposition that request statements after each transaction, what are the regional and district-level statistics including the number of accounts, average district salary, loan adoption rate, average loan amount, transaction activity, and account balances?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-175
-    description: "For accounts with owner disposition that request statements after each transaction, what are the regional and district-level statistics including the number of accounts, average district salary, loan adoption rate, average loan amount, transaction activity, and account balances?"
+    description: 'For accounts with owner disposition that request statements after each transaction, what are the regional and district-level statistics including the number of accounts, average district salary, loan adoption rate, average loan amount, transaction activity, and account balances?'
     messages:
       - role: user
         content: |

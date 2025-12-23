@@ -1,5 +1,5 @@
 name: bird-financial-067
-description: "BIRD Q155 (challenging): What percentage of gold credit cards were issued before 1998, both overall and broken down by region?"
+description: 'BIRD Q155 (challenging): What percentage of gold credit cards were issued before 1998, both overall and broken down by region?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-155
-    description: "What percentage of gold credit cards were issued before 1998, both overall and broken down by region?"
+    description: 'What percentage of gold credit cards were issued before 1998, both overall and broken down by region?'
     messages:
       - role: user
         content: |

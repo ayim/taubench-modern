@@ -1,5 +1,5 @@
 name: bird-codebase-community-022
-description: "BIRD Q552 (simple): Please list the names of the badges obtained by csgillespie."
+description: 'BIRD Q552 (simple): Please list the names of the badges obtained by csgillespie.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-552
-    description: "Please list the names of the badges obtained by csgillespie."
+    description: 'Please list the names of the badges obtained by csgillespie.'
     messages:
       - role: user
         content: |

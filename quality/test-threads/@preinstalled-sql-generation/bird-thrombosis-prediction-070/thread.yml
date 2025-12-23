@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-070
-description: "BIRD Q1218 (moderate): What is the percentage of the female patient whose uric acid (UA) beyond the normal range?"
+description: 'BIRD Q1218 (moderate): What is the percentage of the female patient whose uric acid (UA) beyond the normal range?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1218
-    description: "What is the percentage of the female patient whose uric acid (UA) beyond the normal range?"
+    description: 'What is the percentage of the female patient whose uric acid (UA) beyond the normal range?'
     messages:
       - role: user
         content: |

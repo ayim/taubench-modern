@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-152
-description: "BIRD Q1300 (moderate): What is the disease name of the patient who has the highest level of triglyceride within the normal range?"
+description: 'BIRD Q1300 (moderate): What is the disease name of the patient who has the highest level of triglyceride within the normal range?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1300
-    description: "What is the disease name of the patient who has the highest level of triglyceride within the normal range?"
+    description: 'What is the disease name of the patient who has the highest level of triglyceride within the normal range?'
     messages:
       - role: user
         content: |

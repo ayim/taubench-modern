@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-061
-description: "BIRD Q1530 (simple): Which are the top five best selling products? Please state the full name of them."
+description: 'BIRD Q1530 (simple): Which are the top five best selling products? Please state the full name of them.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1530
-    description: "Which are the top five best selling products? Please state the full name of them."
+    description: 'Which are the top five best selling products? Please state the full name of them.'
     messages:
       - role: user
         content: |

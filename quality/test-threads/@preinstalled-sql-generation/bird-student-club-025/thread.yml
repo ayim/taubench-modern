@@ -1,5 +1,5 @@
 name: bird-student-club-025
-description: "BIRD Q1336 (simple): What department offers the major that Pierce and Guidi took?"
+description: 'BIRD Q1336 (simple): What department offers the major that Pierce and Guidi took?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1336
-    description: "What department offers the major that Pierce and Guidi took?"
+    description: 'What department offers the major that Pierce and Guidi took?'
     messages:
       - role: user
         content: |

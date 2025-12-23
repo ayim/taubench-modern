@@ -1,5 +1,5 @@
 name: bird-superhero-126
-description: "BIRD Q842 (simple): Calculate the average height of all neutral superheroes."
+description: 'BIRD Q842 (simple): Calculate the average height of all neutral superheroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-842
-    description: "Calculate the average height of all neutral superheroes."
+    description: 'Calculate the average height of all neutral superheroes.'
     messages:
       - role: user
         content: |

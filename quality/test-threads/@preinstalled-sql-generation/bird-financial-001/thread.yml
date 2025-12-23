@@ -1,5 +1,5 @@
 name: bird-financial-001
-description: "BIRD Q89 (moderate): How many accounts who choose issuance after transaction are staying in East Bohemia region?"
+description: 'BIRD Q89 (moderate): How many accounts who choose issuance after transaction are staying in East Bohemia region?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-89
-    description: "How many accounts who choose issuance after transaction are staying in East Bohemia region?"
+    description: 'How many accounts who choose issuance after transaction are staying in East Bohemia region?'
     messages:
       - role: user
         content: |

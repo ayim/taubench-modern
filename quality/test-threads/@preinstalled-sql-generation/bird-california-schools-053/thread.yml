@@ -1,5 +1,5 @@
 name: bird-california-schools-053
-description: "BIRD Q52 (simple): What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?"
+description: 'BIRD Q52 (simple): What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-52
-    description: "What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?"
+    description: 'What is the total number of schools whose total SAT scores are greater or equal to 1500 whose mailing city is Lakeport?'
     messages:
       - role: user
         content: |

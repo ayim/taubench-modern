@@ -1,5 +1,5 @@
 name: bird-codebase-community-001
-description: "BIRD Q531 (simple): Which user has a higher reputation, Harlan or Jarrod Dixon?"
+description: 'BIRD Q531 (simple): Which user has a higher reputation, Harlan or Jarrod Dixon?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-531
-    description: "Which user has a higher reputation, Harlan or Jarrod Dixon?"
+    description: 'Which user has a higher reputation, Harlan or Jarrod Dixon?'
     messages:
       - role: user
         content: |

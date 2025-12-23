@@ -1,5 +1,5 @@
 name: bird-european-football-2-092
-description: "BIRD Q1111 (moderate): State the chance creation passing class for \"PEC Zwolle\" on 2013/9/20."
+description: 'BIRD Q1111 (moderate): State the chance creation passing class for "PEC Zwolle" on 2013/9/20.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1111
-    description: "State the chance creation passing class for \"PEC Zwolle\" on 2013/9/20."
+    description: 'State the chance creation passing class for "PEC Zwolle" on 2013/9/20.'
     messages:
       - role: user
         content: |

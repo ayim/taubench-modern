@@ -1,5 +1,5 @@
 name: bird-student-club-137
-description: "BIRD Q1448 (challenging): Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars."
+description: 'BIRD Q1448 (challenging): Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1448
-    description: "Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars."
+    description: 'Find the name and date of events with expenses for pizza that were more than fifty dollars but less than a hundred dollars.'
     messages:
       - role: user
         content: |

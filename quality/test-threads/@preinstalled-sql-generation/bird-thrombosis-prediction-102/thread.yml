@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-102
-description: "BIRD Q1250 (moderate): Which patients have a normal proteinuria level and are diagnosed with SLE? Please give their patient IDs."
+description: 'BIRD Q1250 (moderate): Which patients have a normal proteinuria level and are diagnosed with SLE? Please give their patient IDs.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1250
-    description: "Which patients have a normal proteinuria level and are diagnosed with SLE? Please give their patient IDs."
+    description: 'Which patients have a normal proteinuria level and are diagnosed with SLE? Please give their patient IDs.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-107
-description: "BIRD Q1418 (simple): Mention the category of events which were held at MU 215."
+description: 'BIRD Q1418 (simple): Mention the category of events which were held at MU 215.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1418
-    description: "Mention the category of events which were held at MU 215."
+    description: 'Mention the category of events which were held at MU 215.'
     messages:
       - role: user
         content: |

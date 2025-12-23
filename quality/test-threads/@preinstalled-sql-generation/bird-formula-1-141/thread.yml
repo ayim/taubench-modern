@@ -1,5 +1,5 @@
 name: bird-formula-1-141
-description: "BIRD Q986 (simple): In which race did the fastest 1st lap time was recorded? Please indicate the time in milliseconds."
+description: 'BIRD Q986 (simple): In which race did the fastest 1st lap time was recorded? Please indicate the time in milliseconds.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-986
-    description: "In which race did the fastest 1st lap time was recorded? Please indicate the time in milliseconds."
+    description: 'In which race did the fastest 1st lap time was recorded? Please indicate the time in milliseconds.'
     messages:
       - role: user
         content: |

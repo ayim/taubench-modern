@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-136
-description: "BIRD Q1284 (moderate): For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?"
+description: 'BIRD Q1284 (moderate): For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1284
-    description: "For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?"
+    description: 'For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?'
     messages:
       - role: user
         content: |

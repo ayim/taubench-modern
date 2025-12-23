@@ -1,5 +1,5 @@
 name: bird-formula-1-042
-description: "BIRD Q887 (simple): Name the races in year 2017 that are not hosted in year 2000."
+description: 'BIRD Q887 (simple): Name the races in year 2017 that are not hosted in year 2000.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-887
-    description: "Name the races in year 2017 that are not hosted in year 2000."
+    description: 'Name the races in year 2017 that are not hosted in year 2000.'
     messages:
       - role: user
         content: |

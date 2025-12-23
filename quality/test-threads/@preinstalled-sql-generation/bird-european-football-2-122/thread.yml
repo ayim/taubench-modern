@@ -1,5 +1,5 @@
 name: bird-european-football-2-122
-description: "BIRD Q1141 (moderate): Does the KSV Cercle Brugge team have a slow, balanced or fast speed class?"
+description: 'BIRD Q1141 (moderate): Does the KSV Cercle Brugge team have a slow, balanced or fast speed class?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1141
-    description: "Does the KSV Cercle Brugge team have a slow, balanced or fast speed class?"
+    description: 'Does the KSV Cercle Brugge team have a slow, balanced or fast speed class?'
     messages:
       - role: user
         content: |

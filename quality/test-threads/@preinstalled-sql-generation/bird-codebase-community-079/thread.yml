@@ -1,5 +1,5 @@
 name: bird-codebase-community-079
-description: "BIRD Q609 (simple): How many posts have a score of 10 on the list?"
+description: 'BIRD Q609 (simple): How many posts have a score of 10 on the list?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-609
-    description: "How many posts have a score of 10 on the list?"
+    description: 'How many posts have a score of 10 on the list?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-150
-description: "BIRD Q1461 (simple): List the last names of students under the Elementary Education major and include their phone numbers."
+description: 'BIRD Q1461 (simple): List the last names of students under the Elementary Education major and include their phone numbers.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1461
-    description: "List the last names of students under the Elementary Education major and include their phone numbers."
+    description: 'List the last names of students under the Elementary Education major and include their phone numbers.'
     messages:
       - role: user
         content: |

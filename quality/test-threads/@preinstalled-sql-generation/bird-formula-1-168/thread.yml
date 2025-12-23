@@ -1,5 +1,5 @@
 name: bird-formula-1-168
-description: "BIRD Q1013 (simple): What is the lap record for the Austrian Grand Prix Circuit?"
+description: 'BIRD Q1013 (simple): What is the lap record for the Austrian Grand Prix Circuit?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1013
-    description: "What is the lap record for the Austrian Grand Prix Circuit?"
+    description: 'What is the lap record for the Austrian Grand Prix Circuit?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-123
-description: "BIRD Q317 (moderate): Calculate the percentage of carcinogenic molecules which contain the Chlorine element."
+description: 'BIRD Q317 (moderate): Calculate the percentage of carcinogenic molecules which contain the Chlorine element.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-317
-    description: "Calculate the percentage of carcinogenic molecules which contain the Chlorine element."
+    description: 'Calculate the percentage of carcinogenic molecules which contain the Chlorine element.'
     messages:
       - role: user
         content: |

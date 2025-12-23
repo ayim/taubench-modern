@@ -1,5 +1,5 @@
 name: bird-formula-1-084
-description: "BIRD Q929 (simple): Please list the Formula_1 races that Lewis Hamilton participated."
+description: 'BIRD Q929 (simple): Please list the Formula_1 races that Lewis Hamilton participated.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-929
-    description: "Please list the Formula_1 races that Lewis Hamilton participated."
+    description: 'Please list the Formula_1 races that Lewis Hamilton participated.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-030
-description: "BIRD Q29 (simple): When did the first-through-twelfth-grade school with the largest enrollment open?"
+description: 'BIRD Q29 (simple): When did the first-through-twelfth-grade school with the largest enrollment open?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-29
-    description: "When did the first-through-twelfth-grade school with the largest enrollment open?"
+    description: 'When did the first-through-twelfth-grade school with the largest enrollment open?'
     messages:
       - role: user
         content: |

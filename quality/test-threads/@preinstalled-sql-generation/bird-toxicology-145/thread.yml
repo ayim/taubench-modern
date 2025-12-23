@@ -1,5 +1,5 @@
 name: bird-toxicology-145
-description: "BIRD Q339 (simple): List the atom ID of the carcinogenic molecule that contains oxygen?"
+description: 'BIRD Q339 (simple): List the atom ID of the carcinogenic molecule that contains oxygen?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-339
-    description: "List the atom ID of the carcinogenic molecule that contains oxygen?"
+    description: 'List the atom ID of the carcinogenic molecule that contains oxygen?'
     messages:
       - role: user
         content: |

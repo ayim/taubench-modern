@@ -1,5 +1,5 @@
 name: bird-formula-1-087
-description: "BIRD Q932 (simple): In which years did Lewis Hamilton participate in a Formula_1 race?"
+description: 'BIRD Q932 (simple): In which years did Lewis Hamilton participate in a Formula_1 race?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-932
-    description: "In which years did Lewis Hamilton participate in a Formula_1 race?"
+    description: 'In which years did Lewis Hamilton participate in a Formula_1 race?'
     messages:
       - role: user
         content: |

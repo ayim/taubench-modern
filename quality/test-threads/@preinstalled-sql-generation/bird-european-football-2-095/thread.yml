@@ -1,5 +1,5 @@
 name: bird-european-football-2-095
-description: "BIRD Q1114 (challenging): What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?"
+description: 'BIRD Q1114 (challenging): What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1114
-    description: "What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?"
+    description: 'What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?'
     messages:
       - role: user
         content: |

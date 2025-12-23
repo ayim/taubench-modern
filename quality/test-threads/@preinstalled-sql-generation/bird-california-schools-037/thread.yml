@@ -1,5 +1,5 @@
 name: bird-california-schools-037
-description: "BIRD Q36 (challenging): Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names."
+description: 'BIRD Q36 (challenging): Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-36
-    description: "Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names."
+    description: 'Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.'
     messages:
       - role: user
         content: |

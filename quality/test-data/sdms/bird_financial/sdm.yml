@@ -1,792 +1,792 @@
 name: Retail Banking Analytics
 tables:
-- name: disp
-  synonyms:
-  - account_client_linkages
-  - account_ownership_records
-  - disposition_mapping
-  base_table:
-    table: disp
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: disp_id
-    name: disp_id
+  - name: disp
     synonyms:
-    - disposition_record_identifier
-    data_type: '!int64'
-    description: Unique identifier of the disposition (client–account relationship)
-      record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: client_id
-    name: client_id
+      - account_client_linkages
+      - account_ownership_records
+      - disposition_mapping
+    base_table:
+      table: disp
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: disp_id
+        name: disp_id
+        synonyms:
+          - disposition_record_identifier
+        data_type: '!int64'
+        description: Unique identifier of the disposition (client–account relationship)
+          record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: client_id
+        name: client_id
+        synonyms:
+          - linked_client_identifier
+        data_type: int64
+        description: Client identifier associated with this disposition (relationship
+          record).
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - linked_account_identifier
+        data_type: int64
+        description: Account identifier associated with this disposition (relationship
+          record).
+        sample_values:
+          - 1
+          - 2
+          - 2
+          - 3
+          - 3
+      - expr: type
+        name: type
+        synonyms:
+          - account_role_type
+        data_type: string
+        description: Role of the client on the account (e.g., OWNER, DISPONENT/authorized
+          user).
+        sample_values:
+          - OWNER
+          - OWNER
+          - DISPONENT
+          - OWNER
+          - DISPONENT
+    description: Bridge table linking clients to accounts and defining each client's
+      role on the account (e.g., owner vs authorized user). Use it to connect clients
+      to their accounts and related products/transactions.
+  - name: client
     synonyms:
-    - linked_client_identifier
-    data_type: int64
-    description: Client identifier associated with this disposition (relationship
-      record).
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: account_id
-    name: account_id
+      - bank_customers_master
+      - customer_demographics
+      - clients_registry
+    base_table:
+      table: client
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: client_id
+        name: client_id
+        synonyms:
+          - customer_identifier
+        data_type: '!int64'
+        description: Unique identifier for the client/customer.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: gender
+        name: gender
+        synonyms:
+          - customer_gender_code
+        data_type: string
+        description: Client gender code (e.g., F = female, M = male).
+        sample_values:
+          - F
+          - M
+          - F
+          - M
+          - F
+      - expr: district_id
+        name: district_id
+        synonyms:
+          - customer_home_district_identifier
+        data_type: int64
+        description: Identifier of the district associated with the client (e.g., residence/home
+          branch district).
+        sample_values:
+          - 18
+          - 1
+          - 1
+          - 5
+          - 5
+    description: Customer master data containing demographic attributes for each banking
+      client, including gender, birth date, and home district.
+    time_dimensions:
+      - expr: birth_date
+        name: birth_date
+        synonyms:
+          - customer_date_of_birth
+        data_type: date
+        description: Client date of birth.
+        sample_values:
+          - '1970-12-13'
+          - '1945-02-04'
+          - '1940-10-09'
+          - '1956-12-01'
+          - '1960-07-03'
+  - name: trans
+    facts:
+      - expr: amount
+        name: amount
+        synonyms:
+          - transaction_amount_value
+        data_type: int64
+        description: Transaction amount in currency units (positive value; direction indicated
+          by type).
+        sample_values:
+          - 1000
+          - 3679
+          - 3679
+          - 3679
+          - 3679
+      - expr: balance
+        name: balance
+        synonyms:
+          - post_transaction_balance_value
+        data_type: int64
+        description: Account balance immediately after the transaction was applied (in
+          currency units).
+        sample_values:
+          - 1000
+          - 4679
+          - 20977
+          - 26835
+          - 30415
     synonyms:
-    - linked_account_identifier
-    data_type: int64
-    description: Account identifier associated with this disposition (relationship
-      record).
-    sample_values:
-    - 1
-    - 2
-    - 2
-    - 3
-    - 3
-  - expr: type
-    name: type
+      - account_transactions_ledger
+      - bank_transaction_history
+      - transaction_journal
+    base_table:
+      table: trans
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: trans_id
+        name: trans_id
+        synonyms:
+          - transaction_record_identifier
+        data_type: '!int64'
+        description: Unique identifier for the transaction record.
+        sample_values:
+          - 1
+          - 5
+          - 6
+          - 7
+          - 8
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - transaction_account_identifier
+        data_type: int64
+        description: Internal identifier of the bank account where the transaction was
+          posted.
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+      - expr: type
+        name: type
+        synonyms:
+          - transaction_direction_code
+        data_type: string
+        description: Transaction direction/type (e.g., PRIJEM = credit/incoming, VYDAJ
+          = debit/outgoing).
+        sample_values:
+          - PRIJEM
+          - PRIJEM
+          - PRIJEM
+          - PRIJEM
+          - PRIJEM
+      - expr: operation
+        name: operation
+        synonyms:
+          - transaction_operation_mode
+        data_type: string
+        description: Operational mode/channel of the transaction (e.g., cash deposit,
+          card withdrawal, bank transfer).
+        sample_values:
+          - VKLAD
+          - PREVOD Z UCTU
+          - PREVOD Z UCTU
+          - PREVOD Z UCTU
+          - PREVOD Z UCTU
+      - expr: k_symbol
+        name: k_symbol
+        synonyms:
+          - transaction_purpose_code
+        data_type: string
+        description: Transaction purpose/category code (e.g., insurance, services, interest,
+          household, pension, loan payment).
+      - expr: bank
+        name: bank
+        synonyms:
+          - partner_bank_code_field
+        data_type: string
+        description: Partner bank code involved in the transaction (two-letter bank identifier
+          when applicable).
+        sample_values:
+          - AB
+          - AB
+          - AB
+          - AB
+      - expr: account
+        name: account
+        synonyms:
+          - counterparty_account_number_field
+        data_type: int64
+        description: Account number/reference as stored on the transaction record (may
+          represent partner/counterparty account depending on operation).
+        sample_values:
+          - 41403269
+          - 41403269
+          - 41403269
+          - 41403269
+    description: Account transaction ledger capturing individual credits and debits,
+      including transaction type, operation channel/mode, partner bank/account, and
+      resulting balance.
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - transaction_posting_date
+        data_type: date
+        description: Date the transaction was posted to the account.
+        sample_values:
+          - '1995-03-24'
+          - '1995-04-13'
+          - '1995-05-13'
+          - '1995-06-13'
+          - '1995-07-13'
+  - name: account
     synonyms:
-    - account_role_type
-    data_type: string
-    description: Role of the client on the account (e.g., OWNER, DISPONENT/authorized
-      user).
-    sample_values:
-    - OWNER
-    - OWNER
-    - DISPONENT
-    - OWNER
-    - DISPONENT
-  description: Bridge table linking clients to accounts and defining each client's
-    role on the account (e.g., owner vs authorized user). Use it to connect clients
-    to their accounts and related products/transactions.
-- name: client
-  synonyms:
-  - bank_customers_master
-  - customer_demographics
-  - clients_registry
-  base_table:
-    table: client
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: client_id
-    name: client_id
+      - bank_accounts_master
+      - account_registry
+      - deposit_accounts
+    base_table:
+      table: account
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - bank_account_identifier
+        data_type: '!int64'
+        description: Unique identifier for the bank account.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: district_id
+        name: district_id
+        synonyms:
+          - account_branch_district_identifier
+        data_type: int64
+        description: District identifier of the branch/location associated with the account.
+        sample_values:
+          - 18
+          - 1
+          - 5
+          - 12
+          - 15
+      - expr: frequency
+        name: frequency
+        synonyms:
+          - account_statement_frequency_code
+        data_type: string
+        description: Frequency/plan code for account statements or fees (e.g., monthly).
+        sample_values:
+          - POPLATEK MESICNE
+          - POPLATEK MESICNE
+          - POPLATEK MESICNE
+          - POPLATEK MESICNE
+          - POPLATEK MESICNE
+    description: Bank account master data including the account creation date, home
+      district/branch location, and statement/fee frequency.
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - account_open_date
+        data_type: date
+        description: Date the account was opened/created.
+        sample_values:
+          - '1995-03-24'
+          - '1993-02-26'
+          - '1997-07-07'
+          - '1996-02-21'
+          - '1997-05-30'
+  - name: loan
+    facts:
+      - expr: amount
+        name: amount
+        synonyms:
+          - loan_principal_amount
+        data_type: int64
+        description: Approved loan principal amount (currency units).
+        sample_values:
+          - 80952
+          - 30276
+          - 30276
+          - 318480
+          - 110736
+      - expr: payments
+        name: payments
+        synonyms:
+          - scheduled_monthly_payment_amount
+        data_type: float32
+        description: Scheduled monthly payment amount for the loan (currency units per
+          month).
+        sample_values:
+          - 3373.0
+          - 2523.0
+          - 2523.0
+          - 5308.0
+          - 2307.0
     synonyms:
-    - customer_identifier
-    data_type: '!int64'
-    description: Unique identifier for the client/customer.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: gender
-    name: gender
+      - loan_contracts
+      - credit_portfolio
+      - borrowings
+    base_table:
+      table: loan
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: loan_id
+        name: loan_id
+        synonyms:
+          - loan_contract_identifier
+        data_type: '!int64'
+        description: Unique identifier for the loan contract.
+        sample_values:
+          - 4959
+          - 4961
+          - 4962
+          - 4967
+          - 4968
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - loan_account_identifier
+        data_type: int64
+        description: Identifier of the account that received the loan.
+        sample_values:
+          - 2
+          - 19
+          - 25
+          - 37
+          - 38
+      - expr: duration
+        name: duration
+        synonyms:
+          - loan_term_months
+        data_type: int64
+        description: Loan duration/term in months.
+        sample_values:
+          - 24
+          - 12
+          - 12
+          - 60
+          - 48
+      - expr: status
+        name: status
+        synonyms:
+          - loan_repayment_status_code
+        data_type: string
+        description: 'Loan repayment status code (A: finished OK; B: finished not paid;
+          C: running OK; D: running with debt).'
+        sample_values:
+          - A
+          - B
+          - A
+          - D
+          - C
+    description: Loan contract records linked to accounts, including approval date,
+      principal amount, duration, scheduled payment amount, and repayment status.
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - loan_approval_date
+        data_type: date
+        description: Date the loan was approved/issued.
+        sample_values:
+          - '1994-01-05'
+          - '1996-04-29'
+          - '1997-12-08'
+          - '1998-10-14'
+          - '1998-04-19'
+  - name: card
     synonyms:
-    - customer_gender_code
-    data_type: string
-    description: Client gender code (e.g., F = female, M = male).
-    sample_values:
-    - F
-    - M
-    - F
-    - M
-    - F
-  - expr: district_id
-    name: district_id
+      - payment_cards
+      - credit_card_issuance
+      - card_products
+    base_table:
+      table: card
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: card_id
+        name: card_id
+        synonyms:
+          - payment_card_identifier
+        data_type: '!int64'
+        description: Unique identifier for the card.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: disp_id
+        name: disp_id
+        synonyms:
+          - card_disposition_identifier
+        data_type: int64
+        description: Disposition identifier that the card is issued for (links card to
+          a specific client–account relationship).
+        sample_values:
+          - 9
+          - 19
+          - 41
+          - 42
+          - 51
+      - expr: type
+        name: type
+        synonyms:
+          - card_tier_name
+        data_type: string
+        description: Card product tier/type (e.g., junior, classic, gold).
+        sample_values:
+          - gold
+          - classic
+          - gold
+          - classic
+          - junior
+    description: Payment card records issued to dispositions (client–account relationships),
+      including card type and issue date.
+    time_dimensions:
+      - expr: issued
+        name: issued
+        synonyms:
+          - card_issue_date
+        data_type: date
+        description: Date the card was issued.
+        sample_values:
+          - '1998-10-16'
+          - '1998-03-13'
+          - '1995-09-03'
+          - '1998-11-26'
+          - '1995-04-24'
+  - name: district
+    facts:
+      - expr: a10
+        name: a10
+        synonyms:
+          - district_urban_inhabitants_ratio
+        data_type: float32
+        description: Ratio of urban inhabitants in the district (share/percent as stored).
+        sample_values:
+          - 100.0
+          - 46.70000076293945
+          - 41.70000076293945
+          - 67.4000015258789
+          - 51.400001525878906
+      - expr: a11
+        name: a11
+        synonyms:
+          - district_average_salary_amount
+        data_type: int64
+        description: Average salary in the district (currency units as stored).
+        sample_values:
+          - 12541
+          - 8507
+          - 8980
+          - 9753
+          - 9307
+      - expr: a12
+        name: a12
+        synonyms:
+          - district_unemployment_rate_1995
+        data_type: float32
+        description: Unemployment rate in 1995 for the district.
+        sample_values:
+          - 0.20000000298023224
+          - 1.600000023841858
+          - 1.899999976158142
+          - 4.599999904632568
+          - 3.799999952316284
+      - expr: a13
+        name: a13
+        synonyms:
+          - district_unemployment_rate_1996
+        data_type: float32
+        description: Unemployment rate in 1996 for the district.
+        sample_values:
+          - 0.4300000071525574
+          - 1.850000023841858
+          - 2.2100000381469727
+          - 5.050000190734863
+          - 4.429999828338623
+      - expr: a14
+        name: a14
+        synonyms:
+          - district_entrepreneurs_per_1000
+        data_type: int64
+        description: Number of entrepreneurs per 1,000 inhabitants in the district.
+        sample_values:
+          - 167
+          - 132
+          - 111
+          - 109
+          - 118
+      - expr: a15
+        name: a15
+        synonyms:
+          - district_committed_crimes_1995
+        data_type: int64
+        description: Number of committed crimes in the district in 1995.
+        sample_values:
+          - 85677
+          - 2159
+          - 2824
+          - 5244
+          - 2616
+      - expr: a16
+        name: a16
+        synonyms:
+          - district_committed_crimes_1996
+        data_type: int64
+        description: Number of committed crimes in the district in 1996.
+        sample_values:
+          - 99107
+          - 2674
+          - 2813
+          - 5892
+          - 3040
+      - expr: a4
+        name: a4
+        synonyms:
+          - district_inhabitants_count_text
+        data_type: string
+        description: Number of inhabitants in the district (stored as text).
+        sample_values:
+          - '1204953'
+          - '88884'
+          - '75232'
+          - '149893'
+          - '95616'
+      - expr: a5
+        name: a5
+        synonyms:
+          - district_municipalities_under_499_text
+        data_type: string
+        description: Count of municipalities with fewer than 499 inhabitants (stored as
+          text).
+        sample_values:
+          - '0'
+          - '80'
+          - '55'
+          - '63'
+          - '65'
+      - expr: a6
+        name: a6
+        synonyms:
+          - district_municipalities_500_1999_text
+        data_type: string
+        description: Count of municipalities with 500–1,999 inhabitants (stored as text).
+        sample_values:
+          - '0'
+          - '26'
+          - '26'
+          - '29'
+          - '30'
+      - expr: a7
+        name: a7
+        synonyms:
+          - district_municipalities_2000_9999_text
+        data_type: string
+        description: Count of municipalities with 2,000–9,999 inhabitants (stored as text).
+        sample_values:
+          - '0'
+          - '6'
+          - '4'
+          - '6'
+          - '4'
+      - expr: a8
+        name: a8
+        synonyms:
+          - district_municipalities_over_10000_count
+        data_type: int64
+        description: Count of municipalities with more than 10,000 inhabitants.
+        sample_values:
+          - 1
+          - 2
+          - 1
+          - 2
+          - 1
+      - expr: a9
+        name: a9
+        synonyms:
+          - district_urbanization_indicator_int
+        data_type: int64
+        description: Urbanization indicator for the district (integer as stored; commonly
+          used as an urban share/ratio proxy).
+        sample_values:
+          - 1
+          - 5
+          - 5
+          - 6
+          - 6
     synonyms:
-    - customer_home_district_identifier
-    data_type: int64
-    description: Identifier of the district associated with the client (e.g., residence/home
-      branch district).
-    sample_values:
-    - 18
-    - 1
-    - 1
-    - 5
-    - 5
-  description: Customer master data containing demographic attributes for each banking
-    client, including gender, birth date, and home district.
-  time_dimensions:
-  - expr: birth_date
-    name: birth_date
+      - regional_statistics
+      - district_reference_data
+      - branch_area_profile
+    base_table:
+      table: district
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: district_id
+        name: district_id
+        synonyms:
+          - district_identifier
+        data_type: '!int64'
+        description: Unique identifier for the district.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: a2
+        name: a2
+        synonyms:
+          - district_name_label
+        data_type: string
+        description: District name.
+        sample_values:
+          - Hl.m. Praha
+          - Benesov
+          - Beroun
+          - Kladno
+          - Kolin
+      - expr: a3
+        name: a3
+        synonyms:
+          - district_region_name
+        data_type: string
+        description: Region name that the district belongs to.
+        sample_values:
+          - Prague
+          - central Bohemia
+          - central Bohemia
+          - central Bohemia
+          - central Bohemia
+    description: District reference table with geographic labels and socioeconomic indicators
+      (population, municipality counts, urbanization, salaries, unemployment, entrepreneurship,
+      and crime). Useful for regional segmentation and contextual analysis.
+  - name: order
+    facts:
+      - expr: amount
+        name: amount
+        synonyms:
+          - standing_order_debit_amount
+        data_type: float32
+        description: Amount to be debited for the standing order payment (currency units).
+        sample_values:
+          - 2452.0
+          - 3372.699951171875
+          - 7266.0
+          - 1135.0
+          - 327.0
     synonyms:
-    - customer_date_of_birth
-    data_type: date
-    description: Client date of birth.
-    sample_values:
-    - '1970-12-13'
-    - '1945-02-04'
-    - '1940-10-09'
-    - '1956-12-01'
-    - '1960-07-03'
-- name: trans
-  facts:
-  - expr: amount
-    name: amount
-    synonyms:
-    - transaction_amount_value
-    data_type: int64
-    description: Transaction amount in currency units (positive value; direction indicated
-      by type).
-    sample_values:
-    - 1000
-    - 3679
-    - 3679
-    - 3679
-    - 3679
-  - expr: balance
-    name: balance
-    synonyms:
-    - post_transaction_balance_value
-    data_type: int64
-    description: Account balance immediately after the transaction was applied (in
-      currency units).
-    sample_values:
-    - 1000
-    - 4679
-    - 20977
-    - 26835
-    - 30415
-  synonyms:
-  - account_transactions_ledger
-  - bank_transaction_history
-  - transaction_journal
-  base_table:
-    table: trans
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: trans_id
-    name: trans_id
-    synonyms:
-    - transaction_record_identifier
-    data_type: '!int64'
-    description: Unique identifier for the transaction record.
-    sample_values:
-    - 1
-    - 5
-    - 6
-    - 7
-    - 8
-  - expr: account_id
-    name: account_id
-    synonyms:
-    - transaction_account_identifier
-    data_type: int64
-    description: Internal identifier of the bank account where the transaction was
-      posted.
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  - expr: type
-    name: type
-    synonyms:
-    - transaction_direction_code
-    data_type: string
-    description: Transaction direction/type (e.g., PRIJEM = credit/incoming, VYDAJ
-      = debit/outgoing).
-    sample_values:
-    - PRIJEM
-    - PRIJEM
-    - PRIJEM
-    - PRIJEM
-    - PRIJEM
-  - expr: operation
-    name: operation
-    synonyms:
-    - transaction_operation_mode
-    data_type: string
-    description: Operational mode/channel of the transaction (e.g., cash deposit,
-      card withdrawal, bank transfer).
-    sample_values:
-    - VKLAD
-    - PREVOD Z UCTU
-    - PREVOD Z UCTU
-    - PREVOD Z UCTU
-    - PREVOD Z UCTU
-  - expr: k_symbol
-    name: k_symbol
-    synonyms:
-    - transaction_purpose_code
-    data_type: string
-    description: Transaction purpose/category code (e.g., insurance, services, interest,
-      household, pension, loan payment).
-  - expr: bank
-    name: bank
-    synonyms:
-    - partner_bank_code_field
-    data_type: string
-    description: Partner bank code involved in the transaction (two-letter bank identifier
-      when applicable).
-    sample_values:
-    - AB
-    - AB
-    - AB
-    - AB
-  - expr: account
-    name: account
-    synonyms:
-    - counterparty_account_number_field
-    data_type: int64
-    description: Account number/reference as stored on the transaction record (may
-      represent partner/counterparty account depending on operation).
-    sample_values:
-    - 41403269
-    - 41403269
-    - 41403269
-    - 41403269
-  description: Account transaction ledger capturing individual credits and debits,
-    including transaction type, operation channel/mode, partner bank/account, and
-    resulting balance.
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - transaction_posting_date
-    data_type: date
-    description: Date the transaction was posted to the account.
-    sample_values:
-    - '1995-03-24'
-    - '1995-04-13'
-    - '1995-05-13'
-    - '1995-06-13'
-    - '1995-07-13'
-- name: account
-  synonyms:
-  - bank_accounts_master
-  - account_registry
-  - deposit_accounts
-  base_table:
-    table: account
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: account_id
-    name: account_id
-    synonyms:
-    - bank_account_identifier
-    data_type: '!int64'
-    description: Unique identifier for the bank account.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: district_id
-    name: district_id
-    synonyms:
-    - account_branch_district_identifier
-    data_type: int64
-    description: District identifier of the branch/location associated with the account.
-    sample_values:
-    - 18
-    - 1
-    - 5
-    - 12
-    - 15
-  - expr: frequency
-    name: frequency
-    synonyms:
-    - account_statement_frequency_code
-    data_type: string
-    description: Frequency/plan code for account statements or fees (e.g., monthly).
-    sample_values:
-    - POPLATEK MESICNE
-    - POPLATEK MESICNE
-    - POPLATEK MESICNE
-    - POPLATEK MESICNE
-    - POPLATEK MESICNE
-  description: Bank account master data including the account creation date, home
-    district/branch location, and statement/fee frequency.
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - account_open_date
-    data_type: date
-    description: Date the account was opened/created.
-    sample_values:
-    - '1995-03-24'
-    - '1993-02-26'
-    - '1997-07-07'
-    - '1996-02-21'
-    - '1997-05-30'
-- name: loan
-  facts:
-  - expr: amount
-    name: amount
-    synonyms:
-    - loan_principal_amount
-    data_type: int64
-    description: Approved loan principal amount (currency units).
-    sample_values:
-    - 80952
-    - 30276
-    - 30276
-    - 318480
-    - 110736
-  - expr: payments
-    name: payments
-    synonyms:
-    - scheduled_monthly_payment_amount
-    data_type: float32
-    description: Scheduled monthly payment amount for the loan (currency units per
-      month).
-    sample_values:
-    - 3373.0
-    - 2523.0
-    - 2523.0
-    - 5308.0
-    - 2307.0
-  synonyms:
-  - loan_contracts
-  - credit_portfolio
-  - borrowings
-  base_table:
-    table: loan
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: loan_id
-    name: loan_id
-    synonyms:
-    - loan_contract_identifier
-    data_type: '!int64'
-    description: Unique identifier for the loan contract.
-    sample_values:
-    - 4959
-    - 4961
-    - 4962
-    - 4967
-    - 4968
-  - expr: account_id
-    name: account_id
-    synonyms:
-    - loan_account_identifier
-    data_type: int64
-    description: Identifier of the account that received the loan.
-    sample_values:
-    - 2
-    - 19
-    - 25
-    - 37
-    - 38
-  - expr: duration
-    name: duration
-    synonyms:
-    - loan_term_months
-    data_type: int64
-    description: Loan duration/term in months.
-    sample_values:
-    - 24
-    - 12
-    - 12
-    - 60
-    - 48
-  - expr: status
-    name: status
-    synonyms:
-    - loan_repayment_status_code
-    data_type: string
-    description: 'Loan repayment status code (A: finished OK; B: finished not paid;
-      C: running OK; D: running with debt).'
-    sample_values:
-    - A
-    - B
-    - A
-    - D
-    - C
-  description: Loan contract records linked to accounts, including approval date,
-    principal amount, duration, scheduled payment amount, and repayment status.
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - loan_approval_date
-    data_type: date
-    description: Date the loan was approved/issued.
-    sample_values:
-    - '1994-01-05'
-    - '1996-04-29'
-    - '1997-12-08'
-    - '1998-10-14'
-    - '1998-04-19'
-- name: card
-  synonyms:
-  - payment_cards
-  - credit_card_issuance
-  - card_products
-  base_table:
-    table: card
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: card_id
-    name: card_id
-    synonyms:
-    - payment_card_identifier
-    data_type: '!int64'
-    description: Unique identifier for the card.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: disp_id
-    name: disp_id
-    synonyms:
-    - card_disposition_identifier
-    data_type: int64
-    description: Disposition identifier that the card is issued for (links card to
-      a specific client–account relationship).
-    sample_values:
-    - 9
-    - 19
-    - 41
-    - 42
-    - 51
-  - expr: type
-    name: type
-    synonyms:
-    - card_tier_name
-    data_type: string
-    description: Card product tier/type (e.g., junior, classic, gold).
-    sample_values:
-    - gold
-    - classic
-    - gold
-    - classic
-    - junior
-  description: Payment card records issued to dispositions (client–account relationships),
-    including card type and issue date.
-  time_dimensions:
-  - expr: issued
-    name: issued
-    synonyms:
-    - card_issue_date
-    data_type: date
-    description: Date the card was issued.
-    sample_values:
-    - '1998-10-16'
-    - '1998-03-13'
-    - '1995-09-03'
-    - '1998-11-26'
-    - '1995-04-24'
-- name: district
-  facts:
-  - expr: a10
-    name: a10
-    synonyms:
-    - district_urban_inhabitants_ratio
-    data_type: float32
-    description: Ratio of urban inhabitants in the district (share/percent as stored).
-    sample_values:
-    - 100.0
-    - 46.70000076293945
-    - 41.70000076293945
-    - 67.4000015258789
-    - 51.400001525878906
-  - expr: a11
-    name: a11
-    synonyms:
-    - district_average_salary_amount
-    data_type: int64
-    description: Average salary in the district (currency units as stored).
-    sample_values:
-    - 12541
-    - 8507
-    - 8980
-    - 9753
-    - 9307
-  - expr: a12
-    name: a12
-    synonyms:
-    - district_unemployment_rate_1995
-    data_type: float32
-    description: Unemployment rate in 1995 for the district.
-    sample_values:
-    - 0.20000000298023224
-    - 1.600000023841858
-    - 1.899999976158142
-    - 4.599999904632568
-    - 3.799999952316284
-  - expr: a13
-    name: a13
-    synonyms:
-    - district_unemployment_rate_1996
-    data_type: float32
-    description: Unemployment rate in 1996 for the district.
-    sample_values:
-    - 0.4300000071525574
-    - 1.850000023841858
-    - 2.2100000381469727
-    - 5.050000190734863
-    - 4.429999828338623
-  - expr: a14
-    name: a14
-    synonyms:
-    - district_entrepreneurs_per_1000
-    data_type: int64
-    description: Number of entrepreneurs per 1,000 inhabitants in the district.
-    sample_values:
-    - 167
-    - 132
-    - 111
-    - 109
-    - 118
-  - expr: a15
-    name: a15
-    synonyms:
-    - district_committed_crimes_1995
-    data_type: int64
-    description: Number of committed crimes in the district in 1995.
-    sample_values:
-    - 85677
-    - 2159
-    - 2824
-    - 5244
-    - 2616
-  - expr: a16
-    name: a16
-    synonyms:
-    - district_committed_crimes_1996
-    data_type: int64
-    description: Number of committed crimes in the district in 1996.
-    sample_values:
-    - 99107
-    - 2674
-    - 2813
-    - 5892
-    - 3040
-  - expr: a4
-    name: a4
-    synonyms:
-    - district_inhabitants_count_text
-    data_type: string
-    description: Number of inhabitants in the district (stored as text).
-    sample_values:
-    - '1204953'
-    - '88884'
-    - '75232'
-    - '149893'
-    - '95616'
-  - expr: a5
-    name: a5
-    synonyms:
-    - district_municipalities_under_499_text
-    data_type: string
-    description: Count of municipalities with fewer than 499 inhabitants (stored as
-      text).
-    sample_values:
-    - '0'
-    - '80'
-    - '55'
-    - '63'
-    - '65'
-  - expr: a6
-    name: a6
-    synonyms:
-    - district_municipalities_500_1999_text
-    data_type: string
-    description: Count of municipalities with 500–1,999 inhabitants (stored as text).
-    sample_values:
-    - '0'
-    - '26'
-    - '26'
-    - '29'
-    - '30'
-  - expr: a7
-    name: a7
-    synonyms:
-    - district_municipalities_2000_9999_text
-    data_type: string
-    description: Count of municipalities with 2,000–9,999 inhabitants (stored as text).
-    sample_values:
-    - '0'
-    - '6'
-    - '4'
-    - '6'
-    - '4'
-  - expr: a8
-    name: a8
-    synonyms:
-    - district_municipalities_over_10000_count
-    data_type: int64
-    description: Count of municipalities with more than 10,000 inhabitants.
-    sample_values:
-    - 1
-    - 2
-    - 1
-    - 2
-    - 1
-  - expr: a9
-    name: a9
-    synonyms:
-    - district_urbanization_indicator_int
-    data_type: int64
-    description: Urbanization indicator for the district (integer as stored; commonly
-      used as an urban share/ratio proxy).
-    sample_values:
-    - 1
-    - 5
-    - 5
-    - 6
-    - 6
-  synonyms:
-  - regional_statistics
-  - district_reference_data
-  - branch_area_profile
-  base_table:
-    table: district
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: district_id
-    name: district_id
-    synonyms:
-    - district_identifier
-    data_type: '!int64'
-    description: Unique identifier for the district.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: a2
-    name: a2
-    synonyms:
-    - district_name_label
-    data_type: string
-    description: District name.
-    sample_values:
-    - Hl.m. Praha
-    - Benesov
-    - Beroun
-    - Kladno
-    - Kolin
-  - expr: a3
-    name: a3
-    synonyms:
-    - district_region_name
-    data_type: string
-    description: Region name that the district belongs to.
-    sample_values:
-    - Prague
-    - central Bohemia
-    - central Bohemia
-    - central Bohemia
-    - central Bohemia
-  description: District reference table with geographic labels and socioeconomic indicators
-    (population, municipality counts, urbanization, salaries, unemployment, entrepreneurship,
-    and crime). Useful for regional segmentation and contextual analysis.
-- name: order
-  facts:
-  - expr: amount
-    name: amount
-    synonyms:
-    - standing_order_debit_amount
-    data_type: float32
-    description: Amount to be debited for the standing order payment (currency units).
-    sample_values:
-    - 2452.0
-    - 3372.699951171875
-    - 7266.0
-    - 1135.0
-    - 327.0
-  synonyms:
-  - standing_orders
-  - recurring_payments
-  - payment_orders
-  base_table:
-    table: order
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: order_id
-    name: order_id
-    synonyms:
-    - standing_order_identifier
-    data_type: '!int64'
-    description: Unique identifier for the standing order record.
-    sample_values:
-    - 29401
-    - 29402
-    - 29403
-    - 29404
-    - 29405
-  - expr: account_id
-    name: account_id
-    synonyms:
-    - standing_order_account_identifier
-    data_type: int64
-    description: Identifier of the account that sends/pays this standing order.
-    sample_values:
-    - 1
-    - 2
-    - 2
-    - 3
-    - 3
-  - expr: bank_to
-    name: bank_to
-    synonyms:
-    - standing_order_recipient_bank_code
-    data_type: string
-    description: Recipient bank code for the standing order (two-letter bank identifier).
-    sample_values:
-    - YZ
-    - ST
-    - QR
-    - WX
-    - CD
-  - expr: account_to
-    name: account_to
-    synonyms:
-    - standing_order_recipient_account_number
-    data_type: int64
-    description: Recipient account number for the standing order payment.
-    sample_values:
-    - 87144583
-    - 89597016
-    - 13943797
-    - 83084338
-    - 24485939
-  - expr: k_symbol
-    name: k_symbol
-    synonyms:
-    - standing_order_payment_purpose_code
-    data_type: string
-    description: Purpose/category code for the standing order (e.g., SIPO household,
-      UVER loan payment, POJISTNE insurance).
-    sample_values:
-    - SIPO
-    - UVER
-    - SIPO
-    - SIPO
-    - ''
-  description: Standing (permanent) payment orders linked to accounts, specifying
-    recipient bank/account, amount to be debited, and payment purpose.
+      - standing_orders
+      - recurring_payments
+      - payment_orders
+    base_table:
+      table: order
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: order_id
+        name: order_id
+        synonyms:
+          - standing_order_identifier
+        data_type: '!int64'
+        description: Unique identifier for the standing order record.
+        sample_values:
+          - 29401
+          - 29402
+          - 29403
+          - 29404
+          - 29405
+      - expr: account_id
+        name: account_id
+        synonyms:
+          - standing_order_account_identifier
+        data_type: int64
+        description: Identifier of the account that sends/pays this standing order.
+        sample_values:
+          - 1
+          - 2
+          - 2
+          - 3
+          - 3
+      - expr: bank_to
+        name: bank_to
+        synonyms:
+          - standing_order_recipient_bank_code
+        data_type: string
+        description: Recipient bank code for the standing order (two-letter bank identifier).
+        sample_values:
+          - YZ
+          - ST
+          - QR
+          - WX
+          - CD
+      - expr: account_to
+        name: account_to
+        synonyms:
+          - standing_order_recipient_account_number
+        data_type: int64
+        description: Recipient account number for the standing order payment.
+        sample_values:
+          - 87144583
+          - 89597016
+          - 13943797
+          - 83084338
+          - 24485939
+      - expr: k_symbol
+        name: k_symbol
+        synonyms:
+          - standing_order_payment_purpose_code
+        data_type: string
+        description: Purpose/category code for the standing order (e.g., SIPO household,
+          UVER loan payment, POJISTNE insurance).
+        sample_values:
+          - SIPO
+          - UVER
+          - SIPO
+          - SIPO
+          - ''
+    description: Standing (permanent) payment orders linked to accounts, specifying
+      recipient bank/account, amount to be debited, and payment purpose.
 description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
   \ account\n\nColumns:\n- **account id** (the id of the account) - Type: integer\n\
   - **location of branch** (location of branch) - Type: integer \n- **frequency**\

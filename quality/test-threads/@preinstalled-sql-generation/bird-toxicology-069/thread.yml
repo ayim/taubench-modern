@@ -1,5 +1,5 @@
 name: bird-toxicology-069
-description: "BIRD Q263 (challenging): What is the composition of element chlorine in percentage among the single bond molecules?"
+description: 'BIRD Q263 (challenging): What is the composition of element chlorine in percentage among the single bond molecules?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-263
-    description: "What is the composition of element chlorine in percentage among the single bond molecules?"
+    description: 'What is the composition of element chlorine in percentage among the single bond molecules?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-177
-description: "BIRD Q707 (moderate): Among the posts with views ranging from 100 to 150, what is the comment with the highest score?"
+description: 'BIRD Q707 (moderate): Among the posts with views ranging from 100 to 150, what is the comment with the highest score?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-707
-    description: "Among the posts with views ranging from 100 to 150, what is the comment with the highest score?"
+    description: 'Among the posts with views ranging from 100 to 150, what is the comment with the highest score?'
     messages:
       - role: user
         content: |

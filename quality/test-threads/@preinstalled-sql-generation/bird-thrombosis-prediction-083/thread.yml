@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-083
-description: "BIRD Q1231 (challenging): For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?"
+description: 'BIRD Q1231 (challenging): For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1231
-    description: "For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?"
+    description: 'For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?'
     messages:
       - role: user
         content: |

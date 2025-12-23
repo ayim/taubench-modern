@@ -1,5 +1,5 @@
 name: bird-european-football-2-045
-description: "BIRD Q1064 (simple): List out of players whose preferred foot is left."
+description: 'BIRD Q1064 (simple): List out of players whose preferred foot is left.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1064
-    description: "List out of players whose preferred foot is left."
+    description: 'List out of players whose preferred foot is left.'
     messages:
       - role: user
         content: |

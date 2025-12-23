@@ -1,5 +1,5 @@
 name: bird-codebase-community-144
-description: "BIRD Q674 (simple): Who has the highest reputation? Please give the display name."
+description: 'BIRD Q674 (simple): Who has the highest reputation? Please give the display name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-674
-    description: "Who has the highest reputation? Please give the display name."
+    description: 'Who has the highest reputation? Please give the display name.'
     messages:
       - role: user
         content: |

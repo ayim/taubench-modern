@@ -1,5 +1,5 @@
 name: bird-student-club-038
-description: "BIRD Q1349 (simple): Provide the total number of the budget amount for \"September Speaker\" event."
+description: 'BIRD Q1349 (simple): Provide the total number of the budget amount for "September Speaker" event.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1349
-    description: "Provide the total number of the budget amount for \"September Speaker\" event."
+    description: 'Provide the total number of the budget amount for "September Speaker" event.'
     messages:
       - role: user
         content: |

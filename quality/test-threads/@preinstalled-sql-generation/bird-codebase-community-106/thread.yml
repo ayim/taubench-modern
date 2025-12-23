@@ -1,5 +1,5 @@
 name: bird-codebase-community-106
-description: "BIRD Q636 (simple): How many negative comments did Neil McGuigan get in his posts?"
+description: 'BIRD Q636 (simple): How many negative comments did Neil McGuigan get in his posts?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-636
-    description: "How many negative comments did Neil McGuigan get in his posts?"
+    description: 'How many negative comments did Neil McGuigan get in his posts?'
     messages:
       - role: user
         content: |

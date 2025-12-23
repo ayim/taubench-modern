@@ -1,5 +1,5 @@
 name: bird-student-club-099
-description: "BIRD Q1410 (simple): List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?"
+description: 'BIRD Q1410 (simple): List out the full name and total cost that member id "rec4BLdZHS2Blfp4v" incurred?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1410
-    description: "List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?"
+    description: 'List out the full name and total cost that member id "rec4BLdZHS2Blfp4v" incurred?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-182
-description: "BIRD Q712 (simple): What is the post ID and the comments commented in the post titled by \"Group differences on a five point Likert item\"?"
+description: 'BIRD Q712 (simple): What is the post ID and the comments commented in the post titled by "Group differences on a five point Likert item"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-712
-    description: "What is the post ID and the comments commented in the post titled by \"Group differences on a five point Likert item\"?"
+    description: 'What is the post ID and the comments commented in the post titled by "Group differences on a five point Likert item"?'
     messages:
       - role: user
         content: |

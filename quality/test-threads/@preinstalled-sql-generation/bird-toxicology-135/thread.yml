@@ -1,5 +1,5 @@
 name: bird-toxicology-135
-description: "BIRD Q329 (moderate): Which carcinogenic molecule have the highest number of atoms consisted in it?"
+description: 'BIRD Q329 (moderate): Which carcinogenic molecule have the highest number of atoms consisted in it?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-329
-    description: "Which carcinogenic molecule have the highest number of atoms consisted in it?"
+    description: 'Which carcinogenic molecule have the highest number of atoms consisted in it?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-024
-description: "BIRD Q869 (moderate): For the constructor which got the highest point in the race No. 9 , what is its introduction website?"
+description: 'BIRD Q869 (moderate): For the constructor which got the highest point in the race No. 9 , what is its introduction website?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-869
-    description: "For the constructor which got the highest point in the race No. 9 , what is its introduction website?"
+    description: 'For the constructor which got the highest point in the race No. 9 , what is its introduction website?'
     messages:
       - role: user
         content: |

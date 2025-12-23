@@ -1,5 +1,5 @@
 name: bird-formula-1-033
-description: "BIRD Q878 (simple): Who was the driver that got the best lap time in the race No. 348? Give his full name."
+description: 'BIRD Q878 (simple): Who was the driver that got the best lap time in the race No. 348? Give his full name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-878
-    description: "Who was the driver that got the best lap time in the race No. 348? Give his full name."
+    description: 'Who was the driver that got the best lap time in the race No. 348? Give his full name.'
     messages:
       - role: user
         content: |

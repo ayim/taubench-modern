@@ -1,5 +1,5 @@
 name: bird-financial-063
-description: "BIRD Q151 (challenging): For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level."
+description: 'BIRD Q151 (challenging): For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-151
-    description: "For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level."
+    description: 'For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level.'
     messages:
       - role: user
         content: |

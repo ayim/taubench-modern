@@ -1,5 +1,5 @@
 name: bird-formula-1-159
-description: "BIRD Q1004 (simple): How many wins was achieved by the oldest racer? Indicate his/her full name."
+description: 'BIRD Q1004 (simple): How many wins was achieved by the oldest racer? Indicate his/her full name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1004
-    description: "How many wins was achieved by the oldest racer? Indicate his/her full name."
+    description: 'How many wins was achieved by the oldest racer? Indicate his/her full name.'
     messages:
       - role: user
         content: |

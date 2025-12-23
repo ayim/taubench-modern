@@ -1,5 +1,5 @@
 name: bird-formula-1-169
-description: "BIRD Q1014 (challenging): Please list the lap records for the circuits in Italy."
+description: 'BIRD Q1014 (challenging): Please list the lap records for the circuits in Italy.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1014
-    description: "Please list the lap records for the circuits in Italy."
+    description: 'Please list the lap records for the circuits in Italy.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-070
-description: "BIRD Q1381 (moderate): List the name of students that have attended more than 7 events."
+description: 'BIRD Q1381 (moderate): List the name of students that have attended more than 7 events.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1381
-    description: "List the name of students that have attended more than 7 events."
+    description: 'List the name of students that have attended more than 7 events.'
     messages:
       - role: user
         content: |

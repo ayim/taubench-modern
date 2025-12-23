@@ -1,5 +1,5 @@
 name: bird-financial-097
-description: "BIRD Q185 (moderate): What proportion of customers who have accounts at the Prague branch are female?"
+description: 'BIRD Q185 (moderate): What proportion of customers who have accounts at the Prague branch are female?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-185
-    description: "What proportion of customers who have accounts at the Prague branch are female?"
+    description: 'What proportion of customers who have accounts at the Prague branch are female?'
     messages:
       - role: user
         content: |

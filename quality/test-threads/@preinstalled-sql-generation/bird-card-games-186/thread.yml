@@ -1,5 +1,5 @@
 name: bird-card-games-186
-description: "BIRD Q525 (simple): Find the uuid of cards in which the old school format is restricted or banned."
+description: 'BIRD Q525 (simple): Find the uuid of cards in which the old school format is restricted or banned.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-525
-    description: "Find the uuid of cards in which the old school format is restricted or banned."
+    description: 'Find the uuid of cards in which the old school format is restricted or banned.'
     messages:
       - role: user
         content: |

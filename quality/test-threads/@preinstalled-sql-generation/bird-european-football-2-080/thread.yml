@@ -1,5 +1,5 @@
 name: bird-european-football-2-080
-description: "BIRD Q1099 (simple): Which foot is preferred by Abdou Diallo?"
+description: 'BIRD Q1099 (simple): Which foot is preferred by Abdou Diallo?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1099
-    description: "Which foot is preferred by Abdou Diallo?"
+    description: 'Which foot is preferred by Abdou Diallo?'
     messages:
       - role: user
         content: |

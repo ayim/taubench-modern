@@ -1,5 +1,5 @@
 name: bird-superhero-007
-description: "BIRD Q723 (moderate): Among the superheroes with blue eyes, how many of them have the super power of \"Agility\"?"
+description: 'BIRD Q723 (moderate): Among the superheroes with blue eyes, how many of them have the super power of "Agility"?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-723
-    description: "Among the superheroes with blue eyes, how many of them have the super power of \"Agility\"?"
+    description: 'Among the superheroes with blue eyes, how many of them have the super power of "Agility"?'
     messages:
       - role: user
         content: |

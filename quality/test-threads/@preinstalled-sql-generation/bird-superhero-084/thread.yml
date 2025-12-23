@@ -1,5 +1,5 @@
 name: bird-superhero-084
-description: "BIRD Q800 (moderate): Calculate the percentage of superheroes with blue eyes."
+description: 'BIRD Q800 (moderate): Calculate the percentage of superheroes with blue eyes.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-800
-    description: "Calculate the percentage of superheroes with blue eyes."
+    description: 'Calculate the percentage of superheroes with blue eyes.'
     messages:
       - role: user
         content: |

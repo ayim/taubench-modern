@@ -1,5 +1,5 @@
 name: bird-codebase-community-105
-description: "BIRD Q635 (moderate): How many posts by Matt Parker have more than 4 votes?"
+description: 'BIRD Q635 (moderate): How many posts by Matt Parker have more than 4 votes?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-635
-    description: "How many posts by Matt Parker have more than 4 votes?"
+    description: 'How many posts by Matt Parker have more than 4 votes?'
     messages:
       - role: user
         content: |

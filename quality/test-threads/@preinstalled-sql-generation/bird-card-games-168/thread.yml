@@ -1,5 +1,5 @@
 name: bird-card-games-168
-description: "BIRD Q507 (challenging): For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?"
+description: 'BIRD Q507 (challenging): For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-507
-    description: "For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?"
+    description: 'For all the cards that have a Brazilian Portuguese translation, what is the percentage of them that are only available online?'
     messages:
       - role: user
         content: |

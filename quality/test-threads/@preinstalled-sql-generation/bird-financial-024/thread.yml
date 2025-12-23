@@ -1,5 +1,5 @@
 name: bird-financial-024
-description: "BIRD Q112 (challenging): For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators."
+description: 'BIRD Q112 (challenging): For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-112
-    description: "For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators."
+    description: 'For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators.'
     messages:
       - role: user
         content: |

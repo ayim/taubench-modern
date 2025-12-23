@@ -1,5 +1,5 @@
 name: bird-student-club-102
-description: "BIRD Q1413 (simple): Mention the zip code of members who incurred less than 50USD."
+description: 'BIRD Q1413 (simple): Mention the zip code of members who incurred less than 50USD.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1413
-    description: "Mention the zip code of members who incurred less than 50USD."
+    description: 'Mention the zip code of members who incurred less than 50USD.'
     messages:
       - role: user
         content: |

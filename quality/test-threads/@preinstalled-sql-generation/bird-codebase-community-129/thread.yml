@@ -1,5 +1,5 @@
 name: bird-codebase-community-129
-description: "BIRD Q659 (simple): How many tags have post count between 5,000 to 7,000?"
+description: 'BIRD Q659 (simple): How many tags have post count between 5,000 to 7,000?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-659
-    description: "How many tags have post count between 5,000 to 7,000?"
+    description: 'How many tags have post count between 5,000 to 7,000?'
     messages:
       - role: user
         content: |

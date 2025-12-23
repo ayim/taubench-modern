@@ -1,5 +1,5 @@
 name: bird-student-club-060
-description: "BIRD Q1371 (simple): How many members attended the \"Women's Soccer\" event?"
+description: 'BIRD Q1371 (simple): How many members attended the "Women''s Soccer" event?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1371
-    description: "How many members attended the \"Women's Soccer\" event?"
+    description: 'How many members attended the "Women''s Soccer" event?'
     messages:
       - role: user
         content: |

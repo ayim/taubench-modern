@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-007
-description: "BIRD Q1476 (challenging): What was the difference in gas consumption between CZK-paying customers and EUR-paying customers in 2012?"
+description: 'BIRD Q1476 (challenging): What was the difference in gas consumption between CZK-paying customers and EUR-paying customers in 2012?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1476
-    description: "What was the difference in gas consumption between CZK-paying customers and EUR-paying customers in 2012?"
+    description: 'What was the difference in gas consumption between CZK-paying customers and EUR-paying customers in 2012?'
     messages:
       - role: user
         content: |

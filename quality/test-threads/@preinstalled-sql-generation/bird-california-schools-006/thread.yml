@@ -1,5 +1,5 @@
 name: bird-california-schools-006
-description: "BIRD Q5 (challenging): What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?"
+description: 'BIRD Q5 (challenging): What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-5
-    description: "What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?"
+    description: 'What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?'
     messages:
       - role: user
         content: |

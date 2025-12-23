@@ -1,5 +1,5 @@
 name: bird-codebase-community-031
-description: "BIRD Q561 (simple): What are the titles of all posts that have comments with the highest score?"
+description: 'BIRD Q561 (simple): What are the titles of all posts that have comments with the highest score?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-561
-    description: "What are the titles of all posts that have comments with the highest score?"
+    description: 'What are the titles of all posts that have comments with the highest score?'
     messages:
       - role: user
         content: |

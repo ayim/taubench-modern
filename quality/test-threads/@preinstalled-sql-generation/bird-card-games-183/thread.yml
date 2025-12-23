@@ -1,5 +1,5 @@
 name: bird-card-games-183
-description: "BIRD Q522 (moderate): Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format."
+description: 'BIRD Q522 (moderate): Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-522
-    description: "Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format."
+    description: 'Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format.'
     messages:
       - role: user
         content: |

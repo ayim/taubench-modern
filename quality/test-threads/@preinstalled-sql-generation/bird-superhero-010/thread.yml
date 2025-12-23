@@ -1,5 +1,5 @@
 name: bird-superhero-010
-description: "BIRD Q726 (moderate): Rank heroes published by Marvel Comics by their height in descending order."
+description: 'BIRD Q726 (moderate): Rank heroes published by Marvel Comics by their height in descending order.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-726
-    description: "Rank heroes published by Marvel Comics by their height in descending order."
+    description: 'Rank heroes published by Marvel Comics by their height in descending order.'
     messages:
       - role: user
         content: |

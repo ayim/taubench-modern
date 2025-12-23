@@ -1,5 +1,5 @@
 name: bird-european-football-2-055
-description: "BIRD Q1074 (simple): List all the short name of the football team that had a home team goal of 10?"
+description: 'BIRD Q1074 (simple): List all the short name of the football team that had a home team goal of 10?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1074
-    description: "List all the short name of the football team that had a home team goal of 10?"
+    description: 'List all the short name of the football team that had a home team goal of 10?'
     messages:
       - role: user
         content: |

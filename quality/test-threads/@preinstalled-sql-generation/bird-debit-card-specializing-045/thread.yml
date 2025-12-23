@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-045
-description: "BIRD Q1514 (simple): What kind of currency did the customer paid at 16:25:00 in 2012/8/24?"
+description: 'BIRD Q1514 (simple): What kind of currency did the customer paid at 16:25:00 in 2012/8/24?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1514
-    description: "What kind of currency did the customer paid at 16:25:00 in 2012/8/24?"
+    description: 'What kind of currency did the customer paid at 16:25:00 in 2012/8/24?'
     messages:
       - role: user
         content: |

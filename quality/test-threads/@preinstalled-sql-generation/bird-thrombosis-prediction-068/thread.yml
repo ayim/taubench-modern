@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-068
-description: "BIRD Q1216 (simple): Sort in descending order all patients by birthday for male patient with albumin not within range."
+description: 'BIRD Q1216 (simple): Sort in descending order all patients by birthday for male patient with albumin not within range.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1216
-    description: "Sort in descending order all patients by birthday for male patient with albumin not within range."
+    description: 'Sort in descending order all patients by birthday for male patient with albumin not within range.'
     messages:
       - role: user
         content: |

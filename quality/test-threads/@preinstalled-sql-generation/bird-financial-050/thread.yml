@@ -1,5 +1,5 @@
 name: bird-financial-050
-description: "BIRD Q138 (challenging): For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories."
+description: 'BIRD Q138 (challenging): For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-138
-    description: "For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories."
+    description: 'For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories.'
     messages:
       - role: user
         content: |

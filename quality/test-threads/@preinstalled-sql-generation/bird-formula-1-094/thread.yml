@@ -1,5 +1,5 @@
 name: bird-formula-1-094
-description: "BIRD Q939 (moderate): How many drivers from the UN participated in the 2008 Australian Grand Prix?"
+description: 'BIRD Q939 (moderate): How many drivers from the UN participated in the 2008 Australian Grand Prix?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-939
-    description: "How many drivers from the UN participated in the 2008 Australian Grand Prix?"
+    description: 'How many drivers from the UN participated in the 2008 Australian Grand Prix?'
     messages:
       - role: user
         content: |

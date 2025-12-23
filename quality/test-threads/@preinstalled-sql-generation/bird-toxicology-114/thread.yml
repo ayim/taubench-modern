@@ -1,5 +1,5 @@
 name: bird-toxicology-114
-description: "BIRD Q308 (simple): How many bonds are created by bonding atoms with chlorine element?"
+description: 'BIRD Q308 (simple): How many bonds are created by bonding atoms with chlorine element?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-308
-    description: "How many bonds are created by bonding atoms with chlorine element?"
+    description: 'How many bonds are created by bonding atoms with chlorine element?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-069
-description: "BIRD Q599 (simple): What are the post history type IDs for post ID 3720 and how many unique users have commented on the post?"
+description: 'BIRD Q599 (simple): What are the post history type IDs for post ID 3720 and how many unique users have commented on the post?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-599
-    description: "What are the post history type IDs for post ID 3720 and how many unique users have commented on the post?"
+    description: 'What are the post history type IDs for post ID 3720 and how many unique users have commented on the post?'
     messages:
       - role: user
         content: |

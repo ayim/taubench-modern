@@ -1,5 +1,5 @@
 name: bird-superhero-111
-description: "BIRD Q827 (moderate): What is the average height of a non-human superhero in Dark Horse Comics?"
+description: 'BIRD Q827 (moderate): What is the average height of a non-human superhero in Dark Horse Comics?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-827
-    description: "What is the average height of a non-human superhero in Dark Horse Comics?"
+    description: 'What is the average height of a non-human superhero in Dark Horse Comics?'
     messages:
       - role: user
         content: |

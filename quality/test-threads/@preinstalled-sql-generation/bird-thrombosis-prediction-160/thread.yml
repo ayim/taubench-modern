@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-160
-description: "BIRD Q1308 (moderate): Among the patients who have a normal platelet level, how many of them have other symptoms observed?"
+description: 'BIRD Q1308 (moderate): Among the patients who have a normal platelet level, how many of them have other symptoms observed?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1308
-    description: "Among the patients who have a normal platelet level, how many of them have other symptoms observed?"
+    description: 'Among the patients who have a normal platelet level, how many of them have other symptoms observed?'
     messages:
       - role: user
         content: |

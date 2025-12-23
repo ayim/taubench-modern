@@ -1,5 +1,5 @@
 name: bird-codebase-community-126
-description: "BIRD Q656 (simple): Describe the display name of the parent ID for child post with the highest score."
+description: 'BIRD Q656 (simple): Describe the display name of the parent ID for child post with the highest score.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-656
-    description: "Describe the display name of the parent ID for child post with the highest score."
+    description: 'Describe the display name of the parent ID for child post with the highest score.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-022
-description: "BIRD Q216 (simple): Identify all connected atoms with a triple bond."
+description: 'BIRD Q216 (simple): Identify all connected atoms with a triple bond.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-216
-    description: "Identify all connected atoms with a triple bond."
+    description: 'Identify all connected atoms with a triple bond.'
     messages:
       - role: user
         content: |

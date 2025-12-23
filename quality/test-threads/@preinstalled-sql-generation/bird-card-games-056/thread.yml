@@ -1,5 +1,5 @@
 name: bird-card-games-056
-description: "BIRD Q395 (simple): How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?"
+description: 'BIRD Q395 (simple): How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-395
-    description: "How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?"
+    description: 'How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-european-football-2-024
-description: "BIRD Q1043 (simple): What is the short name of the football team Queens Park Rangers?"
+description: 'BIRD Q1043 (simple): What is the short name of the football team Queens Park Rangers?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1043
-    description: "What is the short name of the football team Queens Park Rangers?"
+    description: 'What is the short name of the football team Queens Park Rangers?'
     messages:
       - role: user
         content: |

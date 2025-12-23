@@ -1,5 +1,5 @@
 name: bird-card-games-181
-description: "BIRD Q520 (moderate): Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated."
+description: 'BIRD Q520 (moderate): Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-520
-    description: "Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated."
+    description: 'Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated.'
     messages:
       - role: user
         content: |

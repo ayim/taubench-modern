@@ -1,5 +1,5 @@
 name: bird-formula-1-052
-description: "BIRD Q897 (moderate): Name the driver with the most winning. Mention his nationality and what is his maximum point scores."
+description: 'BIRD Q897 (moderate): Name the driver with the most winning. Mention his nationality and what is his maximum point scores.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-897
-    description: "Name the driver with the most winning. Mention his nationality and what is his maximum point scores."
+    description: 'Name the driver with the most winning. Mention his nationality and what is his maximum point scores.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-034
-description: "BIRD Q1503 (simple): Please list the product description of the products bought in transactions in euro."
+description: 'BIRD Q1503 (simple): Please list the product description of the products bought in transactions in euro.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1503
-    description: "Please list the product description of the products bought in transactions in euro."
+    description: 'Please list the product description of the products bought in transactions in euro.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-078
-description: "BIRD Q272 (moderate): List down two molecule id of triple bond non carcinogenic molecules with element carbon."
+description: 'BIRD Q272 (moderate): List down two molecule id of triple bond non carcinogenic molecules with element carbon.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-272
-    description: "List down two molecule id of triple bond non carcinogenic molecules with element carbon."
+    description: 'List down two molecule id of triple bond non carcinogenic molecules with element carbon.'
     messages:
       - role: user
         content: |

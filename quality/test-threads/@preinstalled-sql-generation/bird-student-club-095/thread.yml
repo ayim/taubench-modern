@@ -1,5 +1,5 @@
 name: bird-student-club-095
-description: "BIRD Q1406 (simple): Among the budgets for Food, which one has the highest budgeted amount?"
+description: 'BIRD Q1406 (simple): Among the budgets for Food, which one has the highest budgeted amount?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1406
-    description: "Among the budgets for Food, which one has the highest budgeted amount?"
+    description: 'Among the budgets for Food, which one has the highest budgeted amount?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-009
-description: "BIRD Q203 (challenging): What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?"
+description: 'BIRD Q203 (challenging): What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-203
-    description: "What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?"
+    description: 'What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?'
     messages:
       - role: user
         content: |

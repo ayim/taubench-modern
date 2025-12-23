@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-002
-description: "BIRD Q1471 (simple): What is the ratio of customers who pay in EUR against customers who pay in CZK?"
+description: 'BIRD Q1471 (simple): What is the ratio of customers who pay in EUR against customers who pay in CZK?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1471
-    description: "What is the ratio of customers who pay in EUR against customers who pay in CZK?"
+    description: 'What is the ratio of customers who pay in EUR against customers who pay in CZK?'
     messages:
       - role: user
         content: |

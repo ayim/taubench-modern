@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-008
-description: "BIRD Q1477 (simple): Which year recorded the most gas use paid in EUR?"
+description: 'BIRD Q1477 (simple): Which year recorded the most gas use paid in EUR?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1477
-    description: "Which year recorded the most gas use paid in EUR?"
+    description: 'Which year recorded the most gas use paid in EUR?'
     messages:
       - role: user
         content: |

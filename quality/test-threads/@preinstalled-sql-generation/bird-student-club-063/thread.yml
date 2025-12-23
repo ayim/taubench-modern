@@ -1,5 +1,5 @@
 name: bird-student-club-063
-description: "BIRD Q1374 (simple): How many events did the member with the phone number \"954-555-6240\" attend?"
+description: 'BIRD Q1374 (simple): How many events did the member with the phone number "954-555-6240" attend?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1374
-    description: "How many events did the member with the phone number \"954-555-6240\" attend?"
+    description: 'How many events did the member with the phone number "954-555-6240" attend?'
     messages:
       - role: user
         content: |

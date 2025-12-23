@@ -1,1072 +1,1072 @@
 name: CA Schools Analytics
 tables:
-- name: satscores
-  facts:
-  - expr: avgscrmath
-    name: avgscrmath
-    synonyms:
-    - sat_math_average_score
-    data_type: int64
-    description: Average SAT Math section score for the school or district record.
-    sample_values:
-    - 418
-    - 546
-    - 387
-    - 546
-  - expr: avgscrread
-    name: avgscrread
-    synonyms:
-    - sat_reading_average_score
-    data_type: int64
-    description: Average SAT Critical Reading section score for the school or district
-      record.
-    sample_values:
-    - 418
-    - 503
-    - 397
-    - 521
-  - expr: avgscrwrite
-    name: avgscrwrite
-    synonyms:
-    - sat_writing_average_score
-    data_type: int64
-    description: Average SAT Writing section score for the school or district record.
-    sample_values:
-    - 417
-    - 505
-    - 395
-    - 519
-  - expr: enroll12
-    name: enroll12
-    synonyms:
-    - sat_enrollment_grades_1_12
-    data_type: int64
-    description: Reported enrollment for grades 1–12 associated with this SAT record.
-    sample_values:
-    - 398
-    - 62
-    - 75
-    - 61
-    - 922
-  - expr: numge1500
-    name: numge1500
-    synonyms:
-    - sat_test_takers_ge_1500
-    data_type: int64
-    description: Number of SAT test takers whose total score is greater than or equal
-      to 1500.
-    sample_values:
-    - 14
-    - 9
-    - 5
-    - 333
-  - expr: numtsttakr
-    name: numtsttakr
-    synonyms:
-    - sat_number_of_test_takers
-    data_type: int64
-    description: Number of students who took the SAT for the school or district record.
-    sample_values:
-    - 88
-    - 17
-    - 71
-    - 0
-    - 544
-  synonyms:
-  - sat_results
-  - sat_performance_by_school
-  - college_admissions_test_scores
-  base_table:
-    table: satscores
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: cds
-    name: cds
-    synonyms:
-    - sat_cds_code
-    data_type: '!string'
-    description: California Department of Education CDS code identifying the entity
-      (school or district) in this SAT record.
-    sample_values:
-    - '01100170000000'
-    - 01100170109835
-    - '01100170112607'
-    - 01100170118489
-    - 01611190000000
-  - expr: rtype
-    name: rtype
-    synonyms:
-    - sat_record_type_code
-    data_type: string
-    description: Record type code indicating the reporting level (e.g., school vs
-      district).
-    sample_values:
-    - D
-    - S
-    - S
-    - S
-    - D
-  - expr: sname
-    name: sname
-    synonyms:
-    - sat_school_name
-    data_type: string
-    description: School name for the SAT record (when record type is school-level).
-    sample_values:
-    - FAME Public Charter
-    - Envision Academy for Arts & Technology
-    - Aspire California College Preparatory Academy
-  - expr: dname
-    name: dname
-    synonyms:
-    - sat_district_name
-    data_type: string
-    description: District name for the SAT record.
-    sample_values:
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda Unified
-  - expr: cname
-    name: cname
-    synonyms:
-    - sat_county_name
-    data_type: string
-    description: County name for the SAT record.
-    sample_values:
-    - Alameda
-    - Alameda
-    - Alameda
-    - Alameda
-    - Alameda
-  description: School- and district-level SAT participation and average section scores
-    for California schools, including the number of test takers and high scorers (>=1500).
-    Use to analyze SAT performance and participation by geography and organization.
-- name: frpm
-  facts:
-  - expr: Enrollment (Ages 5-17)
-    name: Enrollment (Ages 5-17)
-    synonyms:
-    - frpm_enrollment_ages_5_17
-    data_type: float32
-    description: Enrollment count for students ages 5–17 used for eligibility calculations.
-    sample_values:
-    - 1070.0
-    - 376.0
-    - 230.0
-    - 190.0
-    - 257.0
-  - expr: Enrollment (K-12)
-    name: Enrollment (K-12)
-    synonyms:
-    - frpm_enrollment_k_12
-    data_type: float32
-    description: K–12 enrollment count used for FRPM and free-meal rate calculations.
-    sample_values:
-    - 1087.0
-    - 395.0
-    - 244.0
-    - 191.0
-    - 257.0
-  - expr: FRPM Count (Ages 5-17)
-    name: FRPM Count (Ages 5-17)
-    synonyms:
-    - frpm_eligible_count_ages_5_17
-    data_type: float32
-    description: Count of students ages 5–17 eligible for free or reduced-price meals.
-    sample_values:
-    - 702.0
-    - 182.0
-    - 168.0
-    - 139.0
-    - 21.0
-  - expr: FRPM Count (K-12)
-    name: FRPM Count (K-12)
-    synonyms:
-    - frpm_eligible_count_k_12
-    data_type: float32
-    description: Count of K–12 students eligible for free or reduced-price meals.
-    sample_values:
-    - 715.0
-    - 186.0
-    - 175.0
-    - 139.0
-    - 21.0
-  - expr: Free Meal Count (Ages 5-17)
-    name: Free Meal Count (Ages 5-17)
-    synonyms:
-    - free_meal_eligible_count_ages_5_17
-    data_type: float32
-    description: Count of students ages 5–17 eligible for free meals.
-    sample_values:
-    - 553.0
-    - 182.0
-    - 128.0
-    - 113.0
-    - 14.0
-  - expr: Free Meal Count (K-12)
-    name: Free Meal Count (K-12)
-    synonyms:
-    - free_meal_eligible_count_k_12
-    data_type: float32
-    description: Count of K–12 students eligible for free meals.
-    sample_values:
-    - 565.0
-    - 186.0
-    - 134.0
-    - 113.0
-    - 14.0
-  metrics:
-  - expr: Percent (%) Eligible FRPM (Ages 5-17)
-    name: Percent (%) Eligible FRPM (Ages 5-17)
-    synonyms:
-    - frpm_eligibility_rate_ages_5_17
-    data_type: float32
-    description: FRPM eligibility rate for ages 5–17 (eligible FRPM count divided
-      by enrollment ages 5–17).
-    sample_values:
-    - 0.6560747623443604
-    - 0.48404255509376526
-    - 0.730434775352478
-    - 0.7315789461135864
-    - 0.08171205967664719
-  - expr: Percent (%) Eligible FRPM (K-12)
-    name: Percent (%) Eligible FRPM (K-12)
-    synonyms:
-    - frpm_eligibility_rate_k_12
-    data_type: float32
-    description: FRPM eligibility rate for K–12 (eligible FRPM count divided by K–12
-      enrollment).
-    sample_values:
-    - 0.6577736735343933
-    - 0.47088608145713806
-    - 0.7172130942344666
-    - 0.727748692035675
-    - 0.08171205967664719
-  - expr: Percent (%) Eligible Free (Ages 5-17)
-    name: Percent (%) Eligible Free (Ages 5-17)
-    synonyms:
-    - free_meal_eligibility_rate_ages_5_17
-    data_type: float32
-    description: Free-meal eligibility rate for ages 5–17 (free-meal eligible count
-      divided by enrollment ages 5–17).
-    sample_values:
-    - 0.5168224573135376
-    - 0.48404255509376526
-    - 0.5565217137336731
-    - 0.5947368144989014
-    - 0.05447470769286156
-  - expr: Percent (%) Eligible Free (K-12)
-    name: Percent (%) Eligible Free (K-12)
-    synonyms:
-    - free_meal_eligibility_rate_k_12
-    data_type: float32
-    description: Free-meal eligibility rate for K–12 (free-meal eligible count divided
-      by K–12 enrollment).
-    sample_values:
-    - 0.5197792053222656
-    - 0.47088608145713806
-    - 0.5491803288459778
-    - 0.5916230082511902
-    - 0.05447470769286156
-  synonyms:
-  - meal_eligibility
-  - free_reduced_meal_program
-  - frpm_eligibility_by_school_year
-  base_table:
-    table: frpm
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: cdscode
-    name: cdscode
-    synonyms:
-    - frpm_cds_code_full
-    data_type: string
-    description: Full CDSCode identifier (county + district + school) for the school
-      record.
-    sample_values:
-    - 01100170109835
-    - '01100170112607'
-    - 01100170118489
-    - 01100170123968
-    - '01100170124172'
-  - expr: County Code
-    name: County Code
-    synonyms:
-    - frpm_county_code
-    data_type: string
-    description: County code component used in California education identifiers.
-    sample_values:
-    - '01'
-    - '01'
-    - '01'
-    - '01'
-    - '01'
-  - expr: District Code
-    name: District Code
-    synonyms:
-    - frpm_district_code
-    data_type: int64
-    description: District code component used in California education identifiers.
-    sample_values:
-    - 10017
-    - 10017
-    - 10017
-    - 10017
-    - 10017
-  - expr: School Code
-    name: School Code
-    synonyms:
-    - frpm_school_code
-    data_type: string
-    description: School code component used in California education identifiers.
-    sample_values:
-    - 0109835
-    - '0112607'
-    - 0118489
-    - 0123968
-    - '0124172'
-  - expr: County Name
-    name: County Name
-    synonyms:
-    - frpm_county_name
-    data_type: string
-    description: County name associated with the school/district for this FRPM record.
-    sample_values:
-    - Alameda
-    - Alameda
-    - Alameda
-    - Alameda
-    - Alameda
-  - expr: District Name
-    name: District Name
-    synonyms:
-    - frpm_district_name
-    data_type: string
-    description: District name for the FRPM record.
-    sample_values:
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-  - expr: School Name
-    name: School Name
-    synonyms:
-    - frpm_school_name
-    data_type: string
-    description: School name associated with the FRPM record.
-    sample_values:
-    - FAME Public Charter
-    - Envision Academy for Arts & Technology
-    - Aspire California College Preparatory Academy
-    - Community School for Creative Education
-    - Yu Ming Charter
-  - expr: District Type
-    name: District Type
-    synonyms:
-    - frpm_district_type
-    data_type: string
-    description: District classification (e.g., County Office of Education, Unified
-      School District).
-    sample_values:
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-  - expr: School Type
-    name: School Type
-    synonyms:
-    - frpm_school_type
-    data_type: string
-    description: School classification/type (e.g., Elementary Schools (Public), High
-      Schools (Public)).
-    sample_values:
-    - K-12 Schools (Public)
-    - High Schools (Public)
-    - High Schools (Public)
-    - Elementary Schools (Public)
-    - Elementary Schools (Public)
-  - expr: Educational Option Type
-    name: Educational Option Type
-    synonyms:
-    - frpm_educational_option_type
-    data_type: string
-    description: Educational option category for the school (e.g., Traditional).
-    sample_values:
-    - Traditional
-    - Traditional
-    - Traditional
-    - Traditional
-    - Traditional
-  - expr: NSLP Provision Status
-    name: NSLP Provision Status
-    synonyms:
-    - nslp_provision_status
-    data_type: string
-    description: National School Lunch Program (NSLP) provision status for the school/site
-      (e.g., Provision 2).
-    sample_values:
-    - Breakfast Provision 2
-  - expr: Charter School (Y/N)
-    name: Charter School (Y/N)
-    synonyms:
-    - frpm_is_charter_school_flag
-    data_type: int64
-    description: Flag indicating whether the school is a charter school (1 = Yes,
-      0 = No).
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  - expr: Charter School Number
-    name: Charter School Number
-    synonyms:
-    - frpm_charter_school_number
-    data_type: string
-    description: State-assigned charter school number (when applicable).
-    sample_values:
-    - 0728
-    - 0811
-    - '1049'
-    - '1284'
-    - '1296'
-  - expr: Charter Funding Type
-    name: Charter Funding Type
-    synonyms:
-    - frpm_charter_funding_type
-    data_type: string
-    description: Charter school funding model category (e.g., directly funded, locally
-      funded).
-    sample_values:
-    - Directly funded
-    - Directly funded
-    - Directly funded
-    - Directly funded
-    - Directly funded
-  - expr: irc
-    name: irc
-    synonyms:
-    - frpm_irc_indicator
-    data_type: int64
-    description: Indicator field from the source FRPM dataset (commonly used as a
-      reporting/status flag).
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  - expr: Low Grade
-    name: Low Grade
-    synonyms:
-    - frpm_lowest_grade
-    data_type: string
-    description: Lowest grade level served by the school for this record.
-    sample_values:
-    - K
-    - '9'
-    - '9'
-    - K
-    - K
-  - expr: High Grade
-    name: High Grade
-    synonyms:
-    - frpm_highest_grade
-    data_type: string
-    description: Highest grade level served by the school for this record.
-    sample_values:
-    - '12'
-    - '12'
-    - '12'
-    - '8'
-    - '8'
-  - expr: 2013-14 CALPADS Fall 1 Certification Status
-    name: 2013-14 CALPADS Fall 1 Certification Status
-    synonyms:
-    - calpads_fall1_cert_status_2013_14
-    data_type: int64
-    description: CALPADS Fall 1 certification status indicator for the 2013–14 reporting
-      period.
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  description: Free/Reduced-Price Meal (FRPM) and free-meal eligibility counts and
-    rates by school and academic year. Includes enrollment, eligibility counts for
-    K–12 and ages 5–17, and school/district attributes used to analyze student need
-    and program participation.
-  time_dimensions:
-  - expr: Academic Year
-    name: Academic Year
-    synonyms:
-    - frpm_academic_year
-    data_type: string
-    description: Academic year associated with the FRPM/enrollment record (e.g., 2014-2015).
-    sample_values:
-    - 2014-2015
-    - 2014-2015
-    - 2014-2015
-    - 2014-2015
-    - 2014-2015
-- name: schools
-  synonyms:
-  - school_directory
-  - school_master_list
-  - california_school_profiles
-  base_table:
-    table: schools
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: cdscode
-    name: cdscode
-    synonyms:
-    - school_cds_code_full
-    data_type: string
-    description: Full California Department of Education CDSCode (county + district
-      + school) identifying the school or district entity.
-    sample_values:
-    - '01100170000000'
-    - 01100170109835
-    - '01100170112607'
-    - 01100170118489
-    - 01100170123968
-  - expr: ncesdist
-    name: ncesdist
-    synonyms:
-    - nces_district_id
-    data_type: string
-    description: NCES 7-digit school district identification number (state + district).
-    sample_values:
-    - 0691051
-    - 0691051
-    - 0691051
-    - 0691051
-    - 0691051
-  - expr: ncesschool
-    name: ncesschool
-    synonyms:
-    - nces_school_id
-    data_type: string
-    description: NCES 5-digit school identification number (unique within district).
-    sample_values:
-    - '10546'
-    - '10947'
-    - '12283'
-    - '12844'
-  - expr: statustype
-    name: statustype
-    synonyms:
-    - operational_status
-    data_type: string
-    description: Operational status of the school/district (e.g., Active, Closed,
-      Merged, Pending).
-    sample_values:
-    - Active
-    - Closed
-    - Active
-    - Closed
-    - Active
-  - expr: county
-    name: county
-    synonyms:
-    - county_name_directory
-    data_type: string
-    description: County name where the school/district is located.
-    sample_values:
-    - Alameda
-    - Alameda
-    - Alameda
-    - Alameda
-    - Alameda
-  - expr: district
-    name: district
-    synonyms:
-    - district_name_directory
-    data_type: string
-    description: District name for the school/district entity.
-    sample_values:
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-    - Alameda County Office of Education
-  - expr: school
-    name: school
-    synonyms:
-    - school_name_directory
-    data_type: string
-    description: School name (entity name) in the directory record.
-    sample_values:
-    - FAME Public Charter
-    - Envision Academy for Arts & Technology
-    - Aspire California College Preparatory Academy
-    - Community School for Creative Education
-  - expr: street
-    name: street
-    synonyms:
-    - physical_street_full
-    data_type: string
-    description: Unabbreviated street line for the physical location address.
-    sample_values:
-    - 313 West Winton Avenue
-    - 39899 Balentine Drive, Suite 335
-    - 1515 Webster Street
-    - 2125 Jefferson Avenue
-    - 2111 International Boulevard
-  - expr: streetabr
-    name: streetabr
-    synonyms:
-    - physical_street_abbreviated
-    data_type: string
-    description: Abbreviated street line for the physical location address.
-    sample_values:
-    - 313 West Winton Ave.
-    - 39899 Balentine Dr., Ste. 335
-    - 1515 Webster St.
-    - 2125 Jefferson Ave.
-    - 2111 International Blvd.
-  - expr: city
-    name: city
-    synonyms:
-    - physical_city
-    data_type: string
-    description: City for the physical location address.
-    sample_values:
-    - Hayward
-    - Newark
-    - Oakland
-    - Berkeley
-    - Oakland
-  - expr: zip
-    name: zip
-    synonyms:
-    - physical_zip_code
-    data_type: string
-    description: ZIP code for the physical location address.
-    sample_values:
-    - 94544-1136
-    - 94560-5359
-    - 94612-3355
-    - 94703-1414
-    - 94606-4903
-  - expr: state
-    name: state
-    synonyms:
-    - physical_state
-    data_type: string
-    description: State abbreviation for the physical location address.
-    sample_values:
-    - CA
-    - CA
-    - CA
-    - CA
-    - CA
-  - expr: mailstreet
-    name: mailstreet
-    synonyms:
-    - mailing_street_full
-    data_type: string
-    description: Unabbreviated street line for the mailing address.
-    sample_values:
-    - 313 West Winton Avenue
-    - 39899 Balentine Drive, Suite 335
-    - 1515 Webster Street
-    - 1001 22nd Avenue, Suite 100
-    - 2111 International Boulevard
-  - expr: mailstrabr
-    name: mailstrabr
-    synonyms:
-    - mailing_street_abbreviated
-    data_type: string
-    description: Abbreviated street line for the mailing address.
-    sample_values:
-    - 313 West Winton Ave.
-    - 39899 Balentine Dr., Ste. 335
-    - 1515 Webster St.
-    - 1001 22nd Ave., Ste. 100
-    - 2111 International Blvd.
-  - expr: mailcity
-    name: mailcity
-    synonyms:
-    - mailing_city
-    data_type: string
-    description: City for the mailing address.
-    sample_values:
-    - Hayward
-    - Newark
-    - Oakland
-    - Oakland
-    - Oakland
-  - expr: mailzip
-    name: mailzip
-    synonyms:
-    - mailing_zip_code
-    data_type: string
-    description: ZIP code for the mailing address.
-    sample_values:
-    - 94544-1136
-    - 94560-5359
-    - '94612'
-    - '94606'
-    - 94606-4903
-  - expr: mailstate
-    name: mailstate
-    synonyms:
-    - mailing_state
-    data_type: string
-    description: State abbreviation for the mailing address.
-    sample_values:
-    - CA
-    - CA
-    - CA
-    - CA
-    - CA
-  - expr: phone
-    name: phone
-    synonyms:
-    - main_phone_number
-    data_type: string
-    description: Main phone number for the school/district contact.
-    sample_values:
-    - (510) 887-0152
-    - (510) 596-8901
-    - (510) 686-4131
-  - expr: ext
-    name: ext
-    synonyms:
-    - phone_extension
-    data_type: string
-    description: Phone number extension for the school/district contact.
-  - expr: website
-    name: website
-    synonyms:
-    - school_website_url
-    data_type: string
-    description: Website URL for the school/district entity.
-    sample_values:
-    - www.acoe.org
-    - www.envisionacademy.org/
-    - www.aspirepublicschools.org
-    - www.communityschoolforcreativeeducation.org
-  - expr: charter
-    name: charter
-    synonyms:
-    - is_charter_school_flag
-    data_type: int64
-    description: Flag indicating whether the school is a charter school (1 = charter,
-      0 = not charter).
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-  - expr: charternum
-    name: charternum
-    synonyms:
-    - charter_school_number_directory
-    data_type: string
-    description: State-assigned charter school number (4-digit), if applicable.
-    sample_values:
-    - 0728
-    - 0811
-    - '1049'
-    - '1284'
-  - expr: fundingtype
-    name: fundingtype
-    synonyms:
-    - charter_funding_type_directory
-    data_type: string
-    description: Charter funding type (e.g., directly funded, locally funded) when
-      applicable.
-    sample_values:
-    - Directly funded
-    - Directly funded
-    - Directly funded
-    - Directly funded
-  - expr: doc
-    name: doc
-    synonyms:
-    - district_ownership_code
-    data_type: string
-    description: District Ownership Code (DOC) identifying the administrative authority
-      category (e.g., county office, unified district).
-    sample_values:
-    - '00'
-    - '00'
-    - '00'
-    - '00'
-    - '00'
-  - expr: doctype
-    name: doctype
-    synonyms:
-    - district_ownership_type
-    data_type: string
-    description: Text description of the District Ownership Code category.
-    sample_values:
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-    - County Office of Education (COE)
-  - expr: soc
-    name: soc
-    synonyms:
-    - school_ownership_code
-    data_type: string
-    description: School Ownership Code (SOC) identifying the type of school.
-    sample_values:
-    - '65'
-    - '66'
-    - '66'
-    - '60'
-  - expr: soctype
-    name: soctype
-    synonyms:
-    - school_ownership_type
-    data_type: string
-    description: Text description of the School Ownership Code type (e.g., K-12 Schools
-      (Public)).
-    sample_values:
-    - K-12 Schools (Public)
-    - High Schools (Public)
-    - High Schools (Public)
-    - Elementary Schools (Public)
-  - expr: edopscode
-    name: edopscode
-    synonyms:
-    - education_option_code
-    data_type: string
-    description: Education option short code describing the program type (e.g., TRAD
-      for Traditional).
-    sample_values:
-    - TRAD
-    - TRAD
-    - TRAD
-    - TRAD
-  - expr: edopsname
-    name: edopsname
-    synonyms:
-    - education_option_name
-    data_type: string
-    description: Education option name/description (long form).
-    sample_values:
-    - Traditional
-    - Traditional
-    - Traditional
-    - Traditional
-  - expr: eilcode
-    name: eilcode
-    synonyms:
-    - instruction_level_code
-    data_type: string
-    description: Educational instruction level code based on grade-range type (e.g.,
-      ELEM, HS, ELEMHIGH).
-    sample_values:
-    - ELEMHIGH
-    - HS
-    - HS
-    - ELEM
-  - expr: eilname
-    name: eilname
-    synonyms:
-    - instruction_level_name
-    data_type: string
-    description: Educational instruction level name/description corresponding to the
-      instruction level code.
-    sample_values:
-    - Elementary-High Combination
-    - High School
-    - High School
-    - Elementary
-  - expr: gsoffered
-    name: gsoffered
-    synonyms:
-    - grade_span_offered
-    data_type: string
-    description: Grade span offered/supported by the school entity (may differ from
-      enrollment-reported span).
-    sample_values:
-    - K-12
-    - 9-12
-    - 9-12
-    - K-8
-  - expr: gsserved
-    name: gsserved
-    synonyms:
-    - grade_span_served
-    data_type: string
-    description: Grade span served based on CALPADS enrollment reporting (typically
-      K–12).
-    sample_values:
-    - K-12
-    - 9-12
-    - 9-12
-    - K-7
-  - expr: virtual
-    name: virtual
-    synonyms:
-    - virtual_instruction_type
-    data_type: string
-    description: Virtual instruction indicator code (e.g., N = not virtual, V = primarily
-      virtual, C = primarily classroom).
-    sample_values:
-    - P
-    - N
-    - N
-    - N
-  - expr: magnet
-    name: magnet
-    synonyms:
-    - is_magnet_school_flag
-    data_type: int64
-    description: Flag indicating whether the school is a magnet school or offers a
-      magnet program (1 = magnet, 0 = not magnet).
-    sample_values:
-    - 0
-    - 0
-    - 0
-    - 0
-  - expr: latitude
-    name: latitude
-    synonyms:
-    - location_latitude
-    data_type: float32
-    description: Latitude of the school/district physical location in decimal degrees.
-    sample_values:
-    - 37.65821075439453
-    - 37.52143478393555
-    - 37.80451965332031
-    - 37.86899185180664
-    - 37.78464889526367
-  - expr: longitude
-    name: longitude
-    synonyms:
-    - location_longitude
-    data_type: float32
-    description: Longitude of the school/district physical location in decimal degrees.
-    sample_values:
-    - -122.09712982177734
-    - -121.99391174316406
-    - -122.26815032958984
-    - -122.2784423828125
-    - -122.23863220214844
-  - expr: admfname1
-    name: admfname1
-    synonyms:
-    - administrator_first_name_primary
-    data_type: string
-    description: Primary administrator first name.
-    sample_values:
-    - L Karen
-    - Laura
-    - Clifford
-  - expr: admlname1
-    name: admlname1
-    synonyms:
-    - administrator_last_name_primary
-    data_type: string
-    description: Primary administrator last name.
-    sample_values:
-    - Monroe
-    - Robell
-    - Thompson
-  - expr: admemail1
-    name: admemail1
-    synonyms:
-    - administrator_email_primary
-    data_type: string
-    description: Primary administrator email address (e.g., principal or superintendent).
-    sample_values:
-    - lkmonroe@acoe.org
-    - laura@envisionacademy.org
-    - cliffordt@communityschoolforcreativeeducation.org
-  - expr: admfname2
-    name: admfname2
-    synonyms:
-    - administrator_first_name_secondary
-    data_type: string
-    description: Secondary administrator first name when multiple contacts exist.
-  - expr: admlname2
-    name: admlname2
-    synonyms:
-    - administrator_last_name_secondary
-    data_type: string
-    description: Secondary administrator last name when multiple contacts exist.
-  - expr: admemail2
-    name: admemail2
-    synonyms:
-    - administrator_email_secondary
-    data_type: string
-    description: Secondary administrator email address when multiple contacts exist.
-  - expr: admfname3
-    name: admfname3
-    synonyms:
-    - administrator_first_name_tertiary
-    data_type: string
-    description: Third administrator first name when multiple contacts exist.
-  - expr: admlname3
-    name: admlname3
-    synonyms:
-    - administrator_last_name_tertiary
-    data_type: string
-    description: Third administrator last name when multiple contacts exist.
-  - expr: admemail3
-    name: admemail3
-    synonyms:
-    - administrator_email_tertiary
-    data_type: string
-    description: Third administrator email address when multiple contacts exist.
-  description: Directory of California schools and districts with identifiers, operational
-    status, grade span, charter/magnet/virtual indicators, administrator contact details,
-    and physical/mailing addresses. Use to enrich performance or program data with
-    school attributes and location.
-  time_dimensions:
-  - expr: opendate
-    name: opendate
-    synonyms:
-    - school_open_date
-    data_type: date
-    description: Date the school/district opened.
-    sample_values:
-    - '2005-08-29'
-    - '2006-08-28'
-    - '2008-08-21'
-    - '2011-08-22'
-  - expr: closeddate
-    name: closeddate
-    synonyms:
-    - school_closed_date
-    data_type: date
-    description: Date the school/district closed (if status is closed).
-    sample_values:
-    - '2015-07-31'
-    - '2015-06-30'
-  - expr: lastupdate
-    name: lastupdate
-    synonyms:
-    - record_last_updated_date
-    data_type: date
-    description: Date this school/district directory record was last updated in the
-      source.
-    sample_values:
-    - '2015-06-23'
-    - '2015-09-01'
-    - '2015-06-18'
-    - '2015-07-01'
-    - '2016-07-18'
+  - name: satscores
+    facts:
+      - expr: avgscrmath
+        name: avgscrmath
+        synonyms:
+          - sat_math_average_score
+        data_type: int64
+        description: Average SAT Math section score for the school or district record.
+        sample_values:
+          - 418
+          - 546
+          - 387
+          - 546
+      - expr: avgscrread
+        name: avgscrread
+        synonyms:
+          - sat_reading_average_score
+        data_type: int64
+        description: Average SAT Critical Reading section score for the school or district
+          record.
+        sample_values:
+          - 418
+          - 503
+          - 397
+          - 521
+      - expr: avgscrwrite
+        name: avgscrwrite
+        synonyms:
+          - sat_writing_average_score
+        data_type: int64
+        description: Average SAT Writing section score for the school or district record.
+        sample_values:
+          - 417
+          - 505
+          - 395
+          - 519
+      - expr: enroll12
+        name: enroll12
+        synonyms:
+          - sat_enrollment_grades_1_12
+        data_type: int64
+        description: Reported enrollment for grades 1–12 associated with this SAT record.
+        sample_values:
+          - 398
+          - 62
+          - 75
+          - 61
+          - 922
+      - expr: numge1500
+        name: numge1500
+        synonyms:
+          - sat_test_takers_ge_1500
+        data_type: int64
+        description: Number of SAT test takers whose total score is greater than or equal
+          to 1500.
+        sample_values:
+          - 14
+          - 9
+          - 5
+          - 333
+      - expr: numtsttakr
+        name: numtsttakr
+        synonyms:
+          - sat_number_of_test_takers
+        data_type: int64
+        description: Number of students who took the SAT for the school or district record.
+        sample_values:
+          - 88
+          - 17
+          - 71
+          - 0
+          - 544
+    synonyms:
+      - sat_results
+      - sat_performance_by_school
+      - college_admissions_test_scores
+    base_table:
+      table: satscores
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: cds
+        name: cds
+        synonyms:
+          - sat_cds_code
+        data_type: '!string'
+        description: California Department of Education CDS code identifying the entity
+          (school or district) in this SAT record.
+        sample_values:
+          - '01100170000000'
+          - 01100170109835
+          - '01100170112607'
+          - 01100170118489
+          - 01611190000000
+      - expr: rtype
+        name: rtype
+        synonyms:
+          - sat_record_type_code
+        data_type: string
+        description: Record type code indicating the reporting level (e.g., school vs
+          district).
+        sample_values:
+          - D
+          - S
+          - S
+          - S
+          - D
+      - expr: sname
+        name: sname
+        synonyms:
+          - sat_school_name
+        data_type: string
+        description: School name for the SAT record (when record type is school-level).
+        sample_values:
+          - FAME Public Charter
+          - Envision Academy for Arts & Technology
+          - Aspire California College Preparatory Academy
+      - expr: dname
+        name: dname
+        synonyms:
+          - sat_district_name
+        data_type: string
+        description: District name for the SAT record.
+        sample_values:
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda Unified
+      - expr: cname
+        name: cname
+        synonyms:
+          - sat_county_name
+        data_type: string
+        description: County name for the SAT record.
+        sample_values:
+          - Alameda
+          - Alameda
+          - Alameda
+          - Alameda
+          - Alameda
+    description: School- and district-level SAT participation and average section scores
+      for California schools, including the number of test takers and high scorers (>=1500).
+      Use to analyze SAT performance and participation by geography and organization.
+  - name: frpm
+    facts:
+      - expr: Enrollment (Ages 5-17)
+        name: Enrollment (Ages 5-17)
+        synonyms:
+          - frpm_enrollment_ages_5_17
+        data_type: float32
+        description: Enrollment count for students ages 5–17 used for eligibility calculations.
+        sample_values:
+          - 1070.0
+          - 376.0
+          - 230.0
+          - 190.0
+          - 257.0
+      - expr: Enrollment (K-12)
+        name: Enrollment (K-12)
+        synonyms:
+          - frpm_enrollment_k_12
+        data_type: float32
+        description: K–12 enrollment count used for FRPM and free-meal rate calculations.
+        sample_values:
+          - 1087.0
+          - 395.0
+          - 244.0
+          - 191.0
+          - 257.0
+      - expr: FRPM Count (Ages 5-17)
+        name: FRPM Count (Ages 5-17)
+        synonyms:
+          - frpm_eligible_count_ages_5_17
+        data_type: float32
+        description: Count of students ages 5–17 eligible for free or reduced-price meals.
+        sample_values:
+          - 702.0
+          - 182.0
+          - 168.0
+          - 139.0
+          - 21.0
+      - expr: FRPM Count (K-12)
+        name: FRPM Count (K-12)
+        synonyms:
+          - frpm_eligible_count_k_12
+        data_type: float32
+        description: Count of K–12 students eligible for free or reduced-price meals.
+        sample_values:
+          - 715.0
+          - 186.0
+          - 175.0
+          - 139.0
+          - 21.0
+      - expr: Free Meal Count (Ages 5-17)
+        name: Free Meal Count (Ages 5-17)
+        synonyms:
+          - free_meal_eligible_count_ages_5_17
+        data_type: float32
+        description: Count of students ages 5–17 eligible for free meals.
+        sample_values:
+          - 553.0
+          - 182.0
+          - 128.0
+          - 113.0
+          - 14.0
+      - expr: Free Meal Count (K-12)
+        name: Free Meal Count (K-12)
+        synonyms:
+          - free_meal_eligible_count_k_12
+        data_type: float32
+        description: Count of K–12 students eligible for free meals.
+        sample_values:
+          - 565.0
+          - 186.0
+          - 134.0
+          - 113.0
+          - 14.0
+    metrics:
+      - expr: Percent (%) Eligible FRPM (Ages 5-17)
+        name: Percent (%) Eligible FRPM (Ages 5-17)
+        synonyms:
+          - frpm_eligibility_rate_ages_5_17
+        data_type: float32
+        description: FRPM eligibility rate for ages 5–17 (eligible FRPM count divided
+          by enrollment ages 5–17).
+        sample_values:
+          - 0.6560747623443604
+          - 0.48404255509376526
+          - 0.730434775352478
+          - 0.7315789461135864
+          - 0.08171205967664719
+      - expr: Percent (%) Eligible FRPM (K-12)
+        name: Percent (%) Eligible FRPM (K-12)
+        synonyms:
+          - frpm_eligibility_rate_k_12
+        data_type: float32
+        description: FRPM eligibility rate for K–12 (eligible FRPM count divided by K–12
+          enrollment).
+        sample_values:
+          - 0.6577736735343933
+          - 0.47088608145713806
+          - 0.7172130942344666
+          - 0.727748692035675
+          - 0.08171205967664719
+      - expr: Percent (%) Eligible Free (Ages 5-17)
+        name: Percent (%) Eligible Free (Ages 5-17)
+        synonyms:
+          - free_meal_eligibility_rate_ages_5_17
+        data_type: float32
+        description: Free-meal eligibility rate for ages 5–17 (free-meal eligible count
+          divided by enrollment ages 5–17).
+        sample_values:
+          - 0.5168224573135376
+          - 0.48404255509376526
+          - 0.5565217137336731
+          - 0.5947368144989014
+          - 0.05447470769286156
+      - expr: Percent (%) Eligible Free (K-12)
+        name: Percent (%) Eligible Free (K-12)
+        synonyms:
+          - free_meal_eligibility_rate_k_12
+        data_type: float32
+        description: Free-meal eligibility rate for K–12 (free-meal eligible count divided
+          by K–12 enrollment).
+        sample_values:
+          - 0.5197792053222656
+          - 0.47088608145713806
+          - 0.5491803288459778
+          - 0.5916230082511902
+          - 0.05447470769286156
+    synonyms:
+      - meal_eligibility
+      - free_reduced_meal_program
+      - frpm_eligibility_by_school_year
+    base_table:
+      table: frpm
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: cdscode
+        name: cdscode
+        synonyms:
+          - frpm_cds_code_full
+        data_type: string
+        description: Full CDSCode identifier (county + district + school) for the school
+          record.
+        sample_values:
+          - 01100170109835
+          - '01100170112607'
+          - 01100170118489
+          - 01100170123968
+          - '01100170124172'
+      - expr: County Code
+        name: County Code
+        synonyms:
+          - frpm_county_code
+        data_type: string
+        description: County code component used in California education identifiers.
+        sample_values:
+          - '01'
+          - '01'
+          - '01'
+          - '01'
+          - '01'
+      - expr: District Code
+        name: District Code
+        synonyms:
+          - frpm_district_code
+        data_type: int64
+        description: District code component used in California education identifiers.
+        sample_values:
+          - 10017
+          - 10017
+          - 10017
+          - 10017
+          - 10017
+      - expr: School Code
+        name: School Code
+        synonyms:
+          - frpm_school_code
+        data_type: string
+        description: School code component used in California education identifiers.
+        sample_values:
+          - 0109835
+          - '0112607'
+          - 0118489
+          - 0123968
+          - '0124172'
+      - expr: County Name
+        name: County Name
+        synonyms:
+          - frpm_county_name
+        data_type: string
+        description: County name associated with the school/district for this FRPM record.
+        sample_values:
+          - Alameda
+          - Alameda
+          - Alameda
+          - Alameda
+          - Alameda
+      - expr: District Name
+        name: District Name
+        synonyms:
+          - frpm_district_name
+        data_type: string
+        description: District name for the FRPM record.
+        sample_values:
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+      - expr: School Name
+        name: School Name
+        synonyms:
+          - frpm_school_name
+        data_type: string
+        description: School name associated with the FRPM record.
+        sample_values:
+          - FAME Public Charter
+          - Envision Academy for Arts & Technology
+          - Aspire California College Preparatory Academy
+          - Community School for Creative Education
+          - Yu Ming Charter
+      - expr: District Type
+        name: District Type
+        synonyms:
+          - frpm_district_type
+        data_type: string
+        description: District classification (e.g., County Office of Education, Unified
+          School District).
+        sample_values:
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+      - expr: School Type
+        name: School Type
+        synonyms:
+          - frpm_school_type
+        data_type: string
+        description: School classification/type (e.g., Elementary Schools (Public), High
+          Schools (Public)).
+        sample_values:
+          - K-12 Schools (Public)
+          - High Schools (Public)
+          - High Schools (Public)
+          - Elementary Schools (Public)
+          - Elementary Schools (Public)
+      - expr: Educational Option Type
+        name: Educational Option Type
+        synonyms:
+          - frpm_educational_option_type
+        data_type: string
+        description: Educational option category for the school (e.g., Traditional).
+        sample_values:
+          - Traditional
+          - Traditional
+          - Traditional
+          - Traditional
+          - Traditional
+      - expr: NSLP Provision Status
+        name: NSLP Provision Status
+        synonyms:
+          - nslp_provision_status
+        data_type: string
+        description: National School Lunch Program (NSLP) provision status for the school/site
+          (e.g., Provision 2).
+        sample_values:
+          - Breakfast Provision 2
+      - expr: Charter School (Y/N)
+        name: Charter School (Y/N)
+        synonyms:
+          - frpm_is_charter_school_flag
+        data_type: int64
+        description: Flag indicating whether the school is a charter school (1 = Yes,
+          0 = No).
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+      - expr: Charter School Number
+        name: Charter School Number
+        synonyms:
+          - frpm_charter_school_number
+        data_type: string
+        description: State-assigned charter school number (when applicable).
+        sample_values:
+          - 0728
+          - 0811
+          - '1049'
+          - '1284'
+          - '1296'
+      - expr: Charter Funding Type
+        name: Charter Funding Type
+        synonyms:
+          - frpm_charter_funding_type
+        data_type: string
+        description: Charter school funding model category (e.g., directly funded, locally
+          funded).
+        sample_values:
+          - Directly funded
+          - Directly funded
+          - Directly funded
+          - Directly funded
+          - Directly funded
+      - expr: irc
+        name: irc
+        synonyms:
+          - frpm_irc_indicator
+        data_type: int64
+        description: Indicator field from the source FRPM dataset (commonly used as a
+          reporting/status flag).
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+      - expr: Low Grade
+        name: Low Grade
+        synonyms:
+          - frpm_lowest_grade
+        data_type: string
+        description: Lowest grade level served by the school for this record.
+        sample_values:
+          - K
+          - '9'
+          - '9'
+          - K
+          - K
+      - expr: High Grade
+        name: High Grade
+        synonyms:
+          - frpm_highest_grade
+        data_type: string
+        description: Highest grade level served by the school for this record.
+        sample_values:
+          - '12'
+          - '12'
+          - '12'
+          - '8'
+          - '8'
+      - expr: 2013-14 CALPADS Fall 1 Certification Status
+        name: 2013-14 CALPADS Fall 1 Certification Status
+        synonyms:
+          - calpads_fall1_cert_status_2013_14
+        data_type: int64
+        description: CALPADS Fall 1 certification status indicator for the 2013–14 reporting
+          period.
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+    description: Free/Reduced-Price Meal (FRPM) and free-meal eligibility counts and
+      rates by school and academic year. Includes enrollment, eligibility counts for
+      K–12 and ages 5–17, and school/district attributes used to analyze student need
+      and program participation.
+    time_dimensions:
+      - expr: Academic Year
+        name: Academic Year
+        synonyms:
+          - frpm_academic_year
+        data_type: string
+        description: Academic year associated with the FRPM/enrollment record (e.g., 2014-2015).
+        sample_values:
+          - 2014-2015
+          - 2014-2015
+          - 2014-2015
+          - 2014-2015
+          - 2014-2015
+  - name: schools
+    synonyms:
+      - school_directory
+      - school_master_list
+      - california_school_profiles
+    base_table:
+      table: schools
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: cdscode
+        name: cdscode
+        synonyms:
+          - school_cds_code_full
+        data_type: string
+        description: Full California Department of Education CDSCode (county + district
+          + school) identifying the school or district entity.
+        sample_values:
+          - '01100170000000'
+          - 01100170109835
+          - '01100170112607'
+          - 01100170118489
+          - 01100170123968
+      - expr: ncesdist
+        name: ncesdist
+        synonyms:
+          - nces_district_id
+        data_type: string
+        description: NCES 7-digit school district identification number (state + district).
+        sample_values:
+          - 0691051
+          - 0691051
+          - 0691051
+          - 0691051
+          - 0691051
+      - expr: ncesschool
+        name: ncesschool
+        synonyms:
+          - nces_school_id
+        data_type: string
+        description: NCES 5-digit school identification number (unique within district).
+        sample_values:
+          - '10546'
+          - '10947'
+          - '12283'
+          - '12844'
+      - expr: statustype
+        name: statustype
+        synonyms:
+          - operational_status
+        data_type: string
+        description: Operational status of the school/district (e.g., Active, Closed,
+          Merged, Pending).
+        sample_values:
+          - Active
+          - Closed
+          - Active
+          - Closed
+          - Active
+      - expr: county
+        name: county
+        synonyms:
+          - county_name_directory
+        data_type: string
+        description: County name where the school/district is located.
+        sample_values:
+          - Alameda
+          - Alameda
+          - Alameda
+          - Alameda
+          - Alameda
+      - expr: district
+        name: district
+        synonyms:
+          - district_name_directory
+        data_type: string
+        description: District name for the school/district entity.
+        sample_values:
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+          - Alameda County Office of Education
+      - expr: school
+        name: school
+        synonyms:
+          - school_name_directory
+        data_type: string
+        description: School name (entity name) in the directory record.
+        sample_values:
+          - FAME Public Charter
+          - Envision Academy for Arts & Technology
+          - Aspire California College Preparatory Academy
+          - Community School for Creative Education
+      - expr: street
+        name: street
+        synonyms:
+          - physical_street_full
+        data_type: string
+        description: Unabbreviated street line for the physical location address.
+        sample_values:
+          - 313 West Winton Avenue
+          - 39899 Balentine Drive, Suite 335
+          - 1515 Webster Street
+          - 2125 Jefferson Avenue
+          - 2111 International Boulevard
+      - expr: streetabr
+        name: streetabr
+        synonyms:
+          - physical_street_abbreviated
+        data_type: string
+        description: Abbreviated street line for the physical location address.
+        sample_values:
+          - 313 West Winton Ave.
+          - 39899 Balentine Dr., Ste. 335
+          - 1515 Webster St.
+          - 2125 Jefferson Ave.
+          - 2111 International Blvd.
+      - expr: city
+        name: city
+        synonyms:
+          - physical_city
+        data_type: string
+        description: City for the physical location address.
+        sample_values:
+          - Hayward
+          - Newark
+          - Oakland
+          - Berkeley
+          - Oakland
+      - expr: zip
+        name: zip
+        synonyms:
+          - physical_zip_code
+        data_type: string
+        description: ZIP code for the physical location address.
+        sample_values:
+          - 94544-1136
+          - 94560-5359
+          - 94612-3355
+          - 94703-1414
+          - 94606-4903
+      - expr: state
+        name: state
+        synonyms:
+          - physical_state
+        data_type: string
+        description: State abbreviation for the physical location address.
+        sample_values:
+          - CA
+          - CA
+          - CA
+          - CA
+          - CA
+      - expr: mailstreet
+        name: mailstreet
+        synonyms:
+          - mailing_street_full
+        data_type: string
+        description: Unabbreviated street line for the mailing address.
+        sample_values:
+          - 313 West Winton Avenue
+          - 39899 Balentine Drive, Suite 335
+          - 1515 Webster Street
+          - 1001 22nd Avenue, Suite 100
+          - 2111 International Boulevard
+      - expr: mailstrabr
+        name: mailstrabr
+        synonyms:
+          - mailing_street_abbreviated
+        data_type: string
+        description: Abbreviated street line for the mailing address.
+        sample_values:
+          - 313 West Winton Ave.
+          - 39899 Balentine Dr., Ste. 335
+          - 1515 Webster St.
+          - 1001 22nd Ave., Ste. 100
+          - 2111 International Blvd.
+      - expr: mailcity
+        name: mailcity
+        synonyms:
+          - mailing_city
+        data_type: string
+        description: City for the mailing address.
+        sample_values:
+          - Hayward
+          - Newark
+          - Oakland
+          - Oakland
+          - Oakland
+      - expr: mailzip
+        name: mailzip
+        synonyms:
+          - mailing_zip_code
+        data_type: string
+        description: ZIP code for the mailing address.
+        sample_values:
+          - 94544-1136
+          - 94560-5359
+          - '94612'
+          - '94606'
+          - 94606-4903
+      - expr: mailstate
+        name: mailstate
+        synonyms:
+          - mailing_state
+        data_type: string
+        description: State abbreviation for the mailing address.
+        sample_values:
+          - CA
+          - CA
+          - CA
+          - CA
+          - CA
+      - expr: phone
+        name: phone
+        synonyms:
+          - main_phone_number
+        data_type: string
+        description: Main phone number for the school/district contact.
+        sample_values:
+          - (510) 887-0152
+          - (510) 596-8901
+          - (510) 686-4131
+      - expr: ext
+        name: ext
+        synonyms:
+          - phone_extension
+        data_type: string
+        description: Phone number extension for the school/district contact.
+      - expr: website
+        name: website
+        synonyms:
+          - school_website_url
+        data_type: string
+        description: Website URL for the school/district entity.
+        sample_values:
+          - www.acoe.org
+          - www.envisionacademy.org/
+          - www.aspirepublicschools.org
+          - www.communityschoolforcreativeeducation.org
+      - expr: charter
+        name: charter
+        synonyms:
+          - is_charter_school_flag
+        data_type: int64
+        description: Flag indicating whether the school is a charter school (1 = charter,
+          0 = not charter).
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+      - expr: charternum
+        name: charternum
+        synonyms:
+          - charter_school_number_directory
+        data_type: string
+        description: State-assigned charter school number (4-digit), if applicable.
+        sample_values:
+          - 0728
+          - 0811
+          - '1049'
+          - '1284'
+      - expr: fundingtype
+        name: fundingtype
+        synonyms:
+          - charter_funding_type_directory
+        data_type: string
+        description: Charter funding type (e.g., directly funded, locally funded) when
+          applicable.
+        sample_values:
+          - Directly funded
+          - Directly funded
+          - Directly funded
+          - Directly funded
+      - expr: doc
+        name: doc
+        synonyms:
+          - district_ownership_code
+        data_type: string
+        description: District Ownership Code (DOC) identifying the administrative authority
+          category (e.g., county office, unified district).
+        sample_values:
+          - '00'
+          - '00'
+          - '00'
+          - '00'
+          - '00'
+      - expr: doctype
+        name: doctype
+        synonyms:
+          - district_ownership_type
+        data_type: string
+        description: Text description of the District Ownership Code category.
+        sample_values:
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+          - County Office of Education (COE)
+      - expr: soc
+        name: soc
+        synonyms:
+          - school_ownership_code
+        data_type: string
+        description: School Ownership Code (SOC) identifying the type of school.
+        sample_values:
+          - '65'
+          - '66'
+          - '66'
+          - '60'
+      - expr: soctype
+        name: soctype
+        synonyms:
+          - school_ownership_type
+        data_type: string
+        description: Text description of the School Ownership Code type (e.g., K-12 Schools
+          (Public)).
+        sample_values:
+          - K-12 Schools (Public)
+          - High Schools (Public)
+          - High Schools (Public)
+          - Elementary Schools (Public)
+      - expr: edopscode
+        name: edopscode
+        synonyms:
+          - education_option_code
+        data_type: string
+        description: Education option short code describing the program type (e.g., TRAD
+          for Traditional).
+        sample_values:
+          - TRAD
+          - TRAD
+          - TRAD
+          - TRAD
+      - expr: edopsname
+        name: edopsname
+        synonyms:
+          - education_option_name
+        data_type: string
+        description: Education option name/description (long form).
+        sample_values:
+          - Traditional
+          - Traditional
+          - Traditional
+          - Traditional
+      - expr: eilcode
+        name: eilcode
+        synonyms:
+          - instruction_level_code
+        data_type: string
+        description: Educational instruction level code based on grade-range type (e.g.,
+          ELEM, HS, ELEMHIGH).
+        sample_values:
+          - ELEMHIGH
+          - HS
+          - HS
+          - ELEM
+      - expr: eilname
+        name: eilname
+        synonyms:
+          - instruction_level_name
+        data_type: string
+        description: Educational instruction level name/description corresponding to the
+          instruction level code.
+        sample_values:
+          - Elementary-High Combination
+          - High School
+          - High School
+          - Elementary
+      - expr: gsoffered
+        name: gsoffered
+        synonyms:
+          - grade_span_offered
+        data_type: string
+        description: Grade span offered/supported by the school entity (may differ from
+          enrollment-reported span).
+        sample_values:
+          - K-12
+          - 9-12
+          - 9-12
+          - K-8
+      - expr: gsserved
+        name: gsserved
+        synonyms:
+          - grade_span_served
+        data_type: string
+        description: Grade span served based on CALPADS enrollment reporting (typically
+          K–12).
+        sample_values:
+          - K-12
+          - 9-12
+          - 9-12
+          - K-7
+      - expr: virtual
+        name: virtual
+        synonyms:
+          - virtual_instruction_type
+        data_type: string
+        description: Virtual instruction indicator code (e.g., N = not virtual, V = primarily
+          virtual, C = primarily classroom).
+        sample_values:
+          - P
+          - N
+          - N
+          - N
+      - expr: magnet
+        name: magnet
+        synonyms:
+          - is_magnet_school_flag
+        data_type: int64
+        description: Flag indicating whether the school is a magnet school or offers a
+          magnet program (1 = magnet, 0 = not magnet).
+        sample_values:
+          - 0
+          - 0
+          - 0
+          - 0
+      - expr: latitude
+        name: latitude
+        synonyms:
+          - location_latitude
+        data_type: float32
+        description: Latitude of the school/district physical location in decimal degrees.
+        sample_values:
+          - 37.65821075439453
+          - 37.52143478393555
+          - 37.80451965332031
+          - 37.86899185180664
+          - 37.78464889526367
+      - expr: longitude
+        name: longitude
+        synonyms:
+          - location_longitude
+        data_type: float32
+        description: Longitude of the school/district physical location in decimal degrees.
+        sample_values:
+          - -122.09712982177734
+          - -121.99391174316406
+          - -122.26815032958984
+          - -122.2784423828125
+          - -122.23863220214844
+      - expr: admfname1
+        name: admfname1
+        synonyms:
+          - administrator_first_name_primary
+        data_type: string
+        description: Primary administrator first name.
+        sample_values:
+          - L Karen
+          - Laura
+          - Clifford
+      - expr: admlname1
+        name: admlname1
+        synonyms:
+          - administrator_last_name_primary
+        data_type: string
+        description: Primary administrator last name.
+        sample_values:
+          - Monroe
+          - Robell
+          - Thompson
+      - expr: admemail1
+        name: admemail1
+        synonyms:
+          - administrator_email_primary
+        data_type: string
+        description: Primary administrator email address (e.g., principal or superintendent).
+        sample_values:
+          - lkmonroe@acoe.org
+          - laura@envisionacademy.org
+          - cliffordt@communityschoolforcreativeeducation.org
+      - expr: admfname2
+        name: admfname2
+        synonyms:
+          - administrator_first_name_secondary
+        data_type: string
+        description: Secondary administrator first name when multiple contacts exist.
+      - expr: admlname2
+        name: admlname2
+        synonyms:
+          - administrator_last_name_secondary
+        data_type: string
+        description: Secondary administrator last name when multiple contacts exist.
+      - expr: admemail2
+        name: admemail2
+        synonyms:
+          - administrator_email_secondary
+        data_type: string
+        description: Secondary administrator email address when multiple contacts exist.
+      - expr: admfname3
+        name: admfname3
+        synonyms:
+          - administrator_first_name_tertiary
+        data_type: string
+        description: Third administrator first name when multiple contacts exist.
+      - expr: admlname3
+        name: admlname3
+        synonyms:
+          - administrator_last_name_tertiary
+        data_type: string
+        description: Third administrator last name when multiple contacts exist.
+      - expr: admemail3
+        name: admemail3
+        synonyms:
+          - administrator_email_tertiary
+        data_type: string
+        description: Third administrator email address when multiple contacts exist.
+    description: Directory of California schools and districts with identifiers, operational
+      status, grade span, charter/magnet/virtual indicators, administrator contact details,
+      and physical/mailing addresses. Use to enrich performance or program data with
+      school attributes and location.
+    time_dimensions:
+      - expr: opendate
+        name: opendate
+        synonyms:
+          - school_open_date
+        data_type: date
+        description: Date the school/district opened.
+        sample_values:
+          - '2005-08-29'
+          - '2006-08-28'
+          - '2008-08-21'
+          - '2011-08-22'
+      - expr: closeddate
+        name: closeddate
+        synonyms:
+          - school_closed_date
+        data_type: date
+        description: Date the school/district closed (if status is closed).
+        sample_values:
+          - '2015-07-31'
+          - '2015-06-30'
+      - expr: lastupdate
+        name: lastupdate
+        synonyms:
+          - record_last_updated_date
+        data_type: date
+        description: Date this school/district directory record was last updated in the
+          source.
+        sample_values:
+          - '2015-06-23'
+          - '2015-09-01'
+          - '2015-06-18'
+          - '2015-07-01'
+          - '2016-07-18'
 description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
   \ frpm\n\nColumns:\n (CDSCode) - Type: integer\n (Academic Year) - Type: integer\
   \ \n (County Code) - Type: integer\n (District Code) - Type: integer\n (School Code)\

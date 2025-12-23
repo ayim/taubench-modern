@@ -1,5 +1,5 @@
 name: bird-formula-1-043
-description: "BIRD Q888 (simple): In which country was the first European Grand Prix hosted? Name the circuit and location."
+description: 'BIRD Q888 (simple): In which country was the first European Grand Prix hosted? Name the circuit and location.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-888
-    description: "In which country was the first European Grand Prix hosted? Name the circuit and location."
+    description: 'In which country was the first European Grand Prix hosted? Name the circuit and location.'
     messages:
       - role: user
         content: |

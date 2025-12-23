@@ -1,5 +1,5 @@
 name: bird-financial-025
-description: "BIRD Q113 (challenging): For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans."
+description: 'BIRD Q113 (challenging): For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-113
-    description: "For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans."
+    description: 'For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans.'
     messages:
       - role: user
         content: |

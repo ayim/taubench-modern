@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-006
-description: "BIRD Q1475 (moderate): How many customers in KAM had a consumption of less than 30,000 for the year 2012?"
+description: 'BIRD Q1475 (moderate): How many customers in KAM had a consumption of less than 30,000 for the year 2012?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1475
-    description: "How many customers in KAM had a consumption of less than 30,000 for the year 2012?"
+    description: 'How many customers in KAM had a consumption of less than 30,000 for the year 2012?'
     messages:
       - role: user
         content: |

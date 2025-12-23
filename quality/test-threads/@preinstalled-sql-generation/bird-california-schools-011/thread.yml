@@ -1,5 +1,5 @@
 name: bird-california-schools-011
-description: "BIRD Q10 (challenging): For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status."
+description: 'BIRD Q10 (challenging): For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-10
-    description: "For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status."
+    description: 'For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.'
     messages:
       - role: user
         content: |

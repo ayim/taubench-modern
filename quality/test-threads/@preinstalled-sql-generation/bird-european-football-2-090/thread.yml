@@ -1,5 +1,5 @@
 name: bird-european-football-2-090
-description: "BIRD Q1109 (moderate): How was the build up play dribbling class for \"LEI\" on 2015/9/10?"
+description: 'BIRD Q1109 (moderate): How was the build up play dribbling class for "LEI" on 2015/9/10?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1109
-    description: "How was the build up play dribbling class for \"LEI\" on 2015/9/10?"
+    description: 'How was the build up play dribbling class for "LEI" on 2015/9/10?'
     messages:
       - role: user
         content: |

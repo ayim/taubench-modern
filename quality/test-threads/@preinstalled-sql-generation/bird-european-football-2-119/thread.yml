@@ -1,5 +1,5 @@
 name: bird-european-football-2-119
-description: "BIRD Q1138 (simple): In what country did the Poland Ekstraklasa take place?"
+description: 'BIRD Q1138 (simple): In what country did the Poland Ekstraklasa take place?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1138
-    description: "In what country did the Poland Ekstraklasa take place?"
+    description: 'In what country did the Poland Ekstraklasa take place?'
     messages:
       - role: user
         content: |

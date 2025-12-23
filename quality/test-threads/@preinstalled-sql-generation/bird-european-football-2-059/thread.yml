@@ -1,5 +1,5 @@
 name: bird-european-football-2-059
-description: "BIRD Q1078 (simple): Which player is older, Aaron Lennon or Abdelaziz Barrada?"
+description: 'BIRD Q1078 (simple): Which player is older, Aaron Lennon or Abdelaziz Barrada?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1078
-    description: "Which player is older, Aaron Lennon or Abdelaziz Barrada?"
+    description: 'Which player is older, Aaron Lennon or Abdelaziz Barrada?'
     messages:
       - role: user
         content: |

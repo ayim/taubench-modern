@@ -1,5 +1,5 @@
 name: bird-financial-020
-description: "BIRD Q108 (simple): For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?"
+description: 'BIRD Q108 (simple): For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-108
-    description: "For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?"
+    description: 'For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?'
     messages:
       - role: user
         content: |

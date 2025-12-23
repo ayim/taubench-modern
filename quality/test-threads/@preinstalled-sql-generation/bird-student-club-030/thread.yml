@@ -1,5 +1,5 @@
 name: bird-student-club-030
-description: "BIRD Q1341 (simple): Give the location for \"Spring Budget Review\"."
+description: 'BIRD Q1341 (simple): Give the location for "Spring Budget Review".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1341
-    description: "Give the location for \"Spring Budget Review\"."
+    description: 'Give the location for "Spring Budget Review".'
     messages:
       - role: user
         content: |

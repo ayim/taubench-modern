@@ -1,5 +1,5 @@
 name: bird-student-club-029
-description: "BIRD Q1340 (moderate): Calculate the difference of the total amount spent in all events by the Student_Club in year 2019 and 2020."
+description: 'BIRD Q1340 (moderate): Calculate the difference of the total amount spent in all events by the Student_Club in year 2019 and 2020.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1340
-    description: "Calculate the difference of the total amount spent in all events by the Student_Club in year 2019 and 2020."
+    description: 'Calculate the difference of the total amount spent in all events by the Student_Club in year 2019 and 2020.'
     messages:
       - role: user
         content: |

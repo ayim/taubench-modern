@@ -1,5 +1,5 @@
 name: bird-card-games-077
-description: "BIRD Q416 (challenging): What percentage of cards without power are in French?"
+description: 'BIRD Q416 (challenging): What percentage of cards without power are in French?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-416
-    description: "What percentage of cards without power are in French?"
+    description: 'What percentage of cards without power are in French?'
     messages:
       - role: user
         content: |

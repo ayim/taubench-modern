@@ -1,5 +1,5 @@
 name: bird-student-club-104
-description: "BIRD Q1415 (simple): List out the position of members who joined major of Business."
+description: 'BIRD Q1415 (simple): List out the position of members who joined major of Business.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1415
-    description: "List out the position of members who joined major of Business."
+    description: 'List out the position of members who joined major of Business.'
     messages:
       - role: user
         content: |

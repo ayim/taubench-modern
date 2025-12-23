@@ -1,5 +1,5 @@
 name: bird-card-games-085
-description: "BIRD Q424 (simple): What proportion of cards do not have a text box with a normal layout?"
+description: 'BIRD Q424 (simple): What proportion of cards do not have a text box with a normal layout?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-424
-    description: "What proportion of cards do not have a text box with a normal layout?"
+    description: 'What proportion of cards do not have a text box with a normal layout?'
     messages:
       - role: user
         content: |

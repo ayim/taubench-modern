@@ -1,5 +1,5 @@
 name: bird-european-football-2-036
-description: "BIRD Q1055 (simple): When is the birthday of the football player who has the highest overall rating?"
+description: 'BIRD Q1055 (simple): When is the birthday of the football player who has the highest overall rating?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1055
-    description: "When is the birthday of the football player who has the highest overall rating?"
+    description: 'When is the birthday of the football player who has the highest overall rating?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-180
-description: "BIRD Q710 (simple): In posts with 1 comment, how many of the comments have 0 score?"
+description: 'BIRD Q710 (simple): In posts with 1 comment, how many of the comments have 0 score?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-710
-    description: "In posts with 1 comment, how many of the comments have 0 score?"
+    description: 'In posts with 1 comment, how many of the comments have 0 score?'
     messages:
       - role: user
         content: |

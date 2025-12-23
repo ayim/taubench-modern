@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-021
-description: "BIRD Q1169 (challenging): What is the ratio of male to female patients among all those with abnormal uric acid counts?"
+description: 'BIRD Q1169 (challenging): What is the ratio of male to female patients among all those with abnormal uric acid counts?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1169
-    description: "What is the ratio of male to female patients among all those with abnormal uric acid counts?"
+    description: 'What is the ratio of male to female patients among all those with abnormal uric acid counts?'
     messages:
       - role: user
         content: |

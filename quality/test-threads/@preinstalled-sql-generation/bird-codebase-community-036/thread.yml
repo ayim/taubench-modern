@@ -1,5 +1,5 @@
 name: bird-codebase-community-036
-description: "BIRD Q566 (simple): For the owner user of post No. 65041, what is his/her reputation points?"
+description: 'BIRD Q566 (simple): For the owner user of post No. 65041, what is his/her reputation points?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-566
-    description: "For the owner user of post No. 65041, what is his/her reputation points?"
+    description: 'For the owner user of post No. 65041, what is his/her reputation points?'
     messages:
       - role: user
         content: |

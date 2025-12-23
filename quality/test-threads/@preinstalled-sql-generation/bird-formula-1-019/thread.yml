@@ -1,5 +1,5 @@
 name: bird-formula-1-019
-description: "BIRD Q864 (simple): For the race happened on 2015/11/29, how many drivers finished the game?"
+description: 'BIRD Q864 (simple): For the race happened on 2015/11/29, how many drivers finished the game?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-864
-    description: "For the race happened on 2015/11/29, how many drivers finished the game?"
+    description: 'For the race happened on 2015/11/29, how many drivers finished the game?'
     messages:
       - role: user
         content: |

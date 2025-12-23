@@ -1,5 +1,5 @@
 name: bird-california-schools-032
-description: "BIRD Q31 (challenging): For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics."
+description: 'BIRD Q31 (challenging): For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-31
-    description: "For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics."
+    description: 'For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics.'
     messages:
       - role: user
         content: |

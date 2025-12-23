@@ -1,5 +1,5 @@
 name: bird-superhero-071
-description: "BIRD Q787 (simple): What are the race and alignment of Cameron Hicks?"
+description: 'BIRD Q787 (simple): What are the race and alignment of Cameron Hicks?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-787
-    description: "What are the race and alignment of Cameron Hicks?"
+    description: 'What are the race and alignment of Cameron Hicks?'
     messages:
       - role: user
         content: |

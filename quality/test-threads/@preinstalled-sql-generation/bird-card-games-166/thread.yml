@@ -1,5 +1,5 @@
 name: bird-card-games-166
-description: "BIRD Q505 (moderate): Show the Simplified Chinese translation of the name of the set \"Mirrodin\"?"
+description: 'BIRD Q505 (moderate): Show the Simplified Chinese translation of the name of the set "Mirrodin"?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-505
-    description: "Show the Simplified Chinese translation of the name of the set \"Mirrodin\"?"
+    description: 'Show the Simplified Chinese translation of the name of the set "Mirrodin"?'
     messages:
       - role: user
         content: |

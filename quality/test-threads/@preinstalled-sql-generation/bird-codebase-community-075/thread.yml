@@ -1,5 +1,5 @@
 name: bird-codebase-community-075
-description: "BIRD Q605 (simple): How many users obtained the \"Announcer\" badge?"
+description: 'BIRD Q605 (simple): How many users obtained the "Announcer" badge?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-605
-    description: "How many users obtained the \"Announcer\" badge?"
+    description: 'How many users obtained the "Announcer" badge?'
     messages:
       - role: user
         content: |

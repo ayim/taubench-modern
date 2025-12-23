@@ -1,5 +1,5 @@
 name: bird-card-games-133
-description: "BIRD Q472 (moderate): Among the sets in the block \"Ice Age\", how many of them have an Italian translation?"
+description: 'BIRD Q472 (moderate): Among the sets in the block "Ice Age", how many of them have an Italian translation?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-472
-    description: "Among the sets in the block \"Ice Age\", how many of them have an Italian translation?"
+    description: 'Among the sets in the block "Ice Age", how many of them have an Italian translation?'
     messages:
       - role: user
         content: |

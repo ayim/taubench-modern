@@ -1,5 +1,5 @@
 name: bird-european-football-2-056
-description: "BIRD Q1075 (moderate): List all the football player with the highest balance score and potential score of 61."
+description: 'BIRD Q1075 (moderate): List all the football player with the highest balance score and potential score of 61.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1075
-    description: "List all the football player with the highest balance score and potential score of 61."
+    description: 'List all the football player with the highest balance score and potential score of 61.'
     messages:
       - role: user
         content: |

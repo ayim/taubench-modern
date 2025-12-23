@@ -1,5 +1,5 @@
 name: bird-california-schools-070
-description: "BIRD Q69 (challenging): For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest."
+description: 'BIRD Q69 (challenging): For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-69
-    description: "For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest."
+    description: 'For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest.'
     messages:
       - role: user
         content: |

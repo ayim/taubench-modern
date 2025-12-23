@@ -1,5 +1,5 @@
 name: bird-toxicology-105
-description: "BIRD Q299 (simple): Is molecule TR124 carcinogenic?"
+description: 'BIRD Q299 (simple): Is molecule TR124 carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-299
-    description: "Is molecule TR124 carcinogenic?"
+    description: 'Is molecule TR124 carcinogenic?'
     messages:
       - role: user
         content: |

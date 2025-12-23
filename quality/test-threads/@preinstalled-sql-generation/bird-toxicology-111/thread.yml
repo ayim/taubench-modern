@@ -1,5 +1,5 @@
 name: bird-toxicology-111
-description: "BIRD Q305 (simple): Name all bonds with single bond types and what atoms are connected to the molecules."
+description: 'BIRD Q305 (simple): Name all bonds with single bond types and what atoms are connected to the molecules.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-305
-    description: "Name all bonds with single bond types and what atoms are connected to the molecules."
+    description: 'Name all bonds with single bond types and what atoms are connected to the molecules.'
     messages:
       - role: user
         content: |

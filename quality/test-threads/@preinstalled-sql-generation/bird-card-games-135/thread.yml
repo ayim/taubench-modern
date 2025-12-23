@@ -1,5 +1,5 @@
 name: bird-card-games-135
-description: "BIRD Q474 (moderate): Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?"
+description: 'BIRD Q474 (moderate): Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-474
-    description: "Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?"
+    description: 'Among the sets of cards that have an Italian translation, how many of them have a base set number of under 100?'
     messages:
       - role: user
         content: |

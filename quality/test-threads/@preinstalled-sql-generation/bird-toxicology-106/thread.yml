@@ -1,5 +1,5 @@
 name: bird-toxicology-106
-description: "BIRD Q300 (simple): What atoms comprise TR186?"
+description: 'BIRD Q300 (simple): What atoms comprise TR186?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-300
-    description: "What atoms comprise TR186?"
+    description: 'What atoms comprise TR186?'
     messages:
       - role: user
         content: |

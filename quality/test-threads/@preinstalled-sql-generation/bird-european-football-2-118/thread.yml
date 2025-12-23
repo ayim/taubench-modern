@@ -1,5 +1,5 @@
 name: bird-european-football-2-118
-description: "BIRD Q1137 (simple): What percentage of players have a strength and stamina score of more than 80?"
+description: 'BIRD Q1137 (simple): What percentage of players have a strength and stamina score of more than 80?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1137
-    description: "What percentage of players have a strength and stamina score of more than 80?"
+    description: 'What percentage of players have a strength and stamina score of more than 80?'
     messages:
       - role: user
         content: |

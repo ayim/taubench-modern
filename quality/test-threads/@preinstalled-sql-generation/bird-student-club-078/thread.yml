@@ -1,5 +1,5 @@
 name: bird-student-club-078
-description: "BIRD Q1389 (simple): Which event has the lowest cost?"
+description: 'BIRD Q1389 (simple): Which event has the lowest cost?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1389
-    description: "Which event has the lowest cost?"
+    description: 'Which event has the lowest cost?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-099
-description: "BIRD Q815 (simple): Count the good female superheroes."
+description: 'BIRD Q815 (simple): Count the good female superheroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-815
-    description: "Count the good female superheroes."
+    description: 'Count the good female superheroes.'
     messages:
       - role: user
         content: |

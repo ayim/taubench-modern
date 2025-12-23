@@ -1,5 +1,5 @@
 name: bird-student-club-011
-description: "BIRD Q1322 (moderate): Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?"
+description: 'BIRD Q1322 (moderate): Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1322
-    description: "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?"
+    description: 'Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?'
     messages:
       - role: user
         content: |

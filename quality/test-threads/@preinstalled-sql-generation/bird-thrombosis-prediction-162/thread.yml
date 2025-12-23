@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-162
-description: "BIRD Q1310 (simple): For the male patients that have a normal prothrombin time, what is their average prothrombin time?"
+description: 'BIRD Q1310 (simple): For the male patients that have a normal prothrombin time, what is their average prothrombin time?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1310
-    description: "For the male patients that have a normal prothrombin time, what is their average prothrombin time?"
+    description: 'For the male patients that have a normal prothrombin time, what is their average prothrombin time?'
     messages:
       - role: user
         content: |

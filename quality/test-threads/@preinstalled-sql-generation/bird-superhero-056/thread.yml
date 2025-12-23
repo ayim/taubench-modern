@@ -1,5 +1,5 @@
 name: bird-superhero-056
-description: "BIRD Q772 (challenging): List the eyes, hair and skin colour of all female superheroes published by Dark Horse Comics."
+description: 'BIRD Q772 (challenging): List the eyes, hair and skin colour of all female superheroes published by Dark Horse Comics.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-772
-    description: "List the eyes, hair and skin colour of all female superheroes published by Dark Horse Comics."
+    description: 'List the eyes, hair and skin colour of all female superheroes published by Dark Horse Comics.'
     messages:
       - role: user
         content: |

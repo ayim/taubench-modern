@@ -1,5 +1,5 @@
 name: bird-european-football-2-098
-description: "BIRD Q1117 (simple): What are the player api id of 10 heaviest players?"
+description: 'BIRD Q1117 (simple): What are the player api id of 10 heaviest players?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1117
-    description: "What are the player api id of 10 heaviest players?"
+    description: 'What are the player api id of 10 heaviest players?'
     messages:
       - role: user
         content: |

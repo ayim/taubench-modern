@@ -1,5 +1,5 @@
 name: bird-european-football-2-049
-description: "BIRD Q1068 (moderate): From 2010 to 2015, what was the average overall rating of players who are higher than 170?"
+description: 'BIRD Q1068 (moderate): From 2010 to 2015, what was the average overall rating of players who are higher than 170?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1068
-    description: "From 2010 to 2015, what was the average overall rating of players who are higher than 170?"
+    description: 'From 2010 to 2015, what was the average overall rating of players who are higher than 170?'
     messages:
       - role: user
         content: |

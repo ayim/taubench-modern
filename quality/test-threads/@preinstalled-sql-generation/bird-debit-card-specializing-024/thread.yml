@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-024
-description: "BIRD Q1493 (simple): In February 2012, what percentage of customers consumed more than 528.3?"
+description: 'BIRD Q1493 (simple): In February 2012, what percentage of customers consumed more than 528.3?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1493
-    description: "In February 2012, what percentage of customers consumed more than 528.3?"
+    description: 'In February 2012, what percentage of customers consumed more than 528.3?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-121
-description: "BIRD Q315 (simple): Among the molecules which contain \"cl\" element, which of them are carcinogenic?"
+description: 'BIRD Q315 (simple): Among the molecules which contain "cl" element, which of them are carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-315
-    description: "Among the molecules which contain \"cl\" element, which of them are carcinogenic?"
+    description: 'Among the molecules which contain "cl" element, which of them are carcinogenic?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-135
-description: "BIRD Q1446 (simple): Calculate the percentage of zip codes that are PO boxes."
+description: 'BIRD Q1446 (simple): Calculate the percentage of zip codes that are PO boxes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1446
-    description: "Calculate the percentage of zip codes that are PO boxes."
+    description: 'Calculate the percentage of zip codes that are PO boxes.'
     messages:
       - role: user
         content: |

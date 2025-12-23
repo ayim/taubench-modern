@@ -1,5 +1,5 @@
 name: bird-card-games-082
-description: "BIRD Q421 (simple): Please list top three unknown power cards that have promotional types for arena league in alphabetical order."
+description: 'BIRD Q421 (simple): Please list top three unknown power cards that have promotional types for arena league in alphabetical order.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-421
-    description: "Please list top three unknown power cards that have promotional types for arena league in alphabetical order."
+    description: 'Please list top three unknown power cards that have promotional types for arena league in alphabetical order.'
     messages:
       - role: user
         content: |

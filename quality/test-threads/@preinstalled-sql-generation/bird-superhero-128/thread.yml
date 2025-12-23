@@ -1,5 +1,5 @@
 name: bird-superhero-128
-description: "BIRD Q844 (simple): Give the eye colour of Blackwulf."
+description: 'BIRD Q844 (simple): Give the eye colour of Blackwulf.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-844
-    description: "Give the eye colour of Blackwulf."
+    description: 'Give the eye colour of Blackwulf.'
     messages:
       - role: user
         content: |

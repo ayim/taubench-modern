@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-037
-description: "BIRD Q1185 (challenging): For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?"
+description: 'BIRD Q1185 (challenging): For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1185
-    description: "For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?"
+    description: 'For the patient who was born on 1959/2/18, what is the decrease rate for his/her total cholesterol from November to December in 1981?'
     messages:
       - role: user
         content: |

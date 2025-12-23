@@ -1,5 +1,5 @@
 name: bird-card-games-091
-description: "BIRD Q430 (simple): Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order."
+description: 'BIRD Q430 (simple): Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-430
-    description: "Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order."
+    description: 'Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order.'
     messages:
       - role: user
         content: |

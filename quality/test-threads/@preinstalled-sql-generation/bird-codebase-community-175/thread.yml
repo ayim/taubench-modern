@@ -1,5 +1,5 @@
 name: bird-codebase-community-175
-description: "BIRD Q705 (simple): Give the user's reputation and up vote number of the user that commented \"fine, you win :)\"."
+description: 'BIRD Q705 (simple): Give the user''s reputation and up vote number of the user that commented "fine, you win :)".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-705
-    description: "Give the user's reputation and up vote number of the user that commented \"fine, you win :)\"."
+    description: 'Give the user''s reputation and up vote number of the user that commented "fine, you win :)".'
     messages:
       - role: user
         content: |

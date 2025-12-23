@@ -1,5 +1,5 @@
 name: bird-european-football-2-041
-description: "BIRD Q1060 (simple): How many players were born after 1990?"
+description: 'BIRD Q1060 (simple): How many players were born after 1990?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1060
-    description: "How many players were born after 1990?"
+    description: 'How many players were born after 1990?'
     messages:
       - role: user
         content: |

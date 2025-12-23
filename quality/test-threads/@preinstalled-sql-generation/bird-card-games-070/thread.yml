@@ -1,5 +1,5 @@
 name: bird-card-games-070
-description: "BIRD Q409 (moderate): Indicates the number of cards with pre-modern format, ruling text \"This is a triggered mana ability.\" that do not have multiple faces."
+description: 'BIRD Q409 (moderate): Indicates the number of cards with pre-modern format, ruling text "This is a triggered mana ability." that do not have multiple faces.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-409
-    description: "Indicates the number of cards with pre-modern format, ruling text \"This is a triggered mana ability.\" that do not have multiple faces."
+    description: 'Indicates the number of cards with pre-modern format, ruling text "This is a triggered mana ability." that do not have multiple faces.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-127
-description: "BIRD Q321 (simple): What is the molecule of atom id \"TR000_2\" and atom id 2 \"TR000_4\"?"
+description: 'BIRD Q321 (simple): What is the molecule of atom id "TR000_2" and atom id 2 "TR000_4"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-321
-    description: "What is the molecule of atom id \"TR000_2\" and atom id 2 \"TR000_4\"?"
+    description: 'What is the molecule of atom id "TR000_2" and atom id 2 "TR000_4"?'
     messages:
       - role: user
         content: |

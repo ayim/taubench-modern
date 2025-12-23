@@ -1,5 +1,5 @@
 name: bird-student-club-016
-description: "BIRD Q1327 (moderate): List the full name of all the members of the Student_Club who attended the \"Laugh Out Loud\" event."
+description: 'BIRD Q1327 (moderate): List the full name of all the members of the Student_Club who attended the "Laugh Out Loud" event.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1327
-    description: "List the full name of all the members of the Student_Club who attended the \"Laugh Out Loud\" event."
+    description: 'List the full name of all the members of the Student_Club who attended the "Laugh Out Loud" event.'
     messages:
       - role: user
         content: |

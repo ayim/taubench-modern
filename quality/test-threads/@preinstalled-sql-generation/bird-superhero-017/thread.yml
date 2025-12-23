@@ -1,5 +1,5 @@
 name: bird-superhero-017
-description: "BIRD Q733 (moderate): How many gold-eyed superheroes did Marvel Comics publish?"
+description: 'BIRD Q733 (moderate): How many gold-eyed superheroes did Marvel Comics publish?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-733
-    description: "How many gold-eyed superheroes did Marvel Comics publish?"
+    description: 'How many gold-eyed superheroes did Marvel Comics publish?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-139
-description: "BIRD Q478 (simple): What is card number 4 in the set Coldsnap?"
+description: 'BIRD Q478 (simple): What is card number 4 in the set Coldsnap?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-478
-    description: "What is card number 4 in the set Coldsnap?"
+    description: 'What is card number 4 in the set Coldsnap?'
     messages:
       - role: user
         content: |

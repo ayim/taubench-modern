@@ -1,5 +1,5 @@
 name: bird-california-schools-004
-description: "BIRD Q3 (challenging): For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate."
+description: 'BIRD Q3 (challenging): For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-3
-    description: "For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate."
+    description: 'For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate.'
     messages:
       - role: user
         content: |

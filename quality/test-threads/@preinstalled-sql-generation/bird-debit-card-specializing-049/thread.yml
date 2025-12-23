@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-049
-description: "BIRD Q1518 (simple): For the deal happened at 2012/8/24 12:42:00, which country was it?"
+description: 'BIRD Q1518 (simple): For the deal happened at 2012/8/24 12:42:00, which country was it?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1518
-    description: "For the deal happened at 2012/8/24 12:42:00, which country was it?"
+    description: 'For the deal happened at 2012/8/24 12:42:00, which country was it?'
     messages:
       - role: user
         content: |

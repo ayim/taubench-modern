@@ -1,5 +1,5 @@
 name: bird-codebase-community-127
-description: "BIRD Q657 (moderate): Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount."
+description: 'BIRD Q657 (moderate): Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-657
-    description: "Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount."
+    description: 'Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount.'
     messages:
       - role: user
         content: |

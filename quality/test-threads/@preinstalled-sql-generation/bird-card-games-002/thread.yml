@@ -1,5 +1,5 @@
 name: bird-card-games-002
-description: "BIRD Q341 (simple): What are the borderless cards available without powerful foils?"
+description: 'BIRD Q341 (simple): What are the borderless cards available without powerful foils?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-341
-    description: "What are the borderless cards available without powerful foils?"
+    description: 'What are the borderless cards available without powerful foils?'
     messages:
       - role: user
         content: |

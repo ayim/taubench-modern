@@ -1,5 +1,5 @@
 name: bird-codebase-community-098
-description: "BIRD Q628 (simple): Which users have the highest number of views?"
+description: 'BIRD Q628 (simple): Which users have the highest number of views?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-628
-    description: "Which users have the highest number of views?"
+    description: 'Which users have the highest number of views?'
     messages:
       - role: user
         content: |

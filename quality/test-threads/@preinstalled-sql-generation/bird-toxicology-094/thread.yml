@@ -1,5 +1,5 @@
 name: bird-toxicology-094
-description: "BIRD Q288 (simple): Identify whether the molecule that contains atom TR001_1 is carcinogenic."
+description: 'BIRD Q288 (simple): Identify whether the molecule that contains atom TR001_1 is carcinogenic.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-288
-    description: "Identify whether the molecule that contains atom TR001_1 is carcinogenic."
+    description: 'Identify whether the molecule that contains atom TR001_1 is carcinogenic.'
     messages:
       - role: user
         content: |

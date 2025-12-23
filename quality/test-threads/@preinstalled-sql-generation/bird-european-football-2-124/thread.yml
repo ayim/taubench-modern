@@ -1,5 +1,5 @@
 name: bird-european-football-2-124
-description: "BIRD Q1143 (simple): What was the highest score of the home team in the Netherlands Eredivisie league?"
+description: 'BIRD Q1143 (simple): What was the highest score of the home team in the Netherlands Eredivisie league?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1143
-    description: "What was the highest score of the home team in the Netherlands Eredivisie league?"
+    description: 'What was the highest score of the home team in the Netherlands Eredivisie league?'
     messages:
       - role: user
         content: |

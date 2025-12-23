@@ -1,5 +1,5 @@
 name: bird-toxicology-025
-description: "BIRD Q219 (challenging): What is the percentage of carcinogenic molecules in triple type bonds?"
+description: 'BIRD Q219 (challenging): What is the percentage of carcinogenic molecules in triple type bonds?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-219
-    description: "What is the percentage of carcinogenic molecules in triple type bonds?"
+    description: 'What is the percentage of carcinogenic molecules in triple type bonds?'
     messages:
       - role: user
         content: |

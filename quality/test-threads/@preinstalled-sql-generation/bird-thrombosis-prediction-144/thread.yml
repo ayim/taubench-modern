@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-144
-description: "BIRD Q1292 (challenging): What is the anti Cardiolipin antibody concentration of the female patient with the highest uric acid level above 6.5?"
+description: 'BIRD Q1292 (challenging): What is the anti Cardiolipin antibody concentration of the female patient with the highest uric acid level above 6.5?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1292
-    description: "What is the anti Cardiolipin antibody concentration of the female patient with the highest uric acid level above 6.5?"
+    description: 'What is the anti Cardiolipin antibody concentration of the female patient with the highest uric acid level above 6.5?'
     messages:
       - role: user
         content: |

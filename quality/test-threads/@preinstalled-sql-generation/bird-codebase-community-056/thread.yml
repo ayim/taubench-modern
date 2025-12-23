@@ -1,5 +1,5 @@
 name: bird-codebase-community-056
-description: "BIRD Q586 (challenging): Which user added a bounty amount of 50 to the post title mentioning variance?"
+description: 'BIRD Q586 (challenging): Which user added a bounty amount of 50 to the post title mentioning variance?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-586
-    description: "Which user added a bounty amount of 50 to the post title mentioning variance?"
+    description: 'Which user added a bounty amount of 50 to the post title mentioning variance?'
     messages:
       - role: user
         content: |

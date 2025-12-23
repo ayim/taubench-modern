@@ -1,5 +1,5 @@
 name: bird-financial-071
-description: "BIRD Q159 (simple): List all the withdrawals in cash transactions that the client with the id 3356 makes."
+description: 'BIRD Q159 (simple): List all the withdrawals in cash transactions that the client with the id 3356 makes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-159
-    description: "List all the withdrawals in cash transactions that the client with the id 3356 makes."
+    description: 'List all the withdrawals in cash transactions that the client with the id 3356 makes.'
     messages:
       - role: user
         content: |

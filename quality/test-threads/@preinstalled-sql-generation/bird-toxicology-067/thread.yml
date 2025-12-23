@@ -1,5 +1,5 @@
 name: bird-toxicology-067
-description: "BIRD Q261 (simple): Write down bond id for molecules that are carcinogenic."
+description: 'BIRD Q261 (simple): Write down bond id for molecules that are carcinogenic.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-261
-    description: "Write down bond id for molecules that are carcinogenic."
+    description: 'Write down bond id for molecules that are carcinogenic.'
     messages:
       - role: user
         content: |

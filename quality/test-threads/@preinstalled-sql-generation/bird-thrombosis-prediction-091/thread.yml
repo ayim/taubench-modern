@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-091
-description: "BIRD Q1239 (challenging): Name the ID and age of patient with two or more laboratory examinations which show their hematoclit level exceeded the normal range."
+description: 'BIRD Q1239 (challenging): Name the ID and age of patient with two or more laboratory examinations which show their hematoclit level exceeded the normal range.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1239
-    description: "Name the ID and age of patient with two or more laboratory examinations which show their hematoclit level exceeded the normal range."
+    description: 'Name the ID and age of patient with two or more laboratory examinations which show their hematoclit level exceeded the normal range.'
     messages:
       - role: user
         content: |

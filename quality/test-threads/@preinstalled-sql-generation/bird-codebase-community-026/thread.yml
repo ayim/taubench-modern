@@ -1,5 +1,5 @@
 name: bird-codebase-community-026
-description: "BIRD Q556 (simple): What is the average number of badges obtained by a user with over 200 views?"
+description: 'BIRD Q556 (simple): What is the average number of badges obtained by a user with over 200 views?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-556
-    description: "What is the average number of badges obtained by a user with over 200 views?"
+    description: 'What is the average number of badges obtained by a user with over 200 views?'
     messages:
       - role: user
         content: |

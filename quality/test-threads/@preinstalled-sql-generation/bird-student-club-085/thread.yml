@@ -1,5 +1,5 @@
 name: bird-student-club-085
-description: "BIRD Q1396 (simple): Provide the number of events attended by Luisa Guidi. What is her major?"
+description: 'BIRD Q1396 (simple): Provide the number of events attended by Luisa Guidi. What is her major?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1396
-    description: "Provide the number of events attended by Luisa Guidi. What is her major?"
+    description: 'Provide the number of events attended by Luisa Guidi. What is her major?'
     messages:
       - role: user
         content: |

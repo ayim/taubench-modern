@@ -1,5 +1,5 @@
 name: bird-formula-1-021
-description: "BIRD Q866 (moderate): Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website."
+description: 'BIRD Q866 (moderate): Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-866
-    description: "Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website."
+    description: 'Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website.'
     messages:
       - role: user
         content: |

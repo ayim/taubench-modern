@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-053
-description: "BIRD Q1201 (moderate): What percentage of patients who were born in 1980 and were diagnosed with RA are women?"
+description: 'BIRD Q1201 (moderate): What percentage of patients who were born in 1980 and were diagnosed with RA are women?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1201
-    description: "What percentage of patients who were born in 1980 and were diagnosed with RA are women?"
+    description: 'What percentage of patients who were born in 1980 and were diagnosed with RA are women?'
     messages:
       - role: user
         content: |

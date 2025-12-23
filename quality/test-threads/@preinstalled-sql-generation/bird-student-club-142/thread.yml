@@ -1,5 +1,5 @@
 name: bird-student-club-142
-description: "BIRD Q1453 (moderate): List the name of events with less than average parking cost."
+description: 'BIRD Q1453 (moderate): List the name of events with less than average parking cost.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1453
-    description: "List the name of events with less than average parking cost."
+    description: 'List the name of events with less than average parking cost.'
     messages:
       - role: user
         content: |

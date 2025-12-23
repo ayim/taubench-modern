@@ -1,5 +1,5 @@
 name: bird-student-club-101
-description: "BIRD Q1412 (simple): What kind of expenses incurred by members who have X-Large in size of tee shirt?"
+description: 'BIRD Q1412 (simple): What kind of expenses incurred by members who have X-Large in size of tee shirt?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1412
-    description: "What kind of expenses incurred by members who have X-Large in size of tee shirt?"
+    description: 'What kind of expenses incurred by members who have X-Large in size of tee shirt?'
     messages:
       - role: user
         content: |

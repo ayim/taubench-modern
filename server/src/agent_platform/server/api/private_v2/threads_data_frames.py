@@ -1358,7 +1358,7 @@ async def get_data_frames_assembly_info(
         assembly_info = AssemblyInfo()
 
         await data_frames_kernel.resolve_data_frame(data_frame, assembly_info=assembly_info)
-        df_name_to_assembly_info[data_frame_name] = str(assembly_info)
+        df_name_to_assembly_info[data_frame_name] = await assembly_info.to_markdown(storage=base_storage)
     return df_name_to_assembly_info
 
 

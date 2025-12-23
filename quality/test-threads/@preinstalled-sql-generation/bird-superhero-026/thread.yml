@@ -1,5 +1,5 @@
 name: bird-superhero-026
-description: "BIRD Q742 (simple): How many vampire superheroes are there?"
+description: 'BIRD Q742 (simple): How many vampire superheroes are there?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-742
-    description: "How many vampire superheroes are there?"
+    description: 'How many vampire superheroes are there?'
     messages:
       - role: user
         content: |

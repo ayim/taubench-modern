@@ -1,5 +1,5 @@
 name: bird-superhero-100
-description: "BIRD Q816 (simple): Provide the names of superheroes with attribute value between 75 to 80."
+description: 'BIRD Q816 (simple): Provide the names of superheroes with attribute value between 75 to 80.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-816
-    description: "Provide the names of superheroes with attribute value between 75 to 80."
+    description: 'Provide the names of superheroes with attribute value between 75 to 80.'
     messages:
       - role: user
         content: |

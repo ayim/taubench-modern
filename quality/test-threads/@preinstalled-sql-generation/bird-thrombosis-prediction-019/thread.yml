@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-019
-description: "BIRD Q1167 (moderate): For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?"
+description: 'BIRD Q1167 (moderate): For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1167
-    description: "For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?"
+    description: 'For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?'
     messages:
       - role: user
         content: |

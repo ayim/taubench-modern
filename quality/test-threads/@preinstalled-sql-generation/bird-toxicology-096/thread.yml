@@ -1,5 +1,5 @@
 name: bird-toxicology-096
-description: "BIRD Q290 (challenging): Which toxic element can be found in the molecule TR151?"
+description: 'BIRD Q290 (challenging): Which toxic element can be found in the molecule TR151?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-290
-    description: "Which toxic element can be found in the molecule TR151?"
+    description: 'Which toxic element can be found in the molecule TR151?'
     messages:
       - role: user
         content: |

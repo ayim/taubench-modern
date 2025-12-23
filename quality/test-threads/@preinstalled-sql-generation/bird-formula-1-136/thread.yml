@@ -1,5 +1,5 @@
 name: bird-formula-1-136
-description: "BIRD Q981 (moderate): On what year did the youngest driver had his first qualifying race? Also state the name, date and time of the race."
+description: 'BIRD Q981 (moderate): On what year did the youngest driver had his first qualifying race? Also state the name, date and time of the race.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-981
-    description: "On what year did the youngest driver had his first qualifying race? Also state the name, date and time of the race."
+    description: 'On what year did the youngest driver had his first qualifying race? Also state the name, date and time of the race.'
     messages:
       - role: user
         content: |

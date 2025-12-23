@@ -1,5 +1,5 @@
 name: bird-codebase-community-008
-description: "BIRD Q538 (simple): Please list the titles of the posts owned by the user csgillespie?"
+description: 'BIRD Q538 (simple): Please list the titles of the posts owned by the user csgillespie?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-538
-    description: "Please list the titles of the posts owned by the user csgillespie?"
+    description: 'Please list the titles of the posts owned by the user csgillespie?'
     messages:
       - role: user
         content: |

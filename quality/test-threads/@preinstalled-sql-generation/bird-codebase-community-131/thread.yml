@@ -1,5 +1,5 @@
 name: bird-codebase-community-131
-description: "BIRD Q661 (simple): How old is the most influential user?"
+description: 'BIRD Q661 (simple): How old is the most influential user?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-661
-    description: "How old is the most influential user?"
+    description: 'How old is the most influential user?'
     messages:
       - role: user
         content: |

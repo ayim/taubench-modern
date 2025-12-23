@@ -1,5 +1,5 @@
 name: bird-student-club-152
-description: "BIRD Q1463 (simple): List the event names which were budgeted for the food."
+description: 'BIRD Q1463 (simple): List the event names which were budgeted for the food.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1463
-    description: "List the event names which were budgeted for the food."
+    description: 'List the event names which were budgeted for the food.'
     messages:
       - role: user
         content: |

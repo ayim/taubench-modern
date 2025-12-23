@@ -1,5 +1,5 @@
 name: bird-card-games-161
-description: "BIRD Q500 (moderate): Tell the Japanese name of the set which card \"Fellwar Stone\" is in it."
+description: 'BIRD Q500 (moderate): Tell the Japanese name of the set which card "Fellwar Stone" is in it.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-500
-    description: "Tell the Japanese name of the set which card \"Fellwar Stone\" is in it."
+    description: 'Tell the Japanese name of the set which card "Fellwar Stone" is in it.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-130
-description: "BIRD Q975 (simple): Which year has the lowest speed of lap time?"
+description: 'BIRD Q975 (simple): Which year has the lowest speed of lap time?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-975
-    description: "Which year has the lowest speed of lap time?"
+    description: 'Which year has the lowest speed of lap time?'
     messages:
       - role: user
         content: |

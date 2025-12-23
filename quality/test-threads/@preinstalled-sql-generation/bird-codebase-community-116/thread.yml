@@ -1,5 +1,5 @@
 name: bird-codebase-community-116
-description: "BIRD Q646 (simple): Describe the post title which got positive comments and display names of the users who posted those comments."
+description: 'BIRD Q646 (simple): Describe the post title which got positive comments and display names of the users who posted those comments.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-646
-    description: "Describe the post title which got positive comments and display names of the users who posted those comments."
+    description: 'Describe the post title which got positive comments and display names of the users who posted those comments.'
     messages:
       - role: user
         content: |

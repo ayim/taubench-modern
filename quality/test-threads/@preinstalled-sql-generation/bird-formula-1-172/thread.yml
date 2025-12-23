@@ -1,5 +1,5 @@
 name: bird-formula-1-172
-description: "BIRD Q1017 (moderate): Please list the location coordinates of the circuits whose lap record is 1:29.488."
+description: 'BIRD Q1017 (moderate): Please list the location coordinates of the circuits whose lap record is 1:29.488.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1017
-    description: "Please list the location coordinates of the circuits whose lap record is 1:29.488."
+    description: 'Please list the location coordinates of the circuits whose lap record is 1:29.488.'
     messages:
       - role: user
         content: |

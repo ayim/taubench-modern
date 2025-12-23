@@ -1,5 +1,5 @@
 name: bird-toxicology-141
-description: "BIRD Q335 (simple): What is the total number of molecules with double bonded oxygen?"
+description: 'BIRD Q335 (simple): What is the total number of molecules with double bonded oxygen?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-335
-    description: "What is the total number of molecules with double bonded oxygen?"
+    description: 'What is the total number of molecules with double bonded oxygen?'
     messages:
       - role: user
         content: |

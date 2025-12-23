@@ -1,5 +1,5 @@
 name: bird-formula-1-166
-description: "BIRD Q1011 (challenging): Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names."
+description: 'BIRD Q1011 (challenging): Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1011
-    description: "Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names."
+    description: 'Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names.'
     messages:
       - role: user
         content: |

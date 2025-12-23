@@ -1,5 +1,5 @@
 name: bird-financial-002
-description: "BIRD Q90 (simple): How many accounts who have region in Prague are eligible for loans?"
+description: 'BIRD Q90 (simple): How many accounts who have region in Prague are eligible for loans?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-90
-    description: "How many accounts who have region in Prague are eligible for loans?"
+    description: 'How many accounts who have region in Prague are eligible for loans?'
     messages:
       - role: user
         content: |

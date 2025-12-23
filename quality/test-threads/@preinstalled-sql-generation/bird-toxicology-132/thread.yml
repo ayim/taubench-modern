@@ -1,5 +1,5 @@
 name: bird-toxicology-132
-description: "BIRD Q326 (simple): Which molecule consisted of Sulphur atom with double bond?"
+description: 'BIRD Q326 (simple): Which molecule consisted of Sulphur atom with double bond?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-326
-    description: "Which molecule consisted of Sulphur atom with double bond?"
+    description: 'Which molecule consisted of Sulphur atom with double bond?'
     messages:
       - role: user
         content: |

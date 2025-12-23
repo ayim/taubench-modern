@@ -1,5 +1,5 @@
 name: bird-toxicology-037
-description: "BIRD Q231 (challenging): Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?"
+description: 'BIRD Q231 (challenging): Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-231
-    description: "Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?"
+    description: 'Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?'
     messages:
       - role: user
         content: |

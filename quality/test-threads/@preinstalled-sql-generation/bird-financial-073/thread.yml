@@ -1,5 +1,5 @@
 name: bird-financial-073
-description: "BIRD Q161 (challenging): What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?"
+description: 'BIRD Q161 (challenging): What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-161
-    description: "What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?"
+    description: 'What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?'
     messages:
       - role: user
         content: |

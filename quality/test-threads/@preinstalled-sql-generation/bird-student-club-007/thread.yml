@@ -1,5 +1,5 @@
 name: bird-student-club-007
-description: "BIRD Q1318 (simple): What is the event that has the highest attendance of the students from the Student_Club?"
+description: 'BIRD Q1318 (simple): What is the event that has the highest attendance of the students from the Student_Club?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1318
-    description: "What is the event that has the highest attendance of the students from the Student_Club?"
+    description: 'What is the event that has the highest attendance of the students from the Student_Club?'
     messages:
       - role: user
         content: |

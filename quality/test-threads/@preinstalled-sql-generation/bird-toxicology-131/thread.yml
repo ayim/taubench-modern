@@ -1,5 +1,5 @@
 name: bird-toxicology-131
-description: "BIRD Q325 (simple): How many carcinogenic molecules that consisted of Nitrogen?"
+description: 'BIRD Q325 (simple): How many carcinogenic molecules that consisted of Nitrogen?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-325
-    description: "How many carcinogenic molecules that consisted of Nitrogen?"
+    description: 'How many carcinogenic molecules that consisted of Nitrogen?'
     messages:
       - role: user
         content: |

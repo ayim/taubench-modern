@@ -1,5 +1,5 @@
 name: bird-student-club-149
-description: "BIRD Q1460 (challenging): Write the full name of the member who spent money for water, veggie tray and supplies and include the cost of it."
+description: 'BIRD Q1460 (challenging): Write the full name of the member who spent money for water, veggie tray and supplies and include the cost of it.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1460
-    description: "Write the full name of the member who spent money for water, veggie tray and supplies and include the cost of it."
+    description: 'Write the full name of the member who spent money for water, veggie tray and supplies and include the cost of it.'
     messages:
       - role: user
         content: |

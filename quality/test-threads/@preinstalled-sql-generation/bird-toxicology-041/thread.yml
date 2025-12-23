@@ -1,5 +1,5 @@
 name: bird-toxicology-041
-description: "BIRD Q235 (simple): How many molecules are carcinogenic and have the bromine element?"
+description: 'BIRD Q235 (simple): How many molecules are carcinogenic and have the bromine element?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-235
-    description: "How many molecules are carcinogenic and have the bromine element?"
+    description: 'How many molecules are carcinogenic and have the bromine element?'
     messages:
       - role: user
         content: |

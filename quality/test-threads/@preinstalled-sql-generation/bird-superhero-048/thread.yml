@@ -1,5 +1,5 @@
 name: bird-superhero-048
-description: "BIRD Q764 (simple): What are the superpowers of heroes with ID 1?"
+description: 'BIRD Q764 (simple): What are the superpowers of heroes with ID 1?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-764
-    description: "What are the superpowers of heroes with ID 1?"
+    description: 'What are the superpowers of heroes with ID 1?'
     messages:
       - role: user
         content: |

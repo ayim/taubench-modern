@@ -1,5 +1,5 @@
 name: bird-financial-103
-description: "BIRD Q191 (challenging): What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?"
+description: 'BIRD Q191 (challenging): What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-191
-    description: "What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?"
+    description: 'What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?'
     messages:
       - role: user
         content: |

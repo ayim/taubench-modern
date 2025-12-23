@@ -1,5 +1,5 @@
 name: bird-card-games-185
-description: "BIRD Q524 (simple): List the artists who illustrated cards with black borders which are available only in arena."
+description: 'BIRD Q524 (simple): List the artists who illustrated cards with black borders which are available only in arena.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-524
-    description: "List the artists who illustrated cards with black borders which are available only in arena."
+    description: 'List the artists who illustrated cards with black borders which are available only in arena.'
     messages:
       - role: user
         content: |

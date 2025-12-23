@@ -1,5 +1,5 @@
 name: bird-formula-1-105
-description: "BIRD Q950 (simple): Please list the constructor names with 0 points at race 291."
+description: 'BIRD Q950 (simple): Please list the constructor names with 0 points at race 291.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-950
-    description: "Please list the constructor names with 0 points at race 291."
+    description: 'Please list the constructor names with 0 points at race 291.'
     messages:
       - role: user
         content: |

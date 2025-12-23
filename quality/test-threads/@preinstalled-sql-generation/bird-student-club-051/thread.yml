@@ -1,5 +1,5 @@
 name: bird-student-club-051
-description: "BIRD Q1362 (simple): How many cities are there in Orange County, Virginia?"
+description: 'BIRD Q1362 (simple): How many cities are there in Orange County, Virginia?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1362
-    description: "How many cities are there in Orange County, Virginia?"
+    description: 'How many cities are there in Orange County, Virginia?'
     messages:
       - role: user
         content: |

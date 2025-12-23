@@ -1,5 +1,5 @@
 name: bird-card-games-033
-description: "BIRD Q372 (simple): How many cards are there with toughness of 99?"
+description: 'BIRD Q372 (simple): How many cards are there with toughness of 99?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-372
-    description: "How many cards are there with toughness of 99?"
+    description: 'How many cards are there with toughness of 99?'
     messages:
       - role: user
         content: |

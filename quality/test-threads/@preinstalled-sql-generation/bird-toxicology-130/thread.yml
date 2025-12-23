@@ -1,5 +1,5 @@
 name: bird-toxicology-130
-description: "BIRD Q324 (simple): Find the percentage of atoms with single bond."
+description: 'BIRD Q324 (simple): Find the percentage of atoms with single bond.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-324
-    description: "Find the percentage of atoms with single bond."
+    description: 'Find the percentage of atoms with single bond.'
     messages:
       - role: user
         content: |

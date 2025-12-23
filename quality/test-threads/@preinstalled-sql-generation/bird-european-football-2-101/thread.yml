@@ -1,5 +1,5 @@
 name: bird-european-football-2-101
-description: "BIRD Q1120 (moderate): Sum up the away team goal scored by both Daan Smith and Filipe Ferreira."
+description: 'BIRD Q1120 (moderate): Sum up the away team goal scored by both Daan Smith and Filipe Ferreira.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1120
-    description: "Sum up the away team goal scored by both Daan Smith and Filipe Ferreira."
+    description: 'Sum up the away team goal scored by both Daan Smith and Filipe Ferreira.'
     messages:
       - role: user
         content: |

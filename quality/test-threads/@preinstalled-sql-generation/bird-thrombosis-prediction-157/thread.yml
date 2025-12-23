@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-157
-description: "BIRD Q1305 (moderate): How many patients accepted to the hospital have a normal level of white blood cells?"
+description: 'BIRD Q1305 (moderate): How many patients accepted to the hospital have a normal level of white blood cells?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1305
-    description: "How many patients accepted to the hospital have a normal level of white blood cells?"
+    description: 'How many patients accepted to the hospital have a normal level of white blood cells?'
     messages:
       - role: user
         content: |

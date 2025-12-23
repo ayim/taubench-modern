@@ -1,5 +1,5 @@
 name: bird-student-club-055
-description: "BIRD Q1366 (simple): List all the members who attended the event \"October Meeting\"."
+description: 'BIRD Q1366 (simple): List all the members who attended the event "October Meeting".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1366
-    description: "List all the members who attended the event \"October Meeting\"."
+    description: 'List all the members who attended the event "October Meeting".'
     messages:
       - role: user
         content: |

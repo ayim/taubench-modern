@@ -1,5 +1,5 @@
 name: bird-student-club-096
-description: "BIRD Q1407 (simple): Among the budgets for Advertising, list out top three which have the most budgeted amount?"
+description: 'BIRD Q1407 (simple): Among the budgets for Advertising, list out top three which have the most budgeted amount?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1407
-    description: "Among the budgets for Advertising, list out top three which have the most budgeted amount?"
+    description: 'Among the budgets for Advertising, list out top three which have the most budgeted amount?'
     messages:
       - role: user
         content: |

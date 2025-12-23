@@ -1,5 +1,5 @@
 name: bird-codebase-community-037
-description: "BIRD Q567 (simple): For the user with the display name of \"Tiago Pasqualini\", how many posts did he/she own?"
+description: 'BIRD Q567 (simple): For the user with the display name of "Tiago Pasqualini", how many posts did he/she own?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-567
-    description: "For the user with the display name of \"Tiago Pasqualini\", how many posts did he/she own?"
+    description: 'For the user with the display name of "Tiago Pasqualini", how many posts did he/she own?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-149
-description: "BIRD Q1297 (moderate): For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?"
+description: 'BIRD Q1297 (moderate): For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1297
-    description: "For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?"
+    description: 'For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?'
     messages:
       - role: user
         content: |

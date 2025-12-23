@@ -1,5 +1,5 @@
 name: bird-european-football-2-038
-description: "BIRD Q1057 (moderate): Calculate the average home team goal in the 2010/2011 season in the country of Poland."
+description: 'BIRD Q1057 (moderate): Calculate the average home team goal in the 2010/2011 season in the country of Poland.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1057
-    description: "Calculate the average home team goal in the 2010/2011 season in the country of Poland."
+    description: 'Calculate the average home team goal in the 2010/2011 season in the country of Poland.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-111
-description: "BIRD Q1422 (simple): State the category of events were held at MU 215."
+description: 'BIRD Q1422 (simple): State the category of events were held at MU 215.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1422
-    description: "State the category of events were held at MU 215."
+    description: 'State the category of events were held at MU 215.'
     messages:
       - role: user
         content: |
           State the category of events were held at MU 215.
-          Evidence: 'MU 215' is the location of event; 
+          Evidence: 'MU 215' is the location of event;
 
 target-platforms:
   - name: openai

@@ -1,5 +1,5 @@
 name: bird-financial-058
-description: "BIRD Q146 (challenging): What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?"
+description: 'BIRD Q146 (challenging): What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-146
-    description: "What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?"
+    description: 'What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?'
     messages:
       - role: user
         content: |

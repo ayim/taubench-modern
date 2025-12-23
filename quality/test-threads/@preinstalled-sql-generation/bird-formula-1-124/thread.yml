@@ -1,5 +1,5 @@
 name: bird-formula-1-124
-description: "BIRD Q969 (simple): How many British drivers who were born in 1980?"
+description: 'BIRD Q969 (simple): How many British drivers who were born in 1980?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-969
-    description: "How many British drivers who were born in 1980?"
+    description: 'How many British drivers who were born in 1980?'
     messages:
       - role: user
         content: |

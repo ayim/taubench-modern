@@ -1,5 +1,5 @@
 name: bird-formula-1-044
-description: "BIRD Q889 (simple): When was the last f1 season whereby Brands Hatch hosted the British Grand Prix?"
+description: 'BIRD Q889 (simple): When was the last f1 season whereby Brands Hatch hosted the British Grand Prix?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-889
-    description: "When was the last f1 season whereby Brands Hatch hosted the British Grand Prix?"
+    description: 'When was the last f1 season whereby Brands Hatch hosted the British Grand Prix?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-068
-description: "BIRD Q913 (simple): In which country can I find the circuit with the highest latitude?"
+description: 'BIRD Q913 (simple): In which country can I find the circuit with the highest latitude?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-913
-    description: "In which country can I find the circuit with the highest latitude?"
+    description: 'In which country can I find the circuit with the highest latitude?'
     messages:
       - role: user
         content: |

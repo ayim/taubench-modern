@@ -1,219 +1,219 @@
 name: Molecule Carcinogenicity
 tables:
-- name: bond
-  synonyms:
-  - chemical_bonds
-  - bond_records
-  - molecular_bond_list
-  base_table:
-    table: bond
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: bond_id
-    name: bond_id
+  - name: bond
     synonyms:
-    - bond_identifier_code
-    - bond_unique_key
-    - bond_record_id
-    data_type: '!string'
-    description: Unique identifier for a bond instance (typically encodes molecule
-      and the two atom indices, e.g., TRxxx_A1_A2).
-    sample_values:
-    - TR000_1_2
-    - TR000_2_3
-    - TR000_2_4
-    - TR000_2_5
-    - TR001_10_11
-  - expr: molecule_id
-    name: molecule_id
+      - chemical_bonds
+      - bond_records
+      - molecular_bond_list
+    base_table:
+      table: bond
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: bond_id
+        name: bond_id
+        synonyms:
+          - bond_identifier_code
+          - bond_unique_key
+          - bond_record_id
+        data_type: '!string'
+        description: Unique identifier for a bond instance (typically encodes molecule
+          and the two atom indices, e.g., TRxxx_A1_A2).
+        sample_values:
+          - TR000_1_2
+          - TR000_2_3
+          - TR000_2_4
+          - TR000_2_5
+          - TR001_10_11
+      - expr: molecule_id
+        name: molecule_id
+        synonyms:
+          - bond_parent_molecule_id
+          - bond_molecule_code
+          - bond_compound_id
+        data_type: string
+        description: Identifier of the molecule (compound) that this bond belongs to.
+        sample_values:
+          - TR000
+          - TR000
+          - TR000
+          - TR000
+          - TR001
+      - expr: bond_type
+        name: bond_type
+        synonyms:
+          - bond_order_symbol
+          - chemical_bond_order
+          - bond_strength_type
+        data_type: string
+        description: "Bond order/type symbol: '-' single bond, '=' double bond, '#'
+          triple bond."
+        sample_values:
+          - '-'
+          - '-'
+          - '-'
+          - '-'
+          - '='
+    description: Bond definitions within each molecule. Each row represents a specific
+      bond between two atoms in a molecule and records the bond order/type (single,
+      double, triple).
+  - name: atom
     synonyms:
-    - bond_parent_molecule_id
-    - bond_molecule_code
-    - bond_compound_id
-    data_type: string
-    description: Identifier of the molecule (compound) that this bond belongs to.
-    sample_values:
-    - TR000
-    - TR000
-    - TR000
-    - TR000
-    - TR001
-  - expr: bond_type
-    name: bond_type
+      - chemical_atoms
+      - atom_records
+      - molecular_atom_list
+    base_table:
+      table: atom
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: atom_id
+        name: atom_id
+        synonyms:
+          - atom_unique_key
+          - atom_identifier_code
+          - atom_record_id
+        data_type: '!string'
+        description: Unique identifier for an atom instance (typically encodes molecule
+          and atom index, e.g., TRxxx_i).
+        sample_values:
+          - TR000_1
+          - TR000_2
+          - TR000_3
+          - TR000_4
+          - TR000_5
+      - expr: molecule_id
+        name: molecule_id
+        synonyms:
+          - atom_parent_molecule_id
+          - atom_molecule_code
+          - atom_compound_id
+        data_type: string
+        description: Identifier of the molecule (compound) that this atom belongs to.
+        sample_values:
+          - TR000
+          - TR000
+          - TR000
+          - TR000
+          - TR000
+      - expr: element
+        name: element
+        synonyms:
+          - chemical_element_symbol
+          - atom_element_code
+          - periodic_element_abbrev
+        data_type: string
+        description: Chemical element symbol for the atom (e.g., c, h, o, n, cl, br, f,
+          i, p, s, na, ca, sn, pb, te).
+        sample_values:
+          - cl
+          - c
+          - cl
+          - cl
+          - h
+    description: Atom definitions within each molecule. Each row represents one atom
+      in a molecule and records its chemical element.
+  - name: connected
     synonyms:
-    - bond_order_symbol
-    - chemical_bond_order
-    - bond_strength_type
-    data_type: string
-    description: 'Bond order/type symbol: ''-'' single bond, ''='' double bond, ''#''
-      triple bond.'
-    sample_values:
-    - '-'
-    - '-'
-    - '-'
-    - '-'
-    - '='
-  description: Bond definitions within each molecule. Each row represents a specific
-    bond between two atoms in a molecule and records the bond order/type (single,
-    double, triple).
-- name: atom
-  synonyms:
-  - chemical_atoms
-  - atom_records
-  - molecular_atom_list
-  base_table:
-    table: atom
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: atom_id
-    name: atom_id
+      - atom_connectivity
+      - bond_connections
+      - molecule_edge_list
+    base_table:
+      table: connected
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: atom_id
+        name: atom_id
+        synonyms:
+          - connection_atom_id_from
+          - edge_atom_id_1
+          - source_atom_identifier
+        data_type: '!string'
+        description: Identifier of the first atom in the connected atom pair (one endpoint
+          of the bond).
+        sample_values:
+          - TR000_1
+          - TR000_2
+          - TR000_2
+          - TR000_3
+          - TR000_2
+      - expr: atom_id2
+        name: atom_id2
+        synonyms:
+          - connection_atom_id_to
+          - edge_atom_id_2
+          - target_atom_identifier
+        data_type: '!string'
+        description: Identifier of the second atom in the connected atom pair (the other
+          endpoint of the bond).
+        sample_values:
+          - TR000_2
+          - TR000_1
+          - TR000_3
+          - TR000_2
+          - TR000_4
+      - expr: bond_id
+        name: bond_id
+        synonyms:
+          - connection_bond_id
+          - edge_bond_identifier
+          - link_bond_code
+        data_type: string
+        description: Identifier of the bond that connects atom_id and atom_id2.
+        sample_values:
+          - TR000_1_2
+          - TR000_1_2
+          - TR000_2_3
+          - TR000_2_3
+          - TR000_2_4
+    description: Connectivity (edge) list linking pairs of atoms via a bond. Each bond
+      typically appears twice (A→B and B→A) to represent an undirected molecular graph.
+  - name: molecule
     synonyms:
-    - atom_unique_key
-    - atom_identifier_code
-    - atom_record_id
-    data_type: '!string'
-    description: Unique identifier for an atom instance (typically encodes molecule
-      and atom index, e.g., TRxxx_i).
-    sample_values:
-    - TR000_1
-    - TR000_2
-    - TR000_3
-    - TR000_4
-    - TR000_5
-  - expr: molecule_id
-    name: molecule_id
-    synonyms:
-    - atom_parent_molecule_id
-    - atom_molecule_code
-    - atom_compound_id
-    data_type: string
-    description: Identifier of the molecule (compound) that this atom belongs to.
-    sample_values:
-    - TR000
-    - TR000
-    - TR000
-    - TR000
-    - TR000
-  - expr: element
-    name: element
-    synonyms:
-    - chemical_element_symbol
-    - atom_element_code
-    - periodic_element_abbrev
-    data_type: string
-    description: Chemical element symbol for the atom (e.g., c, h, o, n, cl, br, f,
-      i, p, s, na, ca, sn, pb, te).
-    sample_values:
-    - cl
-    - c
-    - cl
-    - cl
-    - h
-  description: Atom definitions within each molecule. Each row represents one atom
-    in a molecule and records its chemical element.
-- name: connected
-  synonyms:
-  - atom_connectivity
-  - bond_connections
-  - molecule_edge_list
-  base_table:
-    table: connected
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: atom_id
-    name: atom_id
-    synonyms:
-    - connection_atom_id_from
-    - edge_atom_id_1
-    - source_atom_identifier
-    data_type: '!string'
-    description: Identifier of the first atom in the connected atom pair (one endpoint
-      of the bond).
-    sample_values:
-    - TR000_1
-    - TR000_2
-    - TR000_2
-    - TR000_3
-    - TR000_2
-  - expr: atom_id2
-    name: atom_id2
-    synonyms:
-    - connection_atom_id_to
-    - edge_atom_id_2
-    - target_atom_identifier
-    data_type: '!string'
-    description: Identifier of the second atom in the connected atom pair (the other
-      endpoint of the bond).
-    sample_values:
-    - TR000_2
-    - TR000_1
-    - TR000_3
-    - TR000_2
-    - TR000_4
-  - expr: bond_id
-    name: bond_id
-    synonyms:
-    - connection_bond_id
-    - edge_bond_identifier
-    - link_bond_code
-    data_type: string
-    description: Identifier of the bond that connects atom_id and atom_id2.
-    sample_values:
-    - TR000_1_2
-    - TR000_1_2
-    - TR000_2_3
-    - TR000_2_3
-    - TR000_2_4
-  description: Connectivity (edge) list linking pairs of atoms via a bond. Each bond
-    typically appears twice (A→B and B→A) to represent an undirected molecular graph.
-- name: molecule
-  synonyms:
-  - chemical_compounds
-  - molecule_labels
-  - carcinogenicity_targets
-  base_table:
-    table: molecule
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: molecule_id
-    name: molecule_id
-    synonyms:
-    - molecule_identifier
-    - compound_id_code
-    - chemical_structure_id
-    data_type: '!string'
-    description: Unique identifier for a molecule (compound), e.g., TR000, TR001.
-    sample_values:
-    - TR000
-    - TR001
-    - TR002
-    - TR004
-    - TR006
-  - expr: label
-    name: label
-    synonyms:
-    - carcinogenicity_class
-    - cancer_risk_label
-    - carcinogen_flag_symbol
-    data_type: string
-    description: 'Carcinogenicity label for the molecule: ''+'' indicates carcinogenic;
-      ''-'' indicates non-carcinogenic.'
-    sample_values:
-    - +
-    - +
-    - '-'
-    - '-'
-    - +
-  description: Molecule (compound) master list with the carcinogenicity label used
-    as the modeling/analysis target.
+      - chemical_compounds
+      - molecule_labels
+      - carcinogenicity_targets
+    base_table:
+      table: molecule
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: molecule_id
+        name: molecule_id
+        synonyms:
+          - molecule_identifier
+          - compound_id_code
+          - chemical_structure_id
+        data_type: '!string'
+        description: Unique identifier for a molecule (compound), e.g., TR000, TR001.
+        sample_values:
+          - TR000
+          - TR001
+          - TR002
+          - TR004
+          - TR006
+      - expr: label
+        name: label
+        synonyms:
+          - carcinogenicity_class
+          - cancer_risk_label
+          - carcinogen_flag_symbol
+        data_type: string
+        description: "Carcinogenicity label for the molecule: '+' indicates carcinogenic;
+          '-' indicates non-carcinogenic."
+        sample_values:
+          - +
+          - +
+          - '-'
+          - '-'
+          - +
+    description: Molecule (compound) master list with the carcinogenicity label used
+      as the modeling/analysis target.
 description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
   \ atom\n\nColumns:\n- **atom id** (the unique id of atoms) - Type: text\n- **molecule\
   \ id** (identifying the molecule to which the atom belongs) - Type: text - commonsense\

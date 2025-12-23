@@ -1,5 +1,5 @@
 name: bird-european-football-2-005
-description: "BIRD Q1024 (simple): Who are the top 5 players by maximum crossing rating? Indicate their player id."
+description: 'BIRD Q1024 (simple): Who are the top 5 players by maximum crossing rating? Indicate their player id.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1024
-    description: "Who are the top 5 players by maximum crossing rating? Indicate their player id."
+    description: 'Who are the top 5 players by maximum crossing rating? Indicate their player id.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-096
-description: "BIRD Q941 (simple): How many points did Lewis Hamilton get in total in all the Formula_1 races he participated?"
+description: 'BIRD Q941 (simple): How many points did Lewis Hamilton get in total in all the Formula_1 races he participated?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-941
-    description: "How many points did Lewis Hamilton get in total in all the Formula_1 races he participated?"
+    description: 'How many points did Lewis Hamilton get in total in all the Formula_1 races he participated?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-136
-description: "BIRD Q330 (challenging): Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms."
+description: 'BIRD Q330 (challenging): Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-330
-    description: "Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms."
+    description: 'Calculate the percentage of carcinogenic molecules with triple bonded Hidrogen atoms.'
     messages:
       - role: user
         content: |

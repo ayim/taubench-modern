@@ -1,5 +1,5 @@
 name: bird-codebase-community-104
-description: "BIRD Q634 (challenging): Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?"
+description: 'BIRD Q634 (challenging): Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-634
-    description: "Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?"
+    description: 'Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?'
     messages:
       - role: user
         content: |

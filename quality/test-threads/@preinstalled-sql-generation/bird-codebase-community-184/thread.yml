@@ -1,5 +1,5 @@
 name: bird-codebase-community-184
-description: "BIRD Q714 (simple): List the comments commented by the user with a username of Harvey Motulsky."
+description: 'BIRD Q714 (simple): List the comments commented by the user with a username of Harvey Motulsky.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-714
-    description: "List the comments commented by the user with a username of Harvey Motulsky."
+    description: 'List the comments commented by the user with a username of Harvey Motulsky.'
     messages:
       - role: user
         content: |

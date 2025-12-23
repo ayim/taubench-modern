@@ -1,5 +1,5 @@
 name: bird-superhero-067
-description: "BIRD Q783 (simple): Provide the eye colours of the heroes whose skin colours are gold."
+description: 'BIRD Q783 (simple): Provide the eye colours of the heroes whose skin colours are gold.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-783
-    description: "Provide the eye colours of the heroes whose skin colours are gold."
+    description: 'Provide the eye colours of the heroes whose skin colours are gold.'
     messages:
       - role: user
         content: |

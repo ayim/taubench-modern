@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-122
-description: "BIRD Q1270 (challenging): Among the patients who has a normal anti-scl70, how many of them are female and does not have any symptom?"
+description: 'BIRD Q1270 (challenging): Among the patients who has a normal anti-scl70, how many of them are female and does not have any symptom?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1270
-    description: "Among the patients who has a normal anti-scl70, how many of them are female and does not have any symptom?"
+    description: 'Among the patients who has a normal anti-scl70, how many of them are female and does not have any symptom?'
     messages:
       - role: user
         content: |

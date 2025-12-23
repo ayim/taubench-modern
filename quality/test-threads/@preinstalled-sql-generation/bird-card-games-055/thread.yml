@@ -1,5 +1,5 @@
 name: bird-card-games-055
-description: "BIRD Q394 (simple): How many white bordered cards are powerful?"
+description: 'BIRD Q394 (simple): How many white bordered cards are powerful?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-394
-    description: "How many white bordered cards are powerful?"
+    description: 'How many white bordered cards are powerful?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-054
-description: "BIRD Q899 (moderate): List circuits which host 4 f1 races from year 1990 to 2000."
+description: 'BIRD Q899 (moderate): List circuits which host 4 f1 races from year 1990 to 2000.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-899
-    description: "List circuits which host 4 f1 races from year 1990 to 2000."
+    description: 'List circuits which host 4 f1 races from year 1990 to 2000.'
     messages:
       - role: user
         content: |

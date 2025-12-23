@@ -1,5 +1,5 @@
 name: bird-codebase-community-136
-description: "BIRD Q666 (simple): Among the posts that were voted by user 1465, what is the id of the most valuable post?"
+description: 'BIRD Q666 (simple): Among the posts that were voted by user 1465, what is the id of the most valuable post?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-666
-    description: "Among the posts that were voted by user 1465, what is the id of the most valuable post?"
+    description: 'Among the posts that were voted by user 1465, what is the id of the most valuable post?'
     messages:
       - role: user
         content: |

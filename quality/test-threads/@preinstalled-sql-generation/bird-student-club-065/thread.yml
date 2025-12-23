@@ -1,5 +1,5 @@
 name: bird-student-club-065
-description: "BIRD Q1376 (moderate): Among all the closed events, which event has the highest spend-to-budget ratio?"
+description: 'BIRD Q1376 (moderate): Among all the closed events, which event has the highest spend-to-budget ratio?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1376
-    description: "Among all the closed events, which event has the highest spend-to-budget ratio?"
+    description: 'Among all the closed events, which event has the highest spend-to-budget ratio?'
     messages:
       - role: user
         content: |

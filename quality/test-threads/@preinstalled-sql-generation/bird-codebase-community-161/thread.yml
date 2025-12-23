@@ -1,5 +1,5 @@
 name: bird-codebase-community-161
-description: "BIRD Q691 (simple): Identify the number of adult users who have cast over 5000 upvotes."
+description: 'BIRD Q691 (simple): Identify the number of adult users who have cast over 5000 upvotes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-691
-    description: "Identify the number of adult users who have cast over 5000 upvotes."
+    description: 'Identify the number of adult users who have cast over 5000 upvotes.'
     messages:
       - role: user
         content: |

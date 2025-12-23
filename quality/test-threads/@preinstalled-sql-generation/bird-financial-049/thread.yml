@@ -1,5 +1,5 @@
 name: bird-financial-049
-description: "BIRD Q137 (challenging): What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?"
+description: 'BIRD Q137 (challenging): What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-137
-    description: "What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?"
+    description: 'What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?'
     messages:
       - role: user
         content: |

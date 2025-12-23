@@ -1,5 +1,5 @@
 name: bird-student-club-047
-description: "BIRD Q1358 (simple): Who was the first one paid his/her dues? Tell the full name."
+description: 'BIRD Q1358 (simple): Who was the first one paid his/her dues? Tell the full name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1358
-    description: "Who was the first one paid his/her dues? Tell the full name."
+    description: 'Who was the first one paid his/her dues? Tell the full name.'
     messages:
       - role: user
         content: |

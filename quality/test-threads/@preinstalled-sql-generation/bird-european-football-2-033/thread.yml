@@ -1,5 +1,5 @@
 name: bird-european-football-2-033
-description: "BIRD Q1052 (moderate): Among all the players whose weight is under 130, how many of them preferred foot in attacking is left?"
+description: 'BIRD Q1052 (moderate): Among all the players whose weight is under 130, how many of them preferred foot in attacking is left?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1052
-    description: "Among all the players whose weight is under 130, how many of them preferred foot in attacking is left?"
+    description: 'Among all the players whose weight is under 130, how many of them preferred foot in attacking is left?'
     messages:
       - role: user
         content: |

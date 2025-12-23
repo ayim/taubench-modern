@@ -1,5 +1,5 @@
 name: bird-student-club-118
-description: "BIRD Q1429 (challenging): What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?"
+description: 'BIRD Q1429 (challenging): What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1429
-    description: "What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?"
+    description: 'What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?'
     messages:
       - role: user
         content: |

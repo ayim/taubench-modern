@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-003
-description: "BIRD Q1151 (moderate): For patient born between Year 1930 to 1940, how many percent of them were inpatient?"
+description: 'BIRD Q1151 (moderate): For patient born between Year 1930 to 1940, how many percent of them were inpatient?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1151
-    description: "For patient born between Year 1930 to 1940, how many percent of them were inpatient?"
+    description: 'For patient born between Year 1930 to 1940, how many percent of them were inpatient?'
     messages:
       - role: user
         content: |

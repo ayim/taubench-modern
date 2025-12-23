@@ -1,5 +1,5 @@
 name: bird-codebase-community-025
-description: "BIRD Q555 (simple): What is the average score of the posts owned by the user csgillespie?"
+description: 'BIRD Q555 (simple): What is the average score of the posts owned by the user csgillespie?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-555
-    description: "What is the average score of the posts owned by the user csgillespie?"
+    description: 'What is the average score of the posts owned by the user csgillespie?'
     messages:
       - role: user
         content: |

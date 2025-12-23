@@ -1,5 +1,5 @@
 name: bird-student-club-024
-description: "BIRD Q1335 (moderate): How much did the Student_Club members spend on advertisement in September Meeting?"
+description: 'BIRD Q1335 (moderate): How much did the Student_Club members spend on advertisement in September Meeting?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1335
-    description: "How much did the Student_Club members spend on advertisement in September Meeting?"
+    description: 'How much did the Student_Club members spend on advertisement in September Meeting?'
     messages:
       - role: user
         content: |

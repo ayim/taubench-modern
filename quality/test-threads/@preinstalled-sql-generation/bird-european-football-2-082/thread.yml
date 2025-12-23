@@ -1,5 +1,5 @@
 name: bird-european-football-2-082
-description: "BIRD Q1101 (moderate): What is the average number of goals made by Parma as the away team while playing in Italy?"
+description: 'BIRD Q1101 (moderate): What is the average number of goals made by Parma as the away team while playing in Italy?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1101
-    description: "What is the average number of goals made by Parma as the away team while playing in Italy?"
+    description: 'What is the average number of goals made by Parma as the away team while playing in Italy?'
     messages:
       - role: user
         content: |

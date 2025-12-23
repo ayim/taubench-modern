@@ -1,5 +1,5 @@
 name: bird-student-club-081
-description: "BIRD Q1392 (simple): Indicate the top source of funds received in September 2019 based on their amount."
+description: 'BIRD Q1392 (simple): Indicate the top source of funds received in September 2019 based on their amount.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1392
-    description: "Indicate the top source of funds received in September 2019 based on their amount."
+    description: 'Indicate the top source of funds received in September 2019 based on their amount.'
     messages:
       - role: user
         content: |

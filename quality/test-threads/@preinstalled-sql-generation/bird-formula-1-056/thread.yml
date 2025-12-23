@@ -1,5 +1,5 @@
 name: bird-formula-1-056
-description: "BIRD Q901 (simple): Name the races along with its circuit name and location for f1 races hosted in September 2005."
+description: 'BIRD Q901 (simple): Name the races along with its circuit name and location for f1 races hosted in September 2005.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-901
-    description: "Name the races along with its circuit name and location for f1 races hosted in September 2005."
+    description: 'Name the races along with its circuit name and location for f1 races hosted in September 2005.'
     messages:
       - role: user
         content: |

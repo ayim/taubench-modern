@@ -1,5 +1,5 @@
 name: bird-codebase-community-156
-description: "BIRD Q686 (simple): Identify the total number of posts with views above average."
+description: 'BIRD Q686 (simple): Identify the total number of posts with views above average.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-686
-    description: "Identify the total number of posts with views above average."
+    description: 'Identify the total number of posts with views above average.'
     messages:
       - role: user
         content: |

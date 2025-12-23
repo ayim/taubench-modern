@@ -1,5 +1,5 @@
 name: bird-codebase-community-133
-description: "BIRD Q663 (simple): What is the id of the youngest user?"
+description: 'BIRD Q663 (simple): What is the id of the youngest user?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-663
-    description: "What is the id of the youngest user?"
+    description: 'What is the id of the youngest user?'
     messages:
       - role: user
         content: |

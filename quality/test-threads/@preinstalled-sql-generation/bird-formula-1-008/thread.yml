@@ -1,5 +1,5 @@
 name: bird-formula-1-008
-description: "BIRD Q853 (simple): Please give the names of the races held on the circuits in Spain."
+description: 'BIRD Q853 (simple): Please give the names of the races held on the circuits in Spain.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-853
-    description: "Please give the names of the races held on the circuits in Spain."
+    description: 'Please give the names of the races held on the circuits in Spain.'
     messages:
       - role: user
         content: |

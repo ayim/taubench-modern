@@ -1,5 +1,5 @@
 name: bird-financial-047
-description: "BIRD Q135 (challenging): For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?"
+description: 'BIRD Q135 (challenging): For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-135
-    description: "For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?"
+    description: 'For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?'
     messages:
       - role: user
         content: |

@@ -15,7 +15,7 @@ thread:
       - role: user
         content: |
           Among the patients whose creatinine level is abnormal, how many of them aren't 70 yet?
-          Evidence: creatinine level is abnormal refers to CRE >= 1.5; aren't 70 yet refers to SUBTRACT((YEAR(CURDATE()), YEAR(Birthday))) < 70; 
+          Evidence: creatinine level is abnormal refers to CRE >= 1.5; aren't 70 yet refers to SUBTRACT((YEAR(CURDATE()), YEAR(Birthday))) < 70;
 
 target-platforms:
   - name: openai

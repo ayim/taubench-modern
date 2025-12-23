@@ -1,5 +1,5 @@
 name: bird-superhero-085
-description: "BIRD Q801 (moderate): Find the ratio between male superheroes and female superheroes."
+description: 'BIRD Q801 (moderate): Find the ratio between male superheroes and female superheroes.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-801
-    description: "Find the ratio between male superheroes and female superheroes."
+    description: 'Find the ratio between male superheroes and female superheroes.'
     messages:
       - role: user
         content: |

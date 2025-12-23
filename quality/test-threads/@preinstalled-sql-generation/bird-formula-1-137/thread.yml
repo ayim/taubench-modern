@@ -1,5 +1,5 @@
 name: bird-formula-1-137
-description: "BIRD Q982 (simple): How many American drivers have puncture status."
+description: 'BIRD Q982 (simple): How many American drivers have puncture status.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-982
-    description: "How many American drivers have puncture status."
+    description: 'How many American drivers have puncture status.'
     messages:
       - role: user
         content: |

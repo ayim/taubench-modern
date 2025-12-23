@@ -8,18 +8,14 @@
 
 #### SQL Query:
 
-    ```sql
     SELECT * FROM file_data
-    ```
 #### SQL Dialect: duckdb
 
 #### Full SQL Query (with dependencies resolved, referencing logical table names):
 
-    ```sql
     SELECT
       *
     FROM file_data
-    ```
 
 ## Dependencies
 

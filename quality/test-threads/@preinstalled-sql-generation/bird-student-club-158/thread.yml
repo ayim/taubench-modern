@@ -1,5 +1,5 @@
 name: bird-student-club-158
-description: "BIRD Q1469 (moderate): Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position."
+description: 'BIRD Q1469 (moderate): Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1469
-    description: "Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position."
+    description: 'Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position.'
     messages:
       - role: user
         content: |

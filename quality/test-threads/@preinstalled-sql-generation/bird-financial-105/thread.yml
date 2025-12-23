@@ -1,5 +1,5 @@
 name: bird-financial-105
-description: "BIRD Q193 (moderate): List all ID and district for clients that can only have the right to issue permanent orders or apply for loans."
+description: 'BIRD Q193 (moderate): List all ID and district for clients that can only have the right to issue permanent orders or apply for loans.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-193
-    description: "List all ID and district for clients that can only have the right to issue permanent orders or apply for loans."
+    description: 'List all ID and district for clients that can only have the right to issue permanent orders or apply for loans.'
     messages:
       - role: user
         content: |

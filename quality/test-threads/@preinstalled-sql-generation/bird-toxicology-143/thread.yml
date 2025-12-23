@@ -1,5 +1,5 @@
 name: bird-toxicology-143
-description: "BIRD Q337 (challenging): List the element and bond type included in the molecule with molecule ID of TR002."
+description: 'BIRD Q337 (challenging): List the element and bond type included in the molecule with molecule ID of TR002.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-337
-    description: "List the element and bond type included in the molecule with molecule ID of TR002."
+    description: 'List the element and bond type included in the molecule with molecule ID of TR002.'
     messages:
       - role: user
         content: |

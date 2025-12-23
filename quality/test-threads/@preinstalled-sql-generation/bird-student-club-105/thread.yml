@@ -1,5 +1,5 @@
 name: bird-student-club-105
-description: "BIRD Q1416 (simple): How many members of Business have the Medium size of tee shirt?"
+description: 'BIRD Q1416 (simple): How many members of Business have the Medium size of tee shirt?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1416
-    description: "How many members of Business have the Medium size of tee shirt?"
+    description: 'How many members of Business have the Medium size of tee shirt?'
     messages:
       - role: user
         content: |

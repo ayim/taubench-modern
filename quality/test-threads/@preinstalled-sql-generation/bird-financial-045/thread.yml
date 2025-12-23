@@ -1,5 +1,5 @@
 name: bird-financial-045
-description: "BIRD Q133 (simple): In 1996, which districts have the highest unemployment rate? List their branch location and district name."
+description: 'BIRD Q133 (simple): In 1996, which districts have the highest unemployment rate? List their branch location and district name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-133
-    description: "In 1996, which districts have the highest unemployment rate? List their branch location and district name."
+    description: 'In 1996, which districts have the highest unemployment rate? List their branch location and district name.'
     messages:
       - role: user
         content: |

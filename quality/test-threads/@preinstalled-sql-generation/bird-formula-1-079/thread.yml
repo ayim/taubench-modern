@@ -1,5 +1,5 @@
 name: bird-formula-1-079
-description: "BIRD Q924 (simple): Please list the exact dates on which a Formula_1 race took place on the Barcelona-Catalunya circuit."
+description: 'BIRD Q924 (simple): Please list the exact dates on which a Formula_1 race took place on the Barcelona-Catalunya circuit.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-924
-    description: "Please list the exact dates on which a Formula_1 race took place on the Barcelona-Catalunya circuit."
+    description: 'Please list the exact dates on which a Formula_1 race took place on the Barcelona-Catalunya circuit.'
     messages:
       - role: user
         content: |

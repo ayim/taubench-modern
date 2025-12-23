@@ -1,5 +1,5 @@
 name: bird-european-football-2-003
-description: "BIRD Q1022 (simple): What is the preferred foot when attacking of the player with the lowest potential?"
+description: 'BIRD Q1022 (simple): What is the preferred foot when attacking of the player with the lowest potential?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1022
-    description: "What is the preferred foot when attacking of the player with the lowest potential?"
+    description: 'What is the preferred foot when attacking of the player with the lowest potential?'
     messages:
       - role: user
         content: |

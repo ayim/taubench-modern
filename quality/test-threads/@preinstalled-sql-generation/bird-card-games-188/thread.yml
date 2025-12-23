@@ -1,5 +1,5 @@
 name: bird-card-games-188
-description: "BIRD Q527 (moderate): What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates."
+description: 'BIRD Q527 (moderate): What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-527
-    description: "What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates."
+    description: 'What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates.'
     messages:
       - role: user
         content: |

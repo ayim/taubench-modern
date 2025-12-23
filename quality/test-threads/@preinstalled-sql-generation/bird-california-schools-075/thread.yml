@@ -1,5 +1,5 @@
 name: bird-california-schools-075
-description: "BIRD Q74 (moderate): What is the lowest grade for the District Special Education Consortia School with National Center for Educational Statistics school district identification number of 0613360?"
+description: 'BIRD Q74 (moderate): What is the lowest grade for the District Special Education Consortia School with National Center for Educational Statistics school district identification number of 0613360?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-74
-    description: "What is the lowest grade for the District Special Education Consortia School with National Center for Educational Statistics school district identification number of 0613360?"
+    description: 'What is the lowest grade for the District Special Education Consortia School with National Center for Educational Statistics school district identification number of 0613360?'
     messages:
       - role: user
         content: |

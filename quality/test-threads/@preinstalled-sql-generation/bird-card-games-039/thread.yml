@@ -1,5 +1,5 @@
 name: bird-card-games-039
-description: "BIRD Q378 (simple): What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs."
+description: 'BIRD Q378 (simple): What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-378
-    description: "What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs."
+    description: 'What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs.'
     messages:
       - role: user
         content: |

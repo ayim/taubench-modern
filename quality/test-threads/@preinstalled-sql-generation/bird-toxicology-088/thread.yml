@@ -1,5 +1,5 @@
 name: bird-toxicology-088
-description: "BIRD Q282 (challenging): What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label."
+description: 'BIRD Q282 (challenging): What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-282
-    description: "What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label."
+    description: 'What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label.'
     messages:
       - role: user
         content: |

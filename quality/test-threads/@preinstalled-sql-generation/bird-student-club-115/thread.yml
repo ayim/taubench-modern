@@ -1,5 +1,5 @@
 name: bird-student-club-115
-description: "BIRD Q1426 (moderate): List the last name of members with a major in environmental engineering and include its department and college name."
+description: 'BIRD Q1426 (moderate): List the last name of members with a major in environmental engineering and include its department and college name.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1426
-    description: "List the last name of members with a major in environmental engineering and include its department and college name."
+    description: 'List the last name of members with a major in environmental engineering and include its department and college name.'
     messages:
       - role: user
         content: |

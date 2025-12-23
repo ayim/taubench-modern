@@ -1,5 +1,5 @@
 name: bird-california-schools-061
-description: "BIRD Q60 (challenging): For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county."
+description: 'BIRD Q60 (challenging): For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-60
-    description: "For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county."
+    description: 'For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county.'
     messages:
       - role: user
         content: |

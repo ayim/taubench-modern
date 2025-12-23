@@ -1,5 +1,5 @@
 name: bird-european-football-2-011
-description: "BIRD Q1030 (moderate): Give the name of the league had the most matches end as draw in the 2016 season?"
+description: 'BIRD Q1030 (moderate): Give the name of the league had the most matches end as draw in the 2016 season?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1030
-    description: "Give the name of the league had the most matches end as draw in the 2016 season?"
+    description: 'Give the name of the league had the most matches end as draw in the 2016 season?'
     messages:
       - role: user
         content: |

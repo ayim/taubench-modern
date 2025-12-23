@@ -1,5 +1,5 @@
 name: bird-european-football-2-050
-description: "BIRD Q1069 (simple): Which football player has the shortest height?"
+description: 'BIRD Q1069 (simple): Which football player has the shortest height?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1069
-    description: "Which football player has the shortest height?"
+    description: 'Which football player has the shortest height?'
     messages:
       - role: user
         content: |

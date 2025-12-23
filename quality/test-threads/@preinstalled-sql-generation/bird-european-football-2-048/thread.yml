@@ -1,5 +1,5 @@
 name: bird-european-football-2-048
-description: "BIRD Q1067 (moderate): Which teams have build up play passing more than 70? Please list their short names."
+description: 'BIRD Q1067 (moderate): Which teams have build up play passing more than 70? Please list their short names.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1067
-    description: "Which teams have build up play passing more than 70? Please list their short names."
+    description: 'Which teams have build up play passing more than 70? Please list their short names.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-046
-description: "BIRD Q891 (simple): Name all drivers in the 2010 Singapore Grand Prix order by their position stands."
+description: 'BIRD Q891 (simple): Name all drivers in the 2010 Singapore Grand Prix order by their position stands.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-891
-    description: "Name all drivers in the 2010 Singapore Grand Prix order by their position stands."
+    description: 'Name all drivers in the 2010 Singapore Grand Prix order by their position stands.'
     messages:
       - role: user
         content: |

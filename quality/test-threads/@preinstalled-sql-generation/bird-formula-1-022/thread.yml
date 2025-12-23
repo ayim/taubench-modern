@@ -1,5 +1,5 @@
 name: bird-formula-1-022
-description: "BIRD Q867 (simple): For the driver who set the fastest lap speed in race No.933, where does he come from?"
+description: 'BIRD Q867 (simple): For the driver who set the fastest lap speed in race No.933, where does he come from?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-867
-    description: "For the driver who set the fastest lap speed in race No.933, where does he come from?"
+    description: 'For the driver who set the fastest lap speed in race No.933, where does he come from?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-108
-description: "BIRD Q302 (challenging): Name the elements that comprise the atoms of bond TR001_2_4."
+description: 'BIRD Q302 (challenging): Name the elements that comprise the atoms of bond TR001_2_4.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-302
-    description: "Name the elements that comprise the atoms of bond TR001_2_4."
+    description: 'Name the elements that comprise the atoms of bond TR001_2_4.'
     messages:
       - role: user
         content: |

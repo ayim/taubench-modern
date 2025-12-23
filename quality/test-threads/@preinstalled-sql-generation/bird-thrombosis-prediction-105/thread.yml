@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-105
-description: "BIRD Q1253 (simple): For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?"
+description: 'BIRD Q1253 (simple): For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1253
-    description: "For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?"
+    description: 'For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?'
     messages:
       - role: user
         content: |

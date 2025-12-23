@@ -1,5 +1,5 @@
 name: bird-codebase-community-110
-description: "BIRD Q640 (moderate): Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos."
+description: 'BIRD Q640 (moderate): Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-640
-    description: "Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos."
+    description: 'Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos.'
     messages:
       - role: user
         content: |

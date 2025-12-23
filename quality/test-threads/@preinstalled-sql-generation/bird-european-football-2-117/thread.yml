@@ -1,5 +1,5 @@
 name: bird-european-football-2-117
-description: "BIRD Q1136 (moderate): How many players had the highest potential score for crossing that preferred to use their left foots while attacking?"
+description: 'BIRD Q1136 (moderate): How many players had the highest potential score for crossing that preferred to use their left foots while attacking?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1136
-    description: "How many players had the highest potential score for crossing that preferred to use their left foots while attacking?"
+    description: 'How many players had the highest potential score for crossing that preferred to use their left foots while attacking?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-164
-description: "BIRD Q503 (simple): What was the expansion type for the set which card \"Samite Pilgrim\" in it?"
+description: 'BIRD Q503 (simple): What was the expansion type for the set which card "Samite Pilgrim" in it?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-503
-    description: "What was the expansion type for the set which card \"Samite Pilgrim\" in it?"
+    description: 'What was the expansion type for the set which card "Samite Pilgrim" in it?'
     messages:
       - role: user
         content: |

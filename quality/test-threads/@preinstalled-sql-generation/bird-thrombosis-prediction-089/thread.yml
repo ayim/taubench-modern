@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-089
-description: "BIRD Q1237 (simple): Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex."
+description: 'BIRD Q1237 (simple): Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1237
-    description: "Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex."
+    description: 'Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex.'
     messages:
       - role: user
         content: |

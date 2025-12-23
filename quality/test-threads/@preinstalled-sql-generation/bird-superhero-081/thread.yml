@@ -1,5 +1,5 @@
 name: bird-superhero-081
-description: "BIRD Q797 (moderate): Which superheroes have blue eyes with brown hair?"
+description: 'BIRD Q797 (moderate): Which superheroes have blue eyes with brown hair?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-797
-    description: "Which superheroes have blue eyes with brown hair?"
+    description: 'Which superheroes have blue eyes with brown hair?'
     messages:
       - role: user
         content: |

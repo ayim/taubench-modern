@@ -1,5 +1,5 @@
 name: bird-superhero-035
-description: "BIRD Q751 (moderate): List down at least five superpowers of male superheroes."
+description: 'BIRD Q751 (moderate): List down at least five superpowers of male superheroes.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-751
-    description: "List down at least five superpowers of male superheroes."
+    description: 'List down at least five superpowers of male superheroes.'
     messages:
       - role: user
         content: |

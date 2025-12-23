@@ -1,5 +1,5 @@
 name: bird-superhero-028
-description: "BIRD Q744 (challenging): Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published."
+description: 'BIRD Q744 (challenging): Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-744
-    description: "Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published."
+    description: 'Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published.'
     messages:
       - role: user
         content: |

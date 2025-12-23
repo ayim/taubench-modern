@@ -1,5 +1,5 @@
 name: bird-superhero-029
-description: "BIRD Q745 (simple): Give the publisher ID of Star Trek."
+description: 'BIRD Q745 (simple): Give the publisher ID of Star Trek.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-745
-    description: "Give the publisher ID of Star Trek."
+    description: 'Give the publisher ID of Star Trek.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-015
-description: "BIRD Q1326 (simple): How many members of the Student_Club have majored Environmental Engineering? "
+description: 'BIRD Q1326 (simple): How many members of the Student_Club have majored Environmental Engineering? '
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1326
-    description: "How many members of the Student_Club have majored Environmental Engineering? "
+    description: 'How many members of the Student_Club have majored Environmental Engineering? '
     messages:
       - role: user
         content: |
           How many members of the Student_Club have majored Environmental Engineering?
-          
+
           Evidence: 'Environmental Engineering' is the major name
 
 target-platforms:

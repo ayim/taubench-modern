@@ -1,5 +1,5 @@
 name: bird-european-football-2-105
-description: "BIRD Q1124 (moderate): Who are the players that tend to be attacking when their mates were doing attack moves? List down their name."
+description: 'BIRD Q1124 (moderate): Who are the players that tend to be attacking when their mates were doing attack moves? List down their name.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1124
-    description: "Who are the players that tend to be attacking when their mates were doing attack moves? List down their name."
+    description: 'Who are the players that tend to be attacking when their mates were doing attack moves? List down their name.'
     messages:
       - role: user
         content: |

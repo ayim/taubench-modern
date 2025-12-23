@@ -1,5 +1,5 @@
 name: bird-student-club-134
-description: "BIRD Q1445 (simple): Find the full name of members whose t-shirt size is extra large."
+description: 'BIRD Q1445 (simple): Find the full name of members whose t-shirt size is extra large.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1445
-    description: "Find the full name of members whose t-shirt size is extra large."
+    description: 'Find the full name of members whose t-shirt size is extra large.'
     messages:
       - role: user
         content: |

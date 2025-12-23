@@ -1,5 +1,5 @@
 name: bird-california-schools-081
-description: "BIRD Q80 (simple): What is the school type of the school with the highest latitude? Indicate the name of the school as well as the latitude coordinates."
+description: 'BIRD Q80 (simple): What is the school type of the school with the highest latitude? Indicate the name of the school as well as the latitude coordinates.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-80
-    description: "What is the school type of the school with the highest latitude? Indicate the name of the school as well as the latitude coordinates."
+    description: 'What is the school type of the school with the highest latitude? Indicate the name of the school as well as the latitude coordinates.'
     messages:
       - role: user
         content: |

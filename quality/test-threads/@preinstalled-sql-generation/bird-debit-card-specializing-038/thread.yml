@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-038
-description: "BIRD Q1507 (simple): Please list the disparate time of the transactions taken place in the gas stations from chain no. 11."
+description: 'BIRD Q1507 (simple): Please list the disparate time of the transactions taken place in the gas stations from chain no. 11.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1507
-    description: "Please list the disparate time of the transactions taken place in the gas stations from chain no. 11."
+    description: 'Please list the disparate time of the transactions taken place in the gas stations from chain no. 11.'
     messages:
       - role: user
         content: |

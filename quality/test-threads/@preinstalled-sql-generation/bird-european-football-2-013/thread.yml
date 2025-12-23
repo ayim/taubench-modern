@@ -1,5 +1,5 @@
 name: bird-european-football-2-013
-description: "BIRD Q1032 (moderate): Give the name of the league with the highest matches of all time and how many matches were played in the said league."
+description: 'BIRD Q1032 (moderate): Give the name of the league with the highest matches of all time and how many matches were played in the said league.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1032
-    description: "Give the name of the league with the highest matches of all time and how many matches were played in the said league."
+    description: 'Give the name of the league with the highest matches of all time and how many matches were played in the said league.'
     messages:
       - role: user
         content: |

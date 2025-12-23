@@ -1,5 +1,5 @@
 name: bird-european-football-2-034
-description: "BIRD Q1053 (moderate): List the football teams that has a chance creation passing class of Risky. Inidcate its short name only."
+description: 'BIRD Q1053 (moderate): List the football teams that has a chance creation passing class of Risky. Inidcate its short name only.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1053
-    description: "List the football teams that has a chance creation passing class of Risky. Inidcate its short name only."
+    description: 'List the football teams that has a chance creation passing class of Risky. Inidcate its short name only.'
     messages:
       - role: user
         content: |

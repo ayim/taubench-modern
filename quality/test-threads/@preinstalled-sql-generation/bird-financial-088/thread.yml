@@ -1,5 +1,5 @@
 name: bird-financial-088
-description: "BIRD Q176 (simple): What is the amount of debt that client number 992 has, and how is this client doing with payments?"
+description: 'BIRD Q176 (simple): What is the amount of debt that client number 992 has, and how is this client doing with payments?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-176
-    description: "What is the amount of debt that client number 992 has, and how is this client doing with payments?"
+    description: 'What is the amount of debt that client number 992 has, and how is this client doing with payments?'
     messages:
       - role: user
         content: |

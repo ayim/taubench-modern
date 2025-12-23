@@ -1,5 +1,5 @@
 name: bird-financial-055
-description: "BIRD Q143 (challenging): For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance."
+description: 'BIRD Q143 (challenging): For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-143
-    description: "For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance."
+    description: 'For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance.'
     messages:
       - role: user
         content: |

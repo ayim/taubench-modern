@@ -1,5 +1,5 @@
 name: bird-card-games-061
-description: "BIRD Q400 (simple): Lists the set code of all cards translated into Spanish."
+description: 'BIRD Q400 (simple): Lists the set code of all cards translated into Spanish.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-400
-    description: "Lists the set code of all cards translated into Spanish."
+    description: 'Lists the set code of all cards translated into Spanish.'
     messages:
       - role: user
         content: |

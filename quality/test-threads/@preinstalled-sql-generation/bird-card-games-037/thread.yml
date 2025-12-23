@@ -1,5 +1,5 @@
 name: bird-card-games-037
-description: "BIRD Q376 (simple): What are the card layout of cards with keyword of flying?"
+description: 'BIRD Q376 (simple): What are the card layout of cards with keyword of flying?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-376
-    description: "What are the card layout of cards with keyword of flying?"
+    description: 'What are the card layout of cards with keyword of flying?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-040
-description: "BIRD Q885 (simple): State the name and date of the last round of race in year 1999."
+description: 'BIRD Q885 (simple): State the name and date of the last round of race in year 1999.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-885
-    description: "State the name and date of the last round of race in year 1999."
+    description: 'State the name and date of the last round of race in year 1999.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-106
-description: "BIRD Q822 (moderate): How many green-skinned villains are there in the superhero universe?"
+description: 'BIRD Q822 (moderate): How many green-skinned villains are there in the superhero universe?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-822
-    description: "How many green-skinned villains are there in the superhero universe?"
+    description: 'How many green-skinned villains are there in the superhero universe?'
     messages:
       - role: user
         content: |

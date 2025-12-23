@@ -1,1050 +1,1050 @@
 name: Community Q&A Analytics
 tables:
-- name: badges
-  synonyms:
-  - user achievement badges
-  - earned badge awards
-  - badge grants log
-  base_table:
-    table: badges
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
+  - name: badges
     synonyms:
-    - badge award id
-    data_type: '!int64'
-    description: Unique identifier of the badge award record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: userid
-    name: userid
+      - user achievement badges
+      - earned badge awards
+      - badge grants log
+    base_table:
+      table: badges
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - badge award id
+        data_type: '!int64'
+        description: Unique identifier of the badge award record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: userid
+        name: userid
+        synonyms:
+          - badges recipient user id
+        data_type: int64
+        description: User ID of the badge recipient.
+        sample_values:
+          - 5
+          - 6
+          - 8
+          - 23
+          - 36
+      - expr: name
+        name: name
+        synonyms:
+          - badge title
+        data_type: string
+        description: Name of the badge that was awarded (e.g., 'Teacher').
+        sample_values:
+          - Teacher
+          - Teacher
+          - Teacher
+          - Teacher
+          - Teacher
+    description: Badge awards granted to users, including the badge name and the date
+      it was earned.
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - badge earned timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the badge was awarded to the user.
+        sample_values:
+          - '2010-07-19T11:39:07+00:00'
+          - '2010-07-19T11:39:07+00:00'
+          - '2010-07-19T11:39:07+00:00'
+          - '2010-07-19T11:39:07+00:00'
+          - '2010-07-19T11:39:07+00:00'
+  - name: posts
+    facts:
+      - expr: answercount
+        name: answercount
+        synonyms:
+          - posts number of answers
+        data_type: int64
+        description: Number of answers associated with the post (typically populated for
+          questions).
+        sample_values:
+          - 5
+          - 7
+          - 19
+          - 5
+      - expr: commentcount
+        name: commentcount
+        synonyms:
+          - posts number of comments
+        data_type: int64
+        description: Number of comments on the post.
+        sample_values:
+          - 1
+          - 1
+          - 4
+          - 2
+          - 3
+      - expr: favoritecount
+        name: favoritecount
+        synonyms:
+          - posts favorites count
+        data_type: int64
+        description: Number of times the post was favorited/bookmarked by users.
+        sample_values:
+          - 14
+          - 8
+          - 36
+          - 2
+      - expr: score
+        name: score
+        synonyms:
+          - posts net score
+        data_type: int64
+        description: Post score (typically upvotes minus downvotes).
+        sample_values:
+          - 23
+          - 22
+          - 54
+          - 13
+          - 81
+      - expr: viewcount
+        name: viewcount
+        synonyms:
+          - posts views count
+        data_type: int64
+        description: Number of views the post has received; a proxy for popularity.
+        sample_values:
+          - 1278
+          - 8198
+          - 3613
+          - 5224
     synonyms:
-    - badges recipient user id
-    data_type: int64
-    description: User ID of the badge recipient.
-    sample_values:
-    - 5
-    - 6
-    - 8
-    - 23
-    - 36
-  - expr: name
-    name: name
-    synonyms:
-    - badge title
-    data_type: string
-    description: Name of the badge that was awarded (e.g., 'Teacher').
-    sample_values:
-    - Teacher
-    - Teacher
-    - Teacher
-    - Teacher
-    - Teacher
-  description: Badge awards granted to users, including the badge name and the date
-    it was earned.
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - badge earned timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the badge was awarded to the user.
-    sample_values:
-    - '2010-07-19T11:39:07+00:00'
-    - '2010-07-19T11:39:07+00:00'
-    - '2010-07-19T11:39:07+00:00'
-    - '2010-07-19T11:39:07+00:00'
-    - '2010-07-19T11:39:07+00:00'
-- name: posts
-  facts:
-  - expr: answercount
-    name: answercount
-    synonyms:
-    - posts number of answers
-    data_type: int64
-    description: Number of answers associated with the post (typically populated for
-      questions).
-    sample_values:
-    - 5
-    - 7
-    - 19
-    - 5
-  - expr: commentcount
-    name: commentcount
-    synonyms:
-    - posts number of comments
-    data_type: int64
-    description: Number of comments on the post.
-    sample_values:
-    - 1
-    - 1
-    - 4
-    - 2
-    - 3
-  - expr: favoritecount
-    name: favoritecount
-    synonyms:
-    - posts favorites count
-    data_type: int64
-    description: Number of times the post was favorited/bookmarked by users.
-    sample_values:
-    - 14
-    - 8
-    - 36
-    - 2
-  - expr: score
-    name: score
-    synonyms:
-    - posts net score
-    data_type: int64
-    description: Post score (typically upvotes minus downvotes).
-    sample_values:
-    - 23
-    - 22
-    - 54
-    - 13
-    - 81
-  - expr: viewcount
-    name: viewcount
-    synonyms:
-    - posts views count
-    data_type: int64
-    description: Number of views the post has received; a proxy for popularity.
-    sample_values:
-    - 1278
-    - 8198
-    - 3613
-    - 5224
-  synonyms:
-  - questions and answers
-  - forum post records
-  - qna content items
-  base_table:
-    table: posts
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    synonyms:
-    - posts post id
-    data_type: '!int64'
-    description: Unique identifier for the post.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: posttypeid
-    name: posttypeid
-    synonyms:
-    - posts post type code
-    data_type: int64
-    description: Type of post (e.g., question vs answer) encoded as an integer.
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 2
-  - expr: acceptedanswerid
-    name: acceptedanswerid
-    synonyms:
-    - posts accepted answer post id
-    data_type: int64
-    description: Post ID of the accepted answer for a question (null for non-questions
-      or if no accepted answer).
-    sample_values:
-    - 15
-    - 59
-    - 5
-    - 135
-  - expr: body
-    name: body
-    synonyms:
-    - posts body html
-    data_type: string
-    description: Full post content/body, typically stored as HTML.
-    sample_values:
-    - '<p>How should I elicit prior distributions from experts when fitting a Bayesian
-      model?</p>
+      - questions and answers
+      - forum post records
+      - qna content items
+    base_table:
+      table: posts
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - posts post id
+        data_type: '!int64'
+        description: Unique identifier for the post.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: posttypeid
+        name: posttypeid
+        synonyms:
+          - posts post type code
+        data_type: int64
+        description: Type of post (e.g., question vs answer) encoded as an integer.
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 2
+      - expr: acceptedanswerid
+        name: acceptedanswerid
+        synonyms:
+          - posts accepted answer post id
+        data_type: int64
+        description: Post ID of the accepted answer for a question (null for non-questions
+          or if no accepted answer).
+        sample_values:
+          - 15
+          - 59
+          - 5
+          - 135
+      - expr: body
+        name: body
+        synonyms:
+          - posts body html
+        data_type: string
+        description: Full post content/body, typically stored as HTML.
+        sample_values:
+          - '<p>How should I elicit prior distributions from experts when fitting a Bayesian
+            model?</p>
 
-      '
-    - '<p>In many different statistical methods there is an "assumption of normality".  What
-      is "normality" and how do I know if there is normality?</p>
+            '
+          - '<p>In many different statistical methods there is an "assumption of normality".  What
+            is "normality" and how do I know if there is normality?</p>
 
-      '
-    - '<p>What are some valuable Statistical Analysis open source projects available
-      right now?</p>
-
-
-      <p>Edit: as pointed out by Sharpie, valuable could mean helping you get things
-      done faster or more cheaply.</p>
-
-      '
-    - '<p>I have two groups of data.  Each with a different distribution of multiple
-      variables.  I''m trying to determine if these two groups'' distributions are
-      different in a statistically significant way.  I have the data in both raw form
-      and binned up in easier to deal with discrete categories with frequency counts
-      in each.  </p>
+            '
+          - '<p>What are some valuable Statistical Analysis open source projects available
+            right now?</p>
 
 
-      <p>What tests/procedures/methods should I use to determine whether or not these
-      two groups are significantly different and how do I do that in SAS or R (or
-      Orange)?</p>
+            <p>Edit: as pointed out by Sharpie, valuable could mean helping you get things
+            done faster or more cheaply.</p>
 
-      '
-    - '<p>The R-project</p>
-
-
-      <p><a href="http://www.r-project.org/">http://www.r-project.org/</a></p>
-
-
-      <p>R is valuable and significant because it was the first widely-accepted Open-Source
-      alternative to big-box packages.  It''s mature, well supported, and a standard
-      within many scientific communities.</p>
+            '
+          - "<p>I have two groups of data.  Each with a different distribution of multiple
+            variables.  I'm trying to determine if these two groups' distributions are
+            different in a statistically significant way.  I have the data in both raw form
+            and binned up in easier to deal with discrete categories with frequency counts
+            in each.  </p>
 
 
-      <ul>
+            <p>What tests/procedures/methods should I use to determine whether or not these
+            two groups are significantly different and how do I do that in SAS or R (or
+            Orange)?</p>
 
-      <li><a href="http://www.inside-r.org/why-use-r">Some reasons why it is useful
-      and valuable</a> </li>
-
-      <li>There are some nice tutorials <a href="http://gettinggeneticsdone.blogspot.com/search/label/ggplot2">here</a>.</li>
-
-      </ul>
-
-      '
-  - expr: owneruserid
-    name: owneruserid
-    synonyms:
-    - posts owner user id
-    data_type: int64
-    description: User ID of the post owner/author (may be null for deleted/anonymous).
-    sample_values:
-    - 8
-    - 24
-    - 18
-    - 23
-    - 23
-  - expr: title
-    name: title
-    synonyms:
-    - posts title text
-    data_type: string
-    description: Title of the post (primarily for questions).
-    sample_values:
-    - Eliciting priors from experts
-    - What is normality?
-    - What are some valuable Statistical Analysis open source projects?
-    - Assessing the significance of differences in distributions
-  - expr: tags
-    name: tags
-    synonyms:
-    - posts tag string
-    data_type: string
-    description: Raw tag list for the post, often stored in angle-bracket format (e.g.,
-      '<bayesian><prior>').
-    sample_values:
-    - <bayesian><prior><elicitation>
-    - <distributions><normality>
-    - <software><open-source>
-    - <distributions><statistical-significance>
-  - expr: lasteditoruserid
-    name: lasteditoruserid
-    synonyms:
-    - posts last editor user id
-    data_type: int64
-    description: User ID of the most recent editor (may be null).
-    sample_values:
-    - 88
-    - 183
-    - 23
-  - expr: parentid
-    name: parentid
-    synonyms:
-    - posts parent post id
-    data_type: int64
-    description: Parent post ID. For answers, this is the question ID; for questions,
-      typically null.
-    sample_values:
-    - 3
-  - expr: ownerdisplayname
-    name: ownerdisplayname
-    synonyms:
-    - posts owner display name
-    data_type: string
-    description: Display name of the post owner/author (may be null for deleted/anonymous).
-  - expr: lasteditordisplayname
-    name: lasteditordisplayname
-    synonyms:
-    - posts last editor name
-    data_type: string
-    description: Display name of the user who last edited the post (may be null).
-  description: Posts in the community, including questions and answers, with metadata
-    for engagement (score, views, favorites), ownership, and lifecycle events (creation,
-    edits, closure).
-  time_dimensions:
-  - expr: closeddate
-    name: closeddate
-    synonyms:
-    - posts closure timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the post was closed (null if not closed).
-  - expr: communityowneddate
-    name: communityowneddate
-    synonyms:
-    - posts community wiki timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the post became community-owned/community-wiki
-      (null if never).
-    sample_values:
-    - '2010-07-19T11:13:28+00:00'
-    - '2010-07-19T11:14:43+00:00'
-  - expr: creaiondate
-    name: creaiondate
-    synonyms:
-    - posts creation timestamp
-    data_type: timestamp('UTC', 6)
-    description: 'UTC timestamp when the post was created (note: source column name
-      is misspelled).'
-    sample_values:
-    - '2010-07-19T11:12:12+00:00'
-    - '2010-07-19T11:12:57+00:00'
-    - '2010-07-19T11:13:28+00:00'
-    - '2010-07-19T11:13:31+00:00'
-    - '2010-07-19T11:14:43+00:00'
-  - expr: lasactivitydate
-    name: lasactivitydate
-    synonyms:
-    - posts last activity timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp of the most recent activity on the post (edit, comment,
-      answer, etc.).
-    sample_values:
-    - '2010-09-15T13:08:26+00:00'
-    - '2012-11-12T01:21:54+00:00'
-    - '2013-05-27T06:48:36+00:00'
-    - '2010-09-07T19:00:19+00:00'
-    - '2010-07-19T11:21:15+00:00'
-  - expr: lasteditdate
-    name: lasteditdate
-    synonyms:
-    - posts last edit timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the post was last edited (null if never edited).
-    sample_values:
-    - '2010-08-07T09:56:44+00:00'
-    - '2011-02-11T21:50:03+00:00'
-    - '2010-07-19T11:21:15+00:00'
-- name: comments
-  facts:
-  - expr: score
-    name: score
-    synonyms:
-    - comments popularity score
-    data_type: int64
-    description: Comment score (community voting/feedback on the comment).
-    sample_values:
-    - 5
-    - 0
-    - 0
-    - 11
-    - 1
-  synonyms:
-  - post comment entries
-  - comment threads
-  - discussion remarks
-  base_table:
-    table: comments
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    synonyms:
-    - comments comment id
-    data_type: '!int64'
-    description: Unique identifier for the comment.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: postid
-    name: postid
-    synonyms:
-    - comments referenced post id
-    data_type: int64
-    description: Post ID that the comment is associated with.
-    sample_values:
-    - 3
-    - 5
-    - 9
-    - 5
-    - 3
-  - expr: text
-    name: text
-    synonyms:
-    - comments comment text
-    data_type: string
-    description: Text content of the comment.
-    sample_values:
-    - Could be a poster child fo argumentative and subjective.  At the least, need
-      to define 'valuable'.
-    - Yes, R is nice- but WHY is it 'valuable'.
-    - Again- why?  How would I convince my boss to use this over, say, Excel.
-    - It's mature, well supported, and a standard within certain scientific communities
-      (popular in our AI department, for example)
-    - Define "valuable"...
-  - expr: userid
-    name: userid
-    synonyms:
-    - comments author user id
-    data_type: int64
-    description: User ID of the comment author (may be null for anonymous/deleted).
-    sample_values:
-    - 13
-    - 13
-    - 13
-    - 37
-    - 5
-  - expr: userdisplayname
-    name: userdisplayname
-    synonyms:
-    - comments author display name
-    data_type: string
-    description: Display name of the user who wrote the comment (may be null).
-  description: User comments left on posts, including comment text, score, author,
-    and creation timestamp.
-  time_dimensions:
-  - expr: creationdate
-    name: creationdate
-    synonyms:
-    - comments created timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the comment was created.
-    sample_values:
-    - '2010-07-19T11:15:52+00:00'
-    - '2010-07-19T11:16:14+00:00'
-    - '2010-07-19T11:18:54+00:00'
-    - '2010-07-19T11:19:56+00:00'
-    - '2010-07-19T11:20:28+00:00'
-- name: posthistory
-  synonyms:
-  - post revision history
-  - edit timeline
-  - change log entries
-  base_table:
-    table: posthistory
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    synonyms:
-    - posthistory record id
-    data_type: '!int64'
-    description: Unique identifier for the post history record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: posthistorytypeid
-    name: posthistorytypeid
-    synonyms:
-    - posthistory event type code
-    data_type: int64
-    description: Code indicating the type of history event (e.g., initial creation,
-      edit, tag change).
-    sample_values:
-    - 2
-    - 1
-    - 3
-    - 2
-    - 1
-  - expr: postid
-    name: postid
-    synonyms:
-    - posthistory related post id
-    data_type: int64
-    description: Post ID to which this history record applies.
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 2
-    - 2
-  - expr: revisionguid
-    name: revisionguid
-    synonyms:
-    - posthistory revision guid
-    data_type: string
-    description: Globally unique identifier for the revision.
-    sample_values:
-    - e58bf7fd-e60f-4c58-a6e4-dfc91cf98a69
-    - e58bf7fd-e60f-4c58-a6e4-dfc91cf98a69
-    - e58bf7fd-e60f-4c58-a6e4-dfc91cf98a69
-    - 18bf9150-f1cb-432d-b7b7-26d2f8e33581
-    - 18bf9150-f1cb-432d-b7b7-26d2f8e33581
-  - expr: userid
-    name: userid
-    synonyms:
-    - posthistory editor user id
-    data_type: int64
-    description: User ID associated with the history event (editor/actor).
-    sample_values:
-    - 8
-    - 8
-    - 8
-    - 24
-    - 24
-  - expr: text
-    name: text
-    synonyms:
-    - posthistory stored revision text
-    data_type: string
-    description: Text captured for the revision event; can represent title, body,
-      tags, etc., depending on event type.
-    sample_values:
-    - How should I elicit prior distributions from experts when fitting a Bayesian
-      model?
-    - Eliciting priors from experts
-    - <bayesian><prior><elicitation>
-    - In many different statistical methods there is an "assumption of normality".  What
-      is "normality" and how do I know if there is normality?
-    - What is normality?
-  - expr: comment
-    name: comment
-    synonyms:
-    - posthistory revision comment
-    data_type: string
-    description: Editor-supplied comment describing the revision (may be blank).
-    sample_values:
-    - ''
-    - ''
-    - ''
-    - ''
-    - ''
-  - expr: userdisplayname
-    name: userdisplayname
-    synonyms:
-    - posthistory editor display name
-    data_type: string
-    description: Display name of the user who performed the history event (may be
-      blank).
-    sample_values:
-    - ''
-    - ''
-    - ''
-    - ''
-    - ''
-  description: Revision and edit history for posts, including revision identifiers,
-    edit type codes, editor, and the text captured for that revision.
-  time_dimensions:
-  - expr: creationdate
-    name: creationdate
-    synonyms:
-    - posthistory event timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the history event/revision was created.
-    sample_values:
-    - '2010-07-19T11:12:12+00:00'
-    - '2010-07-19T11:12:12+00:00'
-    - '2010-07-19T11:12:12+00:00'
-    - '2010-07-19T11:12:57+00:00'
-    - '2010-07-19T11:12:57+00:00'
-- name: users
-  facts:
-  - expr: downvotes
-    name: downvotes
-    synonyms:
-    - users downvotes count
-    data_type: int64
-    description: Number of downvotes cast by the user (lifetime).
-    sample_values:
-    - 1920
-    - 0
-    - 0
-    - 0
-    - 5
-  - expr: reputation
-    name: reputation
-    synonyms:
-    - users reputation points
-    data_type: int64
-    description: User reputation score; higher values generally indicate more community
-      trust/influence.
-    sample_values:
-    - 1
-    - 101
-    - 101
-    - 101
-    - 6792
-  - expr: upvotes
-    name: upvotes
-    synonyms:
-    - users upvotes count
-    data_type: int64
-    description: Number of upvotes cast by the user (lifetime).
-    sample_values:
-    - 5007
-    - 3
-    - 19
-    - 0
-    - 662
-  - expr: views
-    name: views
-    synonyms:
-    - users profile views count
-    data_type: int64
-    description: Number of profile views for the user.
-    sample_values:
-    - 0
-    - 25
-    - 22
-    - 11
-    - 1145
-  synonyms:
-  - member accounts
-  - community user profiles
-  - registered users list
-  base_table:
-    table: users
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    synonyms:
-    - users user id
-    data_type: '!int64'
-    description: Unique identifier for the user within the community.
-    sample_values:
-    - -1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: displayname
-    name: displayname
-    synonyms:
-    - users public display name
-    data_type: string
-    description: User's display name shown publicly in the community.
-    sample_values:
-    - Community
-    - Geoff Dalgas
-    - Jarrod Dixon
-    - Emmett
-    - Shane
-  - expr: websiteurl
-    name: websiteurl
-    synonyms:
-    - users personal website url
-    data_type: string
-    description: User-provided website URL.
-    sample_values:
-    - http://meta.stackexchange.com/
-    - http://stackoverflow.com
-    - http://stackoverflow.com
-    - http://minesweeperonline.com
-    - http://www.statalgo.com
-  - expr: location
-    name: location
-    synonyms:
-    - users profile location
-    data_type: string
-    description: User-entered location string (free text).
-    sample_values:
-    - on the server farm
-    - Corvallis, OR
-    - New York, NY
-    - San Francisco, CA
-    - New York, NY
-  - expr: aboutme
-    name: aboutme
-    synonyms:
-    - users about me section
-    data_type: string
-    description: User-provided profile biography/self-description (often HTML).
-    sample_values:
-    - '<p>Hi, I''m not really a person.</p>
+            "
+          - '<p>The R-project</p>
 
 
-      <p>I''m a background process that helps keep this site clean!</p>
+            <p><a href="http://www.r-project.org/">http://www.r-project.org/</a></p>
 
 
-      <p>I do things like</p>
+            <p>R is valuable and significant because it was the first widely-accepted Open-Source
+            alternative to big-box packages.  It''s mature, well supported, and a standard
+            within many scientific communities.</p>
 
 
-      <ul>
+            <ul>
 
-      <li>Randomly poke old unanswered questions every hour so they get some attention</li>
+            <li><a href="http://www.inside-r.org/why-use-r">Some reasons why it is useful
+            and valuable</a> </li>
 
-      <li>Own community questions and answers so nobody gets unnecessary reputation
-      from them</li>
+            <li>There are some nice tutorials <a href="http://gettinggeneticsdone.blogspot.com/search/label/ggplot2">here</a>.</li>
 
-      <li>Own downvotes on spam/evil posts that get permanently deleted</li>
+            </ul>
 
-      <li>Own suggested edits from anonymous users</li>
-
-      <li><a href="http://meta.stackexchange.com/a/92006">Remove abandoned questions</a></li>
-
-      </ul>
-
-      '
-    - '<p>Developer on the StackOverflow team.  Find me on</p>
-
-
-      <p><a href="http://www.twitter.com/SuperDalgas" rel="nofollow">Twitter</a>
-
-      <br><br>
-
-      <a href="http://blog.stackoverflow.com/2009/05/welcome-stack-overflow-valued-associate-00003/">Stack
-      Overflow Valued Associate #00003</a></p>
-
-      '
-    - '<p><a href="http://blog.stackoverflow.com/2009/01/welcome-stack-overflow-valued-associate-00002/">Developer
-      on the Stack Overflow team</a>.</p>
-
-
-      <p>Was dubbed <strong>SALTY SAILOR</strong> by Jeff Atwood, as filth and flarn
-      would oft-times fly when dealing with a particularly nasty bug!</p>
-
-
-      <ul>
-
-      <li>Twitter me: <a href="http://twitter.com/jarrod_dixon" rel="nofollow">jarrod_dixon</a></li>
-
-      <li>Email me: jarrod.m.dixon@gmail.com</li>
-
-      </ul>
-
-      '
-    - '<p>currently at a startup in SF</p>
-
-
-      <p>formerly a dev at Stack Exchange :)</p>
-
-      '
-    - '<p>Quantitative researcher focusing on statistics and machine learning methods
-      in finance. Primarily use R, C++, Python, various databases (including OneTick
-      and KDB), and LaTeX on a daily basis. </p>
-
-
-      <ul>
-
-      <li>Twitter: @statalgo</li>
-
-      <li>Blog: <a href="http://www.statalgo.com" rel="nofollow">http://www.statalgo.com</a>
-      (largely inactive)</li>
-
-      <li>Former moderator on data analysis stack exchange site: <a href="http://stats.stackexchange.com/">http://stats.stackexchange.com/</a></li>
-
-      <li>Proposer of Quantitative Finance stack exchange site: <a href="http://area51.stackexchange.com/proposals/117/quantitative-finance?referrer=EZoOPpokWeo1">http://area51.stackexchange.com/proposals/117/quantitative-finance?referrer=EZoOPpokWeo1</a></li>
-
-      </ul>
-
-      '
-  - expr: accountid
-    name: accountid
+            '
+      - expr: owneruserid
+        name: owneruserid
+        synonyms:
+          - posts owner user id
+        data_type: int64
+        description: User ID of the post owner/author (may be null for deleted/anonymous).
+        sample_values:
+          - 8
+          - 24
+          - 18
+          - 23
+          - 23
+      - expr: title
+        name: title
+        synonyms:
+          - posts title text
+        data_type: string
+        description: Title of the post (primarily for questions).
+        sample_values:
+          - Eliciting priors from experts
+          - What is normality?
+          - What are some valuable Statistical Analysis open source projects?
+          - Assessing the significance of differences in distributions
+      - expr: tags
+        name: tags
+        synonyms:
+          - posts tag string
+        data_type: string
+        description: Raw tag list for the post, often stored in angle-bracket format (e.g.,
+          '<bayesian><prior>').
+        sample_values:
+          - <bayesian><prior><elicitation>
+          - <distributions><normality>
+          - <software><open-source>
+          - <distributions><statistical-significance>
+      - expr: lasteditoruserid
+        name: lasteditoruserid
+        synonyms:
+          - posts last editor user id
+        data_type: int64
+        description: User ID of the most recent editor (may be null).
+        sample_values:
+          - 88
+          - 183
+          - 23
+      - expr: parentid
+        name: parentid
+        synonyms:
+          - posts parent post id
+        data_type: int64
+        description: Parent post ID. For answers, this is the question ID; for questions,
+          typically null.
+        sample_values:
+          - 3
+      - expr: ownerdisplayname
+        name: ownerdisplayname
+        synonyms:
+          - posts owner display name
+        data_type: string
+        description: Display name of the post owner/author (may be null for deleted/anonymous).
+      - expr: lasteditordisplayname
+        name: lasteditordisplayname
+        synonyms:
+          - posts last editor name
+        data_type: string
+        description: Display name of the user who last edited the post (may be null).
+    description: Posts in the community, including questions and answers, with metadata
+      for engagement (score, views, favorites), ownership, and lifecycle events (creation,
+      edits, closure).
+    time_dimensions:
+      - expr: closeddate
+        name: closeddate
+        synonyms:
+          - posts closure timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the post was closed (null if not closed).
+      - expr: communityowneddate
+        name: communityowneddate
+        synonyms:
+          - posts community wiki timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the post became community-owned/community-wiki
+          (null if never).
+        sample_values:
+          - '2010-07-19T11:13:28+00:00'
+          - '2010-07-19T11:14:43+00:00'
+      - expr: creaiondate
+        name: creaiondate
+        synonyms:
+          - posts creation timestamp
+        data_type: timestamp('UTC', 6)
+        description: 'UTC timestamp when the post was created (note: source column name
+          is misspelled).'
+        sample_values:
+          - '2010-07-19T11:12:12+00:00'
+          - '2010-07-19T11:12:57+00:00'
+          - '2010-07-19T11:13:28+00:00'
+          - '2010-07-19T11:13:31+00:00'
+          - '2010-07-19T11:14:43+00:00'
+      - expr: lasactivitydate
+        name: lasactivitydate
+        synonyms:
+          - posts last activity timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp of the most recent activity on the post (edit, comment,
+          answer, etc.).
+        sample_values:
+          - '2010-09-15T13:08:26+00:00'
+          - '2012-11-12T01:21:54+00:00'
+          - '2013-05-27T06:48:36+00:00'
+          - '2010-09-07T19:00:19+00:00'
+          - '2010-07-19T11:21:15+00:00'
+      - expr: lasteditdate
+        name: lasteditdate
+        synonyms:
+          - posts last edit timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the post was last edited (null if never edited).
+        sample_values:
+          - '2010-08-07T09:56:44+00:00'
+          - '2011-02-11T21:50:03+00:00'
+          - '2010-07-19T11:21:15+00:00'
+  - name: comments
+    facts:
+      - expr: score
+        name: score
+        synonyms:
+          - comments popularity score
+        data_type: int64
+        description: Comment score (community voting/feedback on the comment).
+        sample_values:
+          - 5
+          - 0
+          - 0
+          - 11
+          - 1
     synonyms:
-    - users network account id
-    data_type: int64
-    description: Global account identifier across the network (can be -1 for system/community
-      users).
-    sample_values:
-    - -1
-    - 2
-    - 3
-    - 1998
-    - 54503
-  - expr: age
-    name: age
+      - post comment entries
+      - comment threads
+      - discussion remarks
+    base_table:
+      table: comments
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - comments comment id
+        data_type: '!int64'
+        description: Unique identifier for the comment.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: postid
+        name: postid
+        synonyms:
+          - comments referenced post id
+        data_type: int64
+        description: Post ID that the comment is associated with.
+        sample_values:
+          - 3
+          - 5
+          - 9
+          - 5
+          - 3
+      - expr: text
+        name: text
+        synonyms:
+          - comments comment text
+        data_type: string
+        description: Text content of the comment.
+        sample_values:
+          - Could be a poster child fo argumentative and subjective.  At the least, need
+            to define 'valuable'.
+          - Yes, R is nice- but WHY is it 'valuable'.
+          - Again- why?  How would I convince my boss to use this over, say, Excel.
+          - It's mature, well supported, and a standard within certain scientific communities
+            (popular in our AI department, for example)
+          - Define "valuable"...
+      - expr: userid
+        name: userid
+        synonyms:
+          - comments author user id
+        data_type: int64
+        description: User ID of the comment author (may be null for anonymous/deleted).
+        sample_values:
+          - 13
+          - 13
+          - 13
+          - 37
+          - 5
+      - expr: userdisplayname
+        name: userdisplayname
+        synonyms:
+          - comments author display name
+        data_type: string
+        description: Display name of the user who wrote the comment (may be null).
+    description: User comments left on posts, including comment text, score, author,
+      and creation timestamp.
+    time_dimensions:
+      - expr: creationdate
+        name: creationdate
+        synonyms:
+          - comments created timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the comment was created.
+        sample_values:
+          - '2010-07-19T11:15:52+00:00'
+          - '2010-07-19T11:16:14+00:00'
+          - '2010-07-19T11:18:54+00:00'
+          - '2010-07-19T11:19:56+00:00'
+          - '2010-07-19T11:20:28+00:00'
+  - name: posthistory
     synonyms:
-    - users stated age
-    data_type: int64
-    description: User's self-reported age (may be null).
-    sample_values:
-    - 37
-    - 35
-    - 28
-    - 35
-  - expr: profileimageurl
-    name: profileimageurl
+      - post revision history
+      - edit timeline
+      - change log entries
+    base_table:
+      table: posthistory
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - posthistory record id
+        data_type: '!int64'
+        description: Unique identifier for the post history record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: posthistorytypeid
+        name: posthistorytypeid
+        synonyms:
+          - posthistory event type code
+        data_type: int64
+        description: Code indicating the type of history event (e.g., initial creation,
+          edit, tag change).
+        sample_values:
+          - 2
+          - 1
+          - 3
+          - 2
+          - 1
+      - expr: postid
+        name: postid
+        synonyms:
+          - posthistory related post id
+        data_type: int64
+        description: Post ID to which this history record applies.
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 2
+          - 2
+      - expr: revisionguid
+        name: revisionguid
+        synonyms:
+          - posthistory revision guid
+        data_type: string
+        description: Globally unique identifier for the revision.
+        sample_values:
+          - e58bf7fd-e60f-4c58-a6e4-dfc91cf98a69
+          - e58bf7fd-e60f-4c58-a6e4-dfc91cf98a69
+          - e58bf7fd-e60f-4c58-a6e4-dfc91cf98a69
+          - 18bf9150-f1cb-432d-b7b7-26d2f8e33581
+          - 18bf9150-f1cb-432d-b7b7-26d2f8e33581
+      - expr: userid
+        name: userid
+        synonyms:
+          - posthistory editor user id
+        data_type: int64
+        description: User ID associated with the history event (editor/actor).
+        sample_values:
+          - 8
+          - 8
+          - 8
+          - 24
+          - 24
+      - expr: text
+        name: text
+        synonyms:
+          - posthistory stored revision text
+        data_type: string
+        description: Text captured for the revision event; can represent title, body,
+          tags, etc., depending on event type.
+        sample_values:
+          - How should I elicit prior distributions from experts when fitting a Bayesian
+            model?
+          - Eliciting priors from experts
+          - <bayesian><prior><elicitation>
+          - In many different statistical methods there is an "assumption of normality".  What
+            is "normality" and how do I know if there is normality?
+          - What is normality?
+      - expr: comment
+        name: comment
+        synonyms:
+          - posthistory revision comment
+        data_type: string
+        description: Editor-supplied comment describing the revision (may be blank).
+        sample_values:
+          - ''
+          - ''
+          - ''
+          - ''
+          - ''
+      - expr: userdisplayname
+        name: userdisplayname
+        synonyms:
+          - posthistory editor display name
+        data_type: string
+        description: Display name of the user who performed the history event (may be
+          blank).
+        sample_values:
+          - ''
+          - ''
+          - ''
+          - ''
+          - ''
+    description: Revision and edit history for posts, including revision identifiers,
+      edit type codes, editor, and the text captured for that revision.
+    time_dimensions:
+      - expr: creationdate
+        name: creationdate
+        synonyms:
+          - posthistory event timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the history event/revision was created.
+        sample_values:
+          - '2010-07-19T11:12:12+00:00'
+          - '2010-07-19T11:12:12+00:00'
+          - '2010-07-19T11:12:12+00:00'
+          - '2010-07-19T11:12:57+00:00'
+          - '2010-07-19T11:12:57+00:00'
+  - name: users
+    facts:
+      - expr: downvotes
+        name: downvotes
+        synonyms:
+          - users downvotes count
+        data_type: int64
+        description: Number of downvotes cast by the user (lifetime).
+        sample_values:
+          - 1920
+          - 0
+          - 0
+          - 0
+          - 5
+      - expr: reputation
+        name: reputation
+        synonyms:
+          - users reputation points
+        data_type: int64
+        description: User reputation score; higher values generally indicate more community
+          trust/influence.
+        sample_values:
+          - 1
+          - 101
+          - 101
+          - 101
+          - 6792
+      - expr: upvotes
+        name: upvotes
+        synonyms:
+          - users upvotes count
+        data_type: int64
+        description: Number of upvotes cast by the user (lifetime).
+        sample_values:
+          - 5007
+          - 3
+          - 19
+          - 0
+          - 662
+      - expr: views
+        name: views
+        synonyms:
+          - users profile views count
+        data_type: int64
+        description: Number of profile views for the user.
+        sample_values:
+          - 0
+          - 25
+          - 22
+          - 11
+          - 1145
     synonyms:
-    - users avatar url
-    data_type: string
-    description: URL of the user's profile image/avatar.
-    sample_values:
-    - http://i.stack.imgur.com/d1oHX.jpg
-  description: User accounts and profile attributes, including display name, reputation,
-    activity timestamps, and profile metadata.
-  time_dimensions:
-  - expr: creationdate
-    name: creationdate
+      - member accounts
+      - community user profiles
+      - registered users list
+    base_table:
+      table: users
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - users user id
+        data_type: '!int64'
+        description: Unique identifier for the user within the community.
+        sample_values:
+          - -1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: displayname
+        name: displayname
+        synonyms:
+          - users public display name
+        data_type: string
+        description: User's display name shown publicly in the community.
+        sample_values:
+          - Community
+          - Geoff Dalgas
+          - Jarrod Dixon
+          - Emmett
+          - Shane
+      - expr: websiteurl
+        name: websiteurl
+        synonyms:
+          - users personal website url
+        data_type: string
+        description: User-provided website URL.
+        sample_values:
+          - http://meta.stackexchange.com/
+          - http://stackoverflow.com
+          - http://stackoverflow.com
+          - http://minesweeperonline.com
+          - http://www.statalgo.com
+      - expr: location
+        name: location
+        synonyms:
+          - users profile location
+        data_type: string
+        description: User-entered location string (free text).
+        sample_values:
+          - on the server farm
+          - Corvallis, OR
+          - New York, NY
+          - San Francisco, CA
+          - New York, NY
+      - expr: aboutme
+        name: aboutme
+        synonyms:
+          - users about me section
+        data_type: string
+        description: User-provided profile biography/self-description (often HTML).
+        sample_values:
+          - '<p>Hi, I''m not really a person.</p>
+
+
+            <p>I''m a background process that helps keep this site clean!</p>
+
+
+            <p>I do things like</p>
+
+
+            <ul>
+
+            <li>Randomly poke old unanswered questions every hour so they get some attention</li>
+
+            <li>Own community questions and answers so nobody gets unnecessary reputation
+            from them</li>
+
+            <li>Own downvotes on spam/evil posts that get permanently deleted</li>
+
+            <li>Own suggested edits from anonymous users</li>
+
+            <li><a href="http://meta.stackexchange.com/a/92006">Remove abandoned questions</a></li>
+
+            </ul>
+
+            '
+          - '<p>Developer on the StackOverflow team.  Find me on</p>
+
+
+            <p><a href="http://www.twitter.com/SuperDalgas" rel="nofollow">Twitter</a>
+
+            <br><br>
+
+            <a href="http://blog.stackoverflow.com/2009/05/welcome-stack-overflow-valued-associate-00003/">Stack
+            Overflow Valued Associate #00003</a></p>
+
+            '
+          - '<p><a href="http://blog.stackoverflow.com/2009/01/welcome-stack-overflow-valued-associate-00002/">Developer
+            on the Stack Overflow team</a>.</p>
+
+
+            <p>Was dubbed <strong>SALTY SAILOR</strong> by Jeff Atwood, as filth and flarn
+            would oft-times fly when dealing with a particularly nasty bug!</p>
+
+
+            <ul>
+
+            <li>Twitter me: <a href="http://twitter.com/jarrod_dixon" rel="nofollow">jarrod_dixon</a></li>
+
+            <li>Email me: jarrod.m.dixon@gmail.com</li>
+
+            </ul>
+
+            '
+          - '<p>currently at a startup in SF</p>
+
+
+            <p>formerly a dev at Stack Exchange :)</p>
+
+            '
+          - '<p>Quantitative researcher focusing on statistics and machine learning methods
+            in finance. Primarily use R, C++, Python, various databases (including OneTick
+            and KDB), and LaTeX on a daily basis. </p>
+
+
+            <ul>
+
+            <li>Twitter: @statalgo</li>
+
+            <li>Blog: <a href="http://www.statalgo.com" rel="nofollow">http://www.statalgo.com</a>
+            (largely inactive)</li>
+
+            <li>Former moderator on data analysis stack exchange site: <a href="http://stats.stackexchange.com/">http://stats.stackexchange.com/</a></li>
+
+            <li>Proposer of Quantitative Finance stack exchange site: <a href="http://area51.stackexchange.com/proposals/117/quantitative-finance?referrer=EZoOPpokWeo1">http://area51.stackexchange.com/proposals/117/quantitative-finance?referrer=EZoOPpokWeo1</a></li>
+
+            </ul>
+
+            '
+      - expr: accountid
+        name: accountid
+        synonyms:
+          - users network account id
+        data_type: int64
+        description: Global account identifier across the network (can be -1 for system/community
+          users).
+        sample_values:
+          - -1
+          - 2
+          - 3
+          - 1998
+          - 54503
+      - expr: age
+        name: age
+        synonyms:
+          - users stated age
+        data_type: int64
+        description: User's self-reported age (may be null).
+        sample_values:
+          - 37
+          - 35
+          - 28
+          - 35
+      - expr: profileimageurl
+        name: profileimageurl
+        synonyms:
+          - users avatar url
+        data_type: string
+        description: URL of the user's profile image/avatar.
+        sample_values:
+          - http://i.stack.imgur.com/d1oHX.jpg
+    description: User accounts and profile attributes, including display name, reputation,
+      activity timestamps, and profile metadata.
+    time_dimensions:
+      - expr: creationdate
+        name: creationdate
+        synonyms:
+          - users signup timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the user account was created.
+        sample_values:
+          - '2010-07-18T22:55:26+00:00'
+          - '2010-07-19T06:01:36+00:00'
+          - '2010-07-19T07:34:50+00:00'
+          - '2010-07-19T11:03:27+00:00'
+          - '2010-07-19T11:03:57+00:00'
+      - expr: lastaccessdate
+        name: lastaccessdate
+        synonyms:
+          - users last seen timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the user last accessed the site.
+        sample_values:
+          - '2010-07-18T22:55:26+00:00'
+          - '2013-11-12T14:07:23+00:00'
+          - '2014-08-07T22:42:58+00:00'
+          - '2014-01-02T01:31:02+00:00'
+          - '2014-08-12T16:23:47+00:00'
+  - name: postlinks
     synonyms:
-    - users signup timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the user account was created.
-    sample_values:
-    - '2010-07-18T22:55:26+00:00'
-    - '2010-07-19T06:01:36+00:00'
-    - '2010-07-19T07:34:50+00:00'
-    - '2010-07-19T11:03:27+00:00'
-    - '2010-07-19T11:03:57+00:00'
-  - expr: lastaccessdate
-    name: lastaccessdate
+      - post relationship links
+      - linked post pairs
+      - related posts mapping
+    base_table:
+      table: postlinks
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - postlinks link id
+        data_type: '!int64'
+        description: Unique identifier for the post link record.
+        sample_values:
+          - 108
+          - 145
+          - 217
+          - 263
+          - 264
+      - expr: postid
+        name: postid
+        synonyms:
+          - postlinks source post id
+        data_type: int64
+        description: Post ID that is the source of the relationship.
+        sample_values:
+          - 395
+          - 548
+          - 375
+          - 769
+          - 769
+      - expr: relatedpostid
+        name: relatedpostid
+        synonyms:
+          - postlinks target post id
+        data_type: int64
+        description: Post ID that is related to the source post.
+        sample_values:
+          - 173
+          - 539
+          - 30
+          - 31
+          - 6
+      - expr: linktypeid
+        name: linktypeid
+        synonyms:
+          - postlinks link type code
+        data_type: int64
+        description: Code indicating the type of relationship between the posts (e.g.,
+          duplicate, related).
+        sample_values:
+          - 1
+          - 1
+          - 1
+          - 1
+          - 1
+    description: Links between posts indicating relationships such as duplicates or
+      related questions/answers, including link type and creation time.
+    time_dimensions:
+      - expr: creationdate
+        name: creationdate
+        synonyms:
+          - postlinks created timestamp
+        data_type: timestamp('UTC', 6)
+        description: UTC timestamp when the link between posts was created.
+        sample_values:
+          - '2010-07-21T06:47:33+00:00'
+          - '2010-07-23T08:30:41+00:00'
+          - '2010-07-26T12:12:15+00:00'
+          - '2010-07-27T08:00:22+00:00'
+          - '2010-07-27T08:00:22+00:00'
+  - name: votes
+    facts:
+      - expr: bountyamount
+        name: bountyamount
+        synonyms:
+          - votes bounty amount
+        data_type: int64
+        description: Bounty amount associated with the vote event (null unless the vote
+          type is a bounty).
     synonyms:
-    - users last seen timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the user last accessed the site.
-    sample_values:
-    - '2010-07-18T22:55:26+00:00'
-    - '2013-11-12T14:07:23+00:00'
-    - '2014-08-07T22:42:58+00:00'
-    - '2014-01-02T01:31:02+00:00'
-    - '2014-08-12T16:23:47+00:00'
-- name: postlinks
-  synonyms:
-  - post relationship links
-  - linked post pairs
-  - related posts mapping
-  base_table:
-    table: postlinks
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
+      - voting activity records
+      - post vote log
+      - bounty and vote events
+    base_table:
+      table: votes
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - votes vote id
+        data_type: '!int64'
+        description: Unique identifier for the vote record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: postid
+        name: postid
+        synonyms:
+          - votes voted post id
+        data_type: int64
+        description: Post ID that received the vote.
+        sample_values:
+          - 3
+          - 2
+          - 5
+          - 5
+          - 3
+      - expr: votetypeid
+        name: votetypeid
+        synonyms:
+          - votes vote type code
+        data_type: int64
+        description: Code identifying the type of vote event (upvote, downvote, bounty,
+          etc.).
+        sample_values:
+          - 2
+          - 2
+          - 2
+          - 2
+          - 2
+      - expr: userid
+        name: userid
+        synonyms:
+          - votes voter user id
+        data_type: int64
+        description: User ID of the voter (may be null).
+    description: Vote events applied to posts (upvotes, downvotes, accepts, bounties,
+      etc.), with vote type, voter, and event date.
+    time_dimensions:
+      - expr: creationdate
+        name: creationdate
+        synonyms:
+          - votes event date
+        data_type: date
+        description: Calendar date when the vote event occurred (no time component in
+          source).
+        sample_values:
+          - '2010-07-19'
+          - '2010-07-19'
+          - '2010-07-19'
+          - '2010-07-19'
+          - '2010-07-19'
+  - name: tags
+    facts:
+      - expr: count
+        name: count
+        synonyms:
+          - tags usage count
+        data_type: int64
+        description: Number of posts that use the tag; higher values indicate more popular
+          topics.
+        sample_values:
+          - 1342
+          - 168
+          - 6
+          - 191
+          - 13
     synonyms:
-    - postlinks link id
-    data_type: '!int64'
-    description: Unique identifier for the post link record.
-    sample_values:
-    - 108
-    - 145
-    - 217
-    - 263
-    - 264
-  - expr: postid
-    name: postid
-    synonyms:
-    - postlinks source post id
-    data_type: int64
-    description: Post ID that is the source of the relationship.
-    sample_values:
-    - 395
-    - 548
-    - 375
-    - 769
-    - 769
-  - expr: relatedpostid
-    name: relatedpostid
-    synonyms:
-    - postlinks target post id
-    data_type: int64
-    description: Post ID that is related to the source post.
-    sample_values:
-    - 173
-    - 539
-    - 30
-    - 31
-    - 6
-  - expr: linktypeid
-    name: linktypeid
-    synonyms:
-    - postlinks link type code
-    data_type: int64
-    description: Code indicating the type of relationship between the posts (e.g.,
-      duplicate, related).
-    sample_values:
-    - 1
-    - 1
-    - 1
-    - 1
-    - 1
-  description: Links between posts indicating relationships such as duplicates or
-    related questions/answers, including link type and creation time.
-  time_dimensions:
-  - expr: creationdate
-    name: creationdate
-    synonyms:
-    - postlinks created timestamp
-    data_type: timestamp('UTC', 6)
-    description: UTC timestamp when the link between posts was created.
-    sample_values:
-    - '2010-07-21T06:47:33+00:00'
-    - '2010-07-23T08:30:41+00:00'
-    - '2010-07-26T12:12:15+00:00'
-    - '2010-07-27T08:00:22+00:00'
-    - '2010-07-27T08:00:22+00:00'
-- name: votes
-  facts:
-  - expr: bountyamount
-    name: bountyamount
-    synonyms:
-    - votes bounty amount
-    data_type: int64
-    description: Bounty amount associated with the vote event (null unless the vote
-      type is a bounty).
-  synonyms:
-  - voting activity records
-  - post vote log
-  - bounty and vote events
-  base_table:
-    table: votes
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    synonyms:
-    - votes vote id
-    data_type: '!int64'
-    description: Unique identifier for the vote record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: postid
-    name: postid
-    synonyms:
-    - votes voted post id
-    data_type: int64
-    description: Post ID that received the vote.
-    sample_values:
-    - 3
-    - 2
-    - 5
-    - 5
-    - 3
-  - expr: votetypeid
-    name: votetypeid
-    synonyms:
-    - votes vote type code
-    data_type: int64
-    description: Code identifying the type of vote event (upvote, downvote, bounty,
-      etc.).
-    sample_values:
-    - 2
-    - 2
-    - 2
-    - 2
-    - 2
-  - expr: userid
-    name: userid
-    synonyms:
-    - votes voter user id
-    data_type: int64
-    description: User ID of the voter (may be null).
-  description: Vote events applied to posts (upvotes, downvotes, accepts, bounties,
-    etc.), with vote type, voter, and event date.
-  time_dimensions:
-  - expr: creationdate
-    name: creationdate
-    synonyms:
-    - votes event date
-    data_type: date
-    description: Calendar date when the vote event occurred (no time component in
-      source).
-    sample_values:
-    - '2010-07-19'
-    - '2010-07-19'
-    - '2010-07-19'
-    - '2010-07-19'
-    - '2010-07-19'
-- name: tags
-  facts:
-  - expr: count
-    name: count
-    synonyms:
-    - tags usage count
-    data_type: int64
-    description: Number of posts that use the tag; higher values indicate more popular
-      topics.
-    sample_values:
-    - 1342
-    - 168
-    - 6
-    - 191
-    - 13
-  synonyms:
-  - topic tag catalog
-  - tags reference list
-  - topics dimension
-  base_table:
-    table: tags
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: id
-    name: id
-    synonyms:
-    - tags tag id
-    data_type: '!int64'
-    description: Unique identifier for the tag.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: tagname
-    name: tagname
-    synonyms:
-    - tags tag name
-    data_type: string
-    description: Canonical name/text of the tag (topic label).
-    sample_values:
-    - bayesian
-    - prior
-    - elicitation
-    - normality
-    - open-source
-  - expr: excerptpostid
-    name: excerptpostid
-    synonyms:
-    - tags excerpt post id
-    data_type: int64
-    description: Post ID for the tag excerpt/short description (if available).
-    sample_values:
-    - 20258
-    - 62158
-    - 67815
-  - expr: wikipostid
-    name: wikipostid
-    synonyms:
-    - tags wiki post id
-    data_type: int64
-    description: Post ID for the tag wiki/long-form description (if available).
-    sample_values:
-    - 20257
-    - 62157
-    - 67814
-  description: Tag reference data, including tag name and usage count, plus links
-    to excerpt and wiki posts describing the tag.
+      - topic tag catalog
+      - tags reference list
+      - topics dimension
+    base_table:
+      table: tags
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: id
+        name: id
+        synonyms:
+          - tags tag id
+        data_type: '!int64'
+        description: Unique identifier for the tag.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: tagname
+        name: tagname
+        synonyms:
+          - tags tag name
+        data_type: string
+        description: Canonical name/text of the tag (topic label).
+        sample_values:
+          - bayesian
+          - prior
+          - elicitation
+          - normality
+          - open-source
+      - expr: excerptpostid
+        name: excerptpostid
+        synonyms:
+          - tags excerpt post id
+        data_type: int64
+        description: Post ID for the tag excerpt/short description (if available).
+        sample_values:
+          - 20258
+          - 62158
+          - 67815
+      - expr: wikipostid
+        name: wikipostid
+        synonyms:
+          - tags wiki post id
+        data_type: int64
+        description: Post ID for the tag wiki/long-form description (if available).
+        sample_values:
+          - 20257
+          - 62157
+          - 67814
+    description: Tag reference data, including tag name and usage count, plus links
+      to excerpt and wiki posts describing the tag.
 description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
   \ badges\n\nColumns:\n (the badge id) - Type: integer\n- **User Id** (the unique\
   \ id of the user) - Type: integer\n (the badge name the user obtained) - Type: text\n\

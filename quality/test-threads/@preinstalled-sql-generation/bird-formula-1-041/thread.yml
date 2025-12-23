@@ -1,5 +1,5 @@
 name: bird-formula-1-041
-description: "BIRD Q886 (simple): Which year has the most number of races?"
+description: 'BIRD Q886 (simple): Which year has the most number of races?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-886
-    description: "Which year has the most number of races?"
+    description: 'Which year has the most number of races?'
     messages:
       - role: user
         content: |

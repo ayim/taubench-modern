@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-004
-description: "BIRD Q1473 (moderate): What was the average monthly consumption of customers in SME for the year 2013?"
+description: 'BIRD Q1473 (moderate): What was the average monthly consumption of customers in SME for the year 2013?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1473
-    description: "What was the average monthly consumption of customers in SME for the year 2013?"
+    description: 'What was the average monthly consumption of customers in SME for the year 2013?'
     messages:
       - role: user
         content: |

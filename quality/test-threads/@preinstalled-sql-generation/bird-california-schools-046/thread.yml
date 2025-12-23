@@ -1,5 +1,5 @@
 name: bird-california-schools-046
-description: "BIRD Q45 (challenging): For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average."
+description: 'BIRD Q45 (challenging): For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-45
-    description: "For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average."
+    description: 'For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.'
     messages:
       - role: user
         content: |

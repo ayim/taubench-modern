@@ -1,5 +1,5 @@
 name: bird-student-club-144
-description: "BIRD Q1455 (moderate): Which budget allowed the most money for water, chips, and cookies?"
+description: 'BIRD Q1455 (moderate): Which budget allowed the most money for water, chips, and cookies?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1455
-    description: "Which budget allowed the most money for water, chips, and cookies?"
+    description: 'Which budget allowed the most money for water, chips, and cookies?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-049
-description: "BIRD Q243 (moderate): What are the bonds that have phosphorus and nitrogen as their atom elements?"
+description: 'BIRD Q243 (moderate): What are the bonds that have phosphorus and nitrogen as their atom elements?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-243
-    description: "What are the bonds that have phosphorus and nitrogen as their atom elements?"
+    description: 'What are the bonds that have phosphorus and nitrogen as their atom elements?'
     messages:
       - role: user
         content: |

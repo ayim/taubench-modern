@@ -1,5 +1,5 @@
 name: bird-codebase-community-101
-description: "BIRD Q631 (simple): How many posts were created by Daniel Vassallo?"
+description: 'BIRD Q631 (simple): How many posts were created by Daniel Vassallo?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-631
-    description: "How many posts were created by Daniel Vassallo?"
+    description: 'How many posts were created by Daniel Vassallo?'
     messages:
       - role: user
         content: |

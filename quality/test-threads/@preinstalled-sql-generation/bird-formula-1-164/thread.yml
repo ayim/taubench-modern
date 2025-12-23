@@ -1,5 +1,5 @@
 name: bird-formula-1-164
-description: "BIRD Q1009 (simple): Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix."
+description: 'BIRD Q1009 (simple): Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1009
-    description: "Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix."
+    description: 'Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix.'
     messages:
       - role: user
         content: |

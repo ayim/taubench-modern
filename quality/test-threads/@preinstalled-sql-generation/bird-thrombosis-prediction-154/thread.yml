@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-154
-description: "BIRD Q1302 (challenging): For the patients with a normal range of creatinine phosphokinase, how many of them have a positive measure of degree of coagulation?"
+description: 'BIRD Q1302 (challenging): For the patients with a normal range of creatinine phosphokinase, how many of them have a positive measure of degree of coagulation?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1302
-    description: "For the patients with a normal range of creatinine phosphokinase, how many of them have a positive measure of degree of coagulation?"
+    description: 'For the patients with a normal range of creatinine phosphokinase, how many of them have a positive measure of degree of coagulation?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-049
-description: "BIRD Q388 (simple): What are the cards in set 10E with converted mana of 5 have translation and what are the languages?"
+description: 'BIRD Q388 (simple): What are the cards in set 10E with converted mana of 5 have translation and what are the languages?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-388
-    description: "What are the cards in set 10E with converted mana of 5 have translation and what are the languages?"
+    description: 'What are the cards in set 10E with converted mana of 5 have translation and what are the languages?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-014
-description: "BIRD Q353 (simple): List all the sets available in Italian translation. State the total number of cards per set."
+description: 'BIRD Q353 (simple): List all the sets available in Italian translation. State the total number of cards per set.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-353
-    description: "List all the sets available in Italian translation. State the total number of cards per set."
+    description: 'List all the sets available in Italian translation. State the total number of cards per set.'
     messages:
       - role: user
         content: |

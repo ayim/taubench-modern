@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-076
-description: "BIRD Q1224 (simple): What is the highest total bilirubin level recorded? List out the patient details with ID, sex and birthday with that index."
+description: 'BIRD Q1224 (simple): What is the highest total bilirubin level recorded? List out the patient details with ID, sex and birthday with that index.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1224
-    description: "What is the highest total bilirubin level recorded? List out the patient details with ID, sex and birthday with that index."
+    description: 'What is the highest total bilirubin level recorded? List out the patient details with ID, sex and birthday with that index.'
     messages:
       - role: user
         content: |

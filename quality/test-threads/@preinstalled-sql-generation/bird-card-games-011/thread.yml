@@ -1,5 +1,5 @@
 name: bird-card-games-011
-description: "BIRD Q350 (simple): State the alternative languages available for card named Annul numbered 29."
+description: 'BIRD Q350 (simple): State the alternative languages available for card named Annul numbered 29.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-350
-    description: "State the alternative languages available for card named Annul numbered 29."
+    description: 'State the alternative languages available for card named Annul numbered 29.'
     messages:
       - role: user
         content: |

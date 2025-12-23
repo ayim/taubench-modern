@@ -1,330 +1,330 @@
 name: Fuel Card Transactions
 tables:
-- name: customers
-  synonyms:
-  - customer master
-  - cardholder registry
-  - customer list
-  base_table:
-    table: customers
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: customerid
-    name: customerid
+  - name: customers
     synonyms:
-    - customer identifier
-    data_type: '!int64'
-    description: Unique identifier of the customer/cardholder.
-    sample_values:
-    - 3
-    - 5
-    - 6
-    - 7
-    - 9
-  - expr: segment
-    name: segment
+      - customer master
+      - cardholder registry
+      - customer list
+    base_table:
+      table: customers
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: customerid
+        name: customerid
+        synonyms:
+          - customer identifier
+        data_type: '!int64'
+        description: Unique identifier of the customer/cardholder.
+        sample_values:
+          - 3
+          - 5
+          - 6
+          - 7
+          - 9
+      - expr: segment
+        name: segment
+        synonyms:
+          - customer segment
+        data_type: string
+        description: Business segment classification for the customer (e.g., SME, LAM).
+        sample_values:
+          - SME
+          - LAM
+          - SME
+          - LAM
+          - SME
+      - expr: currency
+        name: currency
+        synonyms:
+          - billing currency
+        data_type: string
+        description: ISO currency code associated with the customer (and typically used
+          to interpret monetary amounts).
+        sample_values:
+          - EUR
+          - EUR
+          - EUR
+          - EUR
+          - EUR
+    description: Customer master data for fuel-card holders, including segmentation
+      and default currency used for transactions.
+  - name: gasstations
     synonyms:
-    - customer segment
-    data_type: string
-    description: Business segment classification for the customer (e.g., SME, LAM).
-    sample_values:
-    - SME
-    - LAM
-    - SME
-    - LAM
-    - SME
-  - expr: currency
-    name: currency
+      - fuel station directory
+      - service station list
+      - gas retailer locations
+    base_table:
+      table: gasstations
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: gasstationid
+        name: gasstationid
+        synonyms:
+          - station identifier
+        data_type: '!int64'
+        description: Unique identifier of the gas station.
+        sample_values:
+          - 44
+          - 45
+          - 46
+          - 47
+          - 48
+      - expr: chainid
+        name: chainid
+        synonyms:
+          - station chain id
+        data_type: int64
+        description: Identifier of the retail chain/brand that the station belongs to.
+        sample_values:
+          - 13
+          - 6
+          - 23
+          - 33
+          - 4
+      - expr: country
+        name: country
+        synonyms:
+          - station country code
+        data_type: string
+        description: Country code where the station is located (e.g., CZE).
+        sample_values:
+          - CZE
+          - CZE
+          - CZE
+          - CZE
+          - CZE
+      - expr: segment
+        name: segment
+        synonyms:
+          - station segment
+        data_type: string
+        description: Market/positioning segment of the station or chain (e.g., Premium,
+          Value for money).
+        sample_values:
+          - Value for money
+          - Premium
+          - Other
+          - Premium
+          - Premium
+    description: Reference data for fuel stations where transactions occur, including
+      chain affiliation, country, and station segment.
+  - name: products
     synonyms:
-    - billing currency
-    data_type: string
-    description: ISO currency code associated with the customer (and typically used
-      to interpret monetary amounts).
-    sample_values:
-    - EUR
-    - EUR
-    - EUR
-    - EUR
-    - EUR
-  description: Customer master data for fuel-card holders, including segmentation
-    and default currency used for transactions.
-- name: gasstations
-  synonyms:
-  - fuel station directory
-  - service station list
-  - gas retailer locations
-  base_table:
-    table: gasstations
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: gasstationid
-    name: gasstationid
+      - fuel product catalog
+      - item list
+      - product reference
+    base_table:
+      table: products
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: productid
+        name: productid
+        synonyms:
+          - product identifier
+        data_type: '!int64'
+        description: Unique identifier of the product.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: description
+        name: description
+        synonyms:
+          - product description
+        data_type: string
+        description: Human-readable product name/description (often a fuel grade/type).
+        sample_values:
+          - Rucní zadání
+          - Nafta
+          - Special
+          - Super
+          - Natural
+    description: Product reference list for items sold in transactions (fuel types and
+      other products).
+  - name: yearmonth
+    facts:
+      - expr: consumption
+        name: consumption
+        synonyms:
+          - monthly consumption
+        data_type: float32
+        description: Total consumption for the customer in the given YearMonth period
+          (units depend on the source definition).
+        sample_values:
+          - 528.2999877929688
+          - 1598.280029296875
+          - 1931.3599853515625
+          - 1497.1400146484375
+          - 51.060001373291016
     synonyms:
-    - station identifier
-    data_type: '!int64'
-    description: Unique identifier of the gas station.
-    sample_values:
-    - 44
-    - 45
-    - 46
-    - 47
-    - 48
-  - expr: chainid
-    name: chainid
+      - monthly consumption summary
+      - customer month totals
+      - year-month consumption
+    base_table:
+      table: yearmonth
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: customerid
+        name: customerid
+        synonyms:
+          - consumption customer id
+        data_type: int64
+        description: Customer identifier for the monthly consumption record.
+        sample_values:
+          - 5
+          - 5
+          - 5
+          - 5
+          - 6
+    description: Monthly, per-customer summarized consumption measures keyed by a YearMonth
+      period (YYYYMM).
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - yearmonth key
+        data_type: string
+        description: YearMonth period key in YYYYMM format (e.g., 201207 for July 2012).
+        sample_values:
+          - '201207'
+          - '201302'
+          - '201303'
+          - '201304'
+          - '201203'
+  - name: transactions_1k
+    facts:
+      - expr: amount
+        name: amount
+        synonyms:
+          - units purchased
+        data_type: int64
+        description: Quantity purchased for the transaction line (e.g., liters or units).
+        sample_values:
+          - 28
+          - 18
+          - 1
+          - 5
+          - 28
+      - expr: price
+        name: price
+        synonyms:
+          - unit price
+        data_type: float32
+        description: Unit price for the purchased product. (Line total can be computed
+          as amount × price.)
+        sample_values:
+          - 672.6400146484375
+          - 430.7200012207031
+          - 121.98999786376953
+          - 120.73999786376953
+          - 645.0499877929688
     synonyms:
-    - station chain id
-    data_type: int64
-    description: Identifier of the retail chain/brand that the station belongs to.
-    sample_values:
-    - 13
-    - 6
-    - 23
-    - 33
-    - 4
-  - expr: country
-    name: country
-    synonyms:
-    - station country code
-    data_type: string
-    description: Country code where the station is located (e.g., CZE).
-    sample_values:
-    - CZE
-    - CZE
-    - CZE
-    - CZE
-    - CZE
-  - expr: segment
-    name: segment
-    synonyms:
-    - station segment
-    data_type: string
-    description: Market/positioning segment of the station or chain (e.g., Premium,
-      Value for money).
-    sample_values:
-    - Value for money
-    - Premium
-    - Other
-    - Premium
-    - Premium
-  description: Reference data for fuel stations where transactions occur, including
-    chain affiliation, country, and station segment.
-- name: products
-  synonyms:
-  - fuel product catalog
-  - item list
-  - product reference
-  base_table:
-    table: products
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: productid
-    name: productid
-    synonyms:
-    - product identifier
-    data_type: '!int64'
-    description: Unique identifier of the product.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: description
-    name: description
-    synonyms:
-    - product description
-    data_type: string
-    description: Human-readable product name/description (often a fuel grade/type).
-    sample_values:
-    - Rucní zadání
-    - Nafta
-    - Special
-    - Super
-    - Natural
-  description: Product reference list for items sold in transactions (fuel types and
-    other products).
-- name: yearmonth
-  facts:
-  - expr: consumption
-    name: consumption
-    synonyms:
-    - monthly consumption
-    data_type: float32
-    description: Total consumption for the customer in the given YearMonth period
-      (units depend on the source definition).
-    sample_values:
-    - 528.2999877929688
-    - 1598.280029296875
-    - 1931.3599853515625
-    - 1497.1400146484375
-    - 51.060001373291016
-  synonyms:
-  - monthly consumption summary
-  - customer month totals
-  - year-month consumption
-  base_table:
-    table: yearmonth
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: customerid
-    name: customerid
-    synonyms:
-    - consumption customer id
-    data_type: int64
-    description: Customer identifier for the monthly consumption record.
-    sample_values:
-    - 5
-    - 5
-    - 5
-    - 5
-    - 6
-  description: Monthly, per-customer summarized consumption measures keyed by a YearMonth
-    period (YYYYMM).
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - yearmonth key
-    data_type: string
-    description: YearMonth period key in YYYYMM format (e.g., 201207 for July 2012).
-    sample_values:
-    - '201207'
-    - '201302'
-    - '201303'
-    - '201304'
-    - '201203'
-- name: transactions_1k
-  facts:
-  - expr: amount
-    name: amount
-    synonyms:
-    - units purchased
-    data_type: int64
-    description: Quantity purchased for the transaction line (e.g., liters or units).
-    sample_values:
-    - 28
-    - 18
-    - 1
-    - 5
-    - 28
-  - expr: price
-    name: price
-    synonyms:
-    - unit price
-    data_type: float32
-    description: Unit price for the purchased product. (Line total can be computed
-      as amount × price.)
-    sample_values:
-    - 672.6400146484375
-    - 430.7200012207031
-    - 121.98999786376953
-    - 120.73999786376953
-    - 645.0499877929688
-  synonyms:
-  - fuel purchase transactions
-  - card swipes
-  - transaction log
-  base_table:
-    table: transactions_1k
-    schema: public
-    database: null
-    data_connection_name: postgres-spar
-  dimensions:
-  - expr: transactionid
-    name: transactionid
-    synonyms:
-    - transaction identifier
-    data_type: '!int64'
-    description: Unique identifier of the transaction record.
-    sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-  - expr: customerid
-    name: customerid
-    synonyms:
-    - transaction customer id
-    data_type: int64
-    description: Customer/cardholder identifier associated with the transaction.
-    sample_values:
-    - 31543
-    - 46707
-    - 46707
-    - 7654
-    - 17373
-  - expr: cardid
-    name: cardid
-    synonyms:
-    - payment card id
-    data_type: int64
-    description: Identifier of the card used for the transaction.
-    sample_values:
-    - 486621
-    - 550134
-    - 550134
-    - 684220
-    - 536109
-  - expr: gasstationid
-    name: gasstationid
-    synonyms:
-    - transaction station id
-    data_type: int64
-    description: Gas station identifier where the transaction took place.
-    sample_values:
-    - 3704
-    - 3704
-    - 3704
-    - 656
-    - 741
-  - expr: productid
-    name: productid
-    synonyms:
-    - transaction product id
-    data_type: int64
-    description: Product identifier purchased in the transaction line.
-    sample_values:
-    - 2
-    - 2
-    - 23
-    - 5
-    - 2
-  description: Line-level fuel-card transactions (sample of ~1k rows) capturing when
-    and where a card was used, what product was purchased, and the quantity and pricing.
-  time_dimensions:
-  - expr: date
-    name: date
-    synonyms:
-    - transaction date
-    data_type: date
-    description: Calendar date when the transaction occurred.
-    sample_values:
-    - '2012-08-24'
-    - '2012-08-24'
-    - '2012-08-24'
-    - '2012-08-24'
-    - '2012-08-24'
-  - expr: time
-    name: time
-    synonyms:
-    - transaction time of day
-    data_type: string
-    description: Time of day when the transaction occurred (HH:MM:SS).
-    sample_values:
-    - 09:41:00
-    - '10:03:00'
-    - '10:03:00'
-    - '13:53:00'
-    - 08:49:00
+      - fuel purchase transactions
+      - card swipes
+      - transaction log
+    base_table:
+      table: transactions_1k
+      schema: public
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: transactionid
+        name: transactionid
+        synonyms:
+          - transaction identifier
+        data_type: '!int64'
+        description: Unique identifier of the transaction record.
+        sample_values:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+      - expr: customerid
+        name: customerid
+        synonyms:
+          - transaction customer id
+        data_type: int64
+        description: Customer/cardholder identifier associated with the transaction.
+        sample_values:
+          - 31543
+          - 46707
+          - 46707
+          - 7654
+          - 17373
+      - expr: cardid
+        name: cardid
+        synonyms:
+          - payment card id
+        data_type: int64
+        description: Identifier of the card used for the transaction.
+        sample_values:
+          - 486621
+          - 550134
+          - 550134
+          - 684220
+          - 536109
+      - expr: gasstationid
+        name: gasstationid
+        synonyms:
+          - transaction station id
+        data_type: int64
+        description: Gas station identifier where the transaction took place.
+        sample_values:
+          - 3704
+          - 3704
+          - 3704
+          - 656
+          - 741
+      - expr: productid
+        name: productid
+        synonyms:
+          - transaction product id
+        data_type: int64
+        description: Product identifier purchased in the transaction line.
+        sample_values:
+          - 2
+          - 2
+          - 23
+          - 5
+          - 2
+    description: Line-level fuel-card transactions (sample of ~1k rows) capturing when
+      and where a card was used, what product was purchased, and the quantity and pricing.
+    time_dimensions:
+      - expr: date
+        name: date
+        synonyms:
+          - transaction date
+        data_type: date
+        description: Calendar date when the transaction occurred.
+        sample_values:
+          - '2012-08-24'
+          - '2012-08-24'
+          - '2012-08-24'
+          - '2012-08-24'
+          - '2012-08-24'
+      - expr: time
+        name: time
+        synonyms:
+          - transaction time of day
+        data_type: string
+        description: Time of day when the transaction occurred (HH:MM:SS).
+        sample_values:
+          - 09:41:00
+          - '10:03:00'
+          - '10:03:00'
+          - '13:53:00'
+          - 08:49:00
 description: "Business Context from BIRD Benchmark Database Metadata:\n\n## Table:\
   \ customers\n\nColumns:\n (identification of the customer) - Type: integer\n- **client\
   \ segment** (client segment) - Type: text\n (Currency) - Type: text\n\n## Table:\

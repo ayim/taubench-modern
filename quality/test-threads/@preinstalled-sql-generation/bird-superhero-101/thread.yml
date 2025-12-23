@@ -1,5 +1,5 @@
 name: bird-superhero-101
-description: "BIRD Q817 (moderate): Give the race of the blue-haired male superhero."
+description: 'BIRD Q817 (moderate): Give the race of the blue-haired male superhero.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-817
-    description: "Give the race of the blue-haired male superhero."
+    description: 'Give the race of the blue-haired male superhero.'
     messages:
       - role: user
         content: |
           Give the race of the blue-haired male superhero.
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

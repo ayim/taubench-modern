@@ -1,5 +1,5 @@
 name: bird-student-club-145
-description: "BIRD Q1456 (moderate): List the full name of the top five members who spend the most money in the descending order of spending."
+description: 'BIRD Q1456 (moderate): List the full name of the top five members who spend the most money in the descending order of spending.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1456
-    description: "List the full name of the top five members who spend the most money in the descending order of spending."
+    description: 'List the full name of the top five members who spend the most money in the descending order of spending.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-067
-description: "BIRD Q406 (simple): List by ID all Creature-type cards with legal status."
+description: 'BIRD Q406 (simple): List by ID all Creature-type cards with legal status.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-406
-    description: "List by ID all Creature-type cards with legal status."
+    description: 'List by ID all Creature-type cards with legal status.'
     messages:
       - role: user
         content: |

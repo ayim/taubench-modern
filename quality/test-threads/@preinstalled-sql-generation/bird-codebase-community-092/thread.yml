@@ -1,5 +1,5 @@
 name: bird-codebase-community-092
-description: "BIRD Q622 (simple): State the name of badge that the user whose display name is \"Sharpie\" obtained."
+description: 'BIRD Q622 (simple): State the name of badge that the user whose display name is "Sharpie" obtained.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-622
-    description: "State the name of badge that the user whose display name is \"Sharpie\" obtained."
+    description: 'State the name of badge that the user whose display name is "Sharpie" obtained.'
     messages:
       - role: user
         content: |

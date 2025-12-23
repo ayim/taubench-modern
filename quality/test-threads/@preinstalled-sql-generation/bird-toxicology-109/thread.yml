@@ -1,5 +1,5 @@
 name: bird-toxicology-109
-description: "BIRD Q303 (moderate): How many double bonds does TR006 have and is it carcinogenic?"
+description: 'BIRD Q303 (moderate): How many double bonds does TR006 have and is it carcinogenic?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-303
-    description: "How many double bonds does TR006 have and is it carcinogenic?"
+    description: 'How many double bonds does TR006 have and is it carcinogenic?'
     messages:
       - role: user
         content: |

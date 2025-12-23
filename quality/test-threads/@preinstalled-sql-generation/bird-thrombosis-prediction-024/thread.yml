@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-024
-description: "BIRD Q1172 (simple): How many male patients have elevated total bilirubin count?"
+description: 'BIRD Q1172 (simple): How many male patients have elevated total bilirubin count?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1172
-    description: "How many male patients have elevated total bilirubin count?"
+    description: 'How many male patients have elevated total bilirubin count?'
     messages:
       - role: user
         content: |

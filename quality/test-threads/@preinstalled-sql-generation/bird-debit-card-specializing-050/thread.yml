@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-050
-description: "BIRD Q1519 (simple): What was the product id of the transaction happened at 2012/8/23 21:20:00?"
+description: 'BIRD Q1519 (simple): What was the product id of the transaction happened at 2012/8/23 21:20:00?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1519
-    description: "What was the product id of the transaction happened at 2012/8/23 21:20:00?"
+    description: 'What was the product id of the transaction happened at 2012/8/23 21:20:00?'
     messages:
       - role: user
         content: |

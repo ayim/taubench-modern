@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-046
-description: "BIRD Q1515 (simple): What segment did the customer have at 2012/8/23 21:20:00?"
+description: 'BIRD Q1515 (simple): What segment did the customer have at 2012/8/23 21:20:00?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1515
-    description: "What segment did the customer have at 2012/8/23 21:20:00?"
+    description: 'What segment did the customer have at 2012/8/23 21:20:00?'
     messages:
       - role: user
         content: |

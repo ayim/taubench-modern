@@ -1,5 +1,5 @@
 name: bird-codebase-community-065
-description: "BIRD Q595 (moderate): Which users have used only one post history type across all posts having at least 1000 views?"
+description: 'BIRD Q595 (moderate): Which users have used only one post history type across all posts having at least 1000 views?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-595
-    description: "Which users have used only one post history type across all posts having at least 1000 views?"
+    description: 'Which users have used only one post history type across all posts having at least 1000 views?'
     messages:
       - role: user
         content: |

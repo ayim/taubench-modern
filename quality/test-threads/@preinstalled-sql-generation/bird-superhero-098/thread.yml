@@ -1,5 +1,5 @@
 name: bird-superhero-098
-description: "BIRD Q814 (moderate): List the skin colour of the superheroes with 100 attribute value."
+description: 'BIRD Q814 (moderate): List the skin colour of the superheroes with 100 attribute value.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-814
-    description: "List the skin colour of the superheroes with 100 attribute value."
+    description: 'List the skin colour of the superheroes with 100 attribute value.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-013
-description: "BIRD Q352 (moderate): Calculate the percentage of the cards availabe in Chinese Simplified."
+description: 'BIRD Q352 (moderate): Calculate the percentage of the cards availabe in Chinese Simplified.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-352
-    description: "Calculate the percentage of the cards availabe in Chinese Simplified."
+    description: 'Calculate the percentage of the cards availabe in Chinese Simplified.'
     messages:
       - role: user
         content: |

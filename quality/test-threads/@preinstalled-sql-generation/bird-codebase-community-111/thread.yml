@@ -1,5 +1,5 @@
 name: bird-codebase-community-111
-description: "BIRD Q641 (simple): How many users received commentator badges in 2014?"
+description: 'BIRD Q641 (simple): How many users received commentator badges in 2014?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-641
-    description: "How many users received commentator badges in 2014?"
+    description: 'How many users received commentator badges in 2014?'
     messages:
       - role: user
         content: |

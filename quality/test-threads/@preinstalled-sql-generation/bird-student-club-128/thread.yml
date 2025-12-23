@@ -1,5 +1,5 @@
 name: bird-student-club-128
-description: "BIRD Q1439 (moderate): Please list the phone numbers of the members who majored in business at the College of Agriculture and Applied Sciences."
+description: 'BIRD Q1439 (moderate): Please list the phone numbers of the members who majored in business at the College of Agriculture and Applied Sciences.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1439
-    description: "Please list the phone numbers of the members who majored in business at the College of Agriculture and Applied Sciences."
+    description: 'Please list the phone numbers of the members who majored in business at the College of Agriculture and Applied Sciences.'
     messages:
       - role: user
         content: |

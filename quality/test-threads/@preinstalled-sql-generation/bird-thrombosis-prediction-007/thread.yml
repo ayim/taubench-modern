@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-007
-description: "BIRD Q1155 (simple): List the patient ID, sex and birthday of patient with LDH beyond normal range."
+description: 'BIRD Q1155 (simple): List the patient ID, sex and birthday of patient with LDH beyond normal range.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1155
-    description: "List the patient ID, sex and birthday of patient with LDH beyond normal range."
+    description: 'List the patient ID, sex and birthday of patient with LDH beyond normal range.'
     messages:
       - role: user
         content: |

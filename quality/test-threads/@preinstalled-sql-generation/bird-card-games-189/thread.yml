@@ -1,5 +1,5 @@
 name: bird-card-games-189
-description: "BIRD Q528 (challenging): List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal."
+description: 'BIRD Q528 (challenging): List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-528
-    description: "List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal."
+    description: 'List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal.'
     messages:
       - role: user
         content: |

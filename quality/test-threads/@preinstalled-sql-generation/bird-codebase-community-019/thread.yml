@@ -1,5 +1,5 @@
 name: bird-codebase-community-019
-description: "BIRD Q549 (simple): From which post is the tag \"bayesian\" excerpted from? Please give the body of the post."
+description: 'BIRD Q549 (simple): From which post is the tag "bayesian" excerpted from? Please give the body of the post.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-549
-    description: "From which post is the tag \"bayesian\" excerpted from? Please give the body of the post."
+    description: 'From which post is the tag "bayesian" excerpted from? Please give the body of the post.'
     messages:
       - role: user
         content: |

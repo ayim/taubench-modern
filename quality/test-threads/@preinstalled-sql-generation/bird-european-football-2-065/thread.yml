@@ -1,5 +1,5 @@
 name: bird-european-football-2-065
-description: "BIRD Q1084 (challenging): Among the players born before the year 1986, how many of them would remain in his position and defense while the team attacked?"
+description: 'BIRD Q1084 (challenging): Among the players born before the year 1986, how many of them would remain in his position and defense while the team attacked?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1084
-    description: "Among the players born before the year 1986, how many of them would remain in his position and defense while the team attacked?"
+    description: 'Among the players born before the year 1986, how many of them would remain in his position and defense while the team attacked?'
     messages:
       - role: user
         content: |

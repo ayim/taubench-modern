@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-032
-description: "BIRD Q1501 (moderate): Please list the countries of the gas stations with transactions taken place in August, 2012."
+description: 'BIRD Q1501 (moderate): Please list the countries of the gas stations with transactions taken place in August, 2012.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1501
-    description: "Please list the countries of the gas stations with transactions taken place in August, 2012."
+    description: 'Please list the countries of the gas stations with transactions taken place in August, 2012.'
     messages:
       - role: user
         content: |

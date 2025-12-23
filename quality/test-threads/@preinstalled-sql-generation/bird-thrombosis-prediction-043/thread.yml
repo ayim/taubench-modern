@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-043
-description: "BIRD Q1191 (challenging): What percentage of male patients who first presented to the hospital in 1981 were diagnosed with BEHCET?"
+description: 'BIRD Q1191 (challenging): What percentage of male patients who first presented to the hospital in 1981 were diagnosed with BEHCET?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1191
-    description: "What percentage of male patients who first presented to the hospital in 1981 were diagnosed with BEHCET?"
+    description: 'What percentage of male patients who first presented to the hospital in 1981 were diagnosed with BEHCET?'
     messages:
       - role: user
         content: |

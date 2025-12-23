@@ -1,5 +1,5 @@
 name: bird-student-club-013
-description: "BIRD Q1324 (moderate): What is the average attendance of meetings in 2020?"
+description: 'BIRD Q1324 (moderate): What is the average attendance of meetings in 2020?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1324
-    description: "What is the average attendance of meetings in 2020?"
+    description: 'What is the average attendance of meetings in 2020?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-176
-description: "BIRD Q706 (simple): Give the texts commented on the post about linear regression."
+description: 'BIRD Q706 (simple): Give the texts commented on the post about linear regression.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-706
-    description: "Give the texts commented on the post about linear regression."
+    description: 'Give the texts commented on the post about linear regression.'
     messages:
       - role: user
         content: |

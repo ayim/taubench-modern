@@ -1,5 +1,5 @@
 name: bird-financial-039
-description: "BIRD Q127 (challenging): For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance."
+description: 'BIRD Q127 (challenging): For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-127
-    description: "For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance."
+    description: 'For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance.'
     messages:
       - role: user
         content: |

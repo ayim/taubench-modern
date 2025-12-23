@@ -1,5 +1,5 @@
 name: bird-card-games-043
-description: "BIRD Q382 (simple): What are the cards that only available in paper and Japanese language?"
+description: 'BIRD Q382 (simple): What are the cards that only available in paper and Japanese language?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-382
-    description: "What are the cards that only available in paper and Japanese language?"
+    description: 'What are the cards that only available in paper and Japanese language?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-004
-description: "BIRD Q849 (simple): Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?"
+description: 'BIRD Q849 (simple): Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-849
-    description: "Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?"
+    description: 'Where can the introduction of the races held on Circuit de Barcelona-Catalunya be found?'
     messages:
       - role: user
         content: |

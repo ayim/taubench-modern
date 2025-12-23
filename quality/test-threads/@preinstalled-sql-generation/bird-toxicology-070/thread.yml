@@ -1,5 +1,5 @@
 name: bird-toxicology-070
-description: "BIRD Q264 (simple): What are the labels for TR000, TR001 and TR002?"
+description: 'BIRD Q264 (simple): What are the labels for TR000, TR001 and TR002?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-264
-    description: "What are the labels for TR000, TR001 and TR002?"
+    description: 'What are the labels for TR000, TR001 and TR002?'
     messages:
       - role: user
         content: |

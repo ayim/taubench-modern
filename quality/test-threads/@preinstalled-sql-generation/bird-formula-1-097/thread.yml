@@ -1,5 +1,5 @@
 name: bird-formula-1-097
-description: "BIRD Q942 (moderate): What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?"
+description: 'BIRD Q942 (moderate): What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-942
-    description: "What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?"
+    description: 'What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?'
     messages:
       - role: user
         content: |

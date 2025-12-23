@@ -1,5 +1,5 @@
 name: bird-european-football-2-042
-description: "BIRD Q1061 (simple): How many players whose first names are Adam and weigh more than 170?"
+description: 'BIRD Q1061 (simple): How many players whose first names are Adam and weigh more than 170?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1061
-    description: "How many players whose first names are Adam and weigh more than 170?"
+    description: 'How many players whose first names are Adam and weigh more than 170?'
     messages:
       - role: user
         content: |

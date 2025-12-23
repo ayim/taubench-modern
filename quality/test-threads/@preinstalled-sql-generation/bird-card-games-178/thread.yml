@@ -1,5 +1,5 @@
 name: bird-card-games-178
-description: "BIRD Q517 (moderate): How many distinct rare enchantment Abundance cards have at least one legal play format?"
+description: 'BIRD Q517 (moderate): How many distinct rare enchantment Abundance cards have at least one legal play format?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-517
-    description: "How many distinct rare enchantment Abundance cards have at least one legal play format?"
+    description: 'How many distinct rare enchantment Abundance cards have at least one legal play format?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-138
-description: "BIRD Q332 (simple): Among the molecules between TR004 to TR010, how many of them has single bonds?"
+description: 'BIRD Q332 (simple): Among the molecules between TR004 to TR010, how many of them has single bonds?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-332
-    description: "Among the molecules between TR004 to TR010, how many of them has single bonds?"
+    description: 'Among the molecules between TR004 to TR010, how many of them has single bonds?'
     messages:
       - role: user
         content: |

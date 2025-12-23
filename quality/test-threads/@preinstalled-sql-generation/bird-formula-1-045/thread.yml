@@ -1,5 +1,5 @@
 name: bird-formula-1-045
-description: "BIRD Q890 (simple): How many seasons has Silverstone Circuit hosted the United Kindom grand prix?"
+description: 'BIRD Q890 (simple): How many seasons has Silverstone Circuit hosted the United Kindom grand prix?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-890
-    description: "How many seasons has Silverstone Circuit hosted the United Kindom grand prix?"
+    description: 'How many seasons has Silverstone Circuit hosted the United Kindom grand prix?'
     messages:
       - role: user
         content: |

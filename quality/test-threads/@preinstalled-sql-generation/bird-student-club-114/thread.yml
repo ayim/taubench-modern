@@ -1,5 +1,5 @@
 name: bird-student-club-114
-description: "BIRD Q1425 (simple): In the College of Agriculture and Applied Sciences, how many majors are under the department of School of Applied Sciences, Technology and Education?"
+description: 'BIRD Q1425 (simple): In the College of Agriculture and Applied Sciences, how many majors are under the department of School of Applied Sciences, Technology and Education?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1425
-    description: "In the College of Agriculture and Applied Sciences, how many majors are under the department of School of Applied Sciences, Technology and Education?"
+    description: 'In the College of Agriculture and Applied Sciences, how many majors are under the department of School of Applied Sciences, Technology and Education?'
     messages:
       - role: user
         content: |

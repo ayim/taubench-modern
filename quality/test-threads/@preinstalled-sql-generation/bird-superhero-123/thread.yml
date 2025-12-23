@@ -1,5 +1,5 @@
 name: bird-superhero-123
-description: "BIRD Q839 (simple): In superheroes with weight less than 100, list the full name of the superheroes with brown eyes."
+description: 'BIRD Q839 (simple): In superheroes with weight less than 100, list the full name of the superheroes with brown eyes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-839
-    description: "In superheroes with weight less than 100, list the full name of the superheroes with brown eyes."
+    description: 'In superheroes with weight less than 100, list the full name of the superheroes with brown eyes.'
     messages:
       - role: user
         content: |

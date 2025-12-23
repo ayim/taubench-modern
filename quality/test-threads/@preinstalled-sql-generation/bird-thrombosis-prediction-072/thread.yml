@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-072
-description: "BIRD Q1220 (simple): Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?"
+description: 'BIRD Q1220 (simple): Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1220
-    description: "Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?"
+    description: 'Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?'
     messages:
       - role: user
         content: |
           Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?
-          Evidence: urea nitrogen (UN) just within the borderline of passing refers to UN = 29; 
+          Evidence: urea nitrogen (UN) just within the borderline of passing refers to UN = 29;
 
 target-platforms:
   - name: openai

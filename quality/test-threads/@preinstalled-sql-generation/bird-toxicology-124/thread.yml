@@ -1,5 +1,5 @@
 name: bird-toxicology-124
-description: "BIRD Q318 (simple): What is the molecule id of bond id TR001_1_7?"
+description: 'BIRD Q318 (simple): What is the molecule id of bond id TR001_1_7?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-318
-    description: "What is the molecule id of bond id TR001_1_7?"
+    description: 'What is the molecule id of bond id TR001_1_7?'
     messages:
       - role: user
         content: |

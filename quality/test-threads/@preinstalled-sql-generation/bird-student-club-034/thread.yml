@@ -1,5 +1,5 @@
 name: bird-student-club-034
-description: "BIRD Q1345 (simple): How many majors are there in \"College of Humanities and Social Sciences\"?"
+description: 'BIRD Q1345 (simple): How many majors are there in "College of Humanities and Social Sciences"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1345
-    description: "How many majors are there in \"College of Humanities and Social Sciences\"?"
+    description: 'How many majors are there in "College of Humanities and Social Sciences"?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-142
-description: "BIRD Q336 (simple): in molecules with triple bonds, how many of them are not carcinogenic?"
+description: 'BIRD Q336 (simple): in molecules with triple bonds, how many of them are not carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-336
-    description: "in molecules with triple bonds, how many of them are not carcinogenic?"
+    description: 'in molecules with triple bonds, how many of them are not carcinogenic?'
     messages:
       - role: user
         content: |

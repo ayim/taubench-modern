@@ -1,5 +1,5 @@
 name: bird-toxicology-117
-description: "BIRD Q311 (simple): How many molecules without sulphur element is not having double bond?"
+description: 'BIRD Q311 (simple): How many molecules without sulphur element is not having double bond?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-311
-    description: "How many molecules without sulphur element is not having double bond?"
+    description: 'How many molecules without sulphur element is not having double bond?'
     messages:
       - role: user
         content: |

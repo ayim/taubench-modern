@@ -1,5 +1,5 @@
 name: bird-card-games-005
-description: "BIRD Q344 (moderate): List all the mythic rarity print cards banned in gladiator format."
+description: 'BIRD Q344 (moderate): List all the mythic rarity print cards banned in gladiator format.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-344
-    description: "List all the mythic rarity print cards banned in gladiator format."
+    description: 'List all the mythic rarity print cards banned in gladiator format.'
     messages:
       - role: user
         content: |

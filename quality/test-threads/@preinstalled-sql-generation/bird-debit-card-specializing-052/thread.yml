@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-052
-description: "BIRD Q1521 (moderate): For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?"
+description: 'BIRD Q1521 (moderate): For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1521
-    description: "For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?"
+    description: 'For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?'
     messages:
       - role: user
         content: |

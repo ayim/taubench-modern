@@ -1,5 +1,5 @@
 name: bird-toxicology-005
-description: "BIRD Q199 (simple): In the molecule containing sodium atoms, how many are non-carcinogenic?"
+description: 'BIRD Q199 (simple): In the molecule containing sodium atoms, how many are non-carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-199
-    description: "In the molecule containing sodium atoms, how many are non-carcinogenic?"
+    description: 'In the molecule containing sodium atoms, how many are non-carcinogenic?'
     messages:
       - role: user
         content: |

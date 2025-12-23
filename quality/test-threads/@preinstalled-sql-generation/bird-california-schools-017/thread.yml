@@ -1,5 +1,5 @@
 name: bird-california-schools-017
-description: "BIRD Q16 (simple): How many schools in merged Alameda have number of test takers less than 100?"
+description: 'BIRD Q16 (simple): How many schools in merged Alameda have number of test takers less than 100?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-16
-    description: "How many schools in merged Alameda have number of test takers less than 100?"
+    description: 'How many schools in merged Alameda have number of test takers less than 100?'
     messages:
       - role: user
         content: |

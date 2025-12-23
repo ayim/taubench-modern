@@ -1,5 +1,5 @@
 name: bird-student-club-005
-description: "BIRD Q1316 (moderate): Please list the phone numbers of the students from the Student_Club that has attended the event \"Women's Soccer\"."
+description: 'BIRD Q1316 (moderate): Please list the phone numbers of the students from the Student_Club that has attended the event "Women''s Soccer".'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1316
-    description: "Please list the phone numbers of the students from the Student_Club that has attended the event \"Women's Soccer\"."
+    description: 'Please list the phone numbers of the students from the Student_Club that has attended the event "Women''s Soccer".'
     messages:
       - role: user
         content: |

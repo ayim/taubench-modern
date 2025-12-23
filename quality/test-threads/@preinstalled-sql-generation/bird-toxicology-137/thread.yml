@@ -1,5 +1,5 @@
 name: bird-toxicology-137
-description: "BIRD Q331 (simple): How many of the molecules are carcinogenic?"
+description: 'BIRD Q331 (simple): How many of the molecules are carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-331
-    description: "How many of the molecules are carcinogenic?"
+    description: 'How many of the molecules are carcinogenic?'
     messages:
       - role: user
         content: |

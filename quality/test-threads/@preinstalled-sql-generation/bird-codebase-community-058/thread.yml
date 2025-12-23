@@ -1,5 +1,5 @@
 name: bird-codebase-community-058
-description: "BIRD Q588 (simple): Give the total number of comments posted by user ID 13."
+description: 'BIRD Q588 (simple): Give the total number of comments posted by user ID 13.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-588
-    description: "Give the total number of comments posted by user ID 13."
+    description: 'Give the total number of comments posted by user ID 13.'
     messages:
       - role: user
         content: |

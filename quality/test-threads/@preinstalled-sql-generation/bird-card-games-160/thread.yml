@@ -1,5 +1,5 @@
 name: bird-card-games-160
-description: "BIRD Q499 (moderate): How many translations of the name of the set \"Tenth Edition\"?"
+description: 'BIRD Q499 (moderate): How many translations of the name of the set "Tenth Edition"?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-499
-    description: "How many translations of the name of the set \"Tenth Edition\"?"
+    description: 'How many translations of the name of the set "Tenth Edition"?'
     messages:
       - role: user
         content: |

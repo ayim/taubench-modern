@@ -1,5 +1,5 @@
 name: bird-financial-095
-description: "BIRD Q183 (challenging): For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?"
+description: 'BIRD Q183 (challenging): For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-183
-    description: "For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?"
+    description: 'For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-078
-description: "BIRD Q608 (simple): State the detailed content of the comment which was created on 7/19/2010 7:25:47 PM."
+description: 'BIRD Q608 (simple): State the detailed content of the comment which was created on 7/19/2010 7:25:47 PM.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-608
-    description: "State the detailed content of the comment which was created on 7/19/2010 7:25:47 PM."
+    description: 'State the detailed content of the comment which was created on 7/19/2010 7:25:47 PM.'
     messages:
       - role: user
         content: |

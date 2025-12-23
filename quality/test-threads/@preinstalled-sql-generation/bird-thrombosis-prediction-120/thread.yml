@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-120
-description: "BIRD Q1268 (simple): For the patients with an abnormal anti-SM, please list the IDs of the three youngest ones."
+description: 'BIRD Q1268 (simple): For the patients with an abnormal anti-SM, please list the IDs of the three youngest ones.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1268
-    description: "For the patients with an abnormal anti-SM, please list the IDs of the three youngest ones."
+    description: 'For the patients with an abnormal anti-SM, please list the IDs of the three youngest ones.'
     messages:
       - role: user
         content: |

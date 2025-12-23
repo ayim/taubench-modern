@@ -1,5 +1,5 @@
 name: bird-codebase-community-087
-description: "BIRD Q617 (simple): What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?"
+description: 'BIRD Q617 (simple): What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-617
-    description: "What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?"
+    description: 'What is the detailed content of the comment of the post which was created on 7/19/2010 7:37:33 PM?'
     messages:
       - role: user
         content: |

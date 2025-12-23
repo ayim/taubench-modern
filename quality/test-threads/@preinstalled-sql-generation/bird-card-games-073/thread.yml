@@ -1,5 +1,5 @@
 name: bird-card-games-073
-description: "BIRD Q412 (moderate): What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?"
+description: 'BIRD Q412 (moderate): What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-412
-    description: "What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?"
+    description: 'What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?'
     messages:
       - role: user
         content: |

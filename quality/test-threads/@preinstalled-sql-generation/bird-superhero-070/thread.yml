@@ -1,5 +1,5 @@
 name: bird-superhero-070
-description: "BIRD Q786 (moderate): How many heroes have the highest attribute value in strength?"
+description: 'BIRD Q786 (moderate): How many heroes have the highest attribute value in strength?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-786
-    description: "How many heroes have the highest attribute value in strength?"
+    description: 'How many heroes have the highest attribute value in strength?'
     messages:
       - role: user
         content: |

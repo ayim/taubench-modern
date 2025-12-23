@@ -1,5 +1,5 @@
 name: bird-european-football-2-066
-description: "BIRD Q1085 (moderate): Which of these players performs the best in crossing actions, Alexis, Ariel Borysiuk or Arouna Kone?"
+description: 'BIRD Q1085 (moderate): Which of these players performs the best in crossing actions, Alexis, Ariel Borysiuk or Arouna Kone?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1085
-    description: "Which of these players performs the best in crossing actions, Alexis, Ariel Borysiuk or Arouna Kone?"
+    description: 'Which of these players performs the best in crossing actions, Alexis, Ariel Borysiuk or Arouna Kone?'
     messages:
       - role: user
         content: |

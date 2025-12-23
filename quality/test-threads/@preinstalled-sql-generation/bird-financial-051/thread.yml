@@ -1,5 +1,5 @@
 name: bird-financial-051
-description: "BIRD Q139 (challenging): What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?"
+description: 'BIRD Q139 (challenging): What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-139
-    description: "What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?"
+    description: 'What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?'
     messages:
       - role: user
         content: |

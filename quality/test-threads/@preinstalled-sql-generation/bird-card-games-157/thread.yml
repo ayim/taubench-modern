@@ -1,5 +1,5 @@
 name: bird-card-games-157
-description: "BIRD Q496 (simple): How many cards are there in the set of \"Rinascita di Alara\"?"
+description: 'BIRD Q496 (simple): How many cards are there in the set of "Rinascita di Alara"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-496
-    description: "How many cards are there in the set of \"Rinascita di Alara\"?"
+    description: 'How many cards are there in the set of "Rinascita di Alara"?'
     messages:
       - role: user
         content: |

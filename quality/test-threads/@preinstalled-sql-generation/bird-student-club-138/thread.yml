@@ -1,5 +1,5 @@
 name: bird-student-club-138
-description: "BIRD Q1449 (moderate): What is the name and major of members who had to spend more than a hundred dollars on an expense?"
+description: 'BIRD Q1449 (moderate): What is the name and major of members who had to spend more than a hundred dollars on an expense?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1449
-    description: "What is the name and major of members who had to spend more than a hundred dollars on an expense?"
+    description: 'What is the name and major of members who had to spend more than a hundred dollars on an expense?'
     messages:
       - role: user
         content: |

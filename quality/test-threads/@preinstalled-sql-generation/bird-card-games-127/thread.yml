@@ -1,5 +1,5 @@
 name: bird-card-games-127
-description: "BIRD Q466 (moderate): Among the cards in the set \"Hauptset Zehnte Edition\", how many of them are designed by Adam Rex?"
+description: 'BIRD Q466 (moderate): Among the cards in the set "Hauptset Zehnte Edition", how many of them are designed by Adam Rex?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-466
-    description: "Among the cards in the set \"Hauptset Zehnte Edition\", how many of them are designed by Adam Rex?"
+    description: 'Among the cards in the set "Hauptset Zehnte Edition", how many of them are designed by Adam Rex?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-025
-description: "BIRD Q1494 (simple): What percentage of Slovakian gas stations are premium?"
+description: 'BIRD Q1494 (simple): What percentage of Slovakian gas stations are premium?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1494
-    description: "What percentage of Slovakian gas stations are premium?"
+    description: 'What percentage of Slovakian gas stations are premium?'
     messages:
       - role: user
         content: |

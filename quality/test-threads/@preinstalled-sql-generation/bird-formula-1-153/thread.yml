@@ -1,5 +1,5 @@
 name: bird-formula-1-153
-description: "BIRD Q998 (simple): In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?"
+description: 'BIRD Q998 (simple): In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,14 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-998
-    description: "In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?"
+    description: 'In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?'
     messages:
       - role: user
         content: |
           In terms of number of points acquired, how many victories did the driver who ranked 91st acquired?
           Evidence: victories refer to wins; 91st refers to points
-          
-          
 
 target-platforms:
   - name: openai

@@ -1,5 +1,5 @@
 name: bird-codebase-community-089
-description: "BIRD Q619 (simple): How many adults who obtained the badge Supporter?"
+description: 'BIRD Q619 (simple): How many adults who obtained the badge Supporter?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-619
-    description: "How many adults who obtained the badge Supporter?"
+    description: 'How many adults who obtained the badge Supporter?'
     messages:
       - role: user
         content: |

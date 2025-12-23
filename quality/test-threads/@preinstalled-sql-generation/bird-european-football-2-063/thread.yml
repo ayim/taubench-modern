@@ -1,5 +1,5 @@
 name: bird-european-football-2-063
-description: "BIRD Q1082 (simple): Please list the leagues from Germany."
+description: 'BIRD Q1082 (simple): Please list the leagues from Germany.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1082
-    description: "Please list the leagues from Germany."
+    description: 'Please list the leagues from Germany.'
     messages:
       - role: user
         content: |

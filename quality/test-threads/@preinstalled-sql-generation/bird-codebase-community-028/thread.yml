@@ -1,5 +1,5 @@
 name: bird-codebase-community-028
-description: "BIRD Q558 (simple): How many votes did the user No.58 take on 2010/7/19?"
+description: 'BIRD Q558 (simple): How many votes did the user No.58 take on 2010/7/19?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-558
-    description: "How many votes did the user No.58 take on 2010/7/19?"
+    description: 'How many votes did the user No.58 take on 2010/7/19?'
     messages:
       - role: user
         content: |

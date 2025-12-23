@@ -1,5 +1,5 @@
 name: bird-codebase-community-039
-description: "BIRD Q569 (simple): Give the number of votes for the post about data visualization."
+description: 'BIRD Q569 (simple): Give the number of votes for the post about data visualization.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-569
-    description: "Give the number of votes for the post about data visualization."
+    description: 'Give the number of votes for the post about data visualization.'
     messages:
       - role: user
         content: |

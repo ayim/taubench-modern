@@ -1,5 +1,5 @@
 name: bird-superhero-090
-description: "BIRD Q806 (simple): Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name."
+description: 'BIRD Q806 (simple): Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-806
-    description: "Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name."
+    description: 'Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.'
     messages:
       - role: user
         content: |

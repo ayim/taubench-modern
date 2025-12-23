@@ -1,5 +1,5 @@
 name: bird-toxicology-133
-description: "BIRD Q327 (moderate): Which non-carcinogenic molecules consisted more than 5 atoms?"
+description: 'BIRD Q327 (moderate): Which non-carcinogenic molecules consisted more than 5 atoms?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-327
-    description: "Which non-carcinogenic molecules consisted more than 5 atoms?"
+    description: 'Which non-carcinogenic molecules consisted more than 5 atoms?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-014
-description: "BIRD Q208 (challenging): For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?"
+description: 'BIRD Q208 (challenging): For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-208
-    description: "For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?"
+    description: 'For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?'
     messages:
       - role: user
         content: |

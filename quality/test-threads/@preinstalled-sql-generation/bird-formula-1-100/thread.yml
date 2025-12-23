@@ -1,5 +1,5 @@
 name: bird-formula-1-100
-description: "BIRD Q945 (simple): How many circuits are there in Adelaide, Australia?"
+description: 'BIRD Q945 (simple): How many circuits are there in Adelaide, Australia?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-945
-    description: "How many circuits are there in Adelaide, Australia?"
+    description: 'How many circuits are there in Adelaide, Australia?'
     messages:
       - role: user
         content: |

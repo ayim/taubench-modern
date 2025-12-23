@@ -1,5 +1,5 @@
 name: bird-student-club-032
-description: "BIRD Q1343 (simple): With the biggest budget for the \"Food\", what was the remaining of it?"
+description: 'BIRD Q1343 (simple): With the biggest budget for the "Food", what was the remaining of it?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1343
-    description: "With the biggest budget for the \"Food\", what was the remaining of it?"
+    description: 'With the biggest budget for the "Food", what was the remaining of it?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-129
-description: "BIRD Q323 (simple): Is molecule TR000 is carcinogenic or not?"
+description: 'BIRD Q323 (simple): Is molecule TR000 is carcinogenic or not?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-323
-    description: "Is molecule TR000 is carcinogenic or not?"
+    description: 'Is molecule TR000 is carcinogenic or not?'
     messages:
       - role: user
         content: |

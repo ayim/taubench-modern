@@ -1,5 +1,5 @@
 name: bird-student-club-103
-description: "BIRD Q1414 (simple): State the name of major that Phillip Cullen has joined."
+description: 'BIRD Q1414 (simple): State the name of major that Phillip Cullen has joined.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1414
-    description: "State the name of major that Phillip Cullen has joined."
+    description: 'State the name of major that Phillip Cullen has joined.'
     messages:
       - role: user
         content: |

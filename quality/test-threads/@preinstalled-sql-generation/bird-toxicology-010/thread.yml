@@ -1,5 +1,5 @@
 name: bird-toxicology-010
-description: "BIRD Q204 (challenging): What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?"
+description: 'BIRD Q204 (challenging): What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-204
-    description: "What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?"
+    description: 'What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?'
     messages:
       - role: user
         content: |

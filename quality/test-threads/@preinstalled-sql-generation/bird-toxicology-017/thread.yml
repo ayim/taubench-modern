@@ -1,5 +1,5 @@
 name: bird-toxicology-017
-description: "BIRD Q211 (simple): Indicate which atoms are connected in non-carcinogenic type molecules."
+description: 'BIRD Q211 (simple): Indicate which atoms are connected in non-carcinogenic type molecules.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-211
-    description: "Indicate which atoms are connected in non-carcinogenic type molecules."
+    description: 'Indicate which atoms are connected in non-carcinogenic type molecules.'
     messages:
       - role: user
         content: |

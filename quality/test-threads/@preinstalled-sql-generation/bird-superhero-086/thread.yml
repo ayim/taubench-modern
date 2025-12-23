@@ -1,5 +1,5 @@
 name: bird-superhero-086
-description: "BIRD Q802 (simple): Who is the tallest superhero?"
+description: 'BIRD Q802 (simple): Who is the tallest superhero?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-802
-    description: "Who is the tallest superhero?"
+    description: 'Who is the tallest superhero?'
     messages:
       - role: user
         content: |

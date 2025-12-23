@@ -1,5 +1,5 @@
 name: bird-toxicology-125
-description: "BIRD Q319 (challenging): How many elements are contained in bond_id TR001_3_4?"
+description: 'BIRD Q319 (challenging): How many elements are contained in bond_id TR001_3_4?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-319
-    description: "How many elements are contained in bond_id TR001_3_4?"
+    description: 'How many elements are contained in bond_id TR001_3_4?'
     messages:
       - role: user
         content: |

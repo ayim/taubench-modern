@@ -1,5 +1,5 @@
 name: bird-formula-1-003
-description: "BIRD Q848 (simple): Please list the year during which the race is held on circuits in Shanghai."
+description: 'BIRD Q848 (simple): Please list the year during which the race is held on circuits in Shanghai.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-848
-    description: "Please list the year during which the race is held on circuits in Shanghai."
+    description: 'Please list the year during which the race is held on circuits in Shanghai.'
     messages:
       - role: user
         content: |

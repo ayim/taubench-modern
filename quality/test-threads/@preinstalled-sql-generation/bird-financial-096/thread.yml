@@ -1,5 +1,5 @@
 name: bird-financial-096
-description: "BIRD Q184 (simple): How many female customers have a junior credit card?"
+description: 'BIRD Q184 (simple): How many female customers have a junior credit card?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-184
-    description: "How many female customers have a junior credit card?"
+    description: 'How many female customers have a junior credit card?'
     messages:
       - role: user
         content: |

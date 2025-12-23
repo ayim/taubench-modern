@@ -1,5 +1,5 @@
 name: bird-financial-013
-description: "BIRD Q101 (simple): List out the accounts who have the earliest trading date in 1995 ?"
+description: 'BIRD Q101 (simple): List out the accounts who have the earliest trading date in 1995 ?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-101
-    description: "List out the accounts who have the earliest trading date in 1995 ?"
+    description: 'List out the accounts who have the earliest trading date in 1995 ?'
     messages:
       - role: user
         content: |

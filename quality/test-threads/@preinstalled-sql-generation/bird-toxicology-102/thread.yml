@@ -1,5 +1,5 @@
 name: bird-toxicology-102
-description: "BIRD Q296 (simple): Indicate the molecule id is belonging to the TR000_1_2 bond that has the first atom named TR000_1."
+description: 'BIRD Q296 (simple): Indicate the molecule id is belonging to the TR000_1_2 bond that has the first atom named TR000_1.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-296
-    description: "Indicate the molecule id is belonging to the TR000_1_2 bond that has the first atom named TR000_1."
+    description: 'Indicate the molecule id is belonging to the TR000_1_2 bond that has the first atom named TR000_1.'
     messages:
       - role: user
         content: |

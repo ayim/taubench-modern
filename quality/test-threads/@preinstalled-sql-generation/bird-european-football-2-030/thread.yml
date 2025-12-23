@@ -1,5 +1,5 @@
 name: bird-european-football-2-030
-description: "BIRD Q1049 (simple): How many matches in the 2015/2016 season were held in Scotland Premier League?"
+description: 'BIRD Q1049 (simple): How many matches in the 2015/2016 season were held in Scotland Premier League?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1049
-    description: "How many matches in the 2015/2016 season were held in Scotland Premier League?"
+    description: 'How many matches in the 2015/2016 season were held in Scotland Premier League?'
     messages:
       - role: user
         content: |

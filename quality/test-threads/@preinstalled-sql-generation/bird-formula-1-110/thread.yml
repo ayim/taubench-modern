@@ -1,5 +1,5 @@
 name: bird-formula-1-110
-description: "BIRD Q955 (challenging): What is the average time in seconds of champion for each year, before year 1975?"
+description: 'BIRD Q955 (challenging): What is the average time in seconds of champion for each year, before year 1975?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-955
-    description: "What is the average time in seconds of champion for each year, before year 1975?"
+    description: 'What is the average time in seconds of champion for each year, before year 1975?'
     messages:
       - role: user
         content: |

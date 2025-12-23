@@ -1,5 +1,5 @@
 name: bird-european-football-2-016
-description: "BIRD Q1035 (simple): Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed."
+description: 'BIRD Q1035 (simple): Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1035
-    description: "Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed."
+    description: 'Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed.'
     messages:
       - role: user
         content: |
           Give the team_fifa_api_id of teams with more than 50 but less than 60 build-up play speed.
-          Evidence: teams with more than 50 but less than 60 build-up play speed refers to buildUpPlaySpeed >50 AND buildUpPlaySpeed <60; 
+          Evidence: teams with more than 50 but less than 60 build-up play speed refers to buildUpPlaySpeed >50 AND buildUpPlaySpeed <60;
 
 target-platforms:
   - name: openai

@@ -1,5 +1,5 @@
 name: bird-european-football-2-083
-description: "BIRD Q1102 (moderate): For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player."
+description: 'BIRD Q1102 (moderate): For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1102
-    description: "For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player."
+    description: 'For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player.'
     messages:
       - role: user
         content: |

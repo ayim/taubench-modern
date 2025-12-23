@@ -1,5 +1,5 @@
 name: bird-card-games-034
-description: "BIRD Q373 (simple): Name the cards that were illustrated by Aaron Boyd."
+description: 'BIRD Q373 (simple): Name the cards that were illustrated by Aaron Boyd.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-373
-    description: "Name the cards that were illustrated by Aaron Boyd."
+    description: 'Name the cards that were illustrated by Aaron Boyd.'
     messages:
       - role: user
         content: |

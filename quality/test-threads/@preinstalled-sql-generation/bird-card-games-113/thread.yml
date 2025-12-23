@@ -1,5 +1,5 @@
 name: bird-card-games-113
-description: "BIRD Q452 (simple): Please list the names of the cards that have a text box."
+description: 'BIRD Q452 (simple): Please list the names of the cards that have a text box.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-452
-    description: "Please list the names of the cards that have a text box."
+    description: 'Please list the names of the cards that have a text box.'
     messages:
       - role: user
         content: |

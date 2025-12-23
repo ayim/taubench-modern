@@ -1,5 +1,5 @@
 name: bird-superhero-065
-description: "BIRD Q781 (simple): Provide the heights of the heroes whose eye colours are amber."
+description: 'BIRD Q781 (simple): Provide the heights of the heroes whose eye colours are amber.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-781
-    description: "Provide the heights of the heroes whose eye colours are amber."
+    description: 'Provide the heights of the heroes whose eye colours are amber.'
     messages:
       - role: user
         content: |

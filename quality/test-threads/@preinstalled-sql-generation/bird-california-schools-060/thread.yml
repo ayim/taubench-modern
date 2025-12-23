@@ -1,5 +1,5 @@
 name: bird-california-schools-060
-description: "BIRD Q59 (simple): What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?"
+description: 'BIRD Q59 (simple): What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-59
-    description: "What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?"
+    description: 'What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-119
-description: "BIRD Q649 (simple): Describe the post history counts and last edit date of the post title \"What is the best introductory Bayesian statistics textbook?\""
+description: 'BIRD Q649 (simple): Describe the post history counts and last edit date of the post title "What is the best introductory Bayesian statistics textbook?"'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-649
-    description: "Describe the post history counts and last edit date of the post title \"What is the best introductory Bayesian statistics textbook?\""
+    description: 'Describe the post history counts and last edit date of the post title "What is the best introductory Bayesian statistics textbook?"'
     messages:
       - role: user
         content: |

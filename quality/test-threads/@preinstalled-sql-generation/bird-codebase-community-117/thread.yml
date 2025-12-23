@@ -1,5 +1,5 @@
 name: bird-codebase-community-117
-description: "BIRD Q647 (simple): Provide the badge names received in 2011 for the user whose location is in the North Pole."
+description: 'BIRD Q647 (simple): Provide the badge names received in 2011 for the user whose location is in the North Pole.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-647
-    description: "Provide the badge names received in 2011 for the user whose location is in the North Pole."
+    description: 'Provide the badge names received in 2011 for the user whose location is in the North Pole.'
     messages:
       - role: user
         content: |

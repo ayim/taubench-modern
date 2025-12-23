@@ -1,5 +1,5 @@
 name: bird-superhero-053
-description: "BIRD Q769 (challenging): Which superhero has the most durability published by Dark Horse Comics?"
+description: 'BIRD Q769 (challenging): Which superhero has the most durability published by Dark Horse Comics?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-769
-    description: "Which superhero has the most durability published by Dark Horse Comics?"
+    description: 'Which superhero has the most durability published by Dark Horse Comics?'
     messages:
       - role: user
         content: |

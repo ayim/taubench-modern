@@ -1,5 +1,5 @@
 name: bird-toxicology-090
-description: "BIRD Q284 (moderate): Determine the bond type that is formed in the chemical compound containing element Carbon."
+description: 'BIRD Q284 (moderate): Determine the bond type that is formed in the chemical compound containing element Carbon.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-284
-    description: "Determine the bond type that is formed in the chemical compound containing element Carbon."
+    description: 'Determine the bond type that is formed in the chemical compound containing element Carbon.'
     messages:
       - role: user
         content: |

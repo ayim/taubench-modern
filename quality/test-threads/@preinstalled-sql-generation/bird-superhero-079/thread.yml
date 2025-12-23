@@ -1,5 +1,5 @@
 name: bird-superhero-079
-description: "BIRD Q795 (simple): How many superheroes have a neutral alignment?"
+description: 'BIRD Q795 (simple): How many superheroes have a neutral alignment?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-795
-    description: "How many superheroes have a neutral alignment?"
+    description: 'How many superheroes have a neutral alignment?'
     messages:
       - role: user
         content: |

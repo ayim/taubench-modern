@@ -1,5 +1,5 @@
 name: bird-student-club-003
-description: "BIRD Q1314 (simple): Please list the full names of the students in the Student_Club that come from the Art and Design Department."
+description: 'BIRD Q1314 (simple): Please list the full names of the students in the Student_Club that come from the Art and Design Department.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1314
-    description: "Please list the full names of the students in the Student_Club that come from the Art and Design Department."
+    description: 'Please list the full names of the students in the Student_Club that come from the Art and Design Department.'
     messages:
       - role: user
         content: |

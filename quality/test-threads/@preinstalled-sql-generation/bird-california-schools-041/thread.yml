@@ -1,5 +1,5 @@
 name: bird-california-schools-041
-description: "BIRD Q40 (moderate): What is the telephone number for the school with the lowest average score in reading in Fresno Unified?"
+description: 'BIRD Q40 (moderate): What is the telephone number for the school with the lowest average score in reading in Fresno Unified?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-40
-    description: "What is the telephone number for the school with the lowest average score in reading in Fresno Unified?"
+    description: 'What is the telephone number for the school with the lowest average score in reading in Fresno Unified?'
     messages:
       - role: user
         content: |

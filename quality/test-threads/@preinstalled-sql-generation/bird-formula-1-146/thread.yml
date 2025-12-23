@@ -1,5 +1,5 @@
 name: bird-formula-1-146
-description: "BIRD Q991 (simple): What is the full name and date of birth of Austrian drivers born between 1981 and 1991?"
+description: 'BIRD Q991 (simple): What is the full name and date of birth of Austrian drivers born between 1981 and 1991?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-991
-    description: "What is the full name and date of birth of Austrian drivers born between 1981 and 1991?"
+    description: 'What is the full name and date of birth of Austrian drivers born between 1981 and 1991?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-011
-description: "BIRD Q1159 (simple): For patient with albumin level lower than 3.5, list their ID, sex and diagnosis."
+description: 'BIRD Q1159 (simple): For patient with albumin level lower than 3.5, list their ID, sex and diagnosis.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1159
-    description: "For patient with albumin level lower than 3.5, list their ID, sex and diagnosis."
+    description: 'For patient with albumin level lower than 3.5, list their ID, sex and diagnosis.'
     messages:
       - role: user
         content: |

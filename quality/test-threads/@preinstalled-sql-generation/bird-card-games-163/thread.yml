@@ -1,5 +1,5 @@
 name: bird-card-games-163
-description: "BIRD Q502 (simple): What is the release date for the set \"Ola de frío\"?"
+description: 'BIRD Q502 (simple): What is the release date for the set "Ola de frío"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-502
-    description: "What is the release date for the set \"Ola de frío\"?"
+    description: 'What is the release date for the set "Ola de frío"?'
     messages:
       - role: user
         content: |

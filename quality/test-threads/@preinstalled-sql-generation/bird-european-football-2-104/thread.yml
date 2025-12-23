@@ -1,5 +1,5 @@
 name: bird-european-football-2-104
-description: "BIRD Q1123 (simple): What is the name of players with the highest potential?"
+description: 'BIRD Q1123 (simple): What is the name of players with the highest potential?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1123
-    description: "What is the name of players with the highest potential?"
+    description: 'What is the name of players with the highest potential?'
     messages:
       - role: user
         content: |

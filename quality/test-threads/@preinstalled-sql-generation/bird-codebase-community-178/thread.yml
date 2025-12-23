@@ -1,5 +1,5 @@
 name: bird-codebase-community-178
-description: "BIRD Q708 (moderate): List the creation date and age of the user that commented with webiste."
+description: 'BIRD Q708 (moderate): List the creation date and age of the user that commented with webiste.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-708
-    description: "List the creation date and age of the user that commented with webiste."
+    description: 'List the creation date and age of the user that commented with webiste.'
     messages:
       - role: user
         content: |

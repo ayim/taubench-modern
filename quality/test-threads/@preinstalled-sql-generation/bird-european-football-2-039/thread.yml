@@ -1,5 +1,5 @@
 name: bird-european-football-2-039
-description: "BIRD Q1058 (challenging): Who has the highest average finishing rate between the highest and shortest football player?"
+description: 'BIRD Q1058 (challenging): Who has the highest average finishing rate between the highest and shortest football player?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1058
-    description: "Who has the highest average finishing rate between the highest and shortest football player?"
+    description: 'Who has the highest average finishing rate between the highest and shortest football player?'
     messages:
       - role: user
         content: |

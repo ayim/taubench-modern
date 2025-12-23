@@ -1,5 +1,5 @@
 name: bird-codebase-community-033
-description: "BIRD Q563 (moderate): User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?"
+description: 'BIRD Q563 (moderate): User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-563
-    description: "User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?"
+    description: 'User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?'
     messages:
       - role: user
         content: |

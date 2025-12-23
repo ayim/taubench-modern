@@ -1,5 +1,5 @@
 name: bird-card-games-111
-description: "BIRD Q450 (moderate): Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?"
+description: 'BIRD Q450 (moderate): Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-450
-    description: "Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?"
+    description: 'Of all the cards that are designed by Aaron Miller, how many of them are incredibly powerful?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-007
-description: "BIRD Q346 (moderate): List all the card id and artist with unknown power which are legal for commander play format."
+description: 'BIRD Q346 (moderate): List all the card id and artist with unknown power which are legal for commander play format.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-346
-    description: "List all the card id and artist with unknown power which are legal for commander play format."
+    description: 'List all the card id and artist with unknown power which are legal for commander play format.'
     messages:
       - role: user
         content: |

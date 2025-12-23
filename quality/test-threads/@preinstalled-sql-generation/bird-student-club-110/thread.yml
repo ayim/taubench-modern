@@ -1,5 +1,5 @@
 name: bird-student-club-110
-description: "BIRD Q1421 (moderate): Calculate the percentage of members who are major Business in the list?"
+description: 'BIRD Q1421 (moderate): Calculate the percentage of members who are major Business in the list?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1421
-    description: "Calculate the percentage of members who are major Business in the list?"
+    description: 'Calculate the percentage of members who are major Business in the list?'
     messages:
       - role: user
         content: |

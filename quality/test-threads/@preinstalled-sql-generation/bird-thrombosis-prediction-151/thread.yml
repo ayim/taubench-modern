@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-151
-description: "BIRD Q1299 (simple): Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?"
+description: 'BIRD Q1299 (simple): Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1299
-    description: "Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?"
+    description: 'Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?'
     messages:
       - role: user
         content: |

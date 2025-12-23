@@ -1,5 +1,5 @@
 name: bird-codebase-community-012
-description: "BIRD Q542 (simple): What is the total number of comments of all the posts owned by csgillespie?"
+description: 'BIRD Q542 (simple): What is the total number of comments of all the posts owned by csgillespie?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-542
-    description: "What is the total number of comments of all the posts owned by csgillespie?"
+    description: 'What is the total number of comments of all the posts owned by csgillespie?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-045
-description: "BIRD Q1193 (moderate): Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?"
+description: 'BIRD Q1193 (moderate): Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1193
-    description: "Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?"
+    description: 'Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?'
     messages:
       - role: user
         content: |

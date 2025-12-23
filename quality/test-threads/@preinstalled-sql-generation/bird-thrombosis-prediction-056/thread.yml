@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-056
-description: "BIRD Q1204 (simple): How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?"
+description: 'BIRD Q1204 (simple): How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1204
-    description: "How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?"
+    description: 'How long did it take after patient number 821298 arrived at the hospital for the first time before her first evaluation began?'
     messages:
       - role: user
         content: |

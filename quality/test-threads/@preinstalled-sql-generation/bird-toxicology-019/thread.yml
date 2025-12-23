@@ -1,5 +1,5 @@
 name: bird-toxicology-019
-description: "BIRD Q213 (challenging): What type of bond is there between the atoms TR004_8 and TR004_20?"
+description: 'BIRD Q213 (challenging): What type of bond is there between the atoms TR004_8 and TR004_20?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-213
-    description: "What type of bond is there between the atoms TR004_8 and TR004_20?"
+    description: 'What type of bond is there between the atoms TR004_8 and TR004_20?'
     messages:
       - role: user
         content: |

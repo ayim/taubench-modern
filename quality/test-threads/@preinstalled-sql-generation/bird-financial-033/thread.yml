@@ -1,5 +1,5 @@
 name: bird-financial-033
-description: "BIRD Q121 (challenging): For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest."
+description: 'BIRD Q121 (challenging): For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-121
-    description: "For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest."
+    description: 'For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-143
-description: "BIRD Q482 (simple): What's the German type of the card \"Ancestor's Chosen\"?"
+description: 'BIRD Q482 (simple): What''s the German type of the card "Ancestor''s Chosen"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-482
-    description: "What's the German type of the card \"Ancestor's Chosen\"?"
+    description: 'What''s the German type of the card "Ancestor''s Chosen"?'
     messages:
       - role: user
         content: |

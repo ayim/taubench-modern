@@ -1,5 +1,5 @@
 name: bird-student-club-077
-description: "BIRD Q1388 (moderate): Which students manage to generate the highest income. State his/her full name along with the income source."
+description: 'BIRD Q1388 (moderate): Which students manage to generate the highest income. State his/her full name along with the income source.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1388
-    description: "Which students manage to generate the highest income. State his/her full name along with the income source."
+    description: 'Which students manage to generate the highest income. State his/her full name along with the income source.'
     messages:
       - role: user
         content: |

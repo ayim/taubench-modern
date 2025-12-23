@@ -1,5 +1,5 @@
 name: bird-superhero-041
-description: "BIRD Q757 (simple): Identify the race of the superhero who weighed 169 kg."
+description: 'BIRD Q757 (simple): Identify the race of the superhero who weighed 169 kg.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-757
-    description: "Identify the race of the superhero who weighed 169 kg."
+    description: 'Identify the race of the superhero who weighed 169 kg.'
     messages:
       - role: user
         content: |

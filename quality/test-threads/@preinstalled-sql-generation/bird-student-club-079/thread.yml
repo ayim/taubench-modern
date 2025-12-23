@@ -1,5 +1,5 @@
 name: bird-student-club-079
-description: "BIRD Q1390 (moderate): Based on the total cost for all event, what is the percentage of cost for Yearly Kickoff event?"
+description: 'BIRD Q1390 (moderate): Based on the total cost for all event, what is the percentage of cost for Yearly Kickoff event?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1390
-    description: "Based on the total cost for all event, what is the percentage of cost for Yearly Kickoff event?"
+    description: 'Based on the total cost for all event, what is the percentage of cost for Yearly Kickoff event?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-069
-description: "BIRD Q1380 (simple): What is the total amount of money spent for food?"
+description: 'BIRD Q1380 (simple): What is the total amount of money spent for food?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1380
-    description: "What is the total amount of money spent for food?"
+    description: 'What is the total amount of money spent for food?'
     messages:
       - role: user
         content: |

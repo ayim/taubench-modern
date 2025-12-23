@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-003
-description: "BIRD Q1472 (moderate): In 2012, who had the least consumption in LAM?"
+description: 'BIRD Q1472 (moderate): In 2012, who had the least consumption in LAM?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1472
-    description: "In 2012, who had the least consumption in LAM?"
+    description: 'In 2012, who had the least consumption in LAM?'
     messages:
       - role: user
         content: |

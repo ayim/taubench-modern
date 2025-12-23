@@ -1,5 +1,5 @@
 name: bird-formula-1-101
-description: "BIRD Q946 (simple): Please list the location coordinates of the US circuits."
+description: 'BIRD Q946 (simple): Please list the location coordinates of the US circuits.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-946
-    description: "Please list the location coordinates of the US circuits."
+    description: 'Please list the location coordinates of the US circuits.'
     messages:
       - role: user
         content: |

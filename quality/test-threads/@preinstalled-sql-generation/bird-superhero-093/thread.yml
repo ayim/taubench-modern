@@ -1,5 +1,5 @@
 name: bird-superhero-093
-description: "BIRD Q809 (simple): What is the publisher name of the superhero ID 38?"
+description: 'BIRD Q809 (simple): What is the publisher name of the superhero ID 38?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-809
-    description: "What is the publisher name of the superhero ID 38?"
+    description: 'What is the publisher name of the superhero ID 38?'
     messages:
       - role: user
         content: |

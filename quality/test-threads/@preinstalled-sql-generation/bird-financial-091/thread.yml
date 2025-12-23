@@ -1,5 +1,5 @@
 name: bird-financial-091
-description: "BIRD Q179 (simple): How much, in total, did client number 617 pay for all of the transactions in 1998?"
+description: 'BIRD Q179 (simple): How much, in total, did client number 617 pay for all of the transactions in 1998?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-179
-    description: "How much, in total, did client number 617 pay for all of the transactions in 1998?"
+    description: 'How much, in total, did client number 617 pay for all of the transactions in 1998?'
     messages:
       - role: user
         content: |

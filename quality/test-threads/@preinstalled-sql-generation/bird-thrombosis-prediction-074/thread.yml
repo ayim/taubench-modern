@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-074
-description: "BIRD Q1222 (simple): How many male patients have creatinine index out of the normal range?"
+description: 'BIRD Q1222 (simple): How many male patients have creatinine index out of the normal range?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1222
-    description: "How many male patients have creatinine index out of the normal range?"
+    description: 'How many male patients have creatinine index out of the normal range?'
     messages:
       - role: user
         content: |

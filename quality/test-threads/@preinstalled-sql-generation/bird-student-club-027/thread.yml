@@ -1,5 +1,5 @@
 name: bird-student-club-027
-description: "BIRD Q1338 (moderate): Was each expense in October Meeting on October 8, 2019 approved?"
+description: 'BIRD Q1338 (moderate): Was each expense in October Meeting on October 8, 2019 approved?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1338
-    description: "Was each expense in October Meeting on October 8, 2019 approved?"
+    description: 'Was each expense in October Meeting on October 8, 2019 approved?'
     messages:
       - role: user
         content: |

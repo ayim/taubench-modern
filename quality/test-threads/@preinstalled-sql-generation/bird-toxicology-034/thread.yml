@@ -1,5 +1,5 @@
 name: bird-toxicology-034
-description: "BIRD Q228 (moderate): How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places."
+description: 'BIRD Q228 (moderate): How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-228
-    description: "How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places."
+    description: 'How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places.'
     messages:
       - role: user
         content: |

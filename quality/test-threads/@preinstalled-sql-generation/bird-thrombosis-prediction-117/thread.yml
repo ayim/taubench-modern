@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-117
-description: "BIRD Q1265 (moderate): How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?"
+description: 'BIRD Q1265 (moderate): How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1265
-    description: "How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?"
+    description: 'How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?'
     messages:
       - role: user
         content: |

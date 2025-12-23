@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-015
-description: "BIRD Q1484 (simple): How many more \"discount\" gas stations does the Czech Republic have compared to Slovakia?"
+description: 'BIRD Q1484 (simple): How many more "discount" gas stations does the Czech Republic have compared to Slovakia?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1484
-    description: "How many more \"discount\" gas stations does the Czech Republic have compared to Slovakia?"
+    description: 'How many more "discount" gas stations does the Czech Republic have compared to Slovakia?'
     messages:
       - role: user
         content: |

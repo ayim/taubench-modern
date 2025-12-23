@@ -1,5 +1,5 @@
 name: bird-card-games-036
-description: "BIRD Q375 (simple): List down all the card IDs with converted mana cost of 0."
+description: 'BIRD Q375 (simple): List down all the card IDs with converted mana cost of 0.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-375
-    description: "List down all the card IDs with converted mana cost of 0."
+    description: 'List down all the card IDs with converted mana cost of 0.'
     messages:
       - role: user
         content: |

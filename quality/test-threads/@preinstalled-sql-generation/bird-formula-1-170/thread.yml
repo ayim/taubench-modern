@@ -1,5 +1,5 @@
 name: bird-formula-1-170
-description: "BIRD Q1015 (moderate): In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?"
+description: 'BIRD Q1015 (moderate): In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1015
-    description: "In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?"
+    description: 'In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?'
     messages:
       - role: user
         content: |

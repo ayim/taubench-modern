@@ -1,5 +1,5 @@
 name: bird-superhero-103
-description: "BIRD Q819 (challenging): In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color."
+description: 'BIRD Q819 (challenging): In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-819
-    description: "In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color."
+    description: 'In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color.'
     messages:
       - role: user
         content: |

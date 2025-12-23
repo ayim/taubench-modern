@@ -1,5 +1,5 @@
 name: bird-formula-1-108
-description: "BIRD Q953 (simple): How many French constructors have a lap number of over 50?"
+description: 'BIRD Q953 (simple): How many French constructors have a lap number of over 50?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-953
-    description: "How many French constructors have a lap number of over 50?"
+    description: 'How many French constructors have a lap number of over 50?'
     messages:
       - role: user
         content: |

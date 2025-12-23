@@ -1,5 +1,5 @@
 name: bird-codebase-community-181
-description: "BIRD Q711 (simple): Among product comments with 0 score, what is the total number of users aged 40 years old?"
+description: 'BIRD Q711 (simple): Among product comments with 0 score, what is the total number of users aged 40 years old?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-711
-    description: "Among product comments with 0 score, what is the total number of users aged 40 years old?"
+    description: 'Among product comments with 0 score, what is the total number of users aged 40 years old?'
     messages:
       - role: user
         content: |

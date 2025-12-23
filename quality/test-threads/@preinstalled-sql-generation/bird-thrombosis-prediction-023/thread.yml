@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-023
-description: "BIRD Q1171 (challenging): How many underage patients were examined during the course of the three-year period from 1990 to 1993?"
+description: 'BIRD Q1171 (challenging): How many underage patients were examined during the course of the three-year period from 1990 to 1993?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1171
-    description: "How many underage patients were examined during the course of the three-year period from 1990 to 1993?"
+    description: 'How many underage patients were examined during the course of the three-year period from 1990 to 1993?'
     messages:
       - role: user
         content: |

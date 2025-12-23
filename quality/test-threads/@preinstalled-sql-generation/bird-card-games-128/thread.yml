@@ -1,5 +1,5 @@
 name: bird-card-games-128
-description: "BIRD Q467 (simple): How many cards are there in the base set of \"Hauptset Zehnte Edition\"?"
+description: 'BIRD Q467 (simple): How many cards are there in the base set of "Hauptset Zehnte Edition"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-467
-    description: "How many cards are there in the base set of \"Hauptset Zehnte Edition\"?"
+    description: 'How many cards are there in the base set of "Hauptset Zehnte Edition"?'
     messages:
       - role: user
         content: |

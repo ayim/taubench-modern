@@ -1,5 +1,5 @@
 name: bird-formula-1-119
-description: "BIRD Q964 (simple): List out the code for drivers who have nationality in America."
+description: 'BIRD Q964 (simple): List out the code for drivers who have nationality in America.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-964
-    description: "List out the code for drivers who have nationality in America."
+    description: 'List out the code for drivers who have nationality in America.'
     messages:
       - role: user
         content: |

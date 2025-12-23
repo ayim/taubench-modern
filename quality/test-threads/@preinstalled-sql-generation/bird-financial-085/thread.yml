@@ -1,5 +1,5 @@
 name: bird-financial-085
-description: "BIRD Q173 (challenging): How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?"
+description: 'BIRD Q173 (challenging): How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-173
-    description: "How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?"
+    description: 'How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?'
     messages:
       - role: user
         content: |

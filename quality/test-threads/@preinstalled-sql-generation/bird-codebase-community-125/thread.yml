@@ -1,5 +1,5 @@
 name: bird-codebase-community-125
-description: "BIRD Q655 (simple): Write down the related posts titles and link type IDs of the post \"What are principal component scores?\"."
+description: 'BIRD Q655 (simple): Write down the related posts titles and link type IDs of the post "What are principal component scores?".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-655
-    description: "Write down the related posts titles and link type IDs of the post \"What are principal component scores?\"."
+    description: 'Write down the related posts titles and link type IDs of the post "What are principal component scores?".'
     messages:
       - role: user
         content: |

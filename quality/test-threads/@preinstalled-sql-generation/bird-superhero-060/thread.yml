@@ -1,5 +1,5 @@
 name: bird-superhero-060
-description: "BIRD Q776 (simple): Provide the hero name and race of Charles Chandler."
+description: 'BIRD Q776 (simple): Provide the hero name and race of Charles Chandler.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-776
-    description: "Provide the hero name and race of Charles Chandler."
+    description: 'Provide the hero name and race of Charles Chandler.'
     messages:
       - role: user
         content: |

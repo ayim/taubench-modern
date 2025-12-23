@@ -1,5 +1,5 @@
 name: bird-card-games-072
-description: "BIRD Q411 (simple): To which artist does the card with the text \"Das perfekte Gegenmittel zu einer dichten Formation\" belong?"
+description: 'BIRD Q411 (simple): To which artist does the card with the text "Das perfekte Gegenmittel zu einer dichten Formation" belong?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-411
-    description: "To which artist does the card with the text \"Das perfekte Gegenmittel zu einer dichten Formation\" belong?"
+    description: 'To which artist does the card with the text "Das perfekte Gegenmittel zu einer dichten Formation" belong?'
     messages:
       - role: user
         content: |

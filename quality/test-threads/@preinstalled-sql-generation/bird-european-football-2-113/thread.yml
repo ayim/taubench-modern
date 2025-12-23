@@ -1,5 +1,5 @@
 name: bird-european-football-2-113
-description: "BIRD Q1132 (simple): Please provide the names of top three football players who are over 180 cm tall in alphabetical order."
+description: 'BIRD Q1132 (simple): Please provide the names of top three football players who are over 180 cm tall in alphabetical order.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1132
-    description: "Please provide the names of top three football players who are over 180 cm tall in alphabetical order."
+    description: 'Please provide the names of top three football players who are over 180 cm tall in alphabetical order.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-115
-description: "BIRD Q454 (simple): Among the cards with a white border color, how many of them have unknown power?"
+description: 'BIRD Q454 (simple): Among the cards with a white border color, how many of them have unknown power?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-454
-    description: "Among the cards with a white border color, how many of them have unknown power?"
+    description: 'Among the cards with a white border color, how many of them have unknown power?'
     messages:
       - role: user
         content: |

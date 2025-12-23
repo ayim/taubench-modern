@@ -1,5 +1,5 @@
 name: bird-card-games-031
-description: "BIRD Q370 (simple): How many borderless cards are illustrated in Russian?"
+description: 'BIRD Q370 (simple): How many borderless cards are illustrated in Russian?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-370
-    description: "How many borderless cards are illustrated in Russian?"
+    description: 'How many borderless cards are illustrated in Russian?'
     messages:
       - role: user
         content: |

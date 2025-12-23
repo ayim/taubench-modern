@@ -1,5 +1,5 @@
 name: bird-formula-1-152
-description: "BIRD Q997 (simple): Which citizenship do the vast majority of the drivers hold?"
+description: 'BIRD Q997 (simple): Which citizenship do the vast majority of the drivers hold?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-997
-    description: "Which citizenship do the vast majority of the drivers hold?"
+    description: 'Which citizenship do the vast majority of the drivers hold?'
     messages:
       - role: user
         content: |

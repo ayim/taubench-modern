@@ -1,5 +1,5 @@
 name: bird-toxicology-134
-description: "BIRD Q328 (challenging): List all the elements with double bond, consisted in molecule TR024."
+description: 'BIRD Q328 (challenging): List all the elements with double bond, consisted in molecule TR024.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-328
-    description: "List all the elements with double bond, consisted in molecule TR024."
+    description: 'List all the elements with double bond, consisted in molecule TR024.'
     messages:
       - role: user
         content: |

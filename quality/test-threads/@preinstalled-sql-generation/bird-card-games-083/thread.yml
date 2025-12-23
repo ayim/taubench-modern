@@ -1,5 +1,5 @@
 name: bird-card-games-083
-description: "BIRD Q422 (simple): What is the language of the card with the multiverse number 149934?"
+description: 'BIRD Q422 (simple): What is the language of the card with the multiverse number 149934?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-422
-    description: "What is the language of the card with the multiverse number 149934?"
+    description: 'What is the language of the card with the multiverse number 149934?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-european-football-2-054
-description: "BIRD Q1073 (moderate): How many matches were held in the league Germany 1. Bundesliga from August to October 2008?"
+description: 'BIRD Q1073 (moderate): How many matches were held in the league Germany 1. Bundesliga from August to October 2008?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1073
-    description: "How many matches were held in the league Germany 1. Bundesliga from August to October 2008?"
+    description: 'How many matches were held in the league Germany 1. Bundesliga from August to October 2008?'
     messages:
       - role: user
         content: |

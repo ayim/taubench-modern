@@ -1,5 +1,5 @@
 name: bird-formula-1-070
-description: "BIRD Q915 (simple): Which country is the oldest driver from?"
+description: 'BIRD Q915 (simple): Which country is the oldest driver from?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-915
-    description: "Which country is the oldest driver from?"
+    description: 'Which country is the oldest driver from?'
     messages:
       - role: user
         content: |

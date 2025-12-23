@@ -1,5 +1,5 @@
 name: bird-codebase-community-158
-description: "BIRD Q688 (simple): Identify the number of posts that have been viewed over 35000 times but have received no comments from other users."
+description: 'BIRD Q688 (simple): Identify the number of posts that have been viewed over 35000 times but have received no comments from other users.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-688
-    description: "Identify the number of posts that have been viewed over 35000 times but have received no comments from other users."
+    description: 'Identify the number of posts that have been viewed over 35000 times but have received no comments from other users.'
     messages:
       - role: user
         content: |

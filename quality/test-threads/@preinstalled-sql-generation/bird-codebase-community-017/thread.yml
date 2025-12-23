@@ -1,5 +1,5 @@
 name: bird-codebase-community-017
-description: "BIRD Q547 (simple): Among the posts owned by an elder user, how many of them have a score of over 19?"
+description: 'BIRD Q547 (simple): Among the posts owned by an elder user, how many of them have a score of over 19?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-547
-    description: "Among the posts owned by an elder user, how many of them have a score of over 19?"
+    description: 'Among the posts owned by an elder user, how many of them have a score of over 19?'
     messages:
       - role: user
         content: |

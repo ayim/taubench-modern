@@ -1,5 +1,5 @@
 name: bird-financial-075
-description: "BIRD Q163 (moderate): Which district has the most accounts with loan contracts finished with no problems?"
+description: 'BIRD Q163 (moderate): Which district has the most accounts with loan contracts finished with no problems?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-163
-    description: "Which district has the most accounts with loan contracts finished with no problems?"
+    description: 'Which district has the most accounts with loan contracts finished with no problems?'
     messages:
       - role: user
         content: |

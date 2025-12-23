@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-008
-description: "BIRD Q1156 (moderate): State the ID and age of patient with positive degree of coagulation."
+description: 'BIRD Q1156 (moderate): State the ID and age of patient with positive degree of coagulation.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1156
-    description: "State the ID and age of patient with positive degree of coagulation."
+    description: 'State the ID and age of patient with positive degree of coagulation.'
     messages:
       - role: user
         content: |

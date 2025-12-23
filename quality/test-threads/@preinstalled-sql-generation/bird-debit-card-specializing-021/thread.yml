@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-021
-description: "BIRD Q1490 (moderate): How many percent of LAM customer consumed more than 46.73?"
+description: 'BIRD Q1490 (moderate): How many percent of LAM customer consumed more than 46.73?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1490
-    description: "How many percent of LAM customer consumed more than 46.73?"
+    description: 'How many percent of LAM customer consumed more than 46.73?'
     messages:
       - role: user
         content: |

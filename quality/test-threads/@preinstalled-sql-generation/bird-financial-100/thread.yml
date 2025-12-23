@@ -1,5 +1,5 @@
 name: bird-financial-100
-description: "BIRD Q188 (challenging): For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity."
+description: 'BIRD Q188 (challenging): For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-188
-    description: "For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity."
+    description: 'For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity.'
     messages:
       - role: user
         content: |

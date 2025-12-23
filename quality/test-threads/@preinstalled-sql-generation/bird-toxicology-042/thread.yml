@@ -1,5 +1,5 @@
 name: bird-toxicology-042
-description: "BIRD Q236 (moderate): What are the bond type and the atoms of the bond ID of TR001_6_9?"
+description: 'BIRD Q236 (moderate): What are the bond type and the atoms of the bond ID of TR001_6_9?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-236
-    description: "What are the bond type and the atoms of the bond ID of TR001_6_9?"
+    description: 'What are the bond type and the atoms of the bond ID of TR001_6_9?'
     messages:
       - role: user
         content: |

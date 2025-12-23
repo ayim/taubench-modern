@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-028
-description: "BIRD Q1176 (simple): What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?"
+description: 'BIRD Q1176 (simple): What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1176
-    description: "What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?"
+    description: 'What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?'
     messages:
       - role: user
         content: |

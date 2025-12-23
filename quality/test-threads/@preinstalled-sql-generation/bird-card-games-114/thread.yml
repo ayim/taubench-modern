@@ -1,5 +1,5 @@
 name: bird-card-games-114
-description: "BIRD Q453 (simple): What's the unconverted mana cost of the card \"Ancestor's Chosen\"?"
+description: 'BIRD Q453 (simple): What''s the unconverted mana cost of the card "Ancestor''s Chosen"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-453
-    description: "What's the unconverted mana cost of the card \"Ancestor's Chosen\"?"
+    description: 'What''s the unconverted mana cost of the card "Ancestor''s Chosen"?'
     messages:
       - role: user
         content: |

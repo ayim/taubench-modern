@@ -1,5 +1,5 @@
 name: bird-superhero-031
-description: "BIRD Q747 (simple): What is the total number of superheroes without full name?"
+description: 'BIRD Q747 (simple): What is the total number of superheroes without full name?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-747
-    description: "What is the total number of superheroes without full name?"
+    description: 'What is the total number of superheroes without full name?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-040
-description: "BIRD Q1509 (moderate): Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?"
+description: 'BIRD Q1509 (moderate): Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1509
-    description: "Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?"
+    description: 'Among the transactions made in the gas stations in the Czech Republic, how many of them are taken place after 2012/1/1?'
     messages:
       - role: user
         content: |

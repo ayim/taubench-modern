@@ -1,5 +1,5 @@
 name: bird-codebase-community-059
-description: "BIRD Q589 (simple): Which user ID has the highest reputation?"
+description: 'BIRD Q589 (simple): Which user ID has the highest reputation?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-589
-    description: "Which user ID has the highest reputation?"
+    description: 'Which user ID has the highest reputation?'
     messages:
       - role: user
         content: |

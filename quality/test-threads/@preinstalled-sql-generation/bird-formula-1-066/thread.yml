@@ -1,5 +1,5 @@
 name: bird-formula-1-066
-description: "BIRD Q911 (simple): Which of these circuits is located at a higher latitude, Silverstone Circuit, Hockenheimring or Hungaroring?"
+description: 'BIRD Q911 (simple): Which of these circuits is located at a higher latitude, Silverstone Circuit, Hockenheimring or Hungaroring?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-911
-    description: "Which of these circuits is located at a higher latitude, Silverstone Circuit, Hockenheimring or Hungaroring?"
+    description: 'Which of these circuits is located at a higher latitude, Silverstone Circuit, Hockenheimring or Hungaroring?'
     messages:
       - role: user
         content: |

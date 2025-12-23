@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-082
-description: "BIRD Q1230 (simple): List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids."
+description: 'BIRD Q1230 (simple): List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1230
-    description: "List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids."
+    description: 'List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids.'
     messages:
       - role: user
         content: |

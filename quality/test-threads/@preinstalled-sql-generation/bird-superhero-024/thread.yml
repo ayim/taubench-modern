@@ -1,5 +1,5 @@
 name: bird-superhero-024
-description: "BIRD Q740 (moderate): How many female superheroes have a strength value of 100?"
+description: 'BIRD Q740 (moderate): How many female superheroes have a strength value of 100?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-740
-    description: "How many female superheroes have a strength value of 100?"
+    description: 'How many female superheroes have a strength value of 100?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-003
-description: "BIRD Q342 (simple): List the card names with value that cost more converted mana."
+description: 'BIRD Q342 (simple): List the card names with value that cost more converted mana.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-342
-    description: "List the card names with value that cost more converted mana."
+    description: 'List the card names with value that cost more converted mana.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-079
-description: "BIRD Q78 (challenging): For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?"
+description: 'BIRD Q78 (challenging): For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-78
-    description: "For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?"
+    description: 'For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-135
-description: "BIRD Q980 (moderate): List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday."
+description: 'BIRD Q980 (moderate): List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-980
-    description: "List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday."
+    description: 'List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday.'
     messages:
       - role: user
         content: |

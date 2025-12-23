@@ -1,5 +1,5 @@
 name: bird-toxicology-015
-description: "BIRD Q209 (challenging): What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?"
+description: 'BIRD Q209 (challenging): What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-209
-    description: "What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?"
+    description: 'What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?'
     messages:
       - role: user
         content: |

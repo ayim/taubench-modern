@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-029
-description: "BIRD Q1177 (simple): Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?"
+description: 'BIRD Q1177 (simple): Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1177
-    description: "Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?"
+    description: 'Was the total cholesterol status for the patient id 2927464 on 1995-9-4 at the normal level?'
     messages:
       - role: user
         content: |

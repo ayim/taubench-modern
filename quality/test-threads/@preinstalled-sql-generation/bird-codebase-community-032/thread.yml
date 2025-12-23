@@ -1,5 +1,5 @@
 name: bird-codebase-community-032
-description: "BIRD Q562 (simple): For the post which got 1910 view counts, how many comments does it get?"
+description: 'BIRD Q562 (simple): For the post which got 1910 view counts, how many comments does it get?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-562
-    description: "For the post which got 1910 view counts, how many comments does it get?"
+    description: 'For the post which got 1910 view counts, how many comments does it get?'
     messages:
       - role: user
         content: |

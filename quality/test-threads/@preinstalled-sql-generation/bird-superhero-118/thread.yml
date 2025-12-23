@@ -1,5 +1,5 @@
 name: bird-superhero-118
-description: "BIRD Q834 (challenging): Among all superheroes created by George Lucas, identify the percentage of female superheroes."
+description: 'BIRD Q834 (challenging): Among all superheroes created by George Lucas, identify the percentage of female superheroes.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-834
-    description: "Among all superheroes created by George Lucas, identify the percentage of female superheroes."
+    description: 'Among all superheroes created by George Lucas, identify the percentage of female superheroes.'
     messages:
       - role: user
         content: |

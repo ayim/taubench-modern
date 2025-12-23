@@ -1,5 +1,5 @@
 name: bird-card-games-118
-description: "BIRD Q457 (simple): Please list the websites where I can purchase the cards that have the promotional type of \"bundle\"."
+description: 'BIRD Q457 (simple): Please list the websites where I can purchase the cards that have the promotional type of "bundle".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-457
-    description: "Please list the websites where I can purchase the cards that have the promotional type of \"bundle\"."
+    description: 'Please list the websites where I can purchase the cards that have the promotional type of "bundle".'
     messages:
       - role: user
         content: |

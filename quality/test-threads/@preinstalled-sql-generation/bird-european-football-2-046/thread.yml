@@ -1,5 +1,5 @@
 name: bird-european-football-2-046
-description: "BIRD Q1065 (simple): Please list all team names which the speed class is fast."
+description: 'BIRD Q1065 (simple): Please list all team names which the speed class is fast.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1065
-    description: "Please list all team names which the speed class is fast."
+    description: 'Please list all team names which the speed class is fast.'
     messages:
       - role: user
         content: |

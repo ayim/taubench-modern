@@ -1,5 +1,5 @@
 name: bird-superhero-107
-description: "BIRD Q823 (moderate): How many female superheroes are in Marvel Comics?"
+description: 'BIRD Q823 (moderate): How many female superheroes are in Marvel Comics?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-823
-    description: "How many female superheroes are in Marvel Comics?"
+    description: 'How many female superheroes are in Marvel Comics?'
     messages:
       - role: user
         content: |

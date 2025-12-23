@@ -1,5 +1,5 @@
 name: bird-california-schools-078
-description: "BIRD Q77 (challenging): For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage."
+description: 'BIRD Q77 (challenging): For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-77
-    description: "For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage."
+    description: 'For schools in Los Angeles County that serve grades K-9, what are their poverty levels based on FRPM eligibility rates, and how do they perform on SAT tests? Include their charter status and rank them by FRPM percentage.'
     messages:
       - role: user
         content: |

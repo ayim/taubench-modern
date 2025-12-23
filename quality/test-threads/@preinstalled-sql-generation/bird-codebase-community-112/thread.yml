@@ -1,5 +1,5 @@
 name: bird-codebase-community-112
-description: "BIRD Q642 (simple): How many posts were created on 21st July, 2010?"
+description: 'BIRD Q642 (simple): How many posts were created on 21st July, 2010?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-642
-    description: "How many posts were created on 21st July, 2010?"
+    description: 'How many posts were created on 21st July, 2010?'
     messages:
       - role: user
         content: |

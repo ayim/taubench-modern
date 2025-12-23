@@ -1,5 +1,5 @@
 name: bird-student-club-146
-description: "BIRD Q1457 (challenging): Give the full name and contact number of members who had to spend more than average on each expense."
+description: 'BIRD Q1457 (challenging): Give the full name and contact number of members who had to spend more than average on each expense.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1457
-    description: "Give the full name and contact number of members who had to spend more than average on each expense."
+    description: 'Give the full name and contact number of members who had to spend more than average on each expense.'
     messages:
       - role: user
         content: |

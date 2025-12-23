@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-119
-description: "BIRD Q1267 (moderate): Among the patients with normal anti-SM, how many of them does not have thrombosis?"
+description: 'BIRD Q1267 (moderate): Among the patients with normal anti-SM, how many of them does not have thrombosis?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1267
-    description: "Among the patients with normal anti-SM, how many of them does not have thrombosis?"
+    description: 'Among the patients with normal anti-SM, how many of them does not have thrombosis?'
     messages:
       - role: user
         content: |

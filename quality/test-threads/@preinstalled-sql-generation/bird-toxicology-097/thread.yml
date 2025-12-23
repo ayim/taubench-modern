@@ -1,5 +1,5 @@
 name: bird-toxicology-097
-description: "BIRD Q291 (simple): How many chemical compounds in the database are identified as carcinogenic."
+description: 'BIRD Q291 (simple): How many chemical compounds in the database are identified as carcinogenic.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-291
-    description: "How many chemical compounds in the database are identified as carcinogenic."
+    description: 'How many chemical compounds in the database are identified as carcinogenic.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-076
-description: "BIRD Q921 (simple): Please give more information about the Formula_1 races that used the Silverstone Circuit."
+description: 'BIRD Q921 (simple): Please give more information about the Formula_1 races that used the Silverstone Circuit.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-921
-    description: "Please give more information about the Formula_1 races that used the Silverstone Circuit."
+    description: 'Please give more information about the Formula_1 races that used the Silverstone Circuit.'
     messages:
       - role: user
         content: |

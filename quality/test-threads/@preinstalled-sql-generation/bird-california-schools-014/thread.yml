@@ -1,5 +1,5 @@
 name: bird-california-schools-014
-description: "BIRD Q13 (challenging): What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?"
+description: 'BIRD Q13 (challenging): What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-13
-    description: "What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?"
+    description: 'What are the top 3 schools ranked by SAT excellence rate, and for each school, provide their contact number, city, charter status, and poverty classification?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-codebase-community-142
-description: "BIRD Q672 (moderate): Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?"
+description: 'BIRD Q672 (moderate): Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-672
-    description: "Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?"
+    description: 'Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?'
     messages:
       - role: user
         content: |

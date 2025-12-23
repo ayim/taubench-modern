@@ -1,5 +1,5 @@
 name: bird-toxicology-144
-description: "BIRD Q338 (moderate): What is the atom ID of double bonded carbon in TR012 molecule?"
+description: 'BIRD Q338 (moderate): What is the atom ID of double bonded carbon in TR012 molecule?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-338
-    description: "What is the atom ID of double bonded carbon in TR012 molecule?"
+    description: 'What is the atom ID of double bonded carbon in TR012 molecule?'
     messages:
       - role: user
         content: |

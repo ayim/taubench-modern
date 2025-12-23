@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-020
-description: "BIRD Q1489 (simple): How much did the KAM customers consume in total in May 2013?"
+description: 'BIRD Q1489 (simple): How much did the KAM customers consume in total in May 2013?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1489
-    description: "How much did the KAM customers consume in total in May 2013?"
+    description: 'How much did the KAM customers consume in total in May 2013?'
     messages:
       - role: user
         content: |

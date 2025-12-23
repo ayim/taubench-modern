@@ -1,5 +1,5 @@
 name: bird-european-football-2-128
-description: "BIRD Q1147 (simple): Please name one player whose overall strength is the greatest."
+description: 'BIRD Q1147 (simple): Please name one player whose overall strength is the greatest.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1147
-    description: "Please name one player whose overall strength is the greatest."
+    description: 'Please name one player whose overall strength is the greatest.'
     messages:
       - role: user
         content: |

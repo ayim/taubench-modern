@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-081
-description: "BIRD Q1229 (moderate): For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?"
+description: 'BIRD Q1229 (moderate): For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1229
-    description: "For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?"
+    description: 'For all patients with triglyceride (TG) level beyond the normal range, how many are age more than 50 years?'
     messages:
       - role: user
         content: |

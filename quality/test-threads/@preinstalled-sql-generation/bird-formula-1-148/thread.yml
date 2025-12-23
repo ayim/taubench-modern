@@ -1,5 +1,5 @@
 name: bird-formula-1-148
-description: "BIRD Q993 (simple): Where is the Hungaroring circuit located? Also, find the country and coordinates of this circuit."
+description: 'BIRD Q993 (simple): Where is the Hungaroring circuit located? Also, find the country and coordinates of this circuit.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-993
-    description: "Where is the Hungaroring circuit located? Also, find the country and coordinates of this circuit."
+    description: 'Where is the Hungaroring circuit located? Also, find the country and coordinates of this circuit.'
     messages:
       - role: user
         content: |

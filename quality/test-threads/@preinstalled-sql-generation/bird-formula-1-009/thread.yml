@@ -1,5 +1,5 @@
 name: bird-formula-1-009
-description: "BIRD Q854 (simple): What is the coordinates location of the circuits for Australian grand prix?"
+description: 'BIRD Q854 (simple): What is the coordinates location of the circuits for Australian grand prix?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-854
-    description: "What is the coordinates location of the circuits for Australian grand prix?"
+    description: 'What is the coordinates location of the circuits for Australian grand prix?'
     messages:
       - role: user
         content: |

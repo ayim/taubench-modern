@@ -1,5 +1,5 @@
 name: bird-card-games-044
-description: "BIRD Q383 (simple): How many of the cards which is banned at least in one format are white border?"
+description: 'BIRD Q383 (simple): How many of the cards which is banned at least in one format are white border?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-383
-    description: "How many of the cards which is banned at least in one format are white border?"
+    description: 'How many of the cards which is banned at least in one format are white border?'
     messages:
       - role: user
         content: |

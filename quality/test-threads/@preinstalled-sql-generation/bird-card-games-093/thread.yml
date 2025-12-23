@@ -1,5 +1,5 @@
 name: bird-card-games-093
-description: "BIRD Q432 (moderate): Which Russian set of cards contains the most cards overall?"
+description: 'BIRD Q432 (moderate): Which Russian set of cards contains the most cards overall?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-432
-    description: "Which Russian set of cards contains the most cards overall?"
+    description: 'Which Russian set of cards contains the most cards overall?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-european-football-2-053
-description: "BIRD Q1072 (simple): What is the average overall rating of the football player Aaron Doran?"
+description: 'BIRD Q1072 (simple): What is the average overall rating of the football player Aaron Doran?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1072
-    description: "What is the average overall rating of the football player Aaron Doran?"
+    description: 'What is the average overall rating of the football player Aaron Doran?'
     messages:
       - role: user
         content: |

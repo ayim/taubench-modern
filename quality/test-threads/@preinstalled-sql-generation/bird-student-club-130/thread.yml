@@ -1,5 +1,5 @@
 name: bird-student-club-130
-description: "BIRD Q1441 (moderate): How many members have education major in the College of Education & Human Services?"
+description: 'BIRD Q1441 (moderate): How many members have education major in the College of Education & Human Services?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1441
-    description: "How many members have education major in the College of Education & Human Services?"
+    description: 'How many members have education major in the College of Education & Human Services?'
     messages:
       - role: user
         content: |

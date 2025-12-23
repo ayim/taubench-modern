@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-042
-description: "BIRD Q1511 (simple): For the customers who paid with euros, what is their average total price of the transactions?"
+description: 'BIRD Q1511 (simple): For the customers who paid with euros, what is their average total price of the transactions?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1511
-    description: "For the customers who paid with euros, what is their average total price of the transactions?"
+    description: 'For the customers who paid with euros, what is their average total price of the transactions?'
     messages:
       - role: user
         content: |

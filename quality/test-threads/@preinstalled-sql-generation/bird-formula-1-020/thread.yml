@@ -1,5 +1,5 @@
 name: bird-formula-1-020
-description: "BIRD Q865 (moderate): For all the drivers who finished the game in race No. 592, who is the oldest?"
+description: 'BIRD Q865 (moderate): For all the drivers who finished the game in race No. 592, who is the oldest?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-865
-    description: "For all the drivers who finished the game in race No. 592, who is the oldest?"
+    description: 'For all the drivers who finished the game in race No. 592, who is the oldest?'
     messages:
       - role: user
         content: |

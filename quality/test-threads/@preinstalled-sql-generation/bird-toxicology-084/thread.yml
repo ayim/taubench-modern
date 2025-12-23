@@ -1,5 +1,5 @@
 name: bird-toxicology-084
-description: "BIRD Q278 (simple): How many of the single bond type molecules are non-carcinogenic?"
+description: 'BIRD Q278 (simple): How many of the single bond type molecules are non-carcinogenic?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-278
-    description: "How many of the single bond type molecules are non-carcinogenic?"
+    description: 'How many of the single bond type molecules are non-carcinogenic?'
     messages:
       - role: user
         content: |

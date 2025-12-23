@@ -1,5 +1,5 @@
 name: bird-superhero-059
-description: "BIRD Q775 (challenging): What is the percentage of blue female superheroes among all female superheroes?"
+description: 'BIRD Q775 (challenging): What is the percentage of blue female superheroes among all female superheroes?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-775
-    description: "What is the percentage of blue female superheroes among all female superheroes?"
+    description: 'What is the percentage of blue female superheroes among all female superheroes?'
     messages:
       - role: user
         content: |

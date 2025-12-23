@@ -1,5 +1,5 @@
 name: bird-student-club-097
-description: "BIRD Q1408 (simple): Calculate the total cost spent for Parking in the list."
+description: 'BIRD Q1408 (simple): Calculate the total cost spent for Parking in the list.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1408
-    description: "Calculate the total cost spent for Parking in the list."
+    description: 'Calculate the total cost spent for Parking in the list.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-049
-description: "BIRD Q48 (moderate): What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?"
+description: 'BIRD Q48 (moderate): What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,13 +10,13 @@ sdms:
 
 thread:
   - name: bird-question-48
-    description: "What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?"
+    description: 'What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?'
     messages:
       - role: user
         content: |
           What is the ratio of merged Unified School District schools to merged Elementary School District schools in Orange County?
           Evidence: Elementary School District refers to DOC = 52; Unified School District refers to DOC = 54.
-          
+
           Ratio refers to number of merged Unified School District schools in Orange County / number of merged Elementary School District schools
 
 target-platforms:

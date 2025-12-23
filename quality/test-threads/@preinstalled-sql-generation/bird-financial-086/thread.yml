@@ -1,5 +1,5 @@
 name: bird-financial-086
-description: "BIRD Q174 (simple): What year was account owner number 130 born?"
+description: 'BIRD Q174 (simple): What year was account owner number 130 born?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-174
-    description: "What year was account owner number 130 born?"
+    description: 'What year was account owner number 130 born?'
     messages:
       - role: user
         content: |

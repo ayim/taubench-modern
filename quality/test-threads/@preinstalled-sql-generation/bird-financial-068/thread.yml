@@ -1,5 +1,5 @@
 name: bird-financial-068
-description: "BIRD Q156 (challenging): What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?"
+description: 'BIRD Q156 (challenging): What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-156
-    description: "What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?"
+    description: 'What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?'
     messages:
       - role: user
         content: |

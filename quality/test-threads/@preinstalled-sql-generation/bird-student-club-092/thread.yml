@@ -1,5 +1,5 @@
 name: bird-student-club-092
-description: "BIRD Q1403 (moderate): Indicate the name of the closed event whose cost has exceeded the budget the most."
+description: 'BIRD Q1403 (moderate): Indicate the name of the closed event whose cost has exceeded the budget the most.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1403
-    description: "Indicate the name of the closed event whose cost has exceeded the budget the most."
+    description: 'Indicate the name of the closed event whose cost has exceeded the budget the most.'
     messages:
       - role: user
         content: |

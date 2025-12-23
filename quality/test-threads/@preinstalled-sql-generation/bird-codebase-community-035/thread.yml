@@ -1,5 +1,5 @@
 name: bird-codebase-community-035
-description: "BIRD Q565 (moderate): User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?"
+description: 'BIRD Q565 (moderate): User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-565
-    description: "User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?"
+    description: 'User No.23853 gave a comment to a post at 9:08:18 on 2013/7/12, was that post well-finished?'
     messages:
       - role: user
         content: |

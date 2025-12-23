@@ -1,5 +1,5 @@
 name: bird-superhero-016
-description: "BIRD Q732 (moderate): Which publisher published the slowest superhero?"
+description: 'BIRD Q732 (moderate): Which publisher published the slowest superhero?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-732
-    description: "Which publisher published the slowest superhero?"
+    description: 'Which publisher published the slowest superhero?'
     messages:
       - role: user
         content: |

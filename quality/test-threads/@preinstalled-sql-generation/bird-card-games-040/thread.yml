@@ -1,5 +1,5 @@
 name: bird-card-games-040
-description: "BIRD Q379 (simple): What are the cards belong to duel deck a? List the ID."
+description: 'BIRD Q379 (simple): What are the cards belong to duel deck a? List the ID.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-379
-    description: "What are the cards belong to duel deck a? List the ID."
+    description: 'What are the cards belong to duel deck a? List the ID.'
     messages:
       - role: user
         content: |

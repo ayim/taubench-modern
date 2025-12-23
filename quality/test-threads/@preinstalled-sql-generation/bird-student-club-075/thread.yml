@@ -1,5 +1,5 @@
 name: bird-student-club-075
-description: "BIRD Q1386 (simple): What is the total expense for the Yearly Kickoff?"
+description: 'BIRD Q1386 (simple): What is the total expense for the Yearly Kickoff?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1386
-    description: "What is the total expense for the Yearly Kickoff?"
+    description: 'What is the total expense for the Yearly Kickoff?'
     messages:
       - role: user
         content: |

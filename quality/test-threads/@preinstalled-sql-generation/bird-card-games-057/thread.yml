@@ -1,5 +1,5 @@
 name: bird-card-games-057
-description: "BIRD Q396 (simple): How many cards with a 1993 frame version and available on paper have a sensitive content warning?"
+description: 'BIRD Q396 (simple): How many cards with a 1993 frame version and available on paper have a sensitive content warning?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-396
-    description: "How many cards with a 1993 frame version and available on paper have a sensitive content warning?"
+    description: 'How many cards with a 1993 frame version and available on paper have a sensitive content warning?'
     messages:
       - role: user
         content: |

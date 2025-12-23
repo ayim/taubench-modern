@@ -1,5 +1,5 @@
 name: bird-codebase-community-013
-description: "BIRD Q543 (simple): For the post that got the most number of answers owned by csgillespie, how many answers did it get?"
+description: 'BIRD Q543 (simple): For the post that got the most number of answers owned by csgillespie, how many answers did it get?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-543
-    description: "For the post that got the most number of answers owned by csgillespie, how many answers did it get?"
+    description: 'For the post that got the most number of answers owned by csgillespie, how many answers did it get?'
     messages:
       - role: user
         content: |

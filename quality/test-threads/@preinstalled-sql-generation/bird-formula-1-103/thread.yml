@@ -1,5 +1,5 @@
 name: bird-formula-1-103
-description: "BIRD Q948 (simple): What are the maximum points of British constructors?"
+description: 'BIRD Q948 (simple): What are the maximum points of British constructors?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-948
-    description: "What are the maximum points of British constructors?"
+    description: 'What are the maximum points of British constructors?'
     messages:
       - role: user
         content: |

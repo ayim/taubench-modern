@@ -1,5 +1,5 @@
 name: bird-formula-1-134
-description: "BIRD Q979 (simple): What race number has the most finishers?"
+description: 'BIRD Q979 (simple): What race number has the most finishers?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-979
-    description: "What race number has the most finishers?"
+    description: 'What race number has the most finishers?'
     messages:
       - role: user
         content: |

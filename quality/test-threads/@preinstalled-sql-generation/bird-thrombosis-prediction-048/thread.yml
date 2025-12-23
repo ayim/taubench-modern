@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-048
-description: "BIRD Q1196 (simple): What is the most common sign of patients with SLE disease?"
+description: 'BIRD Q1196 (simple): What is the most common sign of patients with SLE disease?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1196
-    description: "What is the most common sign of patients with SLE disease?"
+    description: 'What is the most common sign of patients with SLE disease?'
     messages:
       - role: user
         content: |

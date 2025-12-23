@@ -1,5 +1,5 @@
 name: bird-codebase-community-038
-description: "BIRD Q568 (simple): Provide the display name of the user who made the vote No.6347."
+description: 'BIRD Q568 (simple): Provide the display name of the user who made the vote No.6347.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-568
-    description: "Provide the display name of the user who made the vote No.6347."
+    description: 'Provide the display name of the user who made the vote No.6347.'
     messages:
       - role: user
         content: |

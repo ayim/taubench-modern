@@ -1,5 +1,5 @@
 name: bird-financial-026
-description: "BIRD Q114 (simple): For the first client who opened his/her account in Prague, what is his/her account ID?"
+description: 'BIRD Q114 (simple): For the first client who opened his/her account in Prague, what is his/her account ID?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-114
-    description: "For the first client who opened his/her account in Prague, what is his/her account ID?"
+    description: 'For the first client who opened his/her account in Prague, what is his/her account ID?'
     messages:
       - role: user
         content: |

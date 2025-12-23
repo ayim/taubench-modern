@@ -1,5 +1,5 @@
 name: bird-student-club-041
-description: "BIRD Q1352 (moderate): For all the club members from \"Business\" major, how many of them wear medium size t-shirt?"
+description: 'BIRD Q1352 (moderate): For all the club members from "Business" major, how many of them wear medium size t-shirt?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1352
-    description: "For all the club members from \"Business\" major, how many of them wear medium size t-shirt?"
+    description: 'For all the club members from "Business" major, how many of them wear medium size t-shirt?'
     messages:
       - role: user
         content: |

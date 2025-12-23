@@ -1,5 +1,5 @@
 name: bird-toxicology-039
-description: "BIRD Q233 (simple): Please list top two bonds that happened with the molecule TR006 in alphabetical order."
+description: 'BIRD Q233 (simple): Please list top two bonds that happened with the molecule TR006 in alphabetical order.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-233
-    description: "Please list top two bonds that happened with the molecule TR006 in alphabetical order."
+    description: 'Please list top two bonds that happened with the molecule TR006 in alphabetical order.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-018
-description: "BIRD Q106 (challenging): For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?"
+description: 'BIRD Q106 (challenging): For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-106
-    description: "For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?"
+    description: 'For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?'
     messages:
       - role: user
         content: |

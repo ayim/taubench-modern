@@ -1,5 +1,5 @@
 name: bird-toxicology-075
-description: "BIRD Q269 (simple): How many bond id have element iodine?"
+description: 'BIRD Q269 (simple): How many bond id have element iodine?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-269
-    description: "How many bond id have element iodine?"
+    description: 'How many bond id have element iodine?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-087
-description: "BIRD Q1398 (moderate): Name the event with the highest amount spent on advertisement."
+description: 'BIRD Q1398 (moderate): Name the event with the highest amount spent on advertisement.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1398
-    description: "Name the event with the highest amount spent on advertisement."
+    description: 'Name the event with the highest amount spent on advertisement.'
     messages:
       - role: user
         content: |

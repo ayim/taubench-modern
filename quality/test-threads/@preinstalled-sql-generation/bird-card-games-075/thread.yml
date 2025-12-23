@@ -1,5 +1,5 @@
 name: bird-card-games-075
-description: "BIRD Q414 (simple): What language is the set of 180 cards that belongs to the Ravnica block translated into?"
+description: 'BIRD Q414 (simple): What language is the set of 180 cards that belongs to the Ravnica block translated into?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-414
-    description: "What language is the set of 180 cards that belongs to the Ravnica block translated into?"
+    description: 'What language is the set of 180 cards that belongs to the Ravnica block translated into?'
     messages:
       - role: user
         content: |

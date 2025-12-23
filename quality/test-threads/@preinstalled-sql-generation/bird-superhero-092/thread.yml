@@ -1,5 +1,5 @@
 name: bird-superhero-092
-description: "BIRD Q808 (simple): Find the race of the superhero who weighs 108kg and is 188cm tall."
+description: 'BIRD Q808 (simple): Find the race of the superhero who weighs 108kg and is 188cm tall.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-808
-    description: "Find the race of the superhero who weighs 108kg and is 188cm tall."
+    description: 'Find the race of the superhero who weighs 108kg and is 188cm tall.'
     messages:
       - role: user
         content: |
           Find the race of the superhero who weighs 108kg and is 188cm tall.
-          Evidence:  
+          Evidence:
 
 target-platforms:
   - name: openai

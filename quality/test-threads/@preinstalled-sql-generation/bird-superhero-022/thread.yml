@@ -1,5 +1,5 @@
 name: bird-superhero-022
-description: "BIRD Q738 (simple): Which superheroes have a durability attribute value of less than 50?"
+description: 'BIRD Q738 (simple): Which superheroes have a durability attribute value of less than 50?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-738
-    description: "Which superheroes have a durability attribute value of less than 50?"
+    description: 'Which superheroes have a durability attribute value of less than 50?'
     messages:
       - role: user
         content: |

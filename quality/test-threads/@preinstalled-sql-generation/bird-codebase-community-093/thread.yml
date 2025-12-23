@@ -1,5 +1,5 @@
 name: bird-codebase-community-093
-description: "BIRD Q623 (simple): How many elders obtained the \"Supporter\" badge?"
+description: 'BIRD Q623 (simple): How many elders obtained the "Supporter" badge?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-623
-    description: "How many elders obtained the \"Supporter\" badge?"
+    description: 'How many elders obtained the "Supporter" badge?'
     messages:
       - role: user
         content: |

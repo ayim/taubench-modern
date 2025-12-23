@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-132
-description: "BIRD Q1280 (simple): How many male patients have their glutamic oxaloacetic transaminase in the normal range?"
+description: 'BIRD Q1280 (simple): How many male patients have their glutamic oxaloacetic transaminase in the normal range?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1280
-    description: "How many male patients have their glutamic oxaloacetic transaminase in the normal range?"
+    description: 'How many male patients have their glutamic oxaloacetic transaminase in the normal range?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-072
-description: "BIRD Q917 (simple): Which website should I go to if I want to know more about Anthony Davidson?"
+description: 'BIRD Q917 (simple): Which website should I go to if I want to know more about Anthony Davidson?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-917
-    description: "Which website should I go to if I want to know more about Anthony Davidson?"
+    description: 'Which website should I go to if I want to know more about Anthony Davidson?'
     messages:
       - role: user
         content: |

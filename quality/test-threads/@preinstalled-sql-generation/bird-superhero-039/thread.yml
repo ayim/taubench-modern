@@ -1,5 +1,5 @@
 name: bird-superhero-039
-description: "BIRD Q755 (simple): List down at least five full name of Demi-God superheroes."
+description: 'BIRD Q755 (simple): List down at least five full name of Demi-God superheroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-755
-    description: "List down at least five full name of Demi-God superheroes."
+    description: 'List down at least five full name of Demi-God superheroes.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-098
-description: "BIRD Q1409 (simple): Mention the total expense used on 8/20/2019."
+description: 'BIRD Q1409 (simple): Mention the total expense used on 8/20/2019.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1409
-    description: "Mention the total expense used on 8/20/2019."
+    description: 'Mention the total expense used on 8/20/2019.'
     messages:
       - role: user
         content: |

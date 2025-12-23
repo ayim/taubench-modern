@@ -1,5 +1,5 @@
 name: bird-toxicology-012
-description: "BIRD Q206 (challenging): What elements are in the TR004_8_9 bond atoms?"
+description: 'BIRD Q206 (challenging): What elements are in the TR004_8_9 bond atoms?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-206
-    description: "What elements are in the TR004_8_9 bond atoms?"
+    description: 'What elements are in the TR004_8_9 bond atoms?'
     messages:
       - role: user
         content: |

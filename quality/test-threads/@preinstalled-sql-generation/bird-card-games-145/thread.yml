@@ -1,5 +1,5 @@
 name: bird-card-games-145
-description: "BIRD Q484 (moderate): Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost."
+description: 'BIRD Q484 (moderate): Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-484
-    description: "Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost."
+    description: 'Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost.'
     messages:
       - role: user
         content: |

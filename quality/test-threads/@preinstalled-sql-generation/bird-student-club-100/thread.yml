@@ -1,5 +1,5 @@
 name: bird-student-club-100
-description: "BIRD Q1411 (simple): State what kind of expenses that Sacha Harrison incurred?"
+description: 'BIRD Q1411 (simple): State what kind of expenses that Sacha Harrison incurred?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1411
-    description: "State what kind of expenses that Sacha Harrison incurred?"
+    description: 'State what kind of expenses that Sacha Harrison incurred?'
     messages:
       - role: user
         content: |

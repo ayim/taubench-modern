@@ -1,5 +1,5 @@
 name: bird-california-schools-002
-description: "BIRD Q1 (moderate): Please list the lowest three eligible free rates for students aged 5-17 in continuation schools."
+description: 'BIRD Q1 (moderate): Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1
-    description: "Please list the lowest three eligible free rates for students aged 5-17 in continuation schools."
+    description: 'Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.'
     messages:
       - role: user
         content: |

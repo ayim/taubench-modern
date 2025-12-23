@@ -1,5 +1,5 @@
 name: bird-superhero-012
-description: "BIRD Q728 (moderate): Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color."
+description: 'BIRD Q728 (moderate): Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-728
-    description: "Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color."
+    description: 'Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color.'
     messages:
       - role: user
         content: |

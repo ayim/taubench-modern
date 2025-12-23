@@ -1,5 +1,5 @@
 name: bird-financial-052
-description: "BIRD Q140 (challenging): What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?"
+description: 'BIRD Q140 (challenging): What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-140
-    description: "What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?"
+    description: 'What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?'
     messages:
       - role: user
         content: |

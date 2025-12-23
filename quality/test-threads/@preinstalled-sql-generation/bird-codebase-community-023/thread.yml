@@ -1,5 +1,5 @@
 name: bird-codebase-community-023
-description: "BIRD Q553 (simple): Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?"
+description: 'BIRD Q553 (simple): Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-553
-    description: "Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?"
+    description: 'Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?'
     messages:
       - role: user
         content: |

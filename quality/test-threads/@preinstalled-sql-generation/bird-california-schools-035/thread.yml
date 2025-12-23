@@ -1,5 +1,5 @@
 name: bird-california-schools-035
-description: "BIRD Q34 (moderate): What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?"
+description: 'BIRD Q34 (moderate): What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-34
-    description: "What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?"
+    description: 'What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?'
     messages:
       - role: user
         content: |

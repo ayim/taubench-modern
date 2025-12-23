@@ -1,5 +1,5 @@
 name: bird-financial-009
-description: "BIRD Q97 (challenging): For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume."
+description: 'BIRD Q97 (challenging): For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-97
-    description: "For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume."
+    description: 'For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-050
-description: "BIRD Q244 (moderate): Is the molecule with the most double bonds carcinogenic?"
+description: 'BIRD Q244 (moderate): Is the molecule with the most double bonds carcinogenic?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-244
-    description: "Is the molecule with the most double bonds carcinogenic?"
+    description: 'Is the molecule with the most double bonds carcinogenic?'
     messages:
       - role: user
         content: |

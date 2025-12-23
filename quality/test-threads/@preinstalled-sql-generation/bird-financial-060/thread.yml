@@ -1,5 +1,5 @@
 name: bird-financial-060
-description: "BIRD Q148 (challenging): For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance."
+description: 'BIRD Q148 (challenging): For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-148
-    description: "For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance."
+    description: 'For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance.'
     messages:
       - role: user
         content: |

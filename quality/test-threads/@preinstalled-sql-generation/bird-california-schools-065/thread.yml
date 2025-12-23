@@ -1,5 +1,5 @@
 name: bird-california-schools-065
-description: "BIRD Q64 (simple): What is the total number of schools with a mailing city in Hickman belonging to the charter number 00D4?"
+description: 'BIRD Q64 (simple): What is the total number of schools with a mailing city in Hickman belonging to the charter number 00D4?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-64
-    description: "What is the total number of schools with a mailing city in Hickman belonging to the charter number 00D4?"
+    description: 'What is the total number of schools with a mailing city in Hickman belonging to the charter number 00D4?'
     messages:
       - role: user
         content: |

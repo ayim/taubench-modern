@@ -1,5 +1,5 @@
 name: bird-card-games-153
-description: "BIRD Q492 (simple): For the set \"From the Vault: Lore\", what is its expansion type?"
+description: 'BIRD Q492 (simple): For the set "From the Vault: Lore", what is its expansion type?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-492
-    description: "For the set \"From the Vault: Lore\", what is its expansion type?"
+    description: 'For the set "From the Vault: Lore", what is its expansion type?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-048
-description: "BIRD Q242 (moderate): Among all the atoms from 21 to 25, list all the molecules that are carcinogenic."
+description: 'BIRD Q242 (moderate): Among all the atoms from 21 to 25, list all the molecules that are carcinogenic.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-242
-    description: "Among all the atoms from 21 to 25, list all the molecules that are carcinogenic."
+    description: 'Among all the atoms from 21 to 25, list all the molecules that are carcinogenic.'
     messages:
       - role: user
         content: |

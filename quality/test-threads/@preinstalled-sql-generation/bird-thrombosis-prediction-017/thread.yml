@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-017
-description: "BIRD Q1165 (moderate): What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?"
+description: 'BIRD Q1165 (moderate): What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1165
-    description: "What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?"
+    description: 'What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?'
     messages:
       - role: user
         content: |

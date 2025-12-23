@@ -1,5 +1,5 @@
 name: bird-formula-1-098
-description: "BIRD Q943 (moderate): What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?"
+description: 'BIRD Q943 (moderate): What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-943
-    description: "What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?"
+    description: 'What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?'
     messages:
       - role: user
         content: |

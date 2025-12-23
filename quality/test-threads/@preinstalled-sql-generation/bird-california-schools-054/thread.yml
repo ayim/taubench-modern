@@ -1,5 +1,5 @@
 name: bird-california-schools-054
-description: "BIRD Q53 (simple): How many test takers are there at the school/s whose mailing city address is in Fresno?"
+description: 'BIRD Q53 (simple): How many test takers are there at the school/s whose mailing city address is in Fresno?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-53
-    description: "How many test takers are there at the school/s whose mailing city address is in Fresno?"
+    description: 'How many test takers are there at the school/s whose mailing city address is in Fresno?'
     messages:
       - role: user
         content: |

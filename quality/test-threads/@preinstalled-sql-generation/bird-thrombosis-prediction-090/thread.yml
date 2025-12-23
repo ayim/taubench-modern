@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-090
-description: "BIRD Q1238 (moderate): Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex."
+description: 'BIRD Q1238 (moderate): Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1238
-    description: "Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex."
+    description: 'Among the patients who were diagnosed with SLE, who is the oldest with normal hemoglobin level. Provide the ID and sex.'
     messages:
       - role: user
         content: |

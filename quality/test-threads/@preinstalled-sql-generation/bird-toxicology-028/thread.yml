@@ -1,5 +1,5 @@
 name: bird-toxicology-028
-description: "BIRD Q222 (moderate): What is the difference between the number of molecules that are carcinogenic and those that are not?"
+description: 'BIRD Q222 (moderate): What is the difference between the number of molecules that are carcinogenic and those that are not?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-222
-    description: "What is the difference between the number of molecules that are carcinogenic and those that are not?"
+    description: 'What is the difference between the number of molecules that are carcinogenic and those that are not?'
     messages:
       - role: user
         content: |

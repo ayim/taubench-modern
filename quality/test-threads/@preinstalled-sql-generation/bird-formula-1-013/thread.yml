@@ -1,5 +1,5 @@
 name: bird-formula-1-013
-description: "BIRD Q858 (simple): Which country is the constructor which got 1 point in the race No. 24 from?"
+description: 'BIRD Q858 (simple): Which country is the constructor which got 1 point in the race No. 24 from?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-858
-    description: "Which country is the constructor which got 1 point in the race No. 24 from?"
+    description: 'Which country is the constructor which got 1 point in the race No. 24 from?'
     messages:
       - role: user
         content: |

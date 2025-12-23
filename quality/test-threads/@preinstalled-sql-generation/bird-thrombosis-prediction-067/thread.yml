@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-067
-description: "BIRD Q1215 (moderate): For all female patient with total protein (TP) beyond the normal index, what is the deviation of their TP index from the normal?"
+description: 'BIRD Q1215 (moderate): For all female patient with total protein (TP) beyond the normal index, what is the deviation of their TP index from the normal?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1215
-    description: "For all female patient with total protein (TP) beyond the normal index, what is the deviation of their TP index from the normal?"
+    description: 'For all female patient with total protein (TP) beyond the normal index, what is the deviation of their TP index from the normal?'
     messages:
       - role: user
         content: |

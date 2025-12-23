@@ -1,5 +1,5 @@
 name: bird-formula-1-074
-description: "BIRD Q919 (simple): Which circuit did the 2009 Spanish Grand Prix use?"
+description: 'BIRD Q919 (simple): Which circuit did the 2009 Spanish Grand Prix use?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-919
-    description: "Which circuit did the 2009 Spanish Grand Prix use?"
+    description: 'Which circuit did the 2009 Spanish Grand Prix use?'
     messages:
       - role: user
         content: |

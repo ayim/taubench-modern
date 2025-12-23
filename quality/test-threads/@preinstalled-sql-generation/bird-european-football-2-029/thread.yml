@@ -1,5 +1,5 @@
 name: bird-european-football-2-029
-description: "BIRD Q1048 (simple): What is the overall rating of the football player Gabriel Tamas in year 2011?"
+description: 'BIRD Q1048 (simple): What is the overall rating of the football player Gabriel Tamas in year 2011?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1048
-    description: "What is the overall rating of the football player Gabriel Tamas in year 2011?"
+    description: 'What is the overall rating of the football player Gabriel Tamas in year 2011?'
     messages:
       - role: user
         content: |

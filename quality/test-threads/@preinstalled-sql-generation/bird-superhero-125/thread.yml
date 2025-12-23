@@ -1,5 +1,5 @@
 name: bird-superhero-125
-description: "BIRD Q841 (simple): Provide the weight and race of the superhero with superhero ID 40."
+description: 'BIRD Q841 (simple): Provide the weight and race of the superhero with superhero ID 40.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-841
-    description: "Provide the weight and race of the superhero with superhero ID 40."
+    description: 'Provide the weight and race of the superhero with superhero ID 40.'
     messages:
       - role: user
         content: |

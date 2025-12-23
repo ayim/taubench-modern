@@ -1,5 +1,5 @@
 name: bird-codebase-community-084
-description: "BIRD Q614 (simple): Among the users who obtained the \"Teacher\" badge, calculate their percentage of users"
+description: 'BIRD Q614 (simple): Among the users who obtained the "Teacher" badge, calculate their percentage of users'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-614
-    description: "Among the users who obtained the \"Teacher\" badge, calculate their percentage of users"
+    description: 'Among the users who obtained the "Teacher" badge, calculate their percentage of users'
     messages:
       - role: user
         content: |

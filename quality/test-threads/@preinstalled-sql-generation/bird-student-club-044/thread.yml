@@ -1,5 +1,5 @@
 name: bird-student-club-044
-description: "BIRD Q1355 (simple): Where is the hometown state for \"Sacha Harrison\"?"
+description: 'BIRD Q1355 (simple): Where is the hometown state for "Sacha Harrison"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1355
-    description: "Where is the hometown state for \"Sacha Harrison\"?"
+    description: 'Where is the hometown state for "Sacha Harrison"?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-040
-description: "BIRD Q128 (moderate): List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders."
+description: 'BIRD Q128 (moderate): List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-128
-    description: "List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders."
+    description: 'List the top nine districts, by descending order, from the highest to the lowest, the number of female account holders.'
     messages:
       - role: user
         content: |

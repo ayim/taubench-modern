@@ -1,5 +1,5 @@
 name: bird-superhero-055
-description: "BIRD Q771 (simple): List the name of superheroes with flight power."
+description: 'BIRD Q771 (simple): List the name of superheroes with flight power.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-771
-    description: "List the name of superheroes with flight power."
+    description: 'List the name of superheroes with flight power.'
     messages:
       - role: user
         content: |

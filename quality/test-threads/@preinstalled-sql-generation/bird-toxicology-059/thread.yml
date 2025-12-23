@@ -1,5 +1,5 @@
 name: bird-toxicology-059
-description: "BIRD Q253 (challenging): List the elements of all the triple bonds."
+description: 'BIRD Q253 (challenging): List the elements of all the triple bonds.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-253
-    description: "List the elements of all the triple bonds."
+    description: 'List the elements of all the triple bonds.'
     messages:
       - role: user
         content: |

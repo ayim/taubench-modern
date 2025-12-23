@@ -1,5 +1,5 @@
 name: bird-card-games-088
-description: "BIRD Q427 (moderate): What languages are available in the set known as Archenemy on the magic card market and having the code ARC?"
+description: 'BIRD Q427 (moderate): What languages are available in the set known as Archenemy on the magic card market and having the code ARC?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-427
-    description: "What languages are available in the set known as Archenemy on the magic card market and having the code ARC?"
+    description: 'What languages are available in the set known as Archenemy on the magic card market and having the code ARC?'
     messages:
       - role: user
         content: |

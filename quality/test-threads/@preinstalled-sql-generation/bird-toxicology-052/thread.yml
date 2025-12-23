@@ -1,5 +1,5 @@
 name: bird-toxicology-052
-description: "BIRD Q246 (moderate): List the bond type and the bond ID of the atom 45."
+description: 'BIRD Q246 (moderate): List the bond type and the bond ID of the atom 45.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-246
-    description: "List the bond type and the bond ID of the atom 45."
+    description: 'List the bond type and the bond ID of the atom 45.'
     messages:
       - role: user
         content: |

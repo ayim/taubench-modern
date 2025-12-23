@@ -1,5 +1,5 @@
 name: bird-card-games-051
-description: "BIRD Q390 (simple): What are the colors of cards from ID 1-20? What are the format of these cards?"
+description: 'BIRD Q390 (simple): What are the colors of cards from ID 1-20? What are the format of these cards?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-390
-    description: "What are the colors of cards from ID 1-20? What are the format of these cards?"
+    description: 'What are the colors of cards from ID 1-20? What are the format of these cards?'
     messages:
       - role: user
         content: |

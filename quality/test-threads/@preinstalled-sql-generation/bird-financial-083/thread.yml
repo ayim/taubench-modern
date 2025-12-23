@@ -1,5 +1,5 @@
 name: bird-financial-083
-description: "BIRD Q171 (moderate): What was the difference in the number of crimes committed in East and North Bohemia in 1996?"
+description: 'BIRD Q171 (moderate): What was the difference in the number of crimes committed in East and North Bohemia in 1996?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-171
-    description: "What was the difference in the number of crimes committed in East and North Bohemia in 1996?"
+    description: 'What was the difference in the number of crimes committed in East and North Bohemia in 1996?'
     messages:
       - role: user
         content: |

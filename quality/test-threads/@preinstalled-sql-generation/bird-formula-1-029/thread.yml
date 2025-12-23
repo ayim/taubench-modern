@@ -1,5 +1,5 @@
 name: bird-formula-1-029
-description: "BIRD Q874 (simple): Who finished second in the San Marino Grand Prix in 2006?"
+description: 'BIRD Q874 (simple): Who finished second in the San Marino Grand Prix in 2006?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-874
-    description: "Who finished second in the San Marino Grand Prix in 2006?"
+    description: 'Who finished second in the San Marino Grand Prix in 2006?'
     messages:
       - role: user
         content: |

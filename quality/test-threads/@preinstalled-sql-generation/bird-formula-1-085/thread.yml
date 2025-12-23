@@ -1,5 +1,5 @@
 name: bird-formula-1-085
-description: "BIRD Q930 (simple): In which Formula_1 race did Lewis Hamilton rank the highest?"
+description: 'BIRD Q930 (simple): In which Formula_1 race did Lewis Hamilton rank the highest?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-930
-    description: "In which Formula_1 race did Lewis Hamilton rank the highest?"
+    description: 'In which Formula_1 race did Lewis Hamilton rank the highest?'
     messages:
       - role: user
         content: |

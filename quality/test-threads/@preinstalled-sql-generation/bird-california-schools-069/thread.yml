@@ -1,5 +1,5 @@
 name: bird-california-schools-069
-description: "BIRD Q68 (moderate): Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?"
+description: 'BIRD Q68 (moderate): Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-68
-    description: "Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?"
+    description: 'Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?'
     messages:
       - role: user
         content: |

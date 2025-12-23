@@ -1,5 +1,5 @@
 name: bird-codebase-community-157
-description: "BIRD Q687 (simple): How many comments were added to the post with the highest score?"
+description: 'BIRD Q687 (simple): How many comments were added to the post with the highest score?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-687
-    description: "How many comments were added to the post with the highest score?"
+    description: 'How many comments were added to the post with the highest score?'
     messages:
       - role: user
         content: |

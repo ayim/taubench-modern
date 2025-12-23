@@ -1,5 +1,5 @@
 name: bird-formula-1-155
-description: "BIRD Q1000 (simple): Which racetrack hosted the most recent race? Indicate the full location."
+description: 'BIRD Q1000 (simple): Which racetrack hosted the most recent race? Indicate the full location.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1000
-    description: "Which racetrack hosted the most recent race? Indicate the full location."
+    description: 'Which racetrack hosted the most recent race? Indicate the full location.'
     messages:
       - role: user
         content: |

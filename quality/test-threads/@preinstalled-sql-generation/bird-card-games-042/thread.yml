@@ -1,5 +1,5 @@
 name: bird-card-games-042
-description: "BIRD Q381 (simple): List down the name of artists for cards in Chinese Simplified."
+description: 'BIRD Q381 (simple): List down the name of artists for cards in Chinese Simplified.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-381
-    description: "List down the name of artists for cards in Chinese Simplified."
+    description: 'List down the name of artists for cards in Chinese Simplified.'
     messages:
       - role: user
         content: |

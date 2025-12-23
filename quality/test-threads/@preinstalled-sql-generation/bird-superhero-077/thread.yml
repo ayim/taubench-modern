@@ -1,5 +1,5 @@
 name: bird-superhero-077
-description: "BIRD Q793 (simple): Among the superheroes with the race of god/eternal, how many of them are male"
+description: 'BIRD Q793 (simple): Among the superheroes with the race of god/eternal, how many of them are male'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-793
-    description: "Among the superheroes with the race of god/eternal, how many of them are male"
+    description: 'Among the superheroes with the race of god/eternal, how many of them are male'
     messages:
       - role: user
         content: |

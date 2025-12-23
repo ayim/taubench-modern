@@ -1,5 +1,5 @@
 name: bird-superhero-015
-description: "BIRD Q731 (simple): How many superheroes did DC Comics publish?"
+description: 'BIRD Q731 (simple): How many superheroes did DC Comics publish?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-731
-    description: "How many superheroes did DC Comics publish?"
+    description: 'How many superheroes did DC Comics publish?'
     messages:
       - role: user
         content: |

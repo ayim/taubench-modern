@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-033
-description: "BIRD Q1502 (simple): Please list the chains of the gas stations with transactions in euro."
+description: 'BIRD Q1502 (simple): Please list the chains of the gas stations with transactions in euro.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1502
-    description: "Please list the chains of the gas stations with transactions in euro."
+    description: 'Please list the chains of the gas stations with transactions in euro.'
     messages:
       - role: user
         content: |

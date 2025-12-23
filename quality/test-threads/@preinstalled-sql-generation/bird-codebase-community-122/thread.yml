@@ -1,5 +1,5 @@
 name: bird-codebase-community-122
-description: "BIRD Q652 (moderate): List the post IDs and badge names of the user Samuel in 2013."
+description: 'BIRD Q652 (moderate): List the post IDs and badge names of the user Samuel in 2013.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-652
-    description: "List the post IDs and badge names of the user Samuel in 2013."
+    description: 'List the post IDs and badge names of the user Samuel in 2013.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-122
-description: "BIRD Q838 (simple): Provide the full name of the superhero named Alien."
+description: 'BIRD Q838 (simple): Provide the full name of the superhero named Alien.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-838
-    description: "Provide the full name of the superhero named Alien."
+    description: 'Provide the full name of the superhero named Alien.'
     messages:
       - role: user
         content: |

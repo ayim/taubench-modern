@@ -1,5 +1,5 @@
 name: bird-card-games-191
-description: "BIRD Q530 (moderate): List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any."
+description: 'BIRD Q530 (moderate): List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-530
-    description: "List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any."
+    description: 'List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any.'
     messages:
       - role: user
         content: |

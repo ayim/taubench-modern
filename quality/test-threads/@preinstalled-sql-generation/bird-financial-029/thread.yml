@@ -1,5 +1,5 @@
 name: bird-financial-029
-description: "BIRD Q117 (challenging): For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans."
+description: 'BIRD Q117 (challenging): For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-117
-    description: "For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans."
+    description: 'For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans.'
     messages:
       - role: user
         content: |

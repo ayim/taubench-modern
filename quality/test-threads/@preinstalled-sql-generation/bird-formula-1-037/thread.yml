@@ -1,5 +1,5 @@
 name: bird-formula-1-037
-description: "BIRD Q882 (simple): Which year was the first Singapore Grand Prix?"
+description: 'BIRD Q882 (simple): Which year was the first Singapore Grand Prix?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-882
-    description: "Which year was the first Singapore Grand Prix?"
+    description: 'Which year was the first Singapore Grand Prix?'
     messages:
       - role: user
         content: |

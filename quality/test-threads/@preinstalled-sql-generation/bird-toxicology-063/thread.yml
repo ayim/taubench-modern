@@ -1,5 +1,5 @@
 name: bird-toxicology-063
-description: "BIRD Q257 (simple): List down atom id2 for atoms with element sulfur."
+description: 'BIRD Q257 (simple): List down atom id2 for atoms with element sulfur.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-257
-    description: "List down atom id2 for atoms with element sulfur."
+    description: 'List down atom id2 for atoms with element sulfur.'
     messages:
       - role: user
         content: |

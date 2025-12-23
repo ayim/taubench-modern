@@ -1,5 +1,5 @@
 name: bird-codebase-community-088
-description: "BIRD Q618 (simple): List the ages of users located in Vienna, Austria who have obtained badges."
+description: 'BIRD Q618 (simple): List the ages of users located in Vienna, Austria who have obtained badges.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-618
-    description: "List the ages of users located in Vienna, Austria who have obtained badges."
+    description: 'List the ages of users located in Vienna, Austria who have obtained badges.'
     messages:
       - role: user
         content: |

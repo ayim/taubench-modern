@@ -1,5 +1,5 @@
 name: bird-formula-1-048
-description: "BIRD Q893 (simple): Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix."
+description: 'BIRD Q893 (simple): Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-893
-    description: "Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix."
+    description: 'Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix.'
     messages:
       - role: user
         content: |

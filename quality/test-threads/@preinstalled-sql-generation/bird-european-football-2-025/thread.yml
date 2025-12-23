@@ -1,5 +1,5 @@
 name: bird-european-football-2-025
-description: "BIRD Q1044 (simple): List the football players with a birthyear of 1970 and a birthmonth of October."
+description: 'BIRD Q1044 (simple): List the football players with a birthyear of 1970 and a birthmonth of October.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1044
-    description: "List the football players with a birthyear of 1970 and a birthmonth of October."
+    description: 'List the football players with a birthyear of 1970 and a birthmonth of October.'
     messages:
       - role: user
         content: |

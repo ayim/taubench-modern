@@ -1,5 +1,5 @@
 name: bird-california-schools-071
-description: "BIRD Q70 (simple): How many active and closed District Community Day Schools are there in the county of Alpine?"
+description: 'BIRD Q70 (simple): How many active and closed District Community Day Schools are there in the county of Alpine?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-70
-    description: "How many active and closed District Community Day Schools are there in the county of Alpine?"
+    description: 'How many active and closed District Community Day Schools are there in the county of Alpine?'
     messages:
       - role: user
         content: |

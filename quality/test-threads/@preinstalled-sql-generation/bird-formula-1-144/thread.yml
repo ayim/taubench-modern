@@ -1,5 +1,5 @@
 name: bird-formula-1-144
-description: "BIRD Q989 (moderate): Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time."
+description: 'BIRD Q989 (moderate): Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-989
-    description: "Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time."
+    description: 'Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-superhero-047
-description: "BIRD Q763 (simple): Indicate the attribute value of superhero Abomination."
+description: 'BIRD Q763 (simple): Indicate the attribute value of superhero Abomination.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-763
-    description: "Indicate the attribute value of superhero Abomination."
+    description: 'Indicate the attribute value of superhero Abomination.'
     messages:
       - role: user
         content: |

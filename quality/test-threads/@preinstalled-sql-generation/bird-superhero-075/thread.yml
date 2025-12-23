@@ -1,5 +1,5 @@
 name: bird-superhero-075
-description: "BIRD Q791 (simple): Calculate the average height for each superhero."
+description: 'BIRD Q791 (simple): Calculate the average height for each superhero.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-791
-    description: "Calculate the average height for each superhero."
+    description: 'Calculate the average height for each superhero.'
     messages:
       - role: user
         content: |

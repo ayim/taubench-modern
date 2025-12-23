@@ -1,5 +1,5 @@
 name: bird-codebase-community-052
-description: "BIRD Q582 (simple): List the title of posts which were edited by Vebjorn Ljosa."
+description: 'BIRD Q582 (simple): List the title of posts which were edited by Vebjorn Ljosa.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-582
-    description: "List the title of posts which were edited by Vebjorn Ljosa."
+    description: 'List the title of posts which were edited by Vebjorn Ljosa.'
     messages:
       - role: user
         content: |

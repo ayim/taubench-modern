@@ -1,5 +1,5 @@
 name: bird-european-football-2-103
-description: "BIRD Q1122 (simple): State the name of the most strongest player."
+description: 'BIRD Q1122 (simple): State the name of the most strongest player.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1122
-    description: "State the name of the most strongest player."
+    description: 'State the name of the most strongest player.'
     messages:
       - role: user
         content: |

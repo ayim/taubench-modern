@@ -1,5 +1,5 @@
 name: bird-card-games-071
-description: "BIRD Q410 (simple): Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID."
+description: 'BIRD Q410 (simple): Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-410
-    description: "Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID."
+    description: 'Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID.'
     messages:
       - role: user
         content: |

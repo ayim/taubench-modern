@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-124
-description: "BIRD Q1272 (moderate): Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID."
+description: 'BIRD Q1272 (moderate): Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1272
-    description: "Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID."
+    description: 'Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID.'
     messages:
       - role: user
         content: |

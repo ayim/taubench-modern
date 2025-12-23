@@ -1,5 +1,5 @@
 name: bird-card-games-172
-description: "BIRD Q511 (moderate): What is the most common visual frame effects among the incredibly powerful foils?"
+description: 'BIRD Q511 (moderate): What is the most common visual frame effects among the incredibly powerful foils?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-511
-    description: "What is the most common visual frame effects among the incredibly powerful foils?"
+    description: 'What is the most common visual frame effects among the incredibly powerful foils?'
     messages:
       - role: user
         content: |

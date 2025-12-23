@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-150
-description: "BIRD Q1298 (moderate): Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?"
+description: 'BIRD Q1298 (moderate): Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1298
-    description: "Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?"
+    description: 'Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?'
     messages:
       - role: user
         content: |

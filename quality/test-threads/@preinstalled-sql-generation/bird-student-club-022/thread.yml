@@ -1,5 +1,5 @@
 name: bird-student-club-022
-description: "BIRD Q1333 (simple): What is the hometown city and state of the Student Club President?"
+description: 'BIRD Q1333 (simple): What is the hometown city and state of the Student Club President?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1333
-    description: "What is the hometown city and state of the Student Club President?"
+    description: 'What is the hometown city and state of the Student Club President?'
     messages:
       - role: user
         content: |

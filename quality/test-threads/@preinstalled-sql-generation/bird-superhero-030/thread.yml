@@ -1,5 +1,5 @@
 name: bird-superhero-030
-description: "BIRD Q746 (simple): Calculate the average attribute value of all superheroes."
+description: 'BIRD Q746 (simple): Calculate the average attribute value of all superheroes.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-746
-    description: "Calculate the average attribute value of all superheroes."
+    description: 'Calculate the average attribute value of all superheroes.'
     messages:
       - role: user
         content: |

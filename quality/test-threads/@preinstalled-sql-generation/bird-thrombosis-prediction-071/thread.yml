@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-071
-description: "BIRD Q1219 (moderate): For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?"
+description: 'BIRD Q1219 (moderate): For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1219
-    description: "For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?"
+    description: 'For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?'
     messages:
       - role: user
         content: |

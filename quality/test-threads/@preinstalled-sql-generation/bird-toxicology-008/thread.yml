@@ -1,5 +1,5 @@
 name: bird-toxicology-008
-description: "BIRD Q202 (simple): How many triple type bonds are there?"
+description: 'BIRD Q202 (simple): How many triple type bonds are there?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-202
-    description: "How many triple type bonds are there?"
+    description: 'How many triple type bonds are there?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-015
-description: "BIRD Q103 (challenging): For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group."
+description: 'BIRD Q103 (challenging): For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-103
-    description: "For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group."
+    description: 'For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group.'
     messages:
       - role: user
         content: |

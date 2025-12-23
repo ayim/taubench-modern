@@ -1,5 +1,5 @@
 name: bird-card-games-078
-description: "BIRD Q417 (moderate): What percentage of Japanese translated sets are expansion sets?"
+description: 'BIRD Q417 (moderate): What percentage of Japanese translated sets are expansion sets?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-417
-    description: "What percentage of Japanese translated sets are expansion sets?"
+    description: 'What percentage of Japanese translated sets are expansion sets?'
     messages:
       - role: user
         content: |

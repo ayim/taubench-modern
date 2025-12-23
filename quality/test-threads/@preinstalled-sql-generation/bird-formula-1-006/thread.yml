@@ -1,5 +1,5 @@
 name: bird-formula-1-006
-description: "BIRD Q851 (simple): What positions did constructor Renault achieve in the standings?"
+description: 'BIRD Q851 (simple): What positions did constructor Renault achieve in the standings?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-851
-    description: "What positions did constructor Renault achieve in the standings?"
+    description: 'What positions did constructor Renault achieve in the standings?'
     messages:
       - role: user
         content: |

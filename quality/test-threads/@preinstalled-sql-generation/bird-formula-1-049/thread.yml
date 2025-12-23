@@ -1,5 +1,5 @@
 name: bird-formula-1-049
-description: "BIRD Q894 (moderate): What is the best lap time recorded? List the driver and race with such recorded lap time."
+description: 'BIRD Q894 (moderate): What is the best lap time recorded? List the driver and race with such recorded lap time.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-894
-    description: "What is the best lap time recorded? List the driver and race with such recorded lap time."
+    description: 'What is the best lap time recorded? List the driver and race with such recorded lap time.'
     messages:
       - role: user
         content: |

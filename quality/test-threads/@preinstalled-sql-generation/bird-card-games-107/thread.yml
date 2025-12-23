@@ -1,5 +1,5 @@
 name: bird-card-games-107
-description: "BIRD Q446 (moderate): What is percentage of the cards with a converted Mana Cost of 10 in set of Abyssal Horror?"
+description: 'BIRD Q446 (moderate): What is percentage of the cards with a converted Mana Cost of 10 in set of Abyssal Horror?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-446
-    description: "What is percentage of the cards with a converted Mana Cost of 10 in set of Abyssal Horror?"
+    description: 'What is percentage of the cards with a converted Mana Cost of 10 in set of Abyssal Horror?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-156
-description: "BIRD Q1467 (simple): Calculate the total amount spent on speaker gifts and list the name of the event they were spent on."
+description: 'BIRD Q1467 (simple): Calculate the total amount spent on speaker gifts and list the name of the event they were spent on.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1467
-    description: "Calculate the total amount spent on speaker gifts and list the name of the event they were spent on."
+    description: 'Calculate the total amount spent on speaker gifts and list the name of the event they were spent on.'
     messages:
       - role: user
         content: |

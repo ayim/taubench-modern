@@ -1,5 +1,5 @@
 name: bird-toxicology-082
-description: "BIRD Q276 (simple): Write down the atom IDs of the first and second atoms of triple bond type molecules."
+description: 'BIRD Q276 (simple): Write down the atom IDs of the first and second atoms of triple bond type molecules.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-276
-    description: "Write down the atom IDs of the first and second atoms of triple bond type molecules."
+    description: 'Write down the atom IDs of the first and second atoms of triple bond type molecules.'
     messages:
       - role: user
         content: |

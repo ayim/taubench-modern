@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-135
-description: "BIRD Q1283 (simple): For the patients with the normal glutamic pylvic transaminase level, how many of them are male?"
+description: 'BIRD Q1283 (simple): For the patients with the normal glutamic pylvic transaminase level, how many of them are male?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1283
-    description: "For the patients with the normal glutamic pylvic transaminase level, how many of them are male?"
+    description: 'For the patients with the normal glutamic pylvic transaminase level, how many of them are male?'
     messages:
       - role: user
         content: |

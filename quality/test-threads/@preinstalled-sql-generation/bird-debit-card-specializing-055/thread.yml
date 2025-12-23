@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-055
-description: "BIRD Q1524 (simple): In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?"
+description: 'BIRD Q1524 (simple): In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1524
-    description: "In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?"
+    description: 'In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?'
     messages:
       - role: user
         content: |

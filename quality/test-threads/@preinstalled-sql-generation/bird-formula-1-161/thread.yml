@@ -1,5 +1,5 @@
 name: bird-formula-1-161
-description: "BIRD Q1006 (challenging): Among all the lap records set on various circuits, what is the time for the fastest one?"
+description: 'BIRD Q1006 (challenging): Among all the lap records set on various circuits, what is the time for the fastest one?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1006
-    description: "Among all the lap records set on various circuits, what is the time for the fastest one?"
+    description: 'Among all the lap records set on various circuits, what is the time for the fastest one?'
     messages:
       - role: user
         content: |

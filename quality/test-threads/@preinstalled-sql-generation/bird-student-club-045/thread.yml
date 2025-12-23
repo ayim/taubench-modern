@@ -1,5 +1,5 @@
 name: bird-student-club-045
-description: "BIRD Q1356 (simple): Which department was the President of the club in?"
+description: 'BIRD Q1356 (simple): Which department was the President of the club in?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1356
-    description: "Which department was the President of the club in?"
+    description: 'Which department was the President of the club in?'
     messages:
       - role: user
         content: |

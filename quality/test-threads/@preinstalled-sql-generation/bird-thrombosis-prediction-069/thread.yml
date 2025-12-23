@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-069
-description: "BIRD Q1217 (moderate): For all patient born in 1982, state if their albumin is within normal range."
+description: 'BIRD Q1217 (moderate): For all patient born in 1982, state if their albumin is within normal range.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1217
-    description: "For all patient born in 1982, state if their albumin is within normal range."
+    description: 'For all patient born in 1982, state if their albumin is within normal range.'
     messages:
       - role: user
         content: |

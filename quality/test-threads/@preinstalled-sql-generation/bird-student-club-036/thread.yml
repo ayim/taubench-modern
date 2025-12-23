@@ -1,5 +1,5 @@
 name: bird-student-club-036
-description: "BIRD Q1347 (simple): Tell the hometown county for \"Adela O'Gallagher\"."
+description: 'BIRD Q1347 (simple): Tell the hometown county for "Adela O''Gallagher".'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1347
-    description: "Tell the hometown county for \"Adela O'Gallagher\"."
+    description: 'Tell the hometown county for "Adela O''Gallagher".'
     messages:
       - role: user
         content: |

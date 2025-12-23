@@ -1,5 +1,5 @@
 name: bird-codebase-community-138
-description: "BIRD Q668 (simple): What is the display name of the user who acquired the highest amount of badges?"
+description: 'BIRD Q668 (simple): What is the display name of the user who acquired the highest amount of badges?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-668
-    description: "What is the display name of the user who acquired the highest amount of badges?"
+    description: 'What is the display name of the user who acquired the highest amount of badges?'
     messages:
       - role: user
         content: |

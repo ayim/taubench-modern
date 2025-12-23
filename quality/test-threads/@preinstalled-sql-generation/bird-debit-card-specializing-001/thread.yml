@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-001
-description: "BIRD Q1470 (simple): How many gas stations in CZE has Premium gas?"
+description: 'BIRD Q1470 (simple): How many gas stations in CZE has Premium gas?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1470
-    description: "How many gas stations in CZE has Premium gas?"
+    description: 'How many gas stations in CZE has Premium gas?'
     messages:
       - role: user
         content: |

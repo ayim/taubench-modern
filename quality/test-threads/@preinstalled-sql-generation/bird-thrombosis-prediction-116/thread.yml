@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-116
-description: "BIRD Q1264 (moderate): Among the patients have blood clots in veins, how many of them have a normal level of complement 4?"
+description: 'BIRD Q1264 (moderate): Among the patients have blood clots in veins, how many of them have a normal level of complement 4?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1264
-    description: "Among the patients have blood clots in veins, how many of them have a normal level of complement 4?"
+    description: 'Among the patients have blood clots in veins, how many of them have a normal level of complement 4?'
     messages:
       - role: user
         content: |

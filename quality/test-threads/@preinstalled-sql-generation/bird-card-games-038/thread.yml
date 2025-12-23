@@ -1,5 +1,5 @@
 name: bird-card-games-038
-description: "BIRD Q377 (simple): How many cards with original type of \"Summon - Angel\" have subtype other than \"Angel\"?"
+description: 'BIRD Q377 (simple): How many cards with original type of "Summon - Angel" have subtype other than "Angel"?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-377
-    description: "How many cards with original type of \"Summon - Angel\" have subtype other than \"Angel\"?"
+    description: 'How many cards with original type of "Summon - Angel" have subtype other than "Angel"?'
     messages:
       - role: user
         content: |

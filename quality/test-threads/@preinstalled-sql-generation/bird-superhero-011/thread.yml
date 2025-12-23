@@ -1,5 +1,5 @@
 name: bird-superhero-011
-description: "BIRD Q727 (simple): Who is the publisher of Sauron?"
+description: 'BIRD Q727 (simple): Who is the publisher of Sauron?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-727
-    description: "Who is the publisher of Sauron?"
+    description: 'Who is the publisher of Sauron?'
     messages:
       - role: user
         content: |

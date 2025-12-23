@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-064
-description: "BIRD Q1533 (moderate): For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012."
+description: 'BIRD Q1533 (moderate): For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1533
-    description: "For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012."
+    description: 'For all the people who paid more than 29.00 per unit of product id No.5. Give their consumption status in the August of 2012.'
     messages:
       - role: user
         content: |

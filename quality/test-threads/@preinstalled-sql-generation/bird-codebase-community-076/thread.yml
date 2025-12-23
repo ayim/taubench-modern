@@ -1,5 +1,5 @@
 name: bird-codebase-community-076
-description: "BIRD Q606 (simple): List out the name of badges that users obtained on 7/19/2010 7:39:08 PM."
+description: 'BIRD Q606 (simple): List out the name of badges that users obtained on 7/19/2010 7:39:08 PM.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-606
-    description: "List out the name of badges that users obtained on 7/19/2010 7:39:08 PM."
+    description: 'List out the name of badges that users obtained on 7/19/2010 7:39:08 PM.'
     messages:
       - role: user
         content: |

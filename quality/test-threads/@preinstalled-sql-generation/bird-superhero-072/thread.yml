@@ -1,5 +1,5 @@
 name: bird-superhero-072
-description: "BIRD Q788 (challenging): How many percent of female heroes were published by Marvel Comics?"
+description: 'BIRD Q788 (challenging): How many percent of female heroes were published by Marvel Comics?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-788
-    description: "How many percent of female heroes were published by Marvel Comics?"
+    description: 'How many percent of female heroes were published by Marvel Comics?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-toxicology-071
-description: "BIRD Q265 (simple): List down the molecule id for non carcinogenic molecules."
+description: 'BIRD Q265 (simple): List down the molecule id for non carcinogenic molecules.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-265
-    description: "List down the molecule id for non carcinogenic molecules."
+    description: 'List down the molecule id for non carcinogenic molecules.'
     messages:
       - role: user
         content: |

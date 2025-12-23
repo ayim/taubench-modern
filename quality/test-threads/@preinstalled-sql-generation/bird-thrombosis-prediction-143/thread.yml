@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-143
-description: "BIRD Q1291 (moderate): How many male patients have a normal level of both albumin and total protein?"
+description: 'BIRD Q1291 (moderate): How many male patients have a normal level of both albumin and total protein?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1291
-    description: "How many male patients have a normal level of both albumin and total protein?"
+    description: 'How many male patients have a normal level of both albumin and total protein?'
     messages:
       - role: user
         content: |

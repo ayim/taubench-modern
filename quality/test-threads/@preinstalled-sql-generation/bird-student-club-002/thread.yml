@@ -1,5 +1,5 @@
 name: bird-student-club-002
-description: "BIRD Q1313 (simple): How many students in the Student_Club are from the College of Engineering?"
+description: 'BIRD Q1313 (simple): How many students in the Student_Club are from the College of Engineering?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1313
-    description: "How many students in the Student_Club are from the College of Engineering?"
+    description: 'How many students in the Student_Club are from the College of Engineering?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-120
-description: "BIRD Q459 (moderate): Which card costs more converted mana, \"Serra Angel\" or \"Shrine Keeper\"?"
+description: 'BIRD Q459 (moderate): Which card costs more converted mana, "Serra Angel" or "Shrine Keeper"?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-459
-    description: "Which card costs more converted mana, \"Serra Angel\" or \"Shrine Keeper\"?"
+    description: 'Which card costs more converted mana, "Serra Angel" or "Shrine Keeper"?'
     messages:
       - role: user
         content: |

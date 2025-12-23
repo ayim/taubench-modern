@@ -1,5 +1,5 @@
 name: bird-formula-1-128
-description: "BIRD Q973 (moderate): List out top 10 Spanish drivers who were born before 1982 and have the latest lap time."
+description: 'BIRD Q973 (moderate): List out top 10 Spanish drivers who were born before 1982 and have the latest lap time.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-973
-    description: "List out top 10 Spanish drivers who were born before 1982 and have the latest lap time."
+    description: 'List out top 10 Spanish drivers who were born before 1982 and have the latest lap time.'
     messages:
       - role: user
         content: |

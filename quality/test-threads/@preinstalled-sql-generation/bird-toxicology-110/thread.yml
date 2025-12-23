@@ -1,5 +1,5 @@
 name: bird-toxicology-110
-description: "BIRD Q304 (challenging): List all carcinogenic molecules and their elements."
+description: 'BIRD Q304 (challenging): List all carcinogenic molecules and their elements.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-304
-    description: "List all carcinogenic molecules and their elements."
+    description: 'List all carcinogenic molecules and their elements.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-011
-description: "BIRD Q856 (simple): Please list the time of the races held on Sepang International Circuit."
+description: 'BIRD Q856 (simple): Please list the time of the races held on Sepang International Circuit.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-856
-    description: "Please list the time of the races held on Sepang International Circuit."
+    description: 'Please list the time of the races held on Sepang International Circuit.'
     messages:
       - role: user
         content: |

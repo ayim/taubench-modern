@@ -1,5 +1,5 @@
 name: bird-student-club-056
-description: "BIRD Q1367 (simple): Which college do most of the members go to?"
+description: 'BIRD Q1367 (simple): Which college do most of the members go to?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1367
-    description: "Which college do most of the members go to?"
+    description: 'Which college do most of the members go to?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-financial-074
-description: "BIRD Q162 (challenging): For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?"
+description: 'BIRD Q162 (challenging): For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-162
-    description: "For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?"
+    description: 'For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?'
     messages:
       - role: user
         content: |

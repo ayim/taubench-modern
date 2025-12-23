@@ -1,5 +1,5 @@
 name: bird-formula-1-127
-description: "BIRD Q972 (moderate): Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers."
+description: 'BIRD Q972 (moderate): Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-972
-    description: "Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers."
+    description: 'Which drivers who were born in 1971 and has the fastest lap time on the race? Give id and code of these drivers.'
     messages:
       - role: user
         content: |

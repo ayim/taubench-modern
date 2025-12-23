@@ -1,5 +1,5 @@
 name: bird-codebase-community-072
-description: "BIRD Q602 (simple): List out all post ID with score more than 60 and list out all the user ID that created these post."
+description: 'BIRD Q602 (simple): List out all post ID with score more than 60 and list out all the user ID that created these post.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-602
-    description: "List out all post ID with score more than 60 and list out all the user ID that created these post."
+    description: 'List out all post ID with score more than 60 and list out all the user ID that created these post.'
     messages:
       - role: user
         content: |

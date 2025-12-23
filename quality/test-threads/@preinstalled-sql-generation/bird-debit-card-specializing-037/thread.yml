@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-037
-description: "BIRD Q1506 (moderate): Please list the product descriptions of the transactions taken place in the gas stations in the Czech Republic."
+description: 'BIRD Q1506 (moderate): Please list the product descriptions of the transactions taken place in the gas stations in the Czech Republic.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-1506
-    description: "Please list the product descriptions of the transactions taken place in the gas stations in the Czech Republic."
+    description: 'Please list the product descriptions of the transactions taken place in the gas stations in the Czech Republic.'
     messages:
       - role: user
         content: |
           Please list the product descriptions of the transactions taken place in the gas stations in the Czech Republic.
-          Evidence: Czech Republic can be represented as the Country value in the gasstations table is 'CZE'; 
+          Evidence: Czech Republic can be represented as the Country value in the gasstations table is 'CZE';
 
 target-platforms:
   - name: openai

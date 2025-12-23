@@ -1,5 +1,5 @@
 name: bird-superhero-078
-description: "BIRD Q794 (moderate): Which hero was the fastest?"
+description: 'BIRD Q794 (moderate): Which hero was the fastest?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-794
-    description: "Which hero was the fastest?"
+    description: 'Which hero was the fastest?'
     messages:
       - role: user
         content: |

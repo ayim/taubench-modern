@@ -1,5 +1,5 @@
 name: bird-toxicology-026
-description: "BIRD Q220 (challenging): Please list the top three elements in the molecule TR000 in alphabetical order."
+description: 'BIRD Q220 (challenging): Please list the top three elements in the molecule TR000 in alphabetical order.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-220
-    description: "Please list the top three elements in the molecule TR000 in alphabetical order."
+    description: 'Please list the top three elements in the molecule TR000 in alphabetical order.'
     messages:
       - role: user
         content: |

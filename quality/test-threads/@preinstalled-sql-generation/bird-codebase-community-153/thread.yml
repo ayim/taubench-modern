@@ -1,5 +1,5 @@
 name: bird-codebase-community-153
-description: "BIRD Q683 (moderate): What is the percentage of posts whose owners had a reputation of over 1000 in 2011?"
+description: 'BIRD Q683 (moderate): What is the percentage of posts whose owners had a reputation of over 1000 in 2011?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-683
-    description: "What is the percentage of posts whose owners had a reputation of over 1000 in 2011?"
+    description: 'What is the percentage of posts whose owners had a reputation of over 1000 in 2011?'
     messages:
       - role: user
         content: |

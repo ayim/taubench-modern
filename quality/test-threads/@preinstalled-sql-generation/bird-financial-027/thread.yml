@@ -1,5 +1,5 @@
 name: bird-financial-027
-description: "BIRD Q115 (challenging): What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?"
+description: 'BIRD Q115 (challenging): What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-115
-    description: "What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?"
+    description: 'What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-079
-description: "BIRD Q1227 (moderate): What is the average age of the male patient with high cholesterol?"
+description: 'BIRD Q1227 (moderate): What is the average age of the male patient with high cholesterol?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1227
-    description: "What is the average age of the male patient with high cholesterol?"
+    description: 'What is the average age of the male patient with high cholesterol?'
     messages:
       - role: user
         content: |

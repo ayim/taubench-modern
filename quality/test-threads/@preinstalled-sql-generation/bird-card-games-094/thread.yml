@@ -1,5 +1,5 @@
 name: bird-card-games-094
-description: "BIRD Q433 (moderate): What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?"
+description: 'BIRD Q433 (moderate): What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-433
-    description: "What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?"
+    description: 'What is the percentage of the set of cards that have Chinese Simplified as the language and are only available for online games?'
     messages:
       - role: user
         content: |

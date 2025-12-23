@@ -1,5 +1,5 @@
 name: bird-formula-1-123
-description: "BIRD Q968 (simple): What is reference name of Robert Kubica?"
+description: 'BIRD Q968 (simple): What is reference name of Robert Kubica?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-968
-    description: "What is reference name of Robert Kubica?"
+    description: 'What is reference name of Robert Kubica?'
     messages:
       - role: user
         content: |

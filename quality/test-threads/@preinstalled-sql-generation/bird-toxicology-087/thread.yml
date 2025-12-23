@@ -1,5 +1,5 @@
 name: bird-toxicology-087
-description: "BIRD Q281 (challenging): Tally the toxicology element of the 4th atom of each molecule that was carcinogenic."
+description: 'BIRD Q281 (challenging): Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,12 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-281
-    description: "Tally the toxicology element of the 4th atom of each molecule that was carcinogenic."
+    description: 'Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.'
     messages:
       - role: user
         content: |
           Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.
-          Evidence: label = '+' means molecules are carcinogenic; 4th atom of each molecule refers to substr(atom_id, 7, 1) = '4'; 
+          Evidence: label = '+' means molecules are carcinogenic; 4th atom of each molecule refers to substr(atom_id, 7, 1) = '4';
 
 target-platforms:
   - name: openai

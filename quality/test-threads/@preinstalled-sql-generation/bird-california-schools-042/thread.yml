@@ -1,5 +1,5 @@
 name: bird-california-schools-042
-description: "BIRD Q41 (simple): List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores."
+description: 'BIRD Q41 (simple): List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-41
-    description: "List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores."
+    description: 'List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores.'
     messages:
       - role: user
         content: |

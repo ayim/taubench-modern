@@ -1,5 +1,5 @@
 name: bird-card-games-020
-description: "BIRD Q359 (simple): What is the type of the card \"Ancestor's Chosen\" as originally printed?"
+description: 'BIRD Q359 (simple): What is the type of the card "Ancestor''s Chosen" as originally printed?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-359
-    description: "What is the type of the card \"Ancestor's Chosen\" as originally printed?"
+    description: 'What is the type of the card "Ancestor''s Chosen" as originally printed?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-153
-description: "BIRD Q1464 (challenging): Write the full names of students who received funds on the date of 9/9/2019 and include the amount received."
+description: 'BIRD Q1464 (challenging): Write the full names of students who received funds on the date of 9/9/2019 and include the amount received.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1464
-    description: "Write the full names of students who received funds on the date of 9/9/2019 and include the amount received."
+    description: 'Write the full names of students who received funds on the date of 9/9/2019 and include the amount received.'
     messages:
       - role: user
         content: |

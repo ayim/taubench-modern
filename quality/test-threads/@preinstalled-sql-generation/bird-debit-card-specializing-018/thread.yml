@@ -1,5 +1,5 @@
 name: bird-debit-card-specializing-018
-description: "BIRD Q1487 (moderate): Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?"
+description: 'BIRD Q1487 (moderate): Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1487
-    description: "Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?"
+    description: 'Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?'
     messages:
       - role: user
         content: |

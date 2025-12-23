@@ -1,5 +1,5 @@
 name: bird-card-games-074
-description: "BIRD Q413 (simple): How many rare cards have ruling text that were printed on 01/02/2007?"
+description: 'BIRD Q413 (simple): How many rare cards have ruling text that were printed on 01/02/2007?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-413
-    description: "How many rare cards have ruling text that were printed on 01/02/2007?"
+    description: 'How many rare cards have ruling text that were printed on 01/02/2007?'
     messages:
       - role: user
         content: |

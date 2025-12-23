@@ -1,5 +1,5 @@
 name: bird-superhero-009
-description: "BIRD Q725 (simple): How many superheroes are published by Marvel Comics?"
+description: 'BIRD Q725 (simple): How many superheroes are published by Marvel Comics?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-725
-    description: "How many superheroes are published by Marvel Comics?"
+    description: 'How many superheroes are published by Marvel Comics?'
     messages:
       - role: user
         content: |

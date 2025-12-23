@@ -1,5 +1,5 @@
 name: bird-codebase-community-143
-description: "BIRD Q673 (simple): What is the average number of posts voted by the oldest users?"
+description: 'BIRD Q673 (simple): What is the average number of posts voted by the oldest users?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-673
-    description: "What is the average number of posts voted by the oldest users?"
+    description: 'What is the average number of posts voted by the oldest users?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-formula-1-075
-description: "BIRD Q920 (simple): Please list all the years that Silverstone Circuit was used in a Formula_1 race."
+description: 'BIRD Q920 (simple): Please list all the years that Silverstone Circuit was used in a Formula_1 race.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-920
-    description: "Please list all the years that Silverstone Circuit was used in a Formula_1 race."
+    description: 'Please list all the years that Silverstone Circuit was used in a Formula_1 race.'
     messages:
       - role: user
         content: |

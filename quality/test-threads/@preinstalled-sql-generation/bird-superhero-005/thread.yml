@@ -1,5 +1,5 @@
 name: bird-superhero-005
-description: "BIRD Q721 (simple): How many superheroes have blue eyes?"
+description: 'BIRD Q721 (simple): How many superheroes have blue eyes?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-721
-    description: "How many superheroes have blue eyes?"
+    description: 'How many superheroes have blue eyes?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-european-football-2-014
-description: "BIRD Q1033 (simple): What is the average height of players born between 1990 and 1995?"
+description: 'BIRD Q1033 (simple): What is the average height of players born between 1990 and 1995?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1033
-    description: "What is the average height of players born between 1990 and 1995?"
+    description: 'What is the average height of players born between 1990 and 1995?'
     messages:
       - role: user
         content: |

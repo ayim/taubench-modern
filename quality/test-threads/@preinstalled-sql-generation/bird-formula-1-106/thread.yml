@@ -1,5 +1,5 @@
 name: bird-formula-1-106
-description: "BIRD Q951 (simple): How many Japanese constructors have 0 points in 2 races?"
+description: 'BIRD Q951 (simple): How many Japanese constructors have 0 points in 2 races?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-951
-    description: "How many Japanese constructors have 0 points in 2 races?"
+    description: 'How many Japanese constructors have 0 points in 2 races?'
     messages:
       - role: user
         content: |

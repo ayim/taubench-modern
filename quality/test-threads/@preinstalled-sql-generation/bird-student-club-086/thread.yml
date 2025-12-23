@@ -1,5 +1,5 @@
 name: bird-student-club-086
-description: "BIRD Q1397 (simple): On average, how much did the Student_Club spend on food for the typical event in the past?"
+description: 'BIRD Q1397 (simple): On average, how much did the Student_Club spend on food for the typical event in the past?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1397
-    description: "On average, how much did the Student_Club spend on food for the typical event in the past?"
+    description: 'On average, how much did the Student_Club spend on food for the typical event in the past?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-student-club-106
-description: "BIRD Q1417 (simple): List out the type of events which have remaining budget more than 30 USD."
+description: 'BIRD Q1417 (simple): List out the type of events which have remaining budget more than 30 USD.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1417
-    description: "List out the type of events which have remaining budget more than 30 USD."
+    description: 'List out the type of events which have remaining budget more than 30 USD.'
     messages:
       - role: user
         content: |

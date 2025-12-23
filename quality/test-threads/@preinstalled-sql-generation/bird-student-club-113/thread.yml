@@ -1,5 +1,5 @@
 name: bird-student-club-113
-description: "BIRD Q1424 (simple): Among the members, how many of them have an extra large t-shirt size?"
+description: 'BIRD Q1424 (simple): Among the members, how many of them have an extra large t-shirt size?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1424
-    description: "Among the members, how many of them have an extra large t-shirt size?"
+    description: 'Among the members, how many of them have an extra large t-shirt size?'
     messages:
       - role: user
         content: |

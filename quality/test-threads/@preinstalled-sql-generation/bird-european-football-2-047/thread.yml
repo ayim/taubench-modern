@@ -1,5 +1,5 @@
 name: bird-european-football-2-047
-description: "BIRD Q1066 (simple): What is the passing class of CLB team?"
+description: 'BIRD Q1066 (simple): What is the passing class of CLB team?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1066
-    description: "What is the passing class of CLB team?"
+    description: 'What is the passing class of CLB team?'
     messages:
       - role: user
         content: |

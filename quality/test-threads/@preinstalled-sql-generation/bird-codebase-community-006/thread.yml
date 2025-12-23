@@ -1,5 +1,5 @@
 name: bird-codebase-community-006
-description: "BIRD Q536 (simple): How many users with more than 10 views created their account after the year 2013?"
+description: 'BIRD Q536 (simple): How many users with more than 10 views created their account after the year 2013?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-536
-    description: "How many users with more than 10 views created their account after the year 2013?"
+    description: 'How many users with more than 10 views created their account after the year 2013?'
     messages:
       - role: user
         content: |

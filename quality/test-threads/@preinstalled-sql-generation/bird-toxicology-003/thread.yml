@@ -1,5 +1,5 @@
 name: bird-toxicology-003
-description: "BIRD Q197 (moderate): Calculate the average number of oxygen atoms in single-bonded molecules."
+description: 'BIRD Q197 (moderate): Calculate the average number of oxygen atoms in single-bonded molecules.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-197
-    description: "Calculate the average number of oxygen atoms in single-bonded molecules."
+    description: 'Calculate the average number of oxygen atoms in single-bonded molecules.'
     messages:
       - role: user
         content: |

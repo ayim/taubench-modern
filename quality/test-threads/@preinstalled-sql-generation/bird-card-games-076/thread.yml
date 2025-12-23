@@ -1,5 +1,5 @@
 name: bird-card-games-076
-description: "BIRD Q415 (challenging): What percentage of cards with format commander and legal status do not have a content warning?"
+description: 'BIRD Q415 (challenging): What percentage of cards with format commander and legal status do not have a content warning?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-415
-    description: "What percentage of cards with format commander and legal status do not have a content warning?"
+    description: 'What percentage of cards with format commander and legal status do not have a content warning?'
     messages:
       - role: user
         content: |

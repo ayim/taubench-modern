@@ -1,5 +1,5 @@
 name: bird-card-games-167
-description: "BIRD Q506 (challenging): For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?"
+description: 'BIRD Q506 (challenging): For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-506
-    description: "For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?"
+    description: 'For all the set of cards that has Japanese translation, what is the percentage of them are only available in non-foil?'
     messages:
       - role: user
         content: |

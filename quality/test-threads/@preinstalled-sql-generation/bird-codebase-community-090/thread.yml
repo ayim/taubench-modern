@@ -1,5 +1,5 @@
 name: bird-codebase-community-090
-description: "BIRD Q620 (simple): State the number of views of users who obtained the badge on 7/19/2010 7:39:08 PM."
+description: 'BIRD Q620 (simple): State the number of views of users who obtained the badge on 7/19/2010 7:39:08 PM.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-620
-    description: "State the number of views of users who obtained the badge on 7/19/2010 7:39:08 PM."
+    description: 'State the number of views of users who obtained the badge on 7/19/2010 7:39:08 PM.'
     messages:
       - role: user
         content: |

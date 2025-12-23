@@ -1,5 +1,5 @@
 name: bird-codebase-community-095
-description: "BIRD Q625 (simple): How many users were from New York?"
+description: 'BIRD Q625 (simple): How many users were from New York?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-625
-    description: "How many users were from New York?"
+    description: 'How many users were from New York?'
     messages:
       - role: user
         content: |

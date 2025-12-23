@@ -1,5 +1,5 @@
 name: bird-card-games-069
-description: "BIRD Q408 (moderate): How many unknown power cards contain info about the triggered ability"
+description: 'BIRD Q408 (moderate): How many unknown power cards contain info about the triggered ability'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-408
-    description: "How many unknown power cards contain info about the triggered ability"
+    description: 'How many unknown power cards contain info about the triggered ability'
     messages:
       - role: user
         content: |

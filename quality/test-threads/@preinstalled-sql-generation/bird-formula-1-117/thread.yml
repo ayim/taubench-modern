@@ -1,5 +1,5 @@
 name: bird-formula-1-117
-description: "BIRD Q962 (challenging): From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?"
+description: 'BIRD Q962 (challenging): From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-962
-    description: "From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?"
+    description: 'From 2000 to 2005, what percentage of drivers who were born before 1985 and the lap numbers were over 50?'
     messages:
       - role: user
         content: |

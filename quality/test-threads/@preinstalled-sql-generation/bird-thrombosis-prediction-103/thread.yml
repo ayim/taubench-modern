@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-103
-description: "BIRD Q1251 (simple): How many patients with an Ig G higher than normal?"
+description: 'BIRD Q1251 (simple): How many patients with an Ig G higher than normal?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1251
-    description: "How many patients with an Ig G higher than normal?"
+    description: 'How many patients with an Ig G higher than normal?'
     messages:
       - role: user
         content: |

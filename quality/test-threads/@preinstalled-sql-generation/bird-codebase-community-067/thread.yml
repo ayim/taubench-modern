@@ -1,5 +1,5 @@
 name: bird-codebase-community-067
-description: "BIRD Q597 (simple): How many users from India have the teacher badges?"
+description: 'BIRD Q597 (simple): How many users from India have the teacher badges?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-597
-    description: "How many users from India have the teacher badges?"
+    description: 'How many users from India have the teacher badges?'
     messages:
       - role: user
         content: |

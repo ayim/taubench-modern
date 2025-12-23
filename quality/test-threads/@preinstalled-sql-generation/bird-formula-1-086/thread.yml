@@ -1,5 +1,5 @@
 name: bird-formula-1-086
-description: "BIRD Q931 (moderate): What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?"
+description: 'BIRD Q931 (moderate): What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-931
-    description: "What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?"
+    description: 'What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?'
     messages:
       - role: user
         content: |

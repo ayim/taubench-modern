@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-075
-description: "BIRD Q1223 (challenging): Are there more male patients with creatinine not within the normal range than female? True or False?"
+description: 'BIRD Q1223 (challenging): Are there more male patients with creatinine not within the normal range than female? True or False?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1223
-    description: "Are there more male patients with creatinine not within the normal range than female? True or False?"
+    description: 'Are there more male patients with creatinine not within the normal range than female? True or False?'
     messages:
       - role: user
         content: |

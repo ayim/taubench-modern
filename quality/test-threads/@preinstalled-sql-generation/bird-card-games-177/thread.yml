@@ -1,5 +1,5 @@
 name: bird-card-games-177
-description: "BIRD Q516 (moderate): How many cards did Volkan BaÇµa illustrated whose foreign language is in French?"
+description: 'BIRD Q516 (moderate): How many cards did Volkan BaÇµa illustrated whose foreign language is in French?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-516
-    description: "How many cards did Volkan BaÇµa illustrated whose foreign language is in French?"
+    description: 'How many cards did Volkan BaÇµa illustrated whose foreign language is in French?'
     messages:
       - role: user
         content: |

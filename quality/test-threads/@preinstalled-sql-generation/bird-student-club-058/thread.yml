@@ -1,5 +1,5 @@
 name: bird-student-club-058
-description: "BIRD Q1369 (simple): Which event has the highest budget amount?"
+description: 'BIRD Q1369 (simple): Which event has the highest budget amount?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1369
-    description: "Which event has the highest budget amount?"
+    description: 'Which event has the highest budget amount?'
     messages:
       - role: user
         content: |

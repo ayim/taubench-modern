@@ -1,5 +1,5 @@
 name: bird-california-schools-040
-description: "BIRD Q39 (simple): What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?"
+description: 'BIRD Q39 (simple): What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-39
-    description: "What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?"
+    description: 'What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-136
-description: "BIRD Q475 (simple): How many cards in the set Coldsnap have a black border color?"
+description: 'BIRD Q475 (simple): How many cards in the set Coldsnap have a black border color?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-475
-    description: "How many cards in the set Coldsnap have a black border color?"
+    description: 'How many cards in the set Coldsnap have a black border color?'
     messages:
       - role: user
         content: |

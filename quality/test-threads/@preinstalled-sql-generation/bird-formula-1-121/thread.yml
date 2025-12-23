@@ -1,5 +1,5 @@
 name: bird-formula-1-121
-description: "BIRD Q966 (simple): How many driver participated in race ID number 18?"
+description: 'BIRD Q966 (simple): How many driver participated in race ID number 18?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-966
-    description: "How many driver participated in race ID number 18?"
+    description: 'How many driver participated in race ID number 18?'
     messages:
       - role: user
         content: |

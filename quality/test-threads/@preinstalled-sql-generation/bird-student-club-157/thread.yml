@@ -1,5 +1,5 @@
 name: bird-student-club-157
-description: "BIRD Q1468 (simple): Where is the hometown of Garrett Gerke?"
+description: 'BIRD Q1468 (simple): Where is the hometown of Garrett Gerke?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1468
-    description: "Where is the hometown of Garrett Gerke?"
+    description: 'Where is the hometown of Garrett Gerke?'
     messages:
       - role: user
         content: |

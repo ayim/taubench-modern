@@ -1,5 +1,5 @@
 name: bird-european-football-2-062
-description: "BIRD Q1081 (simple): Which country is the Belgium Jupiler League from?"
+description: 'BIRD Q1081 (simple): Which country is the Belgium Jupiler League from?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1081
-    description: "Which country is the Belgium Jupiler League from?"
+    description: 'Which country is the Belgium Jupiler League from?'
     messages:
       - role: user
         content: |

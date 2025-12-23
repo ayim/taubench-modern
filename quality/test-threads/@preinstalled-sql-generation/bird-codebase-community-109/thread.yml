@@ -1,5 +1,5 @@
 name: bird-codebase-community-109
-description: "BIRD Q639 (challenging): Based on posts posted by Community, calculate the percentage of posts that use the R language."
+description: 'BIRD Q639 (challenging): Based on posts posted by Community, calculate the percentage of posts that use the R language.'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-639
-    description: "Based on posts posted by Community, calculate the percentage of posts that use the R language."
+    description: 'Based on posts posted by Community, calculate the percentage of posts that use the R language.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-078
-description: "BIRD Q1226 (simple): Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index."
+description: 'BIRD Q1226 (simple): Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1226
-    description: "Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index."
+    description: 'Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index.'
     messages:
       - role: user
         content: |

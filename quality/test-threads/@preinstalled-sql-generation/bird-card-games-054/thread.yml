@@ -1,5 +1,5 @@
 name: bird-card-games-054
-description: "BIRD Q393 (simple): On how many cards designed by John Avon is its foil non-powerful?"
+description: 'BIRD Q393 (simple): On how many cards designed by John Avon is its foil non-powerful?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,13 +10,12 @@ sdms:
 
 thread:
   - name: bird-question-393
-    description: "On how many cards designed by John Avon is its foil non-powerful?"
+    description: 'On how many cards designed by John Avon is its foil non-powerful?'
     messages:
       - role: user
         content: |
           On how many cards designed by John Avon is its foil non-powerful?
-          Evidence: John Avon refer to artist; foil poweful foils refers to cardKingdomId and cardKingdomFoildId is NOT NULL 
-          
+          Evidence: John Avon refer to artist; foil poweful foils refers to cardKingdomId and cardKingdomFoildId is NOT NULL
 
 target-platforms:
   - name: openai

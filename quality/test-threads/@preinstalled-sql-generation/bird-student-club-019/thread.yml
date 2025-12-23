@@ -1,5 +1,5 @@
 name: bird-student-club-019
-description: "BIRD Q1330 (simple): What college offers the major that Tyler Hewitt took?"
+description: 'BIRD Q1330 (simple): What college offers the major that Tyler Hewitt took?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1330
-    description: "What college offers the major that Tyler Hewitt took?"
+    description: 'What college offers the major that Tyler Hewitt took?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-046
-description: "BIRD Q385 (simple): Write down the ruling of Beacon of Immortality."
+description: 'BIRD Q385 (simple): Write down the ruling of Beacon of Immortality.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-385
-    description: "Write down the ruling of Beacon of Immortality."
+    description: 'Write down the ruling of Beacon of Immortality.'
     messages:
       - role: user
         content: |

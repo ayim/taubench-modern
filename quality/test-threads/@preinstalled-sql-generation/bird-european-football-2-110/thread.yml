@@ -1,5 +1,5 @@
 name: bird-european-football-2-110
-description: "BIRD Q1129 (simple): List down the long name for slow speed class team."
+description: 'BIRD Q1129 (simple): List down the long name for slow speed class team.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1129
-    description: "List down the long name for slow speed class team."
+    description: 'List down the long name for slow speed class team.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-card-games-030
-description: "BIRD Q369 (simple): How many cards that illusrtated in German have been reprinted?"
+description: 'BIRD Q369 (simple): How many cards that illusrtated in German have been reprinted?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-369
-    description: "How many cards that illusrtated in German have been reprinted?"
+    description: 'How many cards that illusrtated in German have been reprinted?'
     messages:
       - role: user
         content: |

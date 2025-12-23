@@ -1,5 +1,5 @@
 name: bird-codebase-community-043
-description: "BIRD Q573 (simple): Write the contents of comments with a score of 17."
+description: 'BIRD Q573 (simple): Write the contents of comments with a score of 17.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-573
-    description: "Write the contents of comments with a score of 17."
+    description: 'Write the contents of comments with a score of 17.'
     messages:
       - role: user
         content: |

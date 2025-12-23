@@ -1,5 +1,5 @@
 name: bird-toxicology-098
-description: "BIRD Q292 (simple): Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon."
+description: 'BIRD Q292 (simple): Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-292
-    description: "Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon."
+    description: 'Identify the atoms belong to the molecule with ID between TR010 to TR050 that contain the element carbon.'
     messages:
       - role: user
         content: |

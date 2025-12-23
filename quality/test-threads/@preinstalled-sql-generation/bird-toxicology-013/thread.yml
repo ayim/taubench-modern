@@ -1,5 +1,5 @@
 name: bird-toxicology-013
-description: "BIRD Q207 (challenging): For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?"
+description: 'BIRD Q207 (challenging): For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-207
-    description: "For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?"
+    description: 'For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-european-football-2-074
-description: "BIRD Q1093 (moderate): What is the average overall rating of the players born before the year 1986?"
+description: 'BIRD Q1093 (moderate): What is the average overall rating of the players born before the year 1986?'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1093
-    description: "What is the average overall rating of the players born before the year 1986?"
+    description: 'What is the average overall rating of the players born before the year 1986?'
     messages:
       - role: user
         content: |

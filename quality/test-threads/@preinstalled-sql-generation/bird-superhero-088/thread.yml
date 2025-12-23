@@ -1,5 +1,5 @@
 name: bird-superhero-088
-description: "BIRD Q804 (simple): Provide the name of superhero with superhero ID 294."
+description: 'BIRD Q804 (simple): Provide the name of superhero with superhero ID 294.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-804
-    description: "Provide the name of superhero with superhero ID 294."
+    description: 'Provide the name of superhero with superhero ID 294.'
     messages:
       - role: user
         content: |

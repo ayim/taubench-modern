@@ -1,5 +1,5 @@
 name: bird-card-games-079
-description: "BIRD Q418 (simple): What kind of printing is on the card that Daren Bader created?"
+description: 'BIRD Q418 (simple): What kind of printing is on the card that Daren Bader created?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-418
-    description: "What kind of printing is on the card that Daren Bader created?"
+    description: 'What kind of printing is on the card that Daren Bader created?'
     messages:
       - role: user
         content: |

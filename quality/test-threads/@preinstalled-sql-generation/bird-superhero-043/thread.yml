@@ -1,5 +1,5 @@
 name: bird-superhero-043
-description: "BIRD Q759 (simple): What is the eye clolour of the heaviest superhero?"
+description: 'BIRD Q759 (simple): What is the eye clolour of the heaviest superhero?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-759
-    description: "What is the eye clolour of the heaviest superhero?"
+    description: 'What is the eye clolour of the heaviest superhero?'
     messages:
       - role: user
         content: |

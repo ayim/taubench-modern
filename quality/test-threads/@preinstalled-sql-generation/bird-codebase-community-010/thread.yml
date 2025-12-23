@@ -1,5 +1,5 @@
 name: bird-codebase-community-010
-description: "BIRD Q540 (simple): What is the title of the post that is owned by csgillespie and has the highest popularity?"
+description: 'BIRD Q540 (simple): What is the title of the post that is owned by csgillespie and has the highest popularity?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-540
-    description: "What is the title of the post that is owned by csgillespie and has the highest popularity?"
+    description: 'What is the title of the post that is owned by csgillespie and has the highest popularity?'
     messages:
       - role: user
         content: |

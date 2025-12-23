@@ -1,5 +1,5 @@
 name: bird-financial-065
-description: "BIRD Q153 (challenging): For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?"
+description: 'BIRD Q153 (challenging): For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-153
-    description: "For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?"
+    description: 'For each district, how many classic credit card holders who are account owners are there, and what are their average loan amounts, account balances, loan performance, district salary, and unemployment rate?'
     messages:
       - role: user
         content: |

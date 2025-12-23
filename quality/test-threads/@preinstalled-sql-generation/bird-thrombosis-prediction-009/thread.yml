@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-009
-description: "BIRD Q1157 (simple): For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with."
+description: 'BIRD Q1157 (simple): For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1157
-    description: "For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with."
+    description: 'For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with.'
     messages:
       - role: user
         content: |

@@ -1,5 +1,5 @@
 name: bird-california-schools-039
-description: "BIRD Q38 (simple): What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?"
+description: 'BIRD Q38 (simple): What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-38
-    description: "What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?"
+    description: 'What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?'
     messages:
       - role: user
         content: |

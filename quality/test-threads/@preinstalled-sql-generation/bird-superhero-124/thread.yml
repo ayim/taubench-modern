@@ -1,5 +1,5 @@
 name: bird-superhero-124
-description: "BIRD Q840 (simple): List the attribute value of the superhero named Aquababy."
+description: 'BIRD Q840 (simple): List the attribute value of the superhero named Aquababy.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-840
-    description: "List the attribute value of the superhero named Aquababy."
+    description: 'List the attribute value of the superhero named Aquababy.'
     messages:
       - role: user
         content: |

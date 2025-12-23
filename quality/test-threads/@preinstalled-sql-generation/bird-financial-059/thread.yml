@@ -1,5 +1,5 @@
 name: bird-financial-059
-description: "BIRD Q147 (challenging): What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?"
+description: 'BIRD Q147 (challenging): What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-147
-    description: "What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?"
+    description: 'What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?'
     messages:
       - role: user
         content: |

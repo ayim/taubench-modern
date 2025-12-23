@@ -1,5 +1,5 @@
 name: bird-formula-1-082
-description: "BIRD Q927 (simple): Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname."
+description: 'BIRD Q927 (simple): Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-927
-    description: "Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname."
+    description: 'Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname.'
     messages:
       - role: user
         content: |

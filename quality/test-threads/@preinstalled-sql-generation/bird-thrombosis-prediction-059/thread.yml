@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-059
-description: "BIRD Q1207 (moderate): List all patients with their sex and date of birthday, whose AST glutamic oxaloacetic transaminase (GOT) index is within normal range for laboratory examination in 1994."
+description: 'BIRD Q1207 (moderate): List all patients with their sex and date of birthday, whose AST glutamic oxaloacetic transaminase (GOT) index is within normal range for laboratory examination in 1994.'
 difficulty: moderate
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1207
-    description: "List all patients with their sex and date of birthday, whose AST glutamic oxaloacetic transaminase (GOT) index is within normal range for laboratory examination in 1994."
+    description: 'List all patients with their sex and date of birthday, whose AST glutamic oxaloacetic transaminase (GOT) index is within normal range for laboratory examination in 1994.'
     messages:
       - role: user
         content: |

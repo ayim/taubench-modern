@@ -1,5 +1,5 @@
 name: bird-toxicology-062
-description: "BIRD Q256 (simple): Calculate the total atoms consisting of the element carbon and hydrogen."
+description: 'BIRD Q256 (simple): Calculate the total atoms consisting of the element carbon and hydrogen.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-256
-    description: "Calculate the total atoms consisting of the element carbon and hydrogen."
+    description: 'Calculate the total atoms consisting of the element carbon and hydrogen.'
     messages:
       - role: user
         content: |

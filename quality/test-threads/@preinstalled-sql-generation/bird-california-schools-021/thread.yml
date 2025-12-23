@@ -1,5 +1,5 @@
 name: bird-california-schools-021
-description: "BIRD Q20 (challenging): What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?"
+description: 'BIRD Q20 (challenging): What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?'
 difficulty: challenging
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-20
-    description: "What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?"
+    description: 'What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?'
     messages:
       - role: user
         content: |

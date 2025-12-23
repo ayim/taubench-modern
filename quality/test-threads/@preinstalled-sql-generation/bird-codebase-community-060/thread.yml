@@ -1,5 +1,5 @@
 name: bird-codebase-community-060
-description: "BIRD Q590 (simple): Which user ID has the lowest view?"
+description: 'BIRD Q590 (simple): Which user ID has the lowest view?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-590
-    description: "Which user ID has the lowest view?"
+    description: 'Which user ID has the lowest view?'
     messages:
       - role: user
         content: |

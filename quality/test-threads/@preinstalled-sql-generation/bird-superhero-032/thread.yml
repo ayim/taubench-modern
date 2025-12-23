@@ -1,5 +1,5 @@
 name: bird-superhero-032
-description: "BIRD Q748 (simple): What is the eye colour of superhero with superhero ID 75?"
+description: 'BIRD Q748 (simple): What is the eye colour of superhero with superhero ID 75?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-748
-    description: "What is the eye colour of superhero with superhero ID 75?"
+    description: 'What is the eye colour of superhero with superhero ID 75?'
     messages:
       - role: user
         content: |

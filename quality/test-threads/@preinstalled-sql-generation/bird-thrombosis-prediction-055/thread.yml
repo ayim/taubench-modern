@@ -1,5 +1,5 @@
 name: bird-thrombosis-prediction-055
-description: "BIRD Q1203 (simple): How many patients who were female got white blood cells that were below 3.5?"
+description: 'BIRD Q1203 (simple): How many patients who were female got white blood cells that were below 3.5?'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-1203
-    description: "How many patients who were female got white blood cells that were below 3.5?"
+    description: 'How many patients who were female got white blood cells that were below 3.5?'
     messages:
       - role: user
         content: |

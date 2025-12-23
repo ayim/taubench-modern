@@ -1,5 +1,5 @@
 name: bird-codebase-community-120
-description: "BIRD Q650 (simple): Describe the last accessed date and location of the users who received the outliers badge."
+description: 'BIRD Q650 (simple): Describe the last accessed date and location of the users who received the outliers badge.'
 difficulty: simple
 timeout_seconds: 600
 
@@ -10,7 +10,7 @@ sdms:
 
 thread:
   - name: bird-question-650
-    description: "Describe the last accessed date and location of the users who received the outliers badge."
+    description: 'Describe the last accessed date and location of the users who received the outliers badge.'
     messages:
       - role: user
         content: |
