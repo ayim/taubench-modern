@@ -61,16 +61,6 @@ class SQLGenerationContent(BaseModel):
     )
     """Any assumptions used by the SQL generation subagent when generating the SQL query."""
 
-    # TODO: Should we return this or should the subagent save these into the SDM directly?
-    # For now, I'm leaving this here but not using it.
-    failed_approaches: list[SqlGenerationFailedApproach] | None = Field(
-        default=None,
-        description="Any approaches that failed to generate a SQL query.",
-    )
-    """Any approaches that failed to generate a SQL query.
-    This is a list of failed approaches, each with a logical SQL query,
-    physical SQL query, error, and explanation."""
-
     message_to_parent: str | None = Field(
         default=None,
         description="A message from the SQL generation subagent to the parent agent. "
@@ -111,10 +101,6 @@ class SQLGenerationContent(BaseModel):
             if not self.message_to_parent:
                 raise ValueError("message_to_parent is required for NEEDS_INFO status")
 
-        elif self.status == SQLGenerationStatus.FAILED:
-            if not self.failed_approaches:
-                raise ValueError("failed_approaches is required for FAILED status")
-
         return self
 
     def as_text_content(self) -> str:
@@ -151,16 +137,6 @@ class SQLGenerationContent(BaseModel):
             lines.append(self.message_to_parent or "")
 
         elif self.status == SQLGenerationStatus.FAILED:
-            # Show failed approaches
-            if self.failed_approaches:
-                lines.append("\n📋 FAILED APPROACHES:")
-                for i, approach in enumerate(self.failed_approaches, 1):
-                    lines.append(f"\n  Attempt {i}:")
-                    lines.append(f"    Error: {approach.get('error', 'N/A')}")
-                    classification = approach.get("error_classification", "N/A")
-                    lines.append(f"    Classification: {classification}")
-                    lines.append(f"    Explanation: {approach.get('explanation', 'N/A')}")
-
             # Also show error message if present
             if self.error_message:
                 lines.append("\n⚠️  ERROR MESSAGE:")

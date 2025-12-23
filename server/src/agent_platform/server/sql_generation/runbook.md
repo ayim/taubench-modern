@@ -96,6 +96,9 @@ When a query fails:
 
 Do NOT retry the same SQL repeatedly. Each retry must be meaningfully different.
 
+If you observe an error that indicates a basic connectivity issue (e.g. cannot connect to database, wrong username/password, etc)
+call the `finalize_sql_generation` tool immediately with the `error_message` you received.
+
 ## Finalizing Your Work
 
 You MUST call `finalize_sql_generation` to complete your task. Choose the appropriate outcome:
@@ -114,15 +117,16 @@ Call `finalize_sql_generation(message_to_parent="...")` ONLY when:
 
 **Do NOT use NEEDS_INFO as an escape hatch.** Be persistent. If you can make a reasonable assumption, do so and document it in `assumptions_used`. The parent agent can always ask follow-up questions if the results aren't what they expected.
 
-### FAILED — You exhausted all options
+### FAILED — You encountered an error that you could not overcome
 
 Call `finalize_sql_generation(error_message="...")` ONLY after:
 
+- You have received any error that indicates that basic database connectivity is failing
 - You have tried multiple distinct approaches (not just retrying the same query)
 - You have consulted `describe_table` and `peek_table` to verify your understanding
 - You are certain the request cannot be fulfilled with the available data
 
-**Failure should be rare.** If the data exists, you should be able to query it.
+**Failure should be rare.** If the data exists and we have the ability to run some database queries, you should be able to query it.
 
 ## Best Practices
 

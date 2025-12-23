@@ -20,6 +20,8 @@ server/tests/**/*.yaml
 core/tests/**/*.yml
 core/tests/**/*.yaml
 core/tests/architectures/test_special_commands/*.md
+quality/test-data/**
+quality/test-threads/**
 
 # Workroom specific (ignore files are not searched for like config files are -
 #   thus only the root .prettierignore file is needed)
