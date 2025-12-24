@@ -1,7 +1,7 @@
-import { FC, useState } from 'react';
+import { FC } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Box, Input } from '@sema4ai/components';
-import { IconEye, IconEyeOff } from '@sema4ai/icons';
+import { InputControlled } from '../../../common/form/InputControlled';
 
 type MCPServerClientCredentialsFieldsProps = {
   disabled?: boolean;
@@ -22,8 +22,6 @@ export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFiel
     register,
     formState: { errors },
   } = useFormContext();
-
-  const [showSecret, setShowSecret] = useState(false);
 
   const getFieldName = (field: string) => (fieldPrefix ? `${fieldPrefix}.${field}` : field);
 
@@ -57,14 +55,11 @@ export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFiel
           disabled={disabled}
         />
 
-        <Input
+        <InputControlled
+          fieldName={getFieldName('client_secret')}
           label="Client Secret"
-          {...register(getFieldName('client_secret'))}
-          error={getFieldError('client_secret')}
           placeholder="Enter client secret"
-          type={showSecret ? 'text' : 'password'}
-          iconRight={showSecret ? IconEye : IconEyeOff}
-          onIconRightClick={() => setShowSecret(!showSecret)}
+          type="password"
           autoComplete="new-password"
           disabled={disabled}
         />
