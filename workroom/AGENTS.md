@@ -13,6 +13,126 @@ The Work Room folder is an app that comprises of 4 main pieces:
 
 # High-level guidelines
 
+## Type Safety
+
+### API Types - Use Helper Types
+
+Use `ServerRequest` and `ServerResponse` from `@spar-ui/src/queries/shared.ts` instead of raw path accessors:
+
+```typescript
+// ✅ Preferred
+type McpServerCreate = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>;
+type ApiHeaders = ServerRequest<'put', '/api/v2/mcp-servers/{mcp_server_id}', 'requestBody'>['headers'];
+
+// ❌ Avoid
+type McpServerCreate = paths['/api/v2/mcp-servers/']['post']['requestBody']['content']['application/json'];
+```
+
+### Tie Types to Endpoints, Not Internal Components
+
+Types should be derived from API endpoints (request/response payloads), not internal component schemas. API endpoints are stable; internal schemas can change without notice.
+
+```typescript
+// ✅ Types from endpoints
+type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
+
+// ❌ Avoid importing from internal component schemas
+import { SomeInternalType } from './components/internal';
+```
+
+### No Type Casting
+
+Avoid `as Type` casts - refactor code to not need them. If you find yourself casting, the types are likely wrong.
+
+### No `instanceof Error` Checks for Query Errors
+
+React Query returns `QueryError`, not generic `Error`. Checking `instanceof Error` is dead code:
+
+```typescript
+// ❌ Dead code - react-query returns QueryError
+{error instanceof Error ? error.message : 'Unknown error'}
+
+// ✅ QueryError always has message
+{error.message}
+```
+
+## Code Comments
+
+### No AI-Generated Comments
+
+Comments like `// Handle form submission` add zero value. If a section needs explanation, extract it into a named component or function instead.
+
+### No Implementation Comments
+
+Don't document "how" the code works - the code itself should be readable. Implementation comments age poorly and become incorrect when code changes.
+
+### Linear Ticket References for TODOs
+
+Always reference Linear tickets in TODO comments with the exact link to the ticket:
+
+```typescript
+// TODO https://linear.app/sema4ai/issue/ENG-24/ui-implementations-for-mcp-oauth-user-auth-and-client-credential: Add OAuth2 PKCE support
+```
+
+## Component Architecture
+
+### Shared Logic Belongs in spar-ui
+
+Logic needed by both SPAR (workroom/frontend) and Studio must live in `spar-ui`. Don't write business logic in `frontend` that will need to be reimplemented.
+
+### Self-Contained Components
+
+Shared components should fetch their own data when possible:
+
+```typescript
+// ✅ Preferred - component fetches its own data
+<EditMcpServerDialog mcpServerId={id} onClose={handleClose} />
+
+// ❌ Avoid - consumer must fetch and pass data
+<EditMcpServerDialog server={fetchedServer} onClose={handleClose} />
+```
+
+### No Unnecessary Barrel Files
+
+Don't create barrel files (index.ts) just to re-export. Export directly from the source file or the main component index.
+
+### Explicit Props Over Defaults
+
+Boolean props should be explicit at call sites, not rely on defaults:
+
+```typescript
+// ✅ Preferred - explicit
+<Dialog showStdioTransport={false} />
+
+// ❌ Avoid - relies on implicit default
+<Dialog showStdioTransport />
+```
+
+### Export Constants for Shared Configuration
+
+Export configuration constants from component index files:
+
+```typescript
+// In MCPServers/index.ts
+export const DEFAULT_MCP_TYPE = 'generic_mcp';
+export const SERVER_TYPE_LABELS = { ... };
+
+// In consuming code
+import { DEFAULT_MCP_TYPE } from '@spar-ui/components/MCPServers';
+```
+
+### Platform-Specific Features
+
+When a feature is only available in one platform (Workroom vs Studio), document it clearly:
+
+```typescript
+/**
+ * Create Hosted MCP Server mutation (with file upload)
+ * Only available in Workroom (not Studio).
+ */
+export const useCreateHostedMcpServerMutation = ...
+```
+
 ## Working in @spar-ui
 
 ### Scripts
@@ -27,12 +147,176 @@ The Work Room folder is an app that comprises of 4 main pieces:
   - Pick A when you only need to call the `queryAgentServer`, there are no feature flag requirements nor electron-specific handling needed
   - Pick B as a fallback or when the operator explicitly asks you to do so
 - Mutations and queries must be defined in [queries](@spar-ui/src/queries/) - find the most relevant place depending on the work at hand
-- ALL errors thrown in `QueryError` should be customer-facing. If unsure about how technical you should get, ask the operator
-- ALL mutations must have an `onError` handler defined. It uses the `addSnackbar` and `getSnackbarContent`
+
+### Query and Mutation Patterns
+
+Use the `createSparQuery` and `createSparMutation` helpers from `shared.ts`:
+
+```typescript
+// Query options pattern
+export const getMCPServerQueryOptions = createSparQueryOptions<{ mcpServerId: string }>()(
+  ({ sparAPIClient, mcpServerId }) => ({
+    queryKey: mcpServerQueryKey(mcpServerId),
+    queryFn: async () => {
+      const response = await sparAPIClient.queryAgentServer('get', '/api/v2/mcp-servers/{mcp_server_id}', {
+        params: { path: { mcp_server_id: mcpServerId } },
+      });
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to fetch MCP server', {
+          code: response.code,
+          resource: ResourceType.McpServer,
+        });
+      }
+      return response.data;
+    },
+  }),
+);
+
+// Create hook from options
+export const useMcpServerQuery = createSparQuery(getMCPServerQueryOptions);
+```
+
+### Query Key Conventions
+
+Export query keys as functions for consistency and cache invalidation:
+
+```typescript
+// ✅ Preferred - functions for query keys
+export const mcpServersQueryKey = () => ['mcp-servers'];
+export const mcpServerQueryKey = (mcpServerId: string) => ['mcp-server', mcpServerId];
+
+// Use in mutations for cache updates
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: mcpServersQueryKey() });
+}
+```
+
+### Error Handling
+
+- ALL errors thrown must use `QueryError` and be customer-facing. If unsure about how technical to get, ask the operator
+- ALL mutations must have an `onError` handler defined. Use `addSnackbar` and `getSnackbarContent`
+- For inline error display (not snackbar), add a no-op with explanation:
+  ```typescript
+  onError: () => {
+    // No-op: Error displayed inline in form, not via snackbar
+  }
+  ```
+- Use `mutation.error` directly instead of duplicating error state with useState
+
+### Forms
+
+- Separate form state from other state - don't mix react-hook-form with useState for related data
+- Use `useFieldArray` for dynamic fields instead of manual `setValue` calls
+- Split Dialog content from wrapper for automatic state cleanup on close:
+  ```typescript
+  export const NewDialog: FC<Props> = (props) => (
+    <Dialog open={props.open} onClose={props.handleClose}>
+      <NewDialogContent {...props} />
+    </Dialog>
+  );
+  ```
+- Extract complex conditional JSX to variables:
+  ```typescript
+  const errorMessage = validationError ?? form.formState.errors.root?.message ?? null;
+  {errorMessage && <ErrorBanner>{errorMessage}</ErrorBanner>}
+  ```
+- Use switch with `satisfies never` for exhaustive state handling:
+  ```typescript
+  switch (state.type) {
+    case 'pending': return <Pending />;
+    case 'complete': return <Complete data={state.data} />;
+    default: state.type satisfies never;
+  }
+  ```
+
+### Naming Conventions
+
+- Query options: use `getXxxQueryOptions` pattern (e.g., `getMCPServerQueryOptions`)
+- Unused callback parameters: prefix with underscore (e.g., `(_files: File[]) => void`)
+
+### Zod Schemas
+
+When using `superRefine` for cross-field validation, question if the API types are correct. `superRefine` often indicates a mismatch between form and API types:
+
+```typescript
+// If you find yourself doing this a lot, the API types may need adjustment
+.superRefine((values, ctx) => {
+  if (values.type === 'hosted' && !values.url) {
+    ctx.addIssue({ ... });
+  }
+});
+```
+
+Prefer discriminated unions in the API itself when possible.
 
 ### Document Intelligence
 
 For detailed documentation on the Document Intelligence (DocIntel) feature, see [DocIntel README](spar-ui/src/components/DocIntel/README.md).
+
+## Testing
+
+### Unit Tests Required
+
+All utility/transform functions must have unit tests.
+
+### Use it.each for Parameterized Tests
+
+```typescript
+// ✅ Preferred
+it.each([
+  { input: 'a', expected: 'A' },
+  { input: 'b', expected: 'B' },
+])('transforms $input to $expected', ({ input, expected }) => {
+  expect(transform(input)).toBe(expected);
+});
+
+// ❌ Avoid repeated test blocks
+it('transforms a to A', () => { ... });
+it('transforms b to B', () => { ... });
+```
+
+### Test Error Messages, Not Framework Internals
+
+Test user-facing error messages, not Zod/framework internal structures:
+
+```typescript
+// ✅ Test user-facing message
+expect(result.error.message).toBe('URL is required');
+
+// ❌ Don't test framework internals
+expect(result.error.issues[0].code).toBe('invalid_type');
+```
+
+### Explicit Test Data
+
+Use explicit object syntax with no optional fields:
+
+```typescript
+// ✅ Preferred
+createMockServer({ name: 'test', url: 'https://example.com' });
+
+// ❌ Avoid positional args or undefined placeholders
+createMockServer('test', undefined, 'https://example.com');
+```
+
+## File Organization
+
+### Keep Related Code Together
+
+Group related schemas, types, and utilities in the same directory as the component that uses them:
+
+```
+MCPServers/
+├── index.ts              # Public exports + constants
+├── schemas/
+│   ├── mcpFormSchema.ts  # Form schemas + transform functions
+│   └── mcpAuthSchema.ts  # Auth-specific schemas
+├── MCPServerDialog/
+│   ├── NewMcpServerDialog.tsx
+│   └── EditMcpServerDialog.tsx
+└── MCPServerAuth/
+    └── MCPServerAuthFields.tsx
+```
 
 ## Working in workroom
 

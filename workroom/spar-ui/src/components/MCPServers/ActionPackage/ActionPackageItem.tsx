@@ -5,8 +5,7 @@ import { useFormContext } from 'react-hook-form';
 import { styled } from '@sema4ai/theme';
 
 import { ActionSecrets } from './ActionSecrets';
-import { parseWhitelist, getUniqueSecretNames } from './actionPackageUtils';
-import { components } from '@sema4ai/agent-server-interface';
+import { parseWhitelist, getUniqueSecretNames, AgentPackageActionPackageMetadata } from './actionPackageUtils';
 
 const Container = styled.div`
   display: grid;
@@ -88,24 +87,21 @@ const StatusIcon = styled.div<{ $ready?: boolean }>`
 `;
 
 export const ActionPackageItem: FC<{
-  actionPackage: components['schemas']['AgentPackageActionPackageMetadata'];
+  actionPackage: AgentPackageActionPackageMetadata;
 }> = ({ actionPackage }) => {
   const { watch } = useFormContext();
   const { agentPackageSecrets } = watch();
 
   const whitelist = parseWhitelist(actionPackage.whitelist);
 
-  // Filter actions based on whitelist
   const displayedActions =
     actionPackage.actions?.filter((action) => {
       if (!whitelist) return true;
       return whitelist.includes(action.name);
     }) || [];
 
-  // Get unique secret names from this action package (only for whitelisted actions)
   const uniqueSecrets = getUniqueSecretNames(actionPackage, whitelist);
 
-  // Check if all secrets for this package are filled
   const isValid = Array.from(uniqueSecrets).every((secretName) => {
     const value = agentPackageSecrets?.[secretName];
     return value && typeof value === 'string' && value.trim() !== '';
@@ -136,39 +132,34 @@ export const ActionPackageItem: FC<{
         <Box borderColor={isValid ? 'border.subtle' : 'border.notification'} borderRadius="$16" p="$24">
           <Box mb="$16">
             <Box display="flex" alignItems="center" gap="$8" mb="$8">
-              <Box
-                as="h3"
-                style={{
-                  fontSize: '1.125rem',
-                  fontWeight: 600,
-                  lineHeight: '1.5rem',
-                }}
-              >
+              <Box as="h3" fontSize="$18" fontWeight="medium">
                 {actionPackage.name}
               </Box>
               {actionPackage.version && <Badge variant="info" label={`v${actionPackage.version}`} />}
             </Box>
             {actionPackage.description && (
-              <Box style={{ fontSize: '0.875rem', opacity: 0.7 }}>{actionPackage.description}</Box>
+              <Box fontSize="$14" color="content.subtle">
+                {actionPackage.description}
+              </Box>
             )}
           </Box>
 
           {displayedActions.length > 0 && (
             <Box mb="$16">
-              <Box mb="$8" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+              <Box mb="$8" fontSize="$14" fontWeight="medium">
                 Actions ({displayedActions.length})
               </Box>
               <Box display="flex" gap="$8" flexWrap="wrap">
-                {displayedActions.map((action, idx) => (
+                {displayedActions.map((action) => (
                   <Box
-                    key={`${action.name}-${idx}`}
+                    key={action.name}
                     display="flex"
                     alignItems="center"
                     gap="$4"
                     borderColor="border.subtle"
                     borderRadius="$8"
                     p="$8"
-                    style={{ fontSize: '0.875rem' }}
+                    fontSize="$14"
                     title={action.summary || action.description}
                   >
                     <IconMcp size={16} />

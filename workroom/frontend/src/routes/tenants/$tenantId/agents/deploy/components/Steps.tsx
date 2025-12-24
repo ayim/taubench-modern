@@ -23,7 +23,7 @@ export const Steps: FC<Props> = ({ activeStep, setWizardStep }) => {
   const fieldsByStep: Record<AgentDeploymentStep, Array<keyof AgentDeploymentFormSchema>> = {
     [AgentDeploymentStep.AgentOverview]: [],
     [AgentDeploymentStep.AgentSettings]: ['name', 'description', 'llmId', 'apiKey'],
-    [AgentDeploymentStep.ActionSettings]: ['mcpServerSettings'],
+    [AgentDeploymentStep.ActionSettings]: ['mcpServerIds'],
   };
 
   const stepsErrors = [

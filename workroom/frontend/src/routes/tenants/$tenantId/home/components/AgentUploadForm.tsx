@@ -62,22 +62,6 @@ export const AgentUploadForm = () => {
 
       const inspectionData = inspectionResult.data;
 
-      const mcpServerSettings = (inspectionData.mcp_servers ?? []).map((srv) => ({
-        name: srv.name,
-        type: 'sema4ai_action_server' as const,
-        transport: srv.transport,
-        url: srv.url ?? null,
-        headers: srv.headers
-          ? Object.fromEntries(
-              Object.entries(srv.headers).map(([key, val]) => [
-                key,
-                { type: val.type as 'string' | 'secret', description: val.description, value: val.value },
-              ]),
-            )
-          : null,
-        force_serial_tool_calls: srv.force_serial_tool_calls,
-      }));
-
       await uploadAgentPackageMutation.mutateAsync({
         tenantId,
         data: {
@@ -89,7 +73,7 @@ export const AgentUploadForm = () => {
               description: inspectionData.description,
               llmId: '',
               apiKey: '',
-              mcpServerSettings,
+              mcpServerIds: [],
             },
           },
         },

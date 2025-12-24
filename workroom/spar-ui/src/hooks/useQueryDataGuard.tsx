@@ -17,6 +17,7 @@ const ACTION_MAP: Record<ResourceType, { to: keyof SparUIRoutes; label: string }
   data_frame: DEFAULT_ACTION,
   eval: DEFAULT_ACTION,
   feedback: DEFAULT_ACTION,
+  mcp_server: DEFAULT_ACTION,
   semantic_data: DEFAULT_ACTION,
   work_item: DEFAULT_ACTION,
   document_intelligence: DEFAULT_ACTION,

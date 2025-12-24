@@ -1,26 +1,22 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { getMcpServerQueryOptions } from '~/queries/mcpServers';
-import { EditMcpServerDialog } from '../components/EditMcpServerDialog';
+import { EditMcpServerDialog } from '@sema4ai/spar-ui';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/$mcpServerId/')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId, mcpServerId } }) => {
-    const data = await queryClient.ensureQueryData(getMcpServerQueryOptions({ agentAPIClient, tenantId, mcpServerId }));
-    return data;
-  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { tenantId } = Route.useParams();
-  const initial = Route.useLoaderData();
+  const { tenantId, mcpServerId } = Route.useParams();
 
   return (
     <EditMcpServerDialog
       open
-      initial={initial}
+      mcpServerId={mcpServerId}
       onClose={() => navigate({ to: '/tenants/$tenantId/mcp-servers', params: { tenantId } })}
+      serverTypes={['generic_mcp', 'sema4ai_action_server', 'hosted']}
+      showStdioTransport={false}
     />
   );
 }

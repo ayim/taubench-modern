@@ -5,7 +5,6 @@ import { useAgentsQuery, agentsQueryKey } from '@sema4ai/spar-ui/queries';
 
 import { AgentDeploymentForm } from './deploy/components/AgentDeploymentForm';
 import { AgentDeploymentFormSchema } from './deploy/components/context';
-import { formHeadersToApiHeaders } from '~/lib/mcpServersUtils';
 import { getListMcpServersQueryOptions } from '~/queries/mcpServers';
 import { useGetAgentPackageUpload } from '~/queries/agentPackageUpload';
 import { IconFileError } from '@sema4ai/icons';
@@ -19,33 +18,16 @@ export const Route = createFileRoute('/tenants/$tenantId/agents/deploy')({
 });
 
 function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
-  const mcpServerSettings = form.mcpServerSettings ?? [];
-
-  // Separate inline vs global servers based on presence of mcpServerId
-  const inlineMcpServers = mcpServerSettings
-    .filter((server) => !server.mcpServerId)
-    .map((server) => ({
-      name: server.name,
-      type: server.type ?? 'generic_mcp',
-      transport: server.transport,
-      url: server.url ?? null,
-      headers: formHeadersToApiHeaders(server.headersKV ?? []),
-      force_serial_tool_calls: server.force_serial_tool_calls,
-    }));
-
-  const configuredMCPServerIds = mcpServerSettings.map((server) => server.mcpServerId).filter(Boolean);
-
-  const payload = {
+  return {
     name: form.name,
     description: form.description,
     public: true,
     platform_params_ids: [form.llmId],
     action_servers: [],
-    mcp_servers: inlineMcpServers,
-    mcp_server_ids: configuredMCPServerIds,
+    // Will be removed in a future interface change: all MCPs should be created or re-used ahead of the deploy and passed as IDs using `mcp_server_ids`
+    mcp_servers: [],
+    mcp_server_ids: form.mcpServerIds ?? [],
   };
-
-  return payload;
 }
 
 function CreateAgentIndex() {

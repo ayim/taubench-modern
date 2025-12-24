@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { NewMcpServerDialog } from './components/NewMcpServerDialog';
+import { NewMcpServerDialog } from '@sema4ai/spar-ui';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/new')({
   component: RouteComponent,
@@ -11,6 +11,11 @@ function RouteComponent() {
   const { tenantId } = Route.useParams();
 
   return (
-    <NewMcpServerDialog onClose={() => navigate({ to: '/tenants/$tenantId/mcp-servers', params: { tenantId } })} open />
+    <NewMcpServerDialog
+      onClose={() => navigate({ to: '/tenants/$tenantId/mcp-servers', params: { tenantId } })}
+      open
+      serverTypes={['generic_mcp', 'sema4ai_action_server', 'hosted']}
+      showStdioTransport
+    />
   );
 }

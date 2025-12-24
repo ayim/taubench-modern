@@ -1,105 +1,101 @@
 import { Box, Button, Header, Select } from '@sema4ai/components';
-import { useLoaderData } from '@tanstack/react-router';
-import { FC } from 'react';
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useParams } from '@tanstack/react-router';
+import { FC, useState } from 'react';
+import { useFormContext } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { AgentDeploymentFormSchema } from '../context';
-import { McpServerItem } from './McpServerItem';
-import { apiHeadersToFormEntries, parseTransport } from '~/lib/mcpServersUtils';
+import { McpServerCard } from './McpServerCard';
+import { NewMcpServerDialog } from '@sema4ai/spar-ui';
+import { useListMcpServersQuery } from '~/queries/mcpServers';
 
 export const McpServerSection: FC = () => {
-  const { control, watch, getValues, setValue } = useFormContext<AgentDeploymentFormSchema>();
-  const { mcpServers } = useLoaderData({ from: '/tenants/$tenantId/agents/deploy' });
+  const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
+  const queryClient = useQueryClient();
+  const { watch, getValues, setValue } = useFormContext<AgentDeploymentFormSchema>();
+  const { data: mcpServers = {} } = useListMcpServersQuery({ tenantId });
 
-  const {
-    fields: serverFields,
-    append: appendServer,
-    remove: removeServer,
-  } = useFieldArray({
-    control,
-    name: 'mcpServerSettings',
-  });
+  const [isNewServerDialogOpen, setIsNewServerDialogOpen] = useState(false);
 
-  const selectedServerIds = new Set(watch('mcpServerIds') ?? []);
+  const selectedServerIds = watch('mcpServerIds') ?? [];
+  const selectedServerIdsSet = new Set(selectedServerIds);
 
   const availableServers = Object.values(mcpServers)
-    .filter((srv) => !selectedServerIds.has(srv.mcp_server_id))
+    .filter((srv) => !selectedServerIdsSet.has(srv.mcp_server_id))
     .map((srv) => ({ value: srv.mcp_server_id, label: srv.name }));
 
+  const selectedServers = selectedServerIds.map((id) => mcpServers[id]).filter(Boolean);
+
   const handleAddExistingServer = (serverId: string) => {
-    const srv = mcpServers[serverId];
-    if (!srv) return;
-
-    appendServer({
-      name: srv.name,
-      type: 'generic_mcp',
-      transport: parseTransport(srv.transport),
-      url: srv.url ?? undefined,
-      headersKV: apiHeadersToFormEntries(srv.headers).entries,
-      force_serial_tool_calls: false,
-      mcpServerId: srv.mcp_server_id,
-    });
-
     const ids = getValues('mcpServerIds') ?? [];
-    setValue('mcpServerIds', [...ids, srv.mcp_server_id], { shouldDirty: true });
+    setValue('mcpServerIds', [...ids, serverId], { shouldDirty: true });
   };
 
-  const handleAddNewServer = () => {
-    appendServer({
-      name: '',
-      type: 'generic_mcp',
-      transport: 'auto',
-      url: undefined,
-      headersKV: [],
-      force_serial_tool_calls: false,
-    });
+  const handleRemoveServer = (serverId: string) => {
+    const ids = (getValues('mcpServerIds') ?? []).filter((id) => id !== serverId);
+    setValue('mcpServerIds', ids, { shouldDirty: true });
   };
 
-  const handleRemoveServer = (index: number) => {
-    const server = serverFields[index];
-    removeServer(index);
-
-    if ('mcpServerId' in server && server.mcpServerId) {
-      const ids = (getValues('mcpServerIds') ?? []).filter((id) => id !== server.mcpServerId);
-      setValue('mcpServerIds', ids, { shouldDirty: true });
+  const handleNewServerSuccess = async (mcpServer: unknown) => {
+    const server = mcpServer as { mcp_server_id: string };
+    if (server?.mcp_server_id) {
+      // Invalidate the query to fetch the newly created server
+      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
+      const ids = getValues('mcpServerIds') ?? [];
+      setValue('mcpServerIds', [...ids, server.mcp_server_id], { shouldDirty: true });
     }
+    setIsNewServerDialogOpen(false);
   };
 
   return (
-    <Box borderColor="border.subtle" borderRadius="$16" p="$24" display="flex" flexDirection="column" gap="$16">
-      <Box mb="$16">
-        <Header size="medium">
-          <Header.Title title="MCP Servers" />
-          <Header.Description>Configure Model Context Protocol servers for your agent</Header.Description>
-        </Header>
-      </Box>
+    <>
+      <Box borderColor="border.subtle" borderRadius="$16" p="$24" display="flex" flexDirection="column" gap="$16">
+        <Box mb="$16">
+          <Header size="medium">
+            <Header.Title title="MCP Servers" />
+            <Header.Description>Configure Model Context Protocol servers for your agent</Header.Description>
+          </Header>
+        </Box>
 
-      <Box display="flex" gap="$8" alignItems="flex-end" mb="$20">
-        {availableServers.length > 0 && (
-          <Box style={{ flex: 1 }}>
-            <Select
-              label="Add existing MCP server"
-              placeholder="Choose a server"
-              value=""
-              items={availableServers}
-              onChange={(selectedId) => handleAddExistingServer(selectedId)}
+        <Box display="flex" gap="$8" alignItems="flex-end" mb="$20">
+          {availableServers.length > 0 && (
+            <Box style={{ flex: 1 }}>
+              <Select
+                label="Add existing MCP server"
+                placeholder="Choose a server"
+                value=""
+                items={availableServers}
+                onChange={(selectedId) => handleAddExistingServer(selectedId)}
+              />
+            </Box>
+          )}
+          <Button round variant="outline" onClick={() => setIsNewServerDialogOpen(true)}>
+            Add MCP server
+          </Button>
+        </Box>
+
+        <Box display="flex" flexDirection="column" gap="$16">
+          {selectedServers.length === 0 && (
+            <Box color="content.subtle" fontSize="$12">
+              No MCP servers configured yet.
+            </Box>
+          )}
+          {selectedServers.map((server) => (
+            <McpServerCard
+              key={server.mcp_server_id}
+              server={server}
+              onRemove={() => handleRemoveServer(server.mcp_server_id)}
             />
-          </Box>
-        )}
-        <Button round variant="outline" onClick={handleAddNewServer}>
-          Add MCP server
-        </Button>
+          ))}
+        </Box>
       </Box>
 
-      <Box display="flex" flexDirection="column" gap="$16">
-        {serverFields.length === 0 && (
-          <Box color="content.subtle" fontSize="$12">
-            No MCP servers configured yet.
-          </Box>
-        )}
-        {serverFields.map((field, index) => (
-          <McpServerItem key={field.id} index={index} onRemove={() => handleRemoveServer(index)} />
-        ))}
-      </Box>
-    </Box>
+      <NewMcpServerDialog
+        open={isNewServerDialogOpen}
+        onClose={() => setIsNewServerDialogOpen(false)}
+        onSuccess={handleNewServerSuccess}
+        serverTypes={['generic_mcp', 'sema4ai_action_server', 'hosted']}
+        showStdioTransport
+      />
+    </>
   );
 };

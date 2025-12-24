@@ -1,24 +1,10 @@
 import { z } from 'zod';
-import { headerEntrySchema, mcpTransportSchema, mcpServerTypeSchema, mcpUrlSchema } from '~/lib/mcpServersUtils';
 
 export enum AgentDeploymentStep {
   AgentOverview = 'AgentOverview',
   AgentSettings = 'AgentSettings',
   ActionSettings = 'ActionSettings',
 }
-
-const MCPServerSettingsSchema = z.object({
-  name: z.string().min(1),
-  type: mcpServerTypeSchema,
-  transport: mcpTransportSchema,
-  url: mcpUrlSchema,
-  headersKV: z.array(headerEntrySchema).default([]),
-  command: z.string().nullable().optional(),
-  args: z.array(z.string()).nullable().optional(),
-  cwd: z.string().nullable().optional(),
-  force_serial_tool_calls: z.boolean(),
-  mcpServerId: z.string().optional(),
-});
 
 export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAgentNames: string[] }) => {
   const agentConfigurationSchema = z.object({
@@ -42,7 +28,6 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
   });
 
   const mcpConfigurationSchema = z.object({
-    mcpServerSettings: z.array(MCPServerSettingsSchema).optional(),
     mcpServerIds: z.array(z.string()).optional(),
   });
 

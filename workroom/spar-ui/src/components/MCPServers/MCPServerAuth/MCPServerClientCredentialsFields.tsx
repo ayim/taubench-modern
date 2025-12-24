@@ -1,0 +1,87 @@
+import { FC, useState } from 'react';
+import { useFormContext } from 'react-hook-form';
+import { Box, Input } from '@sema4ai/components';
+import { IconEye, IconEyeOff } from '@sema4ai/icons';
+import { MCPClientCredentialsPartial } from '../schemas/mcpAuthSchema';
+
+type MCPServerClientCredentialsFieldsProps = {
+  /** Existing credentials for edit mode - shows redacted values as placeholders */
+  existingCredentials?: MCPClientCredentialsPartial;
+  disabled?: boolean;
+  /**
+   * Field name prefix for form registration.
+   * - Use 'client_credentials' for nested form schemas (e.g., 'client_credentials.token_endpoint')
+   * - Use '' (empty string) for flat form schemas (e.g., 'token_endpoint')
+   * @default 'client_credentials'
+   */
+  fieldPrefix?: string;
+};
+
+export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFieldsProps> = ({
+  existingCredentials,
+  disabled,
+  fieldPrefix = 'client_credentials',
+}) => {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
+
+  const [showSecret, setShowSecret] = useState(false);
+
+  const getFieldName = (field: string) => (fieldPrefix ? `${fieldPrefix}.${field}` : field);
+
+  const getFieldError = (field: string): string | undefined => {
+    if (fieldPrefix) {
+      const nestedErrors = errors[fieldPrefix] as Record<string, { message?: string }> | undefined;
+      return nestedErrors?.[field]?.message;
+    }
+    const fieldError = errors[field] as { message?: string } | undefined;
+    return fieldError?.message;
+  };
+
+  return (
+    <Box display="flex" flexDirection="column" gap="$16">
+      <Input
+        label="Token Endpoint"
+        {...register(getFieldName('endpoint'))}
+        error={getFieldError('endpoint')}
+        placeholder={existingCredentials?.endpoint || 'https://auth.example.com/oauth/token'}
+        description="The OAuth2 token endpoint URL"
+        disabled={disabled}
+      />
+
+      <Box display="grid" gridTemplateColumns="1fr 1fr" gap="$8">
+        <Input
+          label="Client ID"
+          {...register(getFieldName('client_id'))}
+          error={getFieldError('client_id')}
+          placeholder={existingCredentials?.client_id || 'Enter client ID'}
+          autoComplete="off"
+          disabled={disabled}
+        />
+
+        <Input
+          label="Client Secret"
+          {...register(getFieldName('client_secret'))}
+          error={getFieldError('client_secret')}
+          placeholder={existingCredentials?.client_secret || 'Enter client secret'}
+          type={showSecret ? 'text' : 'password'}
+          iconRight={showSecret ? IconEye : IconEyeOff}
+          onIconRightClick={() => setShowSecret(!showSecret)}
+          autoComplete="new-password"
+          disabled={disabled}
+        />
+      </Box>
+
+      <Input
+        label="Scopes (optional)"
+        {...register(getFieldName('scope'))}
+        error={getFieldError('scope')}
+        placeholder={existingCredentials?.scope || 'openid profile email'}
+        description="Space-separated list of OAuth2 scopes"
+        disabled={disabled}
+      />
+    </Box>
+  );
+};

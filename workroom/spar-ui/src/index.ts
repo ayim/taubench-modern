@@ -50,3 +50,5 @@ export * from './common/form/SchemaFormFields';
 export * from './components/Integrations/GlobalObservabilityConfiguration';
 
 export * from './components/ChatDetails/components/SemanticDataSection';
+
+export * from './components/MCPServers';

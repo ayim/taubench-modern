@@ -1,10 +1,18 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { components, paths } from '@sema4ai/agent-server-interface';
-import { createSparQuery, createSparQueryOptions, createSparMutation, QueryError, ResourceType } from './shared';
+import type { components } from '@sema4ai/agent-server-interface';
+import {
+  createSparQuery,
+  createSparQueryOptions,
+  createSparMutation,
+  QueryError,
+  ResourceType,
+  ServerRequest,
+  ServerResponse,
+} from './shared';
 import { useSparUIContext } from '../api/context';
 
-type ListScenariosResponse = paths['/api/v2/evals/scenarios']['get']['responses']['200']['content']['application/json'];
+type ListScenariosResponse = ServerResponse<'get', '/api/v2/evals/scenarios'>;
 export type Scenario = components['schemas']['Scenario'];
 type CreateScenarioPayload = components['schemas']['CreateScenarioPayload'];
 type UpdateScenarioPayload = {
@@ -18,8 +26,7 @@ type UpdateScenarioPayload = {
   )[];
 };
 type CreateScenarioRunPayload = components['schemas']['CreateScenarioRunPayload'];
-type SuggestScenarioPayload =
-  paths['/api/v2/evals/scenarios/suggest']['post']['requestBody']['content']['application/json'];
+type SuggestScenarioPayload = ServerRequest<'post', '/api/v2/evals/scenarios/suggest', 'requestBody'>;
 export type ScenarioSuggestion = components['schemas']['ScenarioSuggestion'];
 export type Trial = components['schemas']['Trial'];
 type ScenarioRun = components['schemas']['ScenarioRun'];

@@ -248,3 +248,9 @@ terraform.rc
 # Ignore plan files
 *.tfplan
 *.tfplan.out
+
+# Ignore .serena directory
+.serena/
+
+# Ignore .claude
+.claude/

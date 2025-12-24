@@ -24,6 +24,7 @@ export enum ResourceType {
   DocumentIntelligence = 'document_intelligence',
   Evaluation = 'eval',
   Feedback = 'feedback',
+  McpServer = 'mcp_server',
   SemanticData = 'semantic_data',
   Thread = 'thread',
   WorkItem = 'work_item',
