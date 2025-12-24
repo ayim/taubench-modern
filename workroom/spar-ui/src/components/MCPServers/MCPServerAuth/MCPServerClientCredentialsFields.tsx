@@ -2,11 +2,8 @@ import { FC, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Box, Input } from '@sema4ai/components';
 import { IconEye, IconEyeOff } from '@sema4ai/icons';
-import { MCPClientCredentialsPartial } from '../schemas/mcpAuthSchema';
 
 type MCPServerClientCredentialsFieldsProps = {
-  /** Existing credentials for edit mode - shows redacted values as placeholders */
-  existingCredentials?: MCPClientCredentialsPartial;
   disabled?: boolean;
   /**
    * Field name prefix for form registration.
@@ -18,7 +15,6 @@ type MCPServerClientCredentialsFieldsProps = {
 };
 
 export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFieldsProps> = ({
-  existingCredentials,
   disabled,
   fieldPrefix = 'client_credentials',
 }) => {
@@ -46,7 +42,7 @@ export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFiel
         label="Token Endpoint"
         {...register(getFieldName('endpoint'))}
         error={getFieldError('endpoint')}
-        placeholder={existingCredentials?.endpoint || 'https://auth.example.com/oauth/token'}
+        placeholder="https://auth.example.com/oauth/token"
         description="The OAuth2 token endpoint URL"
         disabled={disabled}
       />
@@ -56,7 +52,7 @@ export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFiel
           label="Client ID"
           {...register(getFieldName('client_id'))}
           error={getFieldError('client_id')}
-          placeholder={existingCredentials?.client_id || 'Enter client ID'}
+          placeholder="Enter client ID"
           autoComplete="off"
           disabled={disabled}
         />
@@ -65,7 +61,7 @@ export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFiel
           label="Client Secret"
           {...register(getFieldName('client_secret'))}
           error={getFieldError('client_secret')}
-          placeholder={existingCredentials?.client_secret || 'Enter client secret'}
+          placeholder="Enter client secret"
           type={showSecret ? 'text' : 'password'}
           iconRight={showSecret ? IconEye : IconEyeOff}
           onIconRightClick={() => setShowSecret(!showSecret)}
@@ -78,7 +74,7 @@ export const MCPServerClientCredentialsFields: FC<MCPServerClientCredentialsFiel
         label="Scopes (optional)"
         {...register(getFieldName('scope'))}
         error={getFieldError('scope')}
-        placeholder={existingCredentials?.scope || 'openid profile email'}
+        placeholder="openid profile email"
         description="Space-separated list of OAuth2 scopes"
         disabled={disabled}
       />

@@ -63,10 +63,19 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
 
   const initialType = isHosted ? 'hosted' : server.type;
 
-  const initialClientCredentials =
+  const existingCredentials =
     server.authentication_type === 'oauth2-client-credentials' && server.authentication_metadata
       ? apiPayloadToClientCredentials(server.authentication_metadata)
-      : { endpoint: '', client_id: '', client_secret: '', scope: '' };
+      : undefined;
+
+  const initialClientCredentials = existingCredentials
+    ? {
+        endpoint: existingCredentials.endpoint,
+        client_id: existingCredentials.client_id,
+        client_secret: existingCredentials.client_secret,
+        scope: existingCredentials.scope,
+      }
+    : { endpoint: '', client_id: '', client_secret: '', scope: '' };
 
   const form = useForm<EditMcpServerFormInput, unknown, EditMcpServerFormValues>({
     resolver: zodResolver(editMcpServerFormSchema),

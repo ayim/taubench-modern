@@ -2,10 +2,9 @@ import { FC } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { Box, Select } from '@sema4ai/components';
 import { MCPServerClientCredentialsFields } from './MCPServerClientCredentialsFields';
-import { mcpAuthenticationTypeSelectItems, MCPClientCredentialsPartial } from '../schemas/mcpAuthSchema';
+import { mcpAuthenticationTypeSelectItems } from '../schemas/mcpAuthSchema';
 
 type MCPServerAuthFieldsProps = {
-  existingCredentials?: MCPClientCredentialsPartial;
   disabled?: boolean;
   /**
    * Field name prefix for client credentials form registration.
@@ -15,11 +14,7 @@ type MCPServerAuthFieldsProps = {
   clientCredentialsFieldPrefix?: string;
 };
 
-export const MCPServerAuthFields: FC<MCPServerAuthFieldsProps> = ({
-  existingCredentials,
-  disabled,
-  clientCredentialsFieldPrefix,
-}) => {
+export const MCPServerAuthFields: FC<MCPServerAuthFieldsProps> = ({ disabled, clientCredentialsFieldPrefix }) => {
   const { control, watch } = useFormContext();
   const authenticationType = watch('authentication_type');
 
@@ -41,11 +36,7 @@ export const MCPServerAuthFields: FC<MCPServerAuthFieldsProps> = ({
 
       {/* Client Credentials Flow - show credential fields */}
       {authenticationType === 'oauth2-client-credentials' && (
-        <MCPServerClientCredentialsFields
-          existingCredentials={existingCredentials}
-          disabled={disabled}
-          fieldPrefix={clientCredentialsFieldPrefix}
-        />
+        <MCPServerClientCredentialsFields disabled={disabled} fieldPrefix={clientCredentialsFieldPrefix} />
       )}
 
       {/* Authorization Code Flow - placeholder for login button */}
