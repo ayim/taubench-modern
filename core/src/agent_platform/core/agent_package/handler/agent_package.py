@@ -1,4 +1,5 @@
 import json
+from tempfile import SpooledTemporaryFile
 from typing import TYPE_CHECKING, Any
 
 from ruamel.yaml import YAML
@@ -8,9 +9,13 @@ from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.handler.base import BasePackageHandler
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
-from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
+from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, model_validate_sdm
+from agent_platform.core.data_frames.semantic_data_model_types import (
+    SemanticDataModel,
+    model_dump_sdm,
+    model_validate_sdm,
+)
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 if TYPE_CHECKING:
@@ -22,7 +27,7 @@ _yaml = YAML(typ="safe")
 
 
 class AgentPackageHandler(BasePackageHandler):
-    cached_spec: AgentSpec | None = None
+    cached_spec: AgentPackageSpec | None = None
     cached_metadata: AgentPackageMetadata | None = None
 
     async def validate_package_contents(self):
@@ -42,12 +47,12 @@ class AgentPackageHandler(BasePackageHandler):
         # If not, ValidationError will be raised.
         await self.read_agent_spec()
 
-    async def read_agent_spec(self) -> AgentSpec:
+    async def read_agent_spec(self) -> AgentPackageSpec:
         if self.cached_spec is not None:
             return self.cached_spec
 
         spec_raw = await self.read_file(AgentPackageConfig.agent_spec_filename)
-        spec = AgentSpec.from_yaml(spec_raw)
+        spec = AgentPackageSpec.from_yaml(spec_raw)
 
         # agent-spec.yaml is typically not very big, so we are caching it
         # for future references.
@@ -275,3 +280,58 @@ class AgentPackageHandler(BasePackageHandler):
                 error=str(e),
             )
             return ""
+
+    async def write_agent_spec(self, agent_spec: AgentPackageSpec) -> SpooledTemporaryFile:
+        spooled_file = self._get_empty_spooled_file()
+
+        buffer = agent_spec.to_yaml()
+        spooled_file.write(buffer.encode("utf-8"))
+
+        return spooled_file
+
+    async def write_runbook(self, runbook_text: str) -> SpooledTemporaryFile:
+        spooled_file = self._get_empty_spooled_file()
+        spooled_file.write(runbook_text.encode("utf-8"))
+        return spooled_file
+
+    async def write_conversation_guide(self, question_groups: list[QuestionGroup]) -> SpooledTemporaryFile | None:
+        if not question_groups:
+            return None
+
+        import io
+
+        spooled_file = self._get_empty_spooled_file()
+
+        yaml_buffer = io.StringIO()
+        guide_dict = {
+            "question-groups": [qg.model_dump() for qg in question_groups],
+        }
+        _yaml.dump(guide_dict, yaml_buffer)
+        spooled_file.write(yaml_buffer.getvalue().encode("utf-8"))
+
+        return spooled_file
+
+    async def write_metadata(self, metadata: AgentPackageMetadata) -> SpooledTemporaryFile:
+        import io
+
+        spooled_file = self._get_empty_spooled_file()
+
+        json_buffer = io.StringIO()
+        # Even though agent-spec.yaml supports only one Agent definition, it does it
+        # via an array - metadata follows the same pattern, so we need to explicitly
+        # cast the metadata to list here, so we can select the first element.
+        json.dump([metadata.model_dump()], json_buffer, indent=2)
+        spooled_file.write(json_buffer.getvalue().encode("utf-8"))
+
+        return spooled_file
+
+    async def write_semantic_data_model(self, semantic_data_model: SemanticDataModel) -> SpooledTemporaryFile:
+        import io
+
+        spooled_file = self._get_empty_spooled_file()
+
+        yaml_buffer = io.StringIO()
+        _yaml.dump(model_dump_sdm(semantic_data_model), yaml_buffer)
+        spooled_file.write(yaml_buffer.getvalue().encode("utf-8"))
+
+        return spooled_file

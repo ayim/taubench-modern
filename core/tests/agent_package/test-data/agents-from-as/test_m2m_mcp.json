@@ -1,0 +1,108 @@
+{
+  "action_packages": [],
+  "advanced_config": {
+    "architecture": "agent_platform.architectures.experimental_1",
+    "langsmith": null,
+    "reasoning": "disabled",
+    "recursion_limit": 100
+  },
+  "agent_architecture": {
+    "name": "agent_platform.architectures.experimental_1",
+    "version": "2.0.0"
+  },
+  "agent_id": "9ec0fb12-ac1f-4779-ae9e-aa9bb2eb0834",
+  "created_at": "2025-12-10T17:05:23.514200Z",
+  "description": "Test Agent - M2M MCP Description",
+  "extra": {
+    "agent_settings": {
+      "enable_data_frames": false
+    },
+    "document_intelligence": null,
+    "enable_data_frames": false
+  },
+  "id": "9ec0fb12-ac1f-4779-ae9e-aa9bb2eb0834",
+  "mcp_server_ids": [],
+  "mcp_servers": [
+    {
+      "args": null,
+      "command": null,
+      "cwd": null,
+      "env": null,
+      "force_serial_tool_calls": false,
+      "headers": {
+        "Authorization": {
+          "description": null,
+          "provider": null,
+          "scopes": null,
+          "type": "string",
+          "value": "Bearer testsssss"
+        }
+      },
+      "name": "M2M Test",
+      "transport": "streamable-http",
+      "url": "http://127.0.0.1:8000/mcp"
+    }
+  ],
+  "metadata": {
+    "mode": "conversational",
+    "question_groups": [],
+    "welcome_message": "",
+    "worker_config": {}
+  },
+  "mode": "conversational",
+  "model": {
+    "config": {
+      "created_at": "2025-12-10T17:05:24.139103+00:00",
+      "models": {
+        "openai": ["gpt-4-1"]
+      },
+      "name": "openai-parameters",
+      "openai_api_key": "sk-test-sssssss",
+      "platform_id": "c10cefcb-2f96-4f8d-b24d-36d7fd5c3f6a",
+      "updated_at": "2025-12-10T17:05:24.139103+00:00"
+    },
+    "name": "gpt-4-1",
+    "provider": "OpenAI"
+  },
+  "name": "Test Agent - M2M MCP",
+  "observability_configs": [],
+  "platform_configs": [
+    {
+      "alias": null,
+      "created_at": "2025-12-10T17:05:24.139103Z",
+      "description": null,
+      "kind": "openai",
+      "models": {
+        "openai": ["gpt-4-1"]
+      },
+      "name": "openai-parameters",
+      "openai_api_key": {
+        "value": "sk-test-sssssss"
+      },
+      "platform_id": "c10cefcb-2f96-4f8d-b24d-36d7fd5c3f6a",
+      "updated_at": "2025-12-10T17:05:24.139103Z"
+    }
+  ],
+  "platform_params_ids": [],
+  "public": true,
+  "question_groups": [],
+  "runbook": "## Just call the tool, always",
+  "runbook_structured": {
+    "content": [],
+    "raw_text": "## Just call the tool, always",
+    "updated_at": "2025-12-10T17:05:23.514200Z"
+  },
+  "selected_tools": {
+    "tools": [
+      {
+        "name": "whoami"
+      },
+      {
+        "name": "echo"
+      }
+    ]
+  },
+  "updated_at": "2025-12-10T17:05:24.139103Z",
+  "user_id": "39915cc4-ee69-425c-a558-1b5344016ba4",
+  "version": "0.0.1"
+}

@@ -1,0 +1,42 @@
+agent-package:
+  spec-version: v2.1
+  exclude:
+  - ./.git/**
+  - ./.vscode/**
+  - ./devdata/**
+  - ./output/**
+  - ./venv/**
+  - ./.venv/**
+  - ./**/.env
+  - ./**/.DS_Store
+  - ./**/*.pyc
+  - ./*.zip
+  agents:
+  - name: Test Agent - M2M MCP
+    description: Test Agent - M2M MCP Description
+    model:
+      provider: OpenAI
+      name: gpt-4-1
+    version: 0.0.1
+    architecture: agent_platform.architectures.experimental_1
+    reasoning: disabled
+    runbook: runbook.md
+    action-packages: []
+    knowledge: []
+    mcp-servers:
+    - name: M2M Test
+      transport: streamable-http
+      url: http://127.0.0.1:8000/mcp
+      headers:
+        Authorization:
+          type: string
+          value: Bearer testsssss
+      force-serial-tool-calls: false
+    metadata:
+      mode: conversational
+    selected-tools:
+      tools:
+      - name: whoami
+      - name: echo
+    agent-settings:
+      enable_data_frames: false

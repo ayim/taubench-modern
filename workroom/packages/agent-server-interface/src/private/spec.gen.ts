@@ -22533,6 +22533,41 @@ export const spec = {
             enum: ['conversational', 'worker'],
             title: 'Mode',
           },
+          'worker-config': {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/SpecWorkerConfig',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+          'question-groups': {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/QuestionGroup',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Question-Groups',
+          },
+          'welcome-message': {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Welcome-Message',
+          },
         },
         type: 'object',
         required: ['mode'],
@@ -22818,6 +22853,21 @@ export const spec = {
         type: 'object',
         required: ['name'],
         title: 'SpecSemanticDataModel',
+      },
+      SpecWorkerConfig: {
+        properties: {
+          type: {
+            type: 'string',
+            title: 'Type',
+          },
+          'document-type': {
+            type: 'string',
+            title: 'Document-Type',
+          },
+        },
+        type: 'object',
+        required: ['type', 'document-type'],
+        title: 'SpecWorkerConfig',
       },
       SplitJobResult: {
         properties: {

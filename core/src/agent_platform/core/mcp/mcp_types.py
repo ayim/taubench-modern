@@ -86,6 +86,36 @@ def deserialize_mcp_variables(variables: dict[str, Any] | None) -> MCPVariables 
     return {k: deserialize_mcp_variable(v) for k, v in variables.items()}
 
 
+def mcp_redacted_variable_from_value(var: Any) -> MCPUnionOfVariableTypes:
+    parsed = _parse_mcp_variable(var)  # handles str/dict/BaseModel
+    if isinstance(parsed, str):
+        return parsed if (not parsed) else "**********"
+
+    t = getattr(parsed, "type", None)
+
+    # Only mask sensitive types (secret, oauth2-secret, data-server-info)
+    # Do NOT mask "string" type as it's not sensitive
+    if t == "string":
+        return MCPVariableTypeString(description=getattr(parsed, "description", None), value=parsed.value)
+
+    # Mask the value for sensitive types
+    masked_value = parsed.value if (not parsed.value) else "**********"
+
+    if t == "secret":
+        return MCPVariableTypeSecret(description=getattr(parsed, "description", None), value=masked_value)
+    if t == "oauth2-secret":
+        return MCPVariableTypeOAuth2Secret(
+            provider=getattr(parsed, "provider", ""),
+            scopes=getattr(parsed, "scopes", None) or [],
+            description=getattr(parsed, "description", None),
+            value=masked_value,
+        )
+    if t == "data-server-info":
+        return MCPVariableTypeDataServerInfo(value=masked_value)
+
+    return str(parsed)
+
+
 @dataclass(frozen=True)
 class MCPToolDetail:
     name: str

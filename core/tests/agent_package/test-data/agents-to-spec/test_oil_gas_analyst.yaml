@@ -1,0 +1,52 @@
+agent-package:
+  spec-version: v2.1
+  exclude:
+  - ./.git/**
+  - ./.vscode/**
+  - ./devdata/**
+  - ./output/**
+  - ./venv/**
+  - ./.venv/**
+  - ./**/.env
+  - ./**/.DS_Store
+  - ./**/*.pyc
+  - ./*.zip
+  agents:
+  - name: Oil and Gas Analyst
+    description: Analyze North Dakota oil well production data.
+    model:
+      provider: OpenAI
+      name: gpt-4-1
+    version: 1.1.1
+    architecture: agent_platform.architectures.default
+    reasoning: disabled
+    runbook: runbook.md
+    action-packages:
+    - name: Example Web Search
+      organization: Sema4.ai
+      version: 1.0.0
+      type: zip
+      whitelist: ''
+      path: Sema4.ai/example-web-search/1.0.0.zip
+    - name: Example Oil Gas Reports
+      organization: Sema4.ai
+      version: 1.0.1
+      type: zip
+      whitelist: ''
+      path: Sema4.ai/example-oil-gas-reports/1.0.1.zip
+    - name: Browsing
+      organization: Sema4.ai
+      version: 1.3.3
+      type: zip
+      whitelist: download_file
+      path: Sema4.ai/browsing/1.3.3.zip
+    knowledge: []
+    mcp-servers: []
+    conversation-guide: conversation-guide.yaml
+    conversation-starter: ''
+    metadata:
+      mode: conversational
+    selected-tools:
+      tools: []
+    agent-settings:
+      enable_data_frames: true

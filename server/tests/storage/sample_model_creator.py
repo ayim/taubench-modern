@@ -415,7 +415,7 @@ class SampleModelCreator:
         Returns:
             A mocked AgentPackageHandler with the specified spec.
         """
-        from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
+        from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 
         if custom_spec is None:
             custom_spec = {}
@@ -447,7 +447,7 @@ class SampleModelCreator:
 
         handler = AsyncMock()
 
-        handler.read_agent_spec = AsyncMock(return_value=AgentSpec.model_validate(custom_spec["spec"]))
+        handler.read_agent_spec = AsyncMock(return_value=AgentPackageSpec.model_validate(custom_spec["spec"]))
         handler.get_spec_agent = AsyncMock(
             return_value=SpecAgent.model_validate(custom_spec["spec"]["agent-package"]["agents"][0])
         )

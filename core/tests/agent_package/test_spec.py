@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 from ruamel.yaml import YAML
 
-from agent_platform.core.agent_package.spec import AgentSpec
+from agent_platform.core.agent_package.spec import AgentPackageSpec
 from agent_platform.core.mcp.mcp_types import MCPVariableTypeOAuth2Secret, MCPVariableTypeSecret, MCPVariableTypeString
 
 
@@ -63,7 +63,7 @@ agent-package:
     raw = _load_yaml_as_dict(yaml_bytes)["agent-package"]
     raw_agent = raw["agents"][0]
 
-    spec = AgentSpec.from_yaml(yaml_bytes)
+    spec = AgentPackageSpec.from_yaml(yaml_bytes)
     agent = spec.agent_package.agents[0]
 
     assert spec.agent_package.spec_version == raw["spec-version"]
@@ -133,7 +133,7 @@ agent-package:
     raw = _load_yaml_as_dict(yaml_bytes)["agent-package"]
     raw_agent = raw["agents"][0]
 
-    spec = AgentSpec.from_yaml(yaml_bytes)
+    spec = AgentPackageSpec.from_yaml(yaml_bytes)
     agent = spec.agent_package.agents[0]
 
     assert spec.agent_package.spec_version == raw["spec-version"]
@@ -186,7 +186,7 @@ agent-package:
     raw = _load_yaml_as_dict(yaml_bytes)["agent-package"]
     raw_agent = raw["agents"][0]
 
-    spec = AgentSpec.from_yaml(yaml_bytes)
+    spec = AgentPackageSpec.from_yaml(yaml_bytes)
     agent = spec.agent_package.agents[0]
 
     assert spec.agent_package.spec_version == raw["spec-version"]
@@ -271,7 +271,7 @@ agent-package:
     raw = _load_yaml_as_dict(yaml_bytes)["agent-package"]
     raw_agent = raw["agents"][0]
 
-    spec = AgentSpec.from_yaml(yaml_bytes)
+    spec = AgentPackageSpec.from_yaml(yaml_bytes)
     agent = spec.agent_package.agents[0]
 
     assert spec.agent_package.spec_version == raw["spec-version"]
@@ -384,7 +384,7 @@ agent-package:
     raw = _load_yaml_as_dict(yaml_bytes)["agent-package"]
     raw_agent = raw["agents"][0]
 
-    spec = AgentSpec.from_yaml(yaml_bytes)
+    spec = AgentPackageSpec.from_yaml(yaml_bytes)
     agent = spec.agent_package.agents[0]
 
     assert spec.agent_package.spec_version == raw["spec-version"]
@@ -403,7 +403,7 @@ agent-package:
 
 def test_agent_spec_missing_root_key() -> None:
     with pytest.raises(ValidationError):
-        AgentSpec.from_yaml(b"spec-version: v2\n")
+        AgentPackageSpec.from_yaml(b"spec-version: v2\n")
 
 
 def test_agent_spec_missing_spec_version() -> None:
@@ -430,7 +430,7 @@ agent-package:
       mode: conversational
 """
     with pytest.raises(ValidationError):
-        AgentSpec.from_yaml(yaml_bytes)
+        AgentPackageSpec.from_yaml(yaml_bytes)
 
 
 def test_agent_spec_missing_agents_list() -> None:
@@ -439,7 +439,7 @@ agent-package:
   spec-version: v2
 """
     with pytest.raises(ValidationError):
-        AgentSpec.from_yaml(yaml_bytes)
+        AgentPackageSpec.from_yaml(yaml_bytes)
 
 
 def test_agent_spec_rejects_multiple_agents() -> None:
@@ -485,7 +485,7 @@ agent-package:
       mode: conversational
 """
     with pytest.raises(ValueError, match="single Agent definition only"):
-        AgentSpec.from_yaml(yaml_bytes)
+        AgentPackageSpec.from_yaml(yaml_bytes)
 
 
 def test_spec_from_yaml_ignores_unknown_fields() -> None:
@@ -508,7 +508,7 @@ agent-package:
       unknown-model-field: ignored
 """
 
-    spec = AgentSpec.from_yaml(yaml_bytes)
+    spec = AgentPackageSpec.from_yaml(yaml_bytes)
     agent = spec.agent_package.agents[0]
 
     assert spec.agent_package.spec_version == "v2"

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from typing import ClassVar, Literal
+from typing import Literal
 
 from agent_platform.core.agent import Agent
 from agent_platform.core.mcp.mcp_server import MCPServer
-from agent_platform.core.platforms import AnyPlatformParameters
+from agent_platform.core.platforms.legacy import SENSITIVE_KEYS, convert_platform_config_to_legacy_model
 
 
 # TODO: purely for backwards compatibility
@@ -102,40 +102,6 @@ class MCPServerCompat:
 
 @dataclass(frozen=True)
 class AgentCompat(Agent):
-    KIND_TO_PROVIDER: ClassVar[dict[str, str]] = {
-        "openai": "OpenAI",
-        "azure": "Azure",
-        "cortex": "Snowflake Cortex AI",
-        "bedrock": "Amazon",
-        "groq": "Groq",
-        "google": "Google",
-        "anthropic": "Anthropic",
-        "litellm": "LiteLLM",
-    }
-    KIND_TO_LEGACY_MODEL: ClassVar[dict[str, str]] = {
-        "openai": "gpt-4o",
-        "azure": "gpt-4o",
-        "cortex": "claude-3-5-sonnet",
-        "bedrock": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        "groq": "unknown",
-        "google": "unknown",
-        "anthropic": "claude-3-5-sonnet",
-        "litellm": "gpt-5",
-    }
-    SENSITIVE_KEYS: ClassVar[list[str]] = [
-        "openai_api_key",
-        "azure_api_key",
-        "google_api_key",
-        "groq_api_key",
-        "anthropic_api_key",
-        "chat_openai_api_key",
-        "embeddings_openai_api_key",
-        "aws_access_key_id",
-        "aws_secret_access_key",
-        "snowflake_password",
-        "litellm_api_key",
-    ]
-
     runbook: str = field(default="")
     id: str | None = field(default=None)
     public: bool = field(default=True)
@@ -149,87 +115,8 @@ class AgentCompat(Agent):
     mcp_servers: list[MCPServerCompat] = field(default_factory=list)
 
     @classmethod
-    def _convert_platform_config_to_legacy_model(
-        cls,
-        platform_configs: list[AnyPlatformParameters],
-        reveal_sensitive: bool = False,
-    ) -> dict:
-        # TODO: more backwards compat, this dance will go away
-        # when we have some good time to focus on studio integration
-        # For now, if we don't round trip the "allow model during POST"
-        # back to "render first platform_config as model", studio chokes
-
-        # Fallback default to keep studio rendering happy
-        model = {
-            "provider": "OpenAI",
-            "name": "gpt-4o",
-            "config": {},
-        }
-
-        if len(platform_configs) <= 0:
-            return model
-
-        if platform_configs[0].kind not in cls.KIND_TO_PROVIDER:
-            raise ValueError(f"Agent has invalid platform config kind: {platform_configs[0].kind}")
-
-        model_config = platform_configs[0].model_dump()
-        del model_config["kind"]
-
-        # If we have an allowlist then the legacy model name will be the
-        # first name in the allowlist. Otherwise, we use the kind
-        # to provider mapping.
-        model_name = None
-        if platform_configs[0].models:
-            first_provider = next(iter(platform_configs[0].models))
-            first_name = platform_configs[0].models[first_provider][0]
-            model_name = first_name
-        else:
-            model_name = cls.KIND_TO_LEGACY_MODEL[platform_configs[0].kind]
-
-        # Handle legacy: chat_url and embeddings_url for Azure
-        if "azure_endpoint_url" in model_config:
-            del model_config["azure_endpoint_url"]
-        if "azure_deployment_name" in model_config:
-            del model_config["azure_deployment_name"]
-        if "azure_api_version" in model_config:
-            del model_config["azure_api_version"]
-        if "azure_deployment_name_embeddings" in model_config:
-            del model_config["azure_deployment_name_embeddings"]
-        if "azure_generated_endpoint_url" in model_config:
-            model_config["chat_url"] = model_config["azure_generated_endpoint_url"]
-            del model_config["azure_generated_endpoint_url"]
-        if "azure_generated_endpoint_url_embeddings" in model_config:
-            model_config["embeddings_url"] = model_config["azure_generated_endpoint_url_embeddings"]
-            del model_config["azure_generated_endpoint_url_embeddings"]
-
-        # Handle legacy: chat_openai_api_key -> azure_api_key
-        if "azure_api_key" in model_config:
-            model_config["chat_openai_api_key"] = model_config["azure_api_key"]
-            model_config["embeddings_openai_api_key"] = model_config["azure_api_key"]
-            del model_config["azure_api_key"]
-
-        # Handle legacy: Bedrock needs 'service-name'
-        if "region_name" in model_config:
-            model_config["service_name"] = "bedrock-runtime"
-
-        # Remove UNSET values from model_config (on agent import right now
-        # values are UNSET from legacy setup because a PUT comes in with
-        # actual config values from studio later... ugh)
-        model_config = {k: v for k, v in model_config.items() if v != "UNSET"}
-
-        # Mask sensitive API keys if requested
-        if not reveal_sensitive:
-            model_config = {k: "**********" if k in cls.SENSITIVE_KEYS else v for k, v in model_config.items()}
-
-        return dict(
-            provider=cls.KIND_TO_PROVIDER[platform_configs[0].kind],
-            name=model_name,
-            config=model_config,
-        )
-
-    @classmethod
     def from_agent(cls, agent: Agent, reveal_sensitive: bool = False) -> "AgentCompat":
-        model = cls._convert_platform_config_to_legacy_model(
+        model = convert_platform_config_to_legacy_model(
             agent.platform_configs,
             reveal_sensitive=reveal_sensitive,
         )
@@ -267,7 +154,7 @@ class AgentCompat(Agent):
                 # Remove kind field as it's init=False in the dataclass
                 config_dict.pop("kind", None)
                 # Mask sensitive keys in platform config
-                for key in cls.SENSITIVE_KEYS:
+                for key in SENSITIVE_KEYS:
                     if key in config_dict:
                         config_dict[key] = "**********"
                 # Create a new config object with masked data

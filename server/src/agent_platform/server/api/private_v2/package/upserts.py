@@ -112,7 +112,7 @@ async def upsert_agent_from_package(
                 version="1.0.0",
             ),
             metadata={
-                **(spec_agent.metadata.model_dump() if spec_agent.metadata is not None else {}),
+                **(spec_agent.metadata.model_dump(exclude_none=True) if spec_agent.metadata is not None else {}),
             },
             document_intelligence=spec_agent.document_intelligence,
         )

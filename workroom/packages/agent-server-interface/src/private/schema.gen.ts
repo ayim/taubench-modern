@@ -9368,6 +9368,11 @@ export interface components {
        * @enum {string}
        */
       mode: 'conversational' | 'worker';
+      'worker-config'?: components['schemas']['SpecWorkerConfig'] | null;
+      /** Question-Groups */
+      'question-groups'?: components['schemas']['QuestionGroup'][] | null;
+      /** Welcome-Message */
+      'welcome-message'?: string | null;
     };
     /** SpecAgentModel */
     SpecAgentModel: {
@@ -9452,6 +9457,13 @@ export interface components {
     SpecSemanticDataModel: {
       /** Name */
       name: string;
+    };
+    /** SpecWorkerConfig */
+    SpecWorkerConfig: {
+      /** Type */
+      type: string;
+      /** Document-Type */
+      'document-type': string;
     };
     /** SplitJobResult */
     SplitJobResult: {

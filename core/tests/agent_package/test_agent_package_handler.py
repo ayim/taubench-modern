@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
-from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
+from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 from agent_platform.core.errors.base import PlatformHTTPError
 
 
@@ -33,7 +33,7 @@ class TestAgentPackageHandler:
 
             assert spec is not None
 
-            assert isinstance(spec, AgentSpec)
+            assert isinstance(spec, AgentPackageSpec)
             assert spec.agent_package.agents[0].name == "Call Center Planner"
 
     @pytest.mark.asyncio

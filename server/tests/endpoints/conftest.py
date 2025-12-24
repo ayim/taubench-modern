@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.agent.agent_architecture import AgentArchitecture
-from agent_platform.core.agent_package.spec import AgentSpec, SpecAgent
+from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.server.api.private_v2 import (
     data_connections,
@@ -111,7 +111,7 @@ def agent_package_handler_factory():
     def _create_agent_package_handler(mock_package_spec: dict):
         handler = AsyncMock()
 
-        handler.read_agent_spec = AsyncMock(return_value=AgentSpec.model_validate(mock_package_spec["spec"]))
+        handler.read_agent_spec = AsyncMock(return_value=AgentPackageSpec.model_validate(mock_package_spec["spec"]))
         handler.get_spec_agent = AsyncMock(
             return_value=SpecAgent.model_validate(mock_package_spec["spec"]["agent-package"]["agents"][0])
         )

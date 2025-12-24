@@ -104,6 +104,4 @@ export type ContextStats = {
   tokens_per_message: Record<string, number>;
 };
 
-export type QuestionGroup = components['schemas']['QuestionGroup'] & {
-  questions: string[];
-};
+export type QuestionGroup = components['schemas']['QuestionGroup'];
