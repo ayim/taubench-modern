@@ -1,5 +1,17 @@
 # @sema4ai/spar-ui
 
+## 0.13.0
+
+### Minor Changes
+
+- e757a39: check if extract, regenerate schema is running before closing dialog window
+
+### Patch Changes
+
+- d1e94ca: Show error details for Semantic Data Models data connection validation
+- 66ee62b: Fix permission check for Semantic Data Model data connection configuration feature
+- 15e7d6e: Add MCP create and edit dialogs
+
 ## 0.12.0
 
 ### Minor Changes
