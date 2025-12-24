@@ -1,5 +1,4 @@
 import { createWorkroomClient, AgentOAuthPermission, operations } from '@sema4ai/workroom-interface';
-import { DocumentIntelligenceSchema } from '@sema4ai/document-intelligence-interface';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import {
   paths as agentServerPaths,
@@ -495,10 +494,6 @@ export class AgentAPIClient {
 
   public get agentFetch() {
     return this.createClient<agentServerPaths>('agents');
-  }
-
-  public get docIntelliFetch() {
-    return this.createClient<DocumentIntelligenceSchema.paths>('documents');
   }
 
   public async deployAgentFromPackage(
