@@ -1,5 +1,11 @@
 # @sema4ai/spar-ui
 
+## 0.13.1
+
+### Patch Changes
+
+- ec63750: fix: handle redacted OAuth credentials in MCP server edit dialog
+
 ## 0.13.0
 
 ### Minor Changes
