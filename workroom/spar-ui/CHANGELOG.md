@@ -1,5 +1,11 @@
 # @sema4ai/spar-ui
 
+## 0.13.2
+
+### Patch Changes
+
+- 524b8a3: fix: mcp oauth secret input not showing visibility toggle
+
 ## 0.13.1
 
 ### Patch Changes
