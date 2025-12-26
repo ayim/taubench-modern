@@ -923,7 +923,26 @@ class BaseStorage(AbstractStorage, CommonMixin):
                         return obj  # Could be None
 
                 new_auth_metadata = convert_secret_str_to_str(new_auth_metadata)
-                values["authentication_metadata_enc"] = self._encrypt_config(new_auth_metadata)
+
+                # Get existing metadata and merge with partial update
+                existing_auth_metadata_enc = row.get("authentication_metadata_enc")
+                if existing_auth_metadata_enc:
+                    existing_auth_metadata = self._decrypt_config(existing_auth_metadata_enc)
+                    # Merge: existing metadata is updated with new partial metadata
+                    assert isinstance(existing_auth_metadata, dict), (
+                        f"Existing authentication metadata is not a dict: "
+                        f"{type(existing_auth_metadata)} {existing_auth_metadata}"
+                    )
+                    assert isinstance(new_auth_metadata, dict), (
+                        f"New authentication metadata is not a dict: {type(new_auth_metadata)} {new_auth_metadata}"
+                    )
+                    existing_auth_metadata.update(new_auth_metadata)
+                    merged_auth_metadata = existing_auth_metadata
+                else:
+                    # No existing metadata, use new metadata as-is
+                    merged_auth_metadata = new_auth_metadata
+
+                values["authentication_metadata_enc"] = self._encrypt_config(merged_auth_metadata)
 
         # Update the MCP server using SQLAlchemy
         update_stmt = (

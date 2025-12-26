@@ -17083,28 +17083,56 @@ export const spec = {
       MCPServerUpdateAuthMetadataClientCredentials: {
         properties: {
           client_id: {
-            type: 'string',
-            format: 'password',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'password',
+                writeOnly: true,
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Client Id',
-            writeOnly: true,
           },
           client_secret: {
-            type: 'string',
-            format: 'password',
+            anyOf: [
+              {
+                type: 'string',
+                format: 'password',
+                writeOnly: true,
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Client Secret',
-            writeOnly: true,
           },
           scope: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Scope',
           },
           endpoint: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Endpoint',
           },
         },
+        additionalProperties: false,
         type: 'object',
-        required: ['client_id', 'client_secret', 'scope', 'endpoint'],
         title: 'MCPServerUpdateAuthMetadataClientCredentials',
       },
       MCPServerWithOAuthConfigResponse: {

@@ -244,6 +244,21 @@ def test_update_mcp_server_with_oauth_config(client: TestClient, data_regression
     # No changes should be applied
     check_current_state("3_updated_oauth_metadata")
 
+    # Now, update the oauth metadata with partial data (only the changed field will be applied)
+    update_response = client.put(
+        f"/api/v2/private/mcp-servers/{server_id}",
+        json={
+            "oauth_config": {
+                "authentication_metadata": {
+                    "client_id": "test-client-id2",
+                }
+            }
+        },
+    )
+    assert update_response.status_code == 200, update_response.text
+
+    check_current_state("4_updated_oauth_metadata_with_partial_data")
+
 
 def test_update_mcp_server_not_found(client: TestClient, sample_mcp_server_payload: dict):
     """Test updating a non-existent MCP server returns 404."""

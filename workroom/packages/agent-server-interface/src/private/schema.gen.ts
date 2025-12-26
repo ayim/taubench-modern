@@ -6873,20 +6873,14 @@ export interface components {
     };
     /** MCPServerUpdateAuthMetadataClientCredentials */
     MCPServerUpdateAuthMetadataClientCredentials: {
-      /**
-       * Client Id
-       * Format: password
-       */
-      client_id: string;
-      /**
-       * Client Secret
-       * Format: password
-       */
-      client_secret: string;
+      /** Client Id */
+      client_id?: string | null;
+      /** Client Secret */
+      client_secret?: string | null;
       /** Scope */
-      scope: string;
+      scope?: string | null;
       /** Endpoint */
-      endpoint: string;
+      endpoint?: string | null;
     };
     /** MCPServerWithOAuthConfigResponse */
     MCPServerWithOAuthConfigResponse: {

@@ -1,6 +1,7 @@
 from typing import Any, Literal
 
 from pydantic import BaseModel
+from pydantic.config import ConfigDict
 from pydantic.types import SecretStr
 
 from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
@@ -100,11 +101,12 @@ class MCPServerCreate(BaseModel):
 
 
 class MCPServerUpdateAuthMetadataClientCredentials(BaseModel):
-    # All fields are required (the credentials must be passed as a whole object)
-    client_id: SecretStr
-    client_secret: SecretStr
-    scope: str  # whitespace separated list of scopes (as the oauth2 spec says)
-    endpoint: str
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: SecretStr | None = None
+    client_secret: SecretStr | None = None
+    scope: str | None = None  # whitespace separated list of scopes (as the oauth2 spec says)
+    endpoint: str | None = None
 
 
 class MCPServerUpdateAuthConfig(BaseModel):
