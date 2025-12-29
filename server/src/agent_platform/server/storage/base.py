@@ -240,9 +240,21 @@ class BaseStorage(AbstractStorage, CommonMixin):
             try:
                 self._sql_transaction_count.set(current_count + 1)
                 conn: AsyncConnection
-                async with self._sa_engine.begin() as conn:
+                async with self._sa_engine.connect() as conn:
+                    # We no longer use the self._sa_engine.begin() as it doesn't work when
+                    # mixed with using sqlite cursors directly (as the transaction managed
+                    # by sqlalchemy can be lazily started).
+                    # So, we always explicitly start/rollback/commit the transaction.
+                    await conn.exec_driver_sql("BEGIN")
                     self._sql_transaction_conn.set(conn)
-                    yield conn
+                    try:
+                        yield conn
+                    except BaseException:
+                        await conn.exec_driver_sql("ROLLBACK")
+                        raise
+                    else:
+                        await conn.exec_driver_sql("COMMIT")
+
             finally:
                 self._sql_transaction_count.set(current_count)
 

@@ -209,6 +209,27 @@ async def test_base_storage_transaction(storage: "PostgresStorage|SQLiteStorage"
         assert await _select_config_values_with_sqlalchemy(storage, conn) == 33
 
 
+@pytest.fixture
+async def sample_user_id(storage: "SQLiteStorage|PostgresStorage") -> str:
+    return await storage.get_system_user_id()
+
+
+async def test_base_storage_transaction_rollback(
+    storage: "SQLiteStorage|PostgresStorage",
+    sample_user_id: str,
+    sample_agent,
+):
+    from agent_platform.server.storage.errors import AgentNotFoundError
+
+    with pytest.raises(RuntimeError):  # noqa: PT012
+        async with storage._transaction():
+            await storage.upsert_agent(sample_user_id, sample_agent)
+            raise RuntimeError("Should auto-rollback on error")
+
+    with pytest.raises(AgentNotFoundError):
+        await storage.get_agent_by_name(sample_user_id, sample_agent.name)
+
+
 @pytest.mark.asyncio
 async def test_base_storage_cursor_transaction_rollback(storage: "SQLiteStorage|PostgresStorage"):
     try:
