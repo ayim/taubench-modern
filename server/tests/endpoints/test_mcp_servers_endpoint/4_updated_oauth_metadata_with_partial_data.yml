@@ -1,7 +1,7 @@
 args: null
 authentication_metadata:
-  client_id: t*****2
-  client_secret: t*****t
+  client_id: test-client-id2
+  client_secret: test-client-secret
   endpoint: test-endpoint
   scope: test-scope
 authentication_type: oauth2-client-credentials

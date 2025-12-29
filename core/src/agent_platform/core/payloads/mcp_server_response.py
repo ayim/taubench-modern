@@ -159,11 +159,11 @@ class MCPServerWithOAuthConfigResponse(MCPServerResponse):
     ] = None
 
     @classmethod
-    def _redact_string(cls, string: str | SecretStr) -> str:
-        """Redact a string showing just the first and last characters."""
+    def _get_secret_string_as_plaintext(cls, string: str | SecretStr) -> str:
+        """Get the plaintext string value from a SecretStr or a string."""
         if isinstance(string, SecretStr):
-            string = string.get_secret_value()
-        return f"{string[:1]}*****{string[-1:]}"
+            return string.get_secret_value()
+        return string
 
     @classmethod
     def from_mcp_server_with_oauth_config(
@@ -189,16 +189,16 @@ class MCPServerWithOAuthConfigResponse(MCPServerResponse):
             if found_authentication_metadata is not None:
                 if isinstance(found_authentication_metadata, AuthenticationMetadataClientCredentials):
                     authentication_metadata = AuthenticationMetadataClientCredentialsResponse(
-                        client_id=cls._redact_string(found_authentication_metadata.client_id),
-                        client_secret=cls._redact_string(found_authentication_metadata.client_secret),
+                        client_id=cls._get_secret_string_as_plaintext(found_authentication_metadata.client_id),
+                        client_secret=cls._get_secret_string_as_plaintext(found_authentication_metadata.client_secret),
                         scope=found_authentication_metadata.scope,
                         endpoint=found_authentication_metadata.endpoint,
                     )
                 elif isinstance(found_authentication_metadata, dict):
-                    # Not an expected format: redact everything
+                    # Not an expected format: return the plaintext values
                     authentication_metadata = {}
                     for key, value in found_authentication_metadata.items():
-                        authentication_metadata[key] = cls._redact_string(value)
+                        authentication_metadata[key] = cls._get_secret_string_as_plaintext(value)
                 else:
                     authentication_metadata = None
 
