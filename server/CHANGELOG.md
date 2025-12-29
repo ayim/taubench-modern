@@ -1,3 +1,11 @@
+# Sema4.ai Agent Server 2.2.12 (2025-12-29)
+
+* Provide client id/client secret as cleartext in OAuth2 config [#2033](https://github.com/Sema4AI/agent-platform/pull/2033)
+* When updating the mcp server, the oauth metadata being set may be partial. [#2031](https://github.com/Sema4AI/agent-platform/pull/2031)
+* Agent to files mappings [#2012](https://github.com/Sema4AI/agent-platform/pull/2012)
+* Support nested transactions with auto rollback [#2034](https://github.com/Sema4AI/agent-platform/pull/2034)
+* GPT-1652 Drop the agent from the database if we fail to create the SDM [#1980](https://github.com/Sema4AI/agent-platform/pull/1980)
+
 # Sema4.ai Agent Server 2.2.11 (2025-12-23)
 
 * SDM-290 Properly surface terminal errors through "Generate SQL" tool [#2016](https://github.com/Sema4AI/agent-platform/pull/2016)
