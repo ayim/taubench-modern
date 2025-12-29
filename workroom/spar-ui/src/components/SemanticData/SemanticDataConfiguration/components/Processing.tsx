@@ -31,7 +31,7 @@ export const Processing: FC = () => {
   return (
     <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100%">
       <Box mb="$32">
-        <IconSai size={48} />
+        <IconSai size={96} />
       </Box>
       <Typography variant="display-small" mb="$8">
         Sai is working on your data model...

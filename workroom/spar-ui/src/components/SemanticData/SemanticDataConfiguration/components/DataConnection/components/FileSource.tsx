@@ -81,6 +81,13 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
           }
           dropTitle="Drop your files here"
           description="Supports .xlsx, .xls, .csv files • Max size: 20MB"
+          dropzoneConfig={{
+            accept: {
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+              'application/vnd.ms-excel': ['.xls'],
+              'text/csv': ['.csv'],
+            },
+          }}
         />
         <FileList files={addedFiles} onRemoveFile={onRemoveFile} />
       </Dialog.Content>

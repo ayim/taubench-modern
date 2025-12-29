@@ -82,10 +82,10 @@ export const ToolCallResult: FC<Props> = ({ content, isDone }) => {
     <>
       <Code.Group>
         {dataFrameQuery && (
-          <Code open title="Input Query" toolbar={verifiedQueryToolbar} value={dataFrameQuery} lang="sql" />
+          <Code open title="Input Query" toolbar={verifiedQueryToolbar} value={dataFrameQuery} lang="sql" maxRows={8} />
         )}
-        {inputContent && <Code open={!dataFrameQuery} title="Inputs" value={inputContent} lang="json" maxRows={10} />}
-        {outputContent && <Code title="Outputs" value={outputContent} lang="json" maxRows={10} />}
+        {inputContent && <Code open={!dataFrameQuery} title="Inputs" value={inputContent} lang="json" maxRows={8} />}
+        {outputContent && <Code title="Outputs" value={outputContent} lang="json" maxRows={8} />}
       </Code.Group>
       {isCreateVerifiedQueryDialogOpen && (
         <CreateVerifiedQueryFromDataFrameDialog
