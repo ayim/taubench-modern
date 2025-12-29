@@ -1,4 +1,6 @@
+import asyncio
 import shutil
+import sys
 import typing
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -14,6 +16,13 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.postgres import PostgresStorage
     from agent_platform.server.storage.sqlite import SQLiteStorage
     from server.tests.storage.sample_model_creator import SampleModelCreator
+
+# setup the event loop globally
+if sys.platform == "win32":
+    # Fix: psycopg.pool - WARNING: error connecting in 'pool-1': Psycopg cannot use the
+    # 'ProactorEventLoop' to run in async mode. Please use a compatible event loop,
+    # for instance by setting 'asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())'
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 @pytest.fixture(scope="session")
@@ -185,7 +194,7 @@ async def _create_postgres_storage(
             await cur.execute("DROP SCHEMA IF EXISTS v2 CASCADE;")
             await cur.execute("CREATE SCHEMA v2;")
 
-    storage_instance = PostgresStorage(pool=postgres_test_db, dsn=postgres_testing.url())  # pyright: ignore [reportArgumentType]
+    storage_instance = PostgresStorage(dsn=postgres_testing.url())  # pyright: ignore [reportArgumentType]
     await storage_instance.setup()
     await storage_instance.get_or_create_user(
         sub="tenant:testing:system:system_user",
@@ -217,8 +226,7 @@ async def postgres_storage(
         StorageService.reset()
         FileManagerService.reset()
 
-        # No teardown: trying to keep pool open for the duration of the test session.
-        # await storage_instance.teardown()
+        await storage_instance.teardown()
     except Exception as e:
         # Log any connection issues
         import logging
@@ -261,6 +269,7 @@ async def storage(
         FileManagerService.reset()
 
         yield storage_instance
+        await storage_instance.teardown()
     else:  # sqlite
         storage_instance = await _create_sqlite_storage(tmp_path, sqlite_template_db)
 

@@ -41,7 +41,7 @@ class PostgresMigrations(MigrationsProvider):
 
     def __init__(
         self,
-        cursor_provider,
+        transaction_provider,
         timeout: float = 300.0,
         migrations_path: Path | None = None,
     ):
@@ -49,12 +49,12 @@ class PostgresMigrations(MigrationsProvider):
         Initializes a Migrations Provider for Postgres.
 
         Arguments:
-            cursor_provider: Callable returning an async
+            transaction_provider: Callable returning an async
                 context manager for a DB cursor.
             timeout: Timeout (in seconds) for each migration statement.
             migrations_path: Path to the directory containing .up.sql files (optional).
         """
-        self._cursor = cursor_provider
+        self._transaction = transaction_provider
         self._logger = get_logger(__name__)
         self._timeout = timeout
         self._migrations_path = migrations_path if migrations_path is not None else self._get_migrations_path()
@@ -83,7 +83,7 @@ class PostgresMigrations(MigrationsProvider):
 
         locked_acquired_by = None
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 if not (locked_acquired_by := await self._acquire_migration_lock(cur)):
                     logger.warning("Skipping migrations because another migration is running.")
                     return
@@ -157,7 +157,7 @@ class PostgresMigrations(MigrationsProvider):
             if locked_acquired_by:
                 # Release the lock with a *fresh* cursor so we aren't stuck
                 # if the above transaction ended in error/timeout.
-                async with self._cursor() as release_cur:
+                async with self._transaction() as release_cur:
                     await self._release_migration_lock(release_cur, locked_acquired_by)
 
     # -------------------------------------------------------------------------
@@ -377,7 +377,7 @@ class PostgresMigrations(MigrationsProvider):
         except QueryCanceled as exc:
             # Postgres forcibly canceled the query due to statement_timeout
             # We'll rescue ROLLBACK on a fresh cursor so this one isn't stuck
-            async with self._cursor() as rescue_cur:
+            async with self._transaction() as rescue_cur:
                 await rescue_cur.execute("ROLLBACK")
             raise MigrationTimeoutError(
                 f"Migration timed out after {self._timeout} seconds",

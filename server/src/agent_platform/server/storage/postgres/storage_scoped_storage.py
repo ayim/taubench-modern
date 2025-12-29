@@ -36,7 +36,7 @@ class PostgresStorageScopedStorageMixin(CursorMixin, CommonMixin):
         # handles it properly.
         storage_dict["storage"] = Jsonb(storage_dict["storage"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2."scoped_storage" (
@@ -147,7 +147,7 @@ class PostgresStorageScopedStorageMixin(CursorMixin, CommonMixin):
         # Wrap the storage field with Jsonb so that PostgreSQL stores it as JSONB.
         storage_dict["storage"] = Jsonb(storage_dict["storage"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2."scoped_storage" (
@@ -197,7 +197,7 @@ class PostgresStorageScopedStorageMixin(CursorMixin, CommonMixin):
             ScopedStorageNotFoundError: If no record with the given storage_id exists.
         """
         self._validate_uuid(storage_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2."scoped_storage"

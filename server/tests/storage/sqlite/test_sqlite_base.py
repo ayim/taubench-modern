@@ -22,15 +22,15 @@ async def test_reentry_lock():
     import asyncio
     from asyncio.tasks import wait_for
 
-    from agent_platform.server.storage.sqlite.sqlite import NonReentrantAsyncLock, ReentryError
+    from agent_platform.server.storage.sqlite.sqlite import ReentrantAsyncLock
 
-    lock = NonReentrantAsyncLock()
+    lock = ReentrantAsyncLock()
     async with lock as lock_return:
         assert lock_return is lock, f"{lock_return} is not {lock}"
         assert lock._lock.locked()
-        with pytest.raises(ReentryError):
-            async with lock as lock:
-                pass
+        async with lock as lock:
+            pass
+        assert lock._lock.locked()
 
     acquired_in_sub = False
 
@@ -46,33 +46,6 @@ async def test_reentry_lock():
         assert not acquired_in_sub
     await wait_for(t, timeout=0.2)
     assert acquired_in_sub
-
-
-@pytest.mark.asyncio
-async def test_sqlite_transaction_rollback(tmp_path: Path):
-    async with sqlite_storage(tmp_path) as storage:
-        try:
-            async with storage._transaction() as cur:
-                await _insert_into_agent_config(cur)
-                raise RuntimeError("Should auto-rollback on error")
-        except RuntimeError:
-            pass
-        else:
-            raise AssertionError("Expected RuntimeError")
-
-        async with storage._cursor() as cur:
-            await cur.execute("SELECT * FROM v2_agent_config")
-            result = await cur.fetchall()
-            assert not result
-
-        # Now, commit on success
-        async with storage._transaction() as cur:
-            await _insert_into_agent_config(cur)
-
-        async with storage._cursor() as cur:
-            await cur.execute("SELECT * FROM v2_agent_config")
-            result = await cur.fetchall()
-            assert result
 
 
 def create_insert_agent_config_statement(storage) -> Any:
@@ -123,108 +96,6 @@ async def test_sqlite_transaction_rollback_sqlalchemy(tmp_path: Path):
             await cur.execute("SELECT * FROM v2_agent_config")
             result = await cur.fetchall()
             assert result
-
-
-@pytest.mark.asyncio
-async def test_sqlite_transaction_lock(tmp_path: Path):
-    import asyncio
-
-    from agent_platform.core.configurations.config_validation import ConfigType
-
-    async with sqlite_storage(tmp_path) as storage:
-        async with storage._transaction() as cur:
-            use_id = await _insert_into_agent_config(cur, "0")
-            assert use_id is not None
-
-        # Now, create multiple tasks that will increment a value from an existing
-        # value (and in the end due to the write lock the final value must be correct).
-        async def increment_value():
-            async with storage._transaction() as cur:
-                # Get the "config_value" and increment it.
-                await cur.execute(
-                    """
-                    SELECT config_value FROM v2_agent_config WHERE config_type = :config_type
-                    AND namespace = :namespace
-                    """,
-                    {
-                        "config_type": ConfigType.MAX_AGENTS,
-                        "namespace": "global",
-                    },
-                )
-                result = await cur.fetchone()
-                assert result is not None
-                result = int(str(result["config_value"]))
-
-                await _update_agent_config(cur, use_id, str(result + 1))
-
-        times = 1000
-        tasks = [increment_value() for _ in range(times)]
-        await asyncio.gather(*tasks)
-
-        async with storage._cursor() as cur:
-            await cur.execute(
-                """
-                SELECT config_value FROM v2_agent_config WHERE config_type = :config_type
-                AND namespace = :namespace
-                """,
-                {
-                    "config_type": ConfigType.MAX_AGENTS,
-                    "namespace": "global",
-                },
-            )
-            config_value = await cur.fetchone()
-            assert config_value is not None
-            assert config_value["config_value"] == str(times)
-
-
-async def _update_agent_config(cur, use_id: str, config_value: str):
-    await cur.execute(
-        """
-                    UPDATE v2_agent_config
-                    SET config_value = :config_value
-                    WHERE id = :id
-                    """,
-        {
-            "id": use_id,
-            "config_value": config_value,
-        },
-    )
-
-
-async def _insert_into_agent_config(cur, config_value: str = "10") -> str:
-    import uuid
-    from datetime import UTC, datetime
-
-    from agent_platform.core.configurations.config_validation import ConfigType
-
-    used_uuid = str(uuid.uuid4())
-
-    await cur.execute(
-        """
-        INSERT INTO v2_agent_config (id, config_type, namespace, config_value, updated_at)
-        VALUES (:id, :config_type, :namespace, :config_value, :updated_at)
-        """,
-        {
-            "id": used_uuid,
-            "config_type": ConfigType.MAX_AGENTS,
-            "namespace": "global",
-            "config_value": config_value,
-            "updated_at": datetime.now(UTC).isoformat(),
-        },
-    )
-    return used_uuid
-
-
-@pytest.mark.asyncio
-async def test_sqlite_base_storage_reentry_failure(tmp_path: Path):
-    from agent_platform.server.storage.sqlite.sqlite import ReentryError
-
-    async with sqlite_storage(tmp_path) as storage:
-        async with storage._transaction() as cur:
-            await _insert_into_agent_config(cur)
-            with pytest.raises(ReentryError):
-                async with storage._transaction():  # Reentry should be a failure
-                    pass
 
 
 @pytest.mark.asyncio

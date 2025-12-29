@@ -26,47 +26,61 @@ class PostgresStorageMessagesMixin(CursorMixin, CommonMixin):
         # 1. Validate the uuid
         self._validate_uuid(thread_id)
 
-        async with self._cursor(cursor) as cur:
-            # 2. Delete existing messages
-            await cur.execute(
-                "DELETE FROM v2.thread_message WHERE thread_id = %(thread_id)s::uuid",
-                {"thread_id": thread_id},
-            )
+        # If cursor is provided, we're already in a transaction, use it
+        # Otherwise, start a new transaction
+        if cursor is not None:
+            await self._overwrite_thread_messages_impl(cursor, thread_id, messages)
+        else:
+            async with self._transaction() as cur:
+                await self._overwrite_thread_messages_impl(cur, thread_id, messages)
 
-            # 3. Perpare messages for batch insert
-            values = [
-                {
-                    "message_id": msg.message_id,
-                    "thread_id": thread_id,
-                    "sequence_number": i,
-                    "role": msg.role,
-                    "content": Jsonb([c.model_dump() for c in msg.content]),
-                    "agent_metadata": Jsonb(msg.agent_metadata),
-                    "server_metadata": Jsonb(msg.server_metadata),
-                    "created_at": msg.created_at,
-                    "updated_at": msg.updated_at,
-                    "parent_run_id": msg.parent_run_id,
-                }
-                for i, msg in enumerate(messages)
-            ]
+    async def _overwrite_thread_messages_impl(
+        self,
+        cur: AsyncCursor[DictRow],
+        thread_id: str,
+        messages: list[ThreadMessage],
+    ) -> None:
+        """Internal implementation of overwrite_thread_messages."""
+        # 2. Delete existing messages
+        await cur.execute(
+            "DELETE FROM v2.thread_message WHERE thread_id = %(thread_id)s::uuid",
+            {"thread_id": thread_id},
+        )
 
-            # 4. No values to insert?
-            if not values:
-                return
+        # 3. Perpare messages for batch insert
+        values = [
+            {
+                "message_id": msg.message_id,
+                "thread_id": thread_id,
+                "sequence_number": i,
+                "role": msg.role,
+                "content": Jsonb([c.model_dump() for c in msg.content]),
+                "agent_metadata": Jsonb(msg.agent_metadata),
+                "server_metadata": Jsonb(msg.server_metadata),
+                "created_at": msg.created_at,
+                "updated_at": msg.updated_at,
+                "parent_run_id": msg.parent_run_id,
+            }
+            for i, msg in enumerate(messages)
+        ]
 
-            # 5. Batch insert new messages
-            await cur.executemany(
-                """INSERT INTO v2.thread_message (
-                    message_id, thread_id, sequence_number, role, content,
-                    agent_metadata, server_metadata, created_at, updated_at,
-                    parent_run_id
-                ) VALUES (
-                    %(message_id)s::uuid, %(thread_id)s::uuid, %(sequence_number)s,
-                    %(role)s, %(content)s, %(agent_metadata)s, %(server_metadata)s,
-                    %(created_at)s, %(updated_at)s, %(parent_run_id)s
-                )""",
-                values,
-            )
+        # 4. No values to insert?
+        if not values:
+            return
+
+        # 5. Batch insert new messages
+        await cur.executemany(
+            """INSERT INTO v2.thread_message (
+                message_id, thread_id, sequence_number, role, content,
+                agent_metadata, server_metadata, created_at, updated_at,
+                parent_run_id
+            ) VALUES (
+                %(message_id)s::uuid, %(thread_id)s::uuid, %(sequence_number)s,
+                %(role)s, %(content)s, %(agent_metadata)s, %(server_metadata)s,
+                %(created_at)s, %(updated_at)s, %(parent_run_id)s
+            )""",
+            values,
+        )
 
     async def add_message_to_thread(
         self,
@@ -79,7 +93,7 @@ class PostgresStorageMessagesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(thread_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             try:
                 # 2. Check if the user has access
                 await cur.execute(
@@ -220,7 +234,7 @@ class PostgresStorageMessagesMixin(CursorMixin, CommonMixin):
         self._validate_uuid(thread_id)
         self._validate_uuid(message_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. Get the messages
             await cur.execute(
                 """SELECT sequence_number, role FROM v2.thread_message

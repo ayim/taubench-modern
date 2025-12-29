@@ -68,7 +68,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
         work_item_dict["user_subject"] = user.sub
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2.work_items (
@@ -221,7 +221,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(work_item_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2.work_items
@@ -269,7 +269,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
             "status_updated_by": completed_by.as_status_updated_by().value,
         }
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(query, params)
 
     # ------------------------------------------------------------------
@@ -278,7 +278,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
     async def get_pending_work_item_ids(self, limit: int = 10) -> list[str]:
         """Atomically claim a batch of PENDING work-items and mark them EXECUTING."""
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 WITH candidate AS (
@@ -319,7 +319,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
         for wid in work_item_ids:
             self._validate_uuid(wid)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2.work_items
@@ -338,7 +338,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
         if max_processing_seconds <= 0:
             return 0
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 WITH candidate AS (
@@ -381,7 +381,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
 
         thread_messages = await self.get_thread_messages(thread_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2.work_items
@@ -420,7 +420,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
             Jsonb([callback.model_dump() for callback in work_item.callbacks]) if work_item.callbacks else Jsonb([])
         )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2.work_items
@@ -474,7 +474,7 @@ class PostgresStorageWorkItemsMixin(CursorMixin, CommonMixin):
         """The system can return a work item to the pool."""
         self._validate_uuid(work_item_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 UPDATE v2.work_items

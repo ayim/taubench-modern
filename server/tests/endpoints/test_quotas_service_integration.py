@@ -50,6 +50,8 @@ class TestQuotasServiceIntegration:
     @pytest.mark.postgresql
     async def test_postgres_pool_size_applied_to_actual_pools(self, postgres_storage):
         """Verify that apply_pool_size() resizes both psycopg and SQLAlchemy pools."""
+        import asyncio
+
         # Use the fixture-provided storage (comes with clean schema per test)
         StorageService.set_for_testing(postgres_storage)
         QuotasService._instance = None
@@ -57,26 +59,30 @@ class TestQuotasServiceIntegration:
         quotas_service = await QuotasService.get_instance()
 
         # Get current pool size (fixture creates pool with max_size=50)
-        initial_stats = postgres_storage._pool.get_stats()
-        initial_max = initial_stats["pool_max"]
-        assert initial_max == 50, f"Pool should start with default 50, got {initial_max}"
+        initial_engine = postgres_storage._sa_engine
+        initial_engine_pool = initial_engine.sync_engine.pool
+        assert initial_engine.pool is initial_engine_pool
+
+        def expected_pool_size(max_size: int) -> int:
+            expected_base_pool_size, _expected_max_overflow = postgres_storage._compute_pool_base_and_overflow(max_size)
+            return expected_base_pool_size
+
+        initial_max = initial_engine_pool.size()
+        assert initial_max == expected_pool_size(50), (
+            f"Pool should start with default {expected_pool_size(50)}, got {initial_max}"
+        )
 
         # Now resize to a different value via API
         new_size = 100
         await quotas_service.set_config(ConfigType.POSTGRES_POOL_MAX_SIZE, str(new_size))
 
         # Verify psycopg pool was resized
-        updated_stats = postgres_storage._pool.get_stats()
-        assert updated_stats["pool_max"] == new_size, (
-            f"psycopg pool not resized: expected {new_size}, got {updated_stats['pool_max']}"
+        current_size = postgres_storage._sa_engine.sync_engine.pool.size()
+        assert current_size == expected_pool_size(new_size), (
+            f"SQLAlchemy pool not resized: expected {expected_pool_size(new_size)}, got {current_size}"
         )
 
-        # Pretty hacky check as the status() method returns a string with the pool size;
-        # adding it for completeness.
-        updated_stats_sa = postgres_storage._sa_engine.pool.status()
-        assert f"Pool size: {new_size}" in updated_stats_sa, (
-            f"SQLAlchemy pool not resized: expected {new_size}, got {updated_stats_sa}"
-        )
+        assert postgres_storage._sa_engine is not initial_engine
 
         # Verify SQLAlchemy engine is functional after swap
         async with postgres_storage._sa_engine.begin() as conn:
@@ -85,13 +91,13 @@ class TestQuotasServiceIntegration:
             assert row is not None, "Query should return a row"
             assert row[0] == 1, "SQLAlchemy engine not functional after resize"
 
-        # Verify psycopg pool is functional after resize
-        async with postgres_storage._pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("SELECT 1 as test_value")
-                row = await cur.fetchone()
-                assert row is not None, "Query should return a row"
-                assert row[0] == 1, "psycopg pool not functional after resize"
+        assert initial_engine is not postgres_storage._sa_engine
+        # Also check that the engine is disposed (wait for the background task to complete)
+        if postgres_storage._tasks:
+            await asyncio.wait_for(asyncio.gather(*postgres_storage._tasks), timeout=10)
+        # There's no "clean" way to check if the engine is disposed
+        # so we just check that the pool is different.
+        assert initial_engine.pool is not initial_engine_pool
 
 
 class TestQuotasEnvOverrides:

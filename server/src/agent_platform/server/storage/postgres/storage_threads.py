@@ -146,7 +146,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         # 1. Validate the uuid
         self._validate_uuid(user_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. Check if the user has access
             await cur.execute(
                 """SELECT v2.check_user_access(
@@ -215,7 +215,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(thread_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. First check if the thread exists and if user has access
             await cur.execute(
                 """SELECT
@@ -279,7 +279,7 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
             for tid in thread_ids:
                 self._validate_uuid(tid)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             if thread_ids:
                 await cur.execute(
                     """

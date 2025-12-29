@@ -1,5 +1,5 @@
 import asyncio
-import re
+import functools
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -9,7 +9,7 @@ from types import TracebackType
 from typing import ClassVar, Self
 
 import sqlalchemy as sa
-from aiosqlite import Connection, Cursor, Row, connect
+from aiosqlite import Cursor, Row
 from sqlalchemy.ext.asyncio import create_async_engine
 from structlog import get_logger
 
@@ -56,6 +56,8 @@ from agent_platform.server.storage.sqlite.storage_users import (
 from agent_platform.server.storage.sqlite.storage_work_items import (
     SQLiteStorageWorkItemsMixin,
 )
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -124,45 +126,49 @@ def _register_sqlite_adapters():
     register_converter("timestamp", _convert_timestamp)
 
 
-class ReentryError(RuntimeError):
+class ReentrantAsyncLock:
     """
-    Raised when the current task tries to re-enter a
-    NonReentrantAsyncLock it already holds.
-    """
-
-
-class NonReentrantAsyncLock:
-    """
-    An asyncio-compatible lock that **raises** on re-entry by the same task,
-    instead of deadlocking.
+    An asyncio-compatible lock that is reentrant.
     """
 
     def __init__(self) -> None:
         self._lock = asyncio.Lock()
         self._owner: asyncio.Task | None = None
+        self._count: int = 0
 
     async def _acquire(self) -> bool:
         current = asyncio.current_task()
         if current is None:
-            raise RuntimeError("NonReentrantAsyncLock must be used within an asyncio task")
+            raise RuntimeError("ReentrantAsyncLock must be used within an asyncio task")
 
         if self._lock.locked() and self._owner is current:
-            raise ReentryError("Lock re-entry by the same task")
+            self._count += 1
+            return True
 
         await self._lock.acquire()
+        self._count += 1
         self._owner = current
         return True
 
     def _release(self) -> None:
         current = asyncio.current_task()
         if current is None:
-            raise RuntimeError("NonReentrantAsyncLock.release() must be called within an asyncio task")
+            raise RuntimeError("ReentrantAsyncLock.release() must be called within an asyncio task")
 
         if not self._lock.locked():
-            raise RuntimeError("Release called on an unlocked NonReentrantAsyncLock")
+            raise RuntimeError("Release called on an unlocked ReentrantAsyncLock")
 
         if self._owner is not current:
             raise RuntimeError("Only the owning task can release this lock")
+
+        if self._count == 1:
+            self._count -= 1
+            # Keep on going to release the lock
+        elif self._count > 1:
+            self._count -= 1
+            return
+        else:  # self._count == 0:
+            raise RuntimeError("Release called without acquiring the lock")
 
         self._owner = None
         self._lock.release()
@@ -178,6 +184,84 @@ class NonReentrantAsyncLock:
         tb: TracebackType | None,
     ) -> bool | None:
         self._release()
+
+
+# ---------------------------------------------------------------------
+# Register the check_user_access function in SQLite
+# ---------------------------------------------------------------------
+def check_user_access(dbapi_conn, record_user_id: str, requesting_user_id: str) -> int:
+    """
+    Return 1 if requesting_user_id can access record_user_id's resource, else 0.
+    - If record_user_id is 'system user', OK
+    - If requesting_user_id is 'system user', OK
+    - If record_user_id <= requesting_user_id, OK
+    - Else no access
+    Because SQLite UDFs must be synchronous, we use the synchronous connection.
+
+    TODO: Remove this altogeter, doing additional checks this way is not efficient and doing additional queries in
+    a registered function is not recommended (creating a helper function which actually does things asynchronously
+    and use that to check access would be better)
+    """
+    import re
+
+    conn = dbapi_conn._connection
+
+    cursor0 = None
+    cursor1 = None
+    try:
+        cursor0 = conn._conn.execute(
+            """
+            SELECT sub
+            FROM v2_user
+            WHERE user_id = ?
+            """,
+            (record_user_id,),
+        )
+        record_user = cursor0.fetchone()
+    except Exception:
+        logger.exception("Error fetching record user")
+        return 0  # We cannot access it: return 0
+    finally:
+        if cursor0 is not None:
+            cursor0.close()
+
+    try:
+        cursor1 = conn._conn.execute(
+            """
+            SELECT sub
+            FROM v2_user
+            WHERE user_id = ?
+            """,
+            (requesting_user_id,),
+        )
+        requesting_user = cursor1.fetchone()
+    except Exception:
+        logger.exception("Error fetching requesting user")
+        return 0  # We cannot access it: return 0
+    finally:
+        if cursor1 is not None:
+            cursor1.close()
+
+    if record_user is None or requesting_user is None:
+        return 0
+
+    # record user is a system user (worker agents)
+    # any resources created by this user are accessible to all users of Workroom
+    record_sub_value = record_user["sub"]
+    sys_user_pattern = r"^tenant:.*:.*:system_user$"
+    if record_sub_value and bool(re.match(sys_user_pattern, record_sub_value)):
+        return 1
+
+    # system users can access all resources
+    req_sub_value = requesting_user["sub"]
+    if req_sub_value and bool(re.match(sys_user_pattern, req_sub_value)):
+        return 1
+
+    # a user can access resources whose owner's sub is a prefix of their sub
+    if req_sub_value.startswith(record_sub_value):
+        return 1
+
+    return 0
 
 
 class SQLiteStorage(
@@ -204,8 +288,6 @@ class SQLiteStorage(
 
     V2_PREFIX = "v2_"
 
-    _raw_connection: Connection | None = None
-
     def __init__(self, db_path: str | None = None):
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
@@ -214,7 +296,7 @@ class SQLiteStorage(
         self._db_path = db_path or self._get_db_path()
         self._migrations = SQLiteMigrations(self._db_path)
         self._is_setup = False
-        self._write_lock = NonReentrantAsyncLock()
+        self._write_lock = ReentrantAsyncLock()
 
     async def setup(self) -> None:
         """Create and open the SQLite database connection, enable foreign keys,
@@ -222,14 +304,7 @@ class SQLiteStorage(
         if self._is_setup:
             return  # Already setup
 
-        # Note: These adapters are for the synchronous sqlite3 DBAPI and may not be
-        # used by aiosqlite, but we register them for completeness
         _register_sqlite_adapters()
-
-        # Initialize dedicated read and write connections
-        # Some imprecise benchmarking shows a 2-3x slowdown creating a new connection
-        # for every read operation.
-        self._raw_connection = await self._conn_factory()
 
         # Initialize SQLAlchemy engine
         sqlite_url = f"sqlite+aiosqlite:///{self._db_path}"
@@ -280,7 +355,14 @@ class SQLiteStorage(
         def set_sqlite_pragma(dbapi_conn, connection_record):
             cursor = dbapi_conn.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
+            # Keep turn on WAL mode, avoids reads and writes from blocking each other
+            cursor.execute("PRAGMA journal_mode = WAL")
+            # Fsync less often, but still "enough".
+            cursor.execute("PRAGMA synchronous = NORMAL")
             cursor.close()
+
+            func = functools.partial(check_user_access, dbapi_conn)
+            dbapi_conn.create_function("v2_check_user_access", 2, func)
 
         # Run migrations in setup
         await self._run_migrations()
@@ -290,109 +372,12 @@ class SQLiteStorage(
 
         self._is_setup = True
 
-    async def _conn_factory(self) -> Connection:
-        """
-        Create and configure a new SQLite connection.
-        """
-        # Increase timeout to 10 seconds (from 5seconds) to avoid "Database is locked" errors
-        # TODO allow this value to be configurable.
-        conn = await connect(self._db_path, timeout=10)
-
-        await conn.execute("PRAGMA foreign_keys = ON")
-        # Keep turn on WAL mode, avoids reads and writes from blocking each other
-        await conn.execute("PRAGMA journal_mode = WAL")
-        # Fsync less often, but still "enough".
-        await conn.execute("PRAGMA synchronous = NORMAL")
-
-        conn.row_factory = Row
-
-        # ---------------------------------------------------------------------
-        # Register the check_user_access function in SQLite
-        # ---------------------------------------------------------------------
-        def check_user_access(record_user_id: str, requesting_user_id: str) -> int:
-            """
-            Return 1 if requesting_user_id can access record_user_id's resource, else 0.
-            - If record_user_id is 'system user', OK
-            - If requesting_user_id is 'system user', OK
-            - If record_user_id <= requesting_user_id, OK
-            - Else no access
-            Because SQLite UDFs must be synchronous, we use the synchronous connection.
-            """
-            if not self._is_setup:
-                raise RuntimeError("Database not initialized; call setup() first.")
-
-            cursor0 = None
-            cursor1 = None
-            try:
-                cursor0 = conn._conn.execute(
-                    """
-                    SELECT sub
-                    FROM v2_user
-                    WHERE user_id = ?
-                    """,
-                    (record_user_id,),
-                )
-                record_user = cursor0.fetchone()
-            except Exception:
-                self._logger.exception("Error fetching record user")
-                return 0  # We cannot access it: return 0
-            finally:
-                if cursor0 is not None:
-                    cursor0.close()
-
-            try:
-                cursor1 = conn._conn.execute(
-                    """
-                    SELECT sub
-                    FROM v2_user
-                    WHERE user_id = ?
-                    """,
-                    (requesting_user_id,),
-                )
-                requesting_user = cursor1.fetchone()
-            except Exception:
-                self._logger.exception("Error fetching requesting user")
-                return 0  # We cannot access it: return 0
-            finally:
-                if cursor1 is not None:
-                    cursor1.close()
-
-            if record_user is None or requesting_user is None:
-                return 0
-
-            # record user is a system user (worker agents)
-            # any resources created by this user are accessible to all users of Workroom
-            record_sub_value = record_user["sub"]
-            sys_user_pattern = r"^tenant:.*:.*:system_user$"
-            if record_sub_value and bool(re.match(sys_user_pattern, record_sub_value)):
-                return 1
-
-            # system users can access all resources
-            req_sub_value = requesting_user["sub"]
-            if req_sub_value and bool(re.match(sys_user_pattern, req_sub_value)):
-                return 1
-
-            # a user can access resources whose owner's sub is a prefix of their sub
-            if req_sub_value.startswith(record_sub_value):
-                return 1
-
-            return 0
-
-        # Create the function in the current DB connection
-        await conn.create_function("v2_check_user_access", 2, check_user_access)
-
-        return conn
-
     async def teardown(self) -> None:
         """Close the SQLite database connection."""
         # Close SQLAlchemy engine
         await super().teardown()
 
         if self._is_setup:
-            if self._raw_connection is not None:
-                await self._raw_connection.close()
-                self._raw_connection = None
-
             self._is_setup = False
 
     def _get_db_path(self) -> str:
@@ -412,36 +397,30 @@ class SQLiteStorage(
         self,
     ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor"""
-        if not self._raw_connection:
+        if not self._is_setup:
             raise RuntimeError("Database not initialized; call setup() first.")
-        yield await self._raw_connection.cursor()
+
+        async with self._read_connection() as conn:
+            raw_conn = await conn.get_raw_connection()
+            assert raw_conn.driver_connection is not None
+
+            raw_conn.driver_connection._connection.row_factory = Row
+            cursor = await raw_conn.driver_connection.cursor()
+            yield cursor
 
     @asynccontextmanager
     async def _transaction(
         self,
     ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor and then commit on exit or rollback on error."""
-        # Do not allow for re-entrant use of one thread by one caller. The caller should
-        # use the existing connection rather than trying to open a new connection.
-        if not self._raw_connection:
+        if not self._is_setup:
             raise RuntimeError("Database not initialized; call setup() first.")
 
-        # Use a lock to avoid concurrent commits as sqlite can give errors
-        # if writes are used concurrently, such as `database is locked`
-        # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758794225716359
-        # Also, we need to commit/rollback correctly and fetch results accordingly
-        # to avoid issues such as:
-        # sqlite3.OperationalError: cannot commit transaction - SQL statements in progress
-        # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758838417062669
-        async with self._write_lock:
-            try:
-                yield await self._raw_connection.cursor()
-
-                await self._raw_connection.commit()
-            except Exception as e:
-                self._logger.exception("Error in transaction")
-                await self._raw_connection.rollback()
-                raise e
+        async with self._write_connection() as conn:
+            raw_conn = await conn.get_raw_connection()
+            assert raw_conn.driver_connection is not None
+            raw_conn.driver_connection._connection.row_factory = Row
+            yield await raw_conn.driver_connection.cursor()
 
     def _clean_up_stale_threads__get_threshold(
         self,

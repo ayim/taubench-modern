@@ -7,9 +7,8 @@ from types import TracebackType
 from typing import Self
 
 import sqlalchemy as sa
-from psycopg import AsyncConnection, AsyncCursor
+from psycopg import AsyncCursor
 from psycopg.rows import DictRow, dict_row
-from psycopg_pool import AsyncConnectionPool
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from structlog import get_logger
 
@@ -56,6 +55,8 @@ from agent_platform.server.storage.postgres.storage_users import (
 from agent_platform.server.storage.postgres.storage_work_items import (
     PostgresStorageWorkItemsMixin,
 )
+
+logger = get_logger(__name__)
 
 
 class NullAsyncLock:
@@ -152,30 +153,60 @@ class PostgresStorage(
 ):
     V2_PREFIX = "v2."
 
-    def __init__(self, pool: AsyncConnectionPool | None = None, dsn: str | None = None):
+    def __init__(self, dsn: str | None = None):
+        from typing import Any
+
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
 
-        # If a pool is provided externally, PostgresStorage should not be
-        # responsible for closing it: the caller owns its lifecycle. When we
-        # create the pool ourselves we *do* want to close it in teardown().
-        self._pool = pool
-        self._owns_pool = pool is None
         self._logger = get_logger(__name__)
-        self._migrations = PostgresMigrations(self._cursor)
+        self._migrations = PostgresMigrations(self._transaction)
         self._is_setup = False
         self._dns = dsn
         self._write_lock = NullAsyncLock()
-        self._engine_swap_lock: asyncio.Lock = asyncio.Lock()
+        self._tasks: set[asyncio.Task[Any]] = set()
+
+    @classmethod
+    def _compute_pool_base_and_overflow(cls, pool_size: int) -> tuple[int, int]:
+        # Note: perhaps we should actually received both base_pool_size and max_overflow as inputs?
+
+        # Compute pool_size (base) and max_overflow from the total maximum connections.
+        # The input pool_size represents the maximum total connections allowed.
+        # Heuristic: split between base pool and overflow based on size.
+        if pool_size <= 2:
+            # For really tiny pools: keep all as base, no overflow
+            base_pool_size = pool_size
+            max_overflow = 0
+        elif pool_size <= 5:
+            # For very small pools: keep most as base, minimal overflow
+            base_pool_size = max(1, pool_size - 1)
+            max_overflow = pool_size - base_pool_size
+        elif pool_size <= 20:
+            # For small pools: use ~75% as base, ~25% as overflow
+            base_pool_size = max(1, int(pool_size * 0.75))
+            max_overflow = pool_size - base_pool_size
+        elif pool_size <= 50:
+            # For medium pools: use ~70% as base, ~30% as overflow
+            base_pool_size = int(pool_size * 0.7)
+            max_overflow = pool_size - base_pool_size
+        else:
+            # For large pools: use ~65% as base, ~35% as overflow
+            base_pool_size = int(pool_size * 0.65)
+            max_overflow = pool_size - base_pool_size
+        return base_pool_size, max_overflow
 
     def _create_async_engine(self, dsn: str, pool_size: int) -> AsyncEngine:
         assert dsn.startswith("postgresql://"), "DSN must start with postgresql://"
+
+        base_pool_size, max_overflow = self._compute_pool_base_and_overflow(pool_size)
+        # See: https://docs.sqlalchemy.org/en/20/core/pooling.html for more details.
         return create_async_engine(
             dsn.replace("postgresql://", "postgresql+psycopg://"),
             echo=False,
             pool_pre_ping=True,
             pool_recycle=3600,
-            pool_size=pool_size,
+            pool_size=base_pool_size,  # number of persistent connections kept
+            max_overflow=max_overflow,  # additional connections allowed above pool_size
         )
 
     async def setup(self) -> None:
@@ -183,21 +214,7 @@ class PostgresStorage(
         if self._is_setup:
             return  # Already setup
 
-        # Instantiate the pool with the default pool size
-        # from PostgresConfig. We don't use the QuotasService
-        # config here because we instantiate storage before QuotasService.
         dsn = self._get_dsn()
-        self._pool = (
-            AsyncConnectionPool(
-                conninfo=dsn,
-                max_size=PostgresConfig.pool_max_size,
-                num_workers=3,
-                open=False,
-            )
-            if self._pool is None
-            else self._pool
-        )
-        await self._pool.open()
 
         # Initialize SQLAlchemy engine
         # We assert the dsn starts with postgresql:// in _create_async_engine;
@@ -216,21 +233,7 @@ class PostgresStorage(
         """Close the async connection pool."""
         # Close SQLAlchemy engine
         await super().teardown()
-
-        # Only close the pool if we created/own it. A caller-provided pool may
-        # be shared across test cases or even the entire application, so we
-        # must not close it here! Doing so would render the shared pool
-        # unusable and lead to "PoolClosed" errors in subsequent operations.
-        if self._is_setup and self._pool is not None and self._owns_pool:
-            await self._pool.close()
-            self._pool = None
         self._is_setup = False
-
-    async def get_connection(self) -> AsyncConnection:
-        """Get a connection from the pool."""
-        if not self._pool:
-            raise RuntimeError("Pool not initialized; call setup() first.")
-        return await self._pool.getconn()
 
     async def apply_pool_size(self, new_max: int) -> None:
         """Resize psycopg pool to the new pool size.
@@ -238,21 +241,17 @@ class PostgresStorage(
         Validates against current psycopg min_size. On invalid values, raises
         PlatformHTTPError with BAD_REQUEST.
         """
-        # Resize psycopg pool if available
-        pool = self._pool
-        if pool is not None:
-            current_min = pool.min_size
-            if new_max < current_min:
-                raise PlatformHTTPError(
-                    error_code=ErrorCode.BAD_REQUEST,
-                    message=(f"Invalid value for POSTGRES_POOL_MAX_SIZE: must be >= current min_size {current_min}"),
-                    data={
-                        "new_value": new_max,
-                        "current_min": current_min,
-                    },
-                )
-            await pool.resize(current_min, new_max)
-            self._logger.info("Resized psycopg pool", new_max=new_max)
+        # Resize pool if available
+        current_min = 1
+        if new_max < current_min:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=(f"Invalid value for POSTGRES_POOL_MAX_SIZE: must be >= current min_size {current_min}"),
+                data={
+                    "new_value": new_max,
+                    "current_min": current_min,
+                },
+            )
 
         # SQLAlchemy pool resizing
         dsn = self._get_dsn()
@@ -261,14 +260,17 @@ class PostgresStorage(
             pool_size=new_max,
         )
 
-        async with self._engine_swap_lock:
-            old_engine: AsyncEngine | None = self._sa_engine
-            self._sa_engine = new_engine
-        try:
-            if old_engine is not None:
-                await old_engine.dispose()
-        finally:
-            self._logger.info("Hot-swapped SQLAlchemy engine", pool_size=new_max)
+        old_engine: AsyncEngine | None = self._sa_engine
+        self._sa_engine = new_engine
+        self._logger.info("Resized/hot-swapped SQLAlchemy pool", new_max=new_max)
+        # Note: the old engine could still be in use by other coroutines,
+        # so, we don't dispose right away, rather we do it in a background task
+        # waiting that no one is using it anymore.
+        if old_engine is not None:
+            task = asyncio.create_task(self._dispose_engine_when_no_connections_are_checked_out(old_engine))
+            self._tasks.add(task)
+            # Remove from tasks set when the task is done
+            task.add_done_callback(lambda _: self._tasks.discard(task))
 
     def _get_dsn(self) -> str:
         return self._dns or PostgresConfig.dsn
@@ -276,20 +278,54 @@ class PostgresStorage(
     async def _run_migrations(self):
         await self._migrations.run_migrations()
 
+    async def _dispose_engine_when_no_connections_are_checked_out(self, engine: AsyncEngine) -> None:
+        try:
+            import time
+
+            timeout = 30
+            start_time = time.time()
+            pool = engine.sync_engine.pool
+            checked_out = getattr(pool, "checkedout", None)
+            assert checked_out is not None, "pool.checkedout() is not available"
+            while checked_out() > 0:
+                if time.time() - start_time > timeout:
+                    logger.warning(
+                        f"Timed out waiting for old engine to not have any checked out connections: {timeout} seconds. "
+                        "Proceeding with disposal anyway."
+                    )
+                    break
+                await asyncio.sleep(0.1)
+            await engine.dispose()
+        except Exception:
+            # This is done in a background task, so, there's no point in raising the exception,
+            # just log it.
+            logger.exception("Error disposing engine", engine=engine)
+
     @asynccontextmanager
     async def _cursor(
         self,
-        cursor: AsyncCursor[DictRow] | None = None,
     ) -> AsyncGenerator[AsyncCursor[DictRow], None]:
-        """Yield an async psycopg cursor from the pool (or uses the provided cursor)."""
-        if not self._pool:
-            raise RuntimeError("Pool not initialized; call setup() first.")
-        if cursor is None:
-            async with self._pool.connection() as conn:
-                async with conn.cursor(row_factory=dict_row) as cur:
-                    yield cur
-        else:
-            yield cursor
+        """Yield an async SQLite cursor"""
+        if not hasattr(self, "_sa_engine"):
+            raise RuntimeError("Database not initialized; call setup() first.")
+
+        async with self._read_connection() as conn:
+            raw_conn = await conn.get_raw_connection()
+            assert raw_conn.driver_connection is not None
+            yield raw_conn.driver_connection.cursor(row_factory=dict_row)
+
+    @asynccontextmanager
+    async def _transaction(
+        self,
+    ) -> AsyncGenerator[AsyncCursor[DictRow], None]:
+        """Yield an async SQLite cursor and then commit on exit or rollback on error."""
+        if not hasattr(self, "_sa_engine"):
+            raise RuntimeError("Database not initialized; call setup() first.")
+
+        async with self._write_connection() as conn:
+            raw_conn = await conn.get_raw_connection()
+            assert raw_conn.driver_connection is not None
+            yield raw_conn.driver_connection.cursor(row_factory=dict_row)
 
     def _clean_up_stale_threads__get_threshold(
         self,

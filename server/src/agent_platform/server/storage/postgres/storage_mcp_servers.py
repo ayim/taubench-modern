@@ -111,7 +111,7 @@ class PostgresStorageMCPServersMixin(CursorMixin, CommonMixin):
         if not mcp_server_ids:
             return []
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. Delete the MCP servers and return their deployment IDs
             placeholders = SQL(",").join([SQL("%s::uuid")] * len(mcp_server_ids))
             query = SQL("""

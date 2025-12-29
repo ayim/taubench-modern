@@ -35,7 +35,7 @@ class PostgresStorageMemoriesMixin(CursorMixin, CommonMixin):
         memory_dict["refs"] = Jsonb(memory_dict["refs"])
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                 INSERT INTO v2."memory" (
@@ -122,7 +122,7 @@ class PostgresStorageMemoriesMixin(CursorMixin, CommonMixin):
         memory_dict["refs"] = Jsonb(memory_dict["refs"])
 
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2."memory" (
@@ -170,7 +170,7 @@ class PostgresStorageMemoriesMixin(CursorMixin, CommonMixin):
             MemoryNotFoundError: if no record with the given memory_id exists.
         """
         self._validate_uuid(memory_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2."memory"

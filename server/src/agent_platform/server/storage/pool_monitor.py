@@ -52,12 +52,6 @@ async def pool_monitor_loop(shutdown_event: asyncio.Event) -> None:
     event_wait_task = asyncio.create_task(shutdown_event.wait())
     while not shutdown_event.is_set():
         try:
-            # psycopg pool
-            pool = storage._pool  # type: ignore (only runs for PostgreSQL)
-            if pool:
-                stats = pool.get_stats()
-                logger.info(f"Database connection pool stats: {stats}")
-
             # sqlalchemy pool
             if storage._sa_engine:
                 pool = storage._sa_engine.pool

@@ -11,6 +11,12 @@ class CursorMixin(AbstractStorage):
     @abstractmethod
     def _cursor(
         self,
-        cursor: AsyncCursor[DictRow] | None = None,
     ) -> AbstractAsyncContextManager[AsyncCursor[DictRow]]:
-        """Get a cursor for the database (or uses the provided cursor)."""
+        """Get a cursor for reading from the database."""
+
+    @abstractmethod
+    def _transaction(
+        self,
+    ) -> AbstractAsyncContextManager[AsyncCursor[DictRow]]:
+        """Get a cursor for writing to the database, implementations will ensure
+        auto-rollback on error."""

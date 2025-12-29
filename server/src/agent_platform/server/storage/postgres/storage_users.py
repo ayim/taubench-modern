@@ -48,7 +48,7 @@ class PostgresStorageUsersMixin(CursorMixin, CommonMixin):
         user_id = str(uuid4())
         created_at = datetime.now(UTC)
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2.user (user_id, sub, created_at)
@@ -77,7 +77,7 @@ class PostgresStorageUsersMixin(CursorMixin, CommonMixin):
         Delete a user by ID.
         """
         self._validate_uuid(user_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 "DELETE FROM v2.user WHERE user_id = %(user_id)s",
                 {"user_id": user_id},

@@ -22,11 +22,7 @@ class _DummyEngine:
 
 class _DummyStorage:
     def __init__(self):
-        self._pool = _DummyPool()
         self._sa_engine = _DummyEngine()
-
-    async def get_pool(self):
-        return self._pool
 
     async def get_sa_engine(self):
         return self._sa_engine
@@ -47,12 +43,10 @@ async def test_pool_monitor_loop():
         task = asyncio.create_task(pool_monitor_loop(shutdown_event))
         await asyncio.sleep(1)
 
-        assert dummy_storage_instance._pool.requested_times == 10
         assert dummy_storage_instance._sa_engine.pool.requested_times == 10
 
         shutdown_event.set()
         await task
-        assert dummy_storage_instance._pool.requested_times == 10
         assert dummy_storage_instance._sa_engine.pool.requested_times == 10
 
         assert task.exception() is None

@@ -17,5 +17,5 @@ class CursorMixin(AbstractStorage):
     def _transaction(
         self,
     ) -> AbstractAsyncContextManager[Cursor]:
-        """Get a cursor for writing to the database, implementations will ensure safe
-        locking for concurrent operations."""
+        """Get a cursor for writing to the database, implementations will ensure
+        auto-rollback on error and safe locking for concurrent writes."""

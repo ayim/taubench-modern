@@ -131,7 +131,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
 
         # 3. Insert/update the agent
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2.agent (
@@ -243,7 +243,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
     async def patch_agent(self, user_id: str, agent_id: str, name: str, description: str) -> None:
         """Update agent name and description."""
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     UPDATE v2.agent
@@ -318,7 +318,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
         self._validate_uuid(user_id)
         self._validate_uuid(agent_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # 2. Check if the user has access
             await cur.execute(
                 """SELECT v2.check_user_access(a.user_id, %(user_id)s::uuid) AS has_access
@@ -435,7 +435,7 @@ class PostgresStorageAgentsMixin(CursorMixin, CommonMixin):
         """
         self._validate_uuid(agent_id)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # First, remove existing associations
             await cur.execute(
                 """DELETE FROM v2.agent_platform_params

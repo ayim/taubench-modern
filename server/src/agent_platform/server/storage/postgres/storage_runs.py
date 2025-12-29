@@ -40,7 +40,7 @@ class PostgresStorageRunsMixin(CursorMixin, CommonMixin):
         # that psycopg handles it properly.
         run_dict["metadata"] = Jsonb(run_dict["metadata"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2."agent_runs" (
@@ -127,7 +127,7 @@ class PostgresStorageRunsMixin(CursorMixin, CommonMixin):
         # Wrap the metadata field in Jsonb for Postgres handling.
         run_dict["metadata"] = Jsonb(run_dict["metadata"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2."agent_runs" (
@@ -171,7 +171,7 @@ class PostgresStorageRunsMixin(CursorMixin, CommonMixin):
             RunNotFoundError: If no run with the given run_id exists.
         """
         self._validate_uuid(run_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 DELETE FROM v2."agent_runs"
@@ -205,7 +205,7 @@ class PostgresStorageRunsMixin(CursorMixin, CommonMixin):
         run_step_dict["output_state"] = Jsonb(run_step_dict["output_state"])
         run_step_dict["metadata"] = Jsonb(run_step_dict["metadata"])
         try:
-            async with self._cursor() as cur:
+            async with self._transaction() as cur:
                 await cur.execute(
                     """
                     INSERT INTO v2."agent_run_steps" (

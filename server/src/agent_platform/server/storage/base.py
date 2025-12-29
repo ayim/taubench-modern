@@ -161,6 +161,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
         assert self.V2_PREFIX, "V2_PREFIX must be set"
         self._metadata = sa.MetaData()
 
+        import contextvars
+
+        self._sql_transaction_count = contextvars.ContextVar[int]("sql_transaction_count", default=0)
+        self._sql_transaction_conn = contextvars.ContextVar[AsyncConnection | None](
+            "sql_transaction_conn", default=None
+        )
+
     async def _reflect_database(self, schema=None):
         """
         Current DB reflection doesn't (currently) work with AsyncEngines,
@@ -209,15 +216,50 @@ class BaseStorage(AbstractStorage, CommonMixin):
         Acquire the write lock and open a transactional connection.
         Commits on success, rolls back on exception.
         """
+
+        # Use a lock to avoid concurrent commits as sqlite can give errors
+        # if writes are used concurrently, such as `database is locked`
+        # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758794225716359
+        # Also, we need to commit/rollback correctly and fetch results accordingly
+        # to avoid issues such as:
+        # sqlite3.OperationalError: cannot commit transaction - SQL statements in progress
+        # -- see: https://sema4ai.slack.com/archives/C08HF1FADTQ/p1758838417062669
         async with self._write_lock:
-            async with self._sa_engine.begin() as conn:
-                yield conn
+            current_count = self._sql_transaction_count.get()
+            current_conn: AsyncConnection | None = self._sql_transaction_conn.get()
+            if current_count > 0:  # A transaction is already in progress
+                assert current_conn is not None, "Current connection is not expected to be None on nested transaction!"
+                self._sql_transaction_count.set(current_count + 1)
+                try:
+                    async with current_conn.begin_nested():
+                        yield current_conn
+                finally:
+                    self._sql_transaction_count.set(current_count)
+                return
+
+            try:
+                self._sql_transaction_count.set(current_count + 1)
+                conn: AsyncConnection
+                async with self._sa_engine.begin() as conn:
+                    self._sql_transaction_conn.set(conn)
+                    yield conn
+            finally:
+                self._sql_transaction_count.set(current_count)
 
     @asynccontextmanager
     async def _read_connection(self) -> AsyncIterator[AsyncConnection]:
         """
         Open a read-only connection.
         """
+        current_count = self._sql_transaction_count.get()
+        current_conn: AsyncConnection | None = self._sql_transaction_conn.get()
+        if current_count > 0:  # A transaction is already in progress
+            assert current_conn is not None, (
+                "Current connection is not expected to be None on nested transaction (read inside write)!"
+            )
+            yield current_conn
+            return
+
         async with self._sa_engine.connect() as conn:
             yield conn
 

@@ -417,7 +417,7 @@ async def test_user_data_integrity_after_tampering(storage: PostgresStorage):
     user, _ = await storage.get_or_create_user(sub=original_subject)
     original_user_id = user.user_id
 
-    async with storage._cursor() as cur:
+    async with storage._transaction() as cur:
         # Adjust the table and column names as per your actual schema.
         await cur.execute(
             "UPDATE v2.user SET sub = %s WHERE user_id = %s",

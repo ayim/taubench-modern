@@ -379,7 +379,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
                 work_item_id = None
 
         self._logger.debug("Deleting file by ID", file_id=file_id)
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             row = await self._get_file_for_deletion(
                 cur,
                 file_id,
@@ -504,7 +504,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             file_size_raw=file_size_raw,
         )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             try:
                 await cur.execute("SAVEPOINT savepoint1")
                 # Try to insert/update the file
@@ -613,7 +613,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             agent_id=agent_id,
             thread_id=thread_id,
         )
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             result = await cur.execute(
                 """
                 UPDATE v2.file_owner SET
@@ -663,7 +663,7 @@ class PostgresStorageFilesMixin(CursorMixin, CommonMixin):
             file_path=file_path,
         )
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             # First check access
             # Nb. file_id contains a uuid4 value, but is a TEXT column in the database.
             await cur.execute(

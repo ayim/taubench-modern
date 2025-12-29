@@ -48,7 +48,7 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
         validate_config_type(config_type)
         config_value = json.dumps(current_value)
 
-        async with self._cursor() as cur:
+        async with self._transaction() as cur:
             await cur.execute(
                 """
                 INSERT INTO v2.agent_config (config_type, namespace, config_value)
