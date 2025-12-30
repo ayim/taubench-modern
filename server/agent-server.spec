@@ -286,7 +286,7 @@ a = Analysis(
         "pandas.tests",
         "numpy.tests",
         "pytest",
-        "unittest",
+        # "unittest", --- Do NOT exclude "unittest", snowflake packages depend on this at runtime
         "test",
         "tests",
         # Exclude unnecessary packages
