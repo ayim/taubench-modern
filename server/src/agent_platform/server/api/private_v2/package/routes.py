@@ -1,20 +1,23 @@
 import uuid
 
 from fastapi import APIRouter, File, Request, UploadFile
+from fastapi.responses import Response, StreamingResponse
 from structlog import get_logger
 
+from agent_platform.core.agent_package.build import AgentPackageBuilder
+from agent_platform.core.agent_package.create import create_agent_project_zip, expand_action_packages_from_uris
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.hash.agent_package_hash import calculate_agent_package_hash
 from agent_platform.core.agent_package.metadata.agent_metadata import (
     AgentPackageMetadata,
 )
-from agent_platform.core.agent_package.metadata.generate_metadata import AgentMetadataGenerator
+from agent_platform.core.agent_package.metadata.agent_metadata_generator import AgentMetadataGenerator
 from agent_platform.core.agent_package.read import ReadAgentPackageResult
 from agent_platform.core.agent_package.read import read_agent_package as core_read_agent_package
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
-from agent_platform.core.payloads import UpsertAgentPayload
 from agent_platform.core.payloads.action_package import ActionPackagePayload
+from agent_platform.core.payloads.agent_package_create import AgentPackageCreatePayload
 from agent_platform.core.payloads.agent_package_inspection import (
     AgentPackageInspectionResponse,
     UploadedPackageInfo,
@@ -197,17 +200,95 @@ async def inspect_action_from_package(
 
 @router.post(
     "/create",
-    response_model=AgentCompat,
-    summary="Create new Agent Package",
-    description="Create a new Agent Package.",
+    response_class=Response,
+    summary="Create new Agent Project Package from existing Agent",
+    description=(
+        "Create a new Agent Project Package based on Agent ID from an existing Agent in Agent Server. "
+        "Response is the Agent Project packaged as a zip file."
+        "The Agent Project Zip File is a zip file containing the agent project as a Folder."
+    ),
 )
-async def create_agent_package(
-    payload: UpsertAgentPayload,
+async def create_agent_project_zip_package(
     user: AuthedUser,
     storage: StorageDependency,
-    _quota: AgentQuotaCheck,
-) -> StatusResponse[dict]:
-    raise NotImplementedError("Not implemented")
+    payload: AgentPackageCreatePayload,
+) -> Response:
+    """
+    Create an agent project zip file from an existing agent.
+    The Agent Project Zip File is a zip file containing the agent project as a Folder.
+
+    Args:
+        user: The user creating the agent project zip package.
+        storage: The storage dependency.
+        payload: The payload containing the agent ID and action packages URIs.
+
+    Returns:
+        A Response containing the agent project zip file.
+        The Agent Project Zip File is a zip file containing the agent project as a Folder.
+    """
+    from typing import cast
+
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    # Check if the agent exists
+    agent = await storage.get_agent(user.user_id, payload.agent_id)
+    if not agent:
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Agent not found")
+
+    # Get semantic data models associated with this agent (if any)
+    semantic_data_models: list[SemanticDataModel] = []
+    try:
+        sdm_dicts = await storage.get_agent_semantic_data_models(payload.agent_id)
+        # Cast the dicts to SemanticDataModel TypedDicts
+        semantic_data_models = cast(list[SemanticDataModel], sdm_dicts)
+    except Exception as e:
+        logger.warning("Failed to fetch semantic data models", agent_id=payload.agent_id, error=str(e))
+
+    # Expand action packages from the provided URIs
+    action_packages_map = await expand_action_packages_from_uris(agent, payload.action_packages_uris)
+
+    # Prepare the response
+    headers = {"Content-Disposition": 'attachment; filename="agent_package.zip"'}
+    return StreamingResponse(
+        await create_agent_project_zip(agent, semantic_data_models, action_packages_map),
+        media_type="application/zip",
+        headers=headers,
+    )
+
+
+@router.post(
+    "/build",
+    response_class=Response,
+    summary="Builds an Agent Package from a zipped Agent Project",
+    description="Builds an Agent Package from a zipped Agent Project. "
+    "Accepts a zip file containing a compressed Agent Project Folder.",
+)
+async def build_agent_package(
+    user: AuthedUser,
+    storage: StorageDependency,
+    project_package_zip: UploadFile = File(..., description="Agent Project Package ZIP file"),  # noqa: B008
+) -> Response:
+    """Build an agent package from a zipped agent project.
+
+    The Agent Project Zip File is a zip file containing a compressed Agent Project Folder.
+
+    Args:
+        user: The user building the agent package.
+        storage: The storage dependency.
+        project_package_zip: The zip file containing the compressed Agent Project Folder.
+
+    Returns:
+        A Response containing the agent package zip file.
+    """
+    # Read the uploaded zip file contents
+    project_zip_bytes = await project_package_zip.read()
+
+    with await AgentPackageHandler.from_bytes(project_zip_bytes) as handler:
+        builder = AgentPackageBuilder(handler)
+        headers = {"Content-Disposition": 'attachment; filename="agent_package.zip"'}
+        return StreamingResponse(await builder.build(), media_type="application/zip", headers=headers)
 
 
 @router.post(
@@ -222,19 +303,6 @@ async def read_agent_package(
 ) -> ReadAgentPackageResult:
     with await AgentPackageHandler.from_stream(iter_upload_file_chunks(package_zip_file)) as handler:
         return await core_read_agent_package(handler)
-
-
-@router.post(
-    "/build",
-    summary="Builds an Agent Package.",
-    description="Builds an Agent Package from zipped Agent Project. Accepts binary ZIP files.",
-)
-async def build_agent_package(
-    user: AuthedUser,
-    request: Request,
-    storage: StorageDependency,
-) -> StatusResponse[dict]:
-    raise NotImplementedError("Not implemented")
 
 
 @router.post(

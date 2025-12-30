@@ -2318,10 +2318,30 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Create new Agent Package
-     * @description Create a new Agent Package.
+     * Create new Agent Project Package from existing Agent
+     * @description Create a new Agent Project Package based on Agent ID from an existing Agent in Agent Server. Response is the Agent Project packaged as a zip file.The Agent Project Zip File is a zip file containing the agent project as a Folder.
      */
-    post: operations['create_agent_package_package_create_post'];
+    post: operations['create_agent_project_zip_package_package_create_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/package/build': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Builds an Agent Package from a zipped Agent Project
+     * @description Builds an Agent Package from a zipped Agent Project. Accepts a zip file containing a compressed Agent Project Folder.
+     */
+    post: operations['build_agent_package_package_build_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2342,26 +2362,6 @@ export interface paths {
      * @description Read Agent data from an Agent Package. Accepts binary ZIP files.
      */
     post: operations['read_agent_package_package_read_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v2/package/build': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Builds an Agent Package.
-     * @description Builds an Agent Package from zipped Agent Project. Accepts binary ZIP files.
-     */
-    post: operations['build_agent_package_package_build_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3813,6 +3813,19 @@ export interface components {
        */
       action_package_version: string;
     };
+    /** AgentPackageCreatePayload */
+    AgentPackageCreatePayload: {
+      /**
+       * Agent Id
+       * @description The ID of the agent to create the agent package from.
+       */
+      agent_id: string;
+      /**
+       * Action Packages Uris
+       * @description The URIs of the action packages to include in the agent package.
+       */
+      action_packages_uris: string[];
+    };
     /** AgentPackageDatasource */
     AgentPackageDatasource: {
       /**
@@ -4667,6 +4680,15 @@ export interface components {
       service_account_keys?: string | null;
       /** Service Account Json */
       service_account_json?: string | null;
+    };
+    /** Body_build_agent_package_package_build_post */
+    Body_build_agent_package_package_build_post: {
+      /**
+       * Project Package Zip
+       * Format: binary
+       * @description Agent Project Package ZIP file
+       */
+      project_package_zip: string;
     };
     /** Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post */
     Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
@@ -19396,7 +19418,7 @@ export interface operations {
       };
     };
   };
-  create_agent_package_package_create_post: {
+  create_agent_project_zip_package_package_create_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -19405,7 +19427,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpsertAgentPayload'];
+        'application/json': components['schemas']['AgentPackageCreatePayload'];
       };
     };
     responses: {
@@ -19414,9 +19436,38 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content: {
-          'application/json': components['schemas']['AgentCompat'];
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  build_agent_package_package_build_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_build_agent_package_package_build_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -19458,26 +19509,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  build_agent_package_package_build_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StatusResponse_dict_'];
         };
       };
     };

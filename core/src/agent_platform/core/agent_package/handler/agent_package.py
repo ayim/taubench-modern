@@ -1,13 +1,11 @@
 import json
-from tempfile import SpooledTemporaryFile
 from typing import TYPE_CHECKING, Any
 
-from ruamel.yaml import YAML
 from structlog import get_logger
 
 from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_package.config import AgentPackageConfig
-from agent_platform.core.agent_package.handler.base import BasePackageHandler
+from agent_platform.core.agent_package.handler.base import BasePackageHandler, YAMLHandler
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
 from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
@@ -19,11 +17,13 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 if TYPE_CHECKING:
-    from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
+    from agent_platform.core.agent_package.handler.action_package import (
+        ActionPackageContent,
+        ActionPackageHandler,
+        ActionPackagePath,
+    )
 
 logger = get_logger(__name__)
-
-_yaml = YAML(typ="safe")
 
 
 class AgentPackageHandler(BasePackageHandler):
@@ -38,6 +38,10 @@ class AgentPackageHandler(BasePackageHandler):
         has_spec_file = await self.file_exists(AgentPackageConfig.agent_spec_filename)
 
         if not has_spec_file:
+            logger.warning(
+                "Agent spec file missing from package",
+                expected_file=AgentPackageConfig.agent_spec_filename,
+            )
             raise PlatformHTTPError(
                 error_code=ErrorCode.UNPROCESSABLE_ENTITY,
                 message=f"{AgentPackageConfig.agent_spec_filename} is missing in Agent Package",
@@ -72,7 +76,8 @@ class AgentPackageHandler(BasePackageHandler):
 
         # At this point, the spec file has been validated - if it didn't contain exactly
         # one Agent definition, an error would have been raised.
-        return spec.agent_package.agents[0]
+        agent = spec.agent_package.agents[0]
+        return agent
 
     async def read_metadata(self) -> AgentPackageMetadata:
         if self.cached_metadata is not None:
@@ -84,7 +89,8 @@ class AgentPackageHandler(BasePackageHandler):
         # cast the metadata to list here, so we can select the first element.
         metadata_parsed: list[dict[str, Any]] = json.loads(metadata_raw.decode())
 
-        return AgentPackageMetadata.model_validate(metadata_parsed[0])
+        metadata = AgentPackageMetadata.model_validate(metadata_parsed[0])
+        return metadata
 
     async def read_runbook(self):
         spec_agent = await self.get_spec_agent()
@@ -116,13 +122,15 @@ class AgentPackageHandler(BasePackageHandler):
             guide_bytes = await self.read_conversation_guide_raw()
             if not guide_bytes:
                 return []
-            guide_yaml = _yaml.load(guide_bytes.decode("utf-8"))
+            guide_yaml = YAMLHandler().reader.load(guide_bytes.decode("utf-8"))
 
             if not isinstance(guide_yaml, dict):
+                logger.warning("Conversation guide is not a valid YAML dictionary")
                 return []
 
             qg_list = guide_yaml.get("question-groups", [])
-            return [QuestionGroup.model_validate(qg) for qg in qg_list if isinstance(qg, dict)]
+            question_groups = [QuestionGroup.model_validate(qg) for qg in qg_list if isinstance(qg, dict)]
+            return question_groups
         except Exception as e:
             logger.warning(
                 "Failed to read conversation guide",
@@ -134,21 +142,24 @@ class AgentPackageHandler(BasePackageHandler):
     async def list_action_package_paths(self) -> list[str]:
         """List all Action Package paths from the agent package."""
         spec_agent = await self.get_spec_agent()
-        return [ap.path for ap in spec_agent.action_packages if ap.path]
+        paths = [ap.path for ap in spec_agent.action_packages if ap.path]
+        return paths
 
     async def get_action_packages_handlers(self) -> list[tuple[str, "ActionPackageHandler"]]:
         """Get all Action Package handlers from the agent package."""
         from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
 
         action_package_paths = await self.list_action_package_paths()
-        return [
+        handlers = [
             (path, await ActionPackageHandler.from_bytes(await self.read_action_package_zip_raw(path)))
             for path in action_package_paths
         ]
+        return handlers
 
     async def read_action_package_zip_raw(self, action_package_zip_path: str) -> bytes:
         path = f"{AgentPackageConfig.actions_dirname}/{action_package_zip_path}"
-        return await self.read_file(path)
+        data = await self.read_file(path)
+        return data
 
     async def read_semantic_data_model_raw(self, semantic_data_model_filename: str) -> bytes:
         path = f"{AgentPackageConfig.semantic_data_models_dirname}/{semantic_data_model_filename}"
@@ -161,15 +172,17 @@ class AgentPackageHandler(BasePackageHandler):
                 return None
 
             # Parse YAML (Snowflake Cortex Analyst semantic model format)
-            sdm_yaml = _yaml.load(sdm_raw.decode("utf-8"))
+            sdm_yaml = YAMLHandler().reader.load(sdm_raw.decode("utf-8"))
 
             if not isinstance(sdm_yaml, dict):
                 logger.warning(
-                    f"SDM file {semantic_data_model_filename}' does not contain valid YAML dict, skipping",
+                    "SDM file does not contain valid YAML dict, skipping",
+                    sdm_filename=semantic_data_model_filename,
                 )
                 return None
 
-            return model_validate_sdm(sdm_yaml)
+            sdm = model_validate_sdm(sdm_yaml)
+            return sdm
 
         except Exception as e:
             logger.warning(
@@ -177,6 +190,7 @@ class AgentPackageHandler(BasePackageHandler):
                 path=semantic_data_model_filename,
                 error=str(e),
             )
+            return None
 
     async def read_all_semantic_data_models(self) -> dict[str, SemanticDataModel]:
         result: dict[str, SemanticDataModel] = {}
@@ -190,7 +204,6 @@ class AgentPackageHandler(BasePackageHandler):
 
         for sdm_ref in sdm_refs:
             if not sdm_ref.name:
-                logger.warning("SDM reference missing 'name' field, skipping")
                 continue
 
             sdm_filename = sdm_ref.name
@@ -215,13 +228,11 @@ class AgentPackageHandler(BasePackageHandler):
         icon_filename = AgentPackageConfig.agent_package_icon_filename
 
         if not await self.file_exists(icon_filename):
-            logger.debug(f"Agent icon not found: {icon_filename}")
             return ""
 
         try:
             icon_bytes = await self.read_file(icon_filename)
             icon_base64 = convert_image_bytes_to_base64(icon_bytes, icon_filename)
-            logger.debug("Agent icon loaded successfully")
             return icon_base64
         except Exception as e:
             logger.warning(
@@ -240,13 +251,11 @@ class AgentPackageHandler(BasePackageHandler):
         changelog_filename = AgentPackageConfig.agent_package_changelog_filename
 
         if not await self.file_exists(changelog_filename):
-            logger.debug(f"Changelog not found: {changelog_filename}")
             return ""
 
         try:
             changelog_bytes = await self.read_file(changelog_filename)
             changelog_content = changelog_bytes.decode("utf-8")
-            logger.debug("Changelog loaded successfully")
             return changelog_content
         except Exception as e:
             logger.warning(
@@ -265,13 +274,11 @@ class AgentPackageHandler(BasePackageHandler):
         readme_filename = AgentPackageConfig.agent_package_readme_filename
 
         if not await self.file_exists(readme_filename):
-            logger.debug(f"Readme not found: {readme_filename}")
             return ""
 
         try:
             readme_bytes = await self.read_file(readme_filename)
             readme_content = readme_bytes.decode("utf-8")
-            logger.debug("Readme loaded successfully")
             return readme_content
         except Exception as e:
             logger.warning(
@@ -281,57 +288,80 @@ class AgentPackageHandler(BasePackageHandler):
             )
             return ""
 
-    async def write_agent_spec(self, agent_spec: AgentPackageSpec) -> SpooledTemporaryFile:
-        spooled_file = self._get_empty_spooled_file()
+    async def write_agent_spec(self, agent_spec: AgentPackageSpec) -> None:
+        """Write the agent spec to the zip file.
 
-        buffer = agent_spec.to_yaml()
-        spooled_file.write(buffer.encode("utf-8"))
+        Args:
+            agent_spec: The agent spec to write.
+        """
+        spec_yaml = agent_spec.to_yaml()
+        await self.write_file(AgentPackageConfig.agent_spec_filename, spec_yaml.encode("utf-8"))
 
-        return spooled_file
+    async def write_runbook(self, runbook_text: str) -> None:
+        """Write the runbook to the zip file.
 
-    async def write_runbook(self, runbook_text: str) -> SpooledTemporaryFile:
-        spooled_file = self._get_empty_spooled_file()
-        spooled_file.write(runbook_text.encode("utf-8"))
-        return spooled_file
+        Args:
+            runbook_text: The runbook text to write.
+        """
+        await self.write_file(AgentPackageConfig.runbook_filename, runbook_text.encode("utf-8"))
 
-    async def write_conversation_guide(self, question_groups: list[QuestionGroup]) -> SpooledTemporaryFile | None:
+    async def write_conversation_guide(self, question_groups: list[QuestionGroup]) -> None:
+        """Write the conversation guide to the zip file.
+
+        Args:
+            question_groups: The question groups to write.
+        """
         if not question_groups:
-            return None
+            return
 
         import io
-
-        spooled_file = self._get_empty_spooled_file()
 
         yaml_buffer = io.StringIO()
         guide_dict = {
             "question-groups": [qg.model_dump() for qg in question_groups],
         }
-        _yaml.dump(guide_dict, yaml_buffer)
-        spooled_file.write(yaml_buffer.getvalue().encode("utf-8"))
 
-        return spooled_file
+        YAMLHandler().writer.dump(guide_dict, yaml_buffer)
+        await self.write_file(AgentPackageConfig.conversation_guide_filename, yaml_buffer.getvalue().encode("utf-8"))
 
-    async def write_metadata(self, metadata: AgentPackageMetadata) -> SpooledTemporaryFile:
+    async def write_metadata(self, metadata: AgentPackageMetadata) -> None:
+        """Write the metadata to the zip file.
+
+        Args:
+            metadata: The metadata to write.
+        """
         import io
-
-        spooled_file = self._get_empty_spooled_file()
 
         json_buffer = io.StringIO()
         # Even though agent-spec.yaml supports only one Agent definition, it does it
         # via an array - metadata follows the same pattern, so we need to explicitly
         # cast the metadata to list here, so we can select the first element.
         json.dump([metadata.model_dump()], json_buffer, indent=2)
-        spooled_file.write(json_buffer.getvalue().encode("utf-8"))
+        await self.write_file(AgentPackageConfig.metadata_filename, json_buffer.getvalue().encode("utf-8"))
 
-        return spooled_file
+    async def write_semantic_data_model(self, semantic_data_model: SemanticDataModel, filename: str) -> None:
+        """Write a semantic data model to the zip file.
 
-    async def write_semantic_data_model(self, semantic_data_model: SemanticDataModel) -> SpooledTemporaryFile:
+        Args:
+            semantic_data_model: The semantic data model to write.
+            filename: The filename for the semantic data model.
+        """
         import io
 
-        spooled_file = self._get_empty_spooled_file()
-
         yaml_buffer = io.StringIO()
-        _yaml.dump(model_dump_sdm(semantic_data_model), yaml_buffer)
-        spooled_file.write(yaml_buffer.getvalue().encode("utf-8"))
+        YAMLHandler().writer.dump(model_dump_sdm(semantic_data_model), yaml_buffer)
+        await self.write_file(
+            f"{AgentPackageConfig.semantic_data_models_dirname}/{filename}", yaml_buffer.getvalue().encode("utf-8")
+        )
 
-        return spooled_file
+    async def write_action_package(
+        self, action_package_path: "ActionPackagePath", action_package_content: "ActionPackageContent"
+    ) -> None:
+        """Write the action packages to the zip file.
+
+        Args:
+            action_packages: The action packages to write.
+        """
+        for file_path, file_content in action_package_content.items():
+            full_path = f"{AgentPackageConfig.actions_dirname}/{action_package_path}/{file_path}"
+            await self.write_file(full_path, file_content)

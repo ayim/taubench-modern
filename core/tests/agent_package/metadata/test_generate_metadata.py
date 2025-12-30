@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from agent_platform.core.agent_package.metadata.action_packages import ActionPackageMetadataReader
-from agent_platform.core.agent_package.metadata.generate_metadata import (
+from agent_platform.core.agent_package.metadata.agent_metadata_generator import (
     AgentMetadataGenerator,
 )
 
@@ -333,7 +333,9 @@ class TestAgentMetadataGeneratorDatasources:
         generator = AgentMetadataGenerator(mock_agent_handler)
 
         # Mock the _process_action_packages to return empty list (focus on datasources)
-        with patch.object(generator, "_process_action_packages", new_callable=AsyncMock) as mock_process_ap:
+        with patch.object(
+            AgentMetadataGenerator, "_process_action_packages", new_callable=AsyncMock
+        ) as mock_process_ap:
             mock_process_ap.return_value = []
 
             metadata = await generator.generate()
@@ -406,7 +408,9 @@ class TestAgentMetadataGeneratorDatasources:
 
         generator = AgentMetadataGenerator(mock_agent_handler)
 
-        with patch.object(generator, "_process_action_packages", new_callable=AsyncMock) as mock_process_ap:
+        with patch.object(
+            AgentMetadataGenerator, "_process_action_packages", new_callable=AsyncMock
+        ) as mock_process_ap:
             mock_process_ap.return_value = []
             metadata = await generator.generate()
 

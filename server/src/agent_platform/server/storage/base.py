@@ -780,9 +780,36 @@ class BaseStorage(AbstractStorage, CommonMixin):
             oauth_config=oauth_config,
         )
 
+    def _build_mcp_server_with_metadata_from_row(self, row, server_id: str) -> "MCPServerWithMetadata":
+        """Build MCPServerWithMetadata from database row.
+
+        Args:
+            row: Database row containing enc_config, source, mcp_runtime_deployment_id,
+                authentication_type, and authentication_metadata_enc
+            server_id: Server ID for logging purposes
+
+        Returns:
+            MCPServerWithMetadata instance
+
+        Raises:
+            ConfigDecryptionError: If decryption fails
+        """
+        from agent_platform.core.mcp.mcp_server import MCPServerSource, MCPServerWithMetadata
+
+        mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, server_id)
+
+        source = MCPServerSource(row["source"])
+        raw_deployment_id = row["mcp_runtime_deployment_id"]
+        deployment_id = str(raw_deployment_id) if raw_deployment_id else None
+
+        return MCPServerWithMetadata(
+            server=mcp_server_with_oauth,
+            source=source,
+            deployment_id=deployment_id,
+        )
+
     async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> "MCPServerWithMetadata":
         """Get an MCP server by ID with its source and deployment info."""
-        from agent_platform.core.mcp.mcp_server import MCPServerSource, MCPServerWithMetadata
         from agent_platform.server.storage.errors import MCPServerNotFoundError
 
         # 1. Validate the uuid
@@ -807,22 +834,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
             raise MCPServerNotFoundError(f"MCP server {mcp_server_id} not found")
 
         # 4. Decrypt and return the MCP server with metadata
-        mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, mcp_server_id)
-
-        source = MCPServerSource(row["source"])
-        raw_deployment_id = row["mcp_runtime_deployment_id"]
-        deployment_id = str(raw_deployment_id) if raw_deployment_id else None
-        return MCPServerWithMetadata(
-            server=mcp_server_with_oauth,
-            source=source,
-            deployment_id=deployment_id,
-        )
+        return self._build_mcp_server_with_metadata_from_row(row, mcp_server_id)
 
     async def list_mcp_servers_with_metadata(
         self,
     ) -> dict[str, "MCPServerWithMetadata"]:
         """List all MCP servers with their source and deployment info."""
-        from agent_platform.core.mcp.mcp_server import MCPServerSource, MCPServerWithMetadata
+        from agent_platform.core.mcp.mcp_server import MCPServerWithMetadata
 
         # 1. Get all MCP servers
         mcp_server_table = self._get_table("mcp_server")
@@ -848,16 +866,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         for row in rows:
             server_id = str(row["mcp_server_id"])
             try:
-                mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, server_id)
-
-                source = MCPServerSource(row["source"])
-                raw_deployment_id = row["mcp_runtime_deployment_id"]
-                deployment_id = str(raw_deployment_id) if raw_deployment_id else None
-                result_dict[server_id] = MCPServerWithMetadata(
-                    server=mcp_server_with_oauth,
-                    source=source,
-                    deployment_id=deployment_id,
-                )
+                result_dict[server_id] = self._build_mcp_server_with_metadata_from_row(row, server_id)
             except Exception as e:
                 # Skip corrupted entries but log for monitoring
                 logger.exception(f"Skipping MCP server {server_id} due to error loading: {e}")

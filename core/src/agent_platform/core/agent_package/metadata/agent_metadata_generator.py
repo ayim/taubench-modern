@@ -52,15 +52,12 @@ type ActionPackageHandlerByPath = tuple[str, ActionPackageHandler]
 class AgentMetadataGenerator:
     """Generates agent package metadata from an agent package.
 
-    This class orchestrates the metadata generation process, including
-    parsing the agent spec, collecting action package metadata, and
-    generating the final metadata structure.
+    This class provides class methods for metadata generation:
+    - generate_from_handler: Reads all data from an AgentPackageHandler
+    - generate_from_data: Uses provided data directly (useful during package building)
 
     Works with in-memory zip files via AgentPackageHandler, avoiding
     disk extraction for efficient server-side processing.
-
-    Attributes:
-        _handler: Package handler for reading files from the zip.
     """
 
     def __init__(self, handler: AgentPackageHandler) -> None:
@@ -68,6 +65,8 @@ class AgentMetadataGenerator:
 
         Args:
             handler: Package handler for reading files from the agent package.
+
+        Note: Consider using the classmethod generate_from_handler() instead.
         """
         self._handler = handler
 
@@ -83,137 +82,145 @@ class AgentMetadataGenerator:
         Raises:
             FileNotFoundError: If agent spec file not found.
             ValueError: If spec is invalid.
+
+        Note: Consider using the classmethod generate_from_handler() instead.
+        """
+        return await self.generate_from_handler(self._handler)
+
+    @classmethod
+    async def generate_from_handler(cls, handler: AgentPackageHandler) -> AgentPackageMetadata:
+        """Generate agent metadata by reading all data from a handler.
+
+        This is the primary entry point when you have a complete agent package.
+
+        Args:
+            handler: Package handler for reading files from the agent package.
+
+        Returns:
+            AgentPackageMetadata for the agent in the package.
+
+        Raises:
+            FileNotFoundError: If agent spec file not found.
+            ValueError: If spec is invalid.
         """
         logger.debug("Reading agent spec from package...")
 
-        agent = await self._handler.get_spec_agent()
-
+        agent = await handler.get_spec_agent()
         logger.debug(f"Processing agent: {agent.name}")
 
         # Gather all Action Package handlers
-        action_package_handlers = await self._handler.get_action_packages_handlers()
+        action_package_handlers = await handler.get_action_packages_handlers()
         logger.debug(f"Found {len(action_package_handlers)} action packages")
 
-        # Generate metadata
-        metadata = await self._generate_agent_metadata(agent, action_package_handlers)
+        # Read auxiliary files from the handler
+        question_groups = await handler.read_conversation_guide()
+        icon = await handler.load_agent_package_icon()
+        changelog = await handler.load_changelog()
+        readme = await handler.load_readme()
+
+        # Generate metadata using the data-based method
+        metadata = await cls._generate_from_data(
+            agent,
+            action_package_handlers,
+            question_groups=question_groups,
+            icon=icon,
+            changelog=changelog,
+            readme=readme,
+        )
 
         logger.debug("Metadata generation complete")
         return metadata
 
-    async def _generate_agent_metadata(
-        self, agent: SpecAgent, action_package_handlers: list[ActionPackageHandlerByPath]
+    @classmethod
+    async def _generate_from_data(
+        cls,
+        agent: SpecAgent,
+        action_package_handlers: list[ActionPackageHandlerByPath],
+        *,
+        question_groups: list,
+        icon: str,
+        changelog: str,
+        readme: str,
     ) -> AgentPackageMetadata:
-        """Generate metadata for the agent from the spec and action package handlers.
+        """Generate metadata for the agent from provided data.
+
+        This is the primary entry point when building packages where action package
+        data is already available in memory, avoiding the need to flush and reopen
+        the zip writer.
 
         Args:
             agent: The agent from the spec.
             action_package_handlers: List of tuples containing the action package path and handler.
+            question_groups: Conversation guide question groups.
+            icon: Base64-encoded icon.
+            changelog: Changelog content.
+            readme: Readme content.
 
         Returns:
             AgentPackageMetadata for the agent in the package.
         """
+        logger.debug(f"Generating metadata for agent: {agent.name}")
+
         # Extract model
         model = agent.model
         logger.debug(f"Found model: {model.name if model else ''} with provider: {model.provider if model else ''}")
 
         # Extract architecture
         architecture = agent.architecture
-        logger.debug(
-            f"Found architecture: {architecture if architecture else ''}",
-        )
+        logger.debug(f"Found architecture: {architecture if architecture else ''}")
 
         # Extract reasoning
-        reasoning = self._extract_reasoning(agent)
-        logger.debug(
-            f"Found reasoning: {reasoning}",
-        )
+        reasoning = cls._extract_reasoning(agent)
+        logger.debug(f"Found reasoning: {reasoning}")
 
         # Extract knowledge
-        knowledge = self._extract_knowledge(agent.knowledge or [])
-        logger.debug(
-            f"Found number of knowledge items: {len(knowledge)}",
-        )
+        knowledge = cls._extract_knowledge(agent.knowledge or [])
+        logger.debug(f"Found number of knowledge items: {len(knowledge)}")
 
         # Extract document intelligence
         document_intelligence = agent.document_intelligence
-        logger.debug(
-            f"Found document intelligence: {document_intelligence}",
-        )
+        logger.debug(f"Found document intelligence: {document_intelligence}")
 
         # Extract agent settings
         agent_settings = agent.agent_settings or {}
-        logger.debug(
-            f"Found number of agent settings: {len(agent_settings)}",
-        )
+        logger.debug(f"Found number of agent settings: {len(agent_settings)}")
 
         # Extract metadata
         metadata = agent.metadata.model_dump() if agent.metadata else {}
 
         # Extract selected tools
-        selected_tools = self._extract_selected_tools(agent)
-        logger.debug(
-            f"Number of selected tools: {len(selected_tools.tools)}",
-        )
+        selected_tools = cls._extract_selected_tools(agent)
+        logger.debug(f"Number of selected tools: {len(selected_tools.tools)}")
 
         # Extract welcome message
         welcome_message = agent.welcome_message or ""
-        logger.debug(
-            f"Found welcome message: {bool(welcome_message)}",
-        )
+        logger.debug(f"Found welcome message: {bool(welcome_message)}")
 
         # Extract conversation starter
         conversation_starter = agent.conversation_starter or ""
-        logger.debug(
-            f"Found conversation starter: {bool(conversation_starter)}",
-        )
+        logger.debug(f"Found conversation starter: {bool(conversation_starter)}")
 
         # Extract datasources (async)
-        datasources = await self._extract_datasources(action_package_handlers)
-        logger.debug(
-            f"Number of datasources: {len(datasources)}",
-        )
+        datasources = await cls._extract_datasources(action_package_handlers)
+        logger.debug(f"Number of datasources: {len(datasources)}")
 
-        # Read conversation guide (async)
-        question_groups = await self._handler.read_conversation_guide()
-        logger.debug(
-            f"Number of question groups: {len(question_groups)}",
-        )
+        logger.debug(f"Number of question groups: {len(question_groups)}")
 
         # Process action packages (async)
-        action_packages = await self._process_action_packages(action_package_handlers, agent.action_packages)
-        logger.debug(
-            f"Number of action packages: {len(action_packages)}",
-        )
+        action_packages = await cls._process_action_packages(action_package_handlers, agent.action_packages)
+        logger.debug(f"Number of action packages: {len(action_packages)}")
 
         # Process MCP servers
-        mcp_servers = self._process_mcp_servers(agent.mcp_servers or [])
-        logger.debug(
-            f"Number of MCP servers: {len(mcp_servers)}",
-        )
+        mcp_servers = cls._process_mcp_servers(agent.mcp_servers or [])
+        logger.debug(f"Number of MCP servers: {len(mcp_servers)}")
 
         # Process Docker MCP Gateway
         docker_mcp_gateway = AgentPackageDockerMcpGateway.from_spec(agent.docker_mcp_gateway)
-        logger.debug(
-            f"Found Docker MCP Gateway: {bool(docker_mcp_gateway)}",
-        )
+        logger.debug(f"Found Docker MCP Gateway: {bool(docker_mcp_gateway)}")
 
-        # Load agent package icon
-        icon = await self._handler.load_agent_package_icon()
-        logger.debug(
-            f"Agent icon loaded: {bool(icon)}",
-        )
-
-        # Load changelog
-        changelog = await self._handler.load_changelog()
-        logger.debug(
-            f"Changelog loaded: {bool(changelog)}",
-        )
-
-        # Load readme
-        readme = await self._handler.load_readme()
-        logger.debug(
-            f"Readme loaded: {bool(readme)}",
-        )
+        logger.debug(f"Agent icon loaded: {bool(icon)}")
+        logger.debug(f"Changelog loaded: {bool(changelog)}")
+        logger.debug(f"Readme loaded: {bool(readme)}")
 
         return AgentPackageMetadata(
             release_note="",
@@ -237,33 +244,35 @@ class AgentMetadataGenerator:
             selected_tools=selected_tools,
             changelog=changelog,
             readme=readme,
-            agent_platform_version=self._get_agent_platform_version(),
-            created_at=self._get_created_at(),
+            agent_platform_version=cls._get_agent_platform_version(),
+            created_at=cls._get_created_at(),
             metadata=metadata,
         )
 
-    def _extract_reasoning(self, agent: SpecAgent) -> SpecAgentReasoning:
+    @staticmethod
+    def _extract_reasoning(agent: SpecAgent) -> SpecAgentReasoning:
         """Extract and validate reasoning from agent spec."""
         if agent.reasoning in get_args(SpecAgentReasoning):
             return cast(SpecAgentReasoning, agent.reasoning)
         # We keep the default value "disabled" for backwards compatibility.
         raise ValueError("Invalid reasoning in Agent Package specification")
 
+    @staticmethod
     def _extract_knowledge(
-        self,
         knowledge_spec: list[SpecKnowledge],
     ) -> list[AgentPackageMetadataKnowledge]:
         """Extract knowledge files from agent spec."""
         return [AgentPackageMetadataKnowledge.from_spec(k) for k in knowledge_spec]
 
-    def _extract_selected_tools(self, agent: SpecAgent) -> SelectedTools:
+    @staticmethod
+    def _extract_selected_tools(agent: SpecAgent) -> SelectedTools:
         """Extract selected tools from agent spec."""
         if not agent.selected_tools:
             return SelectedTools(tools=[])
         return agent.selected_tools.to_selected_tools()
 
+    @staticmethod
     async def _extract_datasources(
-        self,
         action_package_handlers: list[ActionPackageHandlerByPath],
     ) -> list[AgentPackageDatasource]:
         """Extract datasources from all action package metadata.
@@ -286,8 +295,8 @@ class AgentMetadataGenerator:
             )
         return datasources
 
+    @staticmethod
     async def _process_action_packages(
-        self,
         action_package_handlers: list[ActionPackageHandlerByPath],
         action_packages_spec: list[SpecActionPackage],
     ) -> list[AgentPackageActionPackageMetadata]:
@@ -314,8 +323,8 @@ class AgentMetadataGenerator:
             action_packages.append(ap_metadata)
         return action_packages
 
+    @staticmethod
     def _process_mcp_servers(
-        self,
         mcp_servers_spec: list[SpecMCPServer],
     ) -> list[AgentPackageMcpServer]:
         """Process MCP servers for an agent."""
@@ -328,10 +337,12 @@ class AgentMetadataGenerator:
                 logger.warning("Failed to process MCP server", error=str(e))
         return mcp_servers
 
-    def _get_agent_platform_version(self) -> str:
+    @staticmethod
+    def _get_agent_platform_version() -> str:
         """Get the agent platform server version for metadata tagging."""
         return version("agent_platform_server")
 
-    def _get_created_at(self) -> int:
+    @staticmethod
+    def _get_created_at() -> int:
         """Get the current Unix timestamp in seconds."""
         return int(time.time())

@@ -1,3 +1,4 @@
+from io import StringIO
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -11,6 +12,32 @@ from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.mcp.mcp_types import MCPUnionOfVariableTypes, mcp_redacted_variable_from_value
 from agent_platform.core.platforms.legacy import convert_platform_config_to_legacy_model
 from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
+
+
+def _model_to_yaml(model: BaseModel, *, exclude_none: bool = True) -> str:
+    """Serialize a Pydantic model to YAML format.
+
+    Args:
+        model: The Pydantic model to serialize.
+        exclude_none: Whether to exclude fields with None values from the output.
+            Defaults to True.
+
+    Returns:
+        A YAML string representation of the model.
+    """
+    yaml = YAML()
+    yaml.default_flow_style = False
+    yaml.preserve_quotes = True
+    yaml.width = 4096  # Prevent line wrapping
+
+    # Convert model to dict with aliases
+    data = model.model_dump(by_alias=True, exclude_none=exclude_none)
+
+    # Write to string buffer
+    stream = StringIO()
+    yaml.dump(data, stream)
+    return stream.getvalue()
+
 
 # @TODO:
 # Consider bringing types and models from other core packages.
@@ -155,6 +182,7 @@ class SpecSelectedTools(BaseModel):
 class SpecAgent(BaseModel):
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
+    # Field order matches the expected YAML output order for serialization
     name: str
     description: str
     model: SpecAgentModel | None = None
@@ -187,20 +215,7 @@ class SpecAgent(BaseModel):
         Returns:
             A YAML string representation of the SpecAgent model.
         """
-        from io import StringIO
-
-        yaml = YAML()
-        yaml.default_flow_style = False
-        yaml.preserve_quotes = True
-        yaml.width = 4096  # Prevent line wrapping
-
-        # Convert model to dict with aliases
-        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-
-        # Write to string buffer
-        stream = StringIO()
-        yaml.dump(data, stream)
-        return stream.getvalue()
+        return _model_to_yaml(self, exclude_none=exclude_none)
 
 
 class AgentPackageSpecContents(BaseModel):
@@ -218,6 +233,17 @@ class AgentPackageSpecContents(BaseModel):
             raise ValueError("Agent Package supports single Agent definition only")
         return v
 
+    def get_agent(self) -> SpecAgent:
+        """Get the single agent from the spec.
+
+        The spec is validated to contain exactly one agent definition,
+        so this is guaranteed to return a valid agent.
+
+        Returns:
+            The single SpecAgent from this package spec.
+        """
+        return self.agents[0]
+
 
 class AgentPackageSpec(BaseModel):
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
@@ -230,21 +256,11 @@ class AgentPackageSpec(BaseModel):
         Args:
             exclude_none: Whether to exclude fields with None values from the output.
                 Defaults to True.
+
+        Returns:
+            A YAML string representation of the AgentPackageSpec model.
         """
-        from io import StringIO
-
-        yaml = YAML()
-        yaml.default_flow_style = False
-        yaml.preserve_quotes = True
-        yaml.width = 4096  # Prevent line wrapping
-
-        # Convert model to dict with aliases
-        data = self.model_dump(by_alias=True, exclude_none=exclude_none)
-
-        # Write to string buffer
-        stream = StringIO()
-        yaml.dump(data, stream)
-        return stream.getvalue()
+        return _model_to_yaml(self, exclude_none=exclude_none)
 
     @classmethod
     def from_yaml(cls, data: bytes) -> "AgentPackageSpec":

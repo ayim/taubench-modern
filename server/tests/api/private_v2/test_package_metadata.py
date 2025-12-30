@@ -19,7 +19,9 @@ from agent_platform.core.agent_package.metadata.agent_metadata import (
     AgentPackageDockerMcpGateway,
     AgentPackageMcpServer,
 )
-from agent_platform.core.agent_package.metadata.generate_metadata import AgentMetadataGenerator
+from agent_platform.core.agent_package.metadata.agent_metadata_generator import (
+    AgentMetadataGenerator,
+)
 from agent_platform.core.agent_package.spec import (
     SpecActionPackage,
     SpecAgent,

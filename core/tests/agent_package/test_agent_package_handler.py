@@ -147,3 +147,43 @@ class TestAgentPackageHandler:
             # @TODO:
             # Extend assertions once serializing SDMs into a model is merged into main
             assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_agent_package_write_file_preserves_existing_files(self, test_agent_package_provider):
+        """write_file() preserves existing files when adding a new one."""
+        zip_data = test_agent_package_provider("pass-call-center-planner.zip")
+
+        with await AgentPackageHandler.from_bytes(zip_data) as handler:
+            # Get initial file list
+            initial_files = await handler.list_files()
+            assert len(initial_files) > 0
+
+            # Write a new file
+            test_filename = "new-added-file.txt"
+            await handler.write_file(test_filename, b"new content")
+            handler.flush_writer()
+
+            # Verify all original files still exist plus the new one
+            updated_files = await handler.list_files()
+            assert test_filename in updated_files
+            for original_file in initial_files:
+                assert original_file in updated_files
+
+    @pytest.mark.asyncio
+    async def test_agent_package_write_file_overwrites_existing_file(self, test_agent_package_provider):
+        """write_file() overwrites an existing file with new content."""
+        zip_data = test_agent_package_provider("pass-call-center-planner.zip")
+
+        with await AgentPackageHandler.from_bytes(zip_data) as handler:
+            existing_file = "agent-spec.yaml"
+            assert await handler.file_exists(existing_file)
+
+            original_content = await handler.read_file(existing_file)
+            new_content = b"overwritten content"
+            assert original_content != new_content
+
+            await handler.write_file(existing_file, new_content)
+            handler.flush_writer()
+
+            read_content = await handler.read_file(existing_file)
+            assert read_content == new_content

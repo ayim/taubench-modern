@@ -3,7 +3,7 @@ from agent_platform.core.agent_package.metadata.action_metadata import (
     ActionPackageMetadata,
 )
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
-from agent_platform.core.agent_package.metadata.generate_metadata import (
+from agent_platform.core.agent_package.metadata.agent_metadata_generator import (
     AgentMetadataGenerator,
 )
 

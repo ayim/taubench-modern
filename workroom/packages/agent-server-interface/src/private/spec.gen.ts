@@ -6348,14 +6348,15 @@ export const spec = {
     '/api/v2/package/create': {
       post: {
         tags: ['package'],
-        summary: 'Create new Agent Package',
-        description: 'Create a new Agent Package.',
-        operationId: 'create_agent_package_package_create_post',
+        summary: 'Create new Agent Project Package from existing Agent',
+        description:
+          'Create a new Agent Project Package based on Agent ID from an existing Agent in Agent Server. Response is the Agent Project packaged as a zip file.The Agent Project Zip File is a zip file containing the agent project as a Folder.',
+        operationId: 'create_agent_project_zip_package_package_create_post',
         requestBody: {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/UpsertAgentPayload',
+                $ref: '#/components/schemas/AgentPackageCreatePayload',
               },
             },
           },
@@ -6364,13 +6365,40 @@ export const spec = {
         responses: {
           '200': {
             description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/AgentCompat',
+                  $ref: '#/components/schemas/ErrorEnvelope',
                 },
               },
             },
+          },
+        },
+      },
+    },
+    '/api/v2/package/build': {
+      post: {
+        tags: ['package'],
+        summary: 'Builds an Agent Package from a zipped Agent Project',
+        description:
+          'Builds an Agent Package from a zipped Agent Project. Accepts a zip file containing a compressed Agent Project Folder.',
+        operationId: 'build_agent_package_package_build_post',
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_build_agent_package_package_build_post',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
           },
           '422': {
             description: 'Validation Error',
@@ -6419,27 +6447,6 @@ export const spec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/ErrorEnvelope',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/v2/package/build': {
-      post: {
-        tags: ['package'],
-        summary: 'Builds an Agent Package.',
-        description:
-          'Builds an Agent Package from zipped Agent Project. Accepts binary ZIP files.',
-        operationId: 'build_agent_package_package_build_post',
-        responses: {
-          '200': {
-            description: 'Successful Response',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/StatusResponse_dict_',
                 },
               },
             },
@@ -10339,6 +10346,28 @@ export const spec = {
         required: ['name', 'description', 'version'],
         title: 'AgentPackageActionPackageMetadata',
       },
+      AgentPackageCreatePayload: {
+        properties: {
+          agent_id: {
+            type: 'string',
+            title: 'Agent Id',
+            description:
+              'The ID of the agent to create the agent package from.',
+          },
+          action_packages_uris: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Action Packages Uris',
+            description:
+              'The URIs of the action packages to include in the agent package.',
+          },
+        },
+        type: 'object',
+        required: ['agent_id', 'action_packages_uris'],
+        title: 'AgentPackageCreatePayload',
+      },
       AgentPackageDatasource: {
         properties: {
           customer_facing_name: {
@@ -11792,6 +11821,19 @@ export const spec = {
         type: 'object',
         required: ['project_id', 'dataset'],
         title: 'BigqueryDataConnectionConfiguration',
+      },
+      Body_build_agent_package_package_build_post: {
+        properties: {
+          project_package_zip: {
+            type: 'string',
+            format: 'binary',
+            title: 'Project Package Zip',
+            description: 'Agent Project Package ZIP file',
+          },
+        },
+        type: 'object',
+        required: ['project_package_zip'],
+        title: 'Body_build_agent_package_package_build_post',
       },
       Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
         properties: {
