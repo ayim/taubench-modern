@@ -38,6 +38,12 @@ resource "aws_codebuild_project" "deployer" {
     }
 
     environment_variable {
+      name  = "MCP_RUNTIME_IMAGE_REF"
+      value = "PLACEHOLDER"
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
       name  = "AWS_REGION"
       value = data.aws_region.current.id
       type  = "PLAINTEXT"
@@ -163,6 +169,12 @@ resource "aws_codebuild_project" "dev-deployer" {
 
     environment_variable {
       name  = "SPAR_IMAGE_REF"
+      value = "PLACEHOLDER"
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "MCP_RUNTIME_IMAGE_REF"
       value = "PLACEHOLDER"
       type  = "PLAINTEXT"
     }

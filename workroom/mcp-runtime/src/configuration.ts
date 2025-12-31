@@ -33,12 +33,16 @@ export const getConfiguration = (): Configuration => {
     gracefulShutdownTimeoutInSeconds: GRACEFUL_SHUTDOWN_TIMEOUT_IN_SECONDS,
     // Persistent directory for storing deployment artifacts
     persistentDataDirectory: parseEnvVariable('SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR'),
-    // This is the maximum number of Action Servers we allow to run
+    // Maximum number of Action Servers we allow to run and the lowest port we
+    // allocate. Note: Server ports (20000-20009) are hard coded in the
+    // following files and must be adjusted accordingly if this is changed.
+    // CLOUD-5777 will address this need for manual changes.
+    // - infra/aws/ecs-fargate/template.ecs-task-def.json
+    // - compose.yml
     maxServerCount: 10,
+    minServerPort: 20000,
     // This is the maximum allowed size for an Agent Package upload
     maxPackageSize: parseEnvVariable('SEMA4AI_MCP_RUNTIME_MAXIMUM_PACKAGE_SIZE'),
-    // This is the lowest port we allocate to running Action Servers
-    minServerPort: 20000,
     // This server's HTTP URL - used for generating URLs for Action Servers
     serverHttpUrl: parseEnvVariable('SEMA4AI_MCP_RUNTIME_SERVER_HOST_OVERRIDE'),
     // PostgreSQL database connection details
