@@ -2,8 +2,9 @@ import type { AsyncResult } from '@sema4ai/shared-utils';
 import { exec, spawn, type ChildProcess } from 'node:child_process';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import unzipper from 'unzipper';
+import { parse as parseYaml } from 'yaml';
 import z from 'zod';
 import type { Configuration } from '../configuration.ts';
 import type { Deployment } from '../types.ts';
@@ -17,18 +18,21 @@ const ACTION_SERVER_REBOOT_DELAY_IN_MS = 5000;
 const ACTION_SERVER_RESPONSIVENESS_TIMEOUT_IN_MS = 30_000;
 const ACTION_SERVER_RESPONSIVENESS_POLL_INTERVAL_IN_MS = 1000;
 
-type AgentPackageMetadata = z.infer<typeof AgentPackageMetadata>;
-const AgentPackageMetadata = z.array(
-  z.object({
-    action_packages: z.array(
+type AgentSpecActionPackages = z.infer<typeof AgentSpecActionPackages>;
+const AgentSpecActionPackages = z.object({
+  'agent-package': z.object({
+    agents: z.array(
       z.object({
-        path: z.string(),
-        whitelist: z.string(),
-        action_package_version: z.string(),
+        'action-packages': z.array(
+          z.object({
+            whitelist: z.string(),
+            path: z.string(),
+          }),
+        ),
       }),
     ),
   }),
-);
+});
 
 export const getDeploymentUrl = ({
   configuration,
@@ -84,67 +88,71 @@ const extractAgentPackage = async ({
   }
 };
 
-const getAgentPackageMetadata = async ({
-  agentOutputDir,
+const getActionPackages = async ({
+  agentPackagePath,
 }: {
-  agentOutputDir: string;
-}): AsyncResult<AgentPackageMetadata> => {
-  const agentPackageMetadataPath = join(agentOutputDir, '__agent_package_metadata__.json');
-  const agentPackageMetadataJson = await (async () => {
-    const fileContents = await readFile(agentPackageMetadataPath, {
-      encoding: 'utf-8',
-    });
+  agentPackagePath: string;
+}): AsyncResult<{ actionPackages: { whitelist: string; path: string }[] }> => {
+  const agentSpecContents: unknown = await (async () => {
     try {
-      return JSON.parse(fileContents);
-    } catch {
+      return parseYaml(
+        await readFile(join(agentPackagePath, 'agent-spec.yaml'), {
+          encoding: 'utf-8',
+        }),
+      );
+    } catch (error) {
+      console.error('Failed to read agent-spec.yaml', (error as Error).message);
       return null;
     }
   })();
-  if (agentPackageMetadataJson === null) {
+  if (agentSpecContents === null) {
     return {
       success: false,
       error: {
-        code: 'failed_to_parse_agent_metadata',
-        message: 'Failed to parse agent metadata as JSON',
+        code: 'failed_to_read_agent_spec',
+        message: 'Failed to read Agent spec',
       },
     };
   }
 
-  const parseResult = AgentPackageMetadata.safeParse(agentPackageMetadataJson);
-  if (!parseResult.success) {
-    console.error(`Failed to parse Agent metadata: ${parseResult.error.message}`);
+  const agentSpecParseResult = AgentSpecActionPackages.safeParse(agentSpecContents);
+  if (!agentSpecParseResult.success) {
+    console.error('Failed to parse agent-spec.yaml', agentSpecParseResult.error.message);
     return {
       success: false,
       error: {
-        code: 'failed_to_parse_agent_metadata',
-        message: 'Failed to parse Agent metadata',
+        code: 'failed_to_parse_agent_spec',
+        message: 'Failed to parse agent-spec.yaml',
       },
     };
   }
+
+  const agentSpec = agentSpecParseResult.data;
+  const actionPackages = agentSpec['agent-package'].agents[0]['action-packages'];
 
   return {
     success: true,
-    data: parseResult.data,
+    data: { actionPackages },
   };
 };
 
 const importActionPackages = async ({
-  agentPackageMetadata,
-  agentOutputDir,
+  actionPackages,
+  agentPackagePath,
   actionServerDataDir,
   deploymentId,
 }: {
-  agentPackageMetadata: AgentPackageMetadata;
-  agentOutputDir: string;
+  actionPackages: { whitelist: string; path: string }[];
+  agentPackagePath: string;
   actionServerDataDir: string;
   deploymentId: string;
 }): AsyncResult<void> => {
-  for (const actionPackage of agentPackageMetadata[0].action_packages) {
-    const { path, whitelist, action_package_version } = actionPackage;
+  for (const actionPackage of actionPackages) {
+    const { path, whitelist } = actionPackage;
     try {
-      console.log(`[${deploymentId}] Extracting Action Package`);
-      const actionPackageDir = `${agentOutputDir}/actions/${path}`;
-      const actionPackageZipPath = join(actionPackageDir, `${action_package_version}.zip`);
+      const actionPackageZipPath = join(agentPackagePath, 'actions', path);
+      const actionPackageDir = dirname(actionPackageZipPath);
+      console.log(`[${deploymentId}] Extracting Action Package: ${actionPackageZipPath}`);
       const actionPackageZip = await unzipper.Open.file(actionPackageZipPath);
       await actionPackageZip.extract({ path: actionPackageDir });
       await rm(actionPackageZipPath);
@@ -222,16 +230,16 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
         return extractAgentPackageResult;
       }
 
-      const getAgentPackageMetadataResult = await getAgentPackageMetadata({ agentOutputDir });
-      if (!getAgentPackageMetadataResult.success) {
-        return getAgentPackageMetadataResult;
+      const getActionPackagesResult = await getActionPackages({ agentPackagePath: agentOutputDir });
+      if (!getActionPackagesResult.success) {
+        return getActionPackagesResult;
       }
-      const agentPackageMetadata = getAgentPackageMetadataResult.data;
+      const { actionPackages } = getActionPackagesResult.data;
 
       const actionServerDataDir = await getActionServerDataDir({ deploymentId });
       const importActionPackagesResult = await importActionPackages({
-        agentPackageMetadata,
-        agentOutputDir,
+        actionPackages,
+        agentPackagePath: agentOutputDir,
         actionServerDataDir,
         deploymentId,
       });
