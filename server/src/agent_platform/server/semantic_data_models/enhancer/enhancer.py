@@ -28,8 +28,10 @@ if TYPE_CHECKING:
     from agent_platform.core.user import User
     from agent_platform.server.api.dependencies import StorageDependency
     from agent_platform.server.semantic_data_models.enhancer.prompts import (
-        EnhancementMode,
         PromptThread,
+    )
+    from agent_platform.server.semantic_data_models.enhancer.strategies import (
+        BaseStrategy,
     )
 
 
@@ -146,35 +148,31 @@ class SemanticDataModelEnhancer:
         from agent_platform.server.semantic_data_models.enhancer.prompts import (
             create_enhancement_prompt,
         )
-
-        mode: EnhancementMode = "full"
-
-        if tables_to_enhance or table_to_columns_to_enhance:
-            if tables_to_enhance and table_to_columns_to_enhance:
-                mode = "full"  # We have both, so, the full output is required
-            elif tables_to_enhance:
-                mode = "tables"
-            elif table_to_columns_to_enhance:
-                mode = "columns"
-            else:
-                raise ValueError("This should never be reachable (logic error)!")
+        from agent_platform.server.semantic_data_models.enhancer.strategies import (
+            create_strategy,
+        )
 
         logger.info("Starting semantic data model enhancement")
         initial_time = time.monotonic()
 
+        # Create the appropriate enhancer based on the parameters
+        strategy = create_strategy(
+            semantic_model,
+            tables_to_enhance=tables_to_enhance,
+            table_to_columns_to_enhance=table_to_columns_to_enhance,
+        )
+
         # Set a new thread for the enhancement
         self._enhancement_prompt_thread = create_enhancement_prompt(
             semantic_model,
-            mode,
+            strategy.mode,
             tables_to_enhance=tables_to_enhance,
             table_to_columns_to_enhance=table_to_columns_to_enhance,
             temperature=self._temperature,
             minimize_reasoning=self._minimize_reasoning,
         )
         try:
-            semantic_model = await self._generate_enhancement_with_retry(
-                semantic_model, mode, tables_to_enhance, table_to_columns_to_enhance
-            )
+            semantic_model = await self._generate_enhancement_with_retry(strategy)
         except Exception as e:
             logger.error(f"Unexpected error during enhancement: {e}", exc_info=True)
             logger.warning("Returning the original semantic data model")
@@ -184,22 +182,12 @@ class SemanticDataModelEnhancer:
 
     async def _generate_enhancement_with_retry(
         self,
-        semantic_model: SemanticDataModel,
-        mode: EnhancementMode = "full",
-        tables_to_enhance: set[str] | None = None,
-        table_to_columns_to_enhance: dict[str, list[str]] | None = None,
+        strategy: BaseStrategy,
     ) -> SemanticDataModel:
-        """Tries to enhance a semantic data model with different tiers of retry logic. A
-        max quality check attempts and a max output formatting attempts. The quality check is the
-        outside loop and the output formatting attempts is the inner loop. Upon getting a good
-        result, the inner loop resets.
+        """Tries to enhance a semantic data model with the given strategy.
 
         Args:
-            semantic_model: The semantic data model to enhance.
-            mode: The enhancement mode (full, table, or column).
-            tables_to_enhance: The names of the tables to enhance (required for "tables" mode).
-            table_to_columns_to_enhance: Map from table name to the names of the columns
-                to enhance (required for "columns" mode).
+            strategy: The strategy instance that encapsulates mode-specific behavior.
         """
         import time
 
@@ -212,16 +200,8 @@ class SemanticDataModelEnhancer:
 
         from agent_platform.server.api.private_v2.prompt import prompt_generate
         from agent_platform.server.semantic_data_models.enhancer.errors import (
-            EnhancementQualityInsufficientError,
             LLMOutputResponseError,
             LLMResponseError,
-            QualityCheckError,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            update_columns_in_semantic_model,
-            update_semantic_data_model_with_semantic_data_model_from_llm,
-            update_tables_metadata_in_semantic_model,
-            validate_and_parse_llm_response,
         )
         from agent_platform.server.semantic_data_models.enhancer.type_defs import LLMOutputSchemas
 
@@ -251,7 +231,8 @@ class SemanticDataModelEnhancer:
 
             logger.info(f"<< Enhancement (prompt_generate) completed in {time.monotonic() - initial_time} seconds")
 
-            parsed_result = validate_and_parse_llm_response(response, mode=mode)
+            # Use the enhancer to parse the response
+            parsed_result = strategy.parse_response(response)
 
             # Log the response for debugging
             response_text = str(response.model_dump())
@@ -260,21 +241,7 @@ class SemanticDataModelEnhancer:
 
             return response, parsed_result
 
-        async def _attempt_enhancement(retry_state: RetryCallState):
-            """Single enhancement attempt that will be retried by tenacity."""
-            from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-                SemanticDataModelForLLM,
-                TablesOutputSchema,
-                TableToColumnsOutputSchema,
-            )
-
-            assert self._enhancement_prompt_thread is not None
-            attempt_number = retry_state.attempt_number
-            logger.info(f"Enhancement attempt {attempt_number}")
-
-            self._enhancement_prompt_thread.update_prompt_with_previous_try(retry_state)
-
-            # Use tenacity to generate a good response from the LLM.
+        try:
             async for attempt in AsyncRetrying(
                 retry=retry_if_exception_type(LLMOutputResponseError),
                 stop=stop_after_attempt(self._max_output_formatting_attempts),
@@ -282,158 +249,20 @@ class SemanticDataModelEnhancer:
             ):
                 with attempt:
                     # Pass retry state to the attempt function so it can extract error info
-                    response, parsed_result = await _attempt_generation(attempt.retry_state)
+                    _, parsed_result = await _attempt_generation(attempt.retry_state)
 
-            # Update the semantic model based on mode
-            match mode:
-                case "full":
-                    assert isinstance(parsed_result, SemanticDataModelForLLM)
-                    update_semantic_data_model_with_semantic_data_model_from_llm(
-                        semantic_model,
-                        parsed_result,
-                        tables_to_enhance,
-                        table_to_columns_to_enhance,
-                    )
-                case "tables":
-                    assert isinstance(parsed_result, TablesOutputSchema)
-                    update_tables_metadata_in_semantic_model(
-                        semantic_model,
-                        parsed_result,
-                        tables_to_enhance,
-                    )
-                case "columns":
-                    assert isinstance(parsed_result, TableToColumnsOutputSchema)
-                    update_columns_in_semantic_model(
-                        semantic_model,
-                        parsed_result,
-                        tables_to_enhance,
-                        table_to_columns_to_enhance,
-                    )
-                case _:
-                    raise ValueError(f"Generated invalid result type: {type(parsed_result)}")
+            # Use the enhancer to apply the enhancement to the semantic model
+            # Note: The enhancer modifies the semantic_model in place.
+            strategy.apply_enhancement(parsed_result)
 
-            # Check quality of the enhancement
-            if self._enable_quality_check:
-                improvement_request = await self._check_enhancement_quality(
-                    semantic_model,
-                    attempt_number,
-                    mode=mode,
-                    tables_to_enhance=tables_to_enhance,
-                    table_to_columns_to_enhance=table_to_columns_to_enhance,
-                )
-
-                if improvement_request:
-                    logger.info("Quality check failed, requesting improvements")
-                    raise EnhancementQualityInsufficientError(improvement_request, response)
-            else:
-                logger.info("Quality check disabled, skipping quality verification")
-
-            return semantic_model
-
-        try:
-            # Use tenacity to retry on LLM response errors and quality check errors
-            async for attempt in AsyncRetrying(
-                retry=retry_if_exception_type(QualityCheckError),
-                stop=stop_after_attempt(self._max_quality_check_attempts),
-                reraise=True,
-            ):
-                with attempt:
-                    # Pass retry state to the attempt function so it can extract error info
-                    semantic_model = await _attempt_enhancement(attempt.retry_state)
-
-            logger.info("Semantic data model enhancement completed successfully")
-            return semantic_model
-        except (LLMResponseError, QualityCheckError) as e:
-            # Enhancement failed, likely due to poor formatting in LLM response.
-            # Root cause: We don't provide output structure as a tool/function call, so the
-            # LLM's training for structured output isn't being fully leveraged. Instead, we
-            # rely on prompt engineering which is less reliable. This should be addressed
-            # in the future by using structured outputs (tool calling or similar).
-            # For now, we return the original model unchanged when enhancement fails.
+        except LLMResponseError as e:
+            # The lower-level enhancement retries all failed, can't do anything here.
             logger.error(f"Failed to enhance semantic data model: {e}", exc_info=True)
             logger.warning("Returning the original semantic data model")
-            return semantic_model
+            return strategy.semantic_model
 
-    async def _check_enhancement_quality(
-        self,
-        enhanced_model: SemanticDataModel,
-        iteration: int,
-        mode: EnhancementMode = "full",
-        tables_to_enhance: set[str] | None = None,
-        table_to_columns_to_enhance: dict[str, list[str]] | None = None,
-    ) -> str | None:
-        """
-        Check if the enhancement quality is sufficient.
-
-        Note: This method does not attempt to retry on errors. If the quality check fails, it will
-        return None.
-
-        Returns:
-            None if quality is sufficient, or an improvement request string if not.
-        """
-        import time
-
-        from fastapi import Request
-
-        from agent_platform.server.api.private_v2.prompt import prompt_generate
-        from agent_platform.server.semantic_data_models.enhancer.errors import EmptyResponseError
-        from agent_platform.server.semantic_data_models.enhancer.parse import (
-            extract_tool_use_content,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.prompts import (
-            create_quality_check_prompt,
-        )
-        from agent_platform.server.semantic_data_models.enhancer.type_defs import (
-            QualityCheckResponse,
-        )
-
-        self._quality_check_prompt_thread = create_quality_check_prompt(
-            enhanced_model,
-            mode=mode,
-            tables_to_enhance=tables_to_enhance,
-            table_to_columns_to_enhance=table_to_columns_to_enhance,
-            temperature=self._temperature,
-            minimize_reasoning=self._minimize_reasoning,
-        )
-
-        try:
-            initial_time = time.monotonic()
-            logger.info(">> Starting quality check (prompt_generate)")
-            self._write_input_prompt(self._quality_check_prompt_thread, "quality_check", iteration=iteration)
-            response = await prompt_generate(
-                prompt=self._quality_check_prompt_thread.copy(),
-                user=self._user,
-                storage=self._storage,
-                request=Request(scope={"type": "http", "method": "POST"}),
-                agent_id=self._agent_id,
-                # We need to pass it here (the prompt value is overridden)
-                minimize_reasoning=self._minimize_reasoning,
-            )
-            logger.info(f"<< Quality check (prompt_generate) completed in {time.monotonic() - initial_time} seconds")
-
-            response_text = str(response.model_dump())
-            self._write_output_response(response_text, "quality_check", iteration=iteration)
-
-            # Extract and validate tool use content from the response
-            tool_input = extract_tool_use_content(response)
-            quality_response = QualityCheckResponse.model_validate(tool_input)
-
-            if quality_response.passed:
-                logger.info("LLM confirmed enhancement quality is sufficient")
-                return None
-            else:
-                logger.info(
-                    f"LLM suggested further improvements needed in the semantic "
-                    f"data model: {quality_response.improvement_request}"
-                )
-                return quality_response.improvement_request or "Quality check failed, please improve the enhancement"
-        except EmptyResponseError as e:
-            logger.warning(f"Empty response from LLM while checking enhancement quality: {e}")
-        except Exception as e:
-            logger.error(f"Error checking enhancement quality: {e}", exc_info=True)
-
-        # If we can't check quality, assume it's okay
-        return None
+        logger.info("Semantic data model enhancement completed successfully")
+        return strategy.semantic_model
 
 
 def reset_logical_names_to_physical_for_data_connections(
