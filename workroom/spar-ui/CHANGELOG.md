@@ -1,5 +1,14 @@
 # @sema4ai/spar-ui
 
+## 0.13.3
+
+### Patch Changes
+
+- dc21781: chore: move ServerRequest and ServerResponse to agent-server-interface and deprecate them on spar-ui
+- 2e0a87c: Hide transport and authentication fields for hosted MCP servers in EditMcpServerDialog. Add secret visibility toggle to ActionSecrets component.
+- 0899ab2: Add relationships field to DataConnectionFormSchema and export Relationship type
+- 0a91465: refactor: improve types and relocate queries and utils
+
 ## 0.13.2
 
 ### Patch Changes
