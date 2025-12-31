@@ -1414,3 +1414,87 @@ def test_distinct_samples_from_data_connection(base_url_agent_server, tmp_path):
         sample_values = logical_category.get("sample_values")
         assert sample_values is not None
         assert len(sample_values) == len(set(sample_values))
+
+
+@pytest.mark.integration
+def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_agent_server, resources_dir):
+    """Test that foreign key relationships are detected and included in generated semantic data model."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        # Use the SQLite database with FK relationships
+        db_file = resources_dir / "data_frames" / "fk_test.sqlite"
+        assert db_file.exists(), f"FK test database not found at {db_file}"
+
+        # Create data connection
+        data_connection = agent_client.create_data_connection(
+            name="fk-test-connection",
+            description="Test connection with FK relationships",
+            engine="sqlite",
+            configuration={"db_file": str(db_file)},
+        )
+
+        # Inspect the data connection
+        inspect_response = agent_client.inspect_data_connection(connection_id=data_connection["id"])
+        assert "tables" in inspect_response
+        assert len(inspect_response["tables"]) == 4  # customers, orders, products, order_items
+
+        # Generate semantic data model WITHOUT LLM enhancement (include_metadata=False for speed)
+        generate_payload = {
+            "name": "fk_test_model",
+            "description": "Test model with FK relationships",
+            "data_connections_info": [
+                {
+                    "data_connection_id": data_connection["id"],
+                    "tables_info": inspect_response["tables"],
+                }
+            ],
+            "files_info": [],
+        }
+
+        generated_model = agent_client.generate_semantic_data_model(generate_payload)
+        assert "semantic_model" in generated_model
+
+        semantic_model = generated_model["semantic_model"]
+
+        # Verify relationships were detected
+        assert "relationships" in semantic_model, "Expected relationships to be present in semantic model"
+        relationships = semantic_model["relationships"]
+        assert relationships is not None, "Relationships should not be None"
+        assert len(relationships) > 0, "Expected at least one relationship to be detected"
+
+        # Verify specific relationships exist
+        # Expected: customers -> orders, orders -> order_items, products -> order_items
+        relationship_pairs = [(rel["left_table"], rel["right_table"]) for rel in relationships]
+
+        # Check for customers -> orders relationship
+        assert any(
+            (left == "customers" and right == "orders") or (left == "orders" and right == "customers")
+            for left, right in relationship_pairs
+        ), f"Expected relationship between customers and orders, got: {relationship_pairs}"
+
+        # Check for orders -> order_items relationship
+        assert any(
+            (left == "orders" and right == "order_items") or (left == "order_items" and right == "orders")
+            for left, right in relationship_pairs
+        ), f"Expected relationship between orders and order_items, got: {relationship_pairs}"
+
+        # Check for products -> order_items relationship
+        assert any(
+            (left == "products" and right == "order_items") or (left == "order_items" and right == "products")
+            for left, right in relationship_pairs
+        ), f"Expected relationship between products and order_items, got: {relationship_pairs}"
+
+        # Verify relationship structure
+        for rel in relationships:
+            assert "name" in rel, "Relationship should have name"
+            assert "left_table" in rel, "Relationship should have left_table"
+            assert "right_table" in rel, "Relationship should have right_table"
+            assert "relationship_columns" in rel, "Relationship should have relationship_columns"
+            assert len(rel["relationship_columns"]) > 0, "Relationship should have at least one column mapping"
+            # Verify column mapping structure
+            for col_mapping in rel["relationship_columns"]:
+                assert "left_column" in col_mapping, "Column mapping should have left_column"
+                assert "right_column" in col_mapping, "Column mapping should have right_column"
+
+        logger.info(f"Successfully detected {len(relationships)} relationships: {relationship_pairs}")

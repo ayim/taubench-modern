@@ -12,6 +12,7 @@ if typing.TYPE_CHECKING:
     from ibis.expr.schema import Schema as IbisSchema
     from ibis.expr.types import Column as IbisColumn
     from ibis.expr.types import Table as IbisTable
+    from ibis.expr.types import Value as IbisValue
 
 
 class AsyncIbisConnection:
@@ -520,3 +521,39 @@ class AsyncIbisColumn:
             Raw ibis sort expression (used in order_by)
         """
         return self._column.asc()
+
+    def isin(self, values: list) -> IbisValue:
+        """Check if column value is in a list of values.
+
+        This is a lazy operation (no I/O).
+
+        Args:
+            values: List of values to check against
+
+        Returns:
+            Raw ibis boolean expression (Value type)
+        """
+        return self._column.isin(values)
+
+    def notnull(self) -> IbisValue:
+        """Check if column value is not null.
+
+        This is a lazy operation (no I/O).
+
+        Returns:
+            Raw ibis boolean expression (Value type)
+        """
+        return self._column.notnull()
+
+    def name(self, new_name: str) -> IbisValue:
+        """Rename the column (create an alias).
+
+        This is a lazy operation (no I/O).
+
+        Args:
+            new_name: New name for the column
+
+        Returns:
+            Raw ibis value expression with new name
+        """
+        return self._column.name(new_name)

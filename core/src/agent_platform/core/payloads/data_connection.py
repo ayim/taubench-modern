@@ -19,6 +19,16 @@ class DataConnectionTag(str, Enum):
     DOCUMENT_INTELLIGENCE = "data_intelligence"
 
 
+class ForeignKeyAction(str, Enum):
+    """Actions for foreign key constraints on DELETE and UPDATE operations."""
+
+    CASCADE = "CASCADE"
+    RESTRICT = "RESTRICT"
+    SET_NULL = "SET NULL"
+    SET_DEFAULT = "SET DEFAULT"
+    NO_ACTION = "NO ACTION"
+
+
 @dataclass
 class PostgresDataConnectionConfiguration:
     host: str
@@ -422,6 +432,19 @@ class TableInfo:
     schema: str | None
     description: str | None
     columns: list[ColumnInfo]
+    primary_keys: list[str] = field(default_factory=list)
+    foreign_keys: list[ForeignKeyInfo] = field(default_factory=list)
+
+
+@dataclass
+class ForeignKeyInfo:
+    constraint_name: str
+    source_table: str
+    source_columns: list[str]
+    target_table: str
+    target_columns: list[str]
+    on_delete: ForeignKeyAction | None = None
+    on_update: ForeignKeyAction | None = None
 
 
 @dataclass

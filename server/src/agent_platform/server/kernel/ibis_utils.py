@@ -272,7 +272,13 @@ async def create_ibis_connection(data_connection: DataConnection) -> AsyncIbisCo
         _replace_method_with_thread_verification(conn, attr)
 
     # Wrap the connection in async proxy for clean async API
-    return AsyncIbisConnection(conn, engine=engine)
+    # Use SQLite-specific wrapper for SQLite connections
+    if engine == "sqlite":
+        from agent_platform.server.kernel.ibis_async_proxy_sqlite import SqliteAsyncIbisConnection
+
+        return SqliteAsyncIbisConnection(conn, engine=engine)
+    else:
+        return AsyncIbisConnection(conn, engine=engine)
 
 
 def _replace_method_with_thread_verification(conn: Any, attr: str) -> None:

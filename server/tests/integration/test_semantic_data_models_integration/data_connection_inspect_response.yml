@@ -68,7 +68,9 @@ tables:
     unique: null
   database: main
   description: null
+  foreign_keys: []
   name: artificial_intelligence_number_training_datapoints
+  primary_keys: []
   schema: null
 - columns:
   - data_type: int64
@@ -128,7 +130,9 @@ tables:
     unique: null
   database: main
   description: null
+  foreign_keys: []
   name: exponential_growth_of_computation_in_the_training_of_notable_ai_systems
+  primary_keys: []
   schema: null
 - columns:
   - data_type: int64
@@ -210,7 +214,9 @@ tables:
     unique: null
   database: main
   description: null
+  foreign_keys: []
   name: hardware_and_energy_cost_to_train_notable_ai_systems
+  primary_keys: []
   schema: null
 - columns:
   - data_type: string
@@ -235,5 +241,7 @@ tables:
     unique: null
   database: main
   description: null
+  foreign_keys: []
   name: sqlite_sequence
+  primary_keys: []
   schema: null

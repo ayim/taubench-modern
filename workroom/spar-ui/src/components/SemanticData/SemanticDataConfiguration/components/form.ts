@@ -60,6 +60,7 @@ export const DataConnectionFormSchema = z.object({
     }),
   ),
   tables: SemanticModel.shape.tables.optional(),
+  relationships: SemanticModel.shape.relationships.optional(),
   verifiedQueries: SemanticModel.shape.verified_queries.optional(),
 });
 
@@ -85,6 +86,7 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
       };
     }),
     tables: semanticModel.tables,
+    relationships: semanticModel.relationships,
     verifiedQueries: semanticModel.verified_queries,
   } satisfies DataConnectionFormSchema;
 };

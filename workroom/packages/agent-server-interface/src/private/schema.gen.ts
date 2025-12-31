@@ -5835,6 +5835,32 @@ export interface components {
        */
       kind: 'flow_adherence';
     };
+    /**
+     * ForeignKeyAction
+     * @description Actions for foreign key constraints on DELETE and UPDATE operations.
+     * @enum {string}
+     */
+    ForeignKeyAction:
+      | 'CASCADE'
+      | 'RESTRICT'
+      | 'SET NULL'
+      | 'SET DEFAULT'
+      | 'NO ACTION';
+    /** ForeignKeyInfo */
+    ForeignKeyInfo: {
+      /** Constraint Name */
+      constraint_name: string;
+      /** Source Table */
+      source_table: string;
+      /** Source Columns */
+      source_columns: string[];
+      /** Target Table */
+      target_table: string;
+      /** Target Columns */
+      target_columns: string[];
+      on_delete?: components['schemas']['ForeignKeyAction'] | null;
+      on_update?: components['schemas']['ForeignKeyAction'] | null;
+    };
     /** ForkThreadPayload */
     ForkThreadPayload: {
       /**
@@ -8217,10 +8243,6 @@ export interface components {
       right_table: string;
       /** Relationship Columns */
       relationship_columns: components['schemas']['RelationshipColumn'][];
-      /** Join Type */
-      join_type: string;
-      /** Relationship Type */
-      relationship_type: string;
     };
     /**
      * RelationshipColumn
@@ -11343,6 +11365,10 @@ export interface components {
       description: string | null;
       /** Columns */
       columns: components['schemas']['agent_platform__core__payloads__data_connection__ColumnInfo'][];
+      /** Primary Keys */
+      primary_keys?: string[];
+      /** Foreign Keys */
+      foreign_keys?: components['schemas']['ForeignKeyInfo'][];
     };
     /**
      * ColumnInfo

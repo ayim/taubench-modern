@@ -62,6 +62,20 @@ export const VerifiedQuery = z.object({
 });
 export type VerifiedQuery = z.infer<typeof VerifiedQuery>;
 
+export const RelationshipColumn = z.object({
+  left_column: z.string(),
+  right_column: z.string(),
+});
+export type RelationshipColumn = z.infer<typeof RelationshipColumn>;
+
+export const Relationship = z.object({
+  name: z.string(),
+  left_table: z.string(),
+  right_table: z.string(),
+  relationship_columns: z.array(RelationshipColumn),
+});
+export type Relationship = z.infer<typeof Relationship>;
+
 export const SemanticModel = z.object({
   id: z.string(),
   name: z.string(),
@@ -91,6 +105,7 @@ export const SemanticModel = z.object({
       errors: z.array(ValidationMessage).optional(),
     }),
   ),
+  relationships: z.array(Relationship).optional(),
   verified_queries: z.array(VerifiedQuery).optional(),
   errors: z.array(ValidationMessage).optional(),
 });
@@ -121,6 +136,7 @@ const agentSemanticDataQueryOptions = createSparQueryOptions<{ agentId: string }
         name: model.name,
         description: model.description,
         tables: model.tables,
+        relationships: model.relationships,
         verified_queries: model.verified_queries,
       }));
     });
@@ -204,6 +220,7 @@ const agentSemanticDataValidationQueryOptions = createSparQueryOptions<{ agentId
           name: curr.semantic_data_model.name,
           description: curr.semantic_data_model.description,
           tables: curr.semantic_data_model.tables,
+          relationships: curr.semantic_data_model.relationships,
           errors: curr.errors,
         };
       });
@@ -419,6 +436,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
             name: payload.name,
             description: payload.description,
             tables,
+            relationships: payload.relationships,
             verified_queries: payload.verifiedQueries,
           },
         },
@@ -525,6 +543,7 @@ export const useImportSemanticDataModelMutation = createSparMutation<
                 data_connection_id: payload.dataConnectionId,
               },
             })) || [],
+          relationships: payload.relationships,
           verified_queries: payload.verifiedQueries,
         },
         agent_id: payload.agentId,

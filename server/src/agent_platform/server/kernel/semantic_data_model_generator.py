@@ -4,6 +4,7 @@ Semantic data model generator for converting table/column information to semanti
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -33,10 +34,27 @@ if TYPE_CHECKING:
         DataConnectionSnapshotMetadata,
         FileSnapshotMetadata,
     )
+    from agent_platform.core.payloads.data_connection import (
+        ForeignKeyInfo,
+    )
+    from agent_platform.core.payloads.data_connection import (
+        TableInfo as DataConnectionTableInfo,
+    )
     from agent_platform.server.storage import BaseStorage
 
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class TableConstraints:
+    """Primary key and foreign key constraints for tables."""
+
+    foreign_keys_map: dict[str, list[ForeignKeyInfo]] = field(default_factory=dict)
+    """Mapping of table name to list of foreign key constraints."""
+
+    primary_keys_map: dict[str, list[str]] = field(default_factory=dict)
+    """Mapping of table name to list of primary key column names."""
 
 
 class SemanticDataModelGenerator:
@@ -88,6 +106,12 @@ class SemanticDataModelGenerator:
             "description": description,
             "tables": tables,
         }
+
+        # Auto-detect relationships from FK metadata
+        detected_relationships = await self._detect_relationships(data_connections_info)
+        if detected_relationships:
+            logger.info(f"Detected {len(detected_relationships)} relationships from FK metadata")
+            semantic_model_dict["relationships"] = detected_relationships
 
         # Generate metadata snapshot if requested
         if include_metadata:
@@ -411,3 +435,157 @@ class SemanticDataModelGenerator:
         }
 
         return snapshot
+
+    async def _inspect_pk_fk_for_selected_tables(
+        self,
+        data_connection_id: str,
+        tables_info: list[TableInfo],
+    ) -> TableConstraints:
+        """Inspect PK/FK constraints for the selected tables only.
+
+        Args:
+            data_connection_id: The ID of the data connection
+            tables_info: List of selected tables to inspect
+
+        Returns:
+            TableConstraints containing foreign_keys_map and primary_keys_map
+        """
+        from agent_platform.core.payloads.data_connection import TableToInspect
+        from agent_platform.server.dialect import ForeignKeyInspectorFactory
+        from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
+
+        if not self.storage:
+            raise ValueError("Storage is required to inspect PK/FK constraints")
+
+        # Get the data connection
+        db_data_connection = await self.storage.get_data_connection(data_connection_id)
+
+        # Create an Ibis connection
+        connection = await DataConnectionInspector.create_ibis_connection(db_data_connection)
+
+        # Build list of tables to inspect
+        tables_to_inspect = []
+        for table_info in tables_info:
+            table_to_inspect = TableToInspect(
+                name=table_info.name,
+                database=table_info.database,
+                schema=table_info.schema_,
+            )
+            tables_to_inspect.append(table_to_inspect)
+
+        # Use ForeignKeyInspector to get PK/FK for selected tables
+        fk_inspector_factory = ForeignKeyInspectorFactory()
+        fk_inspector = fk_inspector_factory.create(db_data_connection.engine)
+
+        foreign_keys_map = await fk_inspector.get_foreign_keys(connection, tables_to_inspect)
+        primary_keys_map = await fk_inspector.get_primary_keys(connection, tables_to_inspect)
+
+        return TableConstraints(
+            foreign_keys_map=foreign_keys_map,
+            primary_keys_map=primary_keys_map,
+        )
+
+    async def _collect_tables_with_pk_fk_metadata(
+        self,
+        data_connections_info: list[DataConnectionInfo],
+    ) -> list[DataConnectionTableInfo]:
+        """Collect all tables and enrich them with PK/FK metadata.
+
+        Args:
+            data_connections_info: List of data connection information
+
+        Returns:
+            List of TableInfo objects enriched with primary key and foreign key constraints
+        """
+        from agent_platform.core.payloads.data_connection import (
+            ColumnInfo as DataConnectionColumnInfo,
+        )
+        from agent_platform.core.payloads.data_connection import (
+            TableInfo as DataConnectionTableInfo,
+        )
+
+        all_tables_with_metadata: list[DataConnectionTableInfo] = []
+        for dc_info in data_connections_info:
+            if not dc_info.tables_info:
+                continue
+
+            # Inspect PK/FK for the selected tables in this data connection
+            constraints = await self._inspect_pk_fk_for_selected_tables(
+                dc_info.data_connection_id,
+                dc_info.tables_info,
+            )
+
+            # Create data_connection.TableInfo objects with PK/FK data for RelationshipDetector
+            for table_info in dc_info.tables_info:
+                data_connection_columns = [
+                    DataConnectionColumnInfo(
+                        name=col.name,
+                        data_type=col.data_type,
+                        sample_values=col.sample_values,
+                        primary_key=None,
+                        unique=None,
+                        description=col.description,
+                        synonyms=col.synonyms,
+                    )
+                    for col in table_info.columns
+                ]
+
+                data_connection_table = DataConnectionTableInfo(
+                    name=table_info.name,
+                    database=table_info.database,
+                    schema=table_info.schema_,
+                    description=table_info.description,
+                    columns=data_connection_columns,
+                    primary_keys=constraints.primary_keys_map.get(table_info.name, []),
+                    foreign_keys=constraints.foreign_keys_map.get(table_info.name, []),
+                )
+                all_tables_with_metadata.append(data_connection_table)
+
+        return all_tables_with_metadata
+
+    async def _detect_relationships(
+        self,
+        data_connections_info: list[DataConnectionInfo],
+    ) -> list | None:
+        """Detect relationships from FK constraints.
+
+        Args:
+            data_connections_info: List of data connection info
+
+        Returns:
+            List of Relationship objects or None if no relationships detected
+        """
+        from agent_platform.core.data_frames.semantic_data_model_types import (
+            Relationship,
+            RelationshipColumn,
+        )
+        from agent_platform.server.kernel.relationship_detector import RelationshipDetector
+
+        # Collect all tables and enrich them with PK/FK metadata
+        all_tables_with_metadata = await self._collect_tables_with_pk_fk_metadata(data_connections_info)
+
+        if not all_tables_with_metadata:
+            return None
+
+        # Detect relationships
+        detector = RelationshipDetector(all_tables_with_metadata)
+        detected = detector.detect_all_relationships()
+
+        if not detected:
+            return None
+
+        # Convert to SDM Relationship format
+        relationships = []
+        for det in detected:
+            relationship: Relationship = {
+                "name": det.name,
+                "left_table": det.left_table,
+                "right_table": det.right_table,
+                "relationship_columns": [
+                    RelationshipColumn(left_column=rc.left_column, right_column=rc.right_column)
+                    for rc in det.relationship_columns
+                ],
+            }
+            relationships.append(relationship)
+
+        return relationships if relationships else None

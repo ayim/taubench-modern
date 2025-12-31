@@ -14665,6 +14665,72 @@ export const spec = {
         required: ['explanation', 'score', 'passed'],
         title: 'FlowAdherenceResult',
       },
+      ForeignKeyAction: {
+        type: 'string',
+        enum: ['CASCADE', 'RESTRICT', 'SET NULL', 'SET DEFAULT', 'NO ACTION'],
+        title: 'ForeignKeyAction',
+        description:
+          'Actions for foreign key constraints on DELETE and UPDATE operations.',
+      },
+      ForeignKeyInfo: {
+        properties: {
+          constraint_name: {
+            type: 'string',
+            title: 'Constraint Name',
+          },
+          source_table: {
+            type: 'string',
+            title: 'Source Table',
+          },
+          source_columns: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Source Columns',
+          },
+          target_table: {
+            type: 'string',
+            title: 'Target Table',
+          },
+          target_columns: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Target Columns',
+          },
+          on_delete: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/ForeignKeyAction',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+          on_update: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/ForeignKeyAction',
+              },
+              {
+                type: 'null',
+              },
+            ],
+          },
+        },
+        type: 'object',
+        required: [
+          'constraint_name',
+          'source_table',
+          'source_columns',
+          'target_table',
+          'target_columns',
+        ],
+        title: 'ForeignKeyInfo',
+      },
       ForkThreadPayload: {
         properties: {
           message_id: {
@@ -20099,24 +20165,9 @@ export const spec = {
             type: 'array',
             title: 'Relationship Columns',
           },
-          join_type: {
-            type: 'string',
-            title: 'Join Type',
-          },
-          relationship_type: {
-            type: 'string',
-            title: 'Relationship Type',
-          },
         },
         type: 'object',
-        required: [
-          'name',
-          'left_table',
-          'right_table',
-          'relationship_columns',
-          'join_type',
-          'relationship_type',
-        ],
+        required: ['name', 'left_table', 'right_table', 'relationship_columns'],
         title: 'Relationship',
         description: 'Defines join relationships between logical tables.',
       },
@@ -26616,6 +26667,20 @@ export const spec = {
             },
             type: 'array',
             title: 'Columns',
+          },
+          primary_keys: {
+            items: {
+              type: 'string',
+            },
+            type: 'array',
+            title: 'Primary Keys',
+          },
+          foreign_keys: {
+            items: {
+              $ref: '#/components/schemas/ForeignKeyInfo',
+            },
+            type: 'array',
+            title: 'Foreign Keys',
           },
         },
         type: 'object',

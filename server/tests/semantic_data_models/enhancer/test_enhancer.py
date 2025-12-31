@@ -3,6 +3,54 @@
 import pytest
 
 
+@pytest.fixture
+def mock_storage_with_fk_inspection(monkeypatch):
+    """Create a mock storage with FK inspection mocked for relationship detection."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock_storage = MagicMock()
+    mock_storage.get_data_connection = AsyncMock()
+    mock_connection = MagicMock()
+    mock_connection.id = "conn_123"
+    mock_connection.name = "test_connection"
+    mock_connection.engine = "postgres"
+    mock_storage.get_data_connection.return_value = mock_connection
+
+    # Mock DataConnectionInspector.create_ibis_connection
+    async def mock_create_ibis_connection(*args, **kwargs):
+        return AsyncMock()
+
+    from agent_platform.server.kernel import data_connection_inspector
+
+    monkeypatch.setattr(
+        data_connection_inspector.DataConnectionInspector,
+        "create_ibis_connection",
+        mock_create_ibis_connection,
+    )
+
+    # Mock ForeignKeyInspector methods to return empty constraints
+    async def mock_get_foreign_keys(*args, **kwargs):
+        return {}
+
+    async def mock_get_primary_keys(*args, **kwargs):
+        return {}
+
+    from agent_platform.server.dialect.postgres import foreign_key_inspector
+
+    monkeypatch.setattr(
+        foreign_key_inspector.PostgresForeignKeyInspector,
+        "get_foreign_keys",
+        mock_get_foreign_keys,
+    )
+    monkeypatch.setattr(
+        foreign_key_inspector.PostgresForeignKeyInspector,
+        "get_primary_keys",
+        mock_get_primary_keys,
+    )
+
+    return mock_storage
+
+
 def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regression):
     """Test creating a semantic data model for LLM from a semantic data model."""
     from agent_platform.core.data_frames.semantic_data_model_types import (
@@ -123,13 +171,13 @@ def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regres
 
 
 @pytest.mark.asyncio
-async def test_enhance_semantic_data_model_with_invalid_json_retry():
+async def test_enhance_semantic_data_model_with_invalid_json_retry(mock_storage_with_fk_inspection):
     """Test enhancing a semantic data model when LLM text responses are rejected.
 
     This unit test verifies that text responses (without tool calls) are rejected.
     The system now requires tool calls for all responses.
     """
-    from unittest.mock import AsyncMock, MagicMock, patch
+    from unittest.mock import AsyncMock, patch
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         ColumnInfo,
@@ -144,11 +192,10 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
     )
 
     # Create a simple semantic model to enhance
-    mock_storage = MagicMock()
     mock_user = User(user_id="test_user", sub="test_user")
 
     # Create a simple semantic model to enhance with user, storage, and agent_id
-    generator = SemanticDataModelGenerator()
+    generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
 
     column_info = ColumnInfo(
         name="system_name",
@@ -196,7 +243,7 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
     ):
         enhancer = SemanticDataModelEnhancer(
             user=mock_user,
-            storage=mock_storage,
+            storage=mock_storage_with_fk_inspection,
             agent_id="test_agent_id",
         )
 
@@ -217,7 +264,7 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry():
 
 
 @pytest.mark.asyncio
-async def test_enhance_semantic_data_model_with_tool_call():
+async def test_enhance_semantic_data_model_with_tool_call(mock_storage_with_fk_inspection):
     """Test enhancing a semantic data model using structured tool calls.
 
     This unit test verifies that tool call responses are handled correctly through
@@ -233,7 +280,7 @@ async def test_enhance_semantic_data_model_with_tool_call():
 
     Note: Quality check is disabled by default, so only 2 calls are expected.
     """
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         ColumnInfo,
@@ -248,11 +295,10 @@ async def test_enhance_semantic_data_model_with_tool_call():
     )
 
     # Create a simple semantic model to enhance
-    mock_storage = MagicMock()
     mock_user = User(user_id="test_user", sub="test_user")
 
     # Create a simple semantic model to enhance with user, storage, and agent_id
-    generator = SemanticDataModelGenerator()
+    generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
 
     column_info = ColumnInfo(
         name="system_name",
@@ -356,7 +402,7 @@ async def test_enhance_semantic_data_model_with_tool_call():
 
         enhancer = SemanticDataModelEnhancer(
             user=mock_user,
-            storage=mock_storage,
+            storage=mock_storage_with_fk_inspection,
             agent_id="test_agent_id",
         )
 
@@ -407,7 +453,7 @@ class TestGetDataConnectionTableNames:
     """Tests for _get_data_connection_table_names function."""
 
     @pytest.mark.asyncio
-    async def test_identifies_data_connection_tables(self):
+    async def test_identifies_data_connection_tables(self, mock_storage_with_fk_inspection):
         """Should identify tables with data_connection_id."""
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             ColumnInfo,
@@ -421,7 +467,7 @@ class TestGetDataConnectionTableNames:
             _get_data_connection_table_names,
         )
 
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
         column_info = ColumnInfo(name="col1", data_type="TEXT", sample_values=["a", "b"])
         table_info = TableInfo(
             name="dc_table",
@@ -483,7 +529,7 @@ class TestGetDataConnectionTableNames:
         assert result == set()
 
     @pytest.mark.asyncio
-    async def test_mixed_tables(self):
+    async def test_mixed_tables(self, mock_storage_with_fk_inspection):
         """Should only return data connection table names in mixed model."""
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             ColumnInfo,
@@ -498,7 +544,7 @@ class TestGetDataConnectionTableNames:
             _get_data_connection_table_names,
         )
 
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
         # Physical column for DC tables (abbreviated)
         dc_col = ColumnInfo(name="cust_id", data_type="TEXT", sample_values=["1"])
         # Physical column for file table (from header with whitespace)
@@ -553,7 +599,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
     """Tests for reset_logical_names_to_physical_for_data_connections function."""
 
     @pytest.mark.asyncio
-    async def test_resets_table_name_to_physical_for_data_connection(self):
+    async def test_resets_table_name_to_physical_for_data_connection(self, mock_storage_with_fk_inspection):
         """Table name should be reset to base_table.table for data connection tables."""
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             ColumnInfo,
@@ -567,7 +613,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             reset_logical_names_to_physical_for_data_connections,
         )
 
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
         # Physical column name (abbreviated, as typically found in databases)
         column_info = ColumnInfo(name="col1", data_type="TEXT", sample_values=["a", "b"])
         # Physical table name (abbreviated) - this becomes base_table.table
@@ -596,7 +642,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         assert semantic_model["tables"][0]["name"] == "sd_raw_tbl"  # type: ignore[index]
 
     @pytest.mark.asyncio
-    async def test_resets_column_names_for_dimensions_facts_time_dimensions(self):
+    async def test_resets_column_names_for_dimensions_facts_time_dimensions(self, mock_storage_with_fk_inspection):
         """Column names should be reset to expr for dimensions, facts, time_dimensions."""
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             ColumnInfo,
@@ -610,7 +656,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             reset_logical_names_to_physical_for_data_connections,
         )
 
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
         # Physical column names (abbreviated, as in real databases)
         # These become both Dimension.name and Dimension.expr after generation
         # Dimension: name containing "name" or ending with "_id" -> becomes dimension
@@ -657,7 +703,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         assert time_dims[0]["name"] == "ord_dt"  # Back to physical
 
     @pytest.mark.asyncio
-    async def test_preserves_metric_names(self):
+    async def test_preserves_metric_names(self, mock_storage_with_fk_inspection):
         """Metric names should NOT be reset since expr can be complex SQL expressions."""
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             ColumnInfo,
@@ -671,7 +717,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             reset_logical_names_to_physical_for_data_connections,
         )
 
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
         column_info = ColumnInfo(name="col1", data_type="TEXT", sample_values=["a"])
         table_info = TableInfo(
             name="phys_table",
@@ -756,7 +802,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         assert dimensions[0]["name"] == "customer_name"
 
     @pytest.mark.asyncio
-    async def test_only_modifies_data_connection_tables_in_mixed_model(self):
+    async def test_only_modifies_data_connection_tables_in_mixed_model(self, mock_storage_with_fk_inspection):
         """Only tables with data_connection_id should be modified."""
         from agent_platform.core.payloads.semantic_data_model_payloads import (
             ColumnInfo,
@@ -771,7 +817,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             reset_logical_names_to_physical_for_data_connections,
         )
 
-        generator = SemanticDataModelGenerator()
+        generator = SemanticDataModelGenerator(storage=mock_storage_with_fk_inspection)
         # Physical column name (abbreviated) for data connection table
         dc_col = ColumnInfo(name="cust_nm", data_type="TEXT", sample_values=["Alice"])
         # Physical column name from Excel header (has whitespace/special chars)

@@ -26,21 +26,57 @@ from agent_platform.server.kernel.semantic_data_model_generator import (
 
 
 @pytest.fixture
-def mock_storage():
+def mock_storage(monkeypatch):
     """Create a mock storage with necessary methods."""
     storage = AsyncMock()
     # Mock data connection retrieval
     mock_connection = MagicMock()
     mock_connection.id = "conn_123"
     mock_connection.name = "test_connection"
+    mock_connection.engine = "postgres"
     storage.get_data_connection.return_value = mock_connection
+
+    # Mock DataConnectionInspector.create_ibis_connection to avoid actual connection
+    mock_ibis_connection = AsyncMock()
+
+    async def mock_create_ibis_connection(*args, **kwargs):
+        return mock_ibis_connection
+
+    from agent_platform.server.kernel import data_connection_inspector
+
+    monkeypatch.setattr(
+        data_connection_inspector.DataConnectionInspector,
+        "create_ibis_connection",
+        mock_create_ibis_connection,
+    )
+
+    # Mock ForeignKeyInspector methods to return empty constraints
+    async def mock_get_foreign_keys(*args, **kwargs):
+        return {}
+
+    async def mock_get_primary_keys(*args, **kwargs):
+        return {}
+
+    from agent_platform.server.dialect.postgres import foreign_key_inspector
+
+    monkeypatch.setattr(
+        foreign_key_inspector.PostgresForeignKeyInspector,
+        "get_foreign_keys",
+        mock_get_foreign_keys,
+    )
+    monkeypatch.setattr(
+        foreign_key_inspector.PostgresForeignKeyInspector,
+        "get_primary_keys",
+        mock_get_primary_keys,
+    )
+
     return storage
 
 
 @pytest.mark.asyncio
-async def test_generate_semantic_data_model_with_data_connection(data_regression):
+async def test_generate_semantic_data_model_with_data_connection(data_regression, mock_storage):
     """Test generating a semantic data model from data connection info."""
-    generator = SemanticDataModelGenerator()
+    generator = SemanticDataModelGenerator(storage=mock_storage)
 
     # Create sample data
     column_info = ColumnInfo(
@@ -118,9 +154,9 @@ async def test_generate_semantic_data_model_with_file(data_regression):
 
 
 @pytest.mark.asyncio
-async def test_generate_semantic_data_model_with_numeric_columns(data_regression):
+async def test_generate_semantic_data_model_with_numeric_columns(data_regression, mock_storage):
     """Test generating a semantic data model with numeric columns (facts)."""
-    generator = SemanticDataModelGenerator()
+    generator = SemanticDataModelGenerator(storage=mock_storage)
 
     # Create sample data with numeric column
     numeric_column = ColumnInfo(
@@ -157,9 +193,9 @@ async def test_generate_semantic_data_model_with_numeric_columns(data_regression
 
 
 @pytest.mark.asyncio
-async def test_generate_semantic_data_model_with_time_columns(data_regression):
+async def test_generate_semantic_data_model_with_time_columns(data_regression, mock_storage):
     """Test generating a semantic data model with time columns."""
-    generator = SemanticDataModelGenerator()
+    generator = SemanticDataModelGenerator(storage=mock_storage)
 
     # Create sample data with time column
     time_column = ColumnInfo(

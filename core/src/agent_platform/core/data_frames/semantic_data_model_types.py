@@ -493,8 +493,6 @@ class Relationship(TypedDict):
         list[RelationshipColumn],
         "A list of equal columns from each of the left table and right table representing the join path",
     ]
-    join_type: Annotated[str, "Either left_outer or inner"]
-    relationship_type: Annotated[str, "Either many_to_one or one_to_one"]
 
 
 class LogicalTable(TypedDict, total=False):
