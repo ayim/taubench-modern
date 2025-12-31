@@ -9,8 +9,8 @@ from types import TracebackType
 from typing import ClassVar, Self
 
 import sqlalchemy as sa
-from aiosqlite import Cursor, Row
-from sqlalchemy.ext.asyncio import create_async_engine
+from aiosqlite import Connection, Cursor, Row
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
@@ -294,11 +294,10 @@ class SQLiteStorage(
 
         self._logger = get_logger(__name__)
         self._db_path = db_path or self._get_db_path()
-        self._migrations = SQLiteMigrations(self._db_path)
         self._is_setup = False
         self._write_lock = ReentrantAsyncLock()
 
-    async def setup(self) -> None:
+    async def setup(self, migrate: bool = True) -> None:
         """Create and open the SQLite database connection, enable foreign keys,
         set up function, run migrations."""
         if self._is_setup:
@@ -365,7 +364,8 @@ class SQLiteStorage(
             dbapi_conn.create_function("v2_check_user_access", 2, func)
 
         # Run migrations in setup
-        await self._run_migrations()
+        if migrate:
+            await self._run_migrations()
 
         # Run database reflection for SQLAlchemy
         await self._reflect_database()
@@ -390,16 +390,13 @@ class SQLiteStorage(
         return str(db_path)
 
     async def _run_migrations(self):
-        await self._migrations.run_migrations()
+        await SQLiteMigrations(self).run_migrations()
 
     @asynccontextmanager
     async def _cursor(
         self,
     ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor"""
-        if not self._is_setup:
-            raise RuntimeError("Database not initialized; call setup() first.")
-
         async with self._read_connection() as conn:
             raw_conn = await conn.get_raw_connection()
             assert raw_conn.driver_connection is not None
@@ -413,14 +410,30 @@ class SQLiteStorage(
         self,
     ) -> AsyncGenerator[Cursor, None]:
         """Yield an async SQLite cursor and then commit on exit or rollback on error."""
-        if not self._is_setup:
-            raise RuntimeError("Database not initialized; call setup() first.")
+        async with self._transaction_connection() as conn:
+            yield await conn.cursor()
 
+    async def _is_in_native_transaction(self, conn: AsyncConnection) -> bool:
+        """Determine if the connection is in a native transaction (not managed by sqlalchemy)."""
+        native_connection = (await conn.get_raw_connection()).driver_connection
+        return native_connection is not None and native_connection.in_transaction
+
+    @asynccontextmanager
+    async def _transaction_connection(
+        self,
+    ) -> AsyncGenerator[Connection, None]:
+        """Yield an async SQLite cursor and then commit on exit or rollback on error."""
         async with self._write_connection() as conn:
             raw_conn = await conn.get_raw_connection()
             assert raw_conn.driver_connection is not None
             raw_conn.driver_connection._connection.row_factory = Row
-            yield await raw_conn.driver_connection.cursor()
+
+            if not (await self._is_in_native_transaction(conn)):
+                # Force the transaction to be started.
+                await conn.exec_driver_sql("BEGIN")
+                assert await self._is_in_native_transaction(conn)
+
+            yield raw_conn.driver_connection
 
     def _clean_up_stale_threads__get_threshold(
         self,

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+from structlog.stdlib import get_logger
 
 if typing.TYPE_CHECKING:
     from psycopg import AsyncConnection
@@ -23,6 +24,8 @@ if sys.platform == "win32":
     # 'ProactorEventLoop' to run in async mode. Please use a compatible event loop,
     # for instance by setting 'asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())'
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+logger = get_logger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -107,7 +110,7 @@ async def _teardown_sqlite_storage(tmp_path: Path, storage_instance: "SQLiteStor
 
 
 @pytest.fixture(scope="session")
-async def postgres_testing(request):
+async def postgres_testing(request, tmp_path_factory):
     # Lazy import testing.postgresql only when needed
     already_yielded = False
     try:
@@ -115,10 +118,12 @@ async def postgres_testing(request):
         import testing.postgresql
 
         class CustomPostgresql(testing.postgresql.Postgresql):
+            DEFAULT_SETTINGS = testing.postgresql.Postgresql.DEFAULT_SETTINGS.copy()
+            DEFAULT_SETTINGS["base_dir"] = str(tmp_path_factory.mktemp("postgres_testing"))
+
             def terminate(self, *args):
                 # We need to override to work on Windows.
                 import signal
-                import sys
 
                 if sys.platform == "win32":
                     send_signal = signal.CTRL_BREAK_EVENT
@@ -129,6 +134,7 @@ async def postgres_testing(request):
 
         with CustomPostgresql() as postgresql:
             try:
+                logger.info("Starting postgres at:", base_dir=postgresql.base_dir)
                 yield postgresql
                 already_yielded = True
             finally:

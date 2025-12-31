@@ -241,22 +241,15 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 self._sql_transaction_count.set(current_count + 1)
                 conn: AsyncConnection
                 async with self._sa_engine.connect() as conn:
-                    # We no longer use the self._sa_engine.begin() as it doesn't work when
-                    # mixed with using sqlite cursors directly (as the transaction managed
-                    # by sqlalchemy can be lazily started).
-                    # So, we always explicitly start/rollback/commit the transaction.
-                    await conn.exec_driver_sql("BEGIN")
-                    self._sql_transaction_conn.set(conn)
-                    try:
+                    async with conn.begin():
+                        self._sql_transaction_conn.set(conn)
                         yield conn
-                    except BaseException:
-                        await conn.exec_driver_sql("ROLLBACK")
-                        raise
-                    else:
-                        await conn.exec_driver_sql("COMMIT")
-
             finally:
                 self._sql_transaction_count.set(current_count)
+
+    @abstractmethod
+    async def _is_in_native_transaction(self, conn: AsyncConnection) -> bool:
+        """Determine if the connection is in a native transaction (not managed by sqlalchemy)."""
 
     @asynccontextmanager
     async def _read_connection(self) -> AsyncIterator[AsyncConnection]:

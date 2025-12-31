@@ -1,6 +1,7 @@
 from collections.abc import Callable
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from psycopg import AsyncCursor
@@ -16,6 +17,9 @@ from agent_platform.server.storage.postgres.migrations import PostgresMigrations
 CursorProvider = Callable[[], AbstractAsyncContextManager[AsyncCursor[DictRow]]]
 
 pytestmark = pytest.mark.postgresql
+
+if TYPE_CHECKING:
+    from agent_platform.server.storage.postgres.postgres import PostgresStorage
 
 
 @pytest.fixture(autouse=True)
@@ -36,27 +40,26 @@ async def _reset_schema(postgres_test_db: AsyncConnectionPool):
 
 
 @pytest.fixture
-async def cursor_provider(
-    postgres_test_db: AsyncConnectionPool,
-) -> CursorProvider:
-    """
-    Provides a reusable cursor provider function that wraps the connection pool.
-    """
+async def postgres_storage_for_migrations(postgres_testing):
+    """Create a SQLiteStorage instance for migration testing.
 
-    @asynccontextmanager
-    async def _cursor_provider():
-        async with postgres_test_db.connection() as conn:
-            async with conn.cursor(row_factory=dict_row) as cur:
-                yield cur
+    This sets up the storage without running migrations, so we can test
+    the migration system in isolation.
+    """
+    from agent_platform.server.storage.postgres.postgres import PostgresStorage
 
-    return _cursor_provider
+    storage = PostgresStorage(dsn=postgres_testing.url())
+    await storage.setup(migrate=False)
+
+    yield storage
+
+    await storage.teardown()
 
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
 async def test_postgres_run_migrations_successfully(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: AsyncCursor,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool
 ):
     """
     Test that running migrations completes without error
@@ -66,7 +69,7 @@ async def test_postgres_run_migrations_successfully(
         Path(__file__).parent.parent.parent.parent / "src" / "agent_platform" / "server" / "migrations" / "postgres"
     )
     migrations = PostgresMigrations(
-        cursor_provider,
+        postgres_storage_for_migrations,
         migrations_path=path_to_migrations,
     )
 
@@ -108,15 +111,14 @@ async def test_postgres_run_migrations_successfully(
 
 @pytest.mark.asyncio
 async def test_postgres_run_migrations_dirty_state(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: CursorProvider,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool
 ):
     """
     Test that running migrations fails if the 'dirty' flag is set.
     We artificially set a dirty row in the migrations table,
     then confirm a MigrationError is raised.
     """
-    migrations = PostgresMigrations(cursor_provider)
+    migrations = PostgresMigrations(postgres_storage_for_migrations)
 
     # Manually set the "dirty" flag
     async with postgres_test_db.connection() as conn:
@@ -145,8 +147,7 @@ async def test_postgres_run_migrations_dirty_state(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_timeout(
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Test that a MigrationTimeoutError is raised when a migration exceeds the timeout.
@@ -167,7 +168,7 @@ async def test_postgres_migration_timeout(
 
         # Create a PostgresMigrations instance with a shorter timeout
         migrations = PostgresMigrations(
-            cursor_provider,
+            postgres_storage_for_migrations,
             timeout=1.0,
             migrations_path=Path(str(temp_migration_path.parent)),
         )
@@ -184,9 +185,7 @@ async def test_postgres_migration_timeout(
 
 @pytest.mark.asyncio
 async def test_postgres_invalid_migration_filename(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Test that migrations with invalid filenames are ignored and a warning is logged.
@@ -200,8 +199,7 @@ async def test_postgres_invalid_migration_filename(
 
         # Initialize migrations instance pointing to the temporary directory
         migrations = PostgresMigrations(
-            cursor_provider,
-            migrations_path=Path(str(temp_migration_path.parent)),
+            postgres_storage_for_migrations, migrations_path=Path(str(temp_migration_path.parent))
         )
 
         # Run migrations
@@ -259,7 +257,7 @@ async def test_postgres_invalid_migration_filename(
 #             )
 
 #     # Attempt to run migrations, expect the lock acquisition to fail
-#     migrations = PostgresMigrations(cursor_provider)
+#     migrations = PostgresMigrations(postgres_storage_for_migrations)
 
 #     with pytest.raises(MigrationLockError) as exc_info:
 #         await migrations.run_migrations()
@@ -269,8 +267,7 @@ async def test_postgres_invalid_migration_filename(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_checksum_drift(
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Test that if a migration file changes after it's already applied,
@@ -281,11 +278,11 @@ async def test_postgres_migration_checksum_drift(
     migration_file.write_text("CREATE TABLE drift_test (id SERIAL PRIMARY KEY);")
 
     # 2) Point our migrations to that temp directory and run them once
-    migrations = PostgresMigrations(cursor_provider, migrations_path=tmp_path)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=tmp_path)
     await migrations.run_migrations()
 
     # <--- Force unlock here so that the next run can reacquire the lock. --->
-    async with cursor_provider() as cur:
+    async with postgres_storage_for_migrations._cursor() as cur:
         # Just wipe out the lock row entirely (or only if locked_by = <pid1>)
         await cur.execute("DELETE FROM v2.migration_locks WHERE id = 1;")
 
@@ -302,8 +299,7 @@ async def test_postgres_migration_checksum_drift(
 
 @pytest.mark.asyncio
 async def test_postgres_empty_migration_file(
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Test that an empty migration file raises a MigrationError.
@@ -313,7 +309,7 @@ async def test_postgres_empty_migration_file(
     empty_migration.write_text("")  # No contents
 
     # Run migrations
-    migrations = PostgresMigrations(cursor_provider, migrations_path=tmp_path)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -323,9 +319,7 @@ async def test_postgres_empty_migration_file(
 
 @pytest.mark.asyncio
 async def test_postgres_migration_sql_syntax_error(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Test that an invalid SQL statement in a migration file causes MigrationError,
@@ -336,7 +330,7 @@ async def test_postgres_migration_sql_syntax_error(
     # Missing 'E'
     bad_migration.write_text("CREAT TABLE bad_syntax (id SERIAL PRIMARY KEY);")
 
-    migrations = PostgresMigrations(cursor_provider, migrations_path=tmp_path)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -360,8 +354,8 @@ async def test_postgres_migration_sql_syntax_error(
 
 @pytest.mark.asyncio
 async def test_postgres_migrations_idempotency(
+    postgres_storage_for_migrations: "PostgresStorage",
     postgres_test_db: AsyncConnectionPool,
-    cursor_provider: CursorProvider,
     tmp_path: Path,
 ):
     """
@@ -372,7 +366,7 @@ async def test_postgres_migrations_idempotency(
     migrations_path = (
         Path(__file__).parent.parent.parent.parent / "src" / "agent_platform" / "server" / "migrations" / "postgres"
     )
-    migrations = PostgresMigrations(cursor_provider, migrations_path=migrations_path)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=migrations_path)
 
     await migrations.run_migrations()
     async with postgres_test_db.connection() as conn:
@@ -383,7 +377,7 @@ async def test_postgres_migrations_idempotency(
             initial_count = row[0]
 
     # <--- Force unlock here so that the next run can reacquire the lock. --->
-    async with cursor_provider() as cur:
+    async with postgres_storage_for_migrations._cursor() as cur:
         # Just wipe out the lock row entirely (or only if locked_by = <pid1>)
         await cur.execute("DELETE FROM v2.migration_locks WHERE id = 1;")
 
@@ -400,9 +394,7 @@ async def test_postgres_migrations_idempotency(
 
 @pytest.mark.asyncio
 async def test_postgres_empty_migrations_directory(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Point the migrations engine to an empty directory and verify that no migrations
@@ -410,7 +402,7 @@ async def test_postgres_empty_migrations_directory(
     """
     empty_dir = tmp_path / "empty_migrations"
     empty_dir.mkdir()
-    migrations = PostgresMigrations(cursor_provider, migrations_path=empty_dir)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=empty_dir)
 
     await migrations.run_migrations()
 
@@ -426,9 +418,7 @@ async def test_postgres_empty_migrations_directory(
 
 @pytest.mark.asyncio
 async def test_postgres_rollback_on_failure(
-    postgres_test_db: AsyncConnectionPool,
-    cursor_provider: CursorProvider,
-    tmp_path: Path,
+    postgres_storage_for_migrations: "PostgresStorage", postgres_test_db: AsyncConnectionPool, tmp_path: Path
 ):
     """
     Create a migration file with a valid SQL statement followed by an invalid one.
@@ -444,7 +434,7 @@ async def test_postgres_rollback_on_failure(
         SELECT INVALID_FUNCTION();  -- This will cause an error
     """)
 
-    migrations = PostgresMigrations(cursor_provider, migrations_path=migration_dir)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=migration_dir)
 
     with pytest.raises(MigrationError):
         await migrations.run_migrations()
@@ -488,7 +478,8 @@ async def test_postgres_rollback_on_failure(
     ],
 )
 async def test_migration_script_with_transaction_commands(
-    cursor_provider: CursorProvider,
+    postgres_storage_for_migrations: "PostgresStorage",
+    postgres_test_db: AsyncConnectionPool,
     tmp_path: Path,
     bad_sql: str,
     err_msg: str,
@@ -507,7 +498,7 @@ async def test_migration_script_with_transaction_commands(
     migration_file.write_text(bad_sql)
 
     # Initialize the migrations provider with the temporary migration directory.
-    migrations = PostgresMigrations(cursor_provider, migrations_path=migration_dir)
+    migrations = PostgresMigrations(postgres_storage_for_migrations, migrations_path=migration_dir)
 
     # Running the migrations should trigger a MigrationError
     # due to forbidden transaction commands.

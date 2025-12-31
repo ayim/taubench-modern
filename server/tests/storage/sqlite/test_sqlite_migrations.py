@@ -9,22 +9,40 @@ from agent_platform.server.storage.migrations import (
     MigrationTimeoutError,
 )
 from agent_platform.server.storage.sqlite.migrations import SQLiteMigrations
+from agent_platform.server.storage.sqlite.sqlite import SQLiteStorage
 
 
 @pytest.fixture
-async def sqlite_db_path(tmp_path_factory):
+def sqlite_db_path(tmp_path: Path):
     """Provide a temporary SQLite file path for testing."""
-    db_file = tmp_path_factory.mktemp("data") / "test.db"
-    return str(db_file)
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    return tmp_path / "test.db"
+
+
+@pytest.fixture
+async def sqlite_storage_for_migrations(sqlite_db_path: Path):
+    """Create a SQLiteStorage instance for migration testing.
+
+    This sets up the storage without running migrations, so we can test
+    the migration system in isolation.
+    """
+    storage = SQLiteStorage(db_path=str(sqlite_db_path))
+    await storage.setup(migrate=False)
+
+    yield storage
+
+    await storage.teardown()
+    if sqlite_db_path.exists():
+        sqlite_db_path.unlink()
 
 
 @pytest.mark.asyncio
-async def test_sqlite_run_migrations_successfully(sqlite_db_path):
+async def test_sqlite_run_migrations_successfully(sqlite_storage_for_migrations, sqlite_db_path):
     """Test that migrations run successfully and create expected tables in SQLite."""
     path_to_migrations = (
         Path(__file__).parent.parent.parent.parent / "src" / "agent_platform" / "server" / "migrations" / "sqlite"
     )
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=path_to_migrations)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=path_to_migrations)
     await migrations.run_migrations()
 
     # Check that a table is created, for example 'v2_agent'.
@@ -55,7 +73,7 @@ async def test_sqlite_run_migrations_successfully(sqlite_db_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_run_migrations_dirty_state(sqlite_db_path):
+async def test_sqlite_run_migrations_dirty_state(sqlite_storage_for_migrations, sqlite_db_path):
     """Test that a dirty migration state raises MigrationError in SQLite."""
     # Create the migrations table with a 'dirty=1' row
     async with aiosqlite.connect(sqlite_db_path) as conn:
@@ -73,7 +91,7 @@ async def test_sqlite_run_migrations_dirty_state(sqlite_db_path):
         """)
         await conn.commit()
 
-    migrations = SQLiteMigrations(sqlite_db_path)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -82,7 +100,7 @@ async def test_sqlite_run_migrations_dirty_state(sqlite_db_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_migration_timeout(sqlite_db_path, tmp_path):
+async def test_sqlite_migration_timeout(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Test that a MigrationTimeoutError is raised when a migration exceeds the timeout.
     """
@@ -102,7 +120,7 @@ async def test_sqlite_migration_timeout(sqlite_db_path, tmp_path):
 
         # Create a SQLiteMigrationsV2 instance with a shorter timeout
         migrations = SQLiteMigrations(
-            sqlite_db_path,
+            sqlite_storage_for_migrations,
             timeout=1.0,
             migrations_path=temp_migration_path.parent,
         )
@@ -118,7 +136,7 @@ async def test_sqlite_migration_timeout(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
+async def test_sqlite_invalid_migration_filename(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Test that migrations with invalid filenames are ignored and a warning is logged.
     """
@@ -131,7 +149,7 @@ async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
 
         # Initialize migrations instance pointing to the temporary directory
         migrations = SQLiteMigrations(
-            sqlite_db_path,
+            sqlite_storage_for_migrations,
             migrations_path=temp_migration_path.parent,
         )
 
@@ -157,7 +175,7 @@ async def test_sqlite_invalid_migration_filename(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_db_path):
+async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_storage_for_migrations, sqlite_db_path):
     """
     Test that a MigrationLockError is raised if we cannot acquire the lock.
     We simulate another process holding the lock by inserting a row with
@@ -179,7 +197,7 @@ async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_db_path):
         await conn.commit()
 
     # Attempt to run migrations, expect the lock acquisition to fail
-    migrations = SQLiteMigrations(sqlite_db_path)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations)
 
     with pytest.raises(MigrationLockError) as exc_info:
         await migrations.run_migrations()
@@ -188,7 +206,7 @@ async def test_sqlite_migration_lock_cannot_be_acquired(sqlite_db_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_migration_checksum_drift(sqlite_db_path, tmp_path):
+async def test_sqlite_migration_checksum_drift(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Test that if a migration file changes after it's already applied,
     we detect checksum drift and raise MigrationError.
@@ -198,7 +216,7 @@ async def test_sqlite_migration_checksum_drift(sqlite_db_path, tmp_path):
     migration_file.write_text("CREATE TABLE drift_test (id INTEGER PRIMARY KEY);")
 
     # 2) Point migrations to that temp directory and run them once
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=tmp_path)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=tmp_path)
     await migrations.run_migrations()
 
     # 3) Modify the SAME file content (simulate drift)
@@ -213,7 +231,7 @@ async def test_sqlite_migration_checksum_drift(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_migration_sql_syntax_error(sqlite_db_path, tmp_path):
+async def test_sqlite_migration_sql_syntax_error(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Test that an invalid SQL statement in a migration file causes MigrationError,
     and the migration remains dirty.
@@ -223,7 +241,7 @@ async def test_sqlite_migration_sql_syntax_error(sqlite_db_path, tmp_path):
     # 'CREAT' missing 'E'
     bad_migration.write_text("CREAT TABLE bad_syntax (id INTEGER PRIMARY KEY);")
 
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=tmp_path)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -243,7 +261,7 @@ async def test_sqlite_migration_sql_syntax_error(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_empty_migration_file(sqlite_db_path, tmp_path):
+async def test_sqlite_empty_migration_file(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Test that an empty migration file raises a MigrationError.
     """
@@ -251,7 +269,7 @@ async def test_sqlite_empty_migration_file(sqlite_db_path, tmp_path):
     empty_migration = tmp_path / "3_empty_file.up.sql"
     empty_migration.write_text("")  # no contents
 
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=tmp_path)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=tmp_path)
 
     with pytest.raises(MigrationError) as exc_info:
         await migrations.run_migrations()
@@ -260,7 +278,7 @@ async def test_sqlite_empty_migration_file(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
+async def test_sqlite_migrations_idempotency(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Run migrations twice and verify that the number of
     applied migrations remains the same.
@@ -269,7 +287,7 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
     migrations_path = (
         Path(__file__).parent.parent.parent.parent / "src" / "agent_platform" / "server" / "migrations" / "sqlite"
     )
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=migrations_path)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=migrations_path)
 
     await migrations.run_migrations()
     async with aiosqlite.connect(sqlite_db_path) as conn:
@@ -289,14 +307,14 @@ async def test_sqlite_migrations_idempotency(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_empty_migrations_directory(sqlite_db_path, tmp_path):
+async def test_sqlite_empty_migrations_directory(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Point the migrations engine to an empty directory and verify that no migrations
     are applied.
     """
     empty_dir = tmp_path / "empty_migrations"
     empty_dir.mkdir()
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=empty_dir)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=empty_dir)
 
     await migrations.run_migrations()
 
@@ -310,7 +328,7 @@ async def test_sqlite_empty_migrations_directory(sqlite_db_path, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
+async def test_sqlite_rollback_on_failure(sqlite_storage_for_migrations, sqlite_db_path, tmp_path):
     """
     Create a migration file with a valid SQL statement followed by an invalid one.
     Verify that when the migration fails, no partial schema changes are applied.
@@ -322,7 +340,7 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
         CREATE TABLE rollback_test (id INTEGER PRIMARY KEY);
         INVALID SQL STATEMENT;
     """)
-    migrations = SQLiteMigrations(sqlite_db_path, migrations_path=migration_dir)
+    migrations = SQLiteMigrations(sqlite_storage_for_migrations, migrations_path=migration_dir)
 
     with pytest.raises(MigrationError):
         await migrations.run_migrations()
@@ -360,6 +378,7 @@ async def test_sqlite_rollback_on_failure(sqlite_db_path, tmp_path):
     ],
 )
 async def test_migration_script_with_transaction_commands(
+    sqlite_storage_for_migrations,
     sqlite_db_path,
     tmp_path,
     bad_sql,
@@ -382,7 +401,7 @@ async def test_migration_script_with_transaction_commands(
     # Note that sqlite_db_path is a fixture that should point to an
     # empty SQLite DB file.
     migrations = SQLiteMigrations(
-        str(sqlite_db_path),
+        sqlite_storage_for_migrations,
         migrations_path=migration_dir,
     )
 

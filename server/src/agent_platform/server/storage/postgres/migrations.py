@@ -1,10 +1,10 @@
 from hashlib import sha256
 from os import listdir, path
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from psycopg import AsyncCursor
 from psycopg.errors import QueryCanceled
-from psycopg.rows import DictRow
+from psycopg.sql import SQL
 from structlog import get_logger
 
 from agent_platform.server.storage.migrations import (
@@ -13,6 +13,9 @@ from agent_platform.server.storage.migrations import (
     MigrationsProvider,
     MigrationTimeoutError,
 )
+
+if TYPE_CHECKING:
+    from agent_platform.server.storage.postgres.postgres import PostgresStorage
 
 logger = get_logger(__name__)
 
@@ -41,7 +44,7 @@ class PostgresMigrations(MigrationsProvider):
 
     def __init__(
         self,
-        transaction_provider,
+        storage: "PostgresStorage",
         timeout: float = 300.0,
         migrations_path: Path | None = None,
     ):
@@ -49,15 +52,22 @@ class PostgresMigrations(MigrationsProvider):
         Initializes a Migrations Provider for Postgres.
 
         Arguments:
-            transaction_provider: Callable returning an async
-                context manager for a DB cursor.
+            storage: PostgresStorage instance to use for database operations.
             timeout: Timeout (in seconds) for each migration statement.
             migrations_path: Path to the directory containing .up.sql files (optional).
         """
-        self._transaction = transaction_provider
+        import weakref
+
+        self.__storage = weakref.ref(storage)
         self._logger = get_logger(__name__)
         self._timeout = timeout
         self._migrations_path = migrations_path if migrations_path is not None else self._get_migrations_path()
+
+    @property
+    def _storage(self) -> "PostgresStorage":
+        ret = self.__storage()
+        assert ret is not None, "Storage is not initialized or is already garbage collected"
+        return ret
 
     def _get_migrations_path(self) -> Path:
         current_dir = path.dirname(path.abspath(__file__))
@@ -80,17 +90,18 @@ class PostgresMigrations(MigrationsProvider):
                (c) Mark dirty=FALSE
           6) Release lock
         """
-
         locked_acquired_by = None
         try:
-            async with self._transaction() as cur:
-                if not (locked_acquired_by := await self._acquire_migration_lock(cur)):
-                    logger.warning("Skipping migrations because another migration is running.")
-                    return
+            locked_acquired_by = await self._acquire_migration_lock()
+            if not locked_acquired_by:
+                logger.warning("Skipping migrations because another migration is running.")
+                return
 
-                await self._ensure_migrations_table(cur)
+            await self._ensure_migrations_table()
 
-                # Get existing migration states from DB
+            # Get existing migration states from DB
+            applied: dict[int, dict] = {}
+            async with self._storage._cursor() as cur:
                 await cur.execute(
                     """
                     SELECT version, checksum, dirty FROM v2.migrations
@@ -98,72 +109,69 @@ class PostgresMigrations(MigrationsProvider):
                     """,
                 )
                 rows = await cur.fetchall()
-                applied: dict[int, dict] = {}
                 for row in rows:
                     applied[row["version"]] = {
                         "checksum": row["checksum"],
                         "dirty": row["dirty"],
                     }
 
-                # Gather .up.sql files
-                migration_files = []
-                for fname in listdir(self._migrations_path):
-                    if fname.endswith(".down.sql"):
-                        continue
-                    try:
-                        version, desc = self._validate_migration_filename(fname)
-                        migration_files.append((version, desc, fname))
-                    except InvalidMigrationFilenameError as e:
-                        self._logger.warning(str(e))
-                        continue
+            # Gather .up.sql files
+            migration_files = []
+            for fname in listdir(self._migrations_path):
+                if fname.endswith(".down.sql"):
+                    continue
+                try:
+                    version, desc = self._validate_migration_filename(fname)
+                    migration_files.append((version, desc, fname))
+                except InvalidMigrationFilenameError as e:
+                    self._logger.warning(str(e))
+                    continue
 
-                # Sort by version ascending
-                migration_files.sort(key=lambda x: x[0])
+            # Sort by version ascending
+            migration_files.sort(key=lambda x: x[0])
 
-                # For each migration file
-                for version, _, filename in migration_files:
-                    # Read the file contents -> compute new checksum
-                    fpath = path.join(self._migrations_path, filename)
-                    with open(fpath) as f:
-                        raw_sql = f.read().strip()
-                    new_checksum = sha256(raw_sql.encode()).hexdigest()
+            # For each migration file
+            for version, _, filename in migration_files:
+                # Read the file contents -> compute new checksum
+                fpath = path.join(self._migrations_path, filename)
+                with open(fpath) as f:
+                    raw_sql = f.read().strip()
+                new_checksum = sha256(raw_sql.encode()).hexdigest()
 
-                    # Validate the migration file has no transaction commands
-                    self._validate_migration_has_no_transaction_commands(raw_sql)
+                # Validate the migration file has no transaction commands
+                self._validate_migration_has_no_transaction_commands(raw_sql)
 
-                    if version in applied:
-                        # Already known in DB -> check dirty, check drift
-                        old = applied[version]
-                        if old["dirty"]:
-                            raise MigrationError(
-                                f"Migration {version} is dirty. No migrations will be applied. Please fix it manually.",
-                            )
-                        # TODO we previously had a check to detect if a migration is already
-                        # applied but the migration we have _now_ is different. This points out
-                        # a developer doing something wrong, but removes our ability to change
-                        # broken migrations.
-
-                        # Otherwise it's already applied => skip
-                        continue
-                    else:
-                        # This version is new -> actually apply it
-                        await self._apply_migration(
-                            cur,
-                            version,
-                            filename,
-                            new_checksum,
+                if version in applied:
+                    # Already known in DB -> check dirty, check drift
+                    old = applied[version]
+                    if old["dirty"]:
+                        raise MigrationError(
+                            f"Migration {version} is dirty. No migrations will be applied. Please fix it manually.",
                         )
+                    # TODO we previously had a check to detect if a migration is already
+                    # applied but the migration we have _now_ is different. This points out
+                    # a developer doing something wrong, but removes our ability to change
+                    # broken migrations.
+
+                    # Otherwise it's already applied => skip
+                    continue
+                else:
+                    # This version is new -> actually apply it
+                    await self._apply_migration(
+                        version,
+                        filename,
+                        new_checksum,
+                    )
         finally:
             if locked_acquired_by:
-                # Release the lock with a *fresh* cursor so we aren't stuck
+                # Release the lock with a *fresh* transaction so we aren't stuck
                 # if the above transaction ended in error/timeout.
-                async with self._transaction() as release_cur:
-                    await self._release_migration_lock(release_cur, locked_acquired_by)
+                await self._release_migration_lock(locked_acquired_by)
 
     # -------------------------------------------------------------------------
     # Locking
     # -------------------------------------------------------------------------
-    async def _acquire_migration_lock(self, cur: AsyncCursor[DictRow]) -> str | None:
+    async def _acquire_migration_lock(self) -> str | None:
         """
         Lock logic to ensure only one migrator runs at a time.
 
@@ -172,86 +180,88 @@ class PostgresMigrations(MigrationsProvider):
         so the process that releases the lock
         might be different from the process that acquires it.
         """
-        await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
-        await cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS v2.migration_locks (
-                id INTEGER PRIMARY KEY,
-                locked_at TIMESTAMP WITH TIME ZONE,
-                locked_by TEXT
-            );
-            """,
-        )
-        await cur.execute(
-            """
-            INSERT INTO v2.migration_locks (id, locked_at, locked_by)
-            VALUES (1, CURRENT_TIMESTAMP, pg_backend_pid()::text)
-            ON CONFLICT (id) DO UPDATE
-                SET locked_at = EXCLUDED.locked_at,
-                    locked_by = EXCLUDED.locked_by
-                WHERE
-                  migration_locks.locked_at < CURRENT_TIMESTAMP - INTERVAL '10 minutes'
-            RETURNING locked_by;
-            """,
-        )
-        row = await cur.fetchone()
-
-        if row:
-            return row["locked_by"]
-        else:
-            logger.error(
-                f"Could not acquire migration lock. Another migration might be in progress. {row!r}",
+        async with self._storage._transaction() as cur:
+            await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS v2.migration_locks (
+                    id INTEGER PRIMARY KEY,
+                    locked_at TIMESTAMP WITH TIME ZONE,
+                    locked_by TEXT
+                );
+                """,
             )
-            return None
+            await cur.execute(
+                """
+                INSERT INTO v2.migration_locks (id, locked_at, locked_by)
+                VALUES (1, CURRENT_TIMESTAMP, pg_backend_pid()::text)
+                ON CONFLICT (id) DO UPDATE
+                    SET locked_at = EXCLUDED.locked_at,
+                        locked_by = EXCLUDED.locked_by
+                    WHERE
+                      migration_locks.locked_at < CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                RETURNING locked_by;
+                """,
+            )
+            row = await cur.fetchone()
 
-    async def _release_migration_lock(self, cur: AsyncCursor[DictRow], locked_by: str) -> None:
+            if row:
+                return row["locked_by"]
+            else:
+                logger.error(
+                    f"Could not acquire migration lock. Another migration might be in progress. {row!r}",
+                )
+                return None
+
+    async def _release_migration_lock(self, locked_by: str) -> None:
         """
         Releases the migration lock if we hold it.
         """
-        # Check if table exists
-        await cur.execute(
-            """
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables
-                WHERE table_name = 'migration_locks' AND table_schema = 'v2'
-            );
-            """,
-        )
-        result = await cur.fetchone()
-        table_exists = result["exists"] if result else False
-        if table_exists:
-            # Release only if locked_by matches
+        async with self._storage._transaction() as cur:
+            # Check if table exists
             await cur.execute(
                 """
-                DELETE FROM v2.migration_locks
-                WHERE locked_by = %s
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'migration_locks' AND table_schema = 'v2'
+                );
                 """,
-                [locked_by],
             )
+            result = await cur.fetchone()
+            table_exists = result["exists"] if result else False
+            if table_exists:
+                # Release only if locked_by matches
+                await cur.execute(
+                    """
+                    DELETE FROM v2.migration_locks
+                    WHERE locked_by = %s
+                    """,
+                    [locked_by],
+                )
 
     # -------------------------------------------------------------------------
     # Migrations Table
     # -------------------------------------------------------------------------
-    async def _ensure_migrations_table(self, cur: AsyncCursor) -> None:
+    async def _ensure_migrations_table(self) -> None:
         """Ensures the v2.migrations table exists (1 row per version)."""
-        await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
-        await cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS v2.migrations (
-                version BIGINT PRIMARY KEY,
-                dirty BOOLEAN NOT NULL DEFAULT FALSE,
-                checksum VARCHAR(64) NOT NULL,
-                applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            );
-            """,
-        )
+        async with self._storage._transaction() as cur:
+            await cur.execute("CREATE SCHEMA IF NOT EXISTS v2;")
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS v2.migrations (
+                    version BIGINT PRIMARY KEY,
+                    dirty BOOLEAN NOT NULL DEFAULT FALSE,
+                    checksum VARCHAR(64) NOT NULL,
+                    applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                """,
+            )
 
     # -------------------------------------------------------------------------
     # Applying Migrations
     # -------------------------------------------------------------------------
     async def _apply_migration(
         self,
-        cur: AsyncCursor,
         version: int,
         filename: str,
         checksum: str,
@@ -266,17 +276,15 @@ class PostgresMigrations(MigrationsProvider):
 
         # Step 1: Insert row with dirty=TRUE
         try:
-            await cur.execute("BEGIN;")
-            await cur.execute(
-                """
-                INSERT INTO v2.migrations (version, dirty, checksum)
-                VALUES (%s, TRUE, %s)
-                """,
-                (version, checksum),
-            )
-            await cur.execute("COMMIT;")
+            async with self._storage._transaction() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO v2.migrations (version, dirty, checksum)
+                    VALUES (%s, TRUE, %s)
+                    """,
+                    (version, checksum),
+                )
         except Exception as e:
-            await cur.execute("ROLLBACK;")
             self._logger.error(f"Failed to insert row for migration {filename}: {e}")
             raise MigrationError(f"Could not mark version={version} as dirty") from e
 
@@ -288,32 +296,26 @@ class PostgresMigrations(MigrationsProvider):
                 raise MigrationError(f"Migration file {filename} is empty.")
 
         try:
-            await cur.execute("BEGIN;")
             # If migration times out, _run_migration_with_timeout()
             # raises MigrationTimeoutError
-            await self._run_migration_with_timeout(cur, migration_sql)
-            await cur.execute("COMMIT;")
+            await self._run_migration_with_timeout(migration_sql)
         except MigrationTimeoutError as mte:
-            # Timed out: rollback on the same connection
-            await cur.execute("ROLLBACK;")
+            # Timed out: remain dirty
             self._logger.error(f"Migration {version} timed out: {mte}")
             raise
         except Exception as e:
-            # Another error: rollback on the same connection
-            await cur.execute("ROLLBACK;")
+            # Another error => remain dirty
             self._logger.error(f"Migration {version} failed: {e}")
             raise MigrationError(f"Migration {version} failed: {e!s}") from e
 
         # Step 3: Mark dirty=FALSE
         try:
-            await cur.execute("BEGIN;")
-            await cur.execute(
-                "UPDATE v2.migrations SET dirty = FALSE WHERE version = %s;",
-                (version,),
-            )
-            await cur.execute("COMMIT;")
+            async with self._storage._transaction() as cur:
+                await cur.execute(
+                    "UPDATE v2.migrations SET dirty = FALSE WHERE version = %s;",
+                    (version,),
+                )
         except Exception as e:
-            await cur.execute("ROLLBACK;")
             self._logger.error(f"Failed to mark migration {version} as clean: {e}")
             raise MigrationError(
                 f"Could not mark version={version} as non-dirty",
@@ -361,24 +363,25 @@ class PostgresMigrations(MigrationsProvider):
 
     async def _run_migration_with_timeout(
         self,
-        cur: AsyncCursor,
         migration_sql: str,
     ) -> None:
         """
         Runs migration_sql with a Postgres-side *local* statement_timeout
         so the server cancels the query if it exceeds self._timeout.
+        This version uses the storage's transaction method which handles BEGIN/COMMIT automatically.
         """
         statement_ms = int(self._timeout * 1000)
         try:
-            # Only affects the current transaction scope
-            await cur.execute(f"SET LOCAL statement_timeout = {statement_ms}".encode())
-            await cur.execute(migration_sql.encode())
+            async with self._storage._transaction() as cur:
+                # Only affects the current transaction scope
+                # Using SQL().format() to safely insert the timeout value
+                await cur.execute(SQL("SET LOCAL statement_timeout = {}").format(statement_ms))
+                # migration_sql is trusted SQL from our migration files
+                await cur.execute(SQL(migration_sql))  # type: ignore[arg-type]
 
         except QueryCanceled as exc:
             # Postgres forcibly canceled the query due to statement_timeout
-            # We'll rescue ROLLBACK on a fresh cursor so this one isn't stuck
-            async with self._transaction() as rescue_cur:
-                await rescue_cur.execute("ROLLBACK")
+            # The transaction context manager will handle rollback automatically
             raise MigrationTimeoutError(
                 f"Migration timed out after {self._timeout} seconds",
             ) from exc

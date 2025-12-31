@@ -3,8 +3,8 @@ from hashlib import sha256
 from os import getpid, listdir, path
 from pathlib import Path
 from re import match as re_match
+from typing import TYPE_CHECKING
 
-from aiosqlite import Connection, connect
 from structlog import get_logger
 
 from agent_platform.server.storage.migrations import (
@@ -14,6 +14,9 @@ from agent_platform.server.storage.migrations import (
     MigrationsProvider,
     MigrationTimeoutError,
 )
+
+if TYPE_CHECKING:
+    from agent_platform.server.storage.sqlite.sqlite import SQLiteStorage
 
 
 class SQLiteMigrations(MigrationsProvider):
@@ -38,7 +41,7 @@ class SQLiteMigrations(MigrationsProvider):
 
     def __init__(
         self,
-        db_path: str,
+        storage: "SQLiteStorage",
         timeout: float = 300.0,
         migrations_path: Path | None = None,
     ):
@@ -46,11 +49,13 @@ class SQLiteMigrations(MigrationsProvider):
         Initializes a Migrations Provider for SQLite.
 
         Arguments:
-            db_path: path to the SQLite database file.
+            storage: SQLiteStorage instance to use for database operations.
             timeout: Timeout (seconds) for each migration statement(s).
             migrations_path: Directory containing .up.sql migration files.
         """
-        self.db_path = db_path
+        import weakref
+
+        self.__storage = weakref.ref(storage)
         self._logger = get_logger(__name__)
         self._timeout = timeout
 
@@ -58,6 +63,12 @@ class SQLiteMigrations(MigrationsProvider):
             self._migrations_path = migrations_path
         else:
             self._migrations_path = self._get_default_migrations_path()
+
+    @property
+    def _storage(self) -> "SQLiteStorage":
+        ret = self.__storage()
+        assert ret is not None, "Storage is not initialized or is already garbage collected"
+        return ret
 
     def _get_default_migrations_path(self) -> Path:
         current_dir = path.dirname(path.abspath(__file__))
@@ -80,16 +91,16 @@ class SQLiteMigrations(MigrationsProvider):
                (c) Mark dirty=FALSE
           6) Release lock
         """
-        conn = await connect(self.db_path, timeout=30.0)
         try:
-            await self._acquire_migration_lock(conn)
-            await self._ensure_migrations_table(conn)
+            await self._acquire_migration_lock()
+            await self._ensure_migrations_table()
 
             # 1) Fetch existing migrations into a dict: {version -> {checksum, dirty}}
             applied = {}
-            async with conn.execute(
-                "SELECT version, checksum, dirty FROM v2_migrations ORDER BY version",
-            ) as cur:
+            async with self._storage._cursor() as cur:
+                await cur.execute(
+                    "SELECT version, checksum, dirty FROM v2_migrations ORDER BY version",
+                )
                 async for row in cur:
                     v, chksum, dirty = row
                     applied[v] = {"checksum": chksum, "dirty": bool(dirty)}
@@ -145,44 +156,44 @@ class SQLiteMigrations(MigrationsProvider):
                     continue
                 else:
                     # Not in DB => apply it
-                    await self._apply_migration(conn, version, filename, new_checksum)
+                    await self._apply_migration(version, filename, new_checksum)
 
         finally:
-            await self._release_migration_lock(conn)
-            await conn.close()
+            await self._release_migration_lock()
 
     # -------------------------------------------------------------------------
     # Locking
     # -------------------------------------------------------------------------
-    async def _acquire_migration_lock(self, conn: Connection) -> None:
+    async def _acquire_migration_lock(self) -> None:
         """
         Acquire a migration lock in the v2_migration_locks table. If the lock row
         is held by another process, raise MigrationLockError.
         """
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS v2_migration_locks (
-                id INTEGER PRIMARY KEY,
-                locked_at TEXT,
-                locked_by TEXT
-            );
-        """)
-        await conn.commit()
+        async with self._storage._transaction() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS v2_migration_locks (
+                    id INTEGER PRIMARY KEY,
+                    locked_at TEXT,
+                    locked_by TEXT
+                );
+            """)
 
         # Attempt to insert if the row doesn't exist; otherwise no-op
         locked_by = str(getpid())
-        await conn.execute(
-            """
-            INSERT OR IGNORE INTO v2_migration_locks (id, locked_at, locked_by)
-            VALUES (1, datetime('now'), ?);
-            """,
-            (locked_by,),
-        )
-        await conn.commit()
+        async with self._storage._transaction() as cur:
+            await cur.execute(
+                """
+                INSERT OR IGNORE INTO v2_migration_locks (id, locked_at, locked_by)
+                VALUES (1, datetime('now'), ?);
+                """,
+                (locked_by,),
+            )
 
         # Now check who owns the lock
-        async with conn.execute(
-            "SELECT locked_by FROM v2_migration_locks WHERE id=1;",
-        ) as cur:
+        async with self._storage._cursor() as cur:
+            await cur.execute(
+                "SELECT locked_by FROM v2_migration_locks WHERE id=1;",
+            )
             row = await cur.fetchone()
             if row:
                 current_locked_by = row[0]
@@ -191,45 +202,44 @@ class SQLiteMigrations(MigrationsProvider):
                         "Could not acquire migration lock. Another migration might be in progress.",
                     )
 
-    async def _release_migration_lock(self, conn: Connection) -> None:
+    async def _release_migration_lock(self) -> None:
         """
         Release the migration lock if we own it.
         """
         locked_by = str(getpid())
-        await conn.execute(
-            """
-            DELETE FROM v2_migration_locks
-             WHERE id=1
-               AND locked_by=?;
-            """,
-            (locked_by,),
-        )
-        await conn.commit()
+        async with self._storage._transaction() as cur:
+            await cur.execute(
+                """
+                DELETE FROM v2_migration_locks
+                 WHERE id=1
+                   AND locked_by=?;
+                """,
+                (locked_by,),
+            )
 
     # -------------------------------------------------------------------------
     # Migrations Table
     # -------------------------------------------------------------------------
-    async def _ensure_migrations_table(self, conn: Connection) -> None:
+    async def _ensure_migrations_table(self) -> None:
         """
         Create v2_migrations if it doesn't exist. A row is inserted for each
         applied migration version. 'dirty' indicates partial application.
         """
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS v2_migrations (
-                version INTEGER PRIMARY KEY,
-                dirty INTEGER NOT NULL,
-                checksum TEXT NOT NULL,
-                applied_at TEXT DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        await conn.commit()
+        async with self._storage._transaction() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS v2_migrations (
+                    version INTEGER PRIMARY KEY,
+                    dirty INTEGER NOT NULL,
+                    checksum TEXT NOT NULL,
+                    applied_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
 
     # -------------------------------------------------------------------------
     # Applying Migrations
     # -------------------------------------------------------------------------
     async def _apply_migration(
         self,
-        conn: Connection,
         version: int,
         filename: str,
         new_checksum: str,
@@ -244,17 +254,15 @@ class SQLiteMigrations(MigrationsProvider):
 
         # Step 1: Insert row with dirty=TRUE
         try:
-            await conn.execute("BEGIN;")
-            await conn.execute(
-                """
-                INSERT INTO v2_migrations (version, dirty, checksum)
-                VALUES (?, 1, ?);
-                """,
-                (version, new_checksum),
-            )
-            await conn.commit()
+            async with self._storage._transaction() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO v2_migrations (version, dirty, checksum)
+                    VALUES (?, 1, ?);
+                    """,
+                    (version, new_checksum),
+                )
         except Exception as e:
-            await conn.rollback()
             self._logger.error(f"Failed to insert row for migration {filename}: {e}")
             raise MigrationError(f"Could not mark version={version} as dirty") from e
 
@@ -268,27 +276,24 @@ class SQLiteMigrations(MigrationsProvider):
 
         try:
             # This call now executes the migration SQL as a single transaction
-            await self._run_migration_with_timeout(conn, migration_sql)
+            await self._run_migration_with_timeout(migration_sql)
         except MigrationTimeoutError as mte:
             # Timed out: remain dirty
             self._logger.error(f"Migration {version} timed out: {mte}")
             raise
         except Exception as e:
-            # Another error => remain dirty, rollback
-            await conn.rollback()
+            # Another error => remain dirty
             self._logger.error(f"Migration {version} failed: {e}")
             raise MigrationError(f"Migration {version} failed: {e!s}") from e
 
         # Step 3: Mark dirty=FALSE
         try:
-            await conn.execute("BEGIN;")
-            await conn.execute(
-                "UPDATE v2_migrations SET dirty=0 WHERE version=?;",
-                (version,),
-            )
-            await conn.commit()
+            async with self._storage._transaction() as cur:
+                await cur.execute(
+                    "UPDATE v2_migrations SET dirty=0 WHERE version=?;",
+                    (version,),
+                )
         except Exception as e:
-            await conn.rollback()
             self._logger.error(f"Failed to mark migration {version} as clean: {e}")
             raise MigrationError(
                 f"Could not mark version={version} as non-dirty",
@@ -331,30 +336,32 @@ class SQLiteMigrations(MigrationsProvider):
 
     async def _run_migration_with_timeout(
         self,
-        conn: Connection,
         migration_sql: str,
     ) -> None:
         """
         Executes the SQL with an asyncio timeout. If it times out, tries to interrupt
-        the running query by calling conn._conn.interrupt() from an executor thread.
-        This version injects a BEGIN and COMMIT to enforce atomicity.
+        the running query by calling cursor.connection._conn.interrupt() from an executor thread.
+        This version uses the storage's transaction method which handles BEGIN/COMMIT automatically.
         """
-        # Wrap the migration SQL with transaction statements.
-        # Be sure that the migration file does not include any transaction commands.
-        wrapped_sql = f"BEGIN;\n{migration_sql}\nCOMMIT;"
-        try:
-            task = create_task(conn.executescript(wrapped_sql))
-            await wait_for(task, timeout=self._timeout)
-        except TimeoutError as e:
-            try:
-                from asyncio import get_running_loop
 
-                loop = get_running_loop()
-                await loop.run_in_executor(None, conn._conn.interrupt)
-            except Exception as interrupt_err:
-                self._logger.warning(
-                    f"Failed to interrupt timed-out query: {interrupt_err}",
-                )
-            raise MigrationTimeoutError(
-                f"Migration timed out after {self._timeout} seconds",
-            ) from e
+        async with self._storage._transaction_connection() as conn:
+            wrapped_sql = f"BEGIN;\n{migration_sql}\nCOMMIT;"
+
+            try:
+                task = create_task(conn.executescript(wrapped_sql))
+                await wait_for(task, timeout=self._timeout)
+            except TimeoutError as e:
+                try:
+                    from asyncio import get_running_loop
+
+                    loop = get_running_loop()
+                    # Get the connection from the storage to interrupt it
+                    # We need to access the underlying connection for interrupt
+                    await loop.run_in_executor(None, conn._conn.interrupt)
+                except Exception as interrupt_err:
+                    self._logger.warning(
+                        f"Failed to interrupt timed-out query: {interrupt_err}",
+                    )
+                raise MigrationTimeoutError(
+                    f"Migration timed out after {self._timeout} seconds",
+                ) from e

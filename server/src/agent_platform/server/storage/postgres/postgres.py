@@ -4,12 +4,13 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from types import TracebackType
-from typing import Self
+from typing import Any, Self
 
 import sqlalchemy as sa
 from psycopg import AsyncCursor
 from psycopg.rows import DictRow, dict_row
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio.engine import AsyncConnection
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
@@ -154,13 +155,10 @@ class PostgresStorage(
     V2_PREFIX = "v2."
 
     def __init__(self, dsn: str | None = None):
-        from typing import Any
-
         # Initialize all parent mixins (including CommonMixin for secret manager)
         super().__init__()
 
         self._logger = get_logger(__name__)
-        self._migrations = PostgresMigrations(self._transaction)
         self._is_setup = False
         self._dns = dsn
         self._write_lock = NullAsyncLock()
@@ -209,7 +207,7 @@ class PostgresStorage(
             max_overflow=max_overflow,  # additional connections allowed above pool_size
         )
 
-    async def setup(self) -> None:
+    async def setup(self, migrate: bool = True) -> None:
         """Create and open the async connection pool."""
         if self._is_setup:
             return  # Already setup
@@ -223,7 +221,8 @@ class PostgresStorage(
         # Same as with Psycopg, we create the engine
         # with the default pool size from PostgresConfig.
         self._sa_engine = self._create_async_engine(dsn=dsn, pool_size=PostgresConfig.pool_max_size)
-        await self._run_migrations()
+        if migrate:
+            await self._run_migrations()
 
         # Run database reflection for SQLAlchemy
         await self._reflect_database(schema=self.V2_PREFIX.removesuffix("."))
@@ -276,7 +275,7 @@ class PostgresStorage(
         return self._dns or PostgresConfig.dsn
 
     async def _run_migrations(self):
-        await self._migrations.run_migrations()
+        await PostgresMigrations(self).run_migrations()
 
     async def _dispose_engine_when_no_connections_are_checked_out(self, engine: AsyncEngine) -> None:
         try:
@@ -323,9 +322,21 @@ class PostgresStorage(
             raise RuntimeError("Database not initialized; call setup() first.")
 
         async with self._write_connection() as conn:
+            if not (await self._is_in_native_transaction(conn)):
+                # Force the transaction to be started.
+                await conn.exec_driver_sql("SELECT 1")
+                assert await self._is_in_native_transaction(conn)
+
             raw_conn = await conn.get_raw_connection()
             assert raw_conn.driver_connection is not None
             yield raw_conn.driver_connection.cursor(row_factory=dict_row)
+
+    async def _is_in_native_transaction(self, conn: AsyncConnection) -> bool:
+        """Determine if the connection is in a native transaction (not managed by sqlalchemy)."""
+        from psycopg.pq import TransactionStatus
+
+        native_connection = (await conn.get_raw_connection()).driver_connection
+        return native_connection is not None and native_connection.info.transaction_status != TransactionStatus.IDLE
 
     def _clean_up_stale_threads__get_threshold(
         self,
