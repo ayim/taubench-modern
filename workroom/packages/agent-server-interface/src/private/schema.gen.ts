@@ -1897,6 +1897,122 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/document-intelligence/documents/simple-extract': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Simple Extract Document
+     * @description Extract structured data from a document using a JSON Schema.
+     *
+     *         This is a simplified extraction endpoint that uses the same logic as
+     *         DIService.document_v2.extract_document. It provides automatic caching
+     *         via the DIService persistence layer.
+     *
+     *         Args:
+     *             file_ref: The file reference/name in thread storage
+     *             payload: Extraction parameters including schema, prompt, config, and force_reload flag
+     *
+     *         Returns:
+     *             Extracted data matching the provided schema, with optional citations.
+     *         The citations included with results from this endpoint can be
+     *     correlated to the schema fields based on their types.
+     *
+     *     Example citation for a simple field in an object:
+     *
+     *     ```json
+     *     {
+     *         // this key will be the same key as the schema field
+     *         "sample_extracted_field": [
+     *             {
+     *                 "bbox": {
+     *                     "left": 0.1,
+     *                     "top": 0.2,
+     *                     "width": 0.3,
+     *                     "height": 0.05,
+     *                     "page": 1,
+     *                     "original_page": 1
+     *                 },
+     *                 "confidence": "high",
+     *                 "content": "granular citation",
+     *                 "image_url": null,
+     *                 // Parent block will likely match a similar parse block in the document
+     *                 "parentBlock": {
+     *                     "bbox": {
+     *                         "left": 0.1,
+     *                         "top": 0.9,
+     *                         "width": 0.8,
+     *                         "height": 0.05,
+     *                         "page": 1
+     *                     },
+     *                     "block_type": "Text",
+     *                     "confidence": "high",
+     *                     "content": "This is the full sentence with the granular citation."
+     *                 },
+     *                 "type": "Text"
+     *             }
+     *         ]
+     *     }
+     *     ```
+     *
+     *     Example extracted results for a schema field defined as `array` of objects:
+     *
+     *     ```json
+     *     {
+     *         "sample_extracted_field": [
+     *             {
+     *                 "key1": "value1",
+     *                 "key2": "value2"
+     *             }
+     *         ]
+     *     }
+     *     ```
+     *
+     *     Corresponding citation object:
+     *
+     *     ```json
+     *     {
+     *         "sample_extracted_field": [
+     *             {
+     *                 "key1": [
+     *                     {
+     *                         "bbox": {
+     *                             "left": 0.1,
+     *                             "top": 0.2,
+     *                             "width": 0.3,
+     *                             "height": 0.05,
+     *                         },
+     *                         ... // other citation object fields, see above
+     *                     }
+     *                 ],
+     *                 "key2": [
+     *                     {
+     *                         "bbox": {
+     *                             "left": 0.1,
+     *                             "top": 0.2,
+     *                             "width": 0.3,
+     *                             "height": 0.05,
+     *                         },
+     *                         ... // other citation object fields, see above
+     *                     }
+     *                 ]
+     *             }
+     *         ]
+     *     }
+     *     ```
+     */
+    post: operations['simple_extract_document_document_intelligence_documents_simple_extract_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/document-intelligence/documents/extract': {
     parameters: {
       query?: never;
@@ -9221,6 +9337,67 @@ export interface components {
        * @description List of semantic data model IDs to associate with the thread.
        */
       semantic_data_model_ids?: string[];
+    };
+    /**
+     * SimpleExtractPayload
+     * @description Payload for the simple extraction endpoint.
+     */
+    SimpleExtractPayload: {
+      /**
+       * Extraction Schema
+       * @description JSON Schema describing the desired output structure
+       */
+      extraction_schema: {
+        [key: string]: unknown;
+      };
+      /**
+       * Extraction Config
+       * @description Optional advanced Reducto configuration
+       */
+      extraction_config?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Prompt
+       * @description Optional instructions to guide the extraction process
+       */
+      prompt?: string | null;
+      /**
+       * Start Page
+       * @description Optional starting page for extraction (1-indexed)
+       */
+      start_page?: number | null;
+      /**
+       * End Page
+       * @description Optional ending page for extraction (1-indexed)
+       */
+      end_page?: number | null;
+      /**
+       * Force
+       * @description Force re-extraction of the document
+       * @default false
+       */
+      force: boolean;
+    };
+    /**
+     * SimpleExtractResult
+     * @description Result from the simple extraction endpoint.
+     */
+    SimpleExtractResult: {
+      /**
+       * Results
+       * @description The extracted data matching the provided schema
+       */
+      results: {
+        [key: string]: unknown;
+      };
+      /**
+       * Citations
+       * @description Citation information mapping extracted data to source locations
+       */
+      citations?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** SlackDataConnection */
     SlackDataConnection: {
@@ -19075,6 +19252,43 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['JobStartResponsePayload'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  simple_extract_document_document_intelligence_documents_simple_extract_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+        thread_id: string;
+        file_ref: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SimpleExtractPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SimpleExtractResult'];
         };
       };
       /** @description Validation Error */

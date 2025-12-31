@@ -138,6 +138,7 @@ function getRouteMap(): {
     'post /api/v2/document-intelligence/data-models/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/extract': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/parse': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/document-intelligence/documents/simple-extract': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/layouts': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/parse/async': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/extract/async': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

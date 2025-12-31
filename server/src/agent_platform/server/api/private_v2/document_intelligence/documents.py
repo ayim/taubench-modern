@@ -49,6 +49,28 @@ class GenerateSchemaPayload(BaseModel):
     instructions: str = Field(default="", description="Optional instructions for schema generation")
 
 
+class SimpleExtractPayload(BaseModel):
+    """Payload for the simple extraction endpoint."""
+
+    extraction_schema: dict[str, Any] = Field(..., description="JSON Schema describing the desired output structure")
+    extraction_config: dict[str, Any] | None = Field(
+        default=None, description="Optional advanced Reducto configuration"
+    )
+    prompt: str | None = Field(default=None, description="Optional instructions to guide the extraction process")
+    start_page: int | None = Field(default=None, description="Optional starting page for extraction (1-indexed)")
+    end_page: int | None = Field(default=None, description="Optional ending page for extraction (1-indexed)")
+    force: bool = Field(default=False, description="Force re-extraction of the document")
+
+
+class SimpleExtractResult(BaseModel):
+    """Result from the simple extraction endpoint."""
+
+    results: dict[str, Any] = Field(description="The extracted data matching the provided schema")
+    citations: dict[str, Any] | None = Field(
+        default=None, description="Citation information mapping extracted data to source locations"
+    )
+
+
 CITATION_CORRELATION_DOCS = """The citations included with results from this endpoint can be
 correlated to the schema fields based on their types.
 
@@ -383,6 +405,64 @@ async def parse_document_async(
         job_id=job.job_id,
         job_type=JobType.PARSE,
         uploaded_file=uploaded_file if new_file else None,
+    )
+
+
+@router.post("/documents/simple-extract")
+@add_citation_docs
+async def simple_extract_document(
+    user: AuthedUser,
+    agent_id: str,
+    thread_id: str,
+    file_ref: str,
+    payload: SimpleExtractPayload,
+    storage: StorageDependency,
+    file_manager: FileManagerDependency,
+    di_service_with_persistence: CachingDIServiceDependency,
+) -> SimpleExtractResult:
+    """Extract structured data from a document using a JSON Schema.
+
+    This is a simplified extraction endpoint that uses the same logic as
+    DIService.document_v2.extract_document. It provides automatic caching
+    via the DIService persistence layer.
+
+    Args:
+        file_ref: The file reference/name in thread storage
+        payload: Extraction parameters including schema, prompt, config, and force_reload flag
+
+    Returns:
+        Extracted data matching the provided schema, with optional citations.
+    """
+    from sema4ai_docint import DIService
+
+    thread = await _get_thread_or_404(storage, user.user_id, thread_id)
+
+    uploaded_file, _ = await _get_or_upload_file(
+        file_ref,
+        thread=thread,
+        user_id=user.user_id,
+        storage=storage,
+        file_manager=file_manager,
+    )
+
+    di_service = cast(DIService, di_service_with_persistence)
+
+    doc = await di_service.document_v2.new_document(uploaded_file.file_ref)
+
+    # Perform extraction using the same logic as the internal tool
+    result = await di_service.document_v2.extract_document(
+        doc,
+        extraction_schema=payload.extraction_schema,
+        force_reload=payload.force,
+        extraction_config=payload.extraction_config,
+        prompt=payload.prompt,
+        start_page=payload.start_page,
+        end_page=payload.end_page,
+    )
+
+    return SimpleExtractResult(
+        results=result.results,
+        citations=result.citations,
     )
 
 

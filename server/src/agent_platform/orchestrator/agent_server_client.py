@@ -1203,6 +1203,41 @@ class AgentServerClient:
         print_success("Document extracted successfully")
         return result
 
+    def simple_extract_document(
+        self,
+        file_ref: str,
+        agent_id: str,
+        thread_id: str,
+        extraction_schema: dict,
+        prompt: str | None = None,
+        extraction_config: dict | None = None,
+        start_page: int | None = None,
+        end_page: int | None = None,
+    ) -> dict:
+        url = urljoin(
+            self.base_url + "/",
+            f"document-intelligence/documents/simple-extract?agent_id={agent_id}&thread_id={thread_id}&file_ref={file_ref}",
+        )
+        headers = {
+            "Accept": "application/json",
+        }
+        payload = {
+            "extraction_schema": extraction_schema,
+            "prompt": prompt,
+            "extraction_config": extraction_config,
+            "start_page": start_page,
+            "end_page": end_page,
+        }
+        response = requests.post(url, headers=headers, json=payload)
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise requests.exceptions.HTTPError(
+                f"Error extracting document: {response.status_code} {response.text}",
+            ) from e
+
+        return response.json()
+
     def start_async_document_extract(self, extract_request: ExtractDocumentPayload) -> dict:
         url = urljoin(
             self.base_url + "/",

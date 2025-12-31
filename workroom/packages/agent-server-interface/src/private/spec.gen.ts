@@ -5728,6 +5728,77 @@ export const spec = {
         },
       },
     },
+    '/api/v2/document-intelligence/documents/simple-extract': {
+      post: {
+        tags: ['document-intelligence'],
+        summary: 'Simple Extract Document',
+        description:
+          'Extract structured data from a document using a JSON Schema.\n\n    This is a simplified extraction endpoint that uses the same logic as\n    DIService.document_v2.extract_document. It provides automatic caching\n    via the DIService persistence layer.\n\n    Args:\n        file_ref: The file reference/name in thread storage\n        payload: Extraction parameters including schema, prompt, config, and force_reload flag\n\n    Returns:\n        Extracted data matching the provided schema, with optional citations.\n    The citations included with results from this endpoint can be\ncorrelated to the schema fields based on their types.\n\nExample citation for a simple field in an object:\n\n```json\n{\n    // this key will be the same key as the schema field\n    "sample_extracted_field": [\n        {\n            "bbox": {\n                "left": 0.1,\n                "top": 0.2,\n                "width": 0.3,\n                "height": 0.05,\n                "page": 1,\n                "original_page": 1\n            },\n            "confidence": "high",\n            "content": "granular citation",\n            "image_url": null,\n            // Parent block will likely match a similar parse block in the document\n            "parentBlock": {\n                "bbox": {\n                    "left": 0.1,\n                    "top": 0.9,\n                    "width": 0.8,\n                    "height": 0.05,\n                    "page": 1\n                },\n                "block_type": "Text",\n                "confidence": "high",\n                "content": "This is the full sentence with the granular citation."\n            },\n            "type": "Text"\n        }\n    ]\n}\n```\n\nExample extracted results for a schema field defined as `array` of objects:\n\n```json\n{\n    "sample_extracted_field": [\n        {\n            "key1": "value1",\n            "key2": "value2"\n        }\n    ]\n}\n```\n\nCorresponding citation object:\n\n```json\n{\n    "sample_extracted_field": [\n        {\n            "key1": [\n                {\n                    "bbox": {\n                        "left": 0.1,\n                        "top": 0.2,\n                        "width": 0.3,\n                        "height": 0.05,\n                    },\n                    ... // other citation object fields, see above\n                }\n            ],\n            "key2": [\n                {\n                    "bbox": {\n                        "left": 0.1,\n                        "top": 0.2,\n                        "width": 0.3,\n                        "height": 0.05,\n                    },\n                    ... // other citation object fields, see above\n                }\n            ]\n        }\n    ]\n}\n```',
+        operationId:
+          'simple_extract_document_document_intelligence_documents_simple_extract_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+          {
+            name: 'thread_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Thread Id',
+            },
+          },
+          {
+            name: 'file_ref',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'File Ref',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SimpleExtractPayload',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/SimpleExtractResult',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/document-intelligence/documents/extract': {
       post: {
         tags: ['document-intelligence'],
@@ -22071,6 +22142,104 @@ export const spec = {
         },
         type: 'object',
         title: 'SetThreadSemanticDataModelsPayload',
+      },
+      SimpleExtractPayload: {
+        properties: {
+          extraction_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Extraction Schema',
+            description: 'JSON Schema describing the desired output structure',
+          },
+          extraction_config: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Extraction Config',
+            description: 'Optional advanced Reducto configuration',
+          },
+          prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Prompt',
+            description:
+              'Optional instructions to guide the extraction process',
+          },
+          start_page: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Start Page',
+            description: 'Optional starting page for extraction (1-indexed)',
+          },
+          end_page: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'End Page',
+            description: 'Optional ending page for extraction (1-indexed)',
+          },
+          force: {
+            type: 'boolean',
+            title: 'Force',
+            description: 'Force re-extraction of the document',
+            default: false,
+          },
+        },
+        type: 'object',
+        required: ['extraction_schema'],
+        title: 'SimpleExtractPayload',
+        description: 'Payload for the simple extraction endpoint.',
+      },
+      SimpleExtractResult: {
+        properties: {
+          results: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Results',
+            description: 'The extracted data matching the provided schema',
+          },
+          citations: {
+            anyOf: [
+              {
+                additionalProperties: true,
+                type: 'object',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Citations',
+            description:
+              'Citation information mapping extracted data to source locations',
+          },
+        },
+        type: 'object',
+        required: ['results'],
+        title: 'SimpleExtractResult',
+        description: 'Result from the simple extraction endpoint.',
       },
       SlackDataConnection: {
         properties: {

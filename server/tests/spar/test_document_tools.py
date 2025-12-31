@@ -102,3 +102,58 @@ def test_generate_schema_via_api(
         agent_id=agent_id,
     )
     assert retrieved_schema.schema == schema_result.schema
+
+
+def test_simple_extract_document_via_api(
+    agent_server_client: AgentServerClient,
+    agent_factory: Callable[[], str],
+    spar_resources_path: Path,
+):
+    """Test that simple_extract_document API works (uses same logic as internal tool)."""
+    # Create agent and thread
+    agent_id = agent_factory()
+    thread_id = agent_server_client.create_thread_and_return_thread_id(agent_id)
+
+    # Upload an invoice PDF
+    resource_path = spar_resources_path / "sample_invoice_1.pdf"
+    file_result = upload_file_to_thread(agent_server_client, thread_id, resource_path)
+
+    # Define a simple extraction schema for invoice data
+    extraction_schema = {
+        "type": "object",
+        "properties": {
+            "invoice_number": {"type": "string", "description": "The invoice number"},
+            "total_amount": {"type": "string", "description": "The total amount on the invoice"},
+            "vendor_name": {"type": "string", "description": "The name of the vendor"},
+        },
+        "required": ["invoice_number"],
+    }
+
+    # Verify no extract cache exists yet
+    files_before = agent_server_client.list_files(thread_id)
+    assert files_before is not None
+    extract_cache_files_before = [ref for ref in files_before.values() if ".extracted.json" in ref]
+    assert len(extract_cache_files_before) == 0, "No extract cache should exist before extraction"
+
+    # Call simple_extract_document (same API the internal tool uses)
+    extract_result = agent_server_client.simple_extract_document(
+        file_ref=file_result.file_ref,
+        agent_id=agent_id,
+        thread_id=thread_id,
+        extraction_schema=extraction_schema,
+        prompt="Extract the invoice details from this document.",
+    )
+
+    # Verify we got results back
+    assert extract_result is not None
+    assert "results" in extract_result
+    results = extract_result["results"]
+    assert isinstance(results, dict)
+
+    assert "citations" in extract_result
+
+    files_after = agent_server_client.list_files(thread_id)
+    assert files_after is not None
+    extract_cache_files_after = [ref for ref in files_after.values() if ".extracted.json" in ref]
+    assert len(extract_cache_files_after) == 1
+    assert file_result.file_ref in extract_cache_files_after[0]
