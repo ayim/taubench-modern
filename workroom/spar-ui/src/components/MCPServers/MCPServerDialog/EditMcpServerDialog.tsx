@@ -6,7 +6,6 @@ import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-for
 
 import { MCPServerAuthFields } from '../MCPServerAuth';
 import { ActionPackageItem } from '../ActionPackage';
-import { ServerResponse } from '../../../queries/shared';
 import {
   editMcpServerFormSchema,
   headerTypeSelectItems,
@@ -22,24 +21,20 @@ import {
 } from '../schemas/mcpFormSchema';
 import { apiPayloadToClientCredentials } from '../schemas/mcpAuthSchema';
 import {
+  McpServerGetResponse,
   useMcpServerQuery,
   useUpdateMcpServerMutation,
   useValidateMcpServerCapabilitiesMutation,
 } from '../../../queries/mcpServers';
 
-type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
-
 type EditMcpServerFormContentProps = {
   onClose: () => void;
-  server: McpServer;
+  server: McpServerGetResponse;
   onSuccess?: () => void;
   serverTypes: McpServerType[];
   showStdioTransport: boolean;
 };
 
-/**
- * Form content component - unmounts when dialog closes, automatically resetting all state
- */
 const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
   onClose,
   server,

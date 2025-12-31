@@ -1,7 +1,8 @@
 import { Box, Button, EmptyState, useSnackbar } from '@sema4ai/components';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Outlet, useNavigate, useParams, useRouteContext, useRouter } from '@tanstack/react-router';
-import { useAgentsQuery, agentsQueryKey } from '@sema4ai/spar-ui/queries';
+import { useAgentsQuery, agentsQueryKey, useCreateHostedMcpServerMutation } from '@sema4ai/spar-ui/queries';
+import { useSparUIContext, agentPackageSecretsToHeaderEntries, formHeadersToApiHeaders } from '@sema4ai/spar-ui';
 
 import { AgentDeploymentForm } from './deploy/components/AgentDeploymentForm';
 import { AgentDeploymentFormSchema } from './deploy/components/context';
@@ -17,7 +18,7 @@ export const Route = createFileRoute('/tenants/$tenantId/agents/deploy')({
   component: CreateAgentIndex,
 });
 
-function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
+const buildAgentPackagePayload = (form: AgentDeploymentFormSchema, mcpServerIds: string[]) => {
   return {
     name: form.name,
     description: form.description,
@@ -26,18 +27,21 @@ function buildAgentPackagePayload(form: AgentDeploymentFormSchema) {
     action_servers: [],
     // Will be removed in a future interface change: all MCPs should be created or re-used ahead of the deploy and passed as IDs using `mcp_server_ids`
     mcp_servers: [],
-    mcp_server_ids: form.mcpServerIds ?? [],
+    mcp_server_ids: mcpServerIds,
   };
-}
+};
 
 function CreateAgentIndex() {
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const { sparAPIClient } = useSparUIContext();
   const navigate = useNavigate();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { addSnackbar } = useSnackbar();
   const uploadedAgentPackage = useGetAgentPackageUpload(tenantId);
+
+  const createHostedMcpServerMutation = useCreateHostedMcpServerMutation({ sparAPIClient, queryClient });
 
   const deployMutation = useMutation({
     mutationFn: async (payload: AgentDeploymentFormSchema) => {
@@ -45,7 +49,28 @@ function CreateAgentIndex() {
         throw new Error('Provide a package file to upload');
       }
 
-      const jsonPayload = buildAgentPackagePayload(payload);
+      const agentTemplate = uploadedAgentPackage.fileContent.agentTemplate;
+      let mcpServerIds = [...(payload.mcpServerIds ?? [])];
+
+      const hasActionPackages = (agentTemplate.action_packages ?? []).length > 0;
+
+      if (hasActionPackages) {
+        const headerEntries = payload.agentPackageSecrets
+          ? agentPackageSecretsToHeaderEntries(payload.agentPackageSecrets)
+          : undefined;
+        const headers = headerEntries ? formHeadersToApiHeaders(headerEntries) : undefined;
+
+        const createdMcpServer = await createHostedMcpServerMutation.mutateAsync({
+          name: `${payload.name} Actions`,
+          file: uploadedAgentPackage.file,
+          headers,
+          mcpServerMetadata: agentTemplate,
+        });
+
+        mcpServerIds = [...mcpServerIds, createdMcpServer.mcp_server_id];
+      }
+
+      const jsonPayload = buildAgentPackagePayload(payload, mcpServerIds);
 
       const formData = new FormData();
       formData.append('package_zip_file', uploadedAgentPackage.file, uploadedAgentPackage.file.name);
@@ -71,9 +96,16 @@ function CreateAgentIndex() {
 
       navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { tenantId, agentId } });
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
+      let errorMessage = error.message;
+
+      const isMcpQuotaError = errorMessage.includes('Maximum number of MCP servers');
+      if (isMcpQuotaError) {
+        errorMessage = `${errorMessage}. Try deleting existing agents to free up MCP server slots.`;
+      }
+
       addSnackbar({
-        message: error instanceof Error ? error.message : 'Failed to deploy agent',
+        message: errorMessage,
         variant: 'danger',
       });
     },

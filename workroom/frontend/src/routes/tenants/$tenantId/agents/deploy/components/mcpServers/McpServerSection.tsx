@@ -2,15 +2,18 @@ import { Box, Button, Header, Select } from '@sema4ai/components';
 import { useParams } from '@tanstack/react-router';
 import { FC, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { useQueryClient } from '@tanstack/react-query';
+import { AgentPackageInspectionResponse } from '@sema4ai/spar-ui/queries';
 import { AgentDeploymentFormSchema } from '../context';
 import { McpServerCard } from './McpServerCard';
+import { AgentPackageSecretsSection } from './AgentPackageSecretsSection';
 import { NewMcpServerDialog } from '@sema4ai/spar-ui';
 import { useListMcpServersQuery } from '~/queries/mcpServers';
+import type { McpServerCreateResponse } from '@sema4ai/spar-ui/queries';
 
-export const McpServerSection: FC = () => {
+export const McpServerSection: FC<{
+  agentTemplate: NonNullable<AgentPackageInspectionResponse>;
+}> = ({ agentTemplate }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId/agents/deploy' });
-  const queryClient = useQueryClient();
   const { watch, getValues, setValue } = useFormContext<AgentDeploymentFormSchema>();
   const { data: mcpServers = {} } = useListMcpServersQuery({ tenantId });
 
@@ -35,19 +38,16 @@ export const McpServerSection: FC = () => {
     setValue('mcpServerIds', ids, { shouldDirty: true });
   };
 
-  const handleNewServerSuccess = async (mcpServer: unknown) => {
-    const server = mcpServer as { mcp_server_id: string };
-    if (server?.mcp_server_id) {
-      // Invalidate the query to fetch the newly created server
-      await queryClient.invalidateQueries({ queryKey: ['mcp-servers', tenantId] });
-      const ids = getValues('mcpServerIds') ?? [];
-      setValue('mcpServerIds', [...ids, server.mcp_server_id], { shouldDirty: true });
-    }
+  const handleNewServerSuccess = (mcpServer: McpServerCreateResponse) => {
+    const ids = getValues('mcpServerIds') ?? [];
+    setValue('mcpServerIds', [...ids, mcpServer.mcp_server_id], { shouldDirty: true });
     setIsNewServerDialogOpen(false);
   };
 
   return (
     <>
+      <AgentPackageSecretsSection agentTemplate={agentTemplate} />
+
       <Box borderColor="border.subtle" borderRadius="$16" p="$24" display="flex" flexDirection="column" gap="$16">
         <Box mb="$16">
           <Header size="medium">

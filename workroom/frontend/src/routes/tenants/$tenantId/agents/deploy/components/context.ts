@@ -29,6 +29,10 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
 
   const mcpConfigurationSchema = z.object({
     mcpServerIds: z.array(z.string()).optional(),
+    // Per-server secrets: { [serverId]: { [secretName]: secretValue } }
+    mcpServerSecrets: z.record(z.string(), z.record(z.string(), z.string())).optional(),
+    // Secrets for the agent package's action packages: { [secretName]: secretValue }
+    agentPackageSecrets: z.record(z.string(), z.string()).optional(),
   });
 
   return agentConfigurationSchema.and(mcpConfigurationSchema);

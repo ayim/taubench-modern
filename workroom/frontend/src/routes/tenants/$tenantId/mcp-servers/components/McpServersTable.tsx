@@ -4,11 +4,11 @@ import { IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import { McpServer } from '~/queries/mcpServers';
 import { Row } from './McpServersRow';
+import { ListMcpServersResponse } from '~/queries/mcpServers';
 
 type Props = {
-  items: McpServer[];
+  items: ListMcpServersResponse[string][];
   onQuery?: (searchQuery: string) => void;
 };
 
@@ -21,7 +21,7 @@ export const McpServersTable: FC<Props> = ({ items, onQuery }) => {
     navigate({ to: '/tenants/$tenantId/mcp-servers/new', params: { tenantId } });
   };
 
-  const filterConfiguration: TableWithFilterConfiguration<McpServer> = {
+  const filterConfiguration: TableWithFilterConfiguration<ListMcpServersResponse[string]> = {
     id: 'mcp-servers',
     label: { singular: 'MCP server', plural: 'MCP servers' },
     columns: [

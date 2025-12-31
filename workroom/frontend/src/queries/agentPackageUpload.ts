@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { components } from '@sema4ai/agent-server-interface';
 import { AgentDeploymentFormSchema } from '~/routes/tenants/$tenantId/agents/deploy/components/context';
+import { AgentPackageInspectionResponse } from '@sema4ai/spar-ui/queries';
 
 const AGENT_PACKAGE_CACHE_KEY = 'agent-package-upload';
 
 export type AgentPackageUploadData = {
   file: File;
   fileContent: {
-    agentTemplate: components['schemas']['AgentPackageInspectionResponse'];
+    agentTemplate: NonNullable<AgentPackageInspectionResponse>;
     defaultValues: AgentDeploymentFormSchema;
   };
 };

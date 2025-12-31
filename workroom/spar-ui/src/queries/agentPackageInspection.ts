@@ -1,5 +1,7 @@
 import { SparAPIClient } from '../api';
-import { createSparMutation, QueryError, ResourceType } from './shared';
+import { createSparMutation, QueryError, ResourceType, ServerResponse } from './shared';
+
+export type AgentPackageInspectionResponse = ServerResponse<'post', '/api/v2/package/inspect/agent'>['data'];
 
 export const useInspectAgentPackageMutation = createSparMutation<
   { sparAPIClient: SparAPIClient },

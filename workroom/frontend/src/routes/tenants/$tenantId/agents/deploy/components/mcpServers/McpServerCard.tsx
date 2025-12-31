@@ -2,12 +2,10 @@ import { FC } from 'react';
 import { Box, Button, Typography } from '@sema4ai/components';
 import { IconTrash } from '@sema4ai/icons';
 import { PackageCard } from '@sema4ai/layouts';
-import { components } from '@sema4ai/agent-server-interface';
-
-type McpServer = components['schemas']['MCPServerResponse'];
+import { ListMcpServersResponse } from '~/queries/mcpServers';
 
 type Props = {
-  server: McpServer;
+  server: ListMcpServersResponse[string];
   onRemove: () => void;
 };
 

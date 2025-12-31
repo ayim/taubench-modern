@@ -1,9 +1,7 @@
-import type { components } from '@sema4ai/agent-server-interface';
+import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
+import { HeaderEntry } from '../schemas/mcpFormSchema';
 
-export type AgentPackageActionPackageMetadata = components['schemas']['AgentPackageActionPackageMetadata'];
-
-export const parseWhitelist = (whitelist: string | null | undefined): string[] | null => {
-  if (!whitelist) return null;
+export const parseWhitelist = (whitelist: string): string[] | null => {
   const items = whitelist
     .split(',')
     .map((name) => name.trim())
@@ -12,7 +10,7 @@ export const parseWhitelist = (whitelist: string | null | undefined): string[] |
 };
 
 export const getUniqueSecretNames = (
-  actionPackage: AgentPackageActionPackageMetadata,
+  actionPackage: NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number],
   whitelist: string[] | null,
 ): Set<string> => {
   const uniqueSecrets = new Set<string>();
@@ -34,7 +32,7 @@ export const getUniqueSecretNames = (
 };
 
 export const getUniqueSecretsMap = (
-  actionPackage: AgentPackageActionPackageMetadata,
+  actionPackage: NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number],
   whitelist: string[] | null,
 ): Map<string, { description?: string; actions: string[] }> => {
   const uniqueSecretsMap = new Map<string, { description?: string; actions: string[] }>();
@@ -60,4 +58,16 @@ export const getUniqueSecretsMap = (
   });
 
   return uniqueSecretsMap;
+};
+
+export const agentPackageSecretsToHeaderEntries = (
+  secrets: Record<string, string> | undefined,
+): HeaderEntry[] | undefined => {
+  if (!secrets) return undefined;
+
+  const entries = Object.entries(secrets)
+    .filter(([, value]) => value && value.trim() !== '')
+    .map(([key, value]) => ({ key, value, type: 'secret' as const }));
+
+  return entries.length > 0 ? entries : undefined;
 };

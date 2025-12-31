@@ -11,11 +11,11 @@ import { StepNavigation } from './StepNavigation';
 import { AgentConfigurationStep } from './AgentConfigurationStep';
 import { AgentOverviewStep } from './AgentOverviewStep';
 import { McpConfigurationStep } from './McpConfigurationStep';
-import { components } from '@sema4ai/agent-server-interface';
+import { AgentPackageInspectionResponse } from '@sema4ai/spar-ui/queries';
 
 type Props = {
   defaultValues: AgentDeploymentFormSchema;
-  agentTemplate: components['schemas']['AgentPackageInspectionResponse'];
+  agentTemplate: NonNullable<AgentPackageInspectionResponse>;
   onSubmit: (payload: AgentDeploymentFormSchema) => void;
   isPending: boolean;
   title: string;
@@ -122,7 +122,9 @@ export const AgentDeploymentForm: FC<Props> = ({
               {wizardStep === AgentDeploymentStep.AgentSettings && (
                 <AgentConfigurationStep agentTemplate={agentTemplate} />
               )}
-              {wizardStep === AgentDeploymentStep.ActionSettings && <McpConfigurationStep />}
+              {wizardStep === AgentDeploymentStep.ActionSettings && (
+                <McpConfigurationStep agentTemplate={agentTemplate} />
+              )}
             </Box>
 
             <Box mb="$40">
@@ -154,8 +156,5 @@ export const AgentDeploymentForm: FC<Props> = ({
         )}
       </Box>
     </Box>
-    //     </div>
-    //   </div>
-    // </div>
   );
 };

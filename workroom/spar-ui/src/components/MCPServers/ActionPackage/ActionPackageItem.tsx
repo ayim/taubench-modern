@@ -4,8 +4,9 @@ import { IconStatusCompleted, IconStatusTimeout, IconMcp } from '@sema4ai/icons'
 import { useFormContext } from 'react-hook-form';
 import { styled } from '@sema4ai/theme';
 
+import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
 import { ActionSecrets } from './ActionSecrets';
-import { parseWhitelist, getUniqueSecretNames, AgentPackageActionPackageMetadata } from './actionPackageUtils';
+import { parseWhitelist, getUniqueSecretNames } from './actionPackageUtils';
 
 const Container = styled.div`
   display: grid;
@@ -87,7 +88,7 @@ const StatusIcon = styled.div<{ $ready?: boolean }>`
 `;
 
 export const ActionPackageItem: FC<{
-  actionPackage: AgentPackageActionPackageMetadata;
+  actionPackage: NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number];
 }> = ({ actionPackage }) => {
   const { watch } = useFormContext();
   const { agentPackageSecrets } = watch();

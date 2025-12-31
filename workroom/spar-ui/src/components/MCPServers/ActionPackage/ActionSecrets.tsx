@@ -2,10 +2,11 @@ import type { FC } from 'react';
 import { Box, Input } from '@sema4ai/components';
 import { useFormContext, Controller } from 'react-hook-form';
 
-import { parseWhitelist, getUniqueSecretsMap, AgentPackageActionPackageMetadata } from './actionPackageUtils';
+import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
+import { parseWhitelist, getUniqueSecretsMap } from './actionPackageUtils';
 
 export const ActionSecrets: FC<{
-  actionPackage: AgentPackageActionPackageMetadata;
+  actionPackage: NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number];
 }> = ({ actionPackage }) => {
   const { control, formState } = useFormContext();
 

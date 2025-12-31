@@ -6,7 +6,6 @@ import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-for
 
 import { MCPServerAuthFields } from '../MCPServerAuth';
 import { ActionPackageItem } from '../ActionPackage';
-import { DEFAULT_MCP_TYPE } from '../index';
 import {
   newMcpServerFormSchema,
   headerTypeSelectItems,
@@ -22,14 +21,17 @@ import {
   useCreateMcpServerMutation,
   useCreateHostedMcpServerMutation,
   useValidateMcpServerCapabilitiesMutation,
+  useHostedMcpUpload,
+  McpServerCreateResponse,
+  UseHostedMcpUploadResult,
 } from '../../../queries/mcpServers';
-import { useHostedMcpUpload, UseHostedMcpUploadResult } from './useHostedMcpUpload';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DropzoneWithBanner: FC<{ onDrop: (files: File[]) => void; error?: string }> = ({ onDrop, error }) => (
   <>
     <Dropzone
       onDrop={onDrop}
+      multiple={false}
       title={
         <span>
           Drag & drop or{' '}
@@ -39,7 +41,7 @@ const DropzoneWithBanner: FC<{ onDrop: (files: File[]) => void; error?: string }
           to upload
         </span>
       }
-      dropTitle="Drop your files here"
+      dropTitle="Drop your file here"
       description="Upload to validate your agent package • Only ZIP files • Max size: 100MB"
       error={error}
     />
@@ -101,8 +103,10 @@ type NewMcpServerDialogProps = {
   onClose: () => void;
   serverTypes: McpServerType[];
   showStdioTransport: boolean;
-  onSuccess?: (mcpServer: unknown) => void;
+  onSuccess?: (mcpServer: McpServerCreateResponse) => void;
 };
+
+const DEFAULT_MCP_TYPE = 'generic_mcp' as const;
 
 const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
   onClose,
@@ -153,12 +157,19 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
 
   const handleHostedDrop = useCallback(
     async (files: File[]) => {
-      const result = await hostedUpload.handleDrop(files);
-      if (result) {
-        form.setValue('agentPackageFile', result.file, { shouldValidate: true });
-        if (!form.getValues('name')) {
-          form.setValue('name', `MCP server for ${result.data.name ?? ''}`);
+      try {
+        const result = await hostedUpload.handleDrop(files);
+        if (result) {
+          form.setValue('agentPackageFile', result.file, { shouldValidate: true });
+          if (!form.getValues('name')) {
+            form.setValue('name', `MCP server for ${result.data.name ?? ''}`);
+          }
         }
+      } catch (error) {
+        form.setError('root', {
+          type: 'manual',
+          message: error instanceof Error ? error.message : 'Failed to upload file',
+        });
       }
     },
     [form, hostedUpload],

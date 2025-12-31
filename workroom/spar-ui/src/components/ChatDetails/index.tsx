@@ -1,6 +1,6 @@
 import { components } from '@sema4ai/agent-server-interface';
 import { Box, Progress } from '@sema4ai/components';
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { useAgentDetailsQuery, useAgentOAuthStateQuery, useAgentQuery } from '../../queries/agents';
 import { ActionsSection } from './components/ActionsSection';
 import { DescriptionSection } from './components/DescriptionSection';
@@ -15,8 +15,17 @@ import { useFeatureFlag } from '../../hooks';
 export type ActionPackage = components['schemas']['ActionPackageDetail'];
 export type MCPServer = components['schemas']['MCPServerDetail'];
 
+const MCP_OFFLINE_POLL_INTERVAL = 3000;
+
 export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
   const { data: agentDetails, isLoading: isAgentDetailsLoading } = useAgentDetailsQuery({ agentId });
+
+  const hasOfflineMcpServers = useMemo(() => {
+    return agentDetails?.mcp_servers?.some((server) => server.status === 'offline') ?? false;
+  }, [agentDetails?.mcp_servers]);
+
+  useAgentDetailsQuery({ agentId }, { refetchInterval: hasOfflineMcpServers ? MCP_OFFLINE_POLL_INTERVAL : undefined });
+
   const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
   const { data: agentOAuthState, isLoading: isAgentOAuthStateLoading } = useAgentOAuthStateQuery({ agentId });
   const { enabled: isAgentDetailsEnabled } = useFeatureFlag(SparUIFeatureFlag.agentDetails);
