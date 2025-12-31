@@ -91,10 +91,10 @@ class TestMemoryTransport:
             self.train_ticket_pdf_file_response
         )
 
-        # Test custom file response via get_file endpoint
-        file_path = memory_transport.get_file("train_ticket.pdf")
-        assert file_path.exists()
-        assert file_path.read_bytes() == self.train_ticket_pdf_path.read_bytes()
+        # Test custom file response via get_file endpoint (now a context manager)
+        with memory_transport.get_file("train_ticket.pdf") as file_path:
+            assert file_path.exists()
+            assert file_path.read_bytes() == self.train_ticket_pdf_path.read_bytes()
 
     def test_get_file_establishes_connection_when_not_connected(
         self, fastapi_agent_dummy_server: FastAPIAgentDummyServer
@@ -114,9 +114,8 @@ class TestMemoryTransport:
         # Set up file response
         fastapi_agent_dummy_server.file_responses["test.pdf"] = self.train_ticket_pdf_file_response
 
-        # Call get_file - should establish connection automatically
-        file_path = transport.get_file("test.pdf")
-
-        # Verify connection was established
-        assert transport.is_connected()
-        assert file_path.exists()
+        # Call get_file - should establish connection automatically (now a context manager)
+        with transport.get_file("test.pdf") as file_path:
+            # Verify connection was established
+            assert transport.is_connected()
+            assert file_path.exists()

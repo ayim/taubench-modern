@@ -7,6 +7,8 @@ services, bypassing HTTP overhead.
 
 import logging
 import tempfile
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -111,18 +113,20 @@ class DirectKernelTransport(DirectTransport):
         )
         return convert_core_response_to_transport(core_response)
 
-    async def get_file(self, name: str, thread_id: str | None = None) -> Path:
-        """Get a file from storage by reference.
+    @asynccontextmanager
+    async def get_file(self, name: str, thread_id: str | None = None) -> AsyncIterator[Path]:
+        """Get a file from storage as an async context manager.
 
         This provides direct access to files via the file manager, bypassing
         the HTTP API entirely. Handles both local (file://) and remote (HTTP/S)
-        file URLs - for remote files, downloads to a temporary file.
+        file URLs. For remote files, downloads to a temp file which is
+        automatically cleaned up when the context exits.
 
         Args:
             name: The file reference/name to retrieve
             thread_id: Optional thread ID (uses transport's thread_id if not provided)
 
-        Returns:
+        Yields:
             Path: The path to the file
 
         Raises:
@@ -150,8 +154,10 @@ class DirectKernelTransport(DirectTransport):
         parsed_url = urlparse(file_url)
 
         if parsed_url.scheme == "file":
+            # Local file - no cleanup needed
             fs_path = url_to_fs_path(file_url)
-            return Path(fs_path)
+            yield Path(fs_path)
+            return
 
         # Remote URL (HTTP/HTTPS presigned URL) - download to temp file
         try:
@@ -162,9 +168,20 @@ class DirectKernelTransport(DirectTransport):
 
         # Preserve file extension for proper handling downstream
         suffix = Path(parsed_url.path).suffix or Path(name).suffix
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-            temp_file.write(response.response.data)
-            return Path(temp_file.name)
+        temp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                temp_file.write(response.response.data)
+                temp_path = Path(temp_file.name)
+            yield temp_path
+        finally:
+            # Clean up temp file
+            if temp_path and temp_path.exists():
+                try:
+                    temp_path.unlink()
+                    logger.debug("Cleaned up temp file: %s", temp_path)
+                except OSError as e:
+                    logger.warning("Failed to clean up temp file %s: %s", temp_path, e)
 
     async def upload_file_bytes(
         self,

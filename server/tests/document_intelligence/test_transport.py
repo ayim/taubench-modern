@@ -97,12 +97,11 @@ async def test_get_file_local_file_url(
     mock_storage.get_file_by_ref.return_value = uploaded_file
     mock_file_manager.refresh_file_paths.return_value = [uploaded_file]
 
-    result = await transport.get_file("test.txt")
-
-    assert result == test_file
-    mock_storage.get_thread.assert_awaited_once_with("test-user-id", "test-thread-id")
-    mock_storage.get_file_by_ref.assert_awaited_once_with(thread, "test.txt", "test-user-id")
-    mock_file_manager.refresh_file_paths.assert_awaited_once_with([uploaded_file])
+    async with transport.get_file("test.txt") as result:
+        assert result == test_file
+        mock_storage.get_thread.assert_awaited_once_with("test-user-id", "test-thread-id")
+        mock_storage.get_file_by_ref.assert_awaited_once_with(thread, "test.txt", "test-user-id")
+        mock_file_manager.refresh_file_paths.assert_awaited_once_with([uploaded_file])
 
 
 @pytest.mark.asyncio
@@ -130,17 +129,15 @@ async def test_get_file_http_url_downloads_to_temp(
     with patch("agent_platform.server.document_intelligence.transport.sema4ai_http") as mock_http:
         mock_http.get.return_value = mock_response
 
-        result = await transport.get_file("test.pdf")
+        async with transport.get_file("test.pdf") as result:
+            # Verify the result is a temp file with correct content
+            assert result.exists()
+            assert result.suffix == ".pdf"
+            assert result.read_bytes() == file_content
 
-        # Verify the result is a temp file with correct content
-        assert result.exists()
-        assert result.suffix == ".pdf"
-        assert result.read_bytes() == file_content
+            mock_http.get.assert_called_once_with(http_url)
 
-        mock_http.get.assert_called_once_with(http_url)
-
-        # Clean up
-        result.unlink()
+        # Temp file should be cleaned up automatically after context exit
 
 
 @pytest.mark.asyncio
@@ -168,14 +165,12 @@ async def test_get_file_http_url_preserves_extension_from_name(
     with patch("agent_platform.server.document_intelligence.transport.sema4ai_http") as mock_http:
         mock_http.get.return_value = mock_response
 
-        result = await transport.get_file("report.xlsx")
+        async with transport.get_file("report.xlsx") as result:
+            # Should use extension from file name since URL has none
+            assert result.suffix == ".xlsx"
+            assert result.read_bytes() == file_content
 
-        # Should use extension from file name since URL has none
-        assert result.suffix == ".xlsx"
-        assert result.read_bytes() == file_content
-
-        # Clean up
-        result.unlink()
+        # Temp file should be cleaned up automatically after context exit
 
 
 @pytest.mark.asyncio
@@ -187,7 +182,8 @@ async def test_get_file_thread_not_found(
     mock_storage.get_thread.return_value = None
 
     with pytest.raises(FileNotFoundError, match="Thread test-thread-id not found"):
-        await transport.get_file("test.txt")
+        async with transport.get_file("test.txt"):
+            pass
 
 
 @pytest.mark.asyncio
@@ -201,7 +197,8 @@ async def test_get_file_file_not_found(
     mock_storage.get_file_by_ref.return_value = None
 
     with pytest.raises(FileNotFoundError, match="File test.txt not found in thread"):
-        await transport.get_file("test.txt")
+        async with transport.get_file("test.txt"):
+            pass
 
 
 @pytest.mark.asyncio
@@ -217,7 +214,8 @@ async def test_get_file_no_file_path(
     mock_storage.get_file_by_ref.return_value = uploaded_file
 
     with pytest.raises(FileNotFoundError, match="File test.txt has no file_path"):
-        await transport.get_file("test.txt")
+        async with transport.get_file("test.txt"):
+            pass
 
 
 @pytest.mark.asyncio
@@ -235,7 +233,8 @@ async def test_get_file_refresh_fails(
     mock_file_manager.refresh_file_paths.return_value = []
 
     with pytest.raises(FileNotFoundError, match="File test.txt path not available after refresh"):
-        await transport.get_file("test.txt")
+        async with transport.get_file("test.txt"):
+            pass
 
 
 @pytest.mark.asyncio
@@ -258,4 +257,5 @@ async def test_get_file_http_download_fails(
         mock_http.get.side_effect = Exception("Connection refused")
 
         with pytest.raises(FileNotFoundError, match="Failed to download file test.pdf"):
-            await transport.get_file("test.pdf")
+            async with transport.get_file("test.pdf"):
+                pass

@@ -96,8 +96,14 @@ class MockTransport(TransportBase):
         """
         self._file_responses = file_responses
 
-    def get_file(self, name: str, thread_id: str | None = None) -> Path:
-        return self._file_responses.get(name, Path(f"/mock/path/{name}"))
+    def get_file(self, name: str, thread_id: str | None = None):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def _get_file():
+            yield self._file_responses.get(name, Path(f"/mock/path/{name}"))
+
+        return _get_file()
 
     def prompts_generate(self, payload: dict[str, Any]) -> ResponseMessage:
         """Mock prompts_generate implementation that can be configured by tests."""

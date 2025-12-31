@@ -4,7 +4,8 @@ import json
 import logging
 import os
 import platform
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
@@ -322,9 +323,10 @@ class HTTPTransport(TransportBase):
             return "{}"  # The value is the x-action-invocation-context to be used in the header
         return request_contexts.invocation_context.initial_data
 
-    def get_file(self, name: str, thread_id: str | None = None) -> Path:
-        """Get a file from the agent server."""
-        return get_file(name)
+    @contextmanager
+    def get_file(self, name: str, thread_id: str | None = None) -> Iterator[Path]:
+        """Get a file from the agent server as a context manager."""
+        yield get_file(name)
 
     def close(self) -> None:
         """Close the HTTP transport.

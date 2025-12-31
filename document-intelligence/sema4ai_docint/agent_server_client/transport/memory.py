@@ -2,6 +2,8 @@
 
 import logging
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
@@ -218,11 +220,21 @@ class MemoryTransport(TransportBase):
             # but we can clean up the reference
             self.client = None
 
-    def get_file(self, name: str, thread_id: str | None = None) -> Path:
-        """Get a file from the agent server."""
-        # This method may be called lazily by the DIService, so we attempt to connect here
-        # if we are not already connected
+    @contextmanager
+    def get_file(self, name: str, thread_id: str | None = None) -> Iterator[Path]:
+        """Get a file from the agent server as a context manager.
 
+        For remote files that are downloaded to temp locations, the file is
+        automatically cleaned up when the context exits.
+
+        Args:
+            name: The file reference/name to retrieve
+            thread_id: Optional thread ID (uses transport's thread_id if not provided)
+
+        Yields:
+            Path: The path to the file
+        """
+        # This method may be called lazily by the DIService, so we attempt to connect here
         if not self.is_connected():
             self.connect()
 
@@ -242,17 +254,29 @@ class MemoryTransport(TransportBase):
 
         parsed_url = urlparse(file_url)
         if parsed_url.scheme == "file":
-            # As we are in memory, the path should be accessible to us
-            return Path(_uris.to_fs_path(file_url))
-        else:
-            try:
-                download_response = sema4ai_http.get(file_url)
-                download_response.raise_for_status()
-            except Exception as e:
-                raise TransportFileRetrievalError(name, f"Failed to download file: {e!s}") from e
-            file_bytes = download_response.response.data
-            # Write the file locally for use elsewhere
+            # Local file - no cleanup needed
+            yield Path(_uris.to_fs_path(file_url))
+            return
+
+        # Remote URL - download to temp file and clean up after
+        try:
+            download_response = sema4ai_http.get(file_url)
+            download_response.raise_for_status()
+        except Exception as e:
+            raise TransportFileRetrievalError(name, f"Failed to download file: {e!s}") from e
+
+        file_bytes = download_response.response.data
+        temp_path: Path | None = None
+        try:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 temp_file.write(file_bytes)
-                temp_file_path = temp_file.name
-            return Path(temp_file_path)
+                temp_path = Path(temp_file.name)
+            yield temp_path
+        finally:
+            # Clean up temp file
+            if temp_path and temp_path.exists():
+                try:
+                    temp_path.unlink()
+                    logger.debug("Cleaned up temp file: %s", temp_path)
+                except OSError as e:
+                    logger.warning("Failed to clean up temp file %s: %s", temp_path, e)

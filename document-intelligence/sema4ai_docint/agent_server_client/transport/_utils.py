@@ -1,10 +1,100 @@
 """Internal utility functions for working with transport protocols."""
 
 import asyncio
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager, contextmanager
+from pathlib import Path
 from typing import Any
 
 from .base import TransportBase
 from .direct import DirectTransport
+
+
+@asynccontextmanager
+async def get_file_async(
+    transport: TransportBase | DirectTransport,
+    name: str,
+    thread_id: str | None = None,
+) -> AsyncIterator[Path]:
+    """Get a file as an async context manager, handling both sync and async transports.
+
+    This helper allows async code to use the file context manager with both
+    sync (TransportBase) and async (DirectTransport) transports. For sync
+    transports, the context manager operations are run in a thread pool.
+
+    Args:
+        transport: The transport instance (TransportBase or DirectTransport)
+        name: The file reference/name to retrieve
+        thread_id: Optional thread ID override
+
+    Yields:
+        Path: Path to the file on the local filesystem
+    """
+    if isinstance(transport, TransportBase):
+        # Sync transport - wrap in thread for enter/exit
+        ctx = transport.get_file(name, thread_id)
+        path = await asyncio.to_thread(ctx.__enter__)
+        try:
+            yield path
+        finally:
+            await asyncio.to_thread(ctx.__exit__, None, None, None)
+    else:
+        # DirectTransport (async) - use directly
+        async with transport.get_file(name, thread_id) as path:
+            yield path
+
+
+@contextmanager
+def get_file_sync(
+    transport: TransportBase | DirectTransport,
+    name: str,
+    thread_id: str | None = None,
+) -> Iterator[Path]:
+    """Get a file as a sync context manager, handling both sync and async transports.
+
+    This helper allows sync code to use the file context manager with both
+    sync (TransportBase) and async (DirectTransport) transports. For async
+    transports, the async operations are run synchronously (blocking).
+
+    Args:
+        transport: The transport instance (TransportBase or DirectTransport)
+        name: The file reference/name to retrieve
+        thread_id: Optional thread ID override
+
+    Yields:
+        Path: Path to the file on the local filesystem
+
+    Raises:
+        RuntimeError: If called from an async context
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError(
+            "get_file_sync() called from an async context. "
+            "Use: async with get_file_async(...) instead."
+        )
+
+    # Sync transport - use directly
+    if isinstance(transport, TransportBase):
+        with transport.get_file(name, thread_id) as path:
+            yield path
+    else:
+        # Async transport - run synchronously (blocking)
+        # We manually manage the async context manager lifecycle
+        async def _aenter():
+            ctx = transport.get_file(name, thread_id)
+            path = await ctx.__aenter__()
+            return path, ctx
+
+        path, ctx = asyncio.run(_aenter())
+        try:
+            yield path
+        finally:
+            # Ensure cleanup happens even if an exception is raised
+            asyncio.run(ctx.__aexit__(None, None, None))
 
 
 async def call_transport_method_async(

@@ -11,7 +11,6 @@ from sema4ai_docint.models.constants import (
 )
 from sema4ai_docint.utils import compute_document_id
 
-from ..agent_server_client.transport._utils import call_transport_method
 from ._context import _DIContext
 from ._setup_kb import _setup_kb
 from .dto import KnowledgeBaseQueryResult
@@ -178,21 +177,20 @@ class _KnowledgeBaseService:
         assert self._context.agent_server_transport is not None, "AgentServer is not available"
         assert self._context.pg_vector is not None, "PGVector datasource was not provided"
 
-        file_path = call_transport_method(
-            self._context.agent_server_transport, "get_file", document_name
-        )
+        from sema4ai_docint.agent_server_client.transport._utils import get_file_sync
 
         _setup_kb(self._context.datasource, self._context.pg_vector)
 
         if not reducto_parse_config:
             reducto_parse_config = _KnowledgeBaseService._default_parse_opts()
 
-        document_id = compute_document_id(file_path)
-        file_id = self._context.extraction_service.upload(file_path)
-        document_data = self._context.extraction_service.parse(
-            document_id=file_id,
-            config=reducto_parse_config,
-        )
+        with get_file_sync(self._context.agent_server_transport, document_name) as file_path:
+            document_id = compute_document_id(file_path)
+            file_id = self._context.extraction_service.upload(file_path)
+            document_data = self._context.extraction_service.parse(
+                document_id=file_id,
+                config=reducto_parse_config,
+            )
 
         if not document_data.result:
             logger.info(f"No content found in the document {document_name}")

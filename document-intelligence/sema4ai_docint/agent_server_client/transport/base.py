@@ -2,6 +2,7 @@
 
 import json
 from abc import ABC, abstractmethod
+from contextlib import AbstractContextManager
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Literal
@@ -268,15 +269,18 @@ class TransportBase(ABC):
         )
 
     @abstractmethod
-    def get_file(self, name: str, thread_id: str | None = None) -> Path:
-        """Get a file from the agent server.
+    def get_file(self, name: str, thread_id: str | None = None) -> AbstractContextManager[Path]:
+        """Get a file from the agent server as a context manager.
+
+        For remote files that are downloaded to temp locations, the file is
+        automatically cleaned up when the context exits.
 
         Args:
             name: The name of the file to get
             thread_id: The thread ID to get the file from
                 If not provided, the thread ID attached to the transport instance will be used.
 
-        Returns:
+        Yields:
             Path: The path to the file
 
         Raises:

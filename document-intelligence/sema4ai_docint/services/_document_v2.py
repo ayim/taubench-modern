@@ -45,14 +45,14 @@ class _DocumentServiceV2:
         transport = self._context.agent_server_transport
         from sema4ai_docint.agent_server_client.transport._utils import (
             call_transport_method_async,
+            get_file_async,
         )
 
         assert transport is not None, "Agent server transport is required."
         normalized_file_name = PurePath(file_name).name
         try:
-            local_path = await call_transport_method_async(
-                transport, "get_file", normalized_file_name
-            )
+            async with get_file_async(transport, normalized_file_name) as local_path:
+                document_id = compute_document_id(local_path)
         except Exception as e:
             available_files_msg = ""
             if transport.thread_id:
@@ -66,8 +66,7 @@ class _DocumentServiceV2:
 
         return DocumentV2(
             file_name=file_name,
-            document_id=compute_document_id(local_path),
-            local_file_path=local_path,
+            document_id=document_id,
         )
 
     async def parse(
@@ -91,10 +90,9 @@ class _DocumentServiceV2:
             if cached is not None:
                 return ParseResponse.model_validate_json(cached)
 
-        reducto_id = await self._context.extraction_service_async.upload(
-            await document.get_local_path(self._context.agent_server_transport)
-        )
-        response = await self._context.extraction_service_async.parse(reducto_id, config=config)
+        async with document.get_local_path(self._context.agent_server_transport) as local_path:
+            reducto_id = await self._context.extraction_service_async.upload(local_path)
+            response = await self._context.extraction_service_async.parse(reducto_id, config=config)
         await self._context.persistence_service.save(cache_key, response.model_dump_json().encode())
 
         return response
@@ -239,18 +237,18 @@ class _DocumentServiceV2:
                 if cached_data.pop("params_hash", None) == params_hash:
                     return ExtractionResult(**cached_data)
 
-        # Prepare extraction input - use local file path
-        extraction_input = await document.get_local_path(self._context.agent_server_transport)
-
-        # Perform extraction
-        extract_response = await self._context.extraction_service_async.extract_with_schema(
-            extraction_input=extraction_input,
-            extraction_schema=extraction_schema,
-            extraction_config=extraction_config,
-            prompt=prompt,
-            start_page=start_page,
-            end_page=end_page,
-        )
+        # Prepare extraction input - use local file path with cleanup
+        transport = self._context.agent_server_transport
+        async with document.get_local_path(transport) as extraction_input:
+            # Perform extraction
+            extract_response = await self._context.extraction_service_async.extract_with_schema(
+                extraction_input=extraction_input,
+                extraction_schema=extraction_schema,
+                extraction_config=extraction_config,
+                prompt=prompt,
+                start_page=start_page,
+                end_page=end_page,
+            )
 
         if self._context.persistence_service:
             cache_key = self._context.persistence_service.cache_key_for(

@@ -762,22 +762,24 @@ class AgentServerClient:
         Raises:
             ValueError: If the file type is not supported or processing fails
         """
-        file_path = call_transport_method(self.transport, "get_file", file_name)
-        if self._is_excel_file(file_name):
-            return self._excel_to_text(file_path, start_page=start_page, end_page=end_page)
-        elif self._is_docx_file(file_name):
-            try:
-                return docx_to_markdown_txt(file_path)
-            except Exception as e:
-                raise ValueError(f"Error processing DOCX file: {e!s}") from e
-        elif self._is_text_file(file_name):
-            try:
-                return open(file_path).read()
-            except Exception as e:
-                raise ValueError(f"Error processing text file: {e!s}") from e
-        else:
-            file_extension = self._get_file_extension(file_name)
-            raise ValueError(f"Unsupported file type: {file_extension}")
+        from sema4ai_docint.agent_server_client.transport._utils import get_file_sync
+
+        with get_file_sync(self.transport, file_name) as file_path:
+            if self._is_excel_file(file_name):
+                return self._excel_to_text(file_path, start_page=start_page, end_page=end_page)
+            elif self._is_docx_file(file_name):
+                try:
+                    return docx_to_markdown_txt(file_path)
+                except Exception as e:
+                    raise ValueError(f"Error processing DOCX file: {e!s}") from e
+            elif self._is_text_file(file_name):
+                try:
+                    return open(file_path).read()
+                except Exception as e:
+                    raise ValueError(f"Error processing text file: {e!s}") from e
+            else:
+                file_extension = self._get_file_extension(file_name)
+                raise ValueError(f"Unsupported file type: {file_extension}")
 
     def create_mapping(self, business_schema: str, extraction_schema: str) -> str:
         """Create a mapping between business schema and extraction schema.
@@ -966,14 +968,18 @@ Target Schema:
         Raises:
             ValueError: If the file type is not supported for image conversion
         """
-        file_path = call_transport_method(self.transport, "get_file", file_name)
-        if self._is_pdf_file(file_name):
-            return self._pdf_to_images(file_path, start_page=start_page, end_page=end_page)
-        elif self._is_image_file(file_name):
-            return self._image_file_to_images(file_path, start_page=start_page, end_page=end_page)
-        else:
-            file_extension = self._get_file_extension(file_name)
-            raise ValueError(f"Unsupported file type for image conversion: {file_extension}")
+        from sema4ai_docint.agent_server_client.transport._utils import get_file_sync
+
+        with get_file_sync(self.transport, file_name) as file_path:
+            if self._is_pdf_file(file_name):
+                return self._pdf_to_images(file_path, start_page=start_page, end_page=end_page)
+            elif self._is_image_file(file_name):
+                return self._image_file_to_images(
+                    file_path, start_page=start_page, end_page=end_page
+                )
+            else:
+                file_extension = self._get_file_extension(file_name)
+                raise ValueError(f"Unsupported file type for image conversion: {file_extension}")
 
     def _image_file_to_images(
         self, file_path: Path, start_page: int | None = None, end_page: int | None = None

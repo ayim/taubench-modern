@@ -1,3 +1,4 @@
+from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -45,18 +46,21 @@ class DirectTransport(Protocol):
         """
         ...
 
-    async def get_file(self, name: str, thread_id: str | None = None) -> Path:
-        """Get a file by reference.
+    def get_file(
+        self, name: str, thread_id: str | None = None
+    ) -> AbstractAsyncContextManager[Path]:
+        """Get a file by reference as an async context manager.
 
-        Retrieves a file from the agent server's storage. Used by DIService
-        to access uploaded files for document processing.
+        Retrieves a file from the agent server's storage. For remote files
+        that are downloaded to temp locations, the file is automatically
+        cleaned up when the context exits.
 
         Args:
             name: The file reference/name to retrieve
             thread_id: Optional thread ID override. If not provided,
                 uses the transport's thread_id
 
-        Returns:
+        Yields:
             Path: Path to the file on the local filesystem
         """
         ...

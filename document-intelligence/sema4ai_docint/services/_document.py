@@ -17,7 +17,6 @@ from sema4ai_docint.utils import compute_document_id, normalize_name
 from sema4ai_docint.validation.models import ValidationRule, ValidationSummary
 from sema4ai_docint.validation.validate import validate_document_extraction
 
-from ..agent_server_client.transport._utils import call_transport_method
 from ..models import DataModel, Document, DocumentLayout, initialize_dataserver
 from ..models.constants import DEFAULT_LAYOUT_NAME, PROJECT_NAME
 from ._context import _DIContext
@@ -85,18 +84,16 @@ class _DocumentService:
         Localizes and computes the document ID for a given file name.
 
         """
+        from sema4ai_docint.agent_server_client.transport._utils import get_file_sync
         from sema4ai_docint.utils import compute_document_id
 
         if self._context.agent_server_transport is None:
             raise DocumentServiceError("AgentServer not configured")
 
-        file_path = call_transport_method(
-            self._context.agent_server_transport, "get_file", file_name
-        )
-        if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
-
-        return compute_document_id(file_path)
+        with get_file_sync(self._context.agent_server_transport, file_name) as file_path:
+            if not file_path.exists():
+                raise FileNotFoundError(f"File not found: {file_path}")
+            return compute_document_id(file_path)
 
     def query(self, document_id: str) -> dict[str, Table | None] | Table | None:
         """Get document in data model format.
@@ -481,43 +478,42 @@ class _DocumentService:
         assert self._context.agent_server_transport is not None
         assert self._context.extraction_service is not None
 
+        from sema4ai_docint.agent_server_client.transport._utils import get_file_sync
+
         try:
-            # Generate document ID
-            pdf_path = call_transport_method(
-                self._context.agent_server_transport, "get_file", file_name
-            )
+            # Get file with automatic cleanup of temp files
+            with get_file_sync(self._context.agent_server_transport, file_name) as pdf_path:
+                document_id = compute_document_id(pdf_path)
+                logger.info(f"Generated document ID: {document_id}")
 
-            document_id = compute_document_id(pdf_path)
-            logger.info(f"Generated document ID: {document_id}")
+                # Check if document already exists
+                document = Document.find_by_id(self._context.datasource, document_id)
+                if not document:
+                    # Create new document
+                    document = Document(
+                        id=document_id,
+                        document_name=file_name,
+                        data_model=data_model.name,
+                        document_layout=layout_name,
+                    )
+                    document.insert(self._context.datasource)
+                else:
+                    # Update existing document
+                    document.document_layout = layout_name
+                    document.data_model = data_model.name
+                    document.document_name = file_name
+                    document.update(self._context.datasource)
 
-            # Check if document already exists
-            document = Document.find_by_id(self._context.datasource, document_id)
-            if not document:
-                # Create new document
-                document = Document(
-                    id=document_id,
-                    document_name=file_name,
-                    data_model=data_model.name,
-                    document_layout=layout_name,
+                # Extract content using Reducto
+                extraction_results = self._context.extraction_service.extract_with_data_model(
+                    pdf_path,
+                    extraction_schema,
+                    user_prompt,
+                    extraction_config,
+                    layout_prompt,
                 )
-                document.insert(self._context.datasource)
-            else:
-                # Update existing document
-                document.document_layout = layout_name
-                document.data_model = data_model.name
-                document.document_name = file_name
-                document.update(self._context.datasource)
-
-            # Extract content using Reducto
-            extraction_results = self._context.extraction_service.extract_with_data_model(
-                pdf_path,
-                extraction_schema,
-                user_prompt,
-                extraction_config,
-                layout_prompt,
-            )
-            extracted_content = extraction_results.results
-            logger.info("Content extracted successfully")
+                extracted_content = extraction_results.results
+                logger.info("Content extracted successfully")
 
             # Update document with extracted content
             document.extracted_content = extracted_content

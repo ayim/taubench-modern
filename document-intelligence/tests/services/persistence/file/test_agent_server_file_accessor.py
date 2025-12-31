@@ -113,12 +113,17 @@ class _StubHTTPTransport(TransportBase):
         return None
 
     def get_file(self, name: str, thread_id: str | None = None):
+        from contextlib import contextmanager
         from pathlib import Path
 
-        _ = thread_id
-        if name not in self._files:
-            raise FileNotFoundError(name)
-        return Path(self._upload_dir / name)
+        @contextmanager
+        def _get_file():
+            _ = thread_id
+            if name not in self._files:
+                raise FileNotFoundError(name)
+            yield Path(self._upload_dir / name)
+
+        return _get_file()
 
     def request(  # type: ignore[override]
         self,
