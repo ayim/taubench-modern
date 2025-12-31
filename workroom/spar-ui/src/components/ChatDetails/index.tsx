@@ -24,6 +24,8 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
     return agentDetails?.mcp_servers?.some((server) => server.status === 'offline') ?? false;
   }, [agentDetails?.mcp_servers]);
 
+  // Poll for MCP server status updates when any server is offline
+  // This second hook shares the same query cache and triggers refetches
   useAgentDetailsQuery({ agentId }, { refetchInterval: hasOfflineMcpServers ? MCP_OFFLINE_POLL_INTERVAL : undefined });
 
   const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });

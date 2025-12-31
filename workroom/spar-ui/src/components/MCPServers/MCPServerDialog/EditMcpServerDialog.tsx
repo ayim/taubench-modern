@@ -212,20 +212,27 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
                 <Input
                   label="URL"
                   placeholder="https://example.com/mcp"
-                  description="The MCP server endpoint URL"
+                  description={
+                    isHosted ? 'URL is managed automatically for hosted servers' : 'The MCP server endpoint URL'
+                  }
                   {...form.register('url')}
                   error={form.formState.errors.url?.message}
+                  readOnly={isHosted}
                 />
               )}
 
-              <Controller
-                control={form.control}
-                name="transport"
-                render={({ field }) => <Select label="Transport" items={[...transportOptions]} {...field} />}
-              />
+              {!isHosted && (
+                <>
+                  <Controller
+                    control={form.control}
+                    name="transport"
+                    render={({ field }) => <Select label="Transport" items={[...transportOptions]} {...field} />}
+                  />
 
-              {/* Authentication - only for URL-based transports */}
-              {transportValue !== 'stdio' && <MCPServerAuthFields />}
+                  {/* Authentication - only for URL-based transports */}
+                  {transportValue !== 'stdio' && <MCPServerAuthFields />}
+                </>
+              )}
 
               {isHostedWithMetadata && actionPackages.length > 0 && (
                 <Box display="flex" flexDirection="column" gap="$12">

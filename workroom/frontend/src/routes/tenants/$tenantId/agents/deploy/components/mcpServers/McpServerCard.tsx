@@ -32,12 +32,14 @@ export const McpServerCard: FC<Props> = ({ server, onRemove }) => {
             {server.type === 'sema4ai_action_server' ? 'Sema4 Action Server' : 'Generic MCP'}
           </Typography>
         </Box>
-        <Box>
-          <Typography fontSize="$12" color="content.subtle">
-            Transport
-          </Typography>
-          <Typography fontSize="$14">{server.transport}</Typography>
-        </Box>
+        {!server.is_hosted && (
+          <Box>
+            <Typography fontSize="$12" color="content.subtle">
+              Transport
+            </Typography>
+            <Typography fontSize="$14">{server.transport}</Typography>
+          </Box>
+        )}
       </Box>
     </PackageCard>
   );

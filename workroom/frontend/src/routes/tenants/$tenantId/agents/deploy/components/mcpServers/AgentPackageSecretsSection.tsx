@@ -1,16 +1,14 @@
 import { FC, useMemo } from 'react';
-import { Box, Typography, Input } from '@sema4ai/components';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Box, Typography } from '@sema4ai/components';
 import { AgentCard } from '@sema4ai/layouts';
 import { IconActions, IconStatusCompleted } from '@sema4ai/icons';
 import { AgentPackageInspectionResponse } from '@sema4ai/spar-ui/queries';
 import { parseWhitelist, getUniqueSecretsMap } from '@sema4ai/spar-ui';
+import { InputControlled } from '~/components/InputControlled';
 
 export const AgentPackageSecretsSection: FC<{
   agentTemplate: NonNullable<AgentPackageInspectionResponse>;
 }> = ({ agentTemplate }) => {
-  const { control, formState } = useFormContext();
-
   const packagesWithSecretsInfo = useMemo(() => {
     const actionPackages = agentTemplate.action_packages ?? [];
     return actionPackages.map((pkg) => {
@@ -30,7 +28,7 @@ export const AgentPackageSecretsSection: FC<{
         <Box
           key={`${pkg.name}-${pkg.version}`}
           borderColor="border.subtle"
-          borderRadius="$8"
+          borderRadius="$16"
           borderWidth="1px"
           paddingX="$8"
         >
@@ -49,7 +47,7 @@ export const AgentPackageSecretsSection: FC<{
               actions={pkg.actions ?? []}
               queries={[]}
               mcpTools={[]}
-              statusIcon={hasSecrets ? undefined : <IconStatusCompleted size="s" />}
+              statusIcon={hasSecrets ? undefined : <IconStatusCompleted color="content.success" />}
             />
           </AgentCard.ActionPackageList>
 
@@ -59,50 +57,34 @@ export const AgentPackageSecretsSection: FC<{
                 Configure secrets
               </Typography>
               <Box display="grid" gap="$12">
-                {Array.from(secretsMap.entries()).map(([secretName, secretInfo]) => {
-                  const fieldPath = `agentPackageSecrets.${secretName}` as const;
-                  const errors = formState.errors?.agentPackageSecrets as
-                    | Record<string, { message?: string }>
-                    | undefined;
-                  const error = errors?.[secretName];
-
-                  return (
-                    <Box
-                      key={secretName}
-                      display="flex"
-                      flexDirection={['column', 'column', 'row']}
-                      gap={['$8', '$8', '$16']}
-                      alignItems={['flex-start', 'flex-start', 'center']}
-                    >
-                      <Box flexBasis={['auto', 'auto', 180]} flexShrink={0}>
-                        <Typography fontWeight="medium" fontSize="$14">
-                          {secretName}
+                {Array.from(secretsMap.entries()).map(([secretName, secretInfo]) => (
+                  <Box
+                    key={secretName}
+                    display="flex"
+                    flexDirection={['column', 'column', 'row']}
+                    gap={['$8', '$8', '$16']}
+                    alignItems={['flex-start', 'flex-start', 'center']}
+                  >
+                    <Box flexBasis={['auto', 'auto', 180]} flexShrink={0}>
+                      <Typography fontWeight="medium" fontSize="$14">
+                        {secretName}
+                      </Typography>
+                      {secretInfo.description && (
+                        <Typography fontSize="$12" color="content.subtle">
+                          {secretInfo.description}
                         </Typography>
-                        {secretInfo.description && (
-                          <Typography fontSize="$12" color="content.subtle">
-                            {secretInfo.description}
-                          </Typography>
-                        )}
-                      </Box>
-                      <Box flex="1" width="100%">
-                        <Controller
-                          control={control}
-                          name={fieldPath}
-                          render={({ field }) => (
-                            <Input
-                              aria-label={`Secret value for ${secretName}`}
-                              placeholder={`Enter ${secretName}`}
-                              type="password"
-                              error={error?.message}
-                              {...field}
-                              value={field.value ?? ''}
-                            />
-                          )}
-                        />
-                      </Box>
+                      )}
                     </Box>
-                  );
-                })}
+                    <Box flex="1" width="100%">
+                      <InputControlled
+                        fieldName={`agentPackageSecrets.${secretName}`}
+                        aria-label={`Secret value for ${secretName}`}
+                        placeholder={`Enter ${secretName}`}
+                        type="password"
+                      />
+                    </Box>
+                  </Box>
+                ))}
               </Box>
             </Box>
           )}

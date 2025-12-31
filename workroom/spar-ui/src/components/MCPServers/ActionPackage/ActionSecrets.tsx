@@ -1,15 +1,13 @@
 import type { FC } from 'react';
-import { Box, Input } from '@sema4ai/components';
-import { useFormContext, Controller } from 'react-hook-form';
+import { Box } from '@sema4ai/components';
 
 import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
 import { parseWhitelist, getUniqueSecretsMap } from './actionPackageUtils';
+import { InputControlled } from '../../../common/form/InputControlled';
 
 export const ActionSecrets: FC<{
   actionPackage: NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number];
 }> = ({ actionPackage }) => {
-  const { control, formState } = useFormContext();
-
   if (!actionPackage.secrets) {
     return null;
   }
@@ -32,38 +30,26 @@ export const ActionSecrets: FC<{
         </Box>
       </Box>
       <Box display="grid" gap="$16">
-        {Array.from(uniqueSecretsMap.entries()).map(([secretName, secretInfo]) => {
-          const errors = formState.errors?.agentPackageSecrets as Record<string, { message?: string }> | undefined;
-          const error = errors?.[secretName];
-
-          return (
-            <Box key={secretName} display="flex" flexDirection={['column', 'column', 'row']} gap={['$8', '$8', '$24']}>
-              <Box flexBasis={['1', '1', 240]}>
-                <Box fontWeight="medium" mb="$4">
-                  {secretName}
-                </Box>
-                <Box fontSize="$14" color="content.subtle">
-                  {secretInfo.description || `Secret value for ${secretName}`}
-                </Box>
+        {Array.from(uniqueSecretsMap.entries()).map(([secretName, secretInfo]) => (
+          <Box key={secretName} display="flex" flexDirection={['column', 'column', 'row']} gap={['$8', '$8', '$24']}>
+            <Box flexBasis={['1', '1', 240]}>
+              <Box fontWeight="medium" mb="$4">
+                {secretName}
               </Box>
-              <Box flex="1">
-                <Controller
-                  control={control}
-                  name={`agentPackageSecrets.${secretName}`}
-                  render={({ field }) => (
-                    <Input
-                      aria-labelledby={`secret-${secretName}-label`}
-                      placeholder={`Enter ${secretName}`}
-                      type="password"
-                      error={error?.message}
-                      {...field}
-                    />
-                  )}
-                />
+              <Box fontSize="$14" color="content.subtle">
+                {secretInfo.description || `Secret value for ${secretName}`}
               </Box>
             </Box>
-          );
-        })}
+            <Box flex="1">
+              <InputControlled
+                fieldName={`agentPackageSecrets.${secretName}`}
+                aria-label={`Secret value for ${secretName}`}
+                placeholder={`Enter ${secretName}`}
+                type="password"
+              />
+            </Box>
+          </Box>
+        ))}
       </Box>
     </Box>
   );

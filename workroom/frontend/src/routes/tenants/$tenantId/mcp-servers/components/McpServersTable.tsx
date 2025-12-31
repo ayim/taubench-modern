@@ -7,6 +7,13 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { Row } from './McpServersRow';
 import { ListMcpServersResponse } from '~/queries/mcpServers';
 
+export const getServerTypeLabel = (server: ListMcpServersResponse[string]): string => {
+  if (server.is_hosted) return 'Hosted';
+  if (server.url) return 'Remote';
+  if (server.command) return 'Local';
+  return '—';
+};
+
 type Props = {
   items: ListMcpServersResponse[string][];
   onQuery?: (searchQuery: string) => void;
@@ -26,24 +33,20 @@ export const McpServersTable: FC<Props> = ({ items, onQuery }) => {
     label: { singular: 'MCP server', plural: 'MCP servers' },
     columns: [
       { id: 'name', title: 'Name', sortable: true, required: true },
-      { id: 'transport', title: 'Transport', sortable: true },
+      { id: 'type', title: 'Type', sortable: true, width: 100 },
       { id: 'url', title: 'URL', sortable: true },
       { id: 'actions', title: '', sortable: false, width: 32 },
     ],
     sort: ['name', 'asc'],
     searchRules: {
       name: { value: (item) => item.name },
-      transport: { value: (item) => item.transport },
-      source: { value: (item) => item.source },
+      type: { value: (item) => getServerTypeLabel(item) },
       url: { value: (item) => item.url ?? '' },
-      command: { value: (item) => item.command ?? '' },
     },
     sortRules: {
       name: { type: 'string', value: (item) => item.name },
-      transport: { type: 'string', value: (item) => item.transport },
-      source: { type: 'string', value: (item) => item.source },
+      type: { type: 'string', value: (item) => getServerTypeLabel(item) },
       url: { type: 'string', value: (item) => item.url ?? '' },
-      command: { type: 'string', value: (item) => item.command ?? '' },
     },
     contentBefore: (
       <Box display="flex" gap="$8" alignItems="center">

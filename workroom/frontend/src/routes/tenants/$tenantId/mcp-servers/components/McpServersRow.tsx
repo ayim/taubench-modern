@@ -5,6 +5,7 @@ import { IconDotsHorizontal } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
 import { ListMcpServersResponse, useDeleteMcpServerMutation } from '~/queries/mcpServers';
+import { getServerTypeLabel } from './McpServersTable';
 
 export const Row: FC<TableRowProps<ListMcpServersResponse[string]>> = ({ rowData }) => {
   const navigate = useNavigate();
@@ -51,8 +52,8 @@ export const Row: FC<TableRowProps<ListMcpServersResponse[string]>> = ({ rowData
   return (
     <Table.Row onClick={onEdit}>
       <Table.Cell>{rowData.name}</Table.Cell>
-      <Table.Cell>{rowData.transport}</Table.Cell>
-      <Table.Cell>{rowData.url ?? ''}</Table.Cell>
+      <Table.Cell>{getServerTypeLabel(rowData)}</Table.Cell>
+      <Table.Cell>{rowData.url ?? '—'}</Table.Cell>
       <Table.Cell controls>
         <Menu trigger={<Button aria-label="action" icon={IconDotsHorizontal} variant="ghost" size="small" />}>
           {onEdit && <Menu.Item onClick={onEdit}>Edit</Menu.Item>}
