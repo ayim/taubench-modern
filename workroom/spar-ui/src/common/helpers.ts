@@ -11,7 +11,7 @@ import {
   IconWord,
 } from '@sema4ai/icons/logos';
 import { Accept } from 'react-dropzone';
-import { ServerResponse } from '../queries/shared';
+import type { ServerResponse } from '@sema4ai/agent-server-interface';
 
 export function getFileTypeIcon(fileType: string): IconType {
   switch (fileType) {

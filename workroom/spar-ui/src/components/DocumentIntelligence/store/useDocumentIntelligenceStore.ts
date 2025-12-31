@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { components } from '@sema4ai/agent-server-interface';
-import { ServerResponse } from '../../../queries/shared';
+import type { components, ServerResponse } from '@sema4ai/agent-server-interface';
 import { LayoutFieldRow, LayoutTableRow, FlowType } from '../types';
 import { removeCitationFromExtractedData } from '../utils/dataTransformations';
 

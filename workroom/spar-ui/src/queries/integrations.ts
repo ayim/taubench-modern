@@ -1,12 +1,5 @@
-import { components } from '@sema4ai/agent-server-interface';
-import {
-  createSparMutation,
-  createSparQuery,
-  createSparQueryOptions,
-  QueryError,
-  ResourceType,
-  ServerResponse,
-} from './shared';
+import type { components, ServerResponse } from '@sema4ai/agent-server-interface';
+import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
 
 export type ObservabilityIntegration = components['schemas']['ObservabilityIntegrationResponse'];
 

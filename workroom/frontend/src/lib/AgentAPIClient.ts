@@ -14,7 +14,7 @@ import {
   SuccessResponse,
   SuccessResponseJSON,
 } from 'openapi-typescript-helpers';
-import { ServerResponse } from '@sema4ai/spar-ui';
+import type { ServerResponse } from '@sema4ai/agent-server-interface';
 import { UserTenant } from '~/queries/tenants';
 import { RequestError } from './Error';
 import { getTenantEnvironmentUrl, resolveWorkroomURL } from './utils';

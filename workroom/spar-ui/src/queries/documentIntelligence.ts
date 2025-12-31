@@ -1,13 +1,5 @@
-import type { components } from '@sema4ai/agent-server-interface';
-import {
-  createSparQuery,
-  createSparQueryOptions,
-  createSparMutation,
-  ServerResponse,
-  ServerRequest,
-  QueryError,
-  ResourceType,
-} from './shared';
+import type { components, ServerResponse, ServerRequest } from '@sema4ai/agent-server-interface';
+import { createSparQuery, createSparQueryOptions, createSparMutation, QueryError, ResourceType } from './shared';
 import { SparAPIClient } from '../api';
 
 const getListModelsQueryKey = () => ['document-intelligence', 'data-models'];

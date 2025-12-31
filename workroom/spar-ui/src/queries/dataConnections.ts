@@ -1,13 +1,7 @@
 import { DataConnection as DataConnectionBase } from '@sema4ai/data-interface';
 
-import {
-  createSparQueryOptions,
-  createSparQuery,
-  createSparMutation,
-  QueryError,
-  ResourceType,
-  ServerResponse,
-} from './shared';
+import type { ServerResponse } from '@sema4ai/agent-server-interface';
+import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
 
 import { getAgentSemanticDataValidationQueryKey, SemanticModel } from './semanticData';
 import { getTableDimensions } from '../lib/SemanticDataModels';

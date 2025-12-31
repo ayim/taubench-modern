@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { QueryProps } from './shared';
-import { ServerResponse } from '@sema4ai/spar-ui';
+import type { ServerResponse } from '@sema4ai/agent-server-interface';
 
 const mcpServersQueryKey = (tenantId: string) => ['mcp-servers', tenantId];
 

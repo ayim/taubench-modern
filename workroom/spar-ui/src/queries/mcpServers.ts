@@ -1,14 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
+import type { ServerRequest, ServerResponse } from '@sema4ai/agent-server-interface';
 import { useSparUIContext } from '../api/context';
-import {
-  createSparQueryOptions,
-  createSparQuery,
-  createSparMutation,
-  QueryError,
-  ResourceType,
-  ServerRequest,
-  ServerResponse,
-} from './shared';
+import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
 import { AgentPackageInspectionResponse } from './agentPackageInspection';
 
 export const mcpServersQueryKey = () => ['mcp-servers'];

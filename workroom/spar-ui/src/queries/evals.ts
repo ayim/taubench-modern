@@ -1,15 +1,7 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { components } from '@sema4ai/agent-server-interface';
-import {
-  createSparQuery,
-  createSparQueryOptions,
-  createSparMutation,
-  QueryError,
-  ResourceType,
-  ServerRequest,
-  ServerResponse,
-} from './shared';
+import type { ServerResponse, ServerRequest, components } from '@sema4ai/agent-server-interface';
+import { createSparQuery, createSparQueryOptions, createSparMutation, QueryError, ResourceType } from './shared';
 import { useSparUIContext } from '../api/context';
 
 type ListScenariosResponse = ServerResponse<'get', '/api/v2/evals/scenarios'>;

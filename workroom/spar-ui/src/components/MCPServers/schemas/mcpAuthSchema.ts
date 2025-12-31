@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ServerResponse } from '../../../queries/shared';
+import type { ServerResponse } from '@sema4ai/agent-server-interface';
 
 /**
  * MCP Authentication Schemas

@@ -3,11 +3,11 @@ import { Box, Button, Menu, Tooltip, Typography, useSnackbar } from '@sema4ai/co
 import { IconChemicalBottle, IconDotsHorizontal, IconLoading } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
+import type { ServerResponse } from '@sema4ai/agent-server-interface';
 import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
 import { ListItemLink } from '../../../common/link';
 import { useFeatureFlag, useNavigate, useParams } from '../../../hooks';
-import { ServerResponse } from '../../../queries/shared';
 import { useDeleteThreadMutation, useThreadMessagesQuery, useUpdateThreadMutation } from '../../../queries/threads';
 import { SparUIFeatureFlag } from '../../../api';
 import { ThreadNameDisplay } from './ThreadNameDisplay';

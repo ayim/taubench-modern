@@ -1,5 +1,4 @@
-import type { components } from '@sema4ai/agent-server-interface';
-import { ServerResponse } from '../../../queries/shared';
+import type { components, ServerResponse } from '@sema4ai/agent-server-interface';
 
 /**
  * Shared types for Document Intelligence components
