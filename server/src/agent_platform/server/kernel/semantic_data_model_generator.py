@@ -108,10 +108,13 @@ class SemanticDataModelGenerator:
         }
 
         # Auto-detect relationships from FK metadata
-        detected_relationships = await self._detect_relationships(data_connections_info)
-        if detected_relationships:
-            logger.info(f"Detected {len(detected_relationships)} relationships from FK metadata")
-            semantic_model_dict["relationships"] = detected_relationships
+        try:
+            detected_relationships = await self._detect_relationships(data_connections_info)
+            if detected_relationships:
+                logger.info(f"Detected {len(detected_relationships)} relationships from FK metadata")
+                semantic_model_dict["relationships"] = detected_relationships
+        except Exception as e:
+            logger.warning(f"Failed to detect relationships from FK metadata: {e}")
 
         # Generate metadata snapshot if requested
         if include_metadata:
