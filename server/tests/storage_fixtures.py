@@ -111,6 +111,8 @@ async def _teardown_sqlite_storage(tmp_path: Path, storage_instance: "SQLiteStor
 
 @pytest.fixture(scope="session")
 async def postgres_testing(request, tmp_path_factory):
+    import tempfile
+
     # Lazy import testing.postgresql only when needed
     already_yielded = False
     try:
@@ -118,9 +120,6 @@ async def postgres_testing(request, tmp_path_factory):
         import testing.postgresql
 
         class CustomPostgresql(testing.postgresql.Postgresql):
-            DEFAULT_SETTINGS = testing.postgresql.Postgresql.DEFAULT_SETTINGS.copy()
-            DEFAULT_SETTINGS["base_dir"] = str(tmp_path_factory.mktemp("postgres_testing"))
-
             def terminate(self, *args):
                 # We need to override to work on Windows.
                 import signal
@@ -132,7 +131,16 @@ async def postgres_testing(request, tmp_path_factory):
 
                 testing.common.database.Database.terminate(self, send_signal)
 
-        with CustomPostgresql() as postgresql:
+        kwargs = {"base_dir": str(tmp_path_factory.mktemp("pg"))}
+
+        if sys.platform != "win32":
+            # Use /tmp on macOS/Linux to avoid long path issues with PostgreSQL domain sockets
+            socket_dir = tempfile.mkdtemp(prefix="pgtest-", dir="/tmp")
+            args: str = str(testing.postgresql.Postgresql.DEFAULT_SETTINGS["postgres_args"])
+            args += f" -c unix_socket_directories={socket_dir}"
+            kwargs["postgres_args"] = args
+
+        with CustomPostgresql(**kwargs) as postgresql:
             try:
                 logger.info("Starting postgres at:", base_dir=postgresql.base_dir)
                 yield postgresql
