@@ -1,4 +1,4 @@
-Please improve ONLY the table metadata for table "sales_data" within the following semantic data model.
+Please improve ONLY the table metadata for the table(s) "sales_data" within the following semantic data model.
 
 **Full Semantic Data Model (for context):**
 ```json
@@ -63,7 +63,7 @@ Please improve ONLY the table metadata for table "sales_data" within the followi
 }
 ```
 
-**Target Table to Enhance:**
+**Target Tables to Enhance:**
 - Table: sales_data
 **Enhancement Requirements:**
 

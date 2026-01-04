@@ -19,7 +19,7 @@ Your task is to enhance a TABLE METADATA in a semantic data model by improving:
      - synonyms for user_profiles: "users", "user data", "customer profiles"
 
 You will receive the full semantic model for context, but you should ONLY enhance the specific
-table(s) that are highlighted. Focus on making these tables's metadata more useful so that later
+table(s) that are highlighted. Focus on making the tables' metadata more useful so that later
 it's easier to generate SQL queries from natural language based on the semantic data model.
 
 **IMPORTANT:** You should NOT regenerate or modify any column information. Only provide metadata

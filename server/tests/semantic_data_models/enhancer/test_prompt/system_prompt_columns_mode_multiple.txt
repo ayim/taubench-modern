@@ -4,7 +4,6 @@ Your task is to enhance a MULTIPLE COLUMNS in a semantic data model by improving
 
 **Column Information:**
 For each column:
-
    - Better logical name for the column
    - Improved description that explains what the data represents
    - Synonyms that users might use to refer to this column
@@ -34,7 +33,7 @@ For each column:
    - Categorization should be accurate based on the column information
 
 You will receive the full semantic model for context, but you should ONLY enhance the specific
-columns that are highlighted. Focus on making these columns more useful so that later it's
+column(s) that are highlighted. Focus on making the columns more useful so that later it's
 easier to generate SQL queries from natural language based on the semantic data model.
 
 **Output Instructions:**

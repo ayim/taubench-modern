@@ -110,11 +110,8 @@ def create_enhancement_prompt(
 ) -> PromptThread:
     """Create an enhancement prompt for a semantic data model."""
     from agent_platform.core.prompts.messages import PromptTextContent, PromptUserMessage
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.system_prompt import (
-        render_system_prompt,
-    )
-    from agent_platform.server.semantic_data_models.enhancer.prompt_templates.user_prompt import (
-        render_user_prompt,
+    from agent_platform.server.semantic_data_models.enhancer.strategies import (
+        create_strategy_from_mode,
     )
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
         create_semantic_data_model_for_llm_from_semantic_data_model,
@@ -131,17 +128,19 @@ def create_enhancement_prompt(
     # Get the enhancement tool for this mode
     enhancement_tool = get_enhancement_tool(mode)
 
-    system_message = render_system_prompt(
-        mode=mode,
-        tables_to_enhance=tables_to_enhance,
-        table_to_columns_to_enhance=table_to_columns_to_enhance,
+    strategy = create_strategy_from_mode(
+        semantic_model,
+        mode,
+        tables_to_enhance,
+        table_to_columns_to_enhance,
+    )
+
+    system_message = strategy.system_prompt(
         data_connection_tables=data_connection_tables,
     )
-    user_message = render_user_prompt(
-        mode=mode,
+
+    user_message = strategy.user_prompt(
         current_semantic_model=model_for_llm,
-        tables_to_enhance=tables_to_enhance,
-        table_to_columns_to_enhance=table_to_columns_to_enhance,
         data_connection_tables=data_connection_tables,
     )
 
