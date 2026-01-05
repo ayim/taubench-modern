@@ -112,3 +112,64 @@ resource "aws_iam_role_policy_attachment" "agent_files" {
   policy_arn = aws_iam_policy.agent_files.arn
 }
 #endregion
+
+#region EFS
+resource "aws_efs_file_system" "mcp_runtime_data" {
+  encrypted        = true
+  kms_key_id       = aws_kms_key.agent_files.arn
+  performance_mode = "generalPurpose"
+  throughput_mode  = "bursting"
+
+  tags = {
+    Name = "${var.infra_id}-mcp-runtime-data"
+  }
+}
+
+resource "aws_security_group" "efs" {
+  name        = "${var.infra_id}-efs"
+  description = "Security group for EFS mcp-runtime data"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "NFS from ECS tasks"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [var.ecs_tasks_security_group_id]
+  }
+
+  tags = {
+    Name = "${var.infra_id}-efs"
+  }
+}
+
+resource "aws_efs_mount_target" "mcp_runtime_data" {
+  for_each = var.vpc_subnet_ids
+
+  file_system_id  = aws_efs_file_system.mcp_runtime_data.id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs.id]
+}
+
+resource "aws_efs_access_point" "mcp_runtime_data" {
+  file_system_id = aws_efs_file_system.mcp_runtime_data.id
+
+  root_directory {
+    path = "/mcp-runtime"
+    creation_info {
+      owner_uid   = 1001
+      owner_gid   = 1001
+      permissions = "755"
+    }
+  }
+
+  posix_user {
+    uid = 1001
+    gid = 1001
+  }
+
+  tags = {
+    Name = "${var.infra_id}-mcp-runtime-access-point"
+  }
+}
+#endregion

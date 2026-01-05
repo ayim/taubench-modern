@@ -108,8 +108,11 @@ module "app-auth" {
 module "agent-files-storage" {
   source = "../modules/agent-files-storage"
 
-  ecs_runtime_role_arn = module.ecs-cluster.ecs_task_role_arn
-  infra_id             = var.infra_id
+  ecs_runtime_role_arn        = module.ecs-cluster.ecs_task_role_arn
+  infra_id                    = var.infra_id
+  vpc_id                      = module.vpc.vpc_id
+  vpc_subnet_ids              = module.vpc.private_subnet_ids
+  ecs_tasks_security_group_id = module.alb.alb_targets_security_group_id
 }
 
 module "codebuild" {
@@ -123,10 +126,12 @@ module "codebuild" {
   allowed_github_subjects_write = ["repo:Sema4AI/agent-platform:*"]
   github_oidc_provider_arn      = aws_iam_openid_connect_provider.github.arn
 
-  agent_files_region            = var.aws_region
-  agent_files_role_arn          = module.agent-files-storage.storage_role_arn
-  agent_files_bucket_name       = module.agent-files-storage.bucket_name
-  cluster_master_key_arn        = module.cluster-encryption.cluster_master_key_arn
+  agent_files_region               = var.aws_region
+  agent_files_role_arn             = module.agent-files-storage.storage_role_arn
+  agent_files_bucket_name          = module.agent-files-storage.bucket_name
+  mcp_runtime_efs_filesystem_id    = module.agent-files-storage.mcp_runtime_efs_filesystem_id
+  mcp_runtime_efs_access_point_id  = module.agent-files-storage.mcp_runtime_efs_access_point_id
+  cluster_master_key_arn           = module.cluster-encryption.cluster_master_key_arn
   ecs_task_execution_role_arn   = module.ecs-cluster.ecs_task_execution_role_arn
   ecs_task_runtime_role_arn     = module.ecs-cluster.ecs_task_role_arn
   auth_configuration_secret_arn = module.app-auth.auth_configuration_secret_arn

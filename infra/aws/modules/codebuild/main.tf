@@ -7,12 +7,6 @@ resource "aws_codebuild_project" "deployer" {
   description   = "Deploys Sema4.ai Team Edition to dev environment from main"
   build_timeout = 10 # minutes
 
-  vpc_config {
-    vpc_id             = var.vpc_id
-    security_group_ids = [var.default_security_group_id]
-    subnets            = var.vpc_subnet_ids
-  }
-
   service_role = aws_iam_role.codebuild_service_role.arn
 
   artifacts {
@@ -118,6 +112,18 @@ resource "aws_codebuild_project" "deployer" {
     environment_variable {
       name  = "VPC_SUBNETS"
       value = join(",", var.vpc_subnet_ids)
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "MCP_RUNTIME_EFS_FILESYSTEM_ID"
+      value = var.mcp_runtime_efs_filesystem_id
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "MCP_RUNTIME_EFS_ACCESS_POINT_ID"
+      value = var.mcp_runtime_efs_access_point_id
       type  = "PLAINTEXT"
     }
   }
@@ -272,6 +278,18 @@ resource "aws_codebuild_project" "dev-deployer" {
     environment_variable {
       name  = "VPC_ID"
       value = var.vpc_id
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "MCP_RUNTIME_EFS_FILESYSTEM_ID"
+      value = var.mcp_runtime_efs_filesystem_id
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "MCP_RUNTIME_EFS_ACCESS_POINT_ID"
+      value = var.mcp_runtime_efs_access_point_id
       type  = "PLAINTEXT"
     }
   }

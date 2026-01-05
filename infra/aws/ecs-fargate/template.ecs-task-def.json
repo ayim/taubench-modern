@@ -125,6 +125,13 @@
       "memory": 4096,
       "essential": true,
       "dependsOn": [{ "containerName": "psql-init", "condition": "SUCCESS" }],
+      "mountPoints": [
+        {
+          "sourceVolume": "data",
+          "containerPath": "/data",
+          "readOnly": false
+        }
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -154,7 +161,7 @@
         { "name": "POSTGRES_PASSWORD", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:password::" }
       ],
       "environment": [
-        { "name": "SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR", "value": "/home/mcp-runtime/data" },
+        { "name": "SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR", "value": "/data/${RELEASE_NAME}" },
         { "name": "SEMA4AI_MCP_RUNTIME_MAXIMUM_PACKAGE_SIZE", "value": "50mb" },
         { "name": "SEMA4AI_MCP_RUNTIME_SERVER_HOST_OVERRIDE", "value": "http://localhost:8003" },
         { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
@@ -194,6 +201,19 @@
         "timeout": 5,
         "retries": 3,
         "startPeriod": 60
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "${MCP_RUNTIME_EFS_FILESYSTEM_ID}",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "${MCP_RUNTIME_EFS_ACCESS_POINT_ID}",
+          "iam": "DISABLED"
+        }
       }
     }
   ]
