@@ -77,6 +77,8 @@ class QualityTestRunner:
         is_in_github_actions: bool = False,
         agent_architecture_name_override: str | None = None,
         test_data_dir: Path | None = None,
+        export_results_path: Path | None = None,
+        command_args: str | None = None,
     ):
         self.test_threads_dir = test_threads_dir
         self.test_agents_dir = test_agents_dir
@@ -105,7 +107,12 @@ class QualityTestRunner:
         self.discovered_agents = self.discover_agents()
 
         # Initialize results manager with the same datadir as orchestrator and discovered agents
-        self.results_manager = QualityResultsManager(self.orchestrator.data_dir, self.discovered_agents)
+        self.results_manager = QualityResultsManager(
+            datadir=self.orchestrator.data_dir,
+            all_agents=self.discovered_agents,
+            export_results_path=export_results_path,
+            command_args=command_args,
+        )
 
     def discover_agents(self) -> list[AgentPackage]:
         """Discover available agent packages including preinstalled test agents."""

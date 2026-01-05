@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -363,6 +364,14 @@ def list_tests(ctx: Context, agent_name: str | None):
     type=str,
     help="Filter tests by difficulty (BIRD: simple, moderate, challenging).",
 )
+@click.option(
+    "--export-results",
+    "export_results_path",
+    default=None,
+    is_flag=False,
+    flag_value="",  # Empty string when used as flag without value
+    help="Export results to stable JSON. Optionally specify output path, otherwise uses default location.",
+)
 @click.pass_obj
 async def run(
     ctx: Context,
@@ -375,8 +384,27 @@ async def run(
     platform: str | None,
     tests: str,
     difficulty: str | None,
+    export_results_path: str | None,
 ):
     """Run quality tests for agents."""
+    # Capture the command that was run for export metadata
+    command_args = " ".join(sys.argv)
+
+    # Handle export_results_path:
+    # - None: don't export (flag not used)
+    # - "" (empty): export with default path (flag used without value)
+    # - "/path/to/file": export to specific path
+    export_path: Path | None = None
+    if export_results_path == "":
+        # Flag used without value - generate default path
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        export_path = ctx.quality_folder / "quality_results" / f"results_{timestamp}.json"
+    elif export_results_path is not None:
+        # Specific path provided
+        export_path = Path(export_results_path)
+
     runner = QualityTestRunner(
         test_threads_dir=ctx.threads_dir,
         test_agents_dir=ctx.agents_dir,
@@ -385,6 +413,8 @@ async def run(
         agent_server_version=agent_server_version,
         is_in_github_actions=ctx.is_in_github_actions,
         agent_architecture_name_override=agent_arch,
+        export_results_path=export_path,
+        command_args=command_args,
     )
 
     reporter = QualityReporter()
@@ -434,6 +464,104 @@ async def run(
             import traceback
 
             traceback.print_exc()
+        raise click.Abort() from None
+
+
+@cli.command()
+@click.argument("old_results", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("new_results", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def compare(old_results: Path, new_results: Path):
+    """Compare two test run results and show differences.
+
+    Arguments:
+        OLD_RESULTS: Path to the older results JSON file
+        NEW_RESULTS: Path to the newer results JSON file
+
+    Example:
+        quality-test compare results_2026-01-04_10-00-00.json results_2026-01-04_14-00-00.json
+    """
+    from agent_platform.quality.compare import (
+        ResultsComparator,
+        format_comparison_line,
+        load_results,
+    )
+
+    try:
+        # Load both result files
+        click.echo(f"Loading old results from: {old_results}")
+        old = load_results(old_results)
+
+        click.echo(f"Loading new results from: {new_results}")
+        new = load_results(new_results)
+
+        # Create comparator
+        comparator = ResultsComparator(old, new)
+
+        # Print summaries
+        click.echo("\n" + "=" * 80)
+        click.echo("OLD: " + comparator.get_summary_line(old))
+        click.echo("NEW: " + comparator.get_summary_line(new))
+        click.echo("=" * 80)
+
+        # Compare tests
+        comparisons = comparator.compare()
+
+        # Count changes
+        changed = [c for c in comparisons if c.status_changed and c.old_status and c.new_status]
+        improved = [c for c in changed if c.improved]
+        regressed = [c for c in changed if c.regressed]
+        other_changes = [c for c in changed if not c.improved and not c.regressed]
+
+        if not changed:
+            click.echo("\n✨ No test status changes detected!")
+        else:
+            click.echo(f"\n📊 Test Changes: {len(changed)} total")
+
+            if improved:
+                click.echo(f"\n✅ Improved ({len(improved)}):")
+                for comp in improved:
+                    click.echo(format_comparison_line(comp))
+
+            if regressed:
+                click.echo(f"\n❌ Regressed ({len(regressed)}):")
+                for comp in regressed:
+                    click.echo(format_comparison_line(comp))
+
+            if other_changes:
+                click.echo(f"\n🔄 Other Changes ({len(other_changes)}):")
+                for comp in other_changes:
+                    click.echo(format_comparison_line(comp))
+
+        # Report tests only in one run
+        only_in_old = comparator.get_only_in_old()
+        only_in_new = comparator.get_only_in_new()
+
+        if only_in_old:
+            click.echo(f"\n🗑️  Tests only in OLD ({len(only_in_old)}):")
+            for key in only_in_old:
+                click.echo(f"  - {key}")
+
+        if only_in_new:
+            click.echo(f"\n✨ Tests only in NEW ({len(only_in_new)}):")
+            for key in only_in_new:
+                click.echo(f"  - {key}")
+
+        # Exit with error if there were regressions
+        if regressed:
+            click.echo("\n❌ Test regressions detected!", err=True)
+            sys.exit(1)
+
+    except FileNotFoundError as e:
+        click.echo(f"❌ Error: Could not find file: {e}", err=True)
+        raise click.Abort() from None
+    except json.JSONDecodeError as e:
+        click.echo(f"❌ Error: Invalid JSON in results file: {e}", err=True)
+        raise click.Abort() from None
+    except Exception as e:
+        click.echo(f"❌ Error comparing results: {e}", err=True)
+        import traceback
+
+        traceback.print_exc()
         raise click.Abort() from None
 
 

@@ -17,10 +17,22 @@ logger = structlog.get_logger(__name__)
 class QualityResultsManager:
     """Manages incremental writing of quality test results to JSON files in datadir."""
 
-    def __init__(self, datadir: Path, all_agents: list[AgentPackage] | None = None):
+    def __init__(
+        self,
+        datadir: Path,
+        all_agents: list[AgentPackage] | None = None,
+        export_results_path: Path | None = None,
+        command_args: str | None = None,
+    ):
         self.datadir = datadir
         self.results_dir = datadir / "quality_results"
         self.runs_dir = self.results_dir / "runs"
+
+        # Export configuration
+        # - None: don't export
+        # - Path: export to this specific path
+        self.export_results_path = export_results_path
+        self.command_args = command_args or "quality-test run"
 
         # Current run metadata
         self.current_run_id = datetime.now().strftime("run_%Y-%m-%d_%H-%M-%S")
@@ -49,6 +61,9 @@ class QualityResultsManager:
                 "failed_tests": 0,
             },
         }
+
+        # Collected test results for export
+        self._export_test_results: list[dict] = []
 
         # Write initial status
         self._write_status()
@@ -323,6 +338,9 @@ class QualityResultsManager:
                     with open(thread_files_file, "w") as file:
                         yaml.dump(thread_files_data, file, default_flow_style=False, sort_keys=False)
 
+                # Collect test result for export
+                self._export_test_results.append(result_data)
+
             except Exception as e:
                 logger.error(f"Failed to write test result for {test_id}: {e}")
                 # Even if writing fails, continue with status updates
@@ -436,6 +454,9 @@ class QualityResultsManager:
         except Exception as e:
             logger.error(f"Failed to write run summary: {e}")
 
+        # Export results
+        self._export_results()
+
     def get_results_dir(self) -> Path:
         """Get the results directory path."""
         return self.results_dir
@@ -506,3 +527,104 @@ class QualityResultsManager:
             logger.info(f"Written {len(all_agents)} discovered agents to agents.json")
         except Exception as e:
             logger.error(f"Failed to write agents file: {e}")
+
+    def _export_results(self):
+        """Export results in stable JSON format for tracking over time."""
+        from agent_platform.quality.export_results import (
+            ExportResults,
+            RunMetadata,
+            TestResult,
+            TestSummary,
+            calculate_duration_seconds,
+            export_to_json_file,
+        )
+
+        if self.export_results_path is None:
+            return
+
+        from agent_platform.quality.git_info import get_git_commit_sha
+
+        try:
+            logger.info("Exporting results to stable JSON format")
+
+            # Use the provided output path (already resolved at CLI level)
+            output_path = self.export_results_path
+
+            # Get git commit SHA
+            git_commit = get_git_commit_sha()
+
+            # Calculate total duration
+            started_at = self.current_status.get("started_at", datetime.now().isoformat())
+            completed_at = self.current_status.get("completed_at", datetime.now().isoformat())
+            duration_seconds = calculate_duration_seconds(started_at, completed_at) or 0.0
+
+            # Build run metadata
+            run_metadata = RunMetadata(
+                run_id=self.current_run_id,
+                command=self.command_args,
+                started_at=started_at,
+                completed_at=completed_at,
+                git_commit=git_commit,
+            )
+
+            # Build summary
+            stats = self.current_status["overall_stats"]
+            # Calculate error count (tests that didn't pass or fail normally)
+            error_count = stats["total_tests"] - stats["passed_tests"] - stats["failed_tests"]
+            summary = TestSummary(
+                total_tests=stats["total_tests"],
+                passed=stats["passed_tests"],
+                failed=stats["failed_tests"],
+                error=max(0, error_count),  # Ensure non-negative
+                duration_seconds=duration_seconds,
+            )
+
+            # Build test results
+            test_results = []
+            for test_data in self._export_test_results:
+                # Determine status
+                if test_data.get("success"):
+                    status = "passed"
+                elif test_data.get("error"):
+                    status = "error"
+                else:
+                    status = "failed"
+
+                # Calculate test duration
+                test_duration = calculate_duration_seconds(
+                    test_data.get("started_at", datetime.now().isoformat()),
+                    test_data.get("completed_at", datetime.now().isoformat()),
+                )
+
+                test_result = TestResult(
+                    name=test_data["test_name"],
+                    platform=test_data["platform"],
+                    agent_name=test_data["agent_name"],
+                    status=status,
+                    model_id=test_data.get("model_id"),
+                    trial_id=test_data["trial_id"],
+                    started_at=test_data.get("started_at"),
+                    completed_at=test_data["completed_at"],
+                    duration_seconds=test_duration,
+                    error=test_data.get("error"),
+                )
+                test_results.append(test_result)
+
+            # Create export data
+            export_data = ExportResults(
+                run_metadata=run_metadata,
+                summary=summary,
+                tests=test_results,
+            )
+
+            # Write to file
+            export_to_json_file(export_data, output_path)
+
+            logger.info(
+                "Successfully exported results",
+                output_path=str(output_path),
+                total_tests=len(test_results),
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to export results: {e}", exc_info=True)
