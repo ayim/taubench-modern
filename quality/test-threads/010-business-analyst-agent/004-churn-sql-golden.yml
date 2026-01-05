@@ -1,0 +1,48 @@
+name: churn-plan-tier-golden-parent-agent
+description: Count churned accounts by plan tier using parent agent with generate_sql tool
+timeout_seconds: 600
+
+sdms:
+  - kind: excel
+    sdm_path: sdms/saas_customer_churn
+    description: SaaS customer churn Excel dataset
+
+thread:
+  - name: churn-by-plan-tier-parent
+    description: Count churned accounts grouped by plan tier via parent agent
+    messages:
+      - role: user
+        content: >
+          Generate SQL against the churn semantic model to count churned accounts by plan tier.
+          Use the accounts table and churn_flag to filter churned customers, group by plan_tier,
+          return plan_tier and churned_accounts, order by churned_accounts descending.
+          Keep the query minimal without extra columns or joins.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+  # - name: google
+  # - name: cortex
+
+evaluations:
+  - kind: sql-generation-result
+    expected:
+      status: success
+      has_sql: true
+    description: Verify parent agent generates SQL via generate_sql tool (tests InternalToolResponse fallback)
+
+  - kind: sql-golden-comparison
+    expected:
+      golden_sql: |
+        SELECT
+          customer_accounts.current_plan_tier,
+          COUNT(*) AS churned_accounts
+        FROM customer_accounts
+        WHERE customer_accounts.is_churned_account = TRUE
+        GROUP BY customer_accounts.current_plan_tier
+        ORDER BY churned_accounts DESC;
+    description: Validate generated SQL matches the golden churn-by-plan-tier query (via tool response)
+
+

@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 import structlog
+from pydantic import ValidationError
 
-from agent_platform.quality.models import WorkitemResult
+from agent_platform.quality.models import ToolUse, WorkitemResult
 
 if TYPE_CHECKING:
     from agent_platform.core.files.files import UploadedFile
@@ -88,9 +89,9 @@ class EvaluatorEngine:
             elif isinstance(evaluation, ToolCallEvaluation):
                 result = await self._evaluate_tool_calls(evaluation, agent_messages)
             elif isinstance(evaluation, SQLGenerationResultEvaluation):
-                result = await self._evaluate_sql_generation_result(evaluation, thread_files)
+                result = await self._evaluate_sql_generation_result(evaluation, thread_files, agent_messages)
             elif isinstance(evaluation, SQLGoldenComparisonEvaluation):
-                result = await self._evaluate_sql_golden_comparison(evaluation, thread_files)
+                result = await self._evaluate_sql_golden_comparison(evaluation, thread_files, agent_messages)
             elif isinstance(evaluation, DataFrameGoldenComparisonEvaluation):
                 result = await self._evaluate_dataframe_golden_comparison(evaluation, thread_id, test_directory)
             elif isinstance(evaluation, WorkitemResultEvaluation):
@@ -361,47 +362,49 @@ Only respond with the JSON object, no other text.
             error=error,
         )
 
-    async def _find_sql_generation_output(self, thread_files: list[UploadedFile]) -> SQLGenerationContent | None:
-        """Find and parse the SQL generation output.json from thread files.
+    async def _find_sql_generation_output(
+        self, thread_files: list[UploadedFile], agent_messages: list[Message]
+    ) -> SQLGenerationContent | None:
+        """Find and parse the SQL generation output from thread files or agent messages.
 
-        The SQL subagent uploads a file named 'output.json' containing a
-        SQLGenerationContent model when it finalizes. This method searches
-        for that file in the thread files and fetches/parses its content.
+        The SQL generation output can come from two sources:
+        1. Direct SQL subagent: uploads a file named 'output.json' containing SQLGenerationContent
+        2. Parent agent using generate_sql tool: InternalToolResponse in tool call result
 
         Args:
             thread_files: List of UploadedFile objects from the thread.
+            agent_messages: Messages from the agent (for InternalToolResponse fallback).
 
         Returns:
             Parsed SQLGenerationContent object, or None if not found.
         """
-        if not thread_files:
-            return None
+        # First, try to find output.json in thread files (direct SQL subagent case)
+        if thread_files:
+            for file in thread_files:
+                # Look for file with the expected filename
+                if file.file_ref != SQL_GENERATION_OUTPUT_FILENAME:
+                    continue
 
-        # Search for output.json file in thread files
-        for file in thread_files:
-            # Look for file with the expected filename
-            if file.file_ref != SQL_GENERATION_OUTPUT_FILENAME:
-                continue
+                if file.thread_id is None:
+                    logger.warning(
+                        "File has no thread ID",
+                        file_ref=file.file_ref,
+                    )
+                    continue
 
-            if file.thread_id is None:
-                logger.warning(
-                    "File has no thread ID",
-                    file_ref=file.file_ref,
-                )
-                continue
+                # Found the output.json file - fetch its content
+                try:
+                    return await self._fetch_and_parse_json_file(file.thread_id, file.file_ref)
+                except Exception as e:
+                    logger.warning(
+                        "Failed to fetch SQL generation output",
+                        file_id=file.file_id,
+                        error=str(e),
+                    )
+                    continue
 
-            # Found the output.json file - fetch its content
-            try:
-                return await self._fetch_and_parse_json_file(file.thread_id, file.file_ref)
-            except Exception as e:
-                logger.warning(
-                    "Failed to fetch SQL generation output",
-                    file_id=file.file_id,
-                    error=str(e),
-                )
-                return None
-
-        return None
+        # Fallback: look for InternalToolResponse in agent messages (parent agent case)
+        return self._extract_sql_from_tool_response(agent_messages)
 
     async def _fetch_and_parse_json_file(self, thread_id: str, file_ref: str) -> SQLGenerationContent | None:
         """Fetch a JSON file by file_id and parse it.
@@ -422,29 +425,66 @@ Only respond with the JSON object, no other text.
 
         return SQLGenerationContent.model_validate(response.json())
 
+    def _extract_sql_from_tool_response(self, agent_messages: list[Message]) -> SQLGenerationContent | None:
+        """Extract SQLGenerationContent from InternalToolResponse in agent messages.
+
+        When a parent agent uses the generate_sql tool, the result is an InternalToolResponse
+        containing the SQLGenerationContent as a JSON string in the result field.
+
+        Args:
+            agent_messages: Messages from the agent.
+
+        Returns:
+            Parsed SQLGenerationContent object, or None if not found.
+        """
+        from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
+
+        # Look for generate_sql tool calls in agent messages
+        for message in agent_messages:
+            for content in message.content:
+                if isinstance(content, ToolUse) and content.tool_name == "generate_sql":
+                    # The output_as_string contains the tool result
+                    try:
+                        # Parse the result as JSON (it's the SQLGenerationContent serialized)
+                        return SQLGenerationContent.model_validate_json(content.output_as_string)
+                    except ValidationError as e:
+                        logger.warning(
+                            "Failed to parse generate_sql tool response",
+                            tool_call_id=content.tool_call_id,
+                            error=str(e),
+                        )
+                        continue
+
+        return None
+
     async def _evaluate_sql_generation_result(
-        self, evaluation: SQLGenerationResultEvaluation, thread_files: list[UploadedFile]
+        self, evaluation: SQLGenerationResultEvaluation, thread_files: list[UploadedFile], agent_messages: list[Message]
     ) -> TestResult:
         """Evaluate SQL generation subagent results.
 
-        The SQL subagent finalizes by uploading an output.json file to the thread
-        containing a SQLGenerationContent model. This evaluator fetches that file
-        and validates its contents against the expected criteria.
+        The SQL generation output can come from:
+        1. Direct SQL subagent: output.json file in thread attachments
+        2. Parent agent: InternalToolResponse from generate_sql tool call
+
+        This evaluator validates the SQLGenerationContent against expected criteria.
         """
         from agent_platform.core.thread.content.sql_generation import SQLGenerationStatus
         from agent_platform.quality.models import TestResult
 
         expected = evaluation.expected
 
-        # Find SQL generation output.json in thread files
-        sql_gen_content = await self._find_sql_generation_output(thread_files)
+        # Find SQL generation output from thread files or agent messages
+        sql_gen_content = await self._find_sql_generation_output(thread_files, agent_messages)
 
         if sql_gen_content is None:
             return TestResult(
                 evaluation=evaluation,
                 passed=False,
                 actual_value=None,
-                error=f"No {SQL_GENERATION_OUTPUT_FILENAME} found in thread attachments",
+                error=(
+                    f"No SQL generation output found "
+                    f"(checked {SQL_GENERATION_OUTPUT_FILENAME} and generate_sql tool calls)"
+                ),
             )
 
         # Perform checks based on expected criteria
@@ -519,7 +559,7 @@ Only respond with the JSON object, no other text.
         )
 
     async def _evaluate_sql_golden_comparison(
-        self, evaluation: SQLGoldenComparisonEvaluation, thread_files: list[UploadedFile]
+        self, evaluation: SQLGoldenComparisonEvaluation, thread_files: list[UploadedFile], agent_messages: list[Message]
     ) -> TestResult:
         """Compare generated SQL against golden (expected) SQL using an LLM."""
         from agent_platform.quality.models import TestResult
@@ -527,15 +567,18 @@ Only respond with the JSON object, no other text.
         expected = evaluation.expected
         golden_sql = expected.golden_sql
 
-        # Find SQL generation output.json in thread files
-        sql_gen_content = await self._find_sql_generation_output(thread_files)
+        # Find SQL generation output from thread files or agent messages
+        sql_gen_content = await self._find_sql_generation_output(thread_files, agent_messages)
 
         if sql_gen_content is None:
             return TestResult(
                 evaluation=evaluation,
                 passed=False,
                 actual_value=None,
-                error=f"No {SQL_GENERATION_OUTPUT_FILENAME} found in thread attachments",
+                error=(
+                    f"No SQL generation output found "
+                    f"(checked {SQL_GENERATION_OUTPUT_FILENAME} and generate_sql tool calls)"
+                ),
             )
 
         if not sql_gen_content.sql_query:
