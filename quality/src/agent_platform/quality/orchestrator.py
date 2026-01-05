@@ -4,6 +4,7 @@ import asyncio
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import httpx
@@ -13,6 +14,9 @@ from agent_platform.orchestrator.default_locations import get_agent_server_execu
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.spec import SpecActionPackage
 from agent_platform.quality.models import AgentPackage, Platform
+
+if TYPE_CHECKING:
+    from agent_platform.quality.sdm_setup import SDMSetup
 
 logger = structlog.get_logger(__name__)
 
@@ -165,6 +169,128 @@ class QualityOrchestrator:
         logger.info(f"Successfully uploaded {len(agent_ids)} agent variants")
         return agent_ids
 
+    async def upload_agent_with_sdm_variants(
+        self,
+        agent_package: AgentPackage,
+        platforms: list[Platform],
+        unique_sdms: set[str],
+        sdm_setup: SDMSetup,
+    ) -> dict[str, str]:
+        """Create one agent per SDM, each configured with all platforms.
+
+        For preinstalled agents only. Creates agent clones where each clone
+        is dedicated to a specific SDM and configured with all target platforms.
+
+        Args:
+            agent_package: Preinstalled agent package
+            platforms: List of platforms to configure on each SDM agent
+            unique_sdms: Set of unique SDM paths
+            sdm_setup: SDMSetup instance to import SDMs
+
+        Returns:
+            Dict mapping sdm_path -> agent_id
+        """
+        if not agent_package.is_preinstalled:
+            raise ValueError("upload_agent_with_sdm_variants only works with preinstalled agents")
+
+        base_agent_id = agent_package.agent_id
+        if not base_agent_id:
+            raise ValueError(f"Preinstalled agent {agent_package.preinstalled_key} missing agent_id")
+
+        sdm_agent_ids: dict[str, str] = {}
+
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            # Fetch base agent config once
+            response = await client.get(f"{self.server_url}/api/v2/agents/{base_agent_id}/raw")
+            response.raise_for_status()
+            base_agent = response.json()
+
+            base_name = base_agent.get("name", agent_package.name)
+
+            # Create one agent per SDM
+            for sdm_path in unique_sdms:
+                # Extract SDM identifier (e.g., "bird_california_schools" from "sdms/bird_california_schools")
+                sdm_identifier = sdm_path.split("/")[-1] if "/" in sdm_path else sdm_path
+                clone_name = f"{base_name}-{sdm_identifier}"
+
+                logger.info(
+                    "Creating SDM-specific agent clone",
+                    sdm_path=sdm_path,
+                    sdm_identifier=sdm_identifier,
+                    clone_name=clone_name,
+                )
+
+                # Check if agent with this name exists and delete it
+                existing = await client.get(
+                    f"{self.server_url}/api/v2/agents/by-name",
+                    params={"name": clone_name},
+                )
+                if existing.status_code == HTTPStatus.OK:
+                    existing_id = existing.json()["agent_id"]
+                    try:
+                        await client.delete(f"{self.server_url}/api/v2/agents/{existing_id}")
+                        logger.info(f"Deleted existing SDM agent clone: {clone_name}")
+                    except Exception as e:
+                        logger.error(f"Error deleting existing SDM clone {clone_name}: {e}")
+
+                # Create clone with all platform configs
+                platform_configs = [platform.as_platform_config() for platform in platforms]
+
+                clone_payload = {
+                    "name": clone_name,
+                    "description": base_agent.get("description", ""),
+                    "agent_architecture": base_agent.get("agent_architecture"),
+                    "structured_runbook": base_agent.get("runbook_structured"),
+                    "mode": base_agent.get("mode", "conversational"),
+                    "extra": base_agent.get("extra", {}),
+                    "action_packages": base_agent.get("action_packages", []),
+                    "mcp_servers": base_agent.get("mcp_servers", []),
+                    "mcp_server_ids": base_agent.get("mcp_server_ids", []),
+                    "agent_settings": base_agent.get("agent_settings", {}),
+                    "advanced_config": base_agent.get("advanced_config", {}),
+                    "metadata": base_agent.get("metadata", {}),
+                    "observability_configs": base_agent.get("observability_configs", []),
+                    "question_groups": base_agent.get("question_groups", []),
+                    "selected_tools": base_agent.get("selected_tools", {}),
+                    "platform_configs": platform_configs,
+                    "version": base_agent.get("version"),
+                }
+
+                create_resp = await client.post(
+                    f"{self.server_url}/api/v2/agents/",
+                    json=clone_payload,
+                )
+                create_resp.raise_for_status()
+                clone_id = create_resp.json()["agent_id"]
+
+                logger.info(
+                    "Created SDM agent clone",
+                    clone_id=clone_id,
+                    clone_name=clone_name,
+                    sdm_path=sdm_path,
+                )
+
+                # Immediately import SDM to this agent
+                # Find the SDM config from unique_sdms - we'll need to get it from test cases
+                # For now, we'll construct it from the sdm_path
+                from agent_platform.quality.models import SDMConfig
+
+                # Determine SDM kind from path - for now assume postgres for paths starting with sdms/
+                sdm_kind = "postgres"  # Default assumption
+                sdm_config = SDMConfig(
+                    kind=sdm_kind,
+                    sdm_path=sdm_path,
+                    description=f"SDM for {sdm_identifier}",
+                )
+
+                logger.info(f"Importing SDM to agent {clone_id}: {sdm_path}")
+                await sdm_setup.prewarm_sdm(sdm_config, agent_id=clone_id)
+
+                sdm_agent_ids[sdm_path] = clone_id
+
+        logger.info(f"Successfully created {len(sdm_agent_ids)} SDM-specific agent variants")
+        return sdm_agent_ids
+
     async def _configure_preinstalled_agent_platforms(
         self,
         agent_package: AgentPackage,
@@ -251,76 +377,6 @@ class QualityOrchestrator:
                 )
 
         return agent_ids
-
-    async def create_test_case_agent_clone(
-        self,
-        base_agent_id: str,
-        platform: Platform,
-        test_case_name: str,
-    ) -> str:
-        """Create a unique agent clone for a specific test case.
-
-        This is used for preinstalled agents when a test case has SDMs to avoid
-        cross-talk between tests. Each test case gets its own agent clone so that
-        SDMs imported to one test don't bleed into another.
-
-        Args:
-            base_agent_id: The platform-variant agent ID to clone from
-            platform: The platform configuration
-            test_case_name: Name of the test case (used for unique naming)
-
-        Returns:
-            The new agent clone's ID
-        """
-        import uuid
-
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            # Fetch the base agent configuration
-            response = await client.get(f"{self.server_url}/api/v2/agents/{base_agent_id}/raw")
-            response.raise_for_status()
-            base_agent = response.json()
-
-            # Create a unique name for this test case clone
-            unique_suffix = str(uuid.uuid4())[:8]
-            clone_name = f"{base_agent.get('name', 'agent')}-{test_case_name}-{unique_suffix}"
-
-            # Clone the agent configuration
-            clone_payload = {
-                "name": clone_name,
-                "description": base_agent.get("description", ""),
-                "agent_architecture": base_agent.get("agent_architecture"),
-                "structured_runbook": base_agent.get("runbook_structured"),
-                "mode": base_agent.get("mode", "conversational"),
-                "extra": base_agent.get("extra", {}),
-                "action_packages": base_agent.get("action_packages", []),
-                "mcp_servers": base_agent.get("mcp_servers", []),
-                "mcp_server_ids": base_agent.get("mcp_server_ids", []),
-                "agent_settings": base_agent.get("agent_settings", {}),
-                "advanced_config": base_agent.get("advanced_config", {}),
-                "metadata": base_agent.get("metadata", {}),
-                "observability_configs": base_agent.get("observability_configs", []),
-                "question_groups": base_agent.get("question_groups", []),
-                "selected_tools": base_agent.get("selected_tools", {}),
-                "platform_configs": base_agent.get("platform_configs", []),
-                "version": base_agent.get("version"),
-            }
-
-            create_resp = await client.post(
-                f"{self.server_url}/api/v2/agents/",
-                json=clone_payload,
-            )
-            create_resp.raise_for_status()
-            clone_agent_id = create_resp.json()["agent_id"]
-
-            logger.info(
-                "Created test-case-specific agent clone",
-                test_case=test_case_name,
-                platform=platform.name,
-                clone_agent_id=clone_agent_id,
-                clone_name=clone_name,
-            )
-
-            return clone_agent_id
 
     async def delete_agent(self, agent_id: str) -> None:
         """Delete an agent by ID.

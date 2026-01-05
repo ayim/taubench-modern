@@ -24,6 +24,8 @@ SDM_FILE_NAME = "sdm.yml"
 SCHEMA_FILE_NAME = "schema.sql"
 SEED_FILE_NAME = "seed.sql"
 
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
 
 class SDMSetup:
     """Handles SDM materialization and thread attachment."""
@@ -36,110 +38,210 @@ class SDMSetup:
         self.test_data_root = test_data_root
         self._container_manager: PostgresContainerManager | None = None
         # Cache imported SDMs keyed by source path and agent to avoid re-importing.
+        # All SDMs are pre-warmed during agent setup before parallel test execution,
+        # so no locking is required.
         self._import_cache: dict[tuple[str, str | None], str] = {}
-        self._log: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
-
-    async def ensure_sdms_for_thread(
-        self,
-        thread_id: str,
-        sdm_configs: list[SDMConfig],
-        agent_id: str | None = None,
-    ) -> None:
-        """Set up all SDMs for a thread."""
-        if not sdm_configs:
-            return
-
-        semantic_model_ids: list[str] = []
-        for cfg in sdm_configs:
-            match cfg.kind:
-                case "excel":
-                    sdm_id = await self._ensure_excel_sdm(thread_id, cfg, agent_id=agent_id)
-                case "postgres":
-                    sdm_id = await self._ensure_postgres_sdm(thread_id, cfg, agent_id=agent_id)
-                case _:  # pragma: no cover - validated by type
-                    raise ValueError(f"Unsupported SDM kind: {cfg.kind}")
-
-            semantic_model_ids.append(sdm_id)
-
-        await self._attach_sdms_to_thread(thread_id, semantic_model_ids)
 
     async def cleanup(self) -> None:
         """Clean up resources used for SDM setup."""
         if self._container_manager is not None:
             await self._container_manager.cleanup_all()
 
-    async def _ensure_excel_sdm(
-        self,
-        thread_id: str,
-        cfg: SDMConfig,
-        agent_id: str | None,
-    ) -> str:
+    async def setup_sdm_infrastructure(self, cfg: SDMConfig) -> None:
+        """Setup infrastructure (containers, data connections) without importing SDM.
+
+        Use this for preinstalled agents where clones will import their own SDMs.
+        This method sets up postgres containers and data connections that will be
+        reused when the SDM is later imported with specific agent IDs.
+
+        Args:
+            cfg: SDM configuration specifying kind and path.
+        """
         sdm_folder = self._resolve_sdm_folder(cfg.sdm_path)
         semantic_model = self._load_sdm_yaml(sdm_folder)
 
-        sdm_id = await self._import_sdm(semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve()))
-        await self._upload_excel_file(thread_id, sdm_folder)
+        match cfg.kind:
+            case "postgres":
+                # Setup postgres infrastructure
+                connection_names = self._collect_data_connection_names(semantic_model)
+                if not connection_names:
+                    raise ValueError(f"No data_connection_name entries found in {sdm_folder / SDM_FILE_NAME}")
 
-        return sdm_id
+                connection_description = cfg.description or "Quality SDM data connection"
 
-    async def _ensure_postgres_sdm(
-        self,
-        thread_id: str,
-        cfg: SDMConfig,
-        agent_id: str | None,
-    ) -> str:
-        sdm_folder = self._resolve_sdm_folder(cfg.sdm_path)
-        semantic_model = self._load_sdm_yaml(sdm_folder)
-        connection_names = self._collect_data_connection_names(semantic_model)
-        if not connection_names:
-            raise ValueError(f"No data_connection_name entries found in {sdm_folder / SDM_FILE_NAME}")
-
-        connection_description = cfg.description or "Quality SDM data connection"
-        data_connection_payloads: list[tuple[str, PostgresDataConnectionConfiguration]] = []
-        if self._has_local_sql_files(sdm_folder):
-            # The local testcontainer case
-            connection_info = await self._get_container_manager().get_or_start(sdm_folder)
-            self._log.info(
-                "sdm_setup.local_postgres_connection",
-                thread_id=thread_id,
-                sdm_folder=str(sdm_folder),
-                host=connection_info.host,
-                port=connection_info.port,
-                database=connection_info.database,
-                user=connection_info.user,
-            )
-            for connection_name in sorted(connection_names):
-                data_connection_payloads.append(
-                    (connection_name, self._configuration_from_connection_info(connection_info))
-                )
-        else:
-            # The remote Postgres case
-            config_path = sdm_folder / "config.yml"
-            config_data = self._load_config_yml(config_path)
-            if config_data["engine"] != "postgres":
-                raise ValueError(f"Unsupported engine in {config_path}: {config_data['engine']}")
-
-            connection_description = cfg.description or config_data["description"]
-            target_names = sorted(connection_names or {config_data["name"]})
-            for connection_name in target_names:
-                data_connection_payloads.append(
-                    (
-                        connection_name,
-                        self._build_postgres_configuration(**config_data["configuration"]),
+                if self._has_local_sql_files(sdm_folder):
+                    # Start testcontainer and get connection info
+                    if self._container_manager is None:
+                        self._container_manager = PostgresContainerManager()
+                    connection_info = await self._container_manager.get_or_start(sdm_folder)
+                    logger.info(
+                        "sdm_setup.infrastructure_local_postgres",
+                        sdm_path=cfg.sdm_path,
+                        host=connection_info.host,
+                        port=connection_info.port,
+                        database=connection_info.database,
                     )
-                )
+                    for connection_name in sorted(connection_names):
+                        configuration = self._configuration_from_connection_info(connection_info)
+                        await self._ensure_data_connection(
+                            name=connection_name,
+                            engine="postgres",
+                            configuration=configuration,
+                            description=connection_description,
+                        )
+                else:
+                    # Remote postgres - setup data connections from config
+                    config_path = sdm_folder / "config.yml"
+                    config_data = self._load_config_yml(config_path)
+                    if config_data["engine"] != "postgres":
+                        raise ValueError(f"Unsupported engine in {config_path}: {config_data['engine']}")
 
-        for connection_name, configuration in data_connection_payloads:
-            await self._ensure_data_connection(
-                name=connection_name,
-                engine="postgres",
-                configuration=configuration,
-                description=connection_description,
-            )
+                    connection_description = cfg.description or config_data["description"]
+                    for connection_name in sorted(connection_names or {config_data["name"]}):
+                        configuration = self._build_postgres_configuration(**config_data["configuration"])
+                        await self._ensure_data_connection(
+                            name=connection_name,
+                            engine="postgres",
+                            configuration=configuration,
+                            description=connection_description,
+                        )
 
-        sdm_id = await self._import_sdm(semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve()))
+            case "excel":
+                # Excel SDMs don't need infrastructure setup; file upload happens per-thread
+                pass
+
+            case _:
+                raise ValueError(f"Unsupported SDM kind: {cfg.kind}")
+
+        logger.info(
+            "sdm_setup.infrastructure_complete",
+            sdm_path=cfg.sdm_path,
+        )
+
+    async def prewarm_sdm(self, cfg: SDMConfig, agent_id: str | None = None) -> str:
+        """Pre-import SDM and setup infrastructure without attaching to a thread.
+
+        This should be called during agent setup, before tests run in parallel.
+        It imports the SDM to the server, starts any required postgres containers,
+        and creates data connections.
+
+        Args:
+            cfg: SDM configuration specifying kind and path.
+            agent_id: Optional agent ID to associate with the SDM.
+
+        Returns:
+            The semantic_data_model_id for later attachment to threads.
+        """
+        # Setup infrastructure (containers, data connections)
+        await self.setup_sdm_infrastructure(cfg)
+
+        # Import the semantic model and cache the ID
+        sdm_folder = self._resolve_sdm_folder(cfg.sdm_path)
+        semantic_model = self._load_sdm_yaml(sdm_folder)
+        sdm_id = await self._import_sdm_uncached(
+            semantic_model, agent_id=agent_id, source_key=str(sdm_folder.resolve())
+        )
+
+        logger.info(
+            "sdm_setup.prewarm_complete",
+            sdm_path=cfg.sdm_path,
+            sdm_id=sdm_id,
+            agent_id=agent_id,
+        )
 
         return sdm_id
+
+    def get_prewarmed_sdm_id(self, sdm_path: str, agent_id: str | None) -> str:
+        """Get a pre-warmed SDM ID from the cache.
+
+        Args:
+            sdm_path: The SDM path as specified in the test case config.
+            agent_id: The agent ID used during pre-warming.
+
+        Returns:
+            The cached semantic_data_model_id.
+
+        Raises:
+            KeyError: If the SDM was not pre-warmed.
+        """
+        sdm_folder = self._resolve_sdm_folder(sdm_path)
+        cache_key = (str(sdm_folder.resolve()), agent_id)
+        sdm_id = self._import_cache.get(cache_key)
+        if sdm_id is None:
+            raise KeyError(
+                f"SDM not pre-warmed: sdm_path={sdm_path}, agent_id={agent_id}. "
+                "Call prewarm_sdm() during agent setup before running tests."
+            )
+        return sdm_id
+
+    async def attach_sdms_to_thread(
+        self,
+        thread_id: str,
+        sdm_configs: list[SDMConfig],
+        agent_id: str | None = None,
+    ) -> None:
+        """Attach pre-warmed SDMs to a thread and upload Excel files if needed.
+
+        This should be called when a thread is created, after SDMs have been
+        pre-warmed during agent setup.
+
+        Args:
+            thread_id: The conversation thread ID to attach SDMs to.
+            sdm_configs: List of SDM configurations from the test case.
+            agent_id: The agent ID used during pre-warming.
+
+        Raises:
+            KeyError: If any SDM was not pre-warmed.
+        """
+        if not sdm_configs:
+            return
+
+        # Get all pre-warmed SDM IDs (raises KeyError if not pre-warmed)
+        sdm_ids = [self.get_prewarmed_sdm_id(cfg.sdm_path, agent_id) for cfg in sdm_configs]
+
+        # Upload Excel files to thread (only for excel SDMs)
+        for cfg in sdm_configs:
+            if cfg.kind == "excel":
+                sdm_folder = self._resolve_sdm_folder(cfg.sdm_path)
+                await self._upload_excel_file(thread_id, sdm_folder)
+
+        # Attach SDMs to the thread
+        await self._attach_sdms_to_thread(thread_id, sdm_ids)
+
+    async def _import_sdm_uncached(self, semantic_model: dict[str, Any], agent_id: str | None, source_key: str) -> str:
+        """Import SDM and cache the result. No locking - must be called during setup phase."""
+        cache_key = (source_key, agent_id)
+
+        # Check cache first (idempotent)
+        cached = self._import_cache.get(cache_key)
+        if cached:
+            return cached
+
+        payload: dict[str, Any] = {"semantic_model": semantic_model}
+        if agent_id is not None:
+            payload["agent_id"] = agent_id
+
+        logger.info(
+            "sdm_setup.importing_sdm",
+            sdm_path=source_key,
+            agent_id=agent_id,
+        )
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{self.server_url}/api/v2/semantic-data-models/import",
+                json=payload,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        semantic_data_model_id = data.get("semantic_data_model_id")
+        if not semantic_data_model_id:
+            raise ValueError("Import SDM response missing semantic_data_model_id")
+
+        self._import_cache[cache_key] = semantic_data_model_id
+
+        return semantic_data_model_id
 
     async def _upload_excel_file(self, thread_id: str, sdm_folder: Path) -> None:
         # TODO: Do we want to support CSVs and multiple excel files?
@@ -165,32 +267,6 @@ class SDMSetup:
                     ],
                 )
                 response.raise_for_status()
-
-    async def _import_sdm(self, semantic_model: dict[str, Any], agent_id: str | None, source_key: str) -> str:
-        cache_key = (source_key, agent_id)
-        cached = self._import_cache.get(cache_key)
-        if cached:
-            return cached
-
-        payload: dict[str, Any] = {"semantic_model": semantic_model}
-        if agent_id is not None:
-            payload["agent_id"] = agent_id
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{self.server_url}/api/v2/semantic-data-models/import",
-                json=payload,
-            )
-            response.raise_for_status()
-            data = response.json()
-
-        semantic_data_model_id = data.get("semantic_data_model_id")
-        if not semantic_data_model_id:
-            raise ValueError("Import SDM response missing semantic_data_model_id")
-
-        self._import_cache[cache_key] = semantic_data_model_id
-
-        return semantic_data_model_id
 
     async def _attach_sdms_to_thread(self, thread_id: str, sdm_ids: list[str]) -> None:
         unique_ids: list[str] = []
@@ -275,7 +351,7 @@ class SDMSetup:
 
         # Delete ALL stale/duplicate connections
         if stale_connection_ids:
-            self._log.info(
+            logger.info(
                 "sdm_setup.deleting_stale_connections",
                 name=name,
                 connection_ids=stale_connection_ids,
@@ -292,7 +368,7 @@ class SDMSetup:
 
         # If we found an exact match, return it
         if matching_connection_id:
-            self._log.info(
+            logger.info(
                 "sdm_setup.reusing_connection",
                 name=name,
                 connection_id=matching_connection_id,
@@ -482,6 +558,11 @@ class SDMSetup:
         return sdm_folder
 
     def _get_container_manager(self) -> PostgresContainerManager:
+        """Get or create the postgres container manager.
+
+        Note: This is called during agent setup (prewarm phase), not during
+        parallel test execution, so no locking is required.
+        """
         if self._container_manager is None:
             self._container_manager = PostgresContainerManager()
         return self._container_manager

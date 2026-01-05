@@ -386,8 +386,8 @@ quality-test --server-url http://staging.example.com:8000 run
 # Verbose logging
 quality-test --verbose run
 
-# Limit concurrent agents
-quality-test run --max-agents 3
+# Limit concurrent test executions
+quality-test run --max-concurrency 10
 
 # Run specific tests (exact match or prefix match, comma-separated)
 quality-test run --tests=bird-california-schools-001          # Exact match

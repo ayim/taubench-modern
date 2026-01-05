@@ -46,8 +46,22 @@ THREAD_YML_FILE = f"thread.{YML_FILE_EXTENSION}"
 @dataclass(frozen=True)
 class AgentRunContext:
     platform_agent_ids: dict[str, str]
+    sdm_agent_ids: dict[str, str]  # sdm_path → agent_id (for SDM tests)
     package_oauth_secrets: list[ActionPackageSecret]
     action_server_url: str
+
+
+@dataclass
+class TestAgentThread:
+    """Represents a single unit of work in the flat test pool.
+
+    Combines an agent, test case, and execution context for parallel execution.
+    """
+
+    agent: AgentPackage
+    test_case: TestCase
+    run_context: AgentRunContext
+    platforms_to_run: list[Platform]
 
 
 class QualityTestRunner:
@@ -307,16 +321,22 @@ class QualityTestRunner:
     async def run_tests_for_all_agents_fully_parallel(
         self,
         selected_agents: list[str],
-        max_concurrent_agents: int = 2,
+        max_concurrency: int = 10,
         platform_filter: str | None = None,
         tests_filter: list[str] | None = None,
         difficulty_filter: str | None = None,
     ) -> dict[str, list[ThreadResult]]:
-        """Run tests for all agents with full parallelization (agents + platforms).
+        """Run tests for all agents using a flat pool of concurrent test executions.
+
+        This uses a single-level parallelization model where all test cases from all
+        agents compete for execution slots in a shared pool, controlled by max_concurrency.
 
         Args:
-            max_concurrent_agents: Maximum number of agents to run concurrently
+            selected_agents: List of agent names to run tests for.
+            max_concurrency: Maximum number of concurrent test executions across all agents.
             platform_filter: Optional platform name to limit execution to.
+            tests_filter: Optional list of test name filters.
+            difficulty_filter: Optional difficulty level filter.
         """
         agents = self.discover_agents()
         if not agents:
@@ -353,74 +373,89 @@ class QualityTestRunner:
                 self.results_manager.complete_run("No agents found after applying filters")
                 return {}
 
-        logger.info(
-            f"Starting fully parallel execution for {len(agents)} agents (max {max_concurrent_agents} concurrent)"
-        )
+        logger.info(f"Starting flat pool execution for {len(agents)} agents (max {max_concurrency} concurrent tests)")
 
-        results = {}
+        results: dict[str, list[ThreadResult]] = {}
         overall_error = None
         infrastructure_started = False
         action_server_pool_started = False
 
         try:
-            # Start shared infrastructure
+            # Phase 1: Start shared infrastructure
             logger.info("Starting shared infrastructure for all agents")
             await self.orchestrator.start_infrastructure()
             infrastructure_started = True
 
-            # Start action server pool for all agents in parallel
+            # Phase 2: Start action server pool for all agents in parallel
             logger.info("Starting action server pool for all agents")
             action_server_urls = await self.orchestrator.start_action_server_pool(agents)
             action_server_pool_started = True
 
-            # Create semaphore to limit concurrent agents
-            semaphore = asyncio.Semaphore(max_concurrent_agents)
+            # Phase 3: Setup all agents in parallel and collect threads
+            logger.info("Setting up all agents and collecting threads")
+            threads, agent_contexts = await self._setup_agents_and_collect_threads(
+                agents,
+                action_server_urls,
+                platform_filter,
+                tests_filter,
+                difficulty_filter,
+            )
 
-            async def run_agent_with_semaphore(
-                agent: AgentPackage,
-            ) -> tuple[str, list[ThreadResult]]:
-                """Run a single agent with semaphore protection."""
+            if not threads:
+                logger.warning("No threads to execute after agent setup")
+                self.results_manager.complete_run("No threads to execute")
+                return {}
+
+            logger.info(f"Collected {len(threads)} threads from {len(agents)} agents")
+
+            # Phase 4: Execute all threads from flat pool
+            semaphore = asyncio.Semaphore(max_concurrency)
+
+            async def run_thread(item: TestAgentThread) -> tuple[str, list[ThreadResult]]:
+                """Execute a single thread with semaphore protection."""
                 async with semaphore:
                     try:
-                        logger.info(f"Starting parallel execution for agent: {agent.name}")
-                        action_server_url = action_server_urls.get(agent.name, "")
-
-                        agent_results = await self._run_agent_fully_parallel(
-                            agent,
-                            action_server_url,
-                            platform_filter,
-                            tests_filter,
-                            difficulty_filter,
+                        case_results = await self._run_test_case_with_optional_override(
+                            item.agent,
+                            item.test_case,
+                            item.platforms_to_run,
+                            item.run_context,
                         )
-                        logger.info(f"Completed agent: {agent.name} with {len(agent_results)} results")
-                        return agent.name, agent_results
-
+                        return item.agent.name, case_results
                     except Exception as e:
-                        logger.exception(f"Failed to run tests for agent {agent.name}: {e}")
-                        return agent.name, []
+                        logger.exception(f"Failed to run test {item.test_case.name} for agent {item.agent.name}: {e}")
+                        # Return empty results for this thread
+                        return item.agent.name, []
 
-            # Run all agents in parallel (with semaphore limiting concurrency)
-            tasks = [run_agent_with_semaphore(agent) for agent in agents]
-            agent_results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Run all threads in parallel (with semaphore limiting concurrency)
+            tasks = [run_thread(item) for item in threads]
+            thread_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            # Process results
-            for result in agent_results:
+            # Process results and group by agent
+            for result in thread_results:
                 if isinstance(result, Exception):
-                    logger.error(f"Agent execution failed with exception: {result}")
+                    logger.error(f"Thread execution failed with exception: {result}")
                     if overall_error is None:
-                        overall_error = f"Agent execution failed: {result}"
+                        overall_error = f"Thread execution failed: {result}"
                 elif isinstance(result, tuple) and len(result) == 2:
                     agent_name, test_results = result
-                    results[agent_name] = test_results
+                    if agent_name not in results:
+                        results[agent_name] = []
+                    results[agent_name].extend(test_results)
                 else:
                     logger.error(f"Unexpected result type: {type(result)}")
+
+            # Mark all agents as complete
+            for agent in agents:
+                if agent.name in agent_contexts:
+                    self.results_manager.complete_agent_testing(agent.name)
 
             # Mark run as complete
             self.results_manager.complete_run(overall_error)
             return results
 
         except Exception as e:
-            logger.error(f"Failed to run tests for all agents in parallel: {e}")
+            logger.error(f"Failed to run tests in: {e}")
             self.results_manager.complete_run(str(e))
             raise
 
@@ -440,87 +475,216 @@ class QualityTestRunner:
             except Exception as cleanup_error:  # pragma: no cover - best-effort cleanup
                 logger.warning("Failed to clean up SDM resources", error=str(cleanup_error))
 
-    async def _run_agent_fully_parallel(
+    async def _setup_agents_and_collect_threads(
         self,
-        agent_package: AgentPackage,
-        action_server_url: str,
+        agents: list[AgentPackage],
+        action_server_urls: dict[str, str],
         platform_filter: str | None,
         tests_filter: list[str] | None,
-        difficulty_filter: str | None = None,
-    ) -> list[ThreadResult]:
-        """Run all tests for a single agent with full parallelization."""
-        logger.info(f"Running agent tests (fully parallel): {agent_package.name}")
+        difficulty_filter: str | None,
+    ) -> tuple[list[TestAgentThread], dict[str, AgentRunContext]]:
+        """Setup all agents in parallel and collect threads for the flat pool.
 
-        try:
-            # Discover test cases for this agent
-            test_cases = self.discover_test_cases(
-                agent_package.name, tests_filter=tests_filter, difficulty_filter=difficulty_filter
-            )
+        Returns:
+            Tuple of (threads, agent_contexts) where agent_contexts maps agent name
+            to its run context for later cleanup/completion tracking.
+        """
 
-            if not test_cases:
-                logger.error(f"No test cases found for agent {agent_package.name} after applying filters.")
-                return []
+        async def setup_single_agent(
+            agent: AgentPackage,
+        ) -> tuple[AgentPackage, list[TestAgentThread], AgentRunContext | None]:
+            """Setup a single agent and return its threads."""
+            try:
+                action_server_url = action_server_urls.get(agent.name, "")
 
-            agent_package_metadata = await agent_package.extract_package_metadata()
-            target_platforms = self._collect_target_platforms(test_cases, platform_filter, agent_package.name)
-
-            # Validate all targeted models before proceeding
-            self._validate_targeted_models(test_cases)
-
-            package_oauth_secrets = await self._build_package_oauth_secrets(agent_package_metadata)
-
-            logger.info(
-                "Creating agent variants for platforms: %s",
-                [p.name for p in target_platforms],
-            )
-
-            # Upload agent variants (one per platform)
-            platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
-                agent_package,
-                target_platforms,
-                action_server_url,
-                agent_package_metadata[0],
-            )
-            run_context = AgentRunContext(
-                platform_agent_ids=platform_agent_ids,
-                package_oauth_secrets=package_oauth_secrets,
-                action_server_url=action_server_url,
-            )
-
-            # Initialize agent testing in results manager
-            self.results_manager.start_agent_testing(agent_package, test_cases, platform_filter=platform_filter)
-
-            # Run each test case with all its platforms in parallel
-            # (But we are _sequential_ at the level of a test case!!)
-            all_results = []
-            for test_case in test_cases:
-                platforms_to_run = self._get_platforms_for_test_case(test_case, platform_filter)
-                if not platforms_to_run:
-                    logger.info(
-                        "Skipping test case %s for agent %s because platform '%s' is not targeted.",
-                        test_case.name,
-                        agent_package.name,
-                        platform_filter,
-                    )
-                    continue
-
-                case_results = await self._run_test_case_with_optional_override(
-                    agent_package,
-                    test_case,
-                    platforms_to_run,
-                    run_context,
+                # Discover test cases for this agent
+                test_cases = self.discover_test_cases(
+                    agent.name, tests_filter=tests_filter, difficulty_filter=difficulty_filter
                 )
-                all_results.extend(case_results)
 
-            # Mark agent testing as complete
-            self.results_manager.complete_agent_testing(agent_package.name)
-            return all_results
+                if not test_cases:
+                    logger.info(f"No test cases found for agent {agent.name} after applying filters.")
+                    return agent, [], None
 
-        except Exception as e:
-            logger.error(f"Failed to run tests for agent {agent_package.name}: {e}")
-            # Mark agent testing as failed
-            self.results_manager.complete_agent_testing(agent_package.name, str(e))
-            raise
+                agent_package_metadata = await agent.extract_package_metadata()
+                target_platforms = self._collect_target_platforms(test_cases, platform_filter, agent.name)
+
+                # Validate all targeted models before proceeding
+                self._validate_targeted_models(test_cases)
+
+                package_oauth_secrets = await self._build_package_oauth_secrets(agent_package_metadata)
+
+                # For preinstalled agents, handle SDM setup differently
+                if agent.is_preinstalled:
+                    # Extract unique SDM paths from test cases
+                    unique_sdms = {tc.sdms[0].sdm_path for tc in test_cases if tc.sdms}
+                    has_non_sdm_tests = any(not tc.sdms for tc in test_cases)
+
+                    # Setup SDM infrastructure before creating agents
+                    for sdm_path in unique_sdms:
+                        # Find an SDM config to setup infrastructure
+                        sdm_config = next(
+                            (tc.sdms[0] for tc in test_cases if tc.sdms and tc.sdms[0].sdm_path == sdm_path),
+                            None,
+                        )
+                        if sdm_config:
+                            logger.info(f"Setting up SDM infrastructure for {sdm_path}")
+                            await self.sdm_setup.setup_sdm_infrastructure(sdm_config)
+
+                    # Create agent variants
+                    platform_agent_ids: dict[str, str] = {}
+                    sdm_agent_ids: dict[str, str] = {}
+
+                    if has_non_sdm_tests:
+                        logger.info(
+                            "Creating platform agent variants for non-SDM tests: %s (agent: %s)",
+                            [p.name for p in target_platforms],
+                            agent.name,
+                        )
+                        platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
+                            agent,
+                            target_platforms,
+                            action_server_url,
+                            agent_package_metadata[0],
+                        )
+
+                    if unique_sdms:
+                        logger.info(
+                            "Creating SDM-specific agent variants: %s (agent: %s)",
+                            list(unique_sdms),
+                            agent.name,
+                        )
+                        sdm_agent_ids = await self.orchestrator.upload_agent_with_sdm_variants(
+                            agent,
+                            target_platforms,
+                            unique_sdms,
+                            self.sdm_setup,
+                        )
+
+                    run_context = AgentRunContext(
+                        platform_agent_ids=platform_agent_ids,
+                        sdm_agent_ids=sdm_agent_ids,
+                        package_oauth_secrets=package_oauth_secrets,
+                        action_server_url=action_server_url,
+                    )
+                else:
+                    # Non-preinstalled agents: keep existing logic
+                    logger.info(
+                        "Creating agent variants for platforms: %s (agent: %s)",
+                        [p.name for p in target_platforms],
+                        agent.name,
+                    )
+
+                    platform_agent_ids = await self.orchestrator.upload_agent_with_platform_variants(
+                        agent,
+                        target_platforms,
+                        action_server_url,
+                        agent_package_metadata[0],
+                    )
+
+                    run_context = AgentRunContext(
+                        platform_agent_ids=platform_agent_ids,
+                        sdm_agent_ids={},
+                        package_oauth_secrets=package_oauth_secrets,
+                        action_server_url=action_server_url,
+                    )
+
+                    # Pre-warm all SDMs for this agent's test cases
+                    # This must happen before tests run in parallel
+                    await self._prewarm_sdms_for_agent(agent, test_cases, platform_agent_ids)
+
+                # Initialize agent testing in results manager
+                self.results_manager.start_agent_testing(agent, test_cases, platform_filter=platform_filter)
+
+                # Collect threads for this agent
+                agent_threads: list[TestAgentThread] = []
+                for test_case in test_cases:
+                    platforms_to_run = self._get_platforms_for_test_case(test_case, platform_filter)
+                    if not platforms_to_run:
+                        logger.info(
+                            "Skipping test case %s for agent %s because platform '%s' is not targeted.",
+                            test_case.name,
+                            agent.name,
+                            platform_filter,
+                        )
+                        continue
+
+                    agent_threads.append(
+                        TestAgentThread(
+                            agent=agent,
+                            test_case=test_case,
+                            run_context=run_context,
+                            platforms_to_run=platforms_to_run,
+                        )
+                    )
+
+                logger.info(f"Agent {agent.name}: collected {len(agent_threads)} threads")
+                return agent, agent_threads, run_context
+
+            except Exception as e:
+                logger.exception(f"Failed to setup agent {agent.name}: {e}")
+                self.results_manager.complete_agent_testing(agent.name, str(e))
+                return agent, [], None
+
+        # Setup all agents in parallel
+        setup_tasks = [setup_single_agent(agent) for agent in agents]
+        setup_results = await asyncio.gather(*setup_tasks, return_exceptions=True)
+
+        # Collect all threads and contexts
+        all_threads: list[TestAgentThread] = []
+        agent_contexts: dict[str, AgentRunContext] = {}
+
+        for result in setup_results:
+            if isinstance(result, BaseException):
+                logger.error(f"Agent setup failed with exception: {result}")
+                continue
+            # result is now guaranteed to be the tuple from setup_single_agent
+            agent, threads, context = result
+            all_threads.extend(threads)
+            if context is not None:
+                agent_contexts[agent.name] = context
+
+        return all_threads, agent_contexts
+
+    async def _prewarm_sdms_for_agent(
+        self,
+        agent_package: AgentPackage,
+        test_cases: list[TestCase],
+        platform_agent_ids: dict[str, str],
+    ) -> None:
+        """Pre-warm all unique SDMs used by this agent's test cases.
+
+        For preinstalled agents: Only sets up infrastructure (containers, data connections).
+        Clones will import SDMs with their own agent IDs at test execution time.
+
+        For non-preinstalled agents: Full pre-warming including SDM import for each platform.
+
+        Args:
+            agent_package: The agent package being set up.
+            test_cases: List of test cases for this agent.
+            platform_agent_ids: Mapping of platform name to agent ID.
+        """
+        # For preinstalled agents with SDMs, only setup infrastructure
+        # (clones will import their own SDMs at test time)
+        is_preinstalled = agent_package.is_preinstalled
+
+        seen_sdm_paths: set[str] = set()
+
+        for test_case in test_cases:
+            for sdm_config in test_case.sdms:
+                if sdm_config.sdm_path in seen_sdm_paths:
+                    continue
+                seen_sdm_paths.add(sdm_config.sdm_path)
+
+                if is_preinstalled:
+                    # Infrastructure only - clones will import
+                    logger.info(f"Setting up SDM infrastructure for preinstalled agent: {sdm_config.sdm_path}")
+                    await self.sdm_setup.setup_sdm_infrastructure(sdm_config)
+                else:
+                    # Full prewarm for non-preinstalled agents
+                    logger.info(f"Pre-warming SDM for non-preinstalled agent: {sdm_config.sdm_path}")
+                    for agent_id in platform_agent_ids.values():
+                        await self.sdm_setup.prewarm_sdm(sdm_config, agent_id=agent_id)
 
     def _get_platforms_for_test_case(self, test_case: TestCase, platform_filter: str | None) -> list[Platform]:
         """Return the list of platforms to run for a test case given the filter."""
@@ -689,26 +853,16 @@ class QualityTestRunner:
 
         all_results: list[ThreadResult] = []
 
-        # For preinstalled agents with SDMs, create unique agent clones per test case
-        # to avoid SDM bleeding between tests (SDMs are agent-scoped, not thread-scoped)
-        # TODO: Remove this workaround once server import endpoint is updated to attach
-        # SDMs to threads instead of agents
-        test_case_agent_ids: dict[str, str] = {}
-        created_clones: list[str] = []
-
-        needs_unique_clones = agent_package.is_preinstalled and test_case.sdms and len(test_case.sdms) > 0
-
-        if needs_unique_clones:
-            for platform in platforms:
-                base_agent_id = run_context.platform_agent_ids[platform.name]
-                clone_id = await self.orchestrator.create_test_case_agent_clone(
-                    base_agent_id=base_agent_id,
-                    platform=platform,
-                    test_case_name=test_case.name,
-                )
-                test_case_agent_ids[platform.name] = clone_id
-                created_clones.append(clone_id)
+        # Determine which agent mapping to use based on whether test has SDMs
+        # SDM agents work for all platforms, platform agents are platform-specific
+        test_case_agent_ids: dict[str, str]
+        if test_case.sdms:
+            # Use SDM-specific agent (works for all platforms)
+            sdm_path = test_case.sdms[0].sdm_path
+            agent_id = run_context.sdm_agent_ids[sdm_path]
+            test_case_agent_ids = {platform.name: agent_id for platform in platforms}
         else:
+            # Use platform-specific agents
             test_case_agent_ids = run_context.platform_agent_ids
 
         try:
@@ -789,11 +943,6 @@ class QualityTestRunner:
                     )
                     all_results.append(error_result)
                     self.results_manager.complete_test(agent_package.name, error_result, 1)
-
-        finally:
-            # Clean up test-case-specific agent clones
-            for clone_id in created_clones:
-                await self.orchestrator.delete_agent(clone_id)
 
         return all_results
 
@@ -986,7 +1135,8 @@ class QualityTestRunner:
             if test_case.sdms and test_case.thread is not None:
 
                 async def _on_thread_created(thread_id: str) -> None:
-                    await self.sdm_setup.ensure_sdms_for_thread(
+                    # SDMs were pre-warmed during agent setup; just attach them to this thread
+                    await self.sdm_setup.attach_sdms_to_thread(
                         thread_id=thread_id,
                         sdm_configs=test_case.sdms,
                         agent_id=agent_id,

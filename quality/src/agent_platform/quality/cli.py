@@ -67,38 +67,66 @@ class Context:
 
 def setup_logging(verbose: bool = False):
     """Setup structured logging."""
+    # Clear any existing handlers to avoid duplicates
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+
     if verbose:
         # JSON structured logging for verbose mode
         structlog.configure(
             processors=[
                 structlog.stdlib.filter_by_level,
-                structlog.stdlib.add_logger_name,
                 structlog.stdlib.add_log_level,
-                structlog.stdlib.PositionalArgumentsFormatter(),
+                structlog.stdlib.add_logger_name,
                 structlog.processors.TimeStamper(fmt="iso"),
                 structlog.processors.StackInfoRenderer(),
+                structlog.stdlib.PositionalArgumentsFormatter(),
                 structlog.processors.format_exc_info,
-                structlog.processors.JSONRenderer(),
+                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
-        logging.basicConfig(level=logging.DEBUG)
+
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            structlog.stdlib.ProcessorFormatter(
+                processor=structlog.processors.JSONRenderer(),
+            )
+        )
+
+        root_logger.addHandler(handler)
+        root_logger.setLevel(logging.DEBUG)
     else:
         # Simple logging for normal mode
         structlog.configure(
             processors=[
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_log_level,
+                structlog.stdlib.add_logger_name,
+                structlog.processors.TimeStamper(fmt="iso"),
                 structlog.processors.StackInfoRenderer(),
-                structlog.dev.ConsoleRenderer(),
+                structlog.stdlib.PositionalArgumentsFormatter(),
+                structlog.processors.format_exc_info,
+                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=True,
         )
-        logging.basicConfig(level=logging.INFO)
+
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            structlog.stdlib.ProcessorFormatter(
+                processor=structlog.dev.ConsoleRenderer(),
+            )
+        )
+
+        root_logger.addHandler(handler)
+        root_logger.setLevel(logging.INFO)
 
 
 @click.group()
@@ -291,10 +319,10 @@ def list_tests(ctx: Context, agent_name: str | None):
 @click.option("--detailed", is_flag=True, help="Show detailed evaluation results")
 @click.option("--platform-summary", is_flag=True, help="Show platform-focused summary")
 @click.option(
-    "--max-agents",
-    default=3,
+    "--max-concurrency",
+    default=10,
     type=int,
-    help="Maximum number of agents to run concurrently",
+    help="Maximum number of concurrent test executions across all agents",
 )
 @click.option(
     "--selected-agents",
@@ -340,7 +368,7 @@ async def run(
     ctx: Context,
     detailed: bool,
     platform_summary: bool,
-    max_agents: int,
+    max_concurrency: int,
     selected_agents: str,
     agent_server_version: str | None,
     agent_arch: str | None,
@@ -369,11 +397,11 @@ async def run(
             filters_desc.append(f"difficulty={difficulty}")
         filters_str = f", {', '.join(filters_desc)}" if filters_desc else ""
 
-        click.echo(f"🚀 Running tests for all agents (fully parallel, max {max_agents} concurrent agents{filters_str})")
+        click.echo(f"🚀 Running tests for all agents (max {max_concurrency} concurrent tests{filters_str})")
         tests_filter = [test.strip() for test in tests.split(",") if test.strip()]
         all_results = await runner.run_tests_for_all_agents_fully_parallel(
             selected_agents=[selected.strip() for selected in selected_agents.split(",") if selected.strip()],
-            max_concurrent_agents=max_agents,
+            max_concurrency=max_concurrency,
             platform_filter=platform,
             tests_filter=tests_filter if tests_filter else None,
             difficulty_filter=difficulty,
