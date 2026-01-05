@@ -37,7 +37,17 @@ export const TenantMenu = () => {
   };
 
   const applicationIcon = branding?.logoUrl ? (
-    <img src={branding.logoUrl} width={24} height={24} alt="logo" />
+    <Box
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      width={24}
+      height={24}
+      backgroundColor="neutral"
+      borderRadius="$8"
+    >
+      <img src={branding?.logoUrl} width={18} height={18} alt="logo" />
+    </Box>
   ) : (
     <IconSema4 size={24} />
   );

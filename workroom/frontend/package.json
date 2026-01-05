@@ -23,7 +23,7 @@
     "@lezer/python": "^1.1.18",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@sema4ai/agent-server-interface": "*",
-    "@sema4ai/components": "^2.12.2",
+    "@sema4ai/components": "^2.13.0",
     "@sema4ai/data-interface": "^3.2.0",
     "@sema4ai/icons": "^2.4.1",
     "@sema4ai/layouts": "^2.8.3",

@@ -26,20 +26,23 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
 
   const onDrop = async (files: File[]) => {
     const file = files[0];
-    try {
-      const inspectionResult = await inspectFile({ fileName: file.name, fileContent: file });
-      setDatabaseInspectionState({
-        isLoading: false,
-        error: undefined,
-        inspectionResult,
-        requiresInspection: false,
-      });
-      setValue('dataSelection', tablesToDataSelection(inspectionResult));
 
-      setAddedFiles([file.name]);
-      setValue('fileRefId', file.name);
-    } catch (error) {
-      addSnackbar({ message: error instanceof Error ? error.message : 'Failed to inspect file', variant: 'danger' });
+    if (file) {
+      try {
+        const inspectionResult = await inspectFile({ fileName: file.name, fileContent: file });
+        setDatabaseInspectionState({
+          isLoading: false,
+          error: undefined,
+          inspectionResult,
+          requiresInspection: false,
+        });
+        setValue('dataSelection', tablesToDataSelection(inspectionResult));
+
+        setAddedFiles([file.name]);
+        setValue('fileRefId', file.name);
+      } catch (error) {
+        addSnackbar({ message: error instanceof Error ? error.message : 'Failed to inspect file', variant: 'danger' });
+      }
     }
   };
 
@@ -87,6 +90,7 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
               'application/vnd.ms-excel': ['.xls'],
               'text/csv': ['.csv'],
             },
+            maxSize: 20_000_000, // 20MB
           }}
         />
         <FileList files={addedFiles} onRemoveFile={onRemoveFile} />

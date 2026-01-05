@@ -1,7 +1,6 @@
 import { components } from '@sema4ai/agent-server-interface';
 import { Box, Button, Menu, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import { IconDotsHorizontal, IconLoading } from '@sema4ai/icons';
-import { styled } from '@sema4ai/theme';
 import { FC, useEffect, useMemo, useState } from 'react';
 
 import { useSparUIContext } from '../../../api/context';
@@ -18,40 +17,6 @@ type WorkItem = components['schemas']['WorkItem'];
 type WorkItemProps = {
   item: WorkItem;
 };
-
-const Container = styled(Box)`
-  > a,
-  > div {
-    overflow: hidden;
-    display: block;
-    flex: 1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  > button {
-    display: none;
-  }
-
-  &:hover > a {
-    color: ${({ theme }) => theme.colors.content.primary.color};
-  }
-
-  &:has([aria-expanded='true']) {
-    > button {
-      display: block;
-    }
-    > a {
-      color: ${({ theme }) => theme.colors.content.primary.color};
-    }
-  }
-
-  &:hover {
-    > button {
-      display: block;
-    }
-  }
-`;
 
 const ToolTipContent: FC<Pick<WorkItem, 'created_at' | 'updated_at' | 'status'> & { name: string }> = ({
   name,
@@ -187,21 +152,15 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
 
   if (!threadId) {
     return (
-      <Container
-        display="flex"
-        justifyContent="space-between"
-        gap="$8"
-        alignItems="center"
-        color="content.subtle.light"
-        height={36}
-      >
-        <IconLoading />
-        <Box flex={1}>
-          <Typography $nowrap truncate={1}>
-            {displayName}
-          </Typography>
-        </Box>
-      </Container>
+      <ThreadListLinkContainer>
+        <ListItemLink
+          to="/workItem/$agentId/$workItemId"
+          params={{ agentId, workItemId: workItem?.work_item_id }}
+          icon={IconLoading}
+        >
+          {displayName}
+        </ListItemLink>
+      </ThreadListLinkContainer>
     );
   }
 
