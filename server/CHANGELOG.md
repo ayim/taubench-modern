@@ -1,3 +1,17 @@
+# Sema4.ai Agent Server 2.2.13 (2026-01-05)
+
+* Implement foreign key and primary key inspection across various datab… [#1927](https://github.com/Sema4AI/agent-platform/pull/1927)
+* SDM-313 cleanup before changing enhancer algorithm [#2042](https://github.com/Sema4AI/agent-platform/pull/2042)
+* DEV-2378 + DEV-2376 | Agent Package - Create + Build endpoints [#2032](https://github.com/Sema4AI/agent-platform/pull/2032)
+* Use old base-dir location to create postgres temp directories [#2053](https://github.com/Sema4AI/agent-platform/pull/2053)
+* Fix issue where the _transaction() wouldn't really be in a transaction [#2041](https://github.com/Sema4AI/agent-platform/pull/2041)
+* Add extract v2 simplified endpoint [#2039](https://github.com/Sema4AI/agent-platform/pull/2039)
+* SDM-314 Organize enhancer prompt [#2055](https://github.com/Sema4AI/agent-platform/pull/2055)
+* Restored "unittest" to the bundle [#2036](https://github.com/Sema4AI/agent-platform/pull/2036)
+* SDM-315 Don't fail SDM generation if relationship detection fails [#2052](https://github.com/Sema4AI/agent-platform/pull/2052)
+* [ENG-61] Fix warning transaction already started in postgres / no longer manually manage begin/commit/rollback when doing migrations. [#2045](https://github.com/Sema4AI/agent-platform/pull/2045)
+* Cleanup temp files created by get_file for docint [#2044](https://github.com/Sema4AI/agent-platform/pull/2044)
+
 # Sema4.ai Agent Server 2.2.12 (2025-12-29)
 
 * Provide client id/client secret as cleartext in OAuth2 config [#2033](https://github.com/Sema4AI/agent-platform/pull/2033)
