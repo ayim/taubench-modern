@@ -1295,6 +1295,10 @@ export interface components {
      *         "azure/openai/o3-low",
      *         "azure/openai/o4-mini-high",
      *         "azure/openai/o4-mini-low",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *         "bedrock/anthropic/claude-4-5-opus",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -1389,6 +1393,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": "o4-mini",
      *         "azure/openai/text-embedding-3-small": "text-embedding-3-small",
      *         "azure/openai/text-embedding-3-large": "text-embedding-3-large",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": "anthropic.claude-opus-4-5-20251101-v1:0",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": "anthropic.claude-opus-4-5-20251101-v1:0",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": "anthropic.claude-opus-4-5-20251101-v1:0",
+     *         "bedrock/anthropic/claude-4-5-opus": "anthropic.claude-opus-4-5-20251101-v1:0",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "anthropic.claude-sonnet-4-5-20250929-v1:0",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "anthropic.claude-sonnet-4-5-20250929-v1:0",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "anthropic.claude-sonnet-4-5-20250929-v1:0",
@@ -1522,6 +1530,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": "openai-o-series",
      *         "azure/openai/text-embedding-3-small": "openai-embeddings",
      *         "azure/openai/text-embedding-3-large": "openai-embeddings",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": "claude",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": "claude",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": "claude",
+     *         "bedrock/anthropic/claude-4-5-opus": "claude",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "claude",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "claude",
@@ -1655,6 +1667,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": "llm",
      *         "azure/openai/text-embedding-3-small": "embedding",
      *         "azure/openai/text-embedding-3-large": "embedding",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": "llm",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": "llm",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": "llm",
+     *         "bedrock/anthropic/claude-4-5-opus": "llm",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "llm",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "llm",
@@ -1788,6 +1804,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": 200000,
      *         "azure/openai/text-embedding-3-small": 8000,
      *         "azure/openai/text-embedding-3-large": 8000,
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": 200000,
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": 200000,
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": 200000,
+     *         "bedrock/anthropic/claude-4-5-opus": 200000,
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": 200000,
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": 200000,
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": 200000,
@@ -2041,6 +2061,26 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-nano": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -2333,6 +2373,10 @@ export interface components {
      *         "azure/openai/o3-low",
      *         "azure/openai/o4-mini-high",
      *         "azure/openai/o4-mini-low",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *         "bedrock/anthropic/claude-4-5-opus",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -2427,6 +2471,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": "o4-mini",
      *         "azure/openai/text-embedding-3-small": "text-embedding-3-small",
      *         "azure/openai/text-embedding-3-large": "text-embedding-3-large",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": "anthropic.claude-opus-4-5-20251101-v1:0",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": "anthropic.claude-opus-4-5-20251101-v1:0",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": "anthropic.claude-opus-4-5-20251101-v1:0",
+     *         "bedrock/anthropic/claude-4-5-opus": "anthropic.claude-opus-4-5-20251101-v1:0",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "anthropic.claude-sonnet-4-5-20250929-v1:0",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "anthropic.claude-sonnet-4-5-20250929-v1:0",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "anthropic.claude-sonnet-4-5-20250929-v1:0",
@@ -2560,6 +2608,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": "openai-o-series",
      *         "azure/openai/text-embedding-3-small": "openai-embeddings",
      *         "azure/openai/text-embedding-3-large": "openai-embeddings",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": "claude",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": "claude",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": "claude",
+     *         "bedrock/anthropic/claude-4-5-opus": "claude",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "claude",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "claude",
@@ -2693,6 +2745,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": "llm",
      *         "azure/openai/text-embedding-3-small": "embedding",
      *         "azure/openai/text-embedding-3-large": "embedding",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": "llm",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": "llm",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": "llm",
+     *         "bedrock/anthropic/claude-4-5-opus": "llm",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "llm",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "llm",
@@ -2826,6 +2882,10 @@ export interface components {
      *         "azure/openai/o4-mini-low": 200000,
      *         "azure/openai/text-embedding-3-small": 8000,
      *         "azure/openai/text-embedding-3-large": 8000,
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": 200000,
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": 200000,
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": 200000,
+     *         "bedrock/anthropic/claude-4-5-opus": 200000,
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high": 200000,
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": 200000,
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low": 200000,
@@ -3079,6 +3139,26 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "openai/openai/gpt-5-nano": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "bedrock/anthropic/claude-4-5-opus": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -3480,6 +3560,10 @@ export interface components {
       | 'bedrock/anthropic/claude-4-5-haiku-thinking-high'
       | 'bedrock/anthropic/claude-4-5-haiku-thinking-low'
       | 'bedrock/anthropic/claude-4-5-haiku-thinking-medium'
+      | 'bedrock/anthropic/claude-4-5-opus'
+      | 'bedrock/anthropic/claude-4-5-opus-thinking-high'
+      | 'bedrock/anthropic/claude-4-5-opus-thinking-low'
+      | 'bedrock/anthropic/claude-4-5-opus-thinking-medium'
       | 'bedrock/anthropic/claude-4-5-sonnet'
       | 'bedrock/anthropic/claude-4-5-sonnet-thinking-high'
       | 'bedrock/anthropic/claude-4-5-sonnet-thinking-low'
@@ -3696,6 +3780,10 @@ export interface components {
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "bedrock/anthropic/claude-4-5-opus",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *         "bedrock/anthropic/claude-4-5-sonnet",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -3844,6 +3932,10 @@ export interface components {
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "bedrock/anthropic/claude-4-5-opus",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *         "bedrock/anthropic/claude-4-5-sonnet",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -4007,6 +4099,10 @@ export interface components {
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "bedrock/anthropic/claude-4-5-opus",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *         "bedrock/anthropic/claude-4-5-sonnet",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -4172,6 +4268,10 @@ export interface components {
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *         "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "bedrock/anthropic/claude-4-5-opus",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *         "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *         "bedrock/anthropic/claude-4-5-sonnet",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *         "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -4430,6 +4530,10 @@ export interface components {
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "bedrock/anthropic/claude-4-5-opus",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *           "bedrock/anthropic/claude-4-5-sonnet",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -4580,6 +4684,10 @@ export interface components {
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "bedrock/anthropic/claude-4-5-opus",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *           "bedrock/anthropic/claude-4-5-sonnet",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -4818,6 +4926,10 @@ export interface components {
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "bedrock/anthropic/claude-4-5-opus",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *           "bedrock/anthropic/claude-4-5-sonnet",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -4968,6 +5080,10 @@ export interface components {
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-high",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-low",
      *           "bedrock/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "bedrock/anthropic/claude-4-5-opus",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-high",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-low",
+     *           "bedrock/anthropic/claude-4-5-opus-thinking-medium",
      *           "bedrock/anthropic/claude-4-5-sonnet",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
      *           "bedrock/anthropic/claude-4-5-sonnet-thinking-low",

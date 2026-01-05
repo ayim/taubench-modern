@@ -404,6 +404,7 @@ class TestPlatformModelConfigs:
             "google/google/gemini-2-5-pro",
             "bedrock/anthropic/claude-4-sonnet",
             "bedrock/anthropic/claude-4-5-haiku",
+            "bedrock/anthropic/claude-opus-4-5",
         ]
 
         for model_id in test_models:

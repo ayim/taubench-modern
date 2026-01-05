@@ -25,6 +25,10 @@ export const OPENAI_MODEL_VALUES = [
 ] as const;
 export const AZURE_MODEL_VALUES = ['azure:azure-openai-service'] as const;
 export const BEDROCK_MODEL_VALUES = [
+  'bedrock:claude-4-5-opus-thinking-high',
+  'bedrock:claude-4-5-opus-thinking-medium',
+  'bedrock:claude-4-5-opus-thinking-low',
+  'bedrock:claude-4-5-opus',
   'bedrock:claude-4-5-sonnet-thinking-high',
   'bedrock:claude-4-5-sonnet-thinking-medium',
   'bedrock:claude-4-5-sonnet-thinking-low',

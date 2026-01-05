@@ -61,6 +61,7 @@ When writing shell scripts in GitHub Actions workflows:
 - **Command substitution**: Use `$()` syntax and quote the result: `result="$(some_command)"`
 
 Example:
+
 ```bash
 # Good
 version="$(uv run python -c "print('1.0.0')")"

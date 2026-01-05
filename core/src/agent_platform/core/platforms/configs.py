@@ -75,6 +75,9 @@ def _normalize_model_slug_for_lookup(slug: str) -> str:
         "command-r-plus": "command-r-plus-04-2024",
         # TODO: Gemini 3 Flash models when AA updates their api and adds support to llms.json
         "gemini-3-flash": "gemini-3-pro",
+        # Claude Opus: we use 4-5-opus but llms.json uses opus-4-5
+        "claude-4-5-opus": "claude-opus-4-5",
+        "claude-4-5-opus-thinking": "claude-opus-4-5-thinking",
     }
 
     return slug_mappings.get(slug, slug)
@@ -186,6 +189,10 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/o4-mini-high",
             "azure/openai/o4-mini-low",
             # Amazon Bedrock
+            "bedrock/anthropic/claude-4-5-opus-thinking-high",
+            "bedrock/anthropic/claude-4-5-opus-thinking-medium",
+            "bedrock/anthropic/claude-4-5-opus-thinking-low",
+            "bedrock/anthropic/claude-4-5-opus",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-high",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low",
@@ -298,6 +305,10 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "text-embedding-3-small",
             "azure/openai/text-embedding-3-large": "text-embedding-3-large",
             # Amazon Bedrock (does have date/version pinning)
+            "bedrock/anthropic/claude-4-5-opus-thinking-high": ("anthropic.claude-opus-4-5-20251101-v1:0"),
+            "bedrock/anthropic/claude-4-5-opus-thinking-medium": ("anthropic.claude-opus-4-5-20251101-v1:0"),
+            "bedrock/anthropic/claude-4-5-opus-thinking-low": ("anthropic.claude-opus-4-5-20251101-v1:0"),
+            "bedrock/anthropic/claude-4-5-opus": "anthropic.claude-opus-4-5-20251101-v1:0",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-high": ("anthropic.claude-sonnet-4-5-20250929-v1:0"),
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": ("anthropic.claude-sonnet-4-5-20250929-v1:0"),
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": ("anthropic.claude-sonnet-4-5-20250929-v1:0"),
@@ -447,6 +458,10 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "openai-embeddings",
             "azure/openai/text-embedding-3-large": "openai-embeddings",
             # Amazon Bedrock (does have date/version pinning)
+            "bedrock/anthropic/claude-4-5-opus-thinking-high": "claude",
+            "bedrock/anthropic/claude-4-5-opus-thinking-medium": "claude",
+            "bedrock/anthropic/claude-4-5-opus-thinking-low": "claude",
+            "bedrock/anthropic/claude-4-5-opus": "claude",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "claude",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "claude",
@@ -595,6 +610,10 @@ class PlatformModelConfigs(Configuration):
             "azure/openai/text-embedding-3-small": "embedding",
             "azure/openai/text-embedding-3-large": "embedding",
             # Amazon Bedrock
+            "bedrock/anthropic/claude-4-5-opus-thinking-high": "llm",
+            "bedrock/anthropic/claude-4-5-opus-thinking-medium": "llm",
+            "bedrock/anthropic/claude-4-5-opus-thinking-low": "llm",
+            "bedrock/anthropic/claude-4-5-opus": "llm",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-high": "llm",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": "llm",
@@ -748,6 +767,10 @@ class PlatformModelConfigs(Configuration):
             # lists that as beta, and perhaps for bedrock they have a different ID
             # for the long context versions? If a customer ever wants to try we
             # can look more into this
+            "bedrock/anthropic/claude-4-5-opus-thinking-high": 200_000,
+            "bedrock/anthropic/claude-4-5-opus-thinking-medium": 200_000,
+            "bedrock/anthropic/claude-4-5-opus-thinking-low": 200_000,
+            "bedrock/anthropic/claude-4-5-opus": 200_000,
             "bedrock/anthropic/claude-4-5-sonnet-thinking-high": 200_000,
             "bedrock/anthropic/claude-4-5-sonnet-thinking-medium": 200_000,
             "bedrock/anthropic/claude-4-5-sonnet-thinking-low": 200_000,
@@ -906,6 +929,10 @@ class PlatformModelConfigs(Configuration):
             "openai/openai/gpt-5-mini": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "openai/openai/gpt-5-nano": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             # Bedrock
+            "bedrock/anthropic/claude-4-5-opus-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-opus-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-opus-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "bedrock/anthropic/claude-4-5-opus": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-5-haiku-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-5-haiku-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "bedrock/anthropic/claude-4-5-haiku-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
