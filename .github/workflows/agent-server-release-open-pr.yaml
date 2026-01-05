@@ -7,11 +7,6 @@ on:
         description: 'Version to release (e.g. "2.2.13"). If empty, bumps patch version.'
         type: string
         required: false
-      base_branch:
-        description: 'Base branch to open PR against'
-        type: string
-        required: false
-        default: main
 
 concurrency: ${{ github.workflow }}-${{ inputs.version || 'auto' }}
 
@@ -20,6 +15,7 @@ permissions:
   packages: read
 
 env:
+  BASE_BRANCH: 'main'
   BRANCH_PREFIX: 'ci/agent-server-release-v'
 
 run-name: Create PR for Agent Server Release ${{ inputs.version || 'auto patch bump' }}
@@ -33,7 +29,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.base_branch }}
+          ref: ${{ env.BASE_BRANCH }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
@@ -160,7 +156,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               head: '${{ steps.commit.outputs.branch-name }}',
-              base: '${{ inputs.base_branch }}',
+              base: '${{ env.BASE_BRANCH }}',
               title,
               body,
             });
