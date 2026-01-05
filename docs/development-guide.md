@@ -33,6 +33,15 @@
 
 2. **Release Process**:
 
+   _This process is automated using two workflows:_
+
+   - [Open PR for Agent Server Release](../.github/workflows/agent-server-release-open-pr.yaml)
+   - [Create Tag on Agent Server Release PR Merge](../.github/workflows/agent-server-release-tag-on-merge.yaml)
+
+   **Trigger a new release [here](https://github.com/Sema4AI/agent-platform/actions/workflows/agent-server-release-open-pr.yml)**
+
+   _Manual process_
+
    - Once features are merged into `main`, update the version in `server/pyproject.toml` following [Semantic Versioning](#semantic-versioning).
    - Run `make sync` to update the lockfile.
    - Run `make update-interface` to update the interface.

@@ -1,0 +1,223 @@
+name: Open PR for Agent Server Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. "2.2.13"). If empty, bumps patch version.'
+        type: string
+        required: false
+      base_branch:
+        description: 'Base branch to open PR against'
+        type: string
+        required: false
+        default: main
+
+concurrency: ${{ github.workflow }}-${{ inputs.version || 'auto' }}
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  BRANCH_PREFIX: 'ci/agent-server-release-v'
+
+run-name: Create PR for Agent Server Release ${{ inputs.version || 'auto patch bump' }}
+
+jobs:
+  prepare-release:
+    name: Prepare Release PR
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+          cache-dependency-path: workroom/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@sema4ai'
+
+      - name: Determine Version
+        id: version
+        run: |
+          current_version="$(uv run python -c "import tomllib; print(tomllib.load(open('server/pyproject.toml', 'rb'))['project']['version'])")"
+          echo "Current version: ${current_version}"
+
+          if [ -n "${{ inputs.version }}" ]; then
+            new_version="${{ inputs.version }}"
+            echo "Using provided version: ${new_version}"
+          else
+            # Auto-bump patch version
+            IFS='.' read -r major minor patch <<< "${current_version}"
+            # Handle pre-release versions (strip anything after -)
+            patch="${patch%%-*}"
+            new_patch="$((patch + 1))"
+            new_version="${major}.${minor}.${new_patch}"
+            echo "Auto-bumping patch: ${current_version} -> ${new_version}"
+          fi
+
+          echo "current=${current_version}" >> "${GITHUB_OUTPUT}"
+          echo "new=${new_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update Version in pyproject.toml
+        run: |
+          sed -i 's/^version = ".*"/version = "${{ steps.version.outputs.new }}"/' server/pyproject.toml
+          echo "Updated server/pyproject.toml to version ${{ steps.version.outputs.new }}"
+          grep "^version" server/pyproject.toml
+
+      - name: Run make sync
+        run: make sync
+
+      - name: Run make update-interface
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make update-interface
+
+      - name: Generate Changelog
+        run: |
+          # Create changelog entry header
+          date="$(date +"%Y-%m-%d")"
+          version="${{ steps.version.outputs.new }}"
+          tag="agent-server-v${{ steps.version.outputs.current }}"
+
+          temp_file="$(mktemp)"
+          echo "# Sema4.ai Agent Server ${version} (${date})" > "${temp_file}"
+          echo "" >> "${temp_file}"
+
+          # Get commits since last release
+          { git log --oneline "${tag}..HEAD" -- server; git log --oneline "${tag}..HEAD" -- core; } | sort -u | while read -r line; do
+            message="$(echo "${line}" | cut -d' ' -f2-)"
+            formatted="$(echo "${message}" | sed -E 's/\(#([0-9]+)\)/[#\1](https:\/\/github.com\/Sema4AI\/agent-platform\/pull\/\1)/g')"
+            echo "* ${formatted}" >> "${temp_file}"
+          done
+
+          echo "" >> "${temp_file}"
+          cat server/CHANGELOG.md >> "${temp_file}"
+          mv "${temp_file}" server/CHANGELOG.md
+
+          echo "Changelog updated"
+
+      - name: Commit and Push
+        id: commit
+        run: |
+          version="${{ steps.version.outputs.new }}"
+          branch_name="${BRANCH_PREFIX}${version}"
+
+          git config --global user.name "sema4-ci-user"
+          git config --global user.email "dev+github-ci@sema4.ai"
+          git checkout -b "${branch_name}"
+          git add .
+          git commit -m "Release Agent Server v${version}"
+          git push --set-upstream origin "${branch_name}"
+
+          echo "branch-name=${branch_name}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.SEMA4_CI_USER_PAT_OPEN_PR }}
+          script: |
+            const version = '${{ steps.version.outputs.new }}';
+            const triggeredBy = '${{ github.actor }}';
+            const title = `Release Agent Server v${version}`;
+            const body = `
+            # Agent Server Release v${version}
+
+            This PR prepares the release of Agent Server v${version}.
+
+            ## Changes
+            - Version bump: ${{ steps.version.outputs.current }} → ${version}
+            - Updated lockfile
+            - Updated agent-server-interface
+            - Generated changelog
+
+            ---
+
+            **Merging** this PR will automatically **create and push** the tag \`agent-server-v${version}\`, triggering the release build.
+
+            ---
+
+            _This PR was automatically created by the [agent-server-release-open-pr.yaml](https://github.com/Sema4AI/agent-platform/blob/main/.github/workflows/agent-server-release-open-pr.yaml) workflow._
+            `.trim();
+
+            const result = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: '${{ steps.commit.outputs.branch-name }}',
+              base: '${{ inputs.base_branch }}',
+              title,
+              body,
+            });
+
+            const prNumber = result.data.number;
+
+            // Add reviewers
+            const defaultReviewers = ['el-mike', 'custompointofview', 'jjhenkel', 'joshelser', 'bendersej'];
+            const reviewers = defaultReviewers.filter(r => r !== triggeredBy);
+
+            if (triggeredBy && !defaultReviewers.includes(triggeredBy)) {
+              reviewers.unshift(triggeredBy);
+            }
+
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              reviewers: reviewers,
+            });
+
+            return { url: result.data.html_url, number: prNumber };
+
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v2
+        env:
+          pr_number: ${{ fromJson(steps.create-pr.outputs.result).number }}
+          version: ${{ steps.version.outputs.new }}
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Agent Server v${{ env.version }} — Release PR Ready for Review",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Agent Server v${{ env.version }} — Release PR Ready for Review"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "https://github.com/Sema4AI/agent-platform/pull/${{ env.pr_number }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "_After the PR is merged, the tag `agent-server-v${{ env.version }}` will be created and the release build will start automatically._"
+                    }
+                  ]
+                }
+              ]
+            }

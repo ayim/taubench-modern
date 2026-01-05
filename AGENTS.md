@@ -50,3 +50,25 @@ Alternatively, if the tokens of the imported module need to be used in the top-l
 the import inside of a `typing.TYPE_CHECKING` block and use top-level references as strings.
 Note: add the imports inside of the method at the start of the method (right after the docstring if there's one).
 Note: if the token must be resolved in the top-level to be used in runtime (for FastAPI, Pydantic), top-level imports are still required.
+
+### GitHub Actions & Workflows
+
+When writing shell scripts in GitHub Actions workflows:
+
+- **Variable naming**: Use lowercase for script-local variables. UPPERCASE is reserved exclusively for exported/environment variables.
+- **Variable assignment**: Always quote the value assigned to a variable: `my_var="$(command)"` not `my_var=$(command)`
+- **Variable interpolation**: Always use curly braces to delimit the variable name: `"${my_var}"` not `"$my_var"`
+- **Command substitution**: Use `$()` syntax and quote the result: `result="$(some_command)"`
+
+Example:
+```bash
+# Good
+version="$(uv run python -c "print('1.0.0')")"
+tag_name="agent-server-v${version}"
+echo "Creating tag: ${tag_name}"
+
+# Bad
+VERSION=$(uv run python -c "print('1.0.0')")
+TAG_NAME="agent-server-v$VERSION"
+echo "Creating tag: $TAG_NAME"
+```

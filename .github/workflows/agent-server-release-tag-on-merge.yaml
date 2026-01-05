@@ -1,0 +1,51 @@
+name: Create Tag on Agent Server Release PR Merge
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+run-name: ${{ github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'ci/agent-server-release-v') && format('Tag Agent Server Release ({0})', github.event.pull_request.head.ref) || '[SKIPPED] Tag Agent Server Release' }}
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    name: Create and Push Tag
+    runs-on: ubuntu-24.04
+
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'ci/agent-server-release-v')
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            **/uv.lock
+
+      - name: Get Version and Create Tag
+        env:
+          GH_TOKEN: ${{ secrets.SEMA4_CI_USER_PAT_OPEN_PR }}
+        run: |
+          version="$(uv run python -c "import tomllib; print(tomllib.load(open('server/pyproject.toml', 'rb'))['project']['version'])")"
+          tag_name="agent-server-v${version}"
+
+          echo "Creating tag: ${tag_name}"
+
+          git config --global user.name "sema4-ci-user"
+          git config --global user.email "dev+github-ci@sema4.ai"
+
+          git tag "${tag_name}"
+          git push origin "${tag_name}"
+
+          echo "Tag ${tag_name} created and pushed. Release build will start automatically."
