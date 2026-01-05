@@ -63,18 +63,19 @@ jobs:
       - name: Determine changed files
         id: determine-changes
         run: |
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" ]]; then
-            # Push to main
-            BASE_COMMIT="${{ github.event.before }}"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           else
-            # Push to dev branch or pull request
-            BASE_COMMIT="$(git merge-base origin/main ${{ github.event.after }})"
+            # For push events, compare with the previous commit
+            BASE_SHA="HEAD^"
+            HEAD_SHA="HEAD"
           fi
 
-          echo "Getting changed paths between ${BASE_COMMIT}..$(git rev-parse HEAD)"
+          echo "Getting changed paths between ${BASE_SHA}...${HEAD_SHA}"
           {
             echo 'changed-paths<<CHANGED_PATHS_EOF'
-            git diff --name-only ${BASE_COMMIT} HEAD
+            git diff --name-only "${BASE_SHA}...${HEAD_SHA}"
             echo CHANGED_PATHS_EOF
           } >> "${GITHUB_OUTPUT}"
 
