@@ -2504,6 +2504,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/package/diff': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Compare agent package with deployed agent
+     * @description Compare an agent package with a deployed agent. Accepts binary ZIP files.
+     */
+    post: operations['diff_agent_package_package_diff_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/platforms/': {
     parameters: {
       query?: never;
@@ -3864,6 +3884,20 @@ export interface components {
       /** Mcp Servers */
       mcp_servers: components['schemas']['MCPServerDetail'][];
     };
+    /** AgentDiffResult */
+    AgentDiffResult: {
+      /**
+       * Is Synced
+       * @description True if there are no differences
+       * @default false
+       */
+      is_synced: boolean;
+      /**
+       * Changes
+       * @description List of differences between spec and deployed agent
+       */
+      changes?: components['schemas']['DiffResult'][];
+    };
     /** AgentPackageActionPackageMetadata */
     AgentPackageActionPackageMetadata: {
       /**
@@ -4820,6 +4854,15 @@ export interface components {
       /** Mcp Server Metadata */
       mcp_server_metadata?: string | null;
     };
+    /** Body_diff_agent_package_package_diff_post */
+    Body_diff_agent_package_package_diff_post: {
+      /**
+       * Agent Package Zip
+       * Format: binary
+       * @description Agent Package ZIP file
+       */
+      agent_package_zip: string;
+    };
     /** Body_generate_data_model_from_document_document_intelligence_data_models_generate_post */
     Body_generate_data_model_from_document_document_intelligence_data_models_generate_post: {
       /** File */
@@ -5527,6 +5570,20 @@ export interface components {
        * @default hive_metastore
        */
       catalog: string | null;
+    };
+    /** DiffResult */
+    DiffResult: {
+      /**
+       * Change
+       * @enum {string}
+       */
+      change: 'add' | 'update' | 'delete';
+      /** Field Path */
+      field_path: string;
+      /** Deployed Value */
+      deployed_value?: unknown;
+      /** Package Value */
+      package_value?: unknown;
     };
     /**
      * Dimension
@@ -9720,6 +9777,22 @@ export interface components {
        * @description Unique error identifier for tracking
        */
       error_id?: string | null;
+    };
+    /** StatusResponse[AgentDiffResult] */
+    StatusResponse_AgentDiffResult_: {
+      /**
+       * Status
+       * @description Indicates whether the operation was successful
+       * @enum {string}
+       */
+      status: 'success' | 'failure';
+      /** @description The result data when successful, null when failed */
+      data?: components['schemas']['AgentDiffResult'] | null;
+      /**
+       * Errors
+       * @description List of errors when the operation fails
+       */
+      errors?: (components['schemas']['StatusError'] | string)[];
     };
     /** StatusResponse[AgentPackageInspectionResponse] */
     StatusResponse_AgentPackageInspectionResponse_: {
@@ -19897,6 +19970,41 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['StatusResponse_AgentPackageMetadata_'];
+        };
+      };
+    };
+  };
+  diff_agent_package_package_diff_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_diff_agent_package_package_diff_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StatusResponse_AgentDiffResult_'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };

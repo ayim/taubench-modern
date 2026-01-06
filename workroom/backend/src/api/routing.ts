@@ -146,6 +146,7 @@ function getRouteMap(): {
     'get /api/v2/document-intelligence/jobs/{job_id}/result': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/documents/ingest': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/document-intelligence/layouts/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/package/diff': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/package/environment-hash/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/package/inspect/action': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/package/inspect/agent': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

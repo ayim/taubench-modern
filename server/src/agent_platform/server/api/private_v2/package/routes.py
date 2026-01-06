@@ -6,6 +6,7 @@ from structlog import get_logger
 
 from agent_platform.core.agent_package.build import AgentPackageBuilder
 from agent_platform.core.agent_package.create import create_agent_project_zip, expand_action_packages_from_uris
+from agent_platform.core.agent_package.diff import AgentDiffResult, calculate_agent_diff
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.hash.agent_package_hash import calculate_agent_package_hash
 from agent_platform.core.agent_package.metadata.agent_metadata import (
@@ -334,3 +335,74 @@ async def generate_agent_package_metadata(
         return StatusResponse.failure(
             [StatusError.from_message(f"Failed to generate metadata: {e}", code="unexpected")]
         )
+
+
+@router.post(
+    "/diff",
+    summary="Compare agent package with deployed agent",
+    description="Compare an agent package with a deployed agent. Accepts binary ZIP files.",
+)
+async def diff_agent_package(
+    user: AuthedUser,
+    storage: StorageDependency,
+    agent_id: str,
+    agent_package_zip: UploadFile = File(..., description="Agent Package ZIP file"),  # noqa: B008
+) -> StatusResponse[AgentDiffResult]:
+    """Compare an agent package with a deployed agent.
+
+    Args:
+        user: The authenticated user.
+        storage: The storage dependency.
+        agent_id: The ID of the deployed agent to compare against.
+        agent_package_zip: The zip file containing the Agent Package.
+
+    Returns:
+        A StatusResponse containing the AgentDiffResult with all differences found.
+    """
+    from typing import cast
+
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+    try:
+        # Create handler from the uploaded zip file
+        with await AgentPackageHandler.from_stream(iter_upload_file_chunks(agent_package_zip)) as handler:
+            # Get the deployed agent from storage
+            deployed_agent = await storage.get_agent(user.user_id, agent_id)
+
+            # Get deployed semantic data models
+            deployed_sdms: list[SemanticDataModel] = []
+            try:
+                sdm_dicts = await storage.get_agent_semantic_data_models(agent_id)
+                deployed_sdms = cast(list[SemanticDataModel], sdm_dicts)
+            except Exception as e:
+                logger.warning("Failed to fetch semantic data models for diff", agent_id=agent_id, error=str(e))
+
+            # Read the spec agent from the package
+            spec_agent = await handler.get_spec_agent()
+
+            # Read question groups from conversation guide file
+            spec_question_groups = await handler.read_conversation_guide()
+
+            # Read runbook content from the package
+            spec_runbook = await handler.read_runbook()
+
+            # Read semantic data models from the package
+            spec_semantic_data_models = await handler.read_all_semantic_data_models()
+
+            # Calculate diff
+            diff_result = await calculate_agent_diff(
+                deployed_agent=deployed_agent,
+                deployed_sdms=deployed_sdms,
+                spec_agent=spec_agent,
+                spec_question_groups=spec_question_groups,
+                spec_runbook=spec_runbook,
+                spec_sdms=spec_semantic_data_models,
+            )
+
+            return StatusResponse.success(diff_result)
+
+    except PlatformError as e:
+        return StatusResponse.failure([StatusError.from_platform_error(e)])
+    except Exception as e:
+        logger.exception("Failed to compare agent package with deployed agent")
+        return StatusResponse.failure([StatusError.from_message(f"Failed to compare packages: {e}", code="unexpected")])

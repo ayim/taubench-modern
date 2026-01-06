@@ -4,6 +4,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ruamel.yaml import YAML
 
+from agent_platform.core.actions.action_package import ActionPackage
 from agent_platform.core.agent import Agent, QuestionGroup
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.utils import create_action_package_path
@@ -67,6 +68,9 @@ DEFAULT_AGENT_PACKAGE_EXCLUDE = [
 ]
 
 DEFAULT_AGENT_PACKAGE_SPEC_VERSION = "v2.1"
+# The ID of the agent used for comparison purposes
+DEFAULT_AGENT_TEMP_ID = "default_agent_temp_id"
+DEFAULT_AGENT_TEMP_USER_ID = "default_agent_temp_user_id"
 
 
 class SpecAgentModel(BaseModel):
@@ -81,6 +85,20 @@ class SpecActionPackage(BaseModel):
     type: SpecActionPackageType | None = None
     whitelist: str | None = None
     path: str | None = None
+
+    @classmethod
+    def to_agent_action_packages(cls, action_packages: list["SpecActionPackage"]) -> list[ActionPackage]:
+        return [
+            ActionPackage(
+                name=action_package.name,
+                organization=action_package.organization,
+                version=action_package.version,
+                url=None,
+                api_key=None,
+                allowed_actions=action_package.whitelist.split(",") if action_package.whitelist else [],
+            )
+            for action_package in action_packages
+        ]
 
 
 class SpecKnowledge(BaseModel):
@@ -134,6 +152,33 @@ class SpecMCPServer(BaseModel):
                 "force-serial-tool-calls": server.force_serial_tool_calls,
             }
         )
+
+    @classmethod
+    def to_mcp_server(cls, mcp_servers: list["SpecMCPServer"] | None) -> list[MCPServer]:
+        # Convert MCP servers
+        result: list[MCPServer] = []
+        for mcp in mcp_servers or []:
+            # Build command and args from command_line
+            command = None
+            args: list[str] = []
+            if mcp.command_line:
+                command = mcp.command_line[0] if mcp.command_line else None
+                args = list[str](mcp.command_line[1:]) if len(mcp.command_line) > 1 else []
+
+            result.append(
+                MCPServer(
+                    name=mcp.name,
+                    url=mcp.url,
+                    command=command,
+                    args=args,
+                    cwd=mcp.cwd,
+                    transport=mcp.transport or "auto",
+                    headers=mcp.headers,
+                    env=mcp.env,
+                    force_serial_tool_calls=mcp.force_serial_tool_calls or False,
+                )
+            )
+        return result
 
 
 class SpecDockerMcpGateway(BaseModel):
@@ -465,4 +510,95 @@ class AgentSpecGenerator:
                     }
                 )
             }
+        )
+
+    @classmethod
+    def to_agent(
+        cls,
+        spec_agent: SpecAgent,
+        spec_runbook: str | None = None,
+        spec_question_groups: list[QuestionGroup] | None = None,
+        agent_id: str | None = None,
+        user_id: str | None = None,
+    ) -> Agent:
+        """Convert a SpecAgent to an Agent for comparison purposes.
+
+        This creates an Agent object from a SpecAgent, using the same conversion
+        logic as the package upload process but without requiring storage or HTTP context.
+
+            Args:
+                spec_agent: The agent specification from agent-spec.yaml.
+            spec_runbook: Optional runbook content read from the runbook file.
+            spec_question_groups: Optional list of question groups from conversation guide.
+                    If not provided, falls back to metadata.question_groups from the spec.
+
+            Returns:
+            An Agent instance suitable for comparison with a deployed agent.
+        """
+        from datetime import UTC, datetime
+
+        from agent_platform.core.agent import Agent
+        from agent_platform.core.agent.agent_architecture import AgentArchitecture
+        from agent_platform.core.runbook.runbook import Runbook
+        from agent_platform.core.selected_tools import SelectedTools
+
+        # Convert action packages
+        action_packages = SpecActionPackage.to_agent_action_packages(spec_agent.action_packages)
+
+        # Convert MCP servers
+        mcp_servers = SpecMCPServer.to_mcp_server(spec_agent.mcp_servers)
+
+        # Convert selected tools
+        selected_tools = SelectedTools()
+        if spec_agent.selected_tools:
+            selected_tools = spec_agent.selected_tools.to_selected_tools()
+
+        # Determine question groups (prefer provided, fall back to metadata)
+        question_groups = spec_question_groups
+        if question_groups is None and spec_agent.metadata and spec_agent.metadata.question_groups:
+            question_groups = spec_agent.metadata.question_groups
+        question_groups = question_groups or []
+
+        # Build runbook
+        runbook_text = spec_runbook or ""
+        runbook_structured = Runbook(raw_text=runbook_text, content=[], updated_at=datetime.now(UTC))
+
+        # Normalize architecture name
+        architecture_name = (spec_agent.architecture or "default").lower().strip()
+        if not architecture_name.startswith("agent_platform.architectures."):
+            architecture_name = f"agent_platform.architectures.{architecture_name}"
+
+        # Determine mode
+        mode = "conversational"
+        if spec_agent.metadata and spec_agent.metadata.mode:
+            mode = spec_agent.metadata.mode
+
+        # Build extra dict with additional fields
+        extra: dict[str, Any] = {}
+        if spec_agent.welcome_message:
+            extra["welcome_message"] = spec_agent.welcome_message
+        if spec_agent.conversation_starter:
+            extra["conversation_starter"] = spec_agent.conversation_starter
+        if spec_agent.agent_settings:
+            extra["agent_settings"] = spec_agent.agent_settings
+        if spec_agent.document_intelligence:
+            extra["document_intelligence"] = spec_agent.document_intelligence
+        if spec_agent.docker_mcp_gateway:
+            extra["docker_mcp_gateway"] = spec_agent.docker_mcp_gateway.model_dump()
+
+        return Agent(
+            name=spec_agent.name,
+            description=spec_agent.description,
+            version=spec_agent.version,
+            user_id=user_id or DEFAULT_AGENT_TEMP_USER_ID,
+            agent_id=agent_id or DEFAULT_AGENT_TEMP_ID,
+            runbook_structured=runbook_structured,
+            action_packages=action_packages,
+            mcp_servers=mcp_servers,
+            selected_tools=selected_tools,
+            question_groups=question_groups,
+            agent_architecture=AgentArchitecture(name=architecture_name, version="1.0.0"),
+            platform_configs=[],  # Will be excluded from comparison
+            mode=mode,
+            extra=extra,
         )

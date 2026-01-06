@@ -6582,6 +6582,58 @@ export const spec = {
         },
       },
     },
+    '/api/v2/package/diff': {
+      post: {
+        tags: ['package'],
+        summary: 'Compare agent package with deployed agent',
+        description:
+          'Compare an agent package with a deployed agent. Accepts binary ZIP files.',
+        operationId: 'diff_agent_package_package_diff_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_diff_agent_package_package_diff_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/StatusResponse_AgentDiffResult_',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/platforms/': {
       get: {
         tags: ['platforms'],
@@ -10340,6 +10392,26 @@ export const spec = {
         required: ['runbook', 'action_packages', 'mcp_servers'],
         title: 'AgentDetails',
       },
+      AgentDiffResult: {
+        properties: {
+          is_synced: {
+            type: 'boolean',
+            title: 'Is Synced',
+            description: 'True if there are no differences',
+            default: false,
+          },
+          changes: {
+            items: {
+              $ref: '#/components/schemas/DiffResult',
+            },
+            type: 'array',
+            title: 'Changes',
+            description: 'List of differences between spec and deployed agent',
+          },
+        },
+        type: 'object',
+        title: 'AgentDiffResult',
+      },
       AgentPackageActionPackageMetadata: {
         properties: {
           name: {
@@ -11944,6 +12016,19 @@ export const spec = {
         required: ['file', 'name'],
         title:
           'Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post',
+      },
+      Body_diff_agent_package_package_diff_post: {
+        properties: {
+          agent_package_zip: {
+            type: 'string',
+            format: 'binary',
+            title: 'Agent Package Zip',
+            description: 'Agent Package ZIP file',
+          },
+        },
+        type: 'object',
+        required: ['agent_package_zip'],
+        title: 'Body_diff_agent_package_package_diff_post',
       },
       Body_generate_data_model_from_document_document_intelligence_data_models_generate_post:
         {
@@ -13621,6 +13706,28 @@ export const spec = {
         type: 'object',
         required: ['server_hostname', 'http_path', 'access_token'],
         title: 'DatabricksDataConnectionConfiguration',
+      },
+      DiffResult: {
+        properties: {
+          change: {
+            type: 'string',
+            enum: ['add', 'update', 'delete'],
+            title: 'Change',
+          },
+          field_path: {
+            type: 'string',
+            title: 'Field Path',
+          },
+          deployed_value: {
+            title: 'Deployed Value',
+          },
+          package_value: {
+            title: 'Package Value',
+          },
+        },
+        type: 'object',
+        required: ['change', 'field_path'],
+        title: 'DiffResult',
       },
       Dimension: {
         properties: {
@@ -23214,6 +23321,45 @@ export const spec = {
         title: 'StatusError',
         description:
           'A client-safe error representation that can be included in StatusResponse.\n\nThis model extracts safe information from PlatformError objects while\nexcluding sensitive internal details.',
+      },
+      StatusResponse_AgentDiffResult_: {
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['success', 'failure'],
+            title: 'Status',
+            description: 'Indicates whether the operation was successful',
+          },
+          data: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/AgentDiffResult',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description: 'The result data when successful, null when failed',
+          },
+          errors: {
+            items: {
+              anyOf: [
+                {
+                  $ref: '#/components/schemas/StatusError',
+                },
+                {
+                  type: 'string',
+                },
+              ],
+            },
+            type: 'array',
+            title: 'Errors',
+            description: 'List of errors when the operation fails',
+          },
+        },
+        type: 'object',
+        required: ['status'],
+        title: 'StatusResponse[AgentDiffResult]',
       },
       StatusResponse_AgentPackageInspectionResponse_: {
         properties: {
