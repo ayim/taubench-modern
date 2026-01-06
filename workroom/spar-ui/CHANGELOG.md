@@ -1,5 +1,14 @@
 # @sema4ai/spar-ui
 
+## 0.13.4
+
+### Patch Changes
+
+- b007e49: Display tooltips for longer filenames in Files sidepanel
+- 93f13cd: Formatting and linting
+- a9f7e3c: Add telemetry for SDM events.
+- b007e49: Enforce 20Mb file size limit for file-based SDMs
+
 ## 0.13.3
 
 ### Patch Changes
