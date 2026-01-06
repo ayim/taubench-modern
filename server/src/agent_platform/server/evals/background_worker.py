@@ -104,6 +104,8 @@ class TaskCallbacks(Protocol[T]):  # type: ignore
 class QueueSettings:
     worker_interval: float = 5.0
     batch_timeout: float = 300.0
+    batch_watchdog_interval: float = 300.0
+    batch_run_timeout_seconds: float = 24 * 60 * 60
     max_parallel_in_process: int = 8
     retry_after_seconds: float = 60.0
     retry_attempts_limit: int = 3
@@ -121,12 +123,15 @@ class WorkQueue(Generic[T]):
         settings: QueueSettings | None = None,
         validator: TaskValidator[T] | None = None,
         callbacks: TaskCallbacks[T] | None = None,
+        batch_watchdog: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         self.repo = repository
         self.runner = runner
         self.validator = validator
         self.callbacks = callbacks
         self.settings = settings or QueueSettings()
+        self._batch_watchdog = batch_watchdog
+        self._last_watchdog_run: datetime | None = None
 
     async def worker_loop(self) -> None:
         """Continuously polls for work and processes it in batches."""
@@ -136,6 +141,7 @@ class WorkQueue(Generic[T]):
 
         while not ShutdownManager.should_worker_shutdown(WORKER_NAME):
             try:
+                await self._maybe_run_batch_watchdog()
                 await self._worker_iteration()
             except Exception as exc:
                 logger.error("Error processing tasks: %s", exc, exc_info=exc)
@@ -516,6 +522,25 @@ class WorkQueue(Generic[T]):
         if max_delay:
             delay = min(delay, max_delay)
         return datetime.now(UTC) + timedelta(seconds=delay)
+
+    async def _maybe_run_batch_watchdog(self) -> None:
+        """Periodically run an optional batch watchdog."""
+        if not self._batch_watchdog:
+            return
+
+        now = datetime.now(UTC)
+        last_run = self._last_watchdog_run
+        interval = self.settings.batch_watchdog_interval
+
+        if last_run and (now - last_run).total_seconds() < interval:
+            return
+
+        try:
+            await self._batch_watchdog()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Batch watchdog failed: %s", exc, exc_info=exc)
+        finally:
+            self._last_watchdog_run = now
 
 
 async def _safe_call(fn: Callable[[T, str], Awaitable[None]] | None, task: T, status: str) -> None:

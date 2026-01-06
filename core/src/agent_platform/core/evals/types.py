@@ -5,8 +5,41 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import UUID
 
-from agent_platform.core.evals.replay_executor import DriftEvent
 from agent_platform.core.thread.base import ThreadMessage
+
+
+class DriftType(str, Enum):
+    ORDER_MISMATCH = "ORDER_MISMATCH"
+    NAME_MISMATCH = "NAME_MISMATCH"
+    ARG_MISMATCH = "ARG_MISMATCH"
+    EXTRA_ACTUAL_CALL = "EXTRA_ACTUAL_CALL"
+    MISSING_ACTUAL_CALL = "MISSING_ACTUAL_CALL"
+    LEFTOVER_RECORDED_CALLS = "LEFTOVER_RECORDED_CALLS"
+
+
+@dataclass
+class DriftEvent:
+    index_before: int
+    drift_type: DriftType
+    message: str
+    expected_tool: str | None = None
+    actual_tool: str | None = None
+    expected_args: dict[str, Any] | None = None
+    actual_args: dict[str, Any] | None = None
+    repair_action: str | None = None
+    llm_reason: str | None = None
+    llm_raw_response: str | None = None
+    llm_proposed_output: Any | None = None
+    llm_proposed_error: str | None = None
+
+    @classmethod
+    def model_validate(cls, data: dict) -> "DriftEvent":
+        if data.get("drift_type"):
+            data["drift_type"] = DriftType(data["drift_type"])
+        return cls(**data)
+
+    def model_dump(self) -> dict:
+        return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -113,44 +146,6 @@ class EvaluationAggregate:
         if not data:
             return cls()
         return cls(total=int(data.get("total", 0)), passed=int(data.get("passed", 0)))
-
-
-@dataclass(frozen=True)
-class ScenarioBatchRunStatistics:
-    total_scenarios: int = 0
-    completed_scenarios: int = 0
-    failed_scenarios: int = 0
-    total_trials: int = 0
-    completed_trials: int = 0
-    failed_trials: int = 0
-    evaluation_totals: dict[str, EvaluationAggregate] = field(default_factory=dict)
-
-    def model_dump(self) -> dict:
-        return {
-            "total_scenarios": self.total_scenarios,
-            "completed_scenarios": self.completed_scenarios,
-            "failed_scenarios": self.failed_scenarios,
-            "total_trials": self.total_trials,
-            "completed_trials": self.completed_trials,
-            "failed_trials": self.failed_trials,
-            "evaluation_totals": {key: value.model_dump() for key, value in self.evaluation_totals.items()},
-        }
-
-    @classmethod
-    def model_validate(cls, data: dict | None) -> "ScenarioBatchRunStatistics":
-        if not data:
-            return cls()
-        evaluation_totals = data.get("evaluation_totals") or {}
-        parsed_totals = {key: EvaluationAggregate.model_validate(value) for key, value in evaluation_totals.items()}
-        return cls(
-            total_scenarios=int(data.get("total_scenarios", 0)),
-            completed_scenarios=int(data.get("completed_scenarios", 0)),
-            failed_scenarios=int(data.get("failed_scenarios", 0)),
-            total_trials=int(data.get("total_trials", 0)),
-            completed_trials=int(data.get("completed_trials", 0)),
-            failed_trials=int(data.get("failed_trials", 0)),
-            evaluation_totals=parsed_totals,
-        )
 
 
 def parse_evaluation_result(data: dict) -> "EvaluationResult":
@@ -455,6 +450,135 @@ class ScenarioRun:
 
     def with_trials(self, trials: list[Trial]) -> "ScenarioRun":
         return replace(self, trials=trials)
+
+
+@dataclass(frozen=True)
+class ScenarioBatchRunStatistics:
+    total_scenarios: int = 0
+    completed_scenarios: int = 0
+    failed_scenarios: int = 0
+    total_trials: int = 0
+    completed_trials: int = 0
+    failed_trials: int = 0
+    evaluation_totals: dict[str, EvaluationAggregate] = field(default_factory=dict)
+
+    def model_dump(self) -> dict:
+        return {
+            "total_scenarios": self.total_scenarios,
+            "completed_scenarios": self.completed_scenarios,
+            "failed_scenarios": self.failed_scenarios,
+            "total_trials": self.total_trials,
+            "completed_trials": self.completed_trials,
+            "failed_trials": self.failed_trials,
+            "evaluation_totals": {key: value.model_dump() for key, value in self.evaluation_totals.items()},
+        }
+
+    @classmethod
+    def model_validate(cls, data: dict | None) -> "ScenarioBatchRunStatistics":
+        if not data:
+            return cls()
+        evaluation_totals = data.get("evaluation_totals") or {}
+        parsed_totals = {key: EvaluationAggregate.model_validate(value) for key, value in evaluation_totals.items()}
+        return cls(
+            total_scenarios=int(data.get("total_scenarios", 0)),
+            completed_scenarios=int(data.get("completed_scenarios", 0)),
+            failed_scenarios=int(data.get("failed_scenarios", 0)),
+            total_trials=int(data.get("total_trials", 0)),
+            completed_trials=int(data.get("completed_trials", 0)),
+            failed_trials=int(data.get("failed_trials", 0)),
+            evaluation_totals=parsed_totals,
+        )
+
+    @classmethod
+    def from_trials(
+        cls,
+        trials_per_run: dict[str, list[Trial]],
+        *,
+        expected_scenarios: int,
+    ) -> tuple["ScenarioBatchRunStatistics", "ScenarioBatchRunStatus"]:
+        total_scenarios = expected_scenarios or len(trials_per_run)
+        completed_scenarios = 0
+        failed_scenarios = 0
+        total_trials = 0
+        completed_trials = 0
+        failed_trials = 0
+        canceled_trials = 0
+        missing_runs = expected_scenarios > len(trials_per_run)
+        has_pending_trials = False
+        has_executing = False
+        evaluation_totals: dict[str, EvaluationAggregate] = {}
+
+        for trials in trials_per_run.values():
+            if not trials:
+                continue
+
+            scenario_failed = False
+            scenario_completed = True
+            scenario_canceled = True
+
+            for trial in trials:
+                total_trials += 1
+
+                if trial.status == TrialStatus.COMPLETED:
+                    completed_trials += 1
+                    scenario_canceled = False
+                elif trial.status == TrialStatus.ERROR:
+                    failed_trials += 1
+                    scenario_failed = True
+                    scenario_completed = False
+                    scenario_canceled = False
+                elif trial.status == TrialStatus.CANCELED:
+                    canceled_trials += 1
+                    scenario_completed = False
+                elif trial.status == TrialStatus.EXECUTING:
+                    has_executing = True
+                    scenario_completed = False
+                    scenario_canceled = False
+                elif trial.status == TrialStatus.PENDING:
+                    has_pending_trials = True
+                    scenario_completed = False
+                    scenario_canceled = False
+
+                for result in trial.evaluation_results:
+                    current = evaluation_totals.get(result.kind)
+                    if current is None:
+                        current = EvaluationAggregate()
+                    evaluation_totals[result.kind] = EvaluationAggregate(
+                        total=current.total + 1,
+                        passed=current.passed + (1 if getattr(result, "passed", False) else 0),
+                    )
+
+            if scenario_failed or scenario_canceled:
+                failed_scenarios += 1
+            elif scenario_completed:
+                completed_scenarios += 1
+
+        if total_trials == 0:
+            derived_status = ScenarioBatchRunStatus.PENDING
+        elif completed_trials + failed_trials + canceled_trials == total_trials:
+            derived_status = (
+                ScenarioBatchRunStatus.CANCELED
+                if canceled_trials == total_trials and completed_trials == 0
+                else ScenarioBatchRunStatus.COMPLETED
+            )
+        elif has_executing or has_pending_trials:
+            derived_status = ScenarioBatchRunStatus.RUNNING
+        elif missing_runs:
+            derived_status = ScenarioBatchRunStatus.PENDING
+        else:
+            derived_status = ScenarioBatchRunStatus.RUNNING
+
+        statistics = cls(
+            total_scenarios=total_scenarios,
+            completed_scenarios=completed_scenarios,
+            failed_scenarios=failed_scenarios,
+            total_trials=total_trials,
+            completed_trials=completed_trials,
+            failed_trials=failed_trials,
+            evaluation_totals=evaluation_totals,
+        )
+
+        return statistics, derived_status
 
 
 @dataclass(frozen=True)

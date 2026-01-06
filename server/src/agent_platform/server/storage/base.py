@@ -23,7 +23,6 @@ from agent_platform.core.data_frames import PlatformDataFrame
 from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, model_dump_sdm
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.evals.types import (
-    EvaluationResult,
     ExecutionState,
     Scenario,
     ScenarioBatchRun,
@@ -51,6 +50,7 @@ from agent_platform.server.storage.errors import (
 if typing.TYPE_CHECKING:
     from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
+    from agent_platform.core.evals.types import EvaluationResult
     from agent_platform.core.mcp.mcp_server import (
         MCPServer,
         MCPServerSource,
@@ -1684,6 +1684,37 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return ScenarioBatchRun.model_validate(dict(row)) if row is not None else None
 
+    async def list_active_scenario_batch_runs(self) -> list[ScenarioBatchRun]:
+        """Return all batch runs that are still pending or running."""
+        batches = self._get_table("scenario_run_batches")
+        active_statuses = (
+            ScenarioBatchRunStatus.PENDING.value,
+            ScenarioBatchRunStatus.RUNNING.value,
+        )
+
+        stmt = (
+            sa.select(
+                batches.c.batch_run_id,
+                batches.c.agent_id,
+                batches.c.user_id,
+                batches.c.metadata,
+                batches.c.scenario_ids,
+                batches.c.status,
+                batches.c.statistics,
+                batches.c.created_at,
+                batches.c.updated_at,
+                batches.c.completed_at,
+            )
+            .where(batches.c.status.in_(active_statuses))
+            .order_by(batches.c.created_at.asc())
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.execute(stmt)
+            rows = result.mappings().fetchall()
+
+        return [ScenarioBatchRun.model_validate(dict(row)) for row in rows]
+
     async def list_scenario_run_trials(self, scenario_run_id: str) -> list[Trial]:
         """Get a run trial."""
         trials = self._get_table("trials")
@@ -1886,6 +1917,40 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return [row["trial_id"] for row in rows]
 
+    async def mark_active_batch_trials_as_failed(self, batch_run_id: str, error: str | None = None) -> list[str]:
+        """Mark all non-terminal trials for the given batch as failed."""
+        trials = self._get_table("trials")
+        scenario_runs = self._get_table("scenario_runs")
+        now = datetime.now(UTC)
+
+        batch_run_trials = sa.select(scenario_runs.c.scenario_run_id).where(
+            scenario_runs.c.batch_run_id == batch_run_id
+        )
+
+        update_trials_stmt = (
+            sa.update(trials)
+            .where(
+                sa.and_(
+                    trials.c.scenario_run_id.in_(batch_run_trials),
+                    trials.c.status.in_((TrialStatus.PENDING, TrialStatus.EXECUTING)),
+                )
+            )
+            .values(
+                status=TrialStatus.ERROR,
+                error_message=error,
+                updated_at=now,
+                status_updated_at=now,
+                retry_after_at=None,
+            )
+            .returning(trials.c.trial_id)
+        )
+
+        async with self._write_connection() as conn:
+            result = await conn.execute(update_trials_stmt)
+            rows = result.mappings().fetchall()
+
+        return [row["trial_id"] for row in rows]
+
     async def update_trial_status(self, trial_id: str, user_id: str, status: TrialStatus, error: str | None = None):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
@@ -1949,7 +2014,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if status_value == TrialStatus.CANCELED:
                 raise TrialAlreadyCanceledError(f"Trial {trial_id!r} is already canceled")
 
-    async def update_trial_evaluation_results(self, trial_id: str, evaluations: Sequence[EvaluationResult]):
+    async def update_trial_evaluation_results(self, trial_id: str, evaluations: "Sequence[EvaluationResult]"):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
 

@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from datetime import timedelta
 from os import getenv
 
 import structlog
@@ -15,10 +16,8 @@ from agent_platform.server.data_retention_policy import start_data_retention_wor
 from agent_platform.server.evals.background_worker import (
     WORKER_NAME as EVALS_WORKER_NAME,
 )
-from agent_platform.server.evals.background_worker import (
-    QueueSettings,
-    WorkQueue,
-)
+from agent_platform.server.evals.background_worker import QueueSettings, WorkQueue
+from agent_platform.server.evals.batch_timeout_watcher import ScenarioBatchTimeoutWatcher
 from agent_platform.server.evals.repository import ScenarioRunTrialRepository
 from agent_platform.server.evals.run_scenario import run_evaluations, run_scenario
 from agent_platform.server.preinstalled_agents import ensure_preinstalled_agents
@@ -50,15 +49,25 @@ def _start_work_items_background_worker() -> None:
 def _start_evals_background_worker() -> None:
     logger.info("Starting evals background worker")
 
+    storage = StorageService.get_instance()
+    queue_settings = QueueSettings(
+        worker_interval=int(getenv("EVALS_WORKER_INTERVAL", "5")),
+        batch_timeout=float(getenv("EVALS_BATCH_TIMEOUT", "600")),  # 10 minutes
+        max_parallel_in_process=int(getenv("EVALS_MAX_PARALLEL_IN_PROCESS", "10")),
+        batch_watchdog_interval=float(getenv("EVALS_BATCH_TIMEOUT_CHECK_INTERVAL", "300")),
+        batch_run_timeout_seconds=float(getenv("EVALS_BATCH_RUN_TIMEOUT_SECONDS", str(24 * 60 * 60))),
+    )
+    batch_watchdog = ScenarioBatchTimeoutWatcher(
+        storage=storage,
+        max_age=timedelta(seconds=queue_settings.batch_run_timeout_seconds),
+    )
+
     queue = WorkQueue[Trial](
         repository=ScenarioRunTrialRepository(),
         runner=run_scenario,
         validator=run_evaluations,
-        settings=QueueSettings(
-            worker_interval=int(getenv("EVALS_WORKER_INTERVAL", "5")),
-            batch_timeout=float(getenv("EVALS_BATCH_TIMEOUT", "600")),  # 10 minutes
-            max_parallel_in_process=int(getenv("EVALS_MAX_PARALLEL_IN_PROCESS", "10")),
-        ),
+        settings=queue_settings,
+        batch_watchdog=batch_watchdog,
     )
 
     ShutdownManager.register_drainable_background_worker(EVALS_WORKER_NAME, queue.worker_loop)

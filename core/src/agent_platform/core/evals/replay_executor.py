@@ -1,7 +1,6 @@
 import json
 from copy import deepcopy
-from dataclasses import asdict, dataclass, replace
-from enum import Enum
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -18,6 +17,7 @@ from agent_platform.core.evals.tool_call_validator import (
     ToolCallValidationContext,
     ToolCallValidator,
 )
+from agent_platform.core.evals.types import DriftEvent, DriftType
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
@@ -41,41 +41,6 @@ class ReplayDriftError(ToolExecutionError):
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(message, details)
-
-
-class DriftType(str, Enum):
-    ORDER_MISMATCH = "ORDER_MISMATCH"
-    NAME_MISMATCH = "NAME_MISMATCH"
-    ARG_MISMATCH = "ARG_MISMATCH"
-    EXTRA_ACTUAL_CALL = "EXTRA_ACTUAL_CALL"
-    MISSING_ACTUAL_CALL = "MISSING_ACTUAL_CALL"
-    LEFTOVER_RECORDED_CALLS = "LEFTOVER_RECORDED_CALLS"
-
-
-@dataclass
-class DriftEvent:
-    index_before: int
-    drift_type: DriftType
-    message: str
-    expected_tool: str | None = None
-    actual_tool: str | None = None
-    expected_args: dict[str, Any] | None = None
-    actual_args: dict[str, Any] | None = None
-    repair_action: str | None = None
-    llm_reason: str | None = None
-    llm_raw_response: str | None = None
-    llm_proposed_output: Any | None = None
-    llm_proposed_error: str | None = None
-
-    @classmethod
-    def model_validate(cls, data: dict) -> "DriftEvent":
-        if data["drift_type"]:
-            data["drift_type"] = DriftType(data["drift_type"])
-
-        return cls(**data)
-
-    def model_dump(self) -> dict:
-        return asdict(self)
 
 
 @dataclass

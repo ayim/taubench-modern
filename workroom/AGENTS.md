@@ -50,10 +50,14 @@ React Query returns `QueryError`, not generic `Error`. Checking `instanceof Erro
 
 ```typescript
 // ❌ Dead code - react-query returns QueryError
-{error instanceof Error ? error.message : 'Unknown error'}
+{
+  error instanceof Error ? error.message : 'Unknown error';
+}
 
 // ✅ QueryError always has message
-{error.message}
+{
+  error.message;
+}
 ```
 
 ## Code Comments
@@ -188,7 +192,7 @@ export const mcpServerQueryKey = (mcpServerId: string) => ['mcp-server', mcpServ
 // Use in mutations for cache updates
 onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: mcpServersQueryKey() });
-}
+};
 ```
 
 ### Error Handling
@@ -199,7 +203,7 @@ onSuccess: () => {
   ```typescript
   onError: () => {
     // No-op: Error displayed inline in form, not via snackbar
-  }
+  };
   ```
 - Use `mutation.error` directly instead of duplicating error state with useState
 

@@ -16,10 +16,14 @@ from agent_platform.core.agent.observability_config import ObservabilityConfig
 from agent_platform.core.context import AgentServerContext
 from agent_platform.core.evals.agent_client import AgentClient, ToolExecutionError, UnexpectedToolError
 from agent_platform.core.evals.live_executor import LiveToolExecutor
-from agent_platform.core.evals.replay_executor import DriftEvent, ReplayDriftError, ReplayToolExecutor
+from agent_platform.core.evals.replay_executor import (
+    ReplayDriftError,
+    ReplayToolExecutor,
+)
 from agent_platform.core.evals.session import Session
 from agent_platform.core.evals.types import (
     ActionCallingResult,
+    DriftEvent,
     EvaluationResult,
     ExecutionState,
     Scenario,

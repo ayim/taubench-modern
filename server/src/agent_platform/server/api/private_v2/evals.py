@@ -13,7 +13,6 @@ from agent_platform.core.agent.agent import Agent
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.evals.types import (
-    EvaluationAggregate,
     Scenario,
     ScenarioBatchRunStatistics,
     ScenarioBatchRunStatus,
@@ -681,7 +680,7 @@ async def _refresh_batch_run_statistics(batch_run: ScenarioBatchRun, storage: St
         trials = await storage.list_scenario_run_trials(scenario_run_id=run.scenario_run_id)
         trials_per_run[run.scenario_run_id] = trials
 
-    statistics, derived_status = _calculate_batch_statistics(
+    statistics, derived_status = ScenarioBatchRunStatistics.from_trials(
         trials_per_run,
         expected_scenarios=len(batch_run.scenario_ids) or len(scenario_runs),
     )
@@ -712,95 +711,6 @@ async def _refresh_batch_run_statistics(batch_run: ScenarioBatchRun, storage: St
 
     target = updated if updated is not None else batch_run
     return replace(target, trial_statuses=trial_statuses)
-
-
-def _calculate_batch_statistics(
-    trials_per_run: dict[str, list[Trial]],
-    expected_scenarios: int,
-) -> tuple[ScenarioBatchRunStatistics, ScenarioBatchRunStatus]:
-    total_scenarios = expected_scenarios or len(trials_per_run)
-    completed_scenarios = 0
-    failed_scenarios = 0
-    total_trials = 0
-    completed_trials = 0
-    failed_trials = 0
-    canceled_trials = 0
-    missing_runs = expected_scenarios > len(trials_per_run)
-    has_pending_trials = False
-    has_executing = False
-    evaluation_totals: dict[str, EvaluationAggregate] = {}
-
-    for trials in trials_per_run.values():
-        if not trials:
-            continue
-
-        scenario_failed = False
-        scenario_completed = True
-        scenario_canceled = True
-
-        for trial in trials:
-            total_trials += 1
-
-            if trial.status == TrialStatus.COMPLETED:
-                completed_trials += 1
-                scenario_canceled = False
-            elif trial.status == TrialStatus.ERROR:
-                failed_trials += 1
-                scenario_failed = True
-                scenario_completed = False
-                scenario_canceled = False
-            elif trial.status == TrialStatus.CANCELED:
-                canceled_trials += 1
-                scenario_completed = False
-            elif trial.status == TrialStatus.EXECUTING:
-                has_executing = True
-                scenario_completed = False
-                scenario_canceled = False
-            elif trial.status == TrialStatus.PENDING:
-                has_pending_trials = True
-                scenario_completed = False
-                scenario_canceled = False
-
-            for result in trial.evaluation_results:
-                current = evaluation_totals.get(result.kind)
-                if current is None:
-                    current = EvaluationAggregate()
-                evaluation_totals[result.kind] = EvaluationAggregate(
-                    total=current.total + 1,
-                    passed=current.passed + (1 if getattr(result, "passed", False) else 0),
-                )
-
-        if scenario_failed or scenario_canceled:
-            failed_scenarios += 1
-        elif scenario_completed:
-            completed_scenarios += 1
-
-    if total_trials == 0:
-        derived_status = ScenarioBatchRunStatus.PENDING
-    elif completed_trials + failed_trials + canceled_trials == total_trials:
-        derived_status = (
-            ScenarioBatchRunStatus.CANCELED
-            if canceled_trials == total_trials and completed_trials == 0
-            else ScenarioBatchRunStatus.COMPLETED
-        )
-    elif has_executing or has_pending_trials:
-        derived_status = ScenarioBatchRunStatus.RUNNING
-    elif missing_runs:
-        derived_status = ScenarioBatchRunStatus.PENDING
-    else:
-        derived_status = ScenarioBatchRunStatus.RUNNING
-
-    statistics = ScenarioBatchRunStatistics(
-        total_scenarios=total_scenarios,
-        completed_scenarios=completed_scenarios,
-        failed_scenarios=failed_scenarios,
-        total_trials=total_trials,
-        completed_trials=completed_trials,
-        failed_trials=failed_trials,
-        evaluation_totals=evaluation_totals,
-    )
-
-    return statistics, derived_status
 
 
 def _ensure_datetime_has_tzinfo(reference: datetime | None) -> datetime | None:

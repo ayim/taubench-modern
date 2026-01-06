@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -75,6 +76,10 @@ class _StubRepository(background_worker.TaskRepository[Trial]):
     @property
     def set_status_if_not_canceled_mock(self) -> AsyncMock:
         return self._set_status_if_not_canceled
+
+    @property
+    def get_pending_task_ids_mock(self) -> AsyncMock:
+        return self._get_pending_task_ids
 
 
 @pytest.mark.asyncio
@@ -253,3 +258,47 @@ def test_compute_retry_after_applies_backoff_and_jitter(monkeypatch):
 
     # base_delay=10 * 2**(next_attempt-1)=40; jitter=1.5 -> 60; clamped to max=50
     assert result == datetime(2024, 1, 1, tzinfo=UTC) + timedelta(seconds=50)
+
+
+@pytest.mark.asyncio
+async def test_worker_loop_triggers_batch_watchdog(monkeypatch):
+    repo = _StubRepository()
+    repo.get_pending_task_ids_mock.return_value = []
+
+    loop = asyncio.get_running_loop()
+    shutdown_future = loop.create_future()
+
+    class _FakeShutdown:
+        @classmethod
+        def get_shutdown_task(cls, worker_name: str):
+            return shutdown_future
+
+        @classmethod
+        def should_worker_shutdown(cls, worker_name: str) -> bool:
+            return shutdown_future.done()
+
+    monkeypatch.setattr(background_worker, "ShutdownManager", _FakeShutdown)
+
+    watchdog_called = asyncio.Event()
+    watchdog_runs = 0
+
+    async def _watchdog():
+        nonlocal watchdog_runs
+        watchdog_runs += 1
+        watchdog_called.set()
+
+    queue = WorkQueue(
+        repo,
+        runner=AsyncMock(),
+        settings=QueueSettings(worker_interval=0.01, batch_watchdog_interval=0.0),
+        batch_watchdog=_watchdog,
+    )
+
+    worker_task = asyncio.create_task(queue.worker_loop())
+    await asyncio.wait_for(watchdog_called.wait(), timeout=1)
+
+    if not shutdown_future.done():
+        shutdown_future.set_result(None)
+
+    await asyncio.wait_for(worker_task, timeout=1)
+    assert watchdog_runs >= 1
