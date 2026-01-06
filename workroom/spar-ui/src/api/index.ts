@@ -42,7 +42,15 @@ export type AnalyticsEvent =
   | 'scenario_creation.saved'
   | 'scenario_creation.canceled'
   | `scenario_batch_run_${string}.started`
-  | `scenario_batch_run_${string}.canceled`;
+  | `scenario_batch_run_${string}.canceled`
+  // agentName.type.dialect, e.g. "MyAgentName.file.xlsx" or "MyAgentName.database.redshift"
+  | `semantic_data_model.created.${string}.${string}.${string}`
+  | `semantic_data_model.imported.${string}.${string}.${string}`
+  | `semantic_data_model.modified`
+  | `semantic_data_model.deleted`
+  | `semantic_data_model.verified_query.created.${string}.${string}.${string}`
+  | `semantic_data_model.verified_query.modified`
+  | `semantic_data_model.verified_query.deleted`;
 
 export interface SparAPIClient {
   /**

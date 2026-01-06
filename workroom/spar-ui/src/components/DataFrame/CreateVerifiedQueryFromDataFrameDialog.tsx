@@ -8,6 +8,9 @@ import {
   VerifiedQueryForm,
   FormData,
 } from '../SemanticData/SemanticDataConfiguration/components/ModelEdition/components/VerifiedQueryForm';
+import { DataSourceType } from '../SemanticData/SemanticDataConfiguration/components/form';
+import { useSemanticDataAnalytics } from '../SemanticData/analytics';
+import { getDataConnectionId } from '../../lib/SemanticDataModels';
 
 interface CreateVerifiedQueryDialogProps {
   open: boolean;
@@ -41,6 +44,15 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
   const selectedModel = useMemo(() => {
     return semanticModels.find((model) => model.id === selectedModelId);
   }, [semanticModels, selectedModelId]);
+
+  // Determine data source info for analytics
+  const dataConnectionId = selectedModel ? getDataConnectionId(selectedModel) : undefined;
+  const dataSourceType = dataConnectionId ? DataSourceType.Database : DataSourceType.File;
+  const { trackVerifiedQueryCreated } = useSemanticDataAnalytics({
+    agentId,
+    dataSourceType,
+    dataConnectionId,
+  });
 
   const {
     data: initialQuery,
@@ -191,12 +203,14 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
         agentId,
       });
 
+      trackVerifiedQueryCreated(true);
       addSnackbar({
         message: `Successfully created verified query "${newQuery.name}"`,
         variant: 'success',
       });
       handleClose();
     } catch (error) {
+      trackVerifiedQueryCreated(false);
       if (error instanceof QueryError) {
         const snackbarContent = getSnackbarContent(error);
         addSnackbar(snackbarContent);
@@ -221,6 +235,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
     threadId,
     agentId,
     handleClose,
+    trackVerifiedQueryCreated,
   ]);
 
   if (isLoading) {

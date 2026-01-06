@@ -13,6 +13,7 @@ import {
   useDataConnectionDatabaseInspectMutation,
   useImportSemanticDataModelMutation,
 } from '../../../queries';
+import { useSemanticDataAnalytics } from '../analytics';
 import {
   ConfigurationStep,
   DatabaseInspectionState,
@@ -89,6 +90,16 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     defaultValues: defaultFormDataValues,
   });
 
+  const { dataSelection, tables, fileRefId, dataConnectionId } = formMethods.watch();
+
+  const { trackSemanticDataModelCreated, trackSemanticDataModelImported, trackSemanticDataModelModified } =
+    useSemanticDataAnalytics({
+      agentId,
+      dataSourceType,
+      dataConnectionId,
+      fileRefId,
+    });
+
   useEffect(() => {
     if (semanticModel) {
       const values = semanticModelToFormSchema(semanticModel);
@@ -114,6 +125,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         { ...values, modelId, agentId, shouldRegenerateModel },
         {
           onSuccess: () => {
+            trackSemanticDataModelModified();
             addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
             onClose();
           },
@@ -130,8 +142,10 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
           onSuccess: (result) => {
             if (result.withErrors) {
               setActiveStep(ConfigurationStep.ImportWithErrors);
+              trackSemanticDataModelImported(false);
             } else {
               setActiveStep(ConfigurationStep.SuccessImport);
+              trackSemanticDataModelImported(true);
             }
 
             setModelId(result.semanticModelId);
@@ -139,6 +153,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
           onError: (error) => {
             setActiveStep(ConfigurationStep.DataConnection);
             addSnackbar({ message: error.message, variant: 'danger' });
+            trackSemanticDataModelImported(false);
           },
         },
       );
@@ -150,9 +165,11 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
           onSuccess: (result) => {
             setActiveStep(ConfigurationStep.SuccessCreation);
             setModelId(result.semantic_data_model_id);
+            trackSemanticDataModelCreated(true);
           },
           onError: (error) => {
             addSnackbar({ message: error.message, variant: 'danger' });
+            trackSemanticDataModelCreated(false);
           },
         },
       );
@@ -169,8 +186,6 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     }),
     [databaseInspectionState, onSubmit, forceModelRegeneration],
   );
-
-  const { fileRefId, dataConnectionId, dataSelection, tables } = formMethods.watch();
 
   useEffect(() => {
     const inspect = async () => {

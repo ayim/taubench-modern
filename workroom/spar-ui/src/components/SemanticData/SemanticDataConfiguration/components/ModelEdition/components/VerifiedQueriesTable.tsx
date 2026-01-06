@@ -5,9 +5,11 @@ import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts'
 import { useFormContext } from 'react-hook-form';
 
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
-import { DataConnectionFormSchema } from '../../form';
+import { DataConnectionFormSchema, DataSourceType } from '../../form';
 import { VerifiedQuery } from '../../../../../../queries/semanticData';
 import { EditVerifiedQueryDialog } from './EditVerifiedQueryDialog';
+import { useParams } from '../../../../../../hooks';
+import { useSemanticDataAnalytics } from '../../../../analytics';
 
 type VerifiedQueryRowData = VerifiedQuery & {
   created: string;
@@ -104,10 +106,21 @@ type Props = {
 };
 
 export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
+  const { agentId } = useParams('/thread/$agentId');
   const [isCreateQueryDialogOpen, setIsCreateQueryDialogOpen] = useState(false);
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const verifiedQueries = watch('verifiedQueries') || [];
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [dataConnectionId, fileRefId] = watch(['dataConnectionId', 'fileRefId']);
+
+  // Determine data source info for analytics
+  const dataSourceType = dataConnectionId ? DataSourceType.Database : DataSourceType.File;
+  const { trackVerifiedQueryDeleted } = useSemanticDataAnalytics({
+    agentId,
+    dataSourceType,
+    dataConnectionId,
+    fileRefId,
+  });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -189,6 +202,7 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
   const handleDelete = (index: number) => {
     const updatedQueries = verifiedQueries.filter((_, i) => i !== index);
     setValue('verifiedQueries', updatedQueries);
+    trackVerifiedQueryDeleted();
   };
 
   const handleCloseDialog = () => {

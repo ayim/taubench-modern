@@ -74,3 +74,12 @@ export const requiresDataConnection = (semanticModel: SemanticModel): boolean =>
     (table) => !!table.base_table.data_connection_id || !!table.base_table.data_connection_name,
   );
 };
+
+/**
+ * Get the data connection ID from the first table with a data connection ID.
+ * @param semanticModel
+ * @returns The data connection ID from the first table with a data connection ID, or undefined if no table has a data connection ID.
+ */
+export const getDataConnectionId = (semanticModel: SemanticModel): string | undefined => {
+  return semanticModel.tables.find((table) => table.base_table?.data_connection_id)?.base_table?.data_connection_id;
+};

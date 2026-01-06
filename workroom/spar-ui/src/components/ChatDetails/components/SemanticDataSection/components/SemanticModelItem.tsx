@@ -16,11 +16,16 @@ import {
 import { useFeatureFlag, useMessageStream, useParams } from '../../../../../hooks';
 import { RenameDialog } from '../../../../../common/dialogs/RenameDialog';
 import { downloadFile } from '../../../../../lib/utils';
-import { parseSemanticModelErrors, requiresDataConnection } from '../../../../../lib/SemanticDataModels';
+import {
+  parseSemanticModelErrors,
+  requiresDataConnection,
+  getDataConnectionId,
+} from '../../../../../lib/SemanticDataModels';
 import { ErrorPopover } from './ErrorPopover';
-import { ConfigurationStep } from '../../../../SemanticData/SemanticDataConfiguration/components/form';
+import { ConfigurationStep, DataSourceType } from '../../../../SemanticData/SemanticDataConfiguration/components/form';
 import { SparUIFeatureFlag } from '../../../../../api';
 import { DataConnectionInformation } from '../../../../DataConnection/DataConnectionInformation';
+import { useSemanticDataAnalytics } from '../../../../SemanticData/analytics';
 
 type Props = {
   model: SemanticModel;
@@ -56,6 +61,15 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { enabled: canConfigureAgents } = useFeatureFlag(SparUIFeatureFlag.canConfigureAgents);
   const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
 
+  // Determine data source info for analytics
+  const dataConnectionId = getDataConnectionId(model);
+  const dataSourceType = dataConnectionId ? DataSourceType.Database : DataSourceType.File;
+  const { trackSemanticDataModelModified, trackSemanticDataModelDeleted } = useSemanticDataAnalytics({
+    agentId,
+    dataSourceType,
+    dataConnectionId,
+  });
+
   const onAddFile = useCallback(
     async (files: File[]) => {
       await sendMessage({ text: '' }, files);
@@ -86,6 +100,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       { agentId, modelId: model.id },
       {
         onSuccess: () => {
+          trackSemanticDataModelDeleted();
           addSnackbar({
             message: 'Semantic Data Model deleted successfully',
             variant: 'success',
@@ -115,6 +130,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       },
       {
         onSuccess: () => {
+          trackSemanticDataModelModified();
           addSnackbar({ message: 'Semantic Data Model renamed successfully', variant: 'success' });
         },
       },
@@ -159,8 +175,6 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
 
   const Icon = requiresDataConnection(model) ? IconDataAccess : IconFileBrand;
   const ErrorIcon = connectionError?.level === 'error' ? IconStatusError : IconStatusDisabled;
-  const dataConnectionId = model.tables.find((table) => table.base_table?.data_connection_id)?.base_table
-    ?.data_connection_id;
 
   return (
     <Item>

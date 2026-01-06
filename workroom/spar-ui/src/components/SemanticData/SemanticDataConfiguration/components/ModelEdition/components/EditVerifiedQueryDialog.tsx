@@ -3,10 +3,12 @@ import { Button, Dialog, Link } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
-import { DataConnectionFormSchema } from '../../form';
+import { DataConnectionFormSchema, DataSourceType } from '../../form';
 import { VerifiedQuery, useVerifyVerifiedQueryMutation, SemanticModel } from '../../../../../../queries/semanticData';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import { VerifiedQueryForm, FormData } from './VerifiedQueryForm';
+import { useParams } from '../../../../../../hooks';
+import { useSemanticDataAnalytics } from '../../../../analytics';
 
 type Props = {
   open: boolean;
@@ -25,6 +27,7 @@ const filterErrors = (
 };
 
 export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, query, modelId }) => {
+  const { agentId } = useParams('/thread/$agentId');
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -49,9 +52,24 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
   const verifyMutation = useVerifyVerifiedQueryMutation({});
 
   const verifiedQueries = watch('verifiedQueries') || [];
-  const name = watch('name');
-  const description = watch('description');
   const tables = watch('tables') || [];
+  const [name, description, dataConnectionId, fileRefId] = watch([
+    'name',
+    'description',
+    'dataConnectionId',
+    'fileRefId',
+  ]);
+
+  // Determine data source info for analytics
+  const dataSourceType = dataConnectionId ? DataSourceType.Database : DataSourceType.File;
+  const { trackVerifiedQueryCreated, trackVerifiedQueryModified, trackVerifiedQueryDeleted } = useSemanticDataAnalytics(
+    {
+      agentId,
+      dataSourceType,
+      dataConnectionId,
+      fileRefId,
+    },
+  );
 
   // Build semantic data model from form data
   const semanticDataModel: SemanticModel = {
@@ -100,6 +118,10 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
         nlq_errors: verifiedQuery.nlq_errors,
         name_errors: verifiedQuery.name_errors,
       });
+      // Record that the verified query creation failed
+      if (!isEditMode) {
+        trackVerifiedQueryCreated(false);
+      } // We don't track the failure of an edit operation
       return;
     }
 
@@ -121,12 +143,25 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
         ...newQuery,
       };
       setValue('verifiedQueries', updatedQueries);
+      trackVerifiedQueryModified();
     } else {
       // Create new query
       setValue('verifiedQueries', [...verifiedQueries, newQuery]);
+      trackVerifiedQueryCreated(true);
     }
     onClose();
-  }, [formData, isEditMode, queryIndex, query, verifiedQueries, setValue, onClose, semanticDataModel]);
+  }, [
+    formData,
+    isEditMode,
+    queryIndex,
+    query,
+    verifiedQueries,
+    setValue,
+    onClose,
+    semanticDataModel,
+    trackVerifiedQueryCreated,
+    trackVerifiedQueryModified,
+  ]);
 
   const handleClose = useCallback(() => {
     setErrors({});
@@ -152,6 +187,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
   const handleDelete = onDeleteConfirm(() => {
     const updatedQueries = verifiedQueries.filter((_, i) => i !== queryIndex);
     setValue('verifiedQueries', updatedQueries);
+    trackVerifiedQueryDeleted();
     onClose();
   });
 
