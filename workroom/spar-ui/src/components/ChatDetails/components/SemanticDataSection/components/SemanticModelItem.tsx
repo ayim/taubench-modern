@@ -60,6 +60,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { sendMessage } = useMessageStream({ agentId, threadId });
   const { enabled: canConfigureAgents } = useFeatureFlag(SparUIFeatureFlag.canConfigureAgents);
   const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
+  const [initialStep, setInitialStep] = useState<ConfigurationStep | undefined>(undefined);
 
   // Determine data source info for analytics
   const dataConnectionId = getDataConnectionId(model);
@@ -89,6 +90,11 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
 
   const onToggleEditModel = () => {
     setIsConfigurationOpen(!isConfigurationOpen);
+  };
+
+  const onToggleEditModelDataConnection = () => {
+    setInitialStep(ConfigurationStep.DataConnection);
+    setIsConfigurationOpen((prevValue) => !prevValue);
   };
 
   const onToggleRenameDialog = () => {
@@ -186,9 +192,8 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
             placement="top"
             error={connectionError}
             action={
-              connectionError &&
               canConfigureAgents && (
-                <Button flex={1} round onClick={onToggleEditModel}>
+                <Button flex={1} round onClick={onToggleEditModelDataConnection}>
                   Configure Connection
                 </Button>
               )
@@ -224,7 +229,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       )}
       {isConfigurationOpen && (
         <SemanticDataConfiguration
-          initialStep={connectionError ? ConfigurationStep.DataConnection : undefined}
+          initialStep={connectionError ? ConfigurationStep.DataConnection : initialStep}
           onClose={onToggleEditModel}
           modelId={model.id}
         />

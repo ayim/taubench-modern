@@ -2,7 +2,7 @@
 import { Box, Button, Dialog, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 import { useContext, useState } from 'react';
-import { IconChevronDown, IconLoading } from '@sema4ai/icons';
+import { IconChevronDown, IconLoading, IconSettings2 } from '@sema4ai/icons';
 
 import { DataConnection, useSupportedSemanticDataEnginesQuery } from '../../../../../../queries';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
@@ -14,12 +14,14 @@ import {
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
 import { CreateDataConnection } from '../../../../../DataConnection/DataConnectionConfiguration/components/Create';
+import { UpdateDataConnection } from '../../../../../DataConnection/DataConnectionConfiguration/components/Update';
 import { useFeatureFlag } from '../../../../../../hooks';
 import { SparUIFeatureFlag } from '../../../../../../api';
 
 export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }) => {
   const {
     databaseInspectionState: { isLoading, error, errorDetails, inspectionResult },
+    setDatabaseInspectionState,
   } = useContext(DataConnectionFormContext);
   const [isCreatingNewDataConnection, setIsCreatingNewDataConnection] = useState(false);
   const { data: supportedSemanticDataEngines = [], isLoading: isLoadingSupportedSemanticDataEngines } =
@@ -27,6 +29,7 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
   const [showInspectionMismatches, setShowInspectionMismatches] = useState(false);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const { enabled: canCreateAgents } = useFeatureFlag(SparUIFeatureFlag.canCreateAgents);
+  const [isUpdateConnectionOpen, setIsUpdateConnectionOpen] = useState(false);
 
   const { setValue, watch } = useFormContext<DataConnectionFormSchema>();
   const dataConnectionId = watch('dataConnectionId');
@@ -36,6 +39,21 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
     if (dataConnection) {
       setValue('dataConnectionId', dataConnection.id);
     }
+  };
+
+  const onOpenUpdateConnection = () => {
+    setIsUpdateConnectionOpen(true);
+  };
+
+  const onCloseUpdateConnection = () => {
+    setIsUpdateConnectionOpen(false);
+
+    setDatabaseInspectionState({
+      isLoading: true,
+      error: undefined,
+      inspectionResult: undefined,
+      requiresInspection: true,
+    });
   };
 
   return (
@@ -77,36 +95,46 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
           </Box>
         ) : null}
 
-        {errorDetails ? (
-          <Box mt="$24">
-            <Link
-              as="button"
-              type="button"
-              variant="secondary"
-              onClick={() => setShowErrorDetails(!showErrorDetails)}
-              iconAfter={IconChevronDown}
-            >
-              {showErrorDetails ? 'Hide' : 'Show'} details
-            </Link>
-            {showErrorDetails && (
-              <Box mt="$12" backgroundColor="background.panels" borderRadius="$16" p="$16" borderColor="border.subtle">
-                {errorDetails}
-              </Box>
+        {error && (
+          <Box display="flex" mt="$24" gap="$24">
+            {errorDetails && (
+              <Link
+                as="button"
+                type="button"
+                variant="secondary"
+                onClick={() => setShowErrorDetails(!showErrorDetails)}
+                iconAfter={IconChevronDown}
+              >
+                {showErrorDetails ? 'Hide' : 'Show'} details
+              </Link>
             )}
-          </Box>
-        ) : null}
 
-        {inspectionResult?.inspectionMismatches ? (
-          <Box mt="$24">
-            <Link
-              as="button"
-              type="button"
-              variant="secondary"
-              onClick={() => setShowInspectionMismatches(!showInspectionMismatches)}
-              iconAfter={IconChevronDown}
-            >
-              {showInspectionMismatches ? 'Hide' : 'Show'} Missing Tables and Columns
+            {inspectionResult?.inspectionMismatches && (
+              <Link
+                as="button"
+                type="button"
+                variant="secondary"
+                onClick={() => setShowInspectionMismatches(!showInspectionMismatches)}
+                iconAfter={IconChevronDown}
+              >
+                {showInspectionMismatches ? 'Hide' : 'Show'} Missing Tables and Columns
+              </Link>
+            )}
+
+            <Link as="button" type="button" icon={IconSettings2} variant="secondary" onClick={onOpenUpdateConnection}>
+              Configure Data Connection
             </Link>
+          </Box>
+        )}
+
+        {errorDetails && showErrorDetails && (
+          <Box mt="$24" backgroundColor="background.panels" borderRadius="$16" p="$16" borderColor="border.subtle">
+            {errorDetails}
+          </Box>
+        )}
+
+        {inspectionResult?.inspectionMismatches && showInspectionMismatches ? (
+          <Box mt="$24">
             {showInspectionMismatches && (
               <Box mt="$12" backgroundColor="background.panels" borderRadius="$16" p="$16" borderColor="border.subtle">
                 {inspectionResult.inspectionMismatches.map((mismatch) => (
@@ -147,6 +175,9 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
       </Dialog.Actions>
       {isCreatingNewDataConnection && (
         <CreateDataConnection supportedEngines={supportedSemanticDataEngines} onClose={onNewDataConnectionClose} />
+      )}
+      {dataConnectionId && isUpdateConnectionOpen && (
+        <UpdateDataConnection dataConnectionId={dataConnectionId} onClose={onCloseUpdateConnection} />
       )}
     </>
   );

@@ -119,7 +119,7 @@ export const DataConnectionInformation: FC<Props> = ({
                 {action}
               </Box>
             )}
-            {dataConnection && !error && canConfigureAgents && (
+            {!action && canConfigureAgents && (
               <Box display="flex" pt="$12" justifyContent="flex-end">
                 <Button onClick={() => setIsUpdateConnectionOpen(true)} flex={1} round>
                   Configure Connection

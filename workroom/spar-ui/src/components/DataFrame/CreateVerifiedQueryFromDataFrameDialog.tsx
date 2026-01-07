@@ -328,11 +328,6 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
                 Semantic Data Model:
               </Typography>
               <Typography>{selectedModel.name}</Typography>
-              {selectedModel.description && (
-                <Typography variant="body-small" color="content.subtle.light">
-                  {selectedModel.description}
-                </Typography>
-              )}
             </Box>
             <VerifiedQueryForm
               isNewQuery
@@ -395,11 +390,6 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
                 Semantic Data Model:
               </Typography>
               <Typography>{semanticModels[0].name}</Typography>
-              {semanticModels[0].description && (
-                <Typography variant="body-small" color="content.subtle.light">
-                  {semanticModels[0].description}
-                </Typography>
-              )}
             </Box>
           ) : (
             <Box display="flex" flexDirection="column" gap="$4">
