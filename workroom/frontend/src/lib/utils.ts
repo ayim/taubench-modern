@@ -181,3 +181,6 @@ export const downloadJSON = (
 export const isValidRoute = (route?: string): route is FileRouteTypes['to'] => {
   return !!router.flatRoutes.find((curr) => curr.fullPath === route || curr.fullPath === `${route}/`);
 };
+
+export const getPublicApiEndpointUrl = ({ origin, tenantId }: { origin: string; tenantId: string }): string =>
+  `${origin}/tenants/${tenantId}/api/v1`;

@@ -333,3 +333,40 @@ MCPServers/
 ### Scripts
 
 - Run `npm run test:types` for type-checking
+
+### Styling
+
+**IMPORTANT**
+
+- The UI follows strict conventions established by `@sema4ai/theme` `@sema4ai/components` and `@sema4ai/icons`.
+- Custom styling (using styled components see below) should be avoided as much as possible and used as a very last resort, only after confirming with the user\*\*
+
+Always reach for components from `@sema4ai/theme` `@sema4ai/components` and `@sema4ai/icons`.
+
+_Prompt the user to leverage the `@sema4ai/design-system-mcp` MCP server - the documentation can be found here: https://github.com/Sema4AI/design-system/blob/master/mcp/README.md_
+
+- **Never use inline `style` props** - Always use styled components from `@sema4ai/theme`
+- **Always use tokens from the theme: this applies to most CSS properties: color, border-radius, gap, padding, background, background-color...**.
+
+```
+_BAD_
+ background-color: #1a1a1a;
+```
+
+```
+_GOOD_
+color: ${({ theme }) => theme.colors.background.panels.color};
+```
+
+- Use `styled(Component)` to create styled versions of components
+- For dynamic styles based on props, use transient props (prefixed with `$`) to avoid passing them to the DOM
+
+```tsx
+// Good
+const MyButton = styled(Button)<{ $isActive?: boolean }>`
+  opacity: ${({ $isActive }) => ($isActive ? 1 : 0.6)};
+`;
+
+// Bad
+<Button style={{ opacity: isActive ? 1 : 0.6 }} />;
+```

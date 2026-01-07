@@ -6,6 +6,7 @@ type LogMethod<Attributes extends LogAttributes> = (text: string, data?: Partial
 export interface LogAttributes {
   agentServerUserId: string;
   agentServerUserSub: string;
+  apiKeyId: string;
   authMode: Configuration['auth']['type'];
   authSkip: boolean;
   contentDispositionType: string;
@@ -32,6 +33,7 @@ export interface LogAttributes {
   migrationDirection: string;
   migrationName: string;
   migrationStatus: string;
+  name: string;
   objectStorageBucketName: string;
   oidcIssuer: string;
   oidcRedirectUrl: string;
@@ -41,6 +43,7 @@ export interface LogAttributes {
   processSignal: string;
   requestMethod: string;
   requestUrl: string;
+  secretId: string;
   sessionId: string;
   snowflakeUserId: string;
   status: number;

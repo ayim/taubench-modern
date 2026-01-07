@@ -1,11 +1,13 @@
 import http from 'node:http';
 import { resolve } from 'node:path';
+import { createBasicKeyProvider, createSecretDataManager } from '@sema4ai/secret-management';
 import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
 import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
+import { createApiKeysManager } from './apiKeys/index.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
 import type { Configuration } from './configuration.js';
@@ -35,6 +37,7 @@ import { createRequestLogger } from './middleware/logging.js';
 import { serverHeaders } from './middleware/server.js';
 import { createTenantExtractionMiddleware } from './middleware/tenant.js';
 import type { MonitoringContext } from './monitoring/index.js';
+import { createSecretStorage } from './secretStorage/index.js';
 import { createSessionMiddleware } from './session/middleware.js';
 import { createSessionManager } from './session/sessionManager.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
@@ -100,6 +103,41 @@ export const createApplication = async ({
     monitoring,
     sessionManager,
   });
+
+  const apiKeysManager = (() => {
+    if (!configuration.session) {
+      monitoring.logger.info('API keys management not configured (no session)');
+      return null;
+    }
+
+    monitoring.logger.info('Configuring API keys management');
+
+    const keyProvider = createBasicKeyProvider({
+      identifier: 'spar-api-keys',
+      masterPassword: configuration.session.secret,
+    });
+
+    const secretDataManager = createSecretDataManager({
+      masterKeyProvider: keyProvider,
+      monitoring: {
+        logger: {
+          error: (errorMessage, errorDetails) => {
+            monitoring.logger.error(errorMessage, {
+              secretId: errorDetails?.secretId,
+              error: errorDetails?.error,
+            });
+          },
+        },
+      },
+      storage: createSecretStorage(database),
+    });
+
+    return createApiKeysManager({
+      database,
+      monitoring,
+      secretDataManager,
+    });
+  })();
 
   const appPublic = express();
   const serverPublic = http.createServer(appPublic);
@@ -191,6 +229,7 @@ export const createApplication = async ({
     trpcExpress.createExpressMiddleware({
       router: sparRouter,
       createContext: createRouterContext({
+        apiKeysManager,
         authManager,
         configuration,
         database,

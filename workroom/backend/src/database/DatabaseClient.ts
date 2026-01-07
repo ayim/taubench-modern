@@ -1,11 +1,13 @@
 import { sql, type Kysely } from 'kysely';
 import { omitProperties, pickProperties, sqlNow } from './helpers.js';
 import type { MonitoringContext } from '../monitoring/index.js';
+import type { ApiKey, NewApiKey } from './types/apiKey.js';
 import type { Database } from './types/index.js';
+import type { NewSecretData, SecretData } from './types/secretData.js';
+import type { Session, StoredSession } from './types/session.js';
 import type { NewUser, User, UserUpdate } from './types/user.js';
 import type { NewUserIdentity, UserIdentity, UserIdentityType, UserIdentityUpdate } from './types/userIdentity.js';
 import { asResult, type Result } from '../utils/result.js';
-import type { Session, StoredSession } from './types/session.js';
 
 export type UpdateUserPayload = Omit<UserUpdate, 'updated_at'> & { id: NonNullable<UserUpdate['id']> };
 export type UpdateUserIdentityPayload = {
@@ -333,6 +335,172 @@ export class DatabaseClient {
         .set(pickProperties(userIdentity, ['email']))
         .set('updated_at', sqlNow())
         .where((eb) => eb.and(pickProperties(userIdentity, ['user_id', 'authority', 'type', 'value'])))
+        .execute()
+        .then(NOOP),
+    );
+  }
+
+  async deleteSecretData({ id }: { id: string }): Promise<Result<void>> {
+    return asResult(() => this.database.deleteFrom('secret_data').where('id', '=', id).execute().then(NOOP));
+  }
+
+  async getSecretData({ id }: { id: string }): Promise<Result<SecretData | null>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('secret_data')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirst()
+        .then((result) => result ?? null),
+    );
+  }
+
+  async upsertSecretData({ secretData }: { secretData: NewSecretData }): Promise<Result<void>> {
+    return asResult(() =>
+      this.database
+        .insertInto('secret_data')
+        .values(secretData)
+        .onConflict((oc) =>
+          oc.column('id').doUpdateSet({
+            data_key: secretData.data_key,
+            encrypted_secret_value: secretData.encrypted_secret_value,
+            updated_at: new Date().toISOString(),
+          }),
+        )
+        .execute()
+        .then(NOOP),
+    );
+  }
+
+  async insertApiKey({ apiKey }: { apiKey: NewApiKey }): Promise<
+    Result<{
+      id: ApiKey['id'];
+      name: ApiKey['name'];
+      created_at: ApiKey['created_at'];
+      last_used_at: ApiKey['last_used_at'];
+      updated_at: ApiKey['updated_at'];
+    }>
+  > {
+    return asResult(() =>
+      this.database
+        .insertInto('api_key')
+        .values(apiKey)
+        .returning(['id', 'name', 'created_at', 'last_used_at', 'updated_at'])
+        .executeTakeFirstOrThrow(),
+    );
+  }
+
+  async selectApiKeys(): Promise<
+    Result<
+      Array<{
+        id: ApiKey['id'];
+        name: ApiKey['name'];
+        created_at: ApiKey['created_at'];
+        last_used_at: ApiKey['last_used_at'];
+        updated_at: ApiKey['updated_at'];
+      }>
+    >
+  > {
+    return asResult(() =>
+      this.database
+        .selectFrom('api_key')
+        .select(['id', 'name', 'created_at', 'last_used_at', 'updated_at'])
+        .orderBy(sql`lower(name)`, 'asc')
+        .execute(),
+    );
+  }
+
+  async selectApiKeyById({ id }: { id: string }): Promise<
+    Result<{
+      id: ApiKey['id'];
+      name: ApiKey['name'];
+      created_at: ApiKey['created_at'];
+      last_used_at: ApiKey['last_used_at'];
+      updated_at: ApiKey['updated_at'];
+    } | null>
+  > {
+    return asResult(() =>
+      this.database
+        .selectFrom('api_key')
+        .select(['id', 'name', 'created_at', 'last_used_at', 'updated_at'])
+        .where('id', '=', id)
+        .executeTakeFirst()
+        .then((result) => result ?? null),
+    );
+  }
+
+  async selectApiKeyByIdFull({ id }: { id: string }): Promise<Result<ApiKey | null>> {
+    return asResult(() =>
+      this.database
+        .selectFrom('api_key')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirst()
+        .then((result) => result ?? null),
+    );
+  }
+
+  async updateApiKey({ id, name }: { id: string; name: string }): Promise<
+    Result<{
+      id: ApiKey['id'];
+      name: ApiKey['name'];
+      created_at: ApiKey['created_at'];
+      last_used_at: ApiKey['last_used_at'];
+      updated_at: ApiKey['updated_at'];
+    } | null>
+  > {
+    return asResult(() =>
+      this.database
+        .updateTable('api_key')
+        .set({
+          name,
+          updated_at: new Date().toISOString(),
+        })
+        .where('id', '=', id)
+        .returning(['id', 'name', 'created_at', 'last_used_at', 'updated_at'])
+        .executeTakeFirst()
+        .then((result) => result ?? null),
+    );
+  }
+
+  async deleteApiKey({ id }: { id: string }): Promise<
+    Result<{
+      id: ApiKey['id'];
+      secret_data_id: ApiKey['secret_data_id'];
+    } | null>
+  > {
+    return asResult(() =>
+      this.database
+        .deleteFrom('api_key')
+        .where('id', '=', id)
+        .returning(['id', 'secret_data_id'])
+        .executeTakeFirst()
+        .then((result) => result ?? null),
+    );
+  }
+
+  async selectApiKeyByHash({ hash }: { hash: string }): Promise<
+    Result<{
+      id: ApiKey['id'];
+      name: ApiKey['name'];
+    } | null>
+  > {
+    return asResult(() =>
+      this.database
+        .selectFrom('api_key')
+        .select(['id', 'name'])
+        .where('value_hash', '=', hash)
+        .executeTakeFirst()
+        .then((result) => result ?? null),
+    );
+  }
+
+  async updateApiKeyLastUsedAt({ id }: { id: string }): Promise<Result<void>> {
+    return asResult(() =>
+      this.database
+        .updateTable('api_key')
+        .set({ last_used_at: new Date().toISOString() })
+        .where('id', '=', id)
         .execute()
         .then(NOOP),
     );

@@ -47,7 +47,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@sema4ai/workroom-interface": "^2.7.0",
+    "@sema4ai/workroom-interface": "^2.8.0",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query-devtools": "^5.71.1",
     "@tanstack/router-devtools": "^1.45.1",

@@ -33,6 +33,7 @@ import { Route as TenantsTenantIdWorkItemsExecutorsRouteImport } from './routes/
 import { Route as TenantsTenantIdMcpServersNewRouteImport } from './routes/tenants/$tenantId/mcp-servers/new'
 import { Route as TenantsTenantIdDataAccessDataConnectionsRouteImport } from './routes/tenants/$tenantId/data-access/data-connections'
 import { Route as TenantsTenantIdConversationalAgentIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId'
+import { Route as TenantsTenantIdConfigurationApiKeysRouteImport } from './routes/tenants/$tenantId/configuration/api-keys'
 import { Route as TenantsTenantIdAgentsDeployRouteImport } from './routes/tenants/$tenantId/agents/deploy'
 import { Route as TenantsTenantIdWorkerAgentIdIndexRouteImport } from './routes/tenants/$tenantId/worker/$agentId/index'
 import { Route as TenantsTenantIdMcpServersMcpServerIdIndexRouteImport } from './routes/tenants/$tenantId/mcp-servers/$mcpServerId/index'
@@ -50,6 +51,8 @@ import { Route as TenantsTenantIdDataAccessDataConnectionsDataConnectionIdRouteI
 import { Route as TenantsTenantIdConversationalAgentIdThreadIdRouteImport } from './routes/tenants/$tenantId/conversational/$agentId/$threadId'
 import { Route as TenantsTenantIdConfigurationLlmNewRouteImport } from './routes/tenants/$tenantId/configuration/llm/new'
 import { Route as TenantsTenantIdConfigurationLlmPlatformIdRouteImport } from './routes/tenants/$tenantId/configuration/llm/$platformId'
+import { Route as TenantsTenantIdConfigurationApiKeysNewRouteImport } from './routes/tenants/$tenantId/configuration/api-keys/new'
+import { Route as TenantsTenantIdConfigurationApiKeysApiKeyIdRouteImport } from './routes/tenants/$tenantId/configuration/api-keys/$apiKeyId'
 import { Route as TenantsTenantIdWorkerAgentIdWorkItemIdIndexRouteImport } from './routes/tenants/$tenantId/worker/$agentId/$workItemId/index'
 import { Route as TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRouteImport } from './routes/tenants/$tenantId/worker/$agentId/$workItemId/$threadId'
 import { Route as TenantsTenantIdAgentsDeployLlmsNewRouteImport } from './routes/tenants/$tenantId/agents/deploy/llms.new'
@@ -200,6 +203,12 @@ const TenantsTenantIdConversationalAgentIdRoute =
     path: '/conversational/$agentId',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
+const TenantsTenantIdConfigurationApiKeysRoute =
+  TenantsTenantIdConfigurationApiKeysRouteImport.update({
+    id: '/api-keys',
+    path: '/api-keys',
+    getParentRoute: () => TenantsTenantIdConfigurationRoute,
+  } as any)
 const TenantsTenantIdAgentsDeployRoute =
   TenantsTenantIdAgentsDeployRouteImport.update({
     id: '/agents/deploy',
@@ -302,6 +311,18 @@ const TenantsTenantIdConfigurationLlmPlatformIdRoute =
     path: '/llm/$platformId',
     getParentRoute: () => TenantsTenantIdConfigurationRoute,
   } as any)
+const TenantsTenantIdConfigurationApiKeysNewRoute =
+  TenantsTenantIdConfigurationApiKeysNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => TenantsTenantIdConfigurationApiKeysRoute,
+  } as any)
+const TenantsTenantIdConfigurationApiKeysApiKeyIdRoute =
+  TenantsTenantIdConfigurationApiKeysApiKeyIdRouteImport.update({
+    id: '/$apiKeyId',
+    path: '/$apiKeyId',
+    getParentRoute: () => TenantsTenantIdConfigurationApiKeysRoute,
+  } as any)
 const TenantsTenantIdWorkerAgentIdWorkItemIdIndexRoute =
   TenantsTenantIdWorkerAgentIdWorkItemIdIndexRouteImport.update({
     id: '/',
@@ -402,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
+  '/tenants/$tenantId/configuration/api-keys': typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
   '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
@@ -415,6 +437,8 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/configuration/api-keys/$apiKeyId': typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
+  '/tenants/$tenantId/configuration/api-keys/new': typeof TenantsTenantIdConfigurationApiKeysNewRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
@@ -455,6 +479,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
+  '/tenants/$tenantId/configuration/api-keys': typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
   '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
   '/tenants/$tenantId/workItems/executors': typeof TenantsTenantIdWorkItemsExecutorsRoute
@@ -466,6 +491,8 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/configuration/api-keys/$apiKeyId': typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
+  '/tenants/$tenantId/configuration/api-keys/new': typeof TenantsTenantIdConfigurationApiKeysNewRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
@@ -508,6 +535,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/deploy': typeof TenantsTenantIdAgentsDeployRouteWithChildren
+  '/tenants/$tenantId/configuration/api-keys': typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
   '/tenants/$tenantId/conversational/$agentId': typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
   '/tenants/$tenantId/data-access/data-connections': typeof TenantsTenantIdDataAccessDataConnectionsRouteWithChildren
   '/tenants/$tenantId/mcp-servers/new': typeof TenantsTenantIdMcpServersNewRoute
@@ -521,6 +549,8 @@ export interface FileRoutesById {
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
   '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/configuration/api-keys/$apiKeyId': typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
+  '/tenants/$tenantId/configuration/api-keys/new': typeof TenantsTenantIdConfigurationApiKeysNewRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   '/tenants/$tenantId/configuration/llm/new': typeof TenantsTenantIdConfigurationLlmNewRoute
   '/tenants/$tenantId/conversational/$agentId/$threadId': typeof TenantsTenantIdConversationalAgentIdThreadIdRouteWithChildren
@@ -565,6 +595,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/deploy'
+    | '/tenants/$tenantId/configuration/api-keys'
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/mcp-servers/new'
@@ -578,6 +609,8 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
     | '/tenants/$tenantId/workItems'
+    | '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
+    | '/tenants/$tenantId/configuration/api-keys/new'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
@@ -618,6 +651,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/agents/deploy'
+    | '/tenants/$tenantId/configuration/api-keys'
     | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/mcp-servers/new'
     | '/tenants/$tenantId/workItems/executors'
@@ -629,6 +663,8 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
     | '/tenants/$tenantId/workItems'
+    | '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
+    | '/tenants/$tenantId/configuration/api-keys/new'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
@@ -670,6 +706,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/deploy'
+    | '/tenants/$tenantId/configuration/api-keys'
     | '/tenants/$tenantId/conversational/$agentId'
     | '/tenants/$tenantId/data-access/data-connections'
     | '/tenants/$tenantId/mcp-servers/new'
@@ -683,6 +720,8 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
     | '/tenants/$tenantId/workItems/'
+    | '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
+    | '/tenants/$tenantId/configuration/api-keys/new'
     | '/tenants/$tenantId/configuration/llm/$platformId'
     | '/tenants/$tenantId/configuration/llm/new'
     | '/tenants/$tenantId/conversational/$agentId/$threadId'
@@ -888,6 +927,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
+    '/tenants/$tenantId/configuration/api-keys': {
+      id: '/tenants/$tenantId/configuration/api-keys'
+      path: '/api-keys'
+      fullPath: '/tenants/$tenantId/configuration/api-keys'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationApiKeysRouteImport
+      parentRoute: typeof TenantsTenantIdConfigurationRoute
+    }
     '/tenants/$tenantId/agents/deploy': {
       id: '/tenants/$tenantId/agents/deploy'
       path: '/agents/deploy'
@@ -1007,6 +1053,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdConfigurationLlmPlatformIdRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
+    '/tenants/$tenantId/configuration/api-keys/new': {
+      id: '/tenants/$tenantId/configuration/api-keys/new'
+      path: '/new'
+      fullPath: '/tenants/$tenantId/configuration/api-keys/new'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationApiKeysNewRouteImport
+      parentRoute: typeof TenantsTenantIdConfigurationApiKeysRoute
+    }
+    '/tenants/$tenantId/configuration/api-keys/$apiKeyId': {
+      id: '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
+      path: '/$apiKeyId'
+      fullPath: '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
+      preLoaderRoute: typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRouteImport
+      parentRoute: typeof TenantsTenantIdConfigurationApiKeysRoute
+    }
     '/tenants/$tenantId/worker/$agentId/$workItemId/': {
       id: '/tenants/$tenantId/worker/$agentId/$workItemId/'
       path: '/'
@@ -1094,7 +1154,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface TenantsTenantIdConfigurationApiKeysRouteChildren {
+  TenantsTenantIdConfigurationApiKeysApiKeyIdRoute: typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
+  TenantsTenantIdConfigurationApiKeysNewRoute: typeof TenantsTenantIdConfigurationApiKeysNewRoute
+}
+
+const TenantsTenantIdConfigurationApiKeysRouteChildren: TenantsTenantIdConfigurationApiKeysRouteChildren =
+  {
+    TenantsTenantIdConfigurationApiKeysApiKeyIdRoute:
+      TenantsTenantIdConfigurationApiKeysApiKeyIdRoute,
+    TenantsTenantIdConfigurationApiKeysNewRoute:
+      TenantsTenantIdConfigurationApiKeysNewRoute,
+  }
+
+const TenantsTenantIdConfigurationApiKeysRouteWithChildren =
+  TenantsTenantIdConfigurationApiKeysRoute._addFileChildren(
+    TenantsTenantIdConfigurationApiKeysRouteChildren,
+  )
+
 interface TenantsTenantIdConfigurationRouteChildren {
+  TenantsTenantIdConfigurationApiKeysRoute: typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
   TenantsTenantIdConfigurationIndexRoute: typeof TenantsTenantIdConfigurationIndexRoute
   TenantsTenantIdConfigurationLlmPlatformIdRoute: typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
   TenantsTenantIdConfigurationLlmNewRoute: typeof TenantsTenantIdConfigurationLlmNewRoute
@@ -1106,6 +1185,8 @@ interface TenantsTenantIdConfigurationRouteChildren {
 
 const TenantsTenantIdConfigurationRouteChildren: TenantsTenantIdConfigurationRouteChildren =
   {
+    TenantsTenantIdConfigurationApiKeysRoute:
+      TenantsTenantIdConfigurationApiKeysRouteWithChildren,
     TenantsTenantIdConfigurationIndexRoute:
       TenantsTenantIdConfigurationIndexRoute,
     TenantsTenantIdConfigurationLlmPlatformIdRoute:

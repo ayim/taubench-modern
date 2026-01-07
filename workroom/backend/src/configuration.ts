@@ -391,24 +391,27 @@ export const getConfiguration = (): Configuration => {
       features: {
         // For ACE the values are defined here: https://github.com/Sema4AI/ace/blob/86a89c91c3d6f3623992e7a952a2cccb26b5059f/applications/router-service/src/interface.ts#L205
         // SPAR & SPCS: defined here - anything that is SPAR Only will be disabled in SPCS
-        mcpServersManagement: sparOnlyFeature,
-        deploymentWizard: sparOnlyFeature,
         agentAuthoring: sparOnlyFeature,
-        settings: sparOnlyFeature,
-        agentEvals: sparOnlyFeature,
-        documentIntelligence: sparOnlyFeature,
-        semanticDataModels: sparOnlyFeature,
-        workerAgents: sparOnlyFeature,
-        userManagement: sparOnlyFeature,
         agentConfiguration: sparOnlyFeature,
-        developerMode: {
-          enabled: true,
-          reason: null,
-        },
         agentDetails: {
           enabled: true,
           reason: null,
         },
+        agentEvals: sparOnlyFeature,
+        deploymentWizard: sparOnlyFeature,
+        developerMode: {
+          enabled: true,
+          reason: null,
+        },
+        documentIntelligence: sparOnlyFeature,
+        mcpServersManagement: sparOnlyFeature,
+        // Slightly orthogonal: the session "secret" is used for encrypting / decrypting API keys
+        // See `createBasicKeyProvider`
+        publicAPI: session ? { enabled: true, reason: null } : { enabled: false, reason: 'Session not configured' },
+        semanticDataModels: sparOnlyFeature,
+        settings: sparOnlyFeature,
+        userManagement: sparOnlyFeature,
+        workerAgents: sparOnlyFeature,
       },
     },
   };

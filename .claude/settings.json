@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Skill(pr-review)",
       "WebSearch",
       "Bash(grep:*)",
       "WebFetch(domain:github.com)",

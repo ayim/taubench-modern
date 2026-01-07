@@ -1,9 +1,11 @@
 import { TRPCError } from '@trpc/server';
+import type { ApiKeysManager } from '../apiKeys/index.js';
 import type { ExpressRequest } from '../interfaces.js';
 import { trpc, type RouterContext } from './trpc.js';
 import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
+import * as apiKeysRoutes from './routes/apiKeys.js';
 import * as externalConfigurationRoutes from './routes/externalConfiguration.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
@@ -13,6 +15,9 @@ import * as userManagementRoutes from './routes/userManagement.js';
 import { extractHeadersFromRequest } from '../utils/request.js';
 
 export const sparRouter = trpc.router({
+  apiKeys: {
+    ...apiKeysRoutes,
+  },
   externalConfiguration: {
     ...externalConfigurationRoutes,
   },
@@ -28,12 +33,14 @@ export type SPARRouter = typeof sparRouter;
 
 export const createRouterContext =
   ({
+    apiKeysManager,
     authManager,
     configuration,
     database,
     monitoring,
     sessionManager,
   }: {
+    apiKeysManager: ApiKeysManager | null;
     authManager: AuthManager;
     configuration: Configuration;
     database: DatabaseClient;
@@ -100,6 +107,7 @@ export const createRouterContext =
     })();
 
     return {
+      apiKeysManager,
       authManager,
       authType: configuration.auth.type,
       database,

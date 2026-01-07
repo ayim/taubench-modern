@@ -27,6 +27,7 @@
     "@sema4ai/agent-server-interface": "*",
     "@sema4ai/robocloud-auth-utils": "^5.0.0",
     "@sema4ai/robocloud-sign-interface": "^3.0.1",
+    "@sema4ai/secret-management": "^2.0.0",
     "@sema4ai/shared-utils": "^0.9.0",
     "@trpc/server": "^11.8.1",
     "cookie-signature": "^1.2.2",
@@ -43,7 +44,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@sema4ai/workroom-interface": "^2.7.0",
+    "@sema4ai/workroom-interface": "^2.8.0",
     "@types/cookie-signature": "^1.1.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",

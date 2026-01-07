@@ -281,7 +281,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
             <Button variant="primary" round type="submit" loading={mutation.isPending}>
               Save
             </Button>
-            <Button variant="outline" round type="button" onClick={onClose} disabled={mutation.isPending}>
+            <Button variant="secondary" round type="button" onClick={onClose} disabled={mutation.isPending}>
               Cancel
             </Button>
           </Dialog.Actions>

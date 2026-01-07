@@ -31,11 +31,11 @@ export const StepNavigation: FC<Props> = ({ isFinalStep, isPending, isFirstStep,
         </Button>
       )}
       {isFirstStep ? (
-        <Button variant="outline" round onClick={() => setIsCancel(true)}>
+        <Button variant="secondary" round onClick={() => setIsCancel(true)}>
           Cancel
         </Button>
       ) : (
-        <Button variant="outline" round onClick={onBack}>
+        <Button variant="secondary" round onClick={onBack}>
           Back
         </Button>
       )}
@@ -49,7 +49,7 @@ export const StepNavigation: FC<Props> = ({ isFinalStep, isPending, isFirstStep,
             <Button variant="primary" round onClick={handleCancel}>
               Confirm
             </Button>
-            <Button variant="outline" round onClick={() => setIsCancel(false)}>
+            <Button variant="secondary" round onClick={() => setIsCancel(false)}>
               Cancel
             </Button>
           </Dialog.Actions>

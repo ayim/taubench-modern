@@ -252,5 +252,3 @@ terraform.rc
 # Ignore .serena directory
 .serena/
 
-# Ignore .claude
-.claude/

@@ -85,7 +85,7 @@ function RouteComponent() {
             Deleting an LLM will remove its configuration from this workspace. This cannot be undone.
           </Dialog.Content>
           <Dialog.Actions>
-            <Button variant="primary" disabled={deleteMutation.isPending} onClick={handleDelete}>
+            <Button variant="destructive" disabled={deleteMutation.isPending} onClick={handleDelete}>
               Delete
             </Button>
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>

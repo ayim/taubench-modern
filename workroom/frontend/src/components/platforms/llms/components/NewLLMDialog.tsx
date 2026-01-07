@@ -148,154 +148,147 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
             </Dialog.Header.Description>
           </Dialog.Header>
           <Dialog.Content>
-            <Box p="$4">
-              <Form.Fieldset>
-                <Input
-                  label="Name"
-                  {...form.register('name')}
-                  error={form.formState.errors.name?.message}
-                  placeholder="Type a name"
-                  autoFocus
-                />
-                <Controller
-                  name="model"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select
-                      label="Model"
-                      items={modelItems}
-                      value={String(field.value)}
-                      onChange={(selectedModel) => {
-                        field.onChange(selectedModel);
-                        const [platformPrefix] = String(selectedModel).split(':');
-                        if (isPlatformValue(platformPrefix)) {
-                          setSelectedPlatform(platformPrefix);
-                          form.setValue('platform', platformPrefix);
-                        }
-                      }}
-                    />
-                  )}
-                />
-                <Controller
-                  name="validateLLM"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Checkbox
-                      checked={field.value}
-                      onChange={field.onChange}
-                      label="Validate LLM Configuration"
-                      description="By default, a connectivity test will run using these settings before saving. Uncheck this if your LLM is behind strict network rules that prevent validation."
-                    />
-                  )}
-                />
-
-                {selectedPlatform === 'openai' && (
-                  <InputControlled
-                    fieldName="apiKey"
-                    label="OpenAI API Key"
-                    type="password"
-                    placeholder="Enter API key"
+            <Form.Fieldset>
+              <Input
+                label="Name"
+                {...form.register('name')}
+                error={form.formState.errors.name?.message}
+                placeholder="Type a name"
+                autoFocus
+              />
+              <Controller
+                name="model"
+                control={form.control}
+                render={({ field }) => (
+                  <Select
+                    label="Model"
+                    items={modelItems}
+                    value={String(field.value)}
+                    onChange={(selectedModel) => {
+                      field.onChange(selectedModel);
+                      const [platformPrefix] = String(selectedModel).split(':');
+                      if (isPlatformValue(platformPrefix)) {
+                        setSelectedPlatform(platformPrefix);
+                        form.setValue('platform', platformPrefix);
+                      }
+                    }}
                   />
                 )}
-
-                {selectedPlatform === 'groq' && (
-                  <InputControlled
-                    fieldName="apiKey"
-                    label="Groq API Key"
-                    type="password"
-                    placeholder="Enter API key"
+              />
+              <Controller
+                name="validateLLM"
+                control={form.control}
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    onChange={field.onChange}
+                    label="Validate LLM Configuration"
+                    description="By default, a connectivity test will run using these settings before saving. Uncheck this if your LLM is behind strict network rules that prevent validation."
                   />
                 )}
-                {selectedPlatform === 'google' && (
-                  <Box display="flex" flexDirection="column" gap="$12">
-                    {!googleUseVertexAI && (
-                      <InputControlled
-                        fieldName="google_api_key"
-                        label="Google API Key"
-                        type="password"
-                        placeholder="Enter API key"
+              />
+
+              {selectedPlatform === 'openai' && (
+                <InputControlled
+                  fieldName="apiKey"
+                  label="OpenAI API Key"
+                  type="password"
+                  placeholder="Enter API key"
+                />
+              )}
+
+              {selectedPlatform === 'groq' && (
+                <InputControlled fieldName="apiKey" label="Groq API Key" type="password" placeholder="Enter API key" />
+              )}
+              {selectedPlatform === 'google' && (
+                <Box display="flex" flexDirection="column" gap="$12">
+                  {!googleUseVertexAI && (
+                    <InputControlled
+                      fieldName="google_api_key"
+                      label="Google API Key"
+                      type="password"
+                      placeholder="Enter API key"
+                    />
+                  )}
+                  <Controller
+                    name="google_use_vertex_ai"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Checkbox
+                        checked={Boolean(field.value)}
+                        onChange={field.onChange}
+                        label="Use Google Vertex AI"
+                        description="Enable if your Gemini deployment is configured through Vertex AI."
                       />
                     )}
-                    <Controller
-                      name="google_use_vertex_ai"
-                      control={form.control}
-                      render={({ field }) => (
-                        <Checkbox
-                          checked={Boolean(field.value)}
-                          onChange={field.onChange}
-                          label="Use Google Vertex AI"
-                          description="Enable if your Gemini deployment is configured through Vertex AI."
-                        />
-                      )}
-                    />
-                    {googleUseVertexAI && (
-                      <Box display="flex" flexDirection="column" gap="$8">
-                        <Input
-                          label="Google Cloud Project ID"
-                          placeholder="my-gcp-project"
-                          {...form.register('google_cloud_project_id')}
-                          error={form.formState.errors.google_cloud_project_id?.message}
-                        />
-                        <Input
-                          label="Google Cloud Location"
-                          placeholder="us-central1"
-                          {...form.register('google_cloud_location')}
-                          error={form.formState.errors.google_cloud_location?.message}
-                        />
-                        <VertexServiceAccountUploadField />
-                      </Box>
-                    )}
-                  </Box>
-                )}
+                  />
+                  {googleUseVertexAI && (
+                    <Box display="flex" flexDirection="column" gap="$8">
+                      <Input
+                        label="Google Cloud Project ID"
+                        placeholder="my-gcp-project"
+                        {...form.register('google_cloud_project_id')}
+                        error={form.formState.errors.google_cloud_project_id?.message}
+                      />
+                      <Input
+                        label="Google Cloud Location"
+                        placeholder="us-central1"
+                        {...form.register('google_cloud_location')}
+                        error={form.formState.errors.google_cloud_location?.message}
+                      />
+                      <VertexServiceAccountUploadField />
+                    </Box>
+                  )}
+                </Box>
+              )}
 
-                {selectedPlatform === 'azure' && (
-                  <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <Input
-                      label="Azure Endpoint URL"
-                      placeholder="https://...azure.com/"
-                      {...form.register('azure_endpoint_url')}
-                      error={form.formState.errors.azure_endpoint_url?.message}
-                    />
-                    <Input
-                      label="Azure API Version"
-                      placeholder="2024-02-01"
-                      {...form.register('azure_api_version')}
-                      error={form.formState.errors.azure_api_version?.message}
-                    />
-                    <Input
-                      label="Azure Deployment Name"
-                      placeholder="gpt-4-1"
-                      {...form.register('azure_deployment_name')}
-                      error={form.formState.errors.azure_deployment_name?.message}
-                    />
-                    <InputControlled fieldName="apiKey" label="Azure API Key" type="password" />
-                  </Box>
-                )}
+              {selectedPlatform === 'azure' && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input
+                    label="Azure Endpoint URL"
+                    placeholder="https://...azure.com/"
+                    {...form.register('azure_endpoint_url')}
+                    error={form.formState.errors.azure_endpoint_url?.message}
+                  />
+                  <Input
+                    label="Azure API Version"
+                    placeholder="2024-02-01"
+                    {...form.register('azure_api_version')}
+                    error={form.formState.errors.azure_api_version?.message}
+                  />
+                  <Input
+                    label="Azure Deployment Name"
+                    placeholder="gpt-4-1"
+                    {...form.register('azure_deployment_name')}
+                    error={form.formState.errors.azure_deployment_name?.message}
+                  />
+                  <InputControlled fieldName="apiKey" label="Azure API Key" type="password" />
+                </Box>
+              )}
 
-                {selectedPlatform === 'bedrock' && (
-                  <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <Input
-                      label="AWS Access Key ID"
-                      {...form.register('aws_access_key_id')}
-                      error={form.formState.errors.aws_access_key_id?.message}
-                    />
-                    <InputControlled fieldName="aws_secret_access_key" label="AWS Secret Access Key" type="password" />
-                    <Input
-                      label="Region"
-                      placeholder="us-east-1"
-                      {...form.register('region_name')}
-                      error={form.formState.errors.region_name?.message}
-                    />
-                  </Box>
-                )}
-              </Form.Fieldset>
-            </Box>
+              {selectedPlatform === 'bedrock' && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input
+                    label="AWS Access Key ID"
+                    {...form.register('aws_access_key_id')}
+                    error={form.formState.errors.aws_access_key_id?.message}
+                  />
+                  <InputControlled fieldName="aws_secret_access_key" label="AWS Secret Access Key" type="password" />
+                  <Input
+                    label="Region"
+                    placeholder="us-east-1"
+                    {...form.register('region_name')}
+                    error={form.formState.errors.region_name?.message}
+                  />
+                </Box>
+              )}
+            </Form.Fieldset>
           </Dialog.Content>
           <Dialog.Actions>
             <Button variant="primary" type="submit" round loading={mutation.isPending}>
               Create
             </Button>
-            <Button variant="outline" type="button" round onClick={() => onClose()} disabled={mutation.isPending}>
+            <Button variant="secondary" type="button" round onClick={() => onClose()} disabled={mutation.isPending}>
               Cancel
             </Button>
           </Dialog.Actions>

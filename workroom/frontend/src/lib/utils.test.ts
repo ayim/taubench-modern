@@ -7,7 +7,7 @@ vi.mock('~/components/providers/Router', () => ({
   },
 }));
 
-import { getTenantWorkoomRedirect } from './utils';
+import { getPublicApiEndpointUrl, getTenantWorkoomRedirect } from './utils';
 
 const getLocationMock = ({
   origin,
@@ -131,5 +131,19 @@ describe('getTenantWorkoomRedirect', () => {
     expect(workroomRedirect?.href).toBe(
       'https://agents-ee803305.dev-ci1-ee803305.sema4ai.work/tenants/a0a96e3d-34fe-4f97-ae9b-75cc2d523aa8',
     );
+  });
+});
+
+describe('getPublicApiEndpointUrl', () => {
+  it.each([
+    { origin: 'https://example.com', tenantId: 'abc-123', expected: 'https://example.com/tenants/abc-123/api/v1' },
+    {
+      origin: 'http://localhost:3000',
+      tenantId: 'test-tenant',
+      expected: 'http://localhost:3000/tenants/test-tenant/api/v1',
+    },
+  ])('returns $expected for origin=$origin and tenantId=$tenantId', ({ origin, tenantId, expected }) => {
+    const result = getPublicApiEndpointUrl({ origin, tenantId });
+    expect(result).toBe(expected);
   });
 });

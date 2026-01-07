@@ -104,7 +104,7 @@ export const UserRoleDialog: FC<Props> = ({ user, roles, onClose, open }) => {
           <Button type="submit" disabled={isSubmitting} loading={isSubmitting} round>
             Update
           </Button>
-          <Button onClick={onClose} variant="outline" disabled={isSubmitting} round>
+          <Button onClick={onClose} variant="secondary" disabled={isSubmitting} round>
             Cancel
           </Button>
         </Dialog.Actions>

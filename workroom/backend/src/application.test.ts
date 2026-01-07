@@ -79,6 +79,14 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   },
   workroomMeta: {
     features: {
+      agentAuthoring: {
+        enabled: true,
+        reason: null,
+      },
+      agentConfiguration: {
+        enabled: true,
+        reason: null,
+      },
       agentDetails: {
         enabled: true,
         reason: null,
@@ -91,7 +99,7 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
-      agentAuthoring: {
+      developerMode: {
         enabled: true,
         reason: null,
       },
@@ -99,11 +107,15 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
-      developerMode: {
+      mcpServersManagement: {
         enabled: true,
         reason: null,
       },
-      mcpServersManagement: {
+      publicAPI: {
+        enabled: false,
+        reason: null,
+      },
+      semanticDataModels: {
         enabled: true,
         reason: null,
       },
@@ -111,19 +123,11 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
         enabled: true,
         reason: null,
       },
-      semanticDataModels: {
+      userManagement: {
         enabled: true,
         reason: null,
       },
       workerAgents: {
-        enabled: true,
-        reason: null,
-      },
-      agentConfiguration: {
-        enabled: true,
-        reason: null,
-      },
-      userManagement: {
         enabled: true,
         reason: null,
       },

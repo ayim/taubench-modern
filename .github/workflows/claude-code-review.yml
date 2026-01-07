@@ -48,9 +48,15 @@ jobs:
             - Security concerns
             - Test coverage
 
+            Use the pr-review skill when reviewing changes on workroom.
+
             Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
 
             Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+
+            Include clickable links to resources you used to perform this review (pr-review SKILL.md, AGENTS.md, CLAUDE.md...)
+
+            Sacrifice grammar for the sake of concision
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options

@@ -25,5 +25,8 @@
   "devDependencies": {
     "prettier": "^3.5.3",
     "turbo": "2.5.6"
+  },
+  "dependencies": {
+    "@sema4ai/secret-management": "^2.0.1"
   }
 }

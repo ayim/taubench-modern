@@ -1,6 +1,7 @@
 import { exhaustiveCheck, sequentialMap } from '@sema4ai/shared-utils';
 import { TRPCError } from '@trpc/server';
 import z from 'zod';
+import { notAvailableForConfiguration } from './utils.js';
 import { AllPermissions, RoleIDs, Roles, type Permission } from '../../auth/permissions.js';
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { User, UserRole } from '../../database/types/user.js';
@@ -165,10 +166,7 @@ export const listUsers = authedProcedure(['users.read'])
 
         case 'none':
         case 'sema4-oidc-sso':
-          throw new TRPCError({
-            code: 'NOT_IMPLEMENTED',
-            message: 'Not available for this configuration',
-          });
+          throw new TRPCError(notAvailableForConfiguration({ feature: 'User management' }));
 
         default:
           exhaustiveCheck(authType);

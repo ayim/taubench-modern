@@ -31,6 +31,11 @@ function View() {
       hidden: !features.deploymentWizard.enabled,
     },
     {
+      label: 'API Keys',
+      to: '/tenants/$tenantId/configuration/api-keys',
+      hidden: !features.publicAPI.enabled,
+    },
+    {
       label: 'Observability',
       to: '/tenants/$tenantId/configuration/observability',
     },
