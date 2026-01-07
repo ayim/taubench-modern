@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import asyncio
 import typing
 from typing import Any
 
@@ -7,7 +10,7 @@ from agent_platform.core.data_frames.semantic_data_model_types import Validation
 from agent_platform.server.kernel.ibis_utils import DataConnectionInspectorError
 
 if typing.TYPE_CHECKING:
-    import pyarrow
+    import asyncio
 
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.payloads.data_connection import (
@@ -31,6 +34,10 @@ TABLE_VALIDATION_ERROR_KEY = "__TABLE_VALIDATION_ERROR__"
 # Maximum length for sample values to avoid storing huge strings in database
 MAX_SAMPLE_VALUE_LENGTH = 1024
 
+# Connection pool size for concurrent column inspection
+# This limits the number of concurrent database connections used when inspecting columns
+CONNECTION_POOL_SIZE = 5
+
 
 class TableNotFoundError(DataConnectionInspectorError):
     """Error raised when a table is not found in the connection."""
@@ -46,22 +53,22 @@ class DataConnectionInspector:
 
     def __init__(
         self,
-        data_connection: "DataConnection",
-        request: "DataConnectionsInspectRequest",
+        data_connection: DataConnection,
+        request: DataConnectionsInspectRequest,
     ):
         self.data_connection = data_connection
         self.request = request
         self._connection: Any | None = None
 
     @property
-    async def connection(self) -> "AsyncIbisConnection":
+    async def connection(self) -> AsyncIbisConnection:
         if self._connection is None:
             self._connection = await self.create_ibis_connection(self.data_connection)
         return self._connection
 
     async def inspect_connection(
         self,
-    ) -> "DataConnectionsInspectResponse":
+    ) -> DataConnectionsInspectResponse:
         """
         Inspect a data connection and return table/column metadata.
 
@@ -100,12 +107,12 @@ class DataConnectionInspector:
         return DataConnectionsInspectResponse(tables=table_infos)
 
     @classmethod
-    async def create_ibis_connection(cls, data_connection: "DataConnection") -> "AsyncIbisConnection":
+    async def create_ibis_connection(cls, data_connection: DataConnection) -> AsyncIbisConnection:
         from agent_platform.server.kernel.ibis_utils import create_ibis_connection
 
         return await create_ibis_connection(data_connection)
 
-    async def _get_table(self, table_spec: "TableToInspect") -> "AsyncIbisTable":
+    async def _get_table(self, table_spec: TableToInspect) -> AsyncIbisTable:
         """
         Get a table from the connection.
 
@@ -131,7 +138,7 @@ class DataConnectionInspector:
             raise TableNotFoundError(table_spec.name, error_details) from e
         return table
 
-    async def _validate_table(self, table_spec: "TableToInspect") -> ValidationMessage | None:
+    async def _validate_table(self, table_spec: TableToInspect) -> ValidationMessage | None:
         """
         Validate a table and return a structured error if it is not found or an error
         occurs accessing it. If a table is provided, it will be used instead of
@@ -184,7 +191,7 @@ class DataConnectionInspector:
         return errors
 
     async def _validate_column_expression(
-        self, table: "AsyncIbisTable", column_expression: str
+        self, table: AsyncIbisTable, column_expression: str
     ) -> ValidationMessage | None:
         """Extracted for testing purposes."""
         from agent_platform.core.data_frames.semantic_data_model_types import (
@@ -261,40 +268,43 @@ class DataConnectionInspector:
         return errors
 
     @classmethod
-    async def _get_all_tables(cls, connection: "AsyncIbisConnection") -> "list[TableToInspect]":
+    async def _get_all_tables(cls, connection: AsyncIbisConnection) -> list[TableToInspect]:
         """Get all tables from the connection."""
         from agent_platform.core.payloads.data_connection import TableToInspect
 
         tables = await connection.list_tables()
 
+        # Get schema and database info once (connection-level properties, not per-table)
+        # Note: Some backends (like MySQL) execute queries when accessing these properties,
+        # so we must use worker threads and handle gracefully if not available.
+        schema = None
+        database = None
+
+        # Try to get current_schema (may not exist or may fail)
+        # Note: Some backends (e.g., PostgreSQL) don't expose current_schema as an attribute
+        try:
+            schema = await connection.get_current_schema()
+        except (AttributeError, Exception) as e:
+            logger.debug(
+                "Could not retrieve current_schema from connection (expected for some backends)",
+                backend=type(connection).__name__,
+                error=str(e),
+            )
+
+        # Try to get current_database (may not exist or may fail)
+        # Note: Some backends don't expose current_database as an attribute
+        try:
+            database = await connection.get_current_database()
+        except (AttributeError, Exception) as e:
+            logger.debug(
+                "Could not retrieve current_database from connection (expected for some backends)",
+                backend=type(connection).__name__,
+                error=str(e),
+            )
+
+        # Create table specs using the same schema/database for all tables
         table_specs = []
         for table_name in tables:
-            # For most databases, we can get schema info from the connection
-            # Note: Some backends (like MySQL) execute queries when accessing these properties,
-            # so we must use worker threads and handle gracefully if not available.
-            schema = None
-            database = None
-
-            # Try to get current_schema (may not exist or may fail)
-            try:
-                schema = await connection.get_current_schema()
-            except (AttributeError, Exception) as e:
-                logger.info(
-                    "Could not retrieve current_schema from connection",
-                    backend=type(connection).__name__,
-                    error=str(e),
-                )
-
-            # Try to get current_database (may not exist or may fail)
-            try:
-                database = await connection.get_current_database()
-            except (AttributeError, Exception) as e:
-                logger.info(
-                    "Could not retrieve current_database from connection",
-                    backend=type(connection).__name__,
-                    error=str(e),
-                )
-
             table_specs.append(
                 TableToInspect(
                     name=table_name,
@@ -305,93 +315,54 @@ class DataConnectionInspector:
 
         return table_specs
 
-    def _select_with_limit(
-        self,
-        table: "AsyncIbisTable",
-        columns_to_inspect: list[str],
-        n_sample_rows: int,
-    ) -> "AsyncIbisTable":
-        """Build a select query with limit.
+    async def _fetch_distinct_column_samples(
+        self, table: AsyncIbisTable, column_name: str, n_sample_rows: int
+    ) -> list[Any]:
+        """Fetch distinct sample values for a single column from the database.
 
-        Note: extracted just so that we can mock it easily for testing
-        purposes (to simulate errors when inspecting columns).
-
-        This method does NOT need asyncio.to_thread because it only constructs
-        an ibis expression (lazy evaluation, no I/O). The actual I/O happens
-        when the expression is executed via IbisTableAdapter.to_pyarrow().
-        """
-        return table.select(columns_to_inspect).limit(n_sample_rows)
-
-    async def _fetch_sample_data_for_all_columns(
-        self, table: "AsyncIbisTable", columns_to_inspect: list[str]
-    ) -> "pyarrow.Table":
-        """Fetch sample data for all columns at once.
+        Uses DISTINCT + LIMIT to get unique values directly from the database.
+        No client-side processing needed - the database handles uniqueness.
 
         Args:
             table: The async table wrapper
-            columns_to_inspect: List of column names to inspect
+            column_name: Name of the column to sample
+            n_sample_rows: Number of distinct values to fetch
 
         Returns:
-            PyArrow table with sample data
-
-        Raises:
-            Exception: If query execution fails
+            List of sample values (may contain None)
         """
-        from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
-
-        # Build query using async proxy (returns AsyncIbisExpression)
-        sample_query = self._select_with_limit(table, columns_to_inspect, self.request.n_sample_rows)
-
-        # Use adapter for dialect-specific safe conversion (e.g., Postgres DECIMAL NaN handling)
-        adapter = IbisTableAdapter(sample_query)
-        return await adapter.to_pyarrow()
-
-    async def _fetch_sample_data_per_column(
-        self, table: "AsyncIbisTable", columns_to_inspect: list[str], table_name: str
-    ) -> dict[str, "pyarrow.Table | None"]:
-        """Fetch sample data for each column individually (fallback when bulk fetch fails).
-
-        Args:
-            table: The async table wrapper
-            columns_to_inspect: List of column names to inspect
-            table_name: Name of the table (for logging)
-
-        Returns:
-            Dictionary mapping column names to their sample data (or None if failed)
-        """
-        from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
-        sample_table_dict: dict[str, pyarrow.Table | None] = {}
-        for column_name in columns_to_inspect:
-            try:
-                # Build query using async proxy (returns AsyncIbisExpression)
-                sample_query = table.select(column_name).limit(self.request.n_sample_rows)
+        try:
+            # Let the database handle uniqueness with DISTINCT
+            # This pushes the work to the database instead of doing it client-side
+            query = table.select(column_name).distinct().limit(n_sample_rows)
+            result = await query.to_pyarrow_unsafe()
+            samples = result[column_name].to_pylist()
+            logger.debug(
+                "Fetched distinct column samples",
+                column=column_name,
+                requested=n_sample_rows,
+                received=len(samples),
+            )
+            return samples
+        except IbisDbCallNotInWorkerThreadError as e:
+            raise e
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch distinct column samples",
+                column=column_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return []
 
-                # Use adapter for dialect-specific safe conversion (e.g., Postgres DECIMAL NaN handling)
-                adapter = IbisTableAdapter(sample_query)
-                result = await adapter.to_pyarrow()
-                sample_table_dict[column_name] = result
-            except IbisDbCallNotInWorkerThreadError as e:
-                raise e
-            except Exception as e:
-                # Get column type in a non-blocking way
-                try:
-                    col_type = await table[column_name].type()
-                except Exception:
-                    col_type = "unknown"
-                logger.error(f"Error inspecting table {table_name} column {column_name} column type: {col_type}: {e!r}")
-                sample_table_dict[column_name] = None
-        return sample_table_dict
-
-    async def _inspect_table(self, connection: "AsyncIbisConnection", table_spec: "TableToInspect") -> "TableInfo":
+    async def _inspect_table(self, connection: AsyncIbisConnection, table_spec: TableToInspect) -> TableInfo:
         """Inspect a specific table and return its metadata."""
-        import pyarrow
-
         from agent_platform.core.payloads.data_connection import TableInfo
-        from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
         # Use _get_table to get proper error handling with TableNotFoundError
+        # We use the main connection for getting table metadata (schema, column names)
         table = await self._get_table(table_spec)
         column_names = table.columns
 
@@ -400,23 +371,44 @@ class DataConnectionInspector:
             col for col in column_names if table_spec.columns_to_inspect is None or col in table_spec.columns_to_inspect
         ]
 
-        # Fetch sample data if there are columns to inspect
-        sample_table: pyarrow.Table | dict[str, pyarrow.Table | None] | None = None
+        # Sample columns concurrently using a connection pool to avoid transaction nesting
+        # Create a pool of connections upfront, reuse them for all column inspections,
+        # then explicitly close them after all tasks complete
+        columns: list[ColumnInfo] = []
         if columns_to_inspect:
-            try:
-                sample_table = await self._fetch_sample_data_for_all_columns(table, columns_to_inspect)
-            except IbisDbCallNotInWorkerThreadError:
-                raise
-            except Exception as e:
-                logger.error(f"Error inspecting table {table_spec.name}: {e!r}")
-                # Fallback: try fetching columns one by one
-                sample_table = await self._fetch_sample_data_per_column(table, columns_to_inspect, table_spec.name)
+            # Create connection pool
+            connection_pool: asyncio.Queue[AsyncIbisConnection] = asyncio.Queue(maxsize=CONNECTION_POOL_SIZE)
+            pool_connections: list[AsyncIbisConnection] = []
 
-        # Inspect each column and collect metadata
-        columns = []
-        for column_name in columns_to_inspect:
-            column_info = await self._inspect_column(table, column_name, sample_table)
-            columns.append(column_info)
+            try:
+                # Create connections upfront
+                for _ in range(CONNECTION_POOL_SIZE):
+                    conn = await self.create_ibis_connection(self.data_connection)
+                    pool_connections.append(conn)
+                    await connection_pool.put(conn)
+
+                # Create tasks for all columns
+                tasks = [
+                    self._inspect_column_with_pool_connection(table_spec, table, column_name, connection_pool)
+                    for column_name in columns_to_inspect
+                ]
+                column_results = await asyncio.gather(*tasks)
+            finally:
+                # Explicitly close all connections in the pool
+                for conn in pool_connections:
+                    try:
+                        await conn.close()
+                    except Exception as e:
+                        logger.warning(
+                            "Error closing connection from pool",
+                            table=table_spec.name,
+                            error=str(e),
+                            error_type=type(e).__name__,
+                        )
+
+            # Process results - _inspect_column_with_pool_connection always returns ColumnInfo
+            for _column_name, result in zip(columns_to_inspect, column_results, strict=True):
+                columns.append(result)
 
         return TableInfo(
             name=table_spec.name,
@@ -425,6 +417,113 @@ class DataConnectionInspector:
             description=None,  # TODO: Add description extraction if available
             columns=columns,
         )
+
+    async def _inspect_column_with_pool_connection(
+        self,
+        table_spec: TableToInspect,
+        table: AsyncIbisTable,
+        column_name: str,
+        connection_pool: asyncio.Queue[AsyncIbisConnection],
+    ) -> ColumnInfo:
+        """Inspect a single column using a connection from the pool to avoid transaction nesting.
+
+        This method acquires a connection from the pool, uses it for inspection,
+        then returns it to the pool. This prevents transaction nesting errors while
+        efficiently reusing connections.
+
+        If an error occurs during inspection, returns a ColumnInfo with data_type="unknown"
+        and sample_values=None rather than raising an exception.
+
+        Args:
+            table_spec: Specification of the table being inspected
+            table: The async table wrapper from the main connection (used for column type lookup)
+            column_name: Name of the column to inspect
+            connection_pool: Queue containing available connections from the pool
+
+        Returns:
+            ColumnInfo - always returns a ColumnInfo, even if inspection partially failed
+        """
+        from agent_platform.core.payloads.data_connection import ColumnInfo
+
+        # Acquire a connection from the pool
+        pool_connection = await connection_pool.get()
+        column_type = "unknown"  # Default to unknown, will be updated if we can determine it
+        try:
+            # Get the table from the pool connection (separate from main connection to avoid transaction nesting)
+            pool_table = await pool_connection.table(table_spec.name)
+
+            # Get column type from the original table (no I/O, just metadata)
+            try:
+                column_type = str(await table[column_name].type())
+            except Exception as e:
+                # Fallback: try from pool table if original fails
+                if "255003" in str(e) or "Arrow" in str(e):
+                    logger.warning(
+                        "Arrow error for column, marking column with 'unknown' type",
+                        column=column_name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    column_type = "unknown"
+                else:
+                    try:
+                        column_type = str(await pool_table[column_name].type())
+                    except Exception:
+                        # If both attempts fail, default to "unknown"
+                        column_type = "unknown"
+
+            # Fetch samples using the pool connection
+            try:
+                column_info = await self._inspect_column(pool_table, column_name)
+                # Update the column type (in case we got it from pool_table)
+                return ColumnInfo(
+                    name=column_info.name,
+                    data_type=column_type,
+                    sample_values=column_info.sample_values,
+                    primary_key=column_info.primary_key,
+                    unique=column_info.unique,
+                    description=column_info.description,
+                    synonyms=column_info.synonyms,
+                )
+            except Exception as e:
+                # If inspection fails, return a ColumnInfo with unknown type and no samples
+                logger.warning(
+                    "Error inspecting column, returning ColumnInfo with unknown type",
+                    table=table_spec.name,
+                    column=column_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                return ColumnInfo(
+                    name=column_name,
+                    data_type=column_type,
+                    sample_values=None,
+                    primary_key=None,
+                    unique=None,
+                    description=None,
+                    synonyms=None,
+                )
+        except Exception as e:
+            # If we can't even get the table or connection, return a minimal ColumnInfo
+            logger.warning(
+                "Error accessing table for column inspection, returning ColumnInfo with unknown type",
+                table=table_spec.name,
+                column=column_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return ColumnInfo(
+                name=column_name,
+                data_type=column_type,
+                sample_values=None,
+                primary_key=None,
+                unique=None,
+                description=None,
+                synonyms=None,
+            )
+        finally:
+            # Return the connection to the pool
+            await connection_pool.put(pool_connection)
 
     def _sanitize_sample_value(self, value: Any) -> Any | None:
         """
@@ -453,11 +552,14 @@ class DataConnectionInspector:
 
     async def _inspect_column(
         self,
-        table: "AsyncIbisTable",
+        table: AsyncIbisTable,
         column_name: str,
-        sample_table: "pyarrow.Table | dict[str, pyarrow.Table | None] | None",
-    ) -> "ColumnInfo":
-        """Inspect a specific column and return its metadata."""
+    ) -> ColumnInfo:
+        """Inspect a specific column and return its metadata.
+
+        Fetches distinct sample values directly from the database using DISTINCT + LIMIT.
+        No client-side re-sampling or deduplication needed.
+        """
         from agent_platform.core.payloads.data_connection import ColumnInfo
         from agent_platform.server.data_frames.data_node import (
             convert_to_valid_json_types,
@@ -470,7 +572,7 @@ class DataConnectionInspector:
             # Error 255003: "Conversion from Snowflake VARIANT/OBJECT/ARRAY to Arrow not supported"
             if "255003" in str(e) or "Arrow" in str(e):
                 logger.warning(
-                    f"Arrow error for column {column_name}, marking column with 'unknown' type",
+                    "Arrow error for column, marking column with 'unknown' type",
                     column=column_name,
                     error=str(e),
                     error_type=type(e).__name__,
@@ -478,24 +580,23 @@ class DataConnectionInspector:
                 column_type = "unknown"
             else:
                 raise
-        if sample_table is not None:
-            if isinstance(sample_table, dict):
-                sample_table = sample_table[column_name]
 
-            if not sample_table:
-                sample_values = None
-            else:
-                arrow_sample_values = sample_table[column_name].to_pylist()
-                # Convert to valid JSON types and sanitize (remove None and null bytes)
-                sample_values = []
-                for v in arrow_sample_values:
-                    if v is not None:
-                        converted = convert_to_valid_json_types(v)
-                        sanitized = self._sanitize_sample_value(converted)
-                        if sanitized is not None:
-                            sample_values.append(sanitized)
-        else:
-            sample_values = None
+        # Fetch distinct samples directly from database if sampling is requested
+        sample_values: list[Any] | None = None
+        if self.request.n_sample_rows > 0:
+            raw_samples = await self._fetch_distinct_column_samples(table, column_name, self.request.n_sample_rows)
+            # Only sanitize (remove null bytes, truncate long strings) and convert to JSON types
+            # Database already handled uniqueness with DISTINCT, but truncation could create duplicates,
+            # so we use a set to deduplicate while preserving first-seen order
+            seen: set[Any] = set()
+            sample_values = []
+            for v in raw_samples:
+                if v is not None:
+                    converted = convert_to_valid_json_types(v)
+                    sanitized = self._sanitize_sample_value(converted)
+                    if sanitized is not None and sanitized not in seen:
+                        seen.add(sanitized)
+                        sample_values.append(sanitized)
 
         return ColumnInfo(
             name=column_name,

@@ -5,11 +5,11 @@ tables:
     name: id
     primary_key: null
     sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   - data_type: string
@@ -17,11 +17,11 @@ tables:
     name: Entity
     primary_key: null
     sample_values:
-    - '(ensemble): AWD-LSTM-DOC (fin) × 5 (WT2)'
-    - 3DDFA
-    - 3DMM-CNN
-    - 4 layer QRNN (h=2500)
-    - 6-Act Tether
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: string
@@ -36,11 +36,11 @@ tables:
     name: Day
     primary_key: null
     sample_values:
-    - '2018-08-30'
-    - '2015-11-23'
-    - '2016-12-15'
-    - '2018-03-22'
-    - '2021-08-03'
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: int64
@@ -48,10 +48,11 @@ tables:
     name: Training_dataset_size
     primary_key: null
     sample_values:
-    - 2000000
-    - 97967
-    - 500000
-    - 103000000
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   - data_type: string
@@ -59,11 +60,11 @@ tables:
     name: Domain
     primary_key: null
     sample_values:
-    - Language
-    - Vision
-    - Vision
-    - Language
-    - Robotics
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   database: main
@@ -78,11 +79,11 @@ tables:
     name: id
     primary_key: null
     sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   - data_type: string
@@ -90,11 +91,11 @@ tables:
     name: Entity
     primary_key: null
     sample_values:
-    - '(ensemble): AWD-LSTM-DOC (fin) × 5 (WT2)'
-    - 1.5x/year between 1950–2010
-    - 1.5x/year between 1950–2010
-    - 4 layer QRNN (h=2500)
-    - 4.3x/year between 2010–2025
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: string
@@ -109,11 +110,11 @@ tables:
     name: Day
     primary_key: null
     sample_values:
-    - '2018-08-30'
-    - '1950-07-02'
-    - '2009-11-22'
-    - '2018-03-22'
-    - '2010-05-13'
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: float64
@@ -121,11 +122,11 @@ tables:
     name: Training_computation_petaFLOP
     primary_key: null
     sample_values:
-    - 666.00006
-    - 7.916909e-12
-    - 0.29856032
-    - 591.5882
-    - 0.15265353
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   database: main
@@ -140,11 +141,11 @@ tables:
     name: id
     primary_key: null
     sample_values:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   - data_type: string
@@ -152,11 +153,11 @@ tables:
     name: Entity
     primary_key: null
     sample_values:
-    - AlphaCode
-    - AlphaGo Lee
-    - AlphaGo Master
-    - AlphaGo Zero
-    - AlphaStar
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: string
@@ -171,11 +172,11 @@ tables:
     name: year
     primary_key: null
     sample_values:
-    - 2022
-    - 2016
-    - 2017
-    - 2017
-    - 2019
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   - data_type: string
@@ -183,11 +184,11 @@ tables:
     name: Day
     primary_key: null
     sample_values:
-    - '2022-02-02'
-    - '2016-01-27'
-    - '2017-01-01'
-    - '2017-10-18'
-    - '2019-10-30'
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: string
@@ -195,11 +196,11 @@ tables:
     name: Domain
     primary_key: null
     sample_values:
-    - Language
-    - Games
-    - Games
-    - Games
-    - Games
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: string
@@ -207,9 +208,11 @@ tables:
     name: Cost_inflation_adjusted
     primary_key: null
     sample_values:
-    - '471445.3'
-    - '613480.6'
-    - '125758.1'
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   database: main
@@ -224,9 +227,11 @@ tables:
     name: name
     primary_key: null
     sample_values:
-    - artificial_intelligence_number_training_datapoints
-    - exponential_growth_of_computation_in_the_training_of_notable_ai_systems
-    - hardware_and_energy_cost_to_train_notable_ai_systems
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
+    - <sample_string>
     synonyms: null
     unique: null
   - data_type: int64
@@ -234,9 +239,11 @@ tables:
     name: seq
     primary_key: null
     sample_values:
-    - 954
-    - 507
-    - 64
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
+    - <sample_number>
     synonyms: null
     unique: null
   database: main

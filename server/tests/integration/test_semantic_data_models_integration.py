@@ -738,8 +738,34 @@ def test_generate_semantic_data_model_generation_integration(
         inspect_response = agent_client.inspect_data_connection(
             connection_id=data_connection_1["id"],
         )
-        # Remove dynamic timestamp field before regression check
+        # Remove dynamic timestamp field and normalize sample_values for data_regression
+        # Normalize sample_values to placeholders since actual values vary by database
         inspect_response_for_check = {k: v for k, v in inspect_response.items() if k != "inspected_at"}
+
+        def normalize_sample_values(obj):
+            """Normalize sample_values to placeholders for deterministic regression testing."""
+            if isinstance(obj, dict):
+                if "sample_values" in obj and isinstance(obj["sample_values"], list):
+                    sample_list = obj["sample_values"]
+                    if len(sample_list) > 0:
+                        first_val = next((v for v in sample_list if v is not None), None)
+                        normalized_count = 5
+                        if first_val is None:
+                            obj["sample_values"] = [None] * normalized_count
+                        elif isinstance(first_val, bool):
+                            obj["sample_values"] = ["<sample_bool>"] * normalized_count
+                        elif isinstance(first_val, int | float):
+                            obj["sample_values"] = ["<sample_number>"] * normalized_count
+                        else:
+                            obj["sample_values"] = ["<sample_string>"] * normalized_count
+                else:
+                    for value in obj.values():
+                        normalize_sample_values(value)
+            elif isinstance(obj, list):
+                for item in obj:
+                    normalize_sample_values(item)
+
+        normalize_sample_values(inspect_response_for_check)
         data_regression.check(inspect_response_for_check, basename="data_connection_inspect_response")
         tables_info = inspect_response["tables"]
         for table_info in tables_info:

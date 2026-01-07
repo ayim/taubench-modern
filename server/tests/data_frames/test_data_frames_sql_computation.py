@@ -728,7 +728,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
 
         monkeypatch.setattr(
             DataConnectionInspector,
-            "_select_with_limit",
+            "_fetch_distinct_column_samples",
             _raise_error,
         )
 

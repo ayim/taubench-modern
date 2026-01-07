@@ -131,6 +131,16 @@ class AsyncIbisConnection:
         """
         return await asyncio.to_thread(lambda: cast(Any, self._connection).current_database)
 
+    async def close(self) -> None:
+        """Close the underlying ibis connection.
+
+        This is a blocking I/O operation wrapped with asyncio.to_thread.
+        Uses the BaseBackend.disconnect() method to properly close the connection.
+        This ensures proper cleanup for backends that require explicit closing
+        (e.g., PostgreSQL, Snowflake).
+        """
+        await asyncio.to_thread(self._connection.disconnect)
+
 
 class AsyncIbisTable:
     """Async wrapper for ibis table objects.
