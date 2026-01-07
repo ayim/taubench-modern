@@ -1,5 +1,16 @@
 # @sema4ai/spar-ui
 
+## 0.14.0
+
+### Minor Changes
+
+- d581cfe: cleaner API for schema handling in DocIntel UI
+
+### Patch Changes
+
+- e9bd76e: Copy text edits for SDM UIs
+- 1df130f: Make Semantic Data Model database connection "Change Connection" action more prominent
+
 ## 0.13.4
 
 ### Patch Changes
