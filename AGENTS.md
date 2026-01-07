@@ -12,6 +12,7 @@ Primary components:
 Additional components:
 
 - MCP runtime: @workroom/mcp-runtime - used to provision action servers (as MCP servers) in SPAR
+  - API reference: @workroom/mcp-runtime/README.md
 
 ## Layout
 
