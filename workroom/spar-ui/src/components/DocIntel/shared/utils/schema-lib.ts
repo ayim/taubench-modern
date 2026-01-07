@@ -9,10 +9,41 @@
  *   - jsonpointer: ^5.0.1
  *   - lodash.clonedeep: ^4.5.0
  *   - @types/jsonpointer: ^5.0.2 (dev)
+ *   - zod: ^3.24.2
  */
 
 import * as jsonpointer from 'jsonpointer';
-import cloneDeep from 'lodash.clonedeep';
+import { cloneDeep } from 'lodash';
+import { z } from 'zod';
+
+/* ========================================================================
+   0. ZOD VALIDATION SCHEMAS
+   Validates document schemas at the edge (when received from server)
+   ======================================================================== */
+
+interface DocumentProperty {
+  type: string;
+  description?: string;
+  properties?: Record<string, DocumentProperty>;
+  items?: DocumentProperty;
+}
+
+const DocumentPropertySchema: z.ZodType<DocumentProperty> = z.lazy(() =>
+  z.object({
+    type: z.string(),
+    description: z.string().min(1).optional(),
+    properties: z.record(z.string(), DocumentPropertySchema).optional(),
+    items: DocumentPropertySchema.optional(),
+  }),
+);
+
+export const DocumentSchemaValidator = z.object({
+  type: z.string(),
+  description: z.string().min(1).optional(),
+  properties: z.record(z.string(), DocumentPropertySchema).optional(),
+});
+
+export type DocumentSchema = z.infer<typeof DocumentSchemaValidator>;
 
 /* ========================================================================
    1. PUBLIC TYPE DEFINITIONS
@@ -68,6 +99,96 @@ export type SchemaNodePredicate = (node: SchemaNode) => boolean;
  * Updater function for node mutations
  */
 export type NodeUpdater<T = JSONSchema> = (current: T | undefined) => T;
+
+/**
+ * Represents a field in the UI friendly rendered format.
+ * This is what the UI works with instead of raw JSONSchema.
+ */
+export interface RenderedField {
+  /** Dot-notation path: "tables.rows.name" */
+  id: string;
+
+  /** Property name: "name" */
+  name: string;
+
+  /** UI type: "text" | "number" | "array" | "object" */
+  type: string;
+
+  /** Description from schema */
+  description: string;
+
+  /** Nested children (for arrays/objects) */
+  children: RenderedField[];
+}
+
+/**
+ * The result of parsing a JSONSchema for UI rendering.
+ * Contains the flattened, UI friendly representation of fields.
+ */
+export interface RenderedSchema {
+  /** Top level fields from the schema */
+  fields: RenderedField[];
+
+  /** The root schema description (optional) */
+  description?: string;
+}
+
+/**
+ * A field to add to the schema.
+ */
+export interface FieldToAdd {
+  /** Dot-notation path for the new field (e.g. "address.city") */
+  fieldId: string;
+
+  /** The JSONSchema for the new field */
+  schema: JSONSchema;
+}
+
+/**
+ * A field modification.
+ */
+export interface FieldToModify {
+  /** Dot-notation path of the field to modify */
+  fieldId: string;
+
+  /** Properties to update on the field. (merged with existing) */
+  updates: Partial<JSONSchema>;
+}
+
+/**
+ * Options for computeSchema
+ */
+export interface ComputeSchemaOptions {
+  fieldsToAdd: FieldToAdd[];
+  fieldsToModify: FieldToModify[];
+  fieldsToDelete: string[];
+}
+
+/**
+ * Describes a modification that was applied to the schema
+ */
+export interface SchemaModification {
+  type: 'add' | 'modify' | 'delete';
+  fieldId: string;
+}
+
+export type ComputedSchemaResult =
+  | {
+      success: true;
+      data: {
+        schema: JSONSchema;
+        hasModifications: boolean;
+        modifications: SchemaModification[];
+      };
+    }
+  | {
+      success: false;
+      error: {
+        code: 'invalid_field_id' | 'file_not_found' | 'operation_failed';
+        message: string;
+        fieldId: string;
+      };
+    };
 
 /* ========================================================================
    2. POINTER UTILITIES (used by internal functions)
@@ -344,6 +465,109 @@ function validateIsObject(schema: JSONSchema, objectPointer: string): void {
   }
 }
 
+/**
+ * Converts a JSONSchema type to a UI friendly type string.
+ * @internal
+ */
+
+function toUIType(schemaType: unknown): string {
+  if (schemaType === 'string') return 'text';
+  if (schemaType === 'integer') return 'number';
+  if (typeof schemaType === 'string') return schemaType;
+  return 'text';
+}
+
+function fromUIType(uiType: string): string {
+  if (uiType === 'text') return 'string';
+  // 'number, 'boolean, 'object', 'array' stay the same
+  return uiType;
+}
+
+function renderedFieldToProperty(field: RenderedField): JSONSchema {
+  const schemaType = fromUIType(field.type);
+
+  const property: JSONSchema = {
+    type: schemaType,
+  };
+
+  if (field.description) {
+    property.description = field.description;
+  }
+
+  // Object: children become properties
+  if (field.type === 'object' && field.children.length > 0) {
+    const childProperties: Record<string, JSONSchema> = {};
+    field.children.forEach((child) => {
+      childProperties[child.name] = renderedFieldToProperty(child);
+    });
+    property.properties = childProperties;
+  }
+
+  // Array: children become items.properties
+  if (field.type === 'array' && field.children.length > 0) {
+    const itemProperties: Record<string, JSONSchema> = {};
+    field.children.forEach((child) => {
+      itemProperties[child.name] = renderedFieldToProperty(child);
+    });
+    property.items = {
+      type: 'object',
+      properties: itemProperties,
+    };
+  }
+
+  return property;
+}
+
+function parsePropertyToRenderedField(name: string, propSchema: DocumentProperty, parentPath: string): RenderedField {
+  // build the dot notation id & extract the type & description
+  const id = parentPath ? `${parentPath}.${name}` : name;
+  const type = toUIType(propSchema.type);
+  const description = propSchema.description ?? '';
+
+  // Get children based on schema structure
+  let children: RenderedField[] = [];
+
+  if (propSchema.type === 'array' && propSchema.items) {
+    // Array: children comes from items.properties
+
+    if (propSchema.items.properties) {
+      children = Object.entries(propSchema.items.properties).map(([childName, childSchema]) =>
+        parsePropertyToRenderedField(childName, childSchema, id),
+      );
+    }
+  } else if (propSchema.type === 'object' && propSchema.properties) {
+    // Object: children come from properties directly
+    children = Object.entries(propSchema.properties).map(([childName, childSchema]) =>
+      parsePropertyToRenderedField(childName, childSchema, id),
+    );
+  }
+
+  return {
+    id,
+    name,
+    type,
+    description,
+    children,
+  };
+}
+
+/**
+ * Validates that all field IDs in the options are parseable.
+ * Returns the first invalid field ID found, or null if all valid.
+ * @internal
+ */
+function findInvalidFieldId(options: ComputeSchemaOptions): string | null {
+  const { fieldsToAdd = [], fieldsToModify = [], fieldsToDelete = [] } = options;
+
+  const allFieldIds = [
+    ...fieldsToDelete,
+    ...fieldsToModify.map(({ fieldId }) => fieldId),
+    ...fieldsToAdd.map(({ fieldId }) => fieldId),
+  ];
+
+  return allFieldIds.find((fieldId) => !parseFieldId(fieldId)) ?? null;
+}
+
 /* ========================================================================
    4. PUBLIC API - TRAVERSAL
    ======================================================================== */
@@ -445,6 +669,73 @@ export function buildIndex(schema: JSONSchema): SchemaIndex {
  */
 export function validateSchema(schema: JSONSchema): void {
   walk(schema, validateSchemaNode);
+}
+
+/**
+ * Validates a schema received from the server and converts it to RenderedSchema.
+ * Call this at the "edge", when data arrives from the API.
+ * If validation fails, the server returned invalid data.
+ */
+export function toRenderedDocumentSchema(
+  serverData: unknown,
+): { success: true; data: RenderedSchema } | { success: false; error: { code: 'invalid_schema'; message: string } } {
+  const parsed = DocumentSchemaValidator.safeParse(serverData);
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: {
+        code: 'invalid_schema',
+        message: `The schema received from the server is invalid: ${parsed.error.message}`,
+      },
+    };
+  }
+
+  const { description, properties } = parsed.data;
+
+  const fields: RenderedField[] = properties
+    ? Object.entries(properties).map(([name, propSchema]) => parsePropertyToRenderedField(name, propSchema, ''))
+    : [];
+
+  return {
+    success: true,
+    data: { description, fields },
+  };
+}
+
+/**
+ * Converts RenderedField[] back to JSONSchema.
+ * This is the inverse of toRenderedDocumentSchema().
+ *
+ * @param fields The UI-friendly field array from RenderedSchema
+ * @param description Optional root schema description
+ * @returns A valid JSONSchema object
+ *
+ * @example
+ * // Round-trip: JSONSchema → RenderedSchema → JSONSchema
+ * const rendered = toRenderedDocumentSchema(serverSchema);
+ * if (rendered.success) {
+ *   // ... UI edits to rendered.data.fields ...
+ *   const jsonSchema = toJSONDocumentSchema(rendered.data.fields, rendered.data.description);
+ * }
+ */
+export function toJSONDocumentSchema(fields: RenderedField[], description?: string): JSONSchema {
+  const properties: Record<string, JSONSchema> = {};
+
+  fields.forEach((field) => {
+    properties[field.name] = renderedFieldToProperty(field);
+  });
+
+  const schema: JSONSchema = {
+    type: 'object',
+    properties,
+  };
+
+  if (description) {
+    schema.description = description;
+  }
+
+  return schema;
 }
 
 /**
@@ -753,4 +1044,76 @@ export function cloneProperty(
 
   // Add it to the new location (addProperty already does deep cloning)
   return addProperty(schema, toObjectPointer, newPropertyName, propSchema);
+}
+
+/**
+ * Applies changes to a JSONSchema and returns the modified schema.
+ * This is the inverse of toRenderedDocumentSchema. It takes tracked UI changes
+ * and creates the final JSONSchema.
+ *
+ * NOTE: With the DataConfigurator approach, consider using toJSONDocumentSchema()
+ * for full round-trip conversion instead of tracking individual changes.
+ *
+ * @deprecated May be removed if toJSONDocumentSchema() covers all use cases
+ *
+ * @param originalSchema The original JSONSchema to modify
+ * @param options  The changes to apply (add, modify, delete)
+ * @returns A new JSONSchema with all changes applied
+ *
+ * @example
+ * const finalSchema = computeSchema(originalSchema, {
+ *   fieldsToDelete: ['email', 'address.zipCode'],
+ *   fieldsToModify: [{ fieldId: 'name', updates: { description: 'The name of the user' } }],
+ *   fieldsToAdd: [{ fieldId: 'phone', schema: { type: 'string' } }],
+ * });
+ */
+export function computeSchema(schema: JSONSchema, options: ComputeSchemaOptions): ComputedSchemaResult {
+  const { fieldsToAdd = [], fieldsToModify = [], fieldsToDelete = [] } = options;
+
+  const invalidFieldId = findInvalidFieldId(options);
+  if (invalidFieldId) {
+    return {
+      success: false,
+      error: {
+        code: 'invalid_field_id',
+        message: `Invalid field ID: ${invalidFieldId}`,
+        fieldId: invalidFieldId,
+      },
+    };
+  }
+
+  let result = cloneDeep(schema);
+  const modifications: SchemaModification[] = [];
+
+  const sortedDeletes = [...fieldsToDelete].sort((a, b) => b.split('.').length - a.split('.').length);
+
+  sortedDeletes.forEach((fieldId) => {
+    const parsed = parseFieldId(fieldId)!;
+    result = deleteProperty(result, parsed.parentPointer, parsed.propertyName);
+    modifications.push({ type: 'delete', fieldId });
+  });
+
+  fieldsToModify.forEach(({ fieldId, updates }) => {
+    const parsed = parseFieldId(fieldId)!;
+    result = updateProperty(result, parsed.parentPointer, parsed.propertyName, (current) => ({
+      ...(current as Record<string, unknown>),
+      ...updates,
+    }));
+    modifications.push({ type: 'modify', fieldId });
+  });
+
+  fieldsToAdd.forEach(({ fieldId, schema: fieldSchema }) => {
+    const parsed = parseFieldId(fieldId)!;
+    result = addProperty(result, parsed.parentPointer, parsed.propertyName, fieldSchema);
+    modifications.push({ type: 'add', fieldId });
+  });
+
+  return {
+    success: true,
+    data: {
+      schema: result,
+      hasModifications: modifications.length > 0,
+      modifications,
+    },
+  };
 }

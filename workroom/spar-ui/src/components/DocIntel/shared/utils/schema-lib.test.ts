@@ -23,6 +23,10 @@ import {
   updateProperty,
   deleteProperty,
   validateSchema,
+  toRenderedDocumentSchema,
+  computeSchema,
+  RenderedField,
+  toJSONDocumentSchema,
 } from './schema-lib';
 
 const getSchemaType = (schema: JSONSchema): string | undefined => {
@@ -1253,5 +1257,477 @@ describe('Integration & Edge Cases', () => {
 
     // When object has no properties field, validation should catch it upfront
     expect(() => validateSchema(incompleteSchema)).toThrow(/missing 'properties' attribute/);
+  });
+});
+
+describe('toRenderedDocumentSchema', () => {
+  it('parses simple schema with string properties', () => {
+    const schema: JSONSchema = {
+      description: 'Test schema',
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The name' },
+        age: { type: 'integer', description: 'The age' },
+      },
+    };
+
+    const result = toRenderedDocumentSchema(schema);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(result.data).toEqual({
+      description: 'Test schema',
+      fields: [
+        { id: 'name', name: 'name', type: 'text', description: 'The name', children: [] },
+        { id: 'age', name: 'age', type: 'number', description: 'The age', children: [] },
+      ],
+    });
+  });
+
+  it('parses nested array schema', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        tables: {
+          type: 'array',
+          description: 'Tables',
+          items: {
+            type: 'object',
+            properties: {
+              rows: {
+                type: 'array',
+                description: 'Rows',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', description: 'Name field' },
+                    email: { type: 'string', description: 'Email field' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = toRenderedDocumentSchema(schema);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(result.data).toEqual({
+      description: undefined,
+      fields: [
+        {
+          id: 'tables',
+          name: 'tables',
+          type: 'array',
+          description: 'Tables',
+          children: [
+            {
+              id: 'tables.rows',
+              name: 'rows',
+              type: 'array',
+              description: 'Rows',
+              children: [
+                { id: 'tables.rows.name', name: 'name', type: 'text', description: 'Name field', children: [] },
+                { id: 'tables.rows.email', name: 'email', type: 'text', description: 'Email field', children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('returns empty fields for schema without properties', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      description: 'Empty schema',
+    };
+
+    const result = toRenderedDocumentSchema(schema);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(result.data).toEqual({
+      description: 'Empty schema',
+      fields: [],
+    });
+  });
+
+  it('handles schema with no description', () => {
+    const schema: JSONSchema = {
+      type: 'object',
+      properties: {
+        field: { type: 'string' },
+      },
+    };
+
+    const result = toRenderedDocumentSchema(schema);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(result.data).toEqual({
+      description: undefined,
+      fields: [{ id: 'field', name: 'field', type: 'text', description: '', children: [] }],
+    });
+  });
+
+  it('returns error for invalid schema', () => {
+    const invalidSchema = { invalid: 'data' };
+
+    const result = toRenderedDocumentSchema(invalidSchema);
+
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error('Expected failure');
+
+    expect(result.error).toEqual({
+      code: 'invalid_schema',
+      message: expect.stringContaining('The schema received from the server is invalid'),
+    });
+  });
+});
+
+describe('computeSchema', () => {
+  const baseSchema: JSONSchema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string', description: 'The name' },
+      email: { type: 'string', description: 'Email address' },
+      address: {
+        type: 'object',
+        properties: {
+          city: { type: 'string', description: 'City name' },
+          zipCode: { type: 'string', description: 'Zip code' },
+        },
+      },
+    },
+  };
+
+  it('returns unchanged schema when no options provided', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [],
+      fieldsToDelete: [],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(result.data.schema).toEqual(baseSchema);
+    expect(result.data.hasModifications).toBe(false);
+    expect(result.data.modifications).toEqual([]);
+  });
+
+  it('deletes a root-level field', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [],
+      fieldsToDelete: ['email'],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(hasProperty(result.data.schema, '', 'name')).toBe(true);
+    expect(hasProperty(result.data.schema, '', 'email')).toBe(false);
+    expect(hasProperty(result.data.schema, '', 'address')).toBe(true);
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'delete', fieldId: 'email' }]);
+  });
+
+  it('deletes a nested field', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [],
+      fieldsToDelete: ['address.zipCode'],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(hasProperty(result.data.schema, '/properties/address', 'city')).toBe(true);
+    expect(hasProperty(result.data.schema, '/properties/address', 'zipCode')).toBe(false);
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'delete', fieldId: 'address.zipCode' }]);
+  });
+
+  it('deletes multiple fields', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [],
+      fieldsToDelete: ['address', 'address.city'],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(hasProperty(result.data.schema, '', 'address')).toBe(false);
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([
+      { type: 'delete', fieldId: 'address.city' },
+      { type: 'delete', fieldId: 'address' },
+    ]);
+  });
+
+  it('modifies a field description', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [{ fieldId: 'name', updates: { description: 'Updated name' } }],
+      fieldsToDelete: [],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    const nameField = getProperty(result.data.schema, '', 'name') as { description?: string };
+    expect(nameField.description).toBe('Updated name');
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'modify', fieldId: 'name' }]);
+  });
+
+  it('modifies a nested field', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [{ fieldId: 'address.city', updates: { description: 'Updated city' } }],
+      fieldsToDelete: [],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    const cityField = getProperty(result.data.schema, '/properties/address', 'city') as { description?: string };
+    expect(cityField.description).toBe('Updated city');
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'modify', fieldId: 'address.city' }]);
+  });
+
+  it('preserves existing properties when modifying', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [],
+      fieldsToModify: [{ fieldId: 'name', updates: { description: 'New desc' } }],
+      fieldsToDelete: [],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    const nameField = getProperty(result.data.schema, '', 'name') as { type?: string; description?: string };
+    expect(nameField.type).toBe('string');
+    expect(nameField.description).toBe('New desc');
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'modify', fieldId: 'name' }]);
+  });
+
+  it('adds a new root-level field', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [{ fieldId: 'phone', schema: { type: 'string', description: 'Phone number' } }],
+      fieldsToModify: [],
+      fieldsToDelete: [],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(hasProperty(result.data.schema, '', 'phone')).toBe(true);
+    const phoneField = getProperty(result.data.schema, '', 'phone') as { type?: string; description?: string };
+    expect(phoneField.type).toBe('string');
+    expect(phoneField.description).toBe('Phone number');
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'add', fieldId: 'phone' }]);
+  });
+
+  it('adds a nested field', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [{ fieldId: 'address.country', schema: { type: 'string' } }],
+      fieldsToModify: [],
+      fieldsToDelete: [],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    expect(hasProperty(result.data.schema, '/properties/address', 'country')).toBe(true);
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([{ type: 'add', fieldId: 'address.country' }]);
+  });
+
+  it('applies all operations in correct order', () => {
+    const result = computeSchema(baseSchema, {
+      fieldsToAdd: [{ fieldId: 'phone', schema: { type: 'string' } }],
+      fieldsToDelete: ['email'],
+      fieldsToModify: [{ fieldId: 'name', updates: { description: 'Modified' } }],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+
+    // Delete worked
+    expect(hasProperty(result.data.schema, '', 'email')).toBe(false);
+
+    // Modify worked
+    const nameField = getProperty(result.data.schema, '', 'name') as { description?: string };
+    expect(nameField.description).toBe('Modified');
+
+    // Add worked
+    expect(hasProperty(result.data.schema, '', 'phone')).toBe(true);
+
+    expect(result.data.hasModifications).toBe(true);
+    expect(result.data.modifications).toEqual([
+      { type: 'delete', fieldId: 'email' },
+      { type: 'modify', fieldId: 'name' },
+      { type: 'add', fieldId: 'phone' },
+    ]);
+  });
+
+  it('is immutable - original schema unchanged', () => {
+    computeSchema(baseSchema, {
+      fieldsToAdd: [{ fieldId: 'phone', schema: { type: 'string' } }],
+      fieldsToModify: [],
+      fieldsToDelete: ['email'],
+    });
+
+    // Original should be unchanged
+    expect(hasProperty(baseSchema, '', 'email')).toBe(true);
+    expect(hasProperty(baseSchema, '', 'phone')).toBe(false);
+  });
+});
+
+describe('toJSONDocumentSchema', () => {
+  it('converts simple flat fields back to JSONSchema', () => {
+    const fields: RenderedField[] = [
+      { id: 'name', name: 'name', type: 'text', description: 'The name', children: [] },
+      { id: 'age', name: 'age', type: 'number', description: 'The age', children: [] },
+    ];
+
+    const result = toJSONDocumentSchema(fields);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'The name' },
+        age: { type: 'number', description: 'The age' },
+      },
+    });
+  });
+
+  it('includes description when provided', () => {
+    const fields: RenderedField[] = [{ id: 'name', name: 'name', type: 'text', description: '', children: [] }];
+
+    const result = toJSONDocumentSchema(fields, 'Invoice schema');
+
+    expect(result).toEqual({
+      type: 'object',
+      description: 'Invoice schema',
+      properties: {
+        name: { type: 'string' },
+      },
+    });
+  });
+
+  it('converts nested object fields', () => {
+    const fields: RenderedField[] = [
+      {
+        id: 'address',
+        name: 'address',
+        type: 'object',
+        description: 'User address',
+        children: [
+          { id: 'address.city', name: 'city', type: 'text', description: 'City', children: [] },
+          { id: 'address.zip', name: 'zip', type: 'text', description: 'Zip code', children: [] },
+        ],
+      },
+    ];
+
+    const result = toJSONDocumentSchema(fields);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        address: {
+          type: 'object',
+          description: 'User address',
+          properties: {
+            city: { type: 'string', description: 'City' },
+            zip: { type: 'string', description: 'Zip code' },
+          },
+        },
+      },
+    });
+  });
+
+  it('converts array fields with item properties', () => {
+    const fields: RenderedField[] = [
+      {
+        id: 'items',
+        name: 'items',
+        type: 'array',
+        description: 'Line items',
+        children: [
+          { id: 'items.sku', name: 'sku', type: 'text', description: '', children: [] },
+          { id: 'items.price', name: 'price', type: 'number', description: '', children: [] },
+        ],
+      },
+    ];
+
+    const result = toJSONDocumentSchema(fields);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Line items',
+          items: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              price: { type: 'number' },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('round-trips through toRenderedDocumentSchema and back', () => {
+    const originalSchema: JSONSchema = {
+      type: 'object',
+      description: 'Invoice schema',
+      properties: {
+        invoice_id: { type: 'string', description: 'Invoice ID' },
+        total: { type: 'number', description: 'Total amount' },
+      },
+    };
+
+    const rendered = toRenderedDocumentSchema(originalSchema);
+    expect(rendered.success).toBe(true);
+
+    if (rendered.success) {
+      const roundTripped = toJSONDocumentSchema(rendered.data.fields, rendered.data.description);
+      expect(roundTripped).toEqual(originalSchema);
+    }
+  });
+
+  it('returns empty properties for empty fields array', () => {
+    const result = toJSONDocumentSchema([]);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {},
+    });
   });
 });
