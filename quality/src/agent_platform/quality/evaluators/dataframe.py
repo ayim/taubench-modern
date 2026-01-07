@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from agent_platform.quality.dataframes import (
-    DataFrameComparator,
+    create_comparator,
     fetch_dataframe_data,
     fetch_thread_dataframes,
     load_dataframe_from_file,
@@ -126,7 +126,7 @@ class DataFrameGoldenComparisonEvaluator(Evaluator[DataFrameGoldenComparisonEval
             )
 
         # Create comparator with configured settings
-        comparator = DataFrameComparator(
+        comparator = create_comparator(
             match_mode=expected.match_mode,
             keys=expected.keys,
             relative_tolerance=expected.relative_tolerance,
@@ -134,7 +134,7 @@ class DataFrameGoldenComparisonEvaluator(Evaluator[DataFrameGoldenComparisonEval
         )
 
         # Compare each actual dataframe against the golden set
-        comparison_results = []
+        comparison_results: list[dict] = []
         for df_info in actual_dfs:
             try:
                 actual_df = await fetch_dataframe_data(
@@ -144,15 +144,11 @@ class DataFrameGoldenComparisonEvaluator(Evaluator[DataFrameGoldenComparisonEval
                     server_url=self.server_url,
                 )
                 match_result = comparator.compare(actual_df, golden_df)
-                comparison_results.append(
-                    {
-                        "dataframe_name": df_info["name"],
-                        "matched": match_result["matched"],
-                        "explanation": match_result.get("explanation", ""),
-                        "num_rows_actual": len(actual_df),
-                        "num_rows_golden": len(golden_df),
-                    },
-                )
+
+                # Serialize and add evaluator context
+                result_dict = match_result.model_dump()
+                result_dict["dataframe_name"] = df_info["name"]
+                comparison_results.append(result_dict)
             except Exception as e:
                 comparison_results.append(
                     {
