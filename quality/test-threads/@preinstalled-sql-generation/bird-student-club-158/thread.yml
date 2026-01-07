@@ -1,7 +1,22 @@
 name: bird-student-club-158
-description: 'BIRD Q1469 (moderate): Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position.'
+description: "BIRD Q1469 (moderate): Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name,
+         T1.position
+  FROM member AS T1
+  INNER JOIN zip_code AS T2 ON T2.zip_code = T1.zip
+  WHERE T2.city = 'Lincolnton'
+    AND T2.state = 'North Carolina'
+    AND T2.zip_code = 28092
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1469
-    description: 'Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position.'
+    description: "Which student has the hometown of Lincolnton, North Carolina with the zip code of 28092? List their full name and position."
     messages:
       - role: user
         content: |

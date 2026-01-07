@@ -1,7 +1,20 @@
 name: bird-student-club-078
-description: 'BIRD Q1389 (simple): Which event has the lowest cost?'
+description: "BIRD Q1389 (simple): Which event has the lowest cost?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.event_name
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget
+  ORDER BY T3.cost
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1389
-    description: 'Which event has the lowest cost?'
+    description: "Which event has the lowest cost?"
     messages:
       - role: user
         content: |

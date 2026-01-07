@@ -1,7 +1,18 @@
 name: bird-formula-1-006
-description: 'BIRD Q851 (simple): What positions did constructor Renault achieve in the standings?'
+description: "BIRD Q851 (simple): What positions did constructor Renault achieve in the standings?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.position
+  FROM constructorStandings AS T1
+  INNER JOIN constructors AS T2 ON T2.constructorId = T1.constructorId
+  WHERE T2.name = 'Renault'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-851
-    description: 'What positions did constructor Renault achieve in the standings?'
+    description: "What positions did constructor Renault achieve in the standings?"
     messages:
       - role: user
         content: |

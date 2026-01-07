@@ -371,6 +371,7 @@ class TestCase:
     metrics: list[Metric] = field(default_factory=list)
     timeout_seconds: float | None = None
     difficulty: str | None = None  # e.g., "simple", "moderate", "challenging"
+    reference_sql: str | None = None  # Reference SQL query for comparison (e.g., from BIRD benchmark)
 
     @property
     def test_directory(self) -> Path:
@@ -595,6 +596,7 @@ class TestCase:
             workitem=workitem,
             sdms=sdms,
             difficulty=data.get("difficulty"),
+            reference_sql=data.get("reference_sql"),
         )
 
 

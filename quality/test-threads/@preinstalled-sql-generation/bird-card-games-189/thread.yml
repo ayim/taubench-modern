@@ -1,7 +1,26 @@
 name: bird-card-games-189
-description: 'BIRD Q528 (challenging): List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal.'
+description: "BIRD Q528 (challenging): List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.name,
+                  CASE
+                      WHEN T1.status = 'Legal' THEN T1.format
+                      ELSE NULL
+                  END
+  FROM legalities AS T1
+  INNER JOIN cards AS T2 ON T2.uuid = T1.uuid
+  WHERE T2.setCode IN
+      (SELECT code
+       FROM
+       SETS
+       WHERE name = 'Hour of Devastation')
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-528
-    description: 'List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal.'
+    description: "List the names of all the cards in the set Hour of Devastation and find the formats in which these cards are legal."
     messages:
       - role: user
         content: |

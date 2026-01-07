@@ -1,7 +1,83 @@
 name: bird-financial-047
-description: 'BIRD Q135 (challenging): For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?'
+description: "BIRD Q135 (challenging): For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountWithNegativeBalance AS
+    (SELECT t.account_id,
+            t.date AS transaction_date,
+            t.balance,
+            t.operation,
+            t.amount,
+            a.frequency,
+            ROW_NUMBER() OVER (PARTITION BY t.account_id
+                               ORDER BY t.date DESC) AS rn
+     FROM trans t
+     INNER JOIN ACCOUNT a ON t.account_id = a.account_id
+     WHERE t.balance < 0
+       AND t.operation = 'VYBER KARTOU'
+       AND a.frequency = 'POPLATEK MESICNE'),
+       CardUsageStats AS
+    (SELECT d.account_id,
+            COUNT(c.card_id) AS num_cards,
+            MIN(c.issued) AS first_card_issued,
+            MAX(c.issued) AS latest_card_issued,
+            SUM(CASE
+                    WHEN c.type = 'gold' THEN 1
+                    ELSE 0
+                END) AS gold_cards,
+            SUM(CASE
+                    WHEN c.type = 'classic' THEN 1
+                    ELSE 0
+                END) AS classic_cards
+     FROM card c
+     INNER JOIN disp d ON c.disp_id = d.disp_id
+     GROUP BY d.account_id),
+       AccountOwnerInfo AS
+    (SELECT d.account_id,
+            COUNT(DISTINCT cl.client_id) AS num_owners,
+            AVG(julianday('2000-01-01') - julianday(cl.birth_date))/365.25 AS avg_owner_age,
+            SUM(CASE
+                    WHEN cl.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_owners,
+            SUM(CASE
+                    WHEN cl.gender = 'F' THEN 1
+                    ELSE 0
+                END) AS female_owners
+     FROM disp d
+     INNER JOIN client cl ON d.client_id = cl.client_id
+     WHERE d.type = 'OWNER'
+     GROUP BY d.account_id)
+  SELECT COUNT(DISTINCT a.account_id) AS total_accounts_with_negative_balance,
+         AVG(a.balance) AS avg_negative_balance,
+         MAX(a.amount) AS max_withdrawal_amount,
+         AVG(COALESCE(c.num_cards, 0)) AS avg_cards_per_account,
+         SUM(COALESCE(c.gold_cards, 0)) AS total_gold_cards,
+         AVG(COALESCE(o.avg_owner_age, 0)) AS avg_account_owner_age,
+         SUM(CASE
+                 WHEN o.male_owners > o.female_owners THEN 1
+                 ELSE 0
+             END) AS accounts_with_more_male_owners,
+         SUM(CASE
+                 WHEN o.female_owners > o.male_owners THEN 1
+                 ELSE 0
+             END) AS accounts_with_more_female_owners,
+         SUM(CASE
+                 WHEN o.female_owners = o.male_owners
+                      AND o.num_owners > 0 THEN 1
+                 ELSE 0
+             END) AS accounts_with_equal_gender_distribution
+  FROM AccountWithNegativeBalance a
+  LEFT JOIN CardUsageStats c ON a.account_id = c.account_id
+  LEFT JOIN AccountOwnerInfo o ON a.account_id = o.account_id
+  WHERE a.rn = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +86,7 @@ sdms:
 
 thread:
   - name: bird-question-135
-    description: 'For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?'
+    description: "For accounts with monthly issuance that went into negative balance after a credit card withdrawal, what are the statistics including average negative balance, maximum withdrawal amount, average number of cards per account, total gold cards, average owner age, and gender distribution of account owners?"
     messages:
       - role: user
         content: |

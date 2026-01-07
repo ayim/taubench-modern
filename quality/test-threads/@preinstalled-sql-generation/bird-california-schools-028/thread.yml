@@ -1,7 +1,21 @@
 name: bird-california-schools-028
-description: 'BIRD Q27 (moderate): What is the average score in writing for the schools that were opened after 1991 or closed before 2000? List the school names along with the score. Also, list the communication number of the schools if there is any.'
+description: "BIRD Q27 (moderate): What is the average score in writing for the schools that were opened after 1991 or closed before 2000? List the school names along with the score. Also, list the communication number of the schools if there is any."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.School,
+         T1.AvgScrWrite,
+         T2.Phone
+  FROM schools AS T2
+  LEFT JOIN satscores AS T1 ON T2.CDSCode = T1.cds
+  WHERE strftime('%Y', T2.OpenDate) > '1991'
+    OR strftime('%Y', T2.ClosedDate) < '2000'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-27
-    description: 'What is the average score in writing for the schools that were opened after 1991 or closed before 2000? List the school names along with the score. Also, list the communication number of the schools if there is any.'
+    description: "What is the average score in writing for the schools that were opened after 1991 or closed before 2000? List the school names along with the score. Also, list the communication number of the schools if there is any."
     messages:
       - role: user
         content: |

@@ -1,2 +1,2 @@
 district_id,district_name,region,inhabitants,avg_salary,unemployment_rate_95,district_salary_rank,account_creation_date,account_age_days,transaction_count,total_income,total_expense,account_balance_change,last_transaction_date,owner_count,owner_genders,has_loan,loan_amount,loan_status,order_amount,order_purpose
-64,Zlin,south Moravia,197099,9624,1.6,16,1995-01-25,11287.0,235,303814,270624,33190,1998-12-31,1,F,No,0,N/A,3877.0,SIPO
+64,Zlin,south Moravia,197099,9624,1.6,16,1995-01-25,11305.0,235,303814,270624,33190,1998-12-31,1,F,No,0,N/A,3877.0,SIPO

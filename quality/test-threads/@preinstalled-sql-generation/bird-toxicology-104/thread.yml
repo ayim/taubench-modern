@@ -1,7 +1,21 @@
 name: bird-toxicology-104
-description: 'BIRD Q298 (moderate): Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen.'
+description: "BIRD Q298 (moderate): Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN T1.element = 'h'
+                             AND T2.label = '+' THEN T2.molecule_id
+                        ELSE NULL
+                    END) AS REAL) * 100 / COUNT(T2.molecule_id)
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-298
-    description: 'Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen.'
+    description: "Calculate the percentage of molecules containing carcinogenic compounds that element is hydrogen."
     messages:
       - role: user
         content: |

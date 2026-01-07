@@ -1,7 +1,20 @@
 name: bird-financial-054
-description: 'BIRD Q142 (simple): Which accounts placed orders for household payment in Pisek?'
+description: "BIRD Q142 (simple): Which accounts placed orders for household payment in Pisek?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.account_id
+  FROM trans AS T1
+  INNER JOIN ACCOUNT AS T2 ON T1.account_id = T2.account_id
+  INNER JOIN district AS T3 ON T2.district_id = T3.district_id
+  WHERE T1.k_symbol = 'SIPO'
+    AND T3.A2 = 'Pisek'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-142
-    description: 'Which accounts placed orders for household payment in Pisek?'
+    description: "Which accounts placed orders for household payment in Pisek?"
     messages:
       - role: user
         content: |

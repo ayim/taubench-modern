@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-052
-description: 'BIRD Q1200 (moderate): What proportion of patients who had signs of thrombocytopenia had SLE diagnosed?'
+description: "BIRD Q1200 (moderate): What proportion of patients who had signs of thrombocytopenia had SLE diagnosed?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN Diagnosis LIKE '%SLE%' THEN 1
+                      ELSE 0
+                  END) AS REAL) * 100 / NULLIF(COUNT(DISTINCT ID), 0) AS proportion
+  FROM Examination
+  WHERE Symptoms = 'thrombocytopenia';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1200
-    description: 'What proportion of patients who had signs of thrombocytopenia had SLE diagnosed?'
+    description: "What proportion of patients who had signs of thrombocytopenia had SLE diagnosed?"
     messages:
       - role: user
         content: |

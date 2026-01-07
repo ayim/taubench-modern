@@ -1,7 +1,21 @@
 name: bird-financial-088
-description: 'BIRD Q176 (simple): What is the amount of debt that client number 992 has, and how is this client doing with payments?'
+description: "BIRD Q176 (simple): What is the amount of debt that client number 992 has, and how is this client doing with payments?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T4.amount,
+         T4.status
+  FROM client AS T1
+  INNER JOIN disp AS T2 ON T1.client_id = T2.client_id
+  INNER JOIN ACCOUNT AS T3 ON T2.account_id = T3.account_id
+  INNER JOIN loan AS T4 ON T3.account_id = T4.account_id
+  WHERE T1.client_id = 992
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-176
-    description: 'What is the amount of debt that client number 992 has, and how is this client doing with payments?'
+    description: "What is the amount of debt that client number 992 has, and how is this client doing with payments?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-codebase-community-073
-description: 'BIRD Q603 (simple): What is the sum of favourite count gained by user ID 686 in 2011?'
+description: "BIRD Q603 (simple): What is the sum of favourite count gained by user ID 686 in 2011?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(DISTINCT FavoriteCount)
+  FROM posts
+  WHERE Id IN
+      (SELECT PostId
+       FROM postHistory
+       WHERE UserId = 686
+         AND STRFTIME('%Y', CreationDate) = '2011');
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-603
-    description: 'What is the sum of favourite count gained by user ID 686 in 2011?'
+    description: "What is the sum of favourite count gained by user ID 686 in 2011?"
     messages:
       - role: user
         content: |

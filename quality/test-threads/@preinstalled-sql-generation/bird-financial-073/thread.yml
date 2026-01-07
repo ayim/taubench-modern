@@ -1,7 +1,90 @@
 name: bird-financial-073
-description: 'BIRD Q161 (challenging): What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?'
+description: "BIRD Q161 (challenging): What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH client_account_info AS
+    (SELECT d.client_id,
+            d.account_id,
+            d.disp_id,
+            c.gender,
+            c.birth_date,
+            CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER) AS client_age,
+            a.district_id,
+            a.frequency
+     FROM disp d
+     JOIN client c ON d.client_id = c.client_id
+     JOIN ACCOUNT a ON d.account_id = a.account_id
+     WHERE d.client_id = 13539),
+       card_details AS
+    (SELECT c.disp_id,
+            c.type AS card_type,
+            c.issued,
+            CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', c.issued) AS INTEGER) AS card_age,
+            ROW_NUMBER() OVER (PARTITION BY c.disp_id
+                               ORDER BY c.issued DESC) AS card_rank
+     FROM card c
+     JOIN client_account_info cai ON c.disp_id = cai.disp_id),
+       district_stats AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            RANK() OVER (
+                         ORDER BY d.A11 DESC) AS salary_rank
+     FROM district d
+     JOIN client_account_info cai ON d.district_id = cai.district_id),
+       transaction_summary AS
+    (SELECT t.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.date) AS last_transaction_date
+     FROM trans t
+     JOIN client_account_info cai ON t.account_id = cai.account_id
+     GROUP BY t.account_id)
+  SELECT cai.client_id,
+         cai.gender,
+         cai.client_age,
+         cd.card_type,
+         cd.issued AS card_issued_date,
+         cd.card_age,
+         ds.district_name,
+         ds.region,
+         ds.avg_salary,
+         ds.salary_rank AS district_salary_rank,
+         COALESCE(ts.transaction_count, 0) AS total_transactions,
+         COALESCE(ts.total_income, 0) AS total_income,
+         COALESCE(ts.total_expense, 0) AS total_expense,
+         CASE
+             WHEN cd.card_type = 'gold' THEN 'Premium'
+             WHEN cd.card_type = 'classic'
+                  AND cd.card_age > 5 THEN 'Long-term Classic'
+             ELSE 'Standard'
+         END AS customer_segment,
+  
+    (SELECT COUNT(*)
+     FROM loan l
+     WHERE l.account_id = cai.account_id) AS loan_count
+  FROM client_account_info cai
+  LEFT JOIN card_details cd ON cai.disp_id = cd.disp_id
+  AND cd.card_rank = 1
+  LEFT JOIN district_stats ds ON cai.district_id = ds.district_id
+  LEFT JOIN transaction_summary ts ON cai.account_id = ts.account_id
+  WHERE cai.client_id = 13539
+  ORDER BY cd.card_age DESC
 
 sdms:
   - kind: postgres
@@ -10,7 +93,7 @@ sdms:
 
 thread:
   - name: bird-question-161
-    description: 'What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?'
+    description: "What is the complete customer profile for client 13539, including their demographics, credit card details, district information with salary ranking, transaction activity, customer segment classification, and loan count?"
     messages:
       - role: user
         content: |

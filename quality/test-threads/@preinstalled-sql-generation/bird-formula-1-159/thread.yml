@@ -1,7 +1,21 @@
 name: bird-formula-1-159
-description: 'BIRD Q1004 (simple): How many wins was achieved by the oldest racer? Indicate his/her full name.'
+description: "BIRD Q1004 (simple): How many wins was achieved by the oldest racer? Indicate his/her full name."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T1.wins),
+         T2.forename,
+         T2.surname
+  FROM driverStandings AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  ORDER BY T2.dob ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1004
-    description: 'How many wins was achieved by the oldest racer? Indicate his/her full name.'
+    description: "How many wins was achieved by the oldest racer? Indicate his/her full name."
     messages:
       - role: user
         content: |

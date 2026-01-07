@@ -1,7 +1,27 @@
 name: bird-debit-card-specializing-062
-description: 'BIRD Q1531 (moderate): Who is the top spending customer and how much is the average price per single item purchased by this customer? What currency was being used?'
+description: "BIRD Q1531 (moderate): Who is the top spending customer and how much is the average price per single item purchased by this customer? What currency was being used?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t.CustomerID,
+         SUM(t.Price) / SUM(t.Amount) AS avg_price_per_item,
+         c.Currency
+  FROM transactions_1k t
+  JOIN customers c ON t.CustomerID = c.CustomerID
+  WHERE t.CustomerID =
+      (SELECT CustomerID
+       FROM transactions_1k
+       GROUP BY CustomerID
+       ORDER BY SUM(Price) DESC
+       LIMIT 1)
+  GROUP BY t.CustomerID,
+           c.Currency
 
 sdms:
   - kind: postgres
@@ -10,7 +30,7 @@ sdms:
 
 thread:
   - name: bird-question-1531
-    description: 'Who is the top spending customer and how much is the average price per single item purchased by this customer? What currency was being used?'
+    description: "Who is the top spending customer and how much is the average price per single item purchased by this customer? What currency was being used?"
     messages:
       - role: user
         content: |

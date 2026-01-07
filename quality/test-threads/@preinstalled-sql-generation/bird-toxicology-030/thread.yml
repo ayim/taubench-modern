@@ -3,6 +3,58 @@ description: "BIRD Q224 (challenging): For all bonds connected to atom TR000_2, 
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH MoleculeInfo AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT a.atom_id) AS atom_count,
+            COUNT(DISTINCT b.bond_id) AS bond_count
+     FROM molecule m
+     LEFT JOIN atom a ON m.molecule_id = a.molecule_id
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     GROUP BY m.molecule_id,
+              m.label),
+       AtomConnections AS
+    (SELECT c.bond_id,
+            c.atom_id,
+            c.atom_id2,
+            a1.element AS element1,
+            a2.element AS element2,
+            b.bond_type,
+            b.molecule_id,
+            ROW_NUMBER() OVER (PARTITION BY b.molecule_id
+                               ORDER BY c.bond_id) AS connection_rank
+     FROM connected c
+     JOIN atom a1 ON c.atom_id = a1.atom_id
+     JOIN atom a2 ON c.atom_id2 = a2.atom_id
+     JOIN bond b ON c.bond_id = b.bond_id
+     WHERE c.atom_id2 = 'TR000_2')
+  SELECT ac.bond_id,
+         ac.atom_id AS connected_from,
+         ac.atom_id2 AS connected_to,
+         ac.element1 || '-' || ac.element2 AS connection_elements,
+         ac.bond_type,
+         mi.label AS molecule_label,
+         CASE
+             WHEN ac.element1 = 'cl'
+                  OR ac.element2 = 'cl' THEN 'Contains Chlorine'
+             WHEN ac.element1 = 'c'
+                  AND ac.element2 = 'c' THEN 'Carbon-Carbon Bond'
+             ELSE 'Other Bond Type'
+         END AS bond_classification,
+         mi.atom_count,
+         mi.bond_count,
+         ac.connection_rank
+  FROM AtomConnections ac
+  JOIN MoleculeInfo mi ON ac.molecule_id = mi.molecule_id
+  ORDER BY ac.molecule_id,
+           ac.connection_rank;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_toxicology

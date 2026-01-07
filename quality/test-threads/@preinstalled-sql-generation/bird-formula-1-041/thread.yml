@@ -1,7 +1,19 @@
 name: bird-formula-1-041
-description: 'BIRD Q886 (simple): Which year has the most number of races?'
+description: "BIRD Q886 (simple): Which year has the most number of races?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT YEAR
+  FROM races
+  GROUP BY YEAR
+  ORDER BY COUNT(round) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-886
-    description: 'Which year has the most number of races?'
+    description: "Which year has the most number of races?"
     messages:
       - role: user
         content: |

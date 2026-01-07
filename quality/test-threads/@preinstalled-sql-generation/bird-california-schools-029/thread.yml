@@ -1,7 +1,24 @@
 name: bird-california-schools-029
-description: 'BIRD Q28 (challenging): Consider the average difference between K-12 enrollment and 15-17 enrollment of schools that are locally funded, list the names and DOC type of schools which has a difference above this average.'
+description: "BIRD Q28 (challenging): Consider the average difference between K-12 enrollment and 15-17 enrollment of schools that are locally funded, list the names and DOC type of schools which has a difference above this average."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.School,
+         T2.DOC
+  FROM frpm AS T1
+  INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T2.FundingType = 'Locally funded'
+    AND (T1.`Enrollment (K-12)` - T1.`Enrollment (Ages 5-17)`) >
+      (SELECT AVG(T3.`Enrollment (K-12)` - T3.`Enrollment (Ages 5-17)`)
+       FROM frpm AS T3
+       INNER JOIN schools AS T4 ON T3.CDSCode = T4.CDSCode
+       WHERE T4.FundingType = 'Locally funded')
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-28
-    description: 'Consider the average difference between K-12 enrollment and 15-17 enrollment of schools that are locally funded, list the names and DOC type of schools which has a difference above this average.'
+    description: "Consider the average difference between K-12 enrollment and 15-17 enrollment of schools that are locally funded, list the names and DOC type of schools which has a difference above this average."
     messages:
       - role: user
         content: |

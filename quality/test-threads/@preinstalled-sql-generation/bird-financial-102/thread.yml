@@ -1,7 +1,76 @@
 name: bird-financial-102
-description: 'BIRD Q190 (challenging): What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?'
+description: "BIRD Q190 (challenging): What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ClientsInEastBohemia AS
+    (SELECT c.client_id,
+            c.birth_date,
+            c.gender,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            STRFTIME('%Y', c.birth_date) AS birth_year,
+            COUNT(DISTINCT a.account_id) AS num_accounts,
+            COUNT(DISTINCT l.loan_id) AS num_loans
+     FROM client AS c
+     INNER JOIN district AS d ON c.district_id = d.district_id
+     LEFT JOIN disp AS dp ON c.client_id = dp.client_id
+     LEFT JOIN ACCOUNT AS a ON dp.account_id = a.account_id
+     LEFT JOIN loan AS l ON a.account_id = l.account_id
+     WHERE STRFTIME('%Y', c.birth_date) = '1920'
+       AND d.A3 = 'east Bohemia'
+     GROUP BY c.client_id,
+              c.birth_date,
+              c.gender,
+              d.A2,
+              d.A3),
+       TransactionStats AS
+    (SELECT dp.client_id,
+            COUNT(t.trans_id) AS total_transactions,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expenses,
+            AVG(t.amount) AS avg_transaction_amount
+     FROM disp AS dp
+     INNER JOIN ACCOUNT AS a ON dp.account_id = a.account_id
+     LEFT JOIN trans AS t ON a.account_id = t.account_id
+     WHERE dp.client_id IN
+         (SELECT client_id
+          FROM ClientsInEastBohemia)
+     GROUP BY dp.client_id)
+  SELECT COUNT(c.client_id) AS total_clients_born_1920_in_east_bohemia,
+         AVG(c.num_accounts) AS avg_accounts_per_client,
+         AVG(c.num_loans) AS avg_loans_per_client,
+         SUM(CASE
+                 WHEN c.gender = 'M' THEN 1
+                 ELSE 0
+             END) AS male_clients,
+         SUM(CASE
+                 WHEN c.gender = 'F' THEN 1
+                 ELSE 0
+             END) AS female_clients,
+         AVG(COALESCE(ts.total_transactions, 0)) AS avg_transactions_per_client,
+         AVG(COALESCE(ts.total_income, 0)) AS avg_income_per_client,
+         AVG(COALESCE(ts.total_expenses, 0)) AS avg_expenses_per_client,
+  
+    (SELECT district_name
+     FROM ClientsInEastBohemia
+     GROUP BY district_name
+     ORDER BY COUNT(*) DESC
+     LIMIT 1) AS most_common_district
+  FROM ClientsInEastBohemia c
+  LEFT JOIN TransactionStats ts ON c.client_id = ts.client_id
 
 sdms:
   - kind: postgres
@@ -10,7 +79,7 @@ sdms:
 
 thread:
   - name: bird-question-190
-    description: 'What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?'
+    description: "What are the comprehensive statistics for clients born in 1920 who live in east Bohemia, including their account activity, loan information, transaction patterns, gender distribution, and most common district?"
     messages:
       - role: user
         content: |

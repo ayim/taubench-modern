@@ -1,7 +1,24 @@
 name: bird-toxicology-050
-description: 'BIRD Q244 (moderate): Is the molecule with the most double bonds carcinogenic?'
+description: "BIRD Q244 (moderate): Is the molecule with the most double bonds carcinogenic?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.label
+  FROM molecule AS T1
+  INNER JOIN
+    (SELECT T.molecule_id,
+            COUNT(T.bond_type)
+     FROM bond AS T
+     WHERE T.bond_type = '='
+     GROUP BY T.molecule_id
+     ORDER BY COUNT(T.bond_type) DESC
+     LIMIT 1) AS T2 ON T1.molecule_id = T2.molecule_id
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-244
-    description: 'Is the molecule with the most double bonds carcinogenic?'
+    description: "Is the molecule with the most double bonds carcinogenic?"
     messages:
       - role: user
         content: |

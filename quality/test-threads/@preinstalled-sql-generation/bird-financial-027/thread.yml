@@ -1,7 +1,47 @@
 name: bird-financial-027
-description: 'BIRD Q115 (challenging): What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?'
+description: "BIRD Q115 (challenging): What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH RegionStats AS
+    (SELECT d.district_id,
+            d.A3 AS region,
+            CAST(d.A4 AS INTEGER) AS inhabitants,
+            COUNT(DISTINCT c.client_id) AS total_clients,
+            SUM(CASE
+                    WHEN c.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_clients,
+            RANK() OVER (PARTITION BY d.A3
+                         ORDER BY CAST(d.A4 AS INTEGER) DESC) AS population_rank
+     FROM district d
+     LEFT JOIN client c ON d.district_id = c.district_id
+     WHERE d.A3 = 'south Bohemia'
+     GROUP BY d.district_id,
+              d.A3,
+              d.A4)
+  SELECT rs.district_id,
+         d.A2 AS district_name,
+         rs.region,
+         rs.inhabitants,
+         rs.total_clients,
+         rs.male_clients,
+         CASE
+             WHEN rs.total_clients > 0 THEN ROUND((rs.male_clients * 100.0 / rs.total_clients), 2)
+             ELSE 0
+         END AS pct_male
+  FROM RegionStats rs
+  JOIN district d ON rs.district_id = d.district_id
+  WHERE rs.population_rank = 1
+  ORDER BY rs.inhabitants DESC,
+           rs.district_id
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +50,7 @@ sdms:
 
 thread:
   - name: bird-question-115
-    description: 'What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?'
+    description: "What is the district name, number of inhabitants, total number of clients, number of male clients, and percentage of male clients for the most populated district in the south Bohemia region?"
     messages:
       - role: user
         content: |

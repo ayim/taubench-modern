@@ -1,7 +1,19 @@
 name: bird-codebase-community-071
-description: 'BIRD Q601 (simple): What is the score and the link type ID for post ID 395?'
+description: "BIRD Q601 (simple): What is the score and the link type ID for post ID 395?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.Score,
+         T2.LinkTypeId
+  FROM posts AS T1
+  INNER JOIN postLinks AS T2 ON T1.Id = T2.PostId
+  WHERE T2.PostId = 395
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-601
-    description: 'What is the score and the link type ID for post ID 395?'
+    description: "What is the score and the link type ID for post ID 395?"
     messages:
       - role: user
         content: |

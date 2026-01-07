@@ -1,7 +1,20 @@
 name: bird-financial-096
-description: 'BIRD Q184 (simple): How many female customers have a junior credit card?'
+description: "BIRD Q184 (simple): How many female customers have a junior credit card?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.client_id)
+  FROM client AS T1
+  INNER JOIN disp AS T2 ON T1.client_id = T2.client_id
+  INNER JOIN card AS T3 ON T2.disp_id = T3.disp_id
+  WHERE T1.gender = 'F'
+    AND T3.type = 'junior'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-184
-    description: 'How many female customers have a junior credit card?'
+    description: "How many female customers have a junior credit card?"
     messages:
       - role: user
         content: |

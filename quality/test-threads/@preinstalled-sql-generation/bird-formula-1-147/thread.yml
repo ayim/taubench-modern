@@ -1,7 +1,22 @@
 name: bird-formula-1-147
-description: 'BIRD Q992 (moderate): Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth.'
+description: "BIRD Q992 (moderate): Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT forename,
+         surname,
+         url,
+         dob
+  FROM drivers
+  WHERE nationality = 'German'
+    AND STRFTIME('%Y', dob) BETWEEN '1971' AND '1985'
+  ORDER BY dob DESC
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-992
-    description: 'Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth.'
+    description: "Find the full name, Wiki Pedia page link, and date of birth of German drivers born between 1971 and 1985. List it in descending order of date of birth."
     messages:
       - role: user
         content: |

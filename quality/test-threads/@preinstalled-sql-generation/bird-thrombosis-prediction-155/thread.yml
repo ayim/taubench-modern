@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-155
-description: 'BIRD Q1303 (simple): When is the birthday of the oldest patient whose blood glucose is abnormal?'
+description: "BIRD Q1303 (simple): When is the birthday of the oldest patient whose blood glucose is abnormal?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.Birthday
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.GLU > 180
+  ORDER BY T1.Birthday ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1303
-    description: 'When is the birthday of the oldest patient whose blood glucose is abnormal?'
+    description: "When is the birthday of the oldest patient whose blood glucose is abnormal?"
     messages:
       - role: user
         content: |

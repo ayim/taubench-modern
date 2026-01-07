@@ -1,7 +1,19 @@
 name: bird-formula-1-009
-description: 'BIRD Q854 (simple): What is the coordinates location of the circuits for Australian grand prix?'
+description: "BIRD Q854 (simple): What is the coordinates location of the circuits for Australian grand prix?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.lat,
+                  T1.lng
+  FROM circuits AS T1
+  INNER JOIN races AS T2 ON T2.circuitID = T1.circuitId
+  WHERE T2.name = 'Australian Grand Prix'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-854
-    description: 'What is the coordinates location of the circuits for Australian grand prix?'
+    description: "What is the coordinates location of the circuits for Australian grand prix?"
     messages:
       - role: user
         content: |

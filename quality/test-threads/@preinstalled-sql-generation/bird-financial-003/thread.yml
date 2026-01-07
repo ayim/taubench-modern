@@ -1,7 +1,16 @@
 name: bird-financial-003
-description: 'BIRD Q91 (simple): The average unemployment ratio of 1995 and 1996, which one has higher percentage?'
+description: "BIRD Q91 (simple): The average unemployment ratio of 1995 and 1996, which one has higher percentage?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT IIF(AVG(A13) > AVG(A12), '1996', '1995') AS higher_year
+  FROM district;
 
 sdms:
   - kind: postgres
@@ -10,7 +19,7 @@ sdms:
 
 thread:
   - name: bird-question-91
-    description: 'The average unemployment ratio of 1995 and 1996, which one has higher percentage?'
+    description: "The average unemployment ratio of 1995 and 1996, which one has higher percentage?"
     messages:
       - role: user
         content: |

@@ -3,6 +3,20 @@ description: "BIRD Q1012 (simple): What was the position of the circuits during 
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.position
+  FROM lapTimes AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  WHERE T2.forename = 'Lewis'
+    AND T2.surname = 'Hamilton'
+  ORDER BY T1.time ASC
+  LIMIT 1;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_formula_1

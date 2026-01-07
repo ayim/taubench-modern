@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-158
-description: 'BIRD Q1306 (simple): How many patients diagnosed with SLE have a normal white blood cell level?'
+description: "BIRD Q1306 (simple): How many patients diagnosed with SLE have a normal white blood cell level?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T1.Diagnosis = 'SLE'
+    AND T2.WBC BETWEEN 3.5 AND 9
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1306
-    description: 'How many patients diagnosed with SLE have a normal white blood cell level?'
+    description: "How many patients diagnosed with SLE have a normal white blood cell level?"
     messages:
       - role: user
         content: |

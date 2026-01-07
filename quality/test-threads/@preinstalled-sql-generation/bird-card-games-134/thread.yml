@@ -1,7 +1,19 @@
 name: bird-card-games-134
-description: 'BIRD Q473 (moderate): Is the set of cards with Adarkar Valkyrie only available outside the United States?'
+description: "BIRD Q473 (moderate): Is the set of cards with Adarkar Valkyrie only available outside the United States?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT IIF(isForeignOnly = 1, 'YES', 'NO')
+  FROM cards AS T1
+  INNER JOIN
+  SETS AS T2 ON T2.code = T1.setCode
+  WHERE T1.name = 'Adarkar Valkyrie'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-473
-    description: 'Is the set of cards with Adarkar Valkyrie only available outside the United States?'
+    description: "Is the set of cards with Adarkar Valkyrie only available outside the United States?"
     messages:
       - role: user
         content: |

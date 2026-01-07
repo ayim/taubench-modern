@@ -1,7 +1,24 @@
 name: bird-card-games-140
-description: 'BIRD Q479 (moderate): Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?'
+description: "BIRD Q479 (moderate): Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN T1.power LIKE '*'
+                      OR T1.power IS NULL THEN 1
+                 ELSE 0
+             END)
+  FROM cards AS T1
+  INNER JOIN
+  SETS AS T2 ON T2.code = T1.setCode
+  WHERE T2.name = 'Coldsnap'
+    AND T1.convertedManaCost > 5
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-479
-    description: 'Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?'
+    description: "Among the cards with converted mana cost higher than 5 in the set Coldsnap, how many of them have unknown power?"
     messages:
       - role: user
         content: |

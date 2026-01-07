@@ -3,6 +3,21 @@ description: "BIRD Q1116 (simple): List down the tallest players' name."
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT player_name
+  FROM
+    (SELECT player_name,
+            height,
+            DENSE_RANK() OVER (
+                               ORDER BY height DESC) AS rank
+     FROM Player)
+  WHERE rank = 1
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2
@@ -15,7 +30,7 @@ thread:
       - role: user
         content: |
           List down the tallest players' name.
-          Evidence: tallest refers to rank based on the height in descending order; Most tallest players refers to rank = 1
+          Evidence: tallest refers to rank based on the height in descending order; Most tallest players refers to rank = 1 
 
 target-platforms:
   - name: openai

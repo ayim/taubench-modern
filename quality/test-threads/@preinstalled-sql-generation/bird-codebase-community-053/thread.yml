@@ -3,6 +3,19 @@ description: "BIRD Q583 (simple): What is the total score of the posts edited by
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T1.Score),
+         T2.WebsiteUrl
+  FROM posts AS T1
+  INNER JOIN users AS T2 ON T1.LastEditorUserId = T2.Id
+  WHERE T2.DisplayName = 'Yevgeny'
+  GROUP BY T2.WebsiteUrl
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

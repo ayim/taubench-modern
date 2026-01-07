@@ -1,7 +1,26 @@
 name: bird-thrombosis-prediction-086
-description: 'BIRD Q1234 (moderate): List the patient ID, sex and birthday who has abnormal white blood cell count. Group them by sex and list the patient by age in ascending order.'
+description: "BIRD Q1234 (moderate): List the patient ID, sex and birthday who has abnormal white blood cell count. Group them by sex and list the patient by age in ascending order."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.ID,
+         T1.SEX,
+         T1.Birthday
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.WBC < 3.5
+    OR T2.WBC > 9.0
+  GROUP BY T1.ID,
+           T1.SEX,
+           T1.Birthday
+  ORDER BY T1.SEX,
+           T1.Birthday ASC
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-1234
-    description: 'List the patient ID, sex and birthday who has abnormal white blood cell count. Group them by sex and list the patient by age in ascending order.'
+    description: "List the patient ID, sex and birthday who has abnormal white blood cell count. Group them by sex and list the patient by age in ascending order."
     messages:
       - role: user
         content: |

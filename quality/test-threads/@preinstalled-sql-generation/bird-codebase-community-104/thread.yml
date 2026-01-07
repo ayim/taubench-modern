@@ -1,7 +1,23 @@
 name: bird-codebase-community-104
-description: 'BIRD Q634 (challenging): Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?'
+description: "BIRD Q634 (challenging): Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.DisplayName
+  FROM users AS T1
+  INNER JOIN postHistory AS T2 ON T1.Id = T2.UserId
+  INNER JOIN posts AS T3 ON T2.PostId = T3.Id
+  WHERE T1.DisplayName = 'Harvey Motulsky'
+    OR T1.DisplayName = 'Noah Snyder'
+  GROUP BY T1.DisplayName
+  ORDER BY SUM(T3.ViewCount) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-634
-    description: 'Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?'
+    description: "Among posts by Harvey Motulsky and Noah Snyder, which one has higher popularity?"
     messages:
       - role: user
         content: |

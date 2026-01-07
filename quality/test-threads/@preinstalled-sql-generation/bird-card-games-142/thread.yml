@@ -1,7 +1,19 @@
 name: bird-card-games-142
-description: 'BIRD Q481 (simple): Please list all the foreign languages in which the card "Ancestor''s Chosen" has a flavor text.'
+description: "BIRD Q481 (simple): Please list all the foreign languages in which the card \"Ancestor's Chosen\" has a flavor text."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.language
+  FROM cards AS T1
+  INNER JOIN foreign_data AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.name = 'Ancestor''s Chosen'
+    AND T2.flavorText IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-481
-    description: 'Please list all the foreign languages in which the card "Ancestor''s Chosen" has a flavor text.'
+    description: "Please list all the foreign languages in which the card \"Ancestor's Chosen\" has a flavor text."
     messages:
       - role: user
         content: |

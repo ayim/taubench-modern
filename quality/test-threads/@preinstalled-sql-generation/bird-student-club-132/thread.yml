@@ -1,7 +1,19 @@
 name: bird-student-club-132
-description: 'BIRD Q1443 (simple): Give the event ID, location, and status of events conducted from November 2019 to March 2020.'
+description: "BIRD Q1443 (simple): Give the event ID, location, and status of events conducted from November 2019 to March 2020."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT event_id,
+         LOCATION,
+         status
+  FROM event
+  WHERE date(SUBSTR(event_date, 1, 10)) BETWEEN '2019-11-01' AND '2020-03-31'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1443
-    description: 'Give the event ID, location, and status of events conducted from November 2019 to March 2020.'
+    description: "Give the event ID, location, and status of events conducted from November 2019 to March 2020."
     messages:
       - role: user
         content: |

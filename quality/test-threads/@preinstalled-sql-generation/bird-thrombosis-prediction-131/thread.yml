@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-131
-description: 'BIRD Q1279 (moderate): What is the percentage of patient who has a abnormal level of glutamic oxaloacetic transaminase level, yet he or she is diagnosed with SLE?'
+description: "BIRD Q1279 (moderate): What is the percentage of patient who has a abnormal level of glutamic oxaloacetic transaminase level, yet he or she is diagnosed with SLE?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN T1.Diagnosis LIKE '%SLE%' THEN 1
+                 ELSE 0
+             END) * 100.0 / COUNT(T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.`GOT` >= 60
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1279
-    description: 'What is the percentage of patient who has a abnormal level of glutamic oxaloacetic transaminase level, yet he or she is diagnosed with SLE?'
+    description: "What is the percentage of patient who has a abnormal level of glutamic oxaloacetic transaminase level, yet he or she is diagnosed with SLE?"
     messages:
       - role: user
         content: |

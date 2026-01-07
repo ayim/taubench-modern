@@ -1,7 +1,24 @@
 name: bird-formula-1-048
-description: 'BIRD Q893 (simple): Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix.'
+description: "BIRD Q893 (simple): Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.forename,
+         T3.surname,
+         T2.points
+  FROM races AS T1
+  INNER JOIN driverStandings AS T2 ON T2.raceId = T1.raceId
+  INNER JOIN drivers AS T3 ON T3.driverId = T2.driverId
+  WHERE T1.name = 'Chinese Grand Prix'
+    AND T1.year = 2017
+  ORDER BY T2.points DESC
+  LIMIT 3
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-893
-    description: 'Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix.'
+    description: "Name the top 3 drivers and the points they scored in the 2017 Chinese Grand Prix."
     messages:
       - role: user
         content: |

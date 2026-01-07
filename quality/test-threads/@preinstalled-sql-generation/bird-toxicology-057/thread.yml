@@ -1,7 +1,27 @@
 name: bird-toxicology-057
-description: 'BIRD Q251 (moderate): What is the least common element of all carcinogenic molecules?'
+description: "BIRD Q251 (moderate): What is the least common element of all carcinogenic molecules?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.element
+  FROM molecule AS T1
+  INNER JOIN atom AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.label = '+'
+  GROUP BY T2.element
+  HAVING COUNT(DISTINCT T2.molecule_id) =
+    (SELECT COUNT(DISTINCT T2_inner.molecule_id)
+     FROM molecule AS T1_inner
+     INNER JOIN atom AS T2_inner ON T1_inner.molecule_id = T2_inner.molecule_id
+     WHERE T1_inner.label = '+'
+     GROUP BY T2_inner.element
+     ORDER BY COUNT(DISTINCT T2_inner.molecule_id)
+     LIMIT 1)
 
 sdms:
   - kind: postgres
@@ -10,7 +30,7 @@ sdms:
 
 thread:
   - name: bird-question-251
-    description: 'What is the least common element of all carcinogenic molecules?'
+    description: "What is the least common element of all carcinogenic molecules?"
     messages:
       - role: user
         content: |

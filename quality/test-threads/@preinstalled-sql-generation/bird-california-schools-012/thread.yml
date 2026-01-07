@@ -1,7 +1,68 @@
 name: bird-california-schools-012
-description: 'BIRD Q11 (challenging): For schools with total enrollment exceeding 500 students, show me their enrollment details, free meal eligibility rates, charter status, and SAT performance. Group them by county and categorize by FRPM levels (High: 75%+, Medium: 50-75%, Low: <50%). Only include schools where either the FRPM percentage is above 60% or more than 30% of SAT test takers scored 1500 or higher. Rank schools within each county by enrollment size and within each FRPM category by total SAT scores.'
+description: "BIRD Q11 (challenging): For schools with total enrollment exceeding 500 students, show me their enrollment details, free meal eligibility rates, charter status, and SAT performance. Group them by county and categorize by FRPM levels (High: 75%+, Medium: 50-75%, Low: <50%). Only include schools where either the FRPM percentage is above 60% or more than 30% of SAT test takers scored 1500 or higher. Rank schools within each county by enrollment size and within each FRPM category by total SAT scores."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH HighEnrollmentSchools AS
+    (SELECT T2.CDSCode,
+            T2.`School Name`,
+            T2.`County Name`,
+            T2.`Enrollment (K-12)` + T2.`Enrollment (Ages 5-17)` AS TotalEnrollment,
+            T2.`Percent (%) Eligible FRPM (K-12)` * 100 AS FRPMPercentage,
+            CASE
+                WHEN T2.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High FRPM'
+                WHEN T2.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium FRPM'
+                ELSE 'Low FRPM'
+            END AS FRPMCategory,
+            T2.`Charter School (Y/N)` AS IsCharter
+     FROM schools AS T1
+     INNER JOIN frpm AS T2 ON T1.CDSCode = T2.CDSCode
+     WHERE T2.`Enrollment (K-12)` + T2.`Enrollment (Ages 5-17)` > 500),
+       SchoolsWithSATScores AS
+    (SELECT s.cds,
+            s.sname,
+            s.NumTstTakr,
+            s.AvgScrRead,
+            s.AvgScrMath,
+            s.AvgScrWrite,
+            s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite AS TotalSATScore,
+            s.NumGE1500,
+            CASE
+                WHEN s.NumTstTakr > 0 THEN CAST(s.NumGE1500 AS REAL) / s.NumTstTakr
+                ELSE 0
+            END AS PercentageOver1500
+     FROM satscores s
+     WHERE s.rtype = 'S' -- School level records only
+  )
+  SELECT h.CDSCode,
+         h.`School Name`,
+         h.`County Name`,
+         h.TotalEnrollment,
+         h.FRPMPercentage,
+         h.FRPMCategory,
+         CASE
+             WHEN h.IsCharter = 1 THEN 'Yes'
+             ELSE 'No'
+         END AS IsCharterSchool,
+         COALESCE(s.NumTstTakr, 0) AS SATTestTakers,
+         COALESCE(s.TotalSATScore, 0) AS TotalSATScore,
+         COALESCE(s.PercentageOver1500 * 100, 0) AS PercentageStudentsOver1500,
+         RANK() OVER (PARTITION BY h.`County Name`
+                      ORDER BY h.TotalEnrollment DESC) AS CountyEnrollmentRank,
+         RANK() OVER (PARTITION BY h.FRPMCategory
+                      ORDER BY COALESCE(s.TotalSATScore, 0) DESC) AS CategorySATRank
+  FROM HighEnrollmentSchools h
+  LEFT JOIN SchoolsWithSATScores s ON h.CDSCode = s.cds
+  WHERE (h.FRPMPercentage > 60
+         OR COALESCE(s.PercentageOver1500 * 100, 0) > 30)
+  ORDER BY h.`County Name`,
+           CountyEnrollmentRank;
 
 sdms:
   - kind: postgres
@@ -10,7 +71,7 @@ sdms:
 
 thread:
   - name: bird-question-11
-    description: 'For schools with total enrollment exceeding 500 students, show me their enrollment details, free meal eligibility rates, charter status, and SAT performance. Group them by county and categorize by FRPM levels (High: 75%+, Medium: 50-75%, Low: <50%). Only include schools where either the FRPM percentage is above 60% or more than 30% of SAT test takers scored 1500 or higher. Rank schools within each county by enrollment size and within each FRPM category by total SAT scores.'
+    description: "For schools with total enrollment exceeding 500 students, show me their enrollment details, free meal eligibility rates, charter status, and SAT performance. Group them by county and categorize by FRPM levels (High: 75%+, Medium: 50-75%, Low: <50%). Only include schools where either the FRPM percentage is above 60% or more than 30% of SAT test takers scored 1500 or higher. Rank schools within each county by enrollment size and within each FRPM category by total SAT scores."
     messages:
       - role: user
         content: |

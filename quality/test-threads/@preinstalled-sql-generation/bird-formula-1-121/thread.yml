@@ -1,7 +1,17 @@
 name: bird-formula-1-121
-description: 'BIRD Q966 (simple): How many driver participated in race ID number 18?'
+description: "BIRD Q966 (simple): How many driver participated in race ID number 18?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(driverId)
+  FROM driverStandings
+  WHERE raceId = 18
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-966
-    description: 'How many driver participated in race ID number 18?'
+    description: "How many driver participated in race ID number 18?"
     messages:
       - role: user
         content: |

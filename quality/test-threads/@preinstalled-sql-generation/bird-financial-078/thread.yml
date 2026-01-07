@@ -1,7 +1,78 @@
 name: bird-financial-078
-description: 'BIRD Q166 (challenging): What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?'
+description: "BIRD Q166 (challenging): What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH district_accounts AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            a.account_id,
+            a.date AS account_creation_date,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS good_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS bad_loans,
+            AVG(l.amount) AS avg_loan_amount
+     FROM district d
+     JOIN ACCOUNT a ON d.district_id = a.district_id
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     WHERE d.A2 = 'Jesenik'
+     GROUP BY d.district_id,
+              d.A2,
+              a.account_id,
+              a.date),
+       transaction_stats AS
+    (SELECT da.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance
+     FROM district_accounts da
+     LEFT JOIN trans t ON da.account_id = t.account_id
+     GROUP BY da.account_id)
+  SELECT COUNT(da.account_id) AS total_accounts,
+         SUM(CASE
+                 WHEN ts.transaction_count > 5 THEN 1
+                 ELSE 0
+             END) AS accounts_with_many_transactions,
+         AVG(ts.transaction_count) AS avg_transactions_per_account,
+         SUM(da.loan_count) AS total_loans,
+         ROUND(AVG(da.avg_loan_amount), 2) AS average_loan_amount,
+         SUM(da.good_loans) AS total_good_loans,
+         SUM(da.bad_loans) AS total_bad_loans,
+         ROUND(AVG(ts.total_income), 2) AS avg_income_per_account,
+         ROUND(AVG(ts.max_balance), 2) AS avg_max_balance,
+  
+    (SELECT COUNT(DISTINCT c.client_id)
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     JOIN district_accounts da ON d.account_id = da.account_id
+     WHERE c.gender = 'F') AS female_clients,
+  
+    (SELECT COUNT(DISTINCT c.client_id)
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     JOIN district_accounts da ON d.account_id = da.account_id
+     WHERE c.gender = 'M') AS male_clients
+  FROM district_accounts da
+  LEFT JOIN transaction_stats ts ON da.account_id = ts.account_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +81,7 @@ sdms:
 
 thread:
   - name: bird-question-166
-    description: 'What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?'
+    description: "What is the comprehensive banking activity profile for accounts in Jesenik district, including the total number of accounts, transaction patterns, loan statistics with their repayment status, average balances, and the gender distribution of clients?"
     messages:
       - role: user
         content: |

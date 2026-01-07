@@ -1,7 +1,21 @@
 name: bird-superhero-010
-description: 'BIRD Q726 (moderate): Rank heroes published by Marvel Comics by their height in descending order.'
+description: "BIRD Q726 (moderate): Rank heroes published by Marvel Comics by their height in descending order."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT superhero_name,
+         height_cm,
+         RANK() OVER (
+                      ORDER BY height_cm DESC) AS HeightRank
+  FROM superhero
+  INNER JOIN publisher ON superhero.publisher_id = publisher.id
+  WHERE publisher.publisher_name = 'Marvel Comics'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-726
-    description: 'Rank heroes published by Marvel Comics by their height in descending order.'
+    description: "Rank heroes published by Marvel Comics by their height in descending order."
     messages:
       - role: user
         content: |

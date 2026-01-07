@@ -1,7 +1,20 @@
 name: bird-codebase-community-113
-description: 'BIRD Q643 (simple): What are the display names and ages of user who got the highest in views?'
+description: "BIRD Q643 (simple): What are the display names and ages of user who got the highest in views?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DisplayName,
+         Age
+  FROM users
+  WHERE VIEWS =
+      (SELECT MAX(VIEWS)
+       FROM users)
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-643
-    description: 'What are the display names and ages of user who got the highest in views?'
+    description: "What are the display names and ages of user who got the highest in views?"
     messages:
       - role: user
         content: |

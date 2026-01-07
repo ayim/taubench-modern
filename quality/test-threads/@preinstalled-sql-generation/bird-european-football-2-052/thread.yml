@@ -1,7 +1,20 @@
 name: bird-european-football-2-052
-description: 'BIRD Q1071 (challenging): List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team.'
+description: "BIRD Q1071 (challenging): List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t1.team_short_name
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t2.buildUpPlaySpeed = 31
+    AND t2.buildUpPlayDribbling = 53
+    AND t2.buildUpPlayPassing = 32
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1071
-    description: 'List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team.'
+    description: "List the football team that has a build up play speed of 31, build up plan dribbling of 53, and build up play passing of 32. Only indicate the short name of the team."
     messages:
       - role: user
         content: |

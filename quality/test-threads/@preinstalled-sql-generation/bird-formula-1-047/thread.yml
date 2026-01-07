@@ -1,7 +1,22 @@
 name: bird-formula-1-047
-description: 'BIRD Q892 (moderate): State the driver with the most points scored. Find his full name with that points.'
+description: "BIRD Q892 (moderate): State the driver with the most points scored. Find his full name with that points."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.forename,
+         T3.surname,
+         T2.points
+  FROM races AS T1
+  INNER JOIN driverStandings AS T2 ON T2.raceId = T1.raceId
+  INNER JOIN drivers AS T3 ON T3.driverId = T2.driverId
+  ORDER BY T2.points DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-892
-    description: 'State the driver with the most points scored. Find his full name with that points.'
+    description: "State the driver with the most points scored. Find his full name with that points."
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-debit-card-specializing-010
-description: 'BIRD Q1479 (moderate): Which year recorded the most consumption of gas paid in CZK?'
+description: "BIRD Q1479 (moderate): Which year recorded the most consumption of gas paid in CZK?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUBSTR(T2.Date, 1, 4)
+  FROM customers AS T1
+  INNER JOIN yearmonth AS T2 ON T1.CustomerID = T2.CustomerID
+  WHERE T1.Currency = 'CZK'
+  GROUP BY SUBSTR(T2.Date, 1, 4)
+  ORDER BY SUM(T2.Consumption) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1479
-    description: 'Which year recorded the most consumption of gas paid in CZK?'
+    description: "Which year recorded the most consumption of gas paid in CZK?"
     messages:
       - role: user
         content: |

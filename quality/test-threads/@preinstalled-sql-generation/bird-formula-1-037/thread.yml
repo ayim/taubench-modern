@@ -1,7 +1,19 @@
 name: bird-formula-1-037
-description: 'BIRD Q882 (simple): Which year was the first Singapore Grand Prix?'
+description: "BIRD Q882 (simple): Which year was the first Singapore Grand Prix?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT YEAR
+  FROM races
+  WHERE name = 'Singapore Grand Prix'
+  ORDER BY YEAR ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-882
-    description: 'Which year was the first Singapore Grand Prix?'
+    description: "Which year was the first Singapore Grand Prix?"
     messages:
       - role: user
         content: |

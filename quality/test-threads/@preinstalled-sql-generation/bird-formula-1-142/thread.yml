@@ -1,7 +1,20 @@
 name: bird-formula-1-142
-description: 'BIRD Q987 (simple): What is the average fastest lap time of the top 10 drivers in the 2006 United States Grand Prix?'
+description: "BIRD Q987 (simple): What is the average fastest lap time of the top 10 drivers in the 2006 United States Grand Prix?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.fastestLapTime)
+  FROM results AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  WHERE T1.rank < 11
+    AND T2.year = 2006
+    AND T2.name = 'United States Grand Prix'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-987
-    description: 'What is the average fastest lap time of the top 10 drivers in the 2006 United States Grand Prix?'
+    description: "What is the average fastest lap time of the top 10 drivers in the 2006 United States Grand Prix?"
     messages:
       - role: user
         content: |

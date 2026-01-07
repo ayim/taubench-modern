@@ -1,7 +1,18 @@
 name: bird-card-games-001
-description: 'BIRD Q340 (simple): Which are the cards that have incredibly powerful foils.'
+description: "BIRD Q340 (simple): Which are the cards that have incredibly powerful foils."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT id
+  FROM cards
+  WHERE cardKingdomFoilId IS NOT NULL
+    AND cardKingdomId IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-340
-    description: 'Which are the cards that have incredibly powerful foils.'
+    description: "Which are the cards that have incredibly powerful foils."
     messages:
       - role: user
         content: |

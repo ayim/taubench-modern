@@ -1,7 +1,19 @@
 name: bird-formula-1-098
-description: 'BIRD Q943 (moderate): What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?'
+description: "BIRD Q943 (moderate): What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(IIF(T1.time IS NOT NULL, 1, 0)) AS REAL) * 100 / COUNT(T1.resultId)
+  FROM results AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  WHERE T2.name = 'Australian Grand Prix'
+    AND T2.year = 2008
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-943
-    description: 'What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?'
+    description: "What is the rate of drivers completing all the laps in the 2008 Australian Grand Prix?"
     messages:
       - role: user
         content: |

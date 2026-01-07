@@ -1,4 +1,4 @@
 client_id,loan_amount,loan_duration_months,total_payments,interest_paid,loan_status,district_name,region,transaction_count,total_income,total_expenses,income_category,client_age
 10997,566640,60,566640.0,0.0,C,Hl.m. Praha,Prague,200,447173,406883,Low Income,53
 2823,541200,60,541200.0,0.0,D,Karvina,north Moravia,329,515538,518385,Low Income,79
-8506,495180,60,495180.0,0.0,C,Jesenik,north Moravia,76,770790,668206,Medium Income,45
+8506,495180,60,495180.0,0.0,C,Jesenik,north Moravia,76,770790,668206,Medium Income,46

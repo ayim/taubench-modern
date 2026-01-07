@@ -1,7 +1,20 @@
 name: bird-formula-1-064
-description: 'BIRD Q909 (moderate): Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?'
+description: "BIRD Q909 (moderate): Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN T1.country = 'Germany' THEN T2.raceId
+                             END) AS REAL) * 100 / COUNT(DISTINCT T2.raceId)
+  FROM circuits T1
+  INNER JOIN races T2 ON T2.circuitId = T1.circuitId
+  WHERE T2.name = 'European Grand Prix';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-909
-    description: 'Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?'
+    description: "Among all European Grand Prix races, what is the percentage of the races were hosted in Germany?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,26 @@
 name: bird-european-football-2-073
-description: 'BIRD Q1092 (simple): Give the name of the league which had the most matches in the 2008/2009 season?'
+description: "BIRD Q1092 (simple): Give the name of the league which had the most matches in the 2008/2009 season?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.name
+  FROM League AS t1
+  JOIN `Match` AS t2 ON t1.id = t2.league_id
+  WHERE t2.season = '2008/2009'
+  GROUP BY t1.name
+  HAVING COUNT(t2.id) =
+    (SELECT MAX(match_count)
+     FROM
+       (SELECT COUNT(m.id) AS match_count
+        FROM `Match` AS m
+        WHERE m.season = '2008/2009'
+        GROUP BY m.league_id) sub);
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-1092
-    description: 'Give the name of the league which had the most matches in the 2008/2009 season?'
+    description: "Give the name of the league which had the most matches in the 2008/2009 season?"
     messages:
       - role: user
         content: |

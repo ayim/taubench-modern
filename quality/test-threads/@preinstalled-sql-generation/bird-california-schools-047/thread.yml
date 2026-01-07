@@ -1,7 +1,21 @@
 name: bird-california-schools-047
-description: 'BIRD Q46 (simple): Which state special schools have the highest number of enrollees from grades 1 through 12?'
+description: "BIRD Q46 (simple): Which state special schools have the highest number of enrollees from grades 1 through 12?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.School
+  FROM frpm AS T1
+  INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T2.DOC = 31
+  ORDER BY T1.`Enrollment (K-12)` DESC,
+           T2.CDSCode ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-46
-    description: 'Which state special schools have the highest number of enrollees from grades 1 through 12?'
+    description: "Which state special schools have the highest number of enrollees from grades 1 through 12?"
     messages:
       - role: user
         content: |

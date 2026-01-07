@@ -1,7 +1,18 @@
 name: bird-toxicology-139
-description: 'BIRD Q333 (simple): In the molecule TR008, how many carbons are present?'
+description: "BIRD Q333 (simple): In the molecule TR008, how many carbons are present?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T.atom_id)
+  FROM atom AS T
+  WHERE T.molecule_id = 'TR008'
+    AND T.element = 'c'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-333
-    description: 'In the molecule TR008, how many carbons are present?'
+    description: "In the molecule TR008, how many carbons are present?"
     messages:
       - role: user
         content: |

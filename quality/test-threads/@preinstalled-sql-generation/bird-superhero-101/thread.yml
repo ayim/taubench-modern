@@ -1,7 +1,21 @@
 name: bird-superhero-101
-description: 'BIRD Q817 (moderate): Give the race of the blue-haired male superhero.'
+description: "BIRD Q817 (moderate): Give the race of the blue-haired male superhero."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.race
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.hair_colour_id = T2.id
+  INNER JOIN race AS T3 ON T1.race_id = T3.id
+  INNER JOIN gender AS T4 ON T1.gender_id = T4.id
+  WHERE T2.colour = 'Blue'
+    AND T4.gender = 'Male'
 
 sdms:
   - kind: postgres
@@ -10,12 +24,12 @@ sdms:
 
 thread:
   - name: bird-question-817
-    description: 'Give the race of the blue-haired male superhero.'
+    description: "Give the race of the blue-haired male superhero."
     messages:
       - role: user
         content: |
           Give the race of the blue-haired male superhero.
-          Evidence:
+          Evidence:  
 
 target-platforms:
   - name: openai

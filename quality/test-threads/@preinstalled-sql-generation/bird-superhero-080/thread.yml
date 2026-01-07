@@ -3,6 +3,19 @@ description: "BIRD Q796 (moderate): State all of 3-D Man's attributes along with
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.attribute_name,
+         T2.attribute_value
+  FROM superhero AS T1
+  INNER JOIN hero_attribute AS T2 ON T1.id = T2.hero_id
+  INNER JOIN attribute AS T3 ON T2.attribute_id = T3.id
+  WHERE T1.superhero_name = '3-D Man'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_superhero

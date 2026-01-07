@@ -3,6 +3,17 @@ description: "BIRD Q425 (simple): What are the card numbers that don't have mult
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT id
+  FROM cards
+  WHERE subtypes = 'Angel,Wizard'
+    AND side IS NULL
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_card_games

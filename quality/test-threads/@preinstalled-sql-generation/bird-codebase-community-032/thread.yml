@@ -1,7 +1,18 @@
 name: bird-codebase-community-032
-description: 'BIRD Q562 (simple): For the post which got 1910 view counts, how many comments does it get?'
+description: "BIRD Q562 (simple): For the post which got 1910 view counts, how many comments does it get?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.Id)
+  FROM posts AS T1
+  INNER JOIN comments AS T2 ON T1.Id = T2.PostId
+  WHERE T1.ViewCount = 1910
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-562
-    description: 'For the post which got 1910 view counts, how many comments does it get?'
+    description: "For the post which got 1910 view counts, how many comments does it get?"
     messages:
       - role: user
         content: |

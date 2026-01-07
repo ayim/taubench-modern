@@ -1,32 +1,32 @@
 account_id,district_name,region_name,max_loan_amount,avg_loan_amount,loan_count,gender,age,income_category,transaction_count,savings_ratio,region_loan_rank
-7542,Brno - mesto,south Moravia,590820,590820.0,1,M,58,Medium Income,220,0.11,1
-8926,Hl.m. Praha,Prague,566640,566640.0,1,F,53,Low Income,200,0.09,1
-817,Kolin,central Bohemia,538500,538500.0,1,M,65,High Income,361,0.03,1
-10451,Hl.m. Praha,Prague,482940,482940.0,1,F,49,High Income,598,0.01,2
-6950,Liberec,north Bohemia,475680,475680.0,1,F,59,Medium Income,161,0.08,1
-7966,Brno - mesto,south Moravia,473280,473280.0,1,F,58,Medium Income,168,0.29,2
-3679,Zlin,south Moravia,444864,444864.0,1,M,61,Medium Income,299,0.05,3
-2910,Frydek - Mistek,north Moravia,437460,437460.0,1,F,72,Medium Income,85,0.07,1
-2545,Hl.m. Praha,Prague,428784,428784.0,1,M,89,Low Income,192,0.06,3
-10297,Ceske Budejovice,south Bohemia,421008,421008.0,1,M,72,Medium Income,228,0.09,1
-11349,Hl.m. Praha,Prague,419880,419880.0,1,F,80,High Income,304,0.13,4
-2246,Hl.m. Praha,Prague,415800,415800.0,1,F,76,High Income,189,0.16,5
-4650,Kladno,central Bohemia,402000,402000.0,1,M,45,Low Income,269,0.1,2
-6226,Ostrava - mesto,north Moravia,398640,398640.0,1,F,65,High Income,401,0.2,2
-6592,Hl.m. Praha,Prague,390660,390660.0,1,F,47,High Income,224,0.1,6
-1093,Brno - mesto,south Moravia,385104,385104.0,1,F,69,High Income,243,0.14,4
-2912,Ostrava - mesto,north Moravia,380160,380160.0,1,M,76,High Income,369,0.13,3
-7795,Zlin,south Moravia,372120,372120.0,1,M,80,High Income,355,0.11,5
-319,Pardubice,east Bohemia,369000,369000.0,1,F,51,High Income,376,0.19,1
-2572,Zlin,south Moravia,360000,360000.0,1,F,52,High Income,375,0.18,6
-4948,Hradec Kralove,east Bohemia,359760,359760.0,1,M,46,High Income,237,0.14,2
-442,Brno - mesto,south Moravia,357840,357840.0,1,F,84,Low Income,80,0.13,7
-105,Tabor,south Bohemia,352704,352704.0,1,F,75,Low Income,59,0.08,2
-8381,Ceske Budejovice,south Bohemia,333648,333648.0,1,F,49,High Income,267,0.09,3
-5120,Hl.m. Praha,Prague,323472,323472.0,1,F,85,High Income,453,0.15,7
-9037,Hl.m. Praha,Prague,321936,321936.0,1,F,64,Low Income,206,0.13,8
-4456,Ceske Budejovice,south Bohemia,321240,321240.0,1,M,55,High Income,192,0.16,4
-3115,Ceske Budejovice,south Bohemia,321180,321180.0,1,M,89,High Income,206,0.1,5
-5213,Hl.m. Praha,Prague,320976,320976.0,1,M,89,High Income,301,0.23,9
-10202,Karvina,north Moravia,305424,305424.0,1,F,62,Medium Income,213,0.14,4
-5313,Teplice,north Bohemia,300660,300660.0,1,M,75,High Income,601,0.09,2
+7542,Brno - mesto,south Moravia,590820,590820.0,1,M,59,Medium Income,220,0.11,1
+8926,Hl.m. Praha,Prague,566640,566640.0,1,F,54,Low Income,200,0.09,1
+817,Kolin,central Bohemia,538500,538500.0,1,M,66,High Income,361,0.03,1
+10451,Hl.m. Praha,Prague,482940,482940.0,1,F,50,High Income,598,0.01,2
+6950,Liberec,north Bohemia,475680,475680.0,1,F,60,Medium Income,161,0.08,1
+7966,Brno - mesto,south Moravia,473280,473280.0,1,F,59,Medium Income,168,0.29,2
+3679,Zlin,south Moravia,444864,444864.0,1,M,62,Medium Income,299,0.05,3
+2910,Frydek - Mistek,north Moravia,437460,437460.0,1,F,73,Medium Income,85,0.07,1
+2545,Hl.m. Praha,Prague,428784,428784.0,1,M,90,Low Income,192,0.06,3
+10297,Ceske Budejovice,south Bohemia,421008,421008.0,1,M,73,Medium Income,228,0.09,1
+11349,Hl.m. Praha,Prague,419880,419880.0,1,F,81,High Income,304,0.13,4
+2246,Hl.m. Praha,Prague,415800,415800.0,1,F,77,High Income,189,0.16,5
+4650,Kladno,central Bohemia,402000,402000.0,1,M,46,Low Income,269,0.1,2
+6226,Ostrava - mesto,north Moravia,398640,398640.0,1,F,66,High Income,401,0.2,2
+6592,Hl.m. Praha,Prague,390660,390660.0,1,F,48,High Income,224,0.1,6
+1093,Brno - mesto,south Moravia,385104,385104.0,1,F,70,High Income,243,0.14,4
+2912,Ostrava - mesto,north Moravia,380160,380160.0,1,M,77,High Income,369,0.13,3
+7795,Zlin,south Moravia,372120,372120.0,1,M,81,High Income,355,0.11,5
+319,Pardubice,east Bohemia,369000,369000.0,1,F,52,High Income,376,0.19,1
+2572,Zlin,south Moravia,360000,360000.0,1,F,53,High Income,375,0.18,6
+4948,Hradec Kralove,east Bohemia,359760,359760.0,1,M,47,High Income,237,0.14,2
+442,Brno - mesto,south Moravia,357840,357840.0,1,F,85,Low Income,80,0.13,7
+105,Tabor,south Bohemia,352704,352704.0,1,F,76,Low Income,59,0.08,2
+8381,Ceske Budejovice,south Bohemia,333648,333648.0,1,F,50,High Income,267,0.09,3
+5120,Hl.m. Praha,Prague,323472,323472.0,1,F,86,High Income,453,0.15,7
+9037,Hl.m. Praha,Prague,321936,321936.0,1,F,65,Low Income,206,0.13,8
+4456,Ceske Budejovice,south Bohemia,321240,321240.0,1,M,56,High Income,192,0.16,4
+3115,Ceske Budejovice,south Bohemia,321180,321180.0,1,M,90,High Income,206,0.1,5
+5213,Hl.m. Praha,Prague,320976,320976.0,1,M,90,High Income,301,0.23,9
+10202,Karvina,north Moravia,305424,305424.0,1,F,63,Medium Income,213,0.14,4
+5313,Teplice,north Bohemia,300660,300660.0,1,M,76,High Income,601,0.09,2

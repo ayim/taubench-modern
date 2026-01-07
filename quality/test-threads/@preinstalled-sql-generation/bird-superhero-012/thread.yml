@@ -1,7 +1,23 @@
 name: bird-superhero-012
-description: 'BIRD Q728 (moderate): Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color.'
+description: "BIRD Q728 (moderate): Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT colour.colour AS EyeColor,
+         COUNT(superhero.id) AS COUNT,
+         RANK() OVER (
+                      ORDER BY COUNT(superhero.id) DESC) AS PopularityRank
+  FROM superhero
+  INNER JOIN colour ON superhero.eye_colour_id = colour.id
+  INNER JOIN publisher ON superhero.publisher_id = publisher.id
+  WHERE publisher.publisher_name = 'Marvel Comics'
+  GROUP BY colour.colour
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-728
-    description: 'Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color.'
+    description: "Rank superheroes from Marvel Comics by their eye color popularity, starting with the most common color."
     messages:
       - role: user
         content: |

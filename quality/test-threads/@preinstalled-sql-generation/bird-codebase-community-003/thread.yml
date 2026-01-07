@@ -1,7 +1,17 @@
 name: bird-codebase-community-003
-description: 'BIRD Q533 (simple): How many users last accessed the website after 2014/9/1?'
+description: "BIRD Q533 (simple): How many users last accessed the website after 2014/9/1?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(Id)
+  FROM users
+  WHERE date(LastAccessDate) > '2014-09-01'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-533
-    description: 'How many users last accessed the website after 2014/9/1?'
+    description: "How many users last accessed the website after 2014/9/1?"
     messages:
       - role: user
         content: |

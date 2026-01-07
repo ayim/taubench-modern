@@ -1,7 +1,20 @@
 name: bird-student-club-130
-description: 'BIRD Q1441 (moderate): How many members have education major in the College of Education & Human Services?'
+description: "BIRD Q1441 (moderate): How many members have education major in the College of Education & Human Services?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.member_id)
+  FROM member AS T1
+  INNER JOIN major AS T2 ON T2.major_id = T1.link_to_major
+  WHERE T1.position = 'Member'
+    AND T2.major_name LIKE '%Education%'
+    AND T2.college = 'College of Education & Human Services'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1441
-    description: 'How many members have education major in the College of Education & Human Services?'
+    description: "How many members have education major in the College of Education & Human Services?"
     messages:
       - role: user
         content: |

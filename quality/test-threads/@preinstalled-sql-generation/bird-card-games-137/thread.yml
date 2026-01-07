@@ -1,7 +1,26 @@
 name: bird-card-games-137
-description: 'BIRD Q476 (simple): Please list the name of the cards in the set Coldsnap with the highest converted mana cost.'
+description: "BIRD Q476 (simple): Please list the name of the cards in the set Coldsnap with the highest converted mana cost."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.name
+  FROM cards AS T1
+  INNER JOIN
+  SETS AS T2 ON T2.code = T1.setCode
+  WHERE T2.name = 'Coldsnap'
+    AND T1.convertedManaCost =
+      (SELECT MAX(convertedManaCost)
+       FROM cards T3
+       INNER JOIN
+       SETS T4 ON T4.code = T3.setCode
+       WHERE T4.name = 'Coldsnap')
+  ORDER BY T1.name ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-476
-    description: 'Please list the name of the cards in the set Coldsnap with the highest converted mana cost.'
+    description: "Please list the name of the cards in the set Coldsnap with the highest converted mana cost."
     messages:
       - role: user
         content: |

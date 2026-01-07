@@ -1,7 +1,24 @@
 name: bird-superhero-053
-description: 'BIRD Q769 (challenging): Which superhero has the most durability published by Dark Horse Comics?'
+description: "BIRD Q769 (challenging): Which superhero has the most durability published by Dark Horse Comics?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN hero_attribute AS T2 ON T1.id = T2.hero_id
+  INNER JOIN attribute AS T3 ON T3.id = T2.attribute_id
+  INNER JOIN publisher AS T4 ON T4.id = T1.publisher_id
+  WHERE T4.publisher_name = 'Dark Horse Comics'
+    AND T3.attribute_name = 'Durability'
+  ORDER BY T2.attribute_value DESC,
+           T1.superhero_name ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-769
-    description: 'Which superhero has the most durability published by Dark Horse Comics?'
+    description: "Which superhero has the most durability published by Dark Horse Comics?"
     messages:
       - role: user
         content: |

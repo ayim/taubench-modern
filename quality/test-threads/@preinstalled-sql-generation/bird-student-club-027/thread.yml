@@ -1,7 +1,20 @@
 name: bird-student-club-027
-description: 'BIRD Q1338 (moderate): Was each expense in October Meeting on October 8, 2019 approved?'
+description: "BIRD Q1338 (moderate): Was each expense in October Meeting on October 8, 2019 approved?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.approved
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget
+  WHERE T1.event_name = 'October Meeting'
+    AND T1.event_date LIKE '2019-10-08%'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1338
-    description: 'Was each expense in October Meeting on October 8, 2019 approved?'
+    description: "Was each expense in October Meeting on October 8, 2019 approved?"
     messages:
       - role: user
         content: |

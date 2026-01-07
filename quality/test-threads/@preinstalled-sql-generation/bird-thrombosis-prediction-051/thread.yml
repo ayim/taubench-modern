@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-051
-description: 'BIRD Q1199 (simple): How many patients who underwent testing in 1997 had protein levels outside the normal range?'
+description: "BIRD Q1199 (simple): How many patients who underwent testing in 1997 had protein levels outside the normal range?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT ID) AS abnormal_protein_patient_count
+  FROM Laboratory
+  WHERE (TP <= 6.0
+         OR TP >= 8.5)
+    AND STRFTIME('%Y', Date) = '1997';
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1199
-    description: 'How many patients who underwent testing in 1997 had protein levels outside the normal range?'
+    description: "How many patients who underwent testing in 1997 had protein levels outside the normal range?"
     messages:
       - role: user
         content: |

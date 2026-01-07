@@ -3,6 +3,18 @@ description: "BIRD Q630 (simple): What is the name of tags used by John Salvatie
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.Tags
+  FROM users AS T1
+  INNER JOIN postHistory AS T2 ON T1.Id = T2.UserId
+  INNER JOIN posts AS T3 ON T2.PostId = T3.Id
+  WHERE T1.DisplayName = 'John Salvatier'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

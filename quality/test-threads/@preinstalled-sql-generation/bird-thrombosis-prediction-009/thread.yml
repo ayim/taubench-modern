@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-009
-description: 'BIRD Q1157 (simple): For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with.'
+description: "BIRD Q1157 (simple): For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID,
+                  T1.SEX,
+                  T1.Diagnosis
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T2.Thrombosis = 2
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1157
-    description: 'For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with.'
+    description: "For patients with severe degree of thrombosis, list their ID, sex and disease the patient is diagnosed with."
     messages:
       - role: user
         content: |

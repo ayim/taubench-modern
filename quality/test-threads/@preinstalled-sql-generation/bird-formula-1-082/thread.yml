@@ -1,7 +1,21 @@
 name: bird-formula-1-082
-description: 'BIRD Q927 (simple): Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname.'
+description: "BIRD Q927 (simple): Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.forename,
+         T1.surname
+  FROM drivers AS T1
+  INNER JOIN results AS T2 ON T2.driverId = T1.driverId
+  WHERE T2.fastestLapTime IS NOT NULL
+  ORDER BY T2.fastestLapSpeed DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-927
-    description: 'Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname.'
+    description: "Which driver created the fastest lap speed in a Formula_1 race? Please give both his forename and surname."
     messages:
       - role: user
         content: |

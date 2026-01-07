@@ -1,7 +1,21 @@
 name: bird-formula-1-128
-description: 'BIRD Q973 (moderate): List out top 10 Spanish drivers who were born before 1982 and have the latest lap time.'
+description: "BIRD Q973 (moderate): List out top 10 Spanish drivers who were born before 1982 and have the latest lap time."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.driverId
+  FROM pitStops AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  WHERE T2.nationality = 'Spanish'
+    AND STRFTIME('%Y', T2.dob) < '1982'
+  ORDER BY T1.time DESC
+  LIMIT 10
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-973
-    description: 'List out top 10 Spanish drivers who were born before 1982 and have the latest lap time.'
+    description: "List out top 10 Spanish drivers who were born before 1982 and have the latest lap time."
     messages:
       - role: user
         content: |

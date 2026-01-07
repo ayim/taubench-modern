@@ -1,7 +1,21 @@
 name: bird-card-games-178
-description: 'BIRD Q517 (moderate): How many distinct rare enchantment Abundance cards have at least one legal play format?'
+description: "BIRD Q517 (moderate): How many distinct rare enchantment Abundance cards have at least one legal play format?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.id)
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.rarity = 'rare'
+    AND T1.types = 'Enchantment'
+    AND T1.name = 'Abundance'
+    AND T2.status = 'Legal'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-517
-    description: 'How many distinct rare enchantment Abundance cards have at least one legal play format?'
+    description: "How many distinct rare enchantment Abundance cards have at least one legal play format?"
     messages:
       - role: user
         content: |

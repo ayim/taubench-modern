@@ -1,7 +1,28 @@
 name: bird-card-games-179
-description: 'BIRD Q518 (moderate): Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition.'
+description: "BIRD Q518 (moderate): Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH MaxBanned AS
+    (SELECT format,
+            COUNT(*) AS count_banned
+     FROM legalities
+     WHERE status = 'Banned'
+     GROUP BY format
+     ORDER BY COUNT(*) DESC
+     LIMIT 1)
+  SELECT T2.format,
+         T1.name
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T2.uuid = T1.uuid
+  INNER JOIN MaxBanned MB ON MB.format = T2.format
+  WHERE T2.status = 'Banned'
 
 sdms:
   - kind: postgres
@@ -10,7 +31,7 @@ sdms:
 
 thread:
   - name: bird-question-518
-    description: 'Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition.'
+    description: "Which of the play format has the highest number of banned status? Indicate the play format and the names of all the card meet the condition."
     messages:
       - role: user
         content: |

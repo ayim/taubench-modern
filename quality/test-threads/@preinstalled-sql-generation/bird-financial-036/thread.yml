@@ -3,6 +3,85 @@ description: "BIRD Q124 (challenging): For 60-month loans, show me the top 3 lar
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanStatistics AS
+    (SELECT T3.loan_id,
+            T2.A2 AS district_name,
+            T2.A11 AS avg_salary,
+            T3.amount,
+            T3.duration,
+            T3.payments,
+            T3.status,
+            T3.account_id,
+            ROW_NUMBER() OVER (PARTITION BY T2.A2
+                               ORDER BY T3.amount DESC) AS district_loan_rank
+     FROM ACCOUNT AS T1
+     INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+     INNER JOIN loan AS T3 ON T1.account_id = T3.account_id
+     WHERE T3.duration = 60),
+       ClientInfo AS
+    (SELECT d.account_id,
+            COUNT(DISTINCT c.client_id) AS num_clients,
+            SUM(CASE
+                    WHEN c.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_clients,
+            SUM(CASE
+                    WHEN c.gender = 'F' THEN 1
+                    ELSE 0
+                END) AS female_clients,
+            AVG(CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER)) AS avg_client_age
+     FROM disp d
+     JOIN client c ON d.client_id = c.client_id
+     GROUP BY d.account_id),
+       TransactionSummary AS
+    (SELECT account_id,
+            COUNT(*) AS total_transactions,
+            SUM(CASE
+                    WHEN TYPE = 'PRIJEM' THEN amount
+                    ELSE 0
+                END) AS total_incoming,
+            SUM(CASE
+                    WHEN TYPE = 'VYDAJ' THEN amount
+                    ELSE 0
+                END) AS total_outgoing
+     FROM trans
+     GROUP BY account_id)
+  SELECT ls.loan_id,
+         ls.district_name,
+         ls.avg_salary,
+         ls.amount AS loan_amount,
+         ls.payments AS monthly_payment,
+         ls.status AS loan_status,
+         ls.district_loan_rank,
+         CASE
+             WHEN ls.status = 'A' THEN 'Finished - OK'
+             WHEN ls.status = 'B' THEN 'Finished - Default'
+             WHEN ls.status = 'C' THEN 'Running - OK'
+             WHEN ls.status = 'D' THEN 'Running - Default'
+             ELSE 'Unknown'
+         END AS status_description,
+         ci.num_clients,
+         ci.male_clients,
+         ci.female_clients,
+         ci.avg_client_age,
+         ts.total_transactions,
+         ts.total_incoming,
+         ts.total_outgoing,
+         (ts.total_incoming - ts.total_outgoing) AS account_balance,
+         ROUND((ls.payments * ls.duration * 1.0 - ls.amount) / ls.amount * 100, 2) AS interest_rate_percent
+  FROM LoanStatistics ls
+  LEFT JOIN ClientInfo ci ON ls.account_id = ci.account_id
+  LEFT JOIN TransactionSummary ts ON ls.account_id = ts.account_id
+  WHERE ls.district_loan_rank <= 3
+  ORDER BY ls.avg_salary DESC,
+           ls.amount DESC;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

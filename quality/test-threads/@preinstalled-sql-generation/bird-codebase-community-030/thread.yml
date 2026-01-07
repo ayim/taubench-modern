@@ -1,7 +1,17 @@
 name: bird-codebase-community-030
-description: 'BIRD Q560 (simple): Give the number of "Revival" badges.'
+description: "BIRD Q560 (simple): Give the number of \"Revival\" badges."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(Id)
+  FROM badges
+  WHERE Name = 'Revival'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-560
-    description: 'Give the number of "Revival" badges.'
+    description: "Give the number of \"Revival\" badges."
     messages:
       - role: user
         content: |

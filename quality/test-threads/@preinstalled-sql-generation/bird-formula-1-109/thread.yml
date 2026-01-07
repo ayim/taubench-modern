@@ -1,7 +1,20 @@
 name: bird-formula-1-109
-description: 'BIRD Q954 (challenging): Please calculate the race completion percentage of Japanese drivers from 2007 to 2009.'
+description: "BIRD Q954 (challenging): Please calculate the race completion percentage of Japanese drivers from 2007 to 2009."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(IIF(T1.time IS NOT NULL, 1, 0)) AS REAL) * 100 / COUNT(T1.raceId)
+  FROM results AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  INNER JOIN drivers AS T3 ON T1.driverId = T3.driverId
+  WHERE T3.nationality = 'Japanese'
+    AND T2.year BETWEEN 2007 AND 2009
 
 sdms:
   - kind: postgres
@@ -10,12 +23,12 @@ sdms:
 
 thread:
   - name: bird-question-954
-    description: 'Please calculate the race completion percentage of Japanese drivers from 2007 to 2009.'
+    description: "Please calculate the race completion percentage of Japanese drivers from 2007 to 2009."
     messages:
       - role: user
         content: |
           Please calculate the race completion percentage of Japanese drivers from 2007 to 2009.
-          Evidence: from 2007 to 2009 refers to year between 2007 and 2009; race completion refers to time is not null; percentage = Divide(COUNT(DriverID where time is not null and year between 2007 and 2009),Count (DriverID where year between 2007 and 2009))*100;
+          Evidence: from 2007 to 2009 refers to year between 2007 and 2009; race completion refers to time is not null; percentage = Divide(COUNT(DriverID where time is not null and year between 2007 and 2009),Count (DriverID where year between 2007 and 2009))*100; 
 
 target-platforms:
   - name: openai

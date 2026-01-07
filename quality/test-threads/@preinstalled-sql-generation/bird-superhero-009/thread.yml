@@ -1,7 +1,18 @@
 name: bird-superhero-009
-description: 'BIRD Q725 (simple): How many superheroes are published by Marvel Comics?'
+description: "BIRD Q725 (simple): How many superheroes are published by Marvel Comics?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.id)
+  FROM superhero AS T1
+  INNER JOIN publisher AS T2 ON T1.publisher_id = T2.id
+  WHERE T2.publisher_name = 'Marvel Comics'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-725
-    description: 'How many superheroes are published by Marvel Comics?'
+    description: "How many superheroes are published by Marvel Comics?"
     messages:
       - role: user
         content: |

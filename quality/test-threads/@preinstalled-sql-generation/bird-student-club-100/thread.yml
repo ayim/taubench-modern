@@ -1,7 +1,19 @@
 name: bird-student-club-100
-description: 'BIRD Q1411 (simple): State what kind of expenses that Sacha Harrison incurred?'
+description: "BIRD Q1411 (simple): State what kind of expenses that Sacha Harrison incurred?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.expense_description
+  FROM member AS T1
+  INNER JOIN expense AS T2 ON T1.member_id = T2.link_to_member
+  WHERE T1.first_name = 'Sacha'
+    AND T1.last_name = 'Harrison'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1411
-    description: 'State what kind of expenses that Sacha Harrison incurred?'
+    description: "State what kind of expenses that Sacha Harrison incurred?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-106
-description: 'BIRD Q1254 (moderate): How many patients with a normal Ig A level came to the hospital after 1990/1/1?'
+description: "BIRD Q1254 (moderate): How many patients with a normal Ig A level came to the hospital after 1990/1/1?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID) AS normal_iga_patient_count
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.IGA > 80
+    AND T2.IGA < 500
+    AND strftime('%Y', T1.`First Date`) >= '1990';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1254
-    description: 'How many patients with a normal Ig A level came to the hospital after 1990/1/1?'
+    description: "How many patients with a normal Ig A level came to the hospital after 1990/1/1?"
     messages:
       - role: user
         content: |

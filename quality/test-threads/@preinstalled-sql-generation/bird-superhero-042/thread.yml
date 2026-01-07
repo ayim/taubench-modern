@@ -1,7 +1,20 @@
 name: bird-superhero-042
-description: 'BIRD Q758 (moderate): Provide the hair colour of the human superhero who is 185 cm tall.'
+description: "BIRD Q758 (moderate): Provide the hair colour of the human superhero who is 185 cm tall."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T3.colour
+  FROM superhero AS T1
+  INNER JOIN race AS T2 ON T1.race_id = T2.id
+  INNER JOIN colour AS T3 ON T1.hair_colour_id = T3.id
+  WHERE T1.height_cm = 185
+    AND T2.race = 'Human'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-758
-    description: 'Provide the hair colour of the human superhero who is 185 cm tall.'
+    description: "Provide the hair colour of the human superhero who is 185 cm tall."
     messages:
       - role: user
         content: |

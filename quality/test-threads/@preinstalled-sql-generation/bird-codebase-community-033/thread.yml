@@ -1,7 +1,19 @@
 name: bird-codebase-community-033
-description: 'BIRD Q563 (moderate): User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?'
+description: "BIRD Q563 (moderate): User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.FavoriteCount
+  FROM posts AS T1
+  INNER JOIN comments AS T2 ON T1.Id = T2.PostId
+  WHERE T2.CreationDate = '2014-04-23 20:29:39.0'
+    AND T2.UserId = 3025
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-563
-    description: 'User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?'
+    description: "User No.3025 gave a comment at 20:29:39 on 2014/4/23 to a post, how many favorite counts did that post get?"
     messages:
       - role: user
         content: |

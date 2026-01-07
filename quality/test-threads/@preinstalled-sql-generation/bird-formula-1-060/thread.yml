@@ -3,6 +3,20 @@ description: "BIRD Q905 (simple): What is Eddie Irvine's average points scored i
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.points)
+  FROM drivers AS T1
+  INNER JOIN driverStandings AS T2 ON T2.driverId = T1.driverId
+  INNER JOIN races AS T3 ON T3.raceId = T2.raceId
+  WHERE T1.forename = 'Eddie'
+    AND T1.surname = 'Irvine'
+    AND T3.year = 2000
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_formula_1

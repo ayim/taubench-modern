@@ -3,6 +3,20 @@ description: "BIRD Q790 (moderate): Calculate the difference between Emil Blonsk
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT
+    (SELECT weight_kg
+     FROM superhero
+     WHERE full_name LIKE 'Emil Blonsky') -
+    (SELECT weight_kg
+     FROM superhero
+     WHERE full_name LIKE 'Charles Chandler') AS CALCULATE
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_superhero

@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-019
-description: 'BIRD Q1167 (moderate): For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?'
+description: "BIRD Q1167 (moderate): For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(T1.ID) AS REAL) / 12
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE STRFTIME('%Y', T2.Date) = '1998'
+    AND T1.SEX = 'M'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1167
-    description: 'For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?'
+    description: "For the year that concluded on December 31, 1998, how many male patients on average were tested in the lab each month?"
     messages:
       - role: user
         content: |

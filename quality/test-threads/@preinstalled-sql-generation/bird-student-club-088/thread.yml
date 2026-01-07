@@ -3,6 +3,25 @@ description: "BIRD Q1399 (moderate): Did Maya Mclean attend the 'Women's Soccer'
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CASE
+             WHEN EXISTS
+                    (SELECT 1
+                     FROM member T1
+                     INNER JOIN attendance T2 ON T1.member_id = T2.link_to_member
+                     INNER JOIN event T3 ON T2.link_to_event = T3.event_id
+                     WHERE T1.first_name = 'Maya'
+                       AND T1.last_name = 'Mclean'
+                       AND T3.event_name = 'Women''s Soccer') THEN 'YES'
+             ELSE 'NO'
+         END AS attendance_result
+  LIMIT 1;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_student_club

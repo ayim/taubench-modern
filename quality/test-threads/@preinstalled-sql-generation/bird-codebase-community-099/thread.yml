@@ -1,7 +1,16 @@
 name: bird-codebase-community-099
-description: 'BIRD Q629 (simple): Calculate the ratio of votes in 2010 and 2011.'
+description: "BIRD Q629 (simple): Calculate the ratio of votes in 2010 and 2011."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(IIF(STRFTIME('%Y', CreationDate) = '2010', 1, 0)) AS REAL) / NULLIF(SUM(IIF(STRFTIME('%Y', CreationDate) = '2011', 1, 0)), 0)
+  FROM votes
 
 sdms:
   - kind: postgres
@@ -10,7 +19,7 @@ sdms:
 
 thread:
   - name: bird-question-629
-    description: 'Calculate the ratio of votes in 2010 and 2011.'
+    description: "Calculate the ratio of votes in 2010 and 2011."
     messages:
       - role: user
         content: |

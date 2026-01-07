@@ -1,7 +1,61 @@
 name: bird-california-schools-061
-description: 'BIRD Q60 (challenging): For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county.'
+description: "BIRD Q60 (challenging): For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CharterSchoolStats AS
+    (SELECT s.CDSCode,
+            s.Website,
+            s.School,
+            s.County,
+            s.Charter,
+            s.Virtual,
+            s.CharterNum,
+            s.FundingType,
+            f.`Enrollment (K-12)` AS TotalEnrollment,
+            f.`FRPM Count (K-12)` AS FRPMCount,
+            f.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercentage,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium-High Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.25 THEN 'Medium-Low Poverty'
+                ELSE 'Low Poverty'
+            END AS PovertyLevel,
+            RANK() OVER (PARTITION BY s.County
+                         ORDER BY f.`Enrollment (K-12)` DESC) AS EnrollmentRank
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     WHERE s.County = 'San Joaquin'
+       AND s.Virtual = 'P'
+       AND s.Charter = 1)
+  SELECT cs.School AS SchoolName,
+         cs.Website,
+         cs.CharterNum AS CharterNumber,
+         cs.FundingType,
+         cs.TotalEnrollment,
+         cs.FRPMCount,
+         ROUND(cs.FRPMPercentage * 100, 2) || '%' AS FRPMPercentage,
+         cs.PovertyLevel,
+         cs.EnrollmentRank,
+         COALESCE(sat.NumTstTakr, 0) AS SATTestTakers,
+         COALESCE(sat.AvgScrRead, 0) AS AvgReadingScore,
+         COALESCE(sat.AvgScrMath, 0) AS AvgMathScore,
+         COALESCE(sat.AvgScrWrite, 0) AS AvgWritingScore,
+         COALESCE(sat.NumGE1500, 0) AS StudentsOver1500,
+         CASE
+             WHEN sat.NumTstTakr > 0 THEN ROUND((CAST(sat.NumGE1500 AS REAL) / sat.NumTstTakr) * 100, 2) || '%'
+             ELSE '0%'
+         END AS PercentOver1500
+  FROM CharterSchoolStats cs
+  LEFT JOIN satscores sat ON cs.CDSCode = sat.cds
+  ORDER BY cs.EnrollmentRank,
+           cs.TotalEnrollment DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +64,7 @@ sdms:
 
 thread:
   - name: bird-question-60
-    description: 'For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county.'
+    description: "For all partially virtual charter schools in San Joaquin County, provide a comprehensive analysis including their enrollment statistics, poverty levels based on free and reduced-price meal eligibility, SAT performance metrics, and rank them by enrollment size within the county."
     messages:
       - role: user
         content: |

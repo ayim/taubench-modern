@@ -1,7 +1,21 @@
 name: bird-financial-037
-description: 'BIRD Q125 (challenging): For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996.'
+description: "BIRD Q125 (challenging): For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T3.A2 AS district_name,
+                  CAST((T3.A13 - T3.A12) AS REAL) * 100 / NULLIF(T3.A12, 0) AS unemployment_increment
+  FROM loan AS T1
+  INNER JOIN ACCOUNT AS T2 ON T1.account_id = T2.account_id
+  INNER JOIN district AS T3 ON T2.district_id = T3.district_id
+  WHERE T1.status = 'D'
+  ORDER BY district_name ASC
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-125
-    description: 'For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996.'
+    description: "For loan contracts which are still running where clients are in debt, list the district and state the percentage unemployment rate increment from 1995 to 1996."
     messages:
       - role: user
         content: |

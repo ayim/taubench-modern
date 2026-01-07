@@ -1,7 +1,18 @@
 name: bird-thrombosis-prediction-049
-description: 'BIRD Q1197 (simple): When was the medical information on patient number 48473 first documented, and what disease did she have?'
+description: "BIRD Q1197 (simple): When was the medical information on patient number 48473 first documented, and what disease did she have?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT `First Date`,
+         Diagnosis
+  FROM Patient
+  WHERE ID = 48473
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1197
-    description: 'When was the medical information on patient number 48473 first documented, and what disease did she have?'
+    description: "When was the medical information on patient number 48473 first documented, and what disease did she have?"
     messages:
       - role: user
         content: |

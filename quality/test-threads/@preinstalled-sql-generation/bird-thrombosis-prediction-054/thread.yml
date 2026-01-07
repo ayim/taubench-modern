@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-054
-description: 'BIRD Q1202 (challenging): How many male patients who underwent testing between 1995 and 1997 and were subsequently diagnosed with Behcet disease did not stay in the hospital for treatment?'
+description: "BIRD Q1202 (challenging): How many male patients who underwent testing between 1995 and 1997 and were subsequently diagnosed with Behcet disease did not stay in the hospital for treatment?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T2.Diagnosis = 'Behcet'
+    AND T1.SEX = 'M'
+    AND STRFTIME('%Y', T2.`Examination Date`) BETWEEN '1995' AND '1997'
+    AND T1.Admission = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1202
-    description: 'How many male patients who underwent testing between 1995 and 1997 and were subsequently diagnosed with Behcet disease did not stay in the hospital for treatment?'
+    description: "How many male patients who underwent testing between 1995 and 1997 and were subsequently diagnosed with Behcet disease did not stay in the hospital for treatment?"
     messages:
       - role: user
         content: |

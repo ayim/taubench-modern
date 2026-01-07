@@ -1,7 +1,19 @@
 name: bird-student-club-054
-description: 'BIRD Q1365 (simple): What are the expenses of the budget with the lowest remaining?'
+description: "BIRD Q1365 (simple): What are the expenses of the budget with the lowest remaining?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.expense_description
+  FROM budget AS T1
+  INNER JOIN expense AS T2 ON T1.budget_id = T2.link_to_budget
+  ORDER BY T1.remaining
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1365
-    description: 'What are the expenses of the budget with the lowest remaining?'
+    description: "What are the expenses of the budget with the lowest remaining?"
     messages:
       - role: user
         content: |

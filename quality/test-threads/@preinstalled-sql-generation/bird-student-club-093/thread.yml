@@ -3,6 +3,21 @@ description: "BIRD Q1404 (moderate): Identify the type of expenses and their tot
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.expense_description,
+         SUM(T3.cost)
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget
+  WHERE T1.event_name = 'October Meeting'
+    AND T3.approved = 'true'
+  GROUP BY T3.expense_description
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_student_club

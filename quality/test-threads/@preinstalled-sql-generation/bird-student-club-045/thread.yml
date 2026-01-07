@@ -1,7 +1,18 @@
 name: bird-student-club-045
-description: 'BIRD Q1356 (simple): Which department was the President of the club in?'
+description: "BIRD Q1356 (simple): Which department was the President of the club in?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.department
+  FROM member AS T1
+  INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id
+  WHERE T1.position = 'President'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1356
-    description: 'Which department was the President of the club in?'
+    description: "Which department was the President of the club in?"
     messages:
       - role: user
         content: |

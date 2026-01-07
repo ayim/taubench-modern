@@ -1,7 +1,21 @@
 name: bird-superhero-114
-description: 'BIRD Q830 (moderate): Identify the weakest attribute of the Black Panther.'
+description: "BIRD Q830 (moderate): Identify the weakest attribute of the Black Panther."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.attribute_name
+  FROM superhero AS T1
+  INNER JOIN hero_attribute AS T2 ON T1.id = T2.hero_id
+  INNER JOIN attribute AS T3 ON T2.attribute_id = T3.id
+  WHERE T1.superhero_name = 'Black Panther'
+  ORDER BY T2.attribute_value ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-830
-    description: 'Identify the weakest attribute of the Black Panther.'
+    description: "Identify the weakest attribute of the Black Panther."
     messages:
       - role: user
         content: |

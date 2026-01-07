@@ -1,7 +1,18 @@
 name: bird-superhero-038
-description: 'BIRD Q754 (simple): What is the superpower of hero ID 56?'
+description: "BIRD Q754 (simple): What is the superpower of hero ID 56?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.power_name
+  FROM hero_power AS T1
+  INNER JOIN superpower AS T2 ON T1.power_id = T2.id
+  WHERE T1.hero_id = 56
 
 sdms:
   - kind: postgres
@@ -10,12 +21,12 @@ sdms:
 
 thread:
   - name: bird-question-754
-    description: 'What is the superpower of hero ID 56?'
+    description: "What is the superpower of hero ID 56?"
     messages:
       - role: user
         content: |
           What is the superpower of hero ID 56?
-          Evidence:
+          Evidence:  
 
 target-platforms:
   - name: openai

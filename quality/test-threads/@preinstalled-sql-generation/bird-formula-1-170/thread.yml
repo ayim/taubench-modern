@@ -1,7 +1,31 @@
 name: bird-formula-1-170
-description: 'BIRD Q1015 (moderate): In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?'
+description: "BIRD Q1015 (moderate): In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH fastest_lap_times AS
+    (SELECT T1.raceId,
+            T1.FastestLapTime,
+            (CAST(SUBSTR(T1.FastestLapTime, 1, INSTR(T1.FastestLapTime, ':') - 1) AS REAL) * 60) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, ':') + 1, INSTR(T1.FastestLapTime, '.') - INSTR(T1.FastestLapTime, ':') - 1) AS REAL)) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, '.') + 1) AS REAL) / 1000) AS time_in_seconds
+     FROM results AS T1
+     WHERE T1.FastestLapTime IS NOT NULL)
+  SELECT T2.name
+  FROM races AS T2
+  INNER JOIN circuits AS T3 ON T2.circuitId = T3.circuitId
+  INNER JOIN results AS T1 ON T2.raceId = T1.raceId
+  INNER JOIN
+    (SELECT MIN(fastest_lap_times.time_in_seconds) AS min_time_in_seconds
+     FROM fastest_lap_times
+     INNER JOIN races AS T2 ON fastest_lap_times.raceId = T2.raceId
+     INNER JOIN circuits AS T3 ON T2.circuitId = T3.circuitId
+     WHERE T2.name = 'Austrian Grand Prix') AS T4 ON (CAST(SUBSTR(T1.FastestLapTime, 1, INSTR(T1.FastestLapTime, ':') - 1) AS REAL) * 60) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, ':') + 1, INSTR(T1.FastestLapTime, '.') - INSTR(T1.FastestLapTime, ':') - 1) AS REAL)) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, '.') + 1) AS REAL) / 1000) = T4.min_time_in_seconds
+  WHERE T2.name = 'Austrian Grand Prix'
 
 sdms:
   - kind: postgres
@@ -10,7 +34,7 @@ sdms:
 
 thread:
   - name: bird-question-1015
-    description: 'In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?'
+    description: "In which Formula_1 race was the lap record for the Austrian Grand Prix Circuit set?"
     messages:
       - role: user
         content: |

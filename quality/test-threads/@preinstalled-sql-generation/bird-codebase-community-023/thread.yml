@@ -1,7 +1,19 @@
 name: bird-codebase-community-023
-description: 'BIRD Q553 (simple): Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?'
+description: "BIRD Q553 (simple): Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.Id)
+  FROM badges AS T1
+  INNER JOIN users AS T2 ON T1.UserId = T2.Id
+  WHERE STRFTIME('%Y', T1.Date) = '2011'
+    AND T2.DisplayName = 'csgillespie'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-553
-    description: 'Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?'
+    description: "Among the badges obtained by csgillespie, how many of them were obtained in the year 2011?"
     messages:
       - role: user
         content: |

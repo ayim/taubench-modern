@@ -1,7 +1,23 @@
 name: bird-superhero-022
-description: 'BIRD Q738 (simple): Which superheroes have a durability attribute value of less than 50?'
+description: "BIRD Q738 (simple): Which superheroes have a durability attribute value of less than 50?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT superhero_name
+  FROM superhero AS T1
+  WHERE EXISTS
+      (SELECT 1
+       FROM hero_attribute AS T2
+       INNER JOIN attribute AS T3 ON T2.attribute_id = T3.id
+       WHERE T3.attribute_name = 'Durability'
+         AND T2.attribute_value < 50
+         AND T1.id = T2.hero_id)
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-738
-    description: 'Which superheroes have a durability attribute value of less than 50?'
+    description: "Which superheroes have a durability attribute value of less than 50?"
     messages:
       - role: user
         content: |

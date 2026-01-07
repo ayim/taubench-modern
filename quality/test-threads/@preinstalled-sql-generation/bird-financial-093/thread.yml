@@ -1,7 +1,80 @@
 name: bird-financial-093
-description: 'BIRD Q181 (challenging): For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?'
+description: "BIRD Q181 (challenging): For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH client_loans AS
+    (SELECT c.client_id,
+            c.gender,
+            d.account_id,
+            l.loan_id,
+            l.amount,
+            l.duration,
+            l.payments,
+            l.status,
+            a.district_id,
+            di.A2 AS district_name,
+            di.A3 AS region,
+            RANK() OVER (PARTITION BY c.gender
+                         ORDER BY l.amount DESC) AS loan_rank,
+            ROUND(l.payments * l.duration, 2) AS total_payments,
+            ROUND(l.payments * l.duration - l.amount, 2) AS interest_paid
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     AND d.type = 'OWNER'
+     JOIN loan l ON d.account_id = l.account_id
+     JOIN ACCOUNT a ON l.account_id = a.account_id
+     JOIN district di ON a.district_id = di.district_id
+     WHERE c.gender = 'F'),
+       transaction_summary AS
+    (SELECT cl.client_id,
+            cl.loan_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expenses
+     FROM client_loans cl
+     LEFT JOIN trans t ON cl.account_id = t.account_id
+     WHERE cl.loan_rank <= 3
+     GROUP BY cl.client_id,
+              cl.loan_id)
+  SELECT cl.client_id,
+         cl.amount AS loan_amount,
+         cl.duration AS loan_duration_months,
+         cl.total_payments,
+         cl.interest_paid,
+         cl.status AS loan_status,
+         cl.district_name,
+         cl.region,
+         ts.transaction_count,
+         ts.total_income,
+         ts.total_expenses,
+         CASE
+             WHEN ts.total_income > cl.amount * 2 THEN 'High Income'
+             WHEN ts.total_income > cl.amount THEN 'Medium Income'
+             ELSE 'Low Income'
+         END AS income_category,
+         STRFTIME('%Y', CURRENT_DATE) - STRFTIME('%Y', c.birth_date) - CASE
+                                                                           WHEN STRFTIME('%m-%d', CURRENT_DATE) < STRFTIME('%m-%d', c.birth_date) THEN 1
+                                                                           ELSE 0
+                                                                       END AS client_age
+  FROM client_loans cl
+  JOIN transaction_summary ts ON cl.client_id = ts.client_id
+  AND cl.loan_id = ts.loan_id
+  JOIN client c ON cl.client_id = c.client_id
+  WHERE cl.loan_rank <= 3
+  ORDER BY cl.amount DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +83,7 @@ sdms:
 
 thread:
   - name: bird-question-181
-    description: 'For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?'
+    description: "For the top 3 female clients with the largest loans, what are their loan details including total payments, interest paid, loan status, location, transaction activity, income category, and age?"
     messages:
       - role: user
         content: |

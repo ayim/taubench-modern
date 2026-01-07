@@ -1,7 +1,21 @@
 name: bird-california-schools-086
-description: 'BIRD Q85 (moderate): What is the Percent (%) Eligible Free (K-12) in the school administered by an administrator whose first name is Alusine. List the district code of the school.'
+description: "BIRD Q85 (moderate): What is the Percent (%) Eligible Free (K-12) in the school administered by an administrator whose first name is Alusine. List the district code of the school."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.`Free Meal Count (K-12)` * 100 / T1.`Enrollment (K-12)` AS "Percent (%) Eligible Free (K-12)",
+         T1.`District Code`
+  FROM frpm AS T1
+  INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T2.AdmFName1 = 'Alusine'
+    OR T2.AdmFName2 = 'Alusine'
+    OR T2.AdmFName3 = 'Alusine'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-85
-    description: 'What is the Percent (%) Eligible Free (K-12) in the school administered by an administrator whose first name is Alusine. List the district code of the school.'
+    description: "What is the Percent (%) Eligible Free (K-12) in the school administered by an administrator whose first name is Alusine. List the district code of the school."
     messages:
       - role: user
         content: |

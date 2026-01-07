@@ -1,7 +1,19 @@
 name: bird-california-schools-035
-description: 'BIRD Q34 (moderate): What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?'
+description: "BIRD Q34 (moderate): What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(T2.`Free Meal Count (Ages 5-17)` AS REAL) / T2.`Enrollment (Ages 5-17)`
+  FROM schools AS T1
+  INNER JOIN frpm AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T1.AdmFName1 = 'Kacey'
+    AND T1.AdmLName1 = 'Gibson'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-34
-    description: 'What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?'
+    description: "What is the free rate for students between the ages of 5 and 17 at the school run by Kacey Gibson?"
     messages:
       - role: user
         content: |

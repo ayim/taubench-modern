@@ -1,7 +1,18 @@
 name: bird-student-club-134
-description: 'BIRD Q1445 (simple): Find the full name of members whose t-shirt size is extra large.'
+description: "BIRD Q1445 (simple): Find the full name of members whose t-shirt size is extra large."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT first_name,
+         last_name
+  FROM member
+  WHERE t_shirt_size = 'X-Large'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1445
-    description: 'Find the full name of members whose t-shirt size is extra large.'
+    description: "Find the full name of members whose t-shirt size is extra large."
     messages:
       - role: user
         content: |

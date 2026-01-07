@@ -1,7 +1,19 @@
 name: bird-european-football-2-095
-description: 'BIRD Q1114 (challenging): What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?'
+description: "BIRD Q1114 (challenging): What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(t2.overall_rating) AS REAL) / COUNT(t2.id)
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_fifa_api_id = t2.player_fifa_api_id
+  WHERE t1.player_name = 'Marko Arnautovic'
+    AND SUBSTR(t2.`date`, 1, 10) BETWEEN '2007-02-22' AND '2016-04-21'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1114
-    description: 'What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?'
+    description: "What was the average overall rating for Marko Arnautovic from 2007/2/22 to 2016/4/21?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-codebase-community-186
-description: 'BIRD Q716 (moderate): Among the comments with scores between 5 to 10, what is the percentage of the users with 0 up votes?'
+description: "BIRD Q716 (moderate): Among the comments with scores between 5 to 10, what is the percentage of the users with 0 up votes?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN T1.UpVotes = 0 THEN T1.Id
+                             END) AS REAL) * 100/ COUNT(DISTINCT T1.Id) AS per
+  FROM users AS T1
+  INNER JOIN comments AS T2 ON T1.Id = T2.UserId
+  WHERE T2.Score BETWEEN 5 AND 10
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-716
-    description: 'Among the comments with scores between 5 to 10, what is the percentage of the users with 0 up votes?'
+    description: "Among the comments with scores between 5 to 10, what is the percentage of the users with 0 up votes?"
     messages:
       - role: user
         content: |

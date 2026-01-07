@@ -1,7 +1,17 @@
 name: bird-card-games-113
-description: 'BIRD Q452 (simple): Please list the names of the cards that have a text box.'
+description: "BIRD Q452 (simple): Please list the names of the cards that have a text box."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT name
+  FROM cards
+  WHERE isTextless = 0
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-452
-    description: 'Please list the names of the cards that have a text box.'
+    description: "Please list the names of the cards that have a text box."
     messages:
       - role: user
         content: |

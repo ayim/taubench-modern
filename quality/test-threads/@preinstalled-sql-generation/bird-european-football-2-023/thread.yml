@@ -1,7 +1,20 @@
 name: bird-european-football-2-023
-description: 'BIRD Q1042 (challenging): List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season.'
+description: "BIRD Q1042 (challenging): List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.name
+  FROM League AS t1
+  INNER JOIN MATCH AS t2 ON t1.id = t2.league_id
+  WHERE t2.season = '2009/2010'
+  GROUP BY t1.name
+  HAVING (CAST(SUM(t2.home_team_goal) AS REAL) / COUNT(DISTINCT t2.id)) - (CAST(SUM(t2.away_team_goal) AS REAL) / COUNT(DISTINCT t2.id)) > 0
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1042
-    description: 'List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season.'
+    description: "List the name of leagues in which the average goals by the home team is higher than the away team in the 2009/2010 season."
     messages:
       - role: user
         content: |

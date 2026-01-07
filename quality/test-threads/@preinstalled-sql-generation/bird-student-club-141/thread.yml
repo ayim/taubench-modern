@@ -1,7 +1,18 @@
 name: bird-student-club-141
-description: 'BIRD Q1452 (moderate): What is the average amount paid by students in a position other than a member?'
+description: "BIRD Q1452 (moderate): What is the average amount paid by students in a position other than a member?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.cost)
+  FROM expense AS T1
+  INNER JOIN member AS T2 ON T1.link_to_member = T2.member_id
+  WHERE T2.position != 'Member'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1452
-    description: 'What is the average amount paid by students in a position other than a member?'
+    description: "What is the average amount paid by students in a position other than a member?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,31 @@
 name: bird-financial-007
-description: 'BIRD Q95 (moderate): List out the account numbers of clients who are youngest and have highest average salary?'
+description: "BIRD Q95 (moderate): List out the account numbers of clients who are youngest and have highest average salary?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.account_id
+  FROM ACCOUNT AS T1
+  INNER JOIN disp AS T2 ON T1.account_id = T2.account_id
+  INNER JOIN client AS T3 ON T2.client_id = T3.client_id
+  INNER JOIN district AS T4 ON T1.district_id = T4.district_id
+  WHERE T3.client_id =
+      (SELECT T3.client_id
+       FROM client AS T3
+       INNER JOIN disp AS T2 ON T3.client_id = T2.client_id
+       INNER JOIN ACCOUNT AS T1 ON T2.account_id = T1.account_id
+       INNER JOIN district AS T4 ON T1.district_id = T4.district_id
+       WHERE T3.birth_date =
+           (SELECT MAX(birth_date)
+            FROM client)
+       ORDER BY T4.A11,
+                T3.client_id DESC
+       LIMIT 1)
 
 sdms:
   - kind: postgres
@@ -10,7 +34,7 @@ sdms:
 
 thread:
   - name: bird-question-95
-    description: 'List out the account numbers of clients who are youngest and have highest average salary?'
+    description: "List out the account numbers of clients who are youngest and have highest average salary?"
     messages:
       - role: user
         content: |

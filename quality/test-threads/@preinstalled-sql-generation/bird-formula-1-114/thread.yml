@@ -1,7 +1,23 @@
 name: bird-formula-1-114
-description: 'BIRD Q959 (simple): Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?'
+description: "BIRD Q959 (simple): Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.fastestLap
+  FROM results AS T1
+  JOIN races AS T2 ON T1.raceId = T2.raceId
+  WHERE T2.year = 2009
+    AND T1.positionOrder = 1
+    AND T1.fastestLapTime IS NOT NULL
+  ORDER BY T1.fastestLapTime ASC,
+           T1.raceId ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-959
-    description: 'Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?'
+    description: "Across all 2009 races, what was the lap number on which the race winner set the fastest lap time?"
     messages:
       - role: user
         content: |

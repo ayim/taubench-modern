@@ -3,6 +3,21 @@ description: "BIRD Q934 (moderate): Which driver was in the no. 4 grid formation
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.forename,
+         T3.surname
+  FROM races AS T1
+  INNER JOIN results AS T2 ON T2.raceId = T1.raceId
+  INNER JOIN drivers AS T3 ON T3.driverId = T2.driverId
+  WHERE T2.grid = 4
+    AND T1.name = 'Australian Grand Prix'
+    AND T1.year = 1989
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_formula_1

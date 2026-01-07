@@ -1,7 +1,21 @@
 name: bird-codebase-community-041
-description: 'BIRD Q571 (moderate): For the user No.24, how many times is the number of his/her posts compared to his/her votes?'
+description: "BIRD Q571 (moderate): For the user No.24, how many times is the number of his/her posts compared to his/her votes?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT
+    (SELECT CAST(COUNT(*) AS REAL)
+     FROM posts
+     WHERE OwnerUserId = 24) /
+    (SELECT CAST(COUNT(*) AS REAL)
+     FROM votes
+     WHERE UserId = 24)
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-571
-    description: 'For the user No.24, how many times is the number of his/her posts compared to his/her votes?'
+    description: "For the user No.24, how many times is the number of his/her posts compared to his/her votes?"
     messages:
       - role: user
         content: |

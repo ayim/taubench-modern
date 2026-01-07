@@ -1,7 +1,19 @@
 name: bird-european-football-2-070
-description: 'BIRD Q1089 (simple): How many matches in the 2008/2009 season were held in Belgium?'
+description: "BIRD Q1089 (simple): How many matches in the 2008/2009 season were held in Belgium?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(t2.id)
+  FROM Country AS t1
+  INNER JOIN MATCH AS t2 ON t1.id = t2.country_id
+  WHERE t1.name = 'Belgium'
+    AND t2.season = '2008/2009'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1089
-    description: 'How many matches in the 2008/2009 season were held in Belgium?'
+    description: "How many matches in the 2008/2009 season were held in Belgium?"
     messages:
       - role: user
         content: |

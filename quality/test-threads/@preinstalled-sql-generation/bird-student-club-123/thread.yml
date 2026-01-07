@@ -1,7 +1,19 @@
 name: bird-student-club-123
-description: 'BIRD Q1434 (simple): What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?'
+description: "BIRD Q1434 (simple): What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT zip_code
+  FROM zip_code
+  WHERE TYPE = 'PO Box'
+    AND county = 'San Juan Municipio'
+    AND state = 'Puerto Rico'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1434
-    description: 'What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?'
+    description: "What are the zip codes that have post office boxes in the country of the country of San Juan Municipio whose state is Puerto Rico?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,22 @@
 name: bird-superhero-059
-description: 'BIRD Q775 (challenging): What is the percentage of blue female superheroes among all female superheroes?'
+description: "BIRD Q775 (challenging): What is the percentage of blue female superheroes among all female superheroes?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN T3.colour = 'Blue' THEN T1.id
+                        ELSE NULL
+                    END) AS REAL) * 100 / COUNT(T1.id)
+  FROM superhero AS T1
+  INNER JOIN gender AS T2 ON T1.gender_id = T2.id
+  INNER JOIN colour AS T3 ON T1.skin_colour_id = T3.id
+  WHERE T2.gender = 'Female'
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-775
-    description: 'What is the percentage of blue female superheroes among all female superheroes?'
+    description: "What is the percentage of blue female superheroes among all female superheroes?"
     messages:
       - role: user
         content: |

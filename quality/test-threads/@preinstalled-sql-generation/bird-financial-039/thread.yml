@@ -1,7 +1,99 @@
 name: bird-financial-039
-description: 'BIRD Q127 (challenging): For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance.'
+description: "BIRD Q127 (challenging): For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH MonthlyAccounts AS
+    (SELECT account_id,
+            district_id,
+            date AS account_open_date
+     FROM ACCOUNT
+     WHERE frequency = 'POPLATEK MESICNE'),
+       AccountTransactions AS
+    (SELECT ma.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            MIN(t.balance) AS min_balance
+     FROM MonthlyAccounts ma
+     LEFT JOIN trans t ON ma.account_id = t.account_id
+     GROUP BY ma.account_id),
+       AccountLoans AS
+    (SELECT ma.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            AVG(l.duration) AS avg_loan_duration,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS active_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS completed_loans
+     FROM MonthlyAccounts ma
+     LEFT JOIN loan l ON ma.account_id = l.account_id
+     GROUP BY ma.account_id)
+  SELECT ma.account_id,
+         d.A2 AS district_name,
+         d.A3 AS region,
+         ma.account_open_date,
+         COUNT(DISTINCT c.client_id) AS client_count,
+         ROUND(AVG(JULIANDAY('now') - JULIANDAY(c.birth_date))/365.25, 1) AS avg_client_age,
+         at.transaction_count,
+         at.total_income,
+         at.total_expense,
+         at.total_income - at.total_expense AS net_cash_flow,
+         at.max_balance,
+         at.min_balance,
+         al.loan_count,
+         al.total_loan_amount,
+         al.avg_loan_duration,
+         al.active_loans,
+         al.completed_loans,
+         COUNT(DISTINCT o.order_id) AS order_count,
+         COUNT(DISTINCT card.card_id) AS card_count,
+         RANK() OVER (
+                      ORDER BY at.transaction_count DESC) AS transaction_rank,
+         RANK() OVER (
+                      ORDER BY (at.total_income - at.total_expense) DESC) AS cash_flow_rank
+  FROM MonthlyAccounts ma
+  JOIN district d ON ma.district_id = d.district_id
+  LEFT JOIN disp ON ma.account_id = disp.account_id
+  LEFT JOIN client c ON disp.client_id = c.client_id
+  LEFT JOIN AccountTransactions AT ON ma.account_id = at.account_id
+  LEFT JOIN AccountLoans al ON ma.account_id = al.account_id
+  LEFT JOIN "order" o ON ma.account_id = o.account_id
+  LEFT JOIN card ON disp.disp_id = card.disp_id
+  GROUP BY ma.account_id,
+           d.A2,
+           d.A3,
+           ma.account_open_date,
+           at.transaction_count,
+           at.total_income,
+           at.total_expense,
+           at.max_balance,
+           at.min_balance,
+           al.loan_count,
+           al.total_loan_amount,
+           al.avg_loan_duration,
+           al.active_loans,
+           al.completed_loans
+  ORDER BY transaction_rank,
+           cash_flow_rank;
 
 sdms:
   - kind: postgres
@@ -10,7 +102,7 @@ sdms:
 
 thread:
   - name: bird-question-127
-    description: 'For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance.'
+    description: "For accounts with monthly statement issuance, provide a comprehensive financial profile including client demographics, transaction activity, loan details, and rankings by transaction volume and cash flow performance."
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-112
-description: 'BIRD Q1260 (simple): Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test.'
+description: "BIRD Q1260 (simple): Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT p.ID
+  FROM Patient AS p
+  JOIN Laboratory AS l ON p.ID = l.ID
+  WHERE l.RF IS NOT NULL
+    AND TRIM(l.RF) != ''
+    AND CAST(REPLACE(REPLACE(l.RF, '<', ''), '>', '') AS REAL) < 20
+    AND (CAST(strftime('%Y', l.Date) AS INTEGER) - CAST(strftime('%Y', p.Birthday) AS INTEGER)) > 60
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1260
-    description: 'Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test.'
+    description: "Please list the ID of patients whose RF test result is normal and who were older than 60 at the time of their laboratory test."
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-078
-description: 'BIRD Q1226 (simple): Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index.'
+description: "BIRD Q1226 (simple): Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.ID,
+         T2.`T-CHO`
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  ORDER BY T2.`T-CHO` DESC,
+           T1.Birthday ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1226
-    description: 'Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index.'
+    description: "Who is the oldest patient with the highest total cholesterol (T-CHO). State the patient ID and T-CHO index."
     messages:
       - role: user
         content: |

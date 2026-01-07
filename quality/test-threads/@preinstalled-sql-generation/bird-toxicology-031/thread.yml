@@ -1,7 +1,19 @@
 name: bird-toxicology-031
-description: 'BIRD Q225 (simple): Please list top five molecules that have double bonds in alphabetical order.'
+description: "BIRD Q225 (simple): Please list top five molecules that have double bonds in alphabetical order."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T.molecule_id
+  FROM bond AS T
+  WHERE T.bond_type = '='
+  ORDER BY T.molecule_id
+  LIMIT 5
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-225
-    description: 'Please list top five molecules that have double bonds in alphabetical order.'
+    description: "Please list top five molecules that have double bonds in alphabetical order."
     messages:
       - role: user
         content: |

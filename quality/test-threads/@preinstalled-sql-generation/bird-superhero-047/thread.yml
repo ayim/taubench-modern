@@ -1,7 +1,20 @@
 name: bird-superhero-047
-description: 'BIRD Q763 (simple): Indicate the attribute value of superhero Abomination.'
+description: "BIRD Q763 (simple): Indicate the attribute value of superhero Abomination."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT a.attribute_name AS hero_attribute_name,
+         ha.attribute_value AS hero_attribute_value
+  FROM superhero s
+  INNER JOIN hero_attribute ha ON s.id = ha.hero_id
+  INNER JOIN attribute a ON ha.attribute_id = a.id
+  WHERE s.superhero_name = 'Abomination';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-763
-    description: 'Indicate the attribute value of superhero Abomination.'
+    description: "Indicate the attribute value of superhero Abomination."
     messages:
       - role: user
         content: |

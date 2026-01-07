@@ -1,7 +1,78 @@
 name: bird-financial-035
-description: 'BIRD Q123 (challenging): For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount.'
+description: "BIRD Q123 (challenging): For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanStatistics AS
+    (SELECT account_id,
+            AVG(amount) AS avg_loan_amount,
+            MAX(amount) AS max_loan_amount,
+            COUNT(*) AS loan_count
+     FROM loan
+     GROUP BY account_id
+     HAVING MAX(amount) > 300000),
+       ClientDetails AS
+    (SELECT c.client_id,
+            c.gender,
+            CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER) AS age,
+            d.account_id,
+            d.type AS disposition_type
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     WHERE d.type = 'OWNER'),
+       TransactionSummary AS
+    (SELECT account_id,
+            SUM(CASE
+                    WHEN TYPE = 'PRIJEM' THEN amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN TYPE = 'VYDAJ' THEN amount
+                    ELSE 0
+                END) AS total_expense,
+            COUNT(*) AS transaction_count
+     FROM trans
+     GROUP BY account_id)
+  SELECT a.account_id,
+         d.A2 AS district_name,
+         d.A3 AS region_name,
+         ls.max_loan_amount,
+         ls.avg_loan_amount,
+         ls.loan_count,
+         cd.gender,
+         cd.age,
+         CASE
+             WHEN ts.total_income > 1000000 THEN 'High Income'
+             WHEN ts.total_income > 500000 THEN 'Medium Income'
+             ELSE 'Low Income'
+         END AS income_category,
+         ts.transaction_count,
+         ROUND((ts.total_income - ts.total_expense) * 1.0 / CASE
+                                                                WHEN ts.total_income = 0 THEN 1
+                                                                ELSE ts.total_income
+                                                            END, 2) AS savings_ratio,
+         RANK() OVER (PARTITION BY d.A3
+                      ORDER BY ls.max_loan_amount DESC) AS region_loan_rank
+  FROM ACCOUNT a
+  INNER JOIN district d ON a.district_id = d.district_id
+  INNER JOIN LoanStatistics ls ON a.account_id = ls.account_id
+  LEFT JOIN ClientDetails cd ON a.account_id = cd.account_id
+  LEFT JOIN TransactionSummary ts ON a.account_id = ts.account_id
+  WHERE d.A11 >
+      (SELECT AVG(A11)
+       FROM district)
+    AND (ts.total_income > ts.total_expense
+         OR ts.total_income IS NULL)
+  ORDER BY ls.max_loan_amount DESC,
+           region_name,
+           district_name
+  LIMIT 100;
 
 sdms:
   - kind: postgres
@@ -10,7 +81,7 @@ sdms:
 
 thread:
   - name: bird-question-123
-    description: 'For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount.'
+    description: "For accounts with loans exceeding $300,000 in districts where the average salary is above the national average, show me the account details including district, region, loan statistics, account owner demographics, income classification, transaction activity, savings ratio, and how they rank within their region by maximum loan amount. Only include accounts with positive net income or no transaction history, and limit results to the top 100 by maximum loan amount."
     messages:
       - role: user
         content: |

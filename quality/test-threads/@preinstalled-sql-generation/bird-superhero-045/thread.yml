@@ -1,7 +1,21 @@
 name: bird-superhero-045
-description: 'BIRD Q761 (moderate): Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes.'
+description: "BIRD Q761 (moderate): Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN gender AS T2 ON T1.gender_id = T2.id
+  WHERE T2.gender = 'Male'
+    AND T1.weight_kg * 100 >
+      (SELECT AVG(weight_kg)
+       FROM superhero) * 79
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-761
-    description: 'Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes.'
+    description: "Among the male superheroes, list the super hero names of superheroes with weight greater than the 79% average weight of all superheroes."
     messages:
       - role: user
         content: |

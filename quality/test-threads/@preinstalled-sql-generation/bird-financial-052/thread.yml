@@ -1,7 +1,73 @@
 name: bird-financial-052
-description: 'BIRD Q140 (challenging): What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?'
+description: "BIRD Q140 (challenging): What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH PisekAccounts AS
+    (SELECT a.account_id,
+            a.district_id,
+            a.frequency,
+            a.date,
+            d.A2 AS district_name
+     FROM ACCOUNT AS a
+     INNER JOIN district AS d ON a.district_id = d.district_id
+     WHERE d.A2 = 'Pisek'),
+       AccountStats AS
+    (SELECT pa.account_id,
+            COUNT(DISTINCT t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_deposits,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_withdrawals,
+            MAX(t.balance) AS max_balance,
+            COUNT(DISTINCT c.card_id) AS card_count
+     FROM PisekAccounts pa
+     LEFT JOIN trans t ON pa.account_id = t.account_id
+     LEFT JOIN disp d ON pa.account_id = d.account_id
+     LEFT JOIN card c ON d.disp_id = c.disp_id
+     GROUP BY pa.account_id),
+       LoanInfo AS
+    (SELECT pa.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN l.amount
+                    ELSE 0
+                END) AS active_loan_amount,
+            AVG(l.duration) AS avg_loan_duration
+     FROM PisekAccounts pa
+     LEFT JOIN loan l ON pa.account_id = l.account_id
+     GROUP BY pa.account_id)
+  SELECT COUNT(pa.account_id) AS total_pisek_accounts,
+         AVG(ast.transaction_count) AS avg_transactions_per_account,
+         SUM(ast.total_deposits) AS total_deposits_all_accounts,
+         SUM(ast.total_withdrawals) AS total_withdrawals_all_accounts,
+         AVG(ast.max_balance) AS avg_max_balance,
+         SUM(ast.card_count) AS total_cards_issued,
+         SUM(li.loan_count) AS total_loans_issued,
+         SUM(li.active_loan_amount) / CASE
+                                          WHEN SUM(li.total_loan_amount) = 0 THEN 1
+                                          ELSE SUM(li.total_loan_amount)
+                                      END * 100 AS percent_active_loans,
+  
+    (SELECT COUNT(DISTINCT c.client_id)
+     FROM PisekAccounts pa
+     JOIN disp d ON pa.account_id = d.account_id
+     JOIN client c ON d.client_id = c.client_id
+     WHERE d.type = 'OWNER') AS unique_account_owners
+  FROM PisekAccounts pa
+  LEFT JOIN AccountStats ast ON pa.account_id = ast.account_id
+  LEFT JOIN LoanInfo li ON pa.account_id = li.account_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +76,7 @@ sdms:
 
 thread:
   - name: bird-question-140
-    description: 'What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?'
+    description: "What is the comprehensive financial profile of all accounts in the Pisek district, including the total number of accounts, average transactions per account, total deposits and withdrawals, average maximum balance, total credit cards issued, total loans issued, percentage of active loan amounts, and number of unique account owners?"
     messages:
       - role: user
         content: |

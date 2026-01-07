@@ -1,7 +1,61 @@
 name: bird-toxicology-002
-description: 'BIRD Q196 (challenging): For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?'
+description: "BIRD Q196 (challenging): For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ChlorineAtomCounts AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(a.atom_id) AS chlorine_atoms
+     FROM molecule m
+     INNER JOIN atom a ON m.molecule_id = a.molecule_id
+     WHERE a.element = 'cl'
+     GROUP BY m.molecule_id,
+              m.label),
+       MoleculeBondStats AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT b.bond_id) AS total_bonds,
+            SUM(CASE
+                    WHEN b.bond_type = '-' THEN 1
+                    ELSE 0
+                END) AS single_bonds,
+            SUM(CASE
+                    WHEN b.bond_type = '=' THEN 1
+                    ELSE 0
+                END) AS double_bonds
+     FROM molecule m
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     GROUP BY m.molecule_id,
+              m.label),
+       ChlorineBondInfo AS
+    (SELECT m.molecule_id,
+            COUNT(DISTINCT c.bond_id) AS bonds_with_chlorine
+     FROM molecule m
+     INNER JOIN atom a ON m.molecule_id = a.molecule_id
+     INNER JOIN connected c ON a.atom_id = c.atom_id
+     WHERE a.element = 'cl'
+     GROUP BY m.molecule_id)
+  SELECT COUNT(DISTINCT cac.molecule_id) AS non_carcinogenic_molecules_with_chlorine,
+         AVG(cac.chlorine_atoms) AS avg_chlorine_atoms_per_molecule,
+         MAX(cac.chlorine_atoms) AS max_chlorine_atoms,
+         AVG(mbs.total_bonds) AS avg_bonds_per_molecule,
+         SUM(CASE
+                 WHEN mbs.single_bonds > mbs.double_bonds THEN 1
+                 ELSE 0
+             END) AS molecules_with_more_single_bonds,
+         AVG(COALESCE(cbi.bonds_with_chlorine, 0)) AS avg_chlorine_bonds
+  FROM ChlorineAtomCounts cac
+  INNER JOIN MoleculeBondStats mbs ON cac.molecule_id = mbs.molecule_id
+  LEFT JOIN ChlorineBondInfo cbi ON cac.molecule_id = cbi.molecule_id
+  WHERE cac.label = '-'
+  HAVING COUNT(DISTINCT cac.molecule_id) > 0
 
 sdms:
   - kind: postgres
@@ -10,7 +64,7 @@ sdms:
 
 thread:
   - name: bird-question-196
-    description: 'For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?'
+    description: "For non-carcinogenic molecules containing chlorine, what are the statistics including the count of such molecules, average and maximum number of chlorine atoms, average number of bonds, count of molecules with more single bonds than double bonds, and average number of bonds involving chlorine?"
     messages:
       - role: user
         content: |

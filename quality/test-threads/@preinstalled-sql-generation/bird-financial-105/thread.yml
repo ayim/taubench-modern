@@ -1,7 +1,21 @@
 name: bird-financial-105
-description: 'BIRD Q193 (moderate): List all ID and district for clients that can only have the right to issue permanent orders or apply for loans.'
+description: "BIRD Q193 (moderate): List all ID and district for clients that can only have the right to issue permanent orders or apply for loans."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.client_id,
+         T2.district_id,
+         T2.A2
+  FROM ACCOUNT AS T1
+  INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+  INNER JOIN disp AS T3 ON T1.account_id = T3.account_id
+  WHERE T3.type = 'OWNER'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-193
-    description: 'List all ID and district for clients that can only have the right to issue permanent orders or apply for loans.'
+    description: "List all ID and district for clients that can only have the right to issue permanent orders or apply for loans."
     messages:
       - role: user
         content: |

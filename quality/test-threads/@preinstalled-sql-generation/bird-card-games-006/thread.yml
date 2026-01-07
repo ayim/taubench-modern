@@ -1,7 +1,20 @@
 name: bird-card-games-006
-description: 'BIRD Q345 (moderate): For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format.'
+description: "BIRD Q345 (moderate): For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.status
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.type = 'Artifact'
+    AND T2.format = 'vintage'
+    AND T1.side IS NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-345
-    description: 'For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format.'
+    description: "For artifact type of cards that do not have multiple faces on the same card, state its legalities status for vintage play format."
     messages:
       - role: user
         content: |

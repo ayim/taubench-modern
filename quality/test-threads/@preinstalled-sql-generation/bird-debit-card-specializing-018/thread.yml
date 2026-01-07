@@ -1,7 +1,23 @@
 name: bird-debit-card-specializing-018
-description: 'BIRD Q1487 (moderate): Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?'
+description: "BIRD Q1487 (moderate): Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.CustomerID
+  FROM customers AS T1
+  INNER JOIN yearmonth AS T2 ON T1.CustomerID = T2.CustomerID
+  WHERE T1.Segment = 'LAM'
+    AND T2.Date = '201310'
+    AND T1.Currency = 'EUR'
+  GROUP BY T1.CustomerID
+  ORDER BY SUM(T2.Consumption) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-1487
-    description: 'Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?'
+    description: "Which LAM customer used the Euro as their currency and had the highest consumption in October 2013?"
     messages:
       - role: user
         content: |

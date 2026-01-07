@@ -3,6 +3,19 @@ description: "BIRD Q859 (simple): What's Bruno Senna's Q1 result in the qualifyi
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.q1
+  FROM qualifying AS T1
+  INNER JOIN drivers AS T2 ON T2.driverId = T1.driverId
+  WHERE T1.raceId = 354
+    AND T2.forename = 'Bruno'
+    AND T2.surname = 'Senna'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_formula_1

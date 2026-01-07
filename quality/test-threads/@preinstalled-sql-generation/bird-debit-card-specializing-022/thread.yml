@@ -3,6 +3,30 @@ description: "BIRD Q1491 (simple): Which country has more 'value for money' gas 
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Country,
+         COUNT(*) AS TotalCount,
+         CASE
+             WHEN COUNT(*) =
+                    (SELECT MAX(cnt)
+                     FROM
+                       (SELECT COUNT(*) AS cnt
+                        FROM gasstations
+                        WHERE SEGMENT = 'Value for money'
+                        GROUP BY Country) sub) THEN 1
+             ELSE 0
+         END AS is_top
+  FROM gasstations
+  WHERE SEGMENT = 'Value for money'
+  GROUP BY Country
+  ORDER BY TotalCount DESC,
+           Country ASC;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_debit_card_specializing

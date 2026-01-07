@@ -1,7 +1,18 @@
 name: bird-codebase-community-173
-description: 'BIRD Q703 (simple): Among the tags with tag ID below 15, how many of them have 20 count of posts and below?'
+description: "BIRD Q703 (simple): Among the tags with tag ID below 15, how many of them have 20 count of posts and below?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(id)
+  FROM tags
+  WHERE COUNT <= 20
+    AND Id < 15
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-703
-    description: 'Among the tags with tag ID below 15, how many of them have 20 count of posts and below?'
+    description: "Among the tags with tag ID below 15, how many of them have 20 count of posts and below?"
     messages:
       - role: user
         content: |

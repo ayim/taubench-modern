@@ -1,7 +1,19 @@
 name: bird-codebase-community-133
-description: 'BIRD Q663 (simple): What is the id of the youngest user?'
+description: "BIRD Q663 (simple): What is the id of the youngest user?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Id
+  FROM users
+  WHERE Age =
+      (SELECT MIN(Age)
+       FROM users)
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-663
-    description: 'What is the id of the youngest user?'
+    description: "What is the id of the youngest user?"
     messages:
       - role: user
         content: |

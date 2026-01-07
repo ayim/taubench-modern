@@ -1,2 +1,2 @@
 "STRFTIME('%Y', CURRENT_TIMESTAMP) - STRFTIME('%Y', dob)",forename,surname
-39,Kamui,Kobayashi
+40,Kamui,Kobayashi

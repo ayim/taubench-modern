@@ -1,7 +1,21 @@
 name: bird-superhero-070
-description: 'BIRD Q786 (moderate): How many heroes have the highest attribute value in strength?'
+description: "BIRD Q786 (moderate): How many heroes have the highest attribute value in strength?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.hero_id)
+  FROM hero_attribute AS T1
+  INNER JOIN attribute AS T2 ON T1.attribute_id = T2.id
+  WHERE T2.attribute_name = 'Strength'
+    AND T1.attribute_value =
+      (SELECT MAX(attribute_value)
+       FROM hero_attribute)
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-786
-    description: 'How many heroes have the highest attribute value in strength?'
+    description: "How many heroes have the highest attribute value in strength?"
     messages:
       - role: user
         content: |

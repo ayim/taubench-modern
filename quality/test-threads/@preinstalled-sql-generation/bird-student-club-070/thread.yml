@@ -1,7 +1,20 @@
 name: bird-student-club-070
-description: 'BIRD Q1381 (moderate): List the name of students that have attended more than 7 events.'
+description: "BIRD Q1381 (moderate): List the name of students that have attended more than 7 events."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name
+  FROM member AS T1
+  INNER JOIN attendance AS T2 ON T1.member_id = T2.link_to_member
+  GROUP BY T2.link_to_member
+  HAVING COUNT(T2.link_to_event) > 7
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1381
-    description: 'List the name of students that have attended more than 7 events.'
+    description: "List the name of students that have attended more than 7 events."
     messages:
       - role: user
         content: |

@@ -1,2 +1,2 @@
 client_id,gender,age,district_name,region,order_amount,order_type,has_loan,loan_amount,loan_status,transaction_count,total_income,total_expense,net_balance,last_transaction_date,card_count
-2497,F,63,Chomutov,north Bohemia,2.0,,No,0,N/A,216,161276,147631,13645,1998-12-31,0
+2497,F,64,Chomutov,north Bohemia,2.0,,No,0,N/A,216,161276,147631,13645,1998-12-31,0

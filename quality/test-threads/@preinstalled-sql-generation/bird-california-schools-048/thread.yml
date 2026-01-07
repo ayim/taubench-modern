@@ -1,7 +1,19 @@
 name: bird-california-schools-048
-description: 'BIRD Q47 (moderate): What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?'
+description: "BIRD Q47 (moderate): What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(School) AS REAL) / 12
+  FROM schools
+  WHERE DOC = 52
+    AND County = 'Alameda'
+    AND strftime('%Y', OpenDate) = '1980'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-47
-    description: 'What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?'
+    description: "What is the monthly average number of schools that opened in Alameda County under the jurisdiction of the Elementary School District in 1980?"
     messages:
       - role: user
         content: |

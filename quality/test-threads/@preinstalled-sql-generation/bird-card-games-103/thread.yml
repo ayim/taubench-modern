@@ -1,7 +1,20 @@
 name: bird-card-games-103
-description: 'BIRD Q442 (simple): Mention the base set size and set code of the set that was in block named "Masques" and "Mirage".'
+description: "BIRD Q442 (simple): Mention the base set size and set code of the set that was in block named \"Masques\" and \"Mirage\"."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT baseSetSize,
+         code
+  FROM
+  SETS
+  WHERE BLOCK IN ('Masques',
+                  'Mirage')
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-442
-    description: 'Mention the base set size and set code of the set that was in block named "Masques" and "Mirage".'
+    description: "Mention the base set size and set code of the set that was in block named \"Masques\" and \"Mirage\"."
     messages:
       - role: user
         content: |

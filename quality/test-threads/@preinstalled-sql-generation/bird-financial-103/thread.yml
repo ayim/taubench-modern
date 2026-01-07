@@ -1,7 +1,77 @@
 name: bird-financial-103
-description: 'BIRD Q191 (challenging): What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?'
+description: "BIRD Q191 (challenging): What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanAccountStats AS
+    (SELECT a.account_id,
+            a.district_id,
+            a.frequency,
+            l.duration,
+            l.amount,
+            l.payments,
+            l.status,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate_1995,
+            ROUND(l.amount / l.duration, 2) AS monthly_principal,
+            ROUND(l.payments - (l.amount / l.duration), 2) AS monthly_interest,
+            ROUND(((l.payments * l.duration) - l.amount) / l.amount * 100, 2) AS interest_rate_percent,
+            ROW_NUMBER() OVER (PARTITION BY l.duration
+                               ORDER BY l.amount DESC) AS amount_rank
+     FROM ACCOUNT AS a
+     INNER JOIN loan AS l ON a.account_id = l.account_id
+     INNER JOIN district AS d ON a.district_id = d.district_id
+     WHERE l.duration = 24
+       AND a.frequency = 'POPLATEK TYDNE')
+  SELECT COUNT(las.account_id) AS total_count,
+         AVG(las.amount) AS avg_loan_amount,
+         MAX(las.amount) AS max_loan_amount,
+         MIN(las.amount) AS min_loan_amount,
+         AVG(las.payments) AS avg_monthly_payment,
+         AVG(las.monthly_interest) AS avg_monthly_interest,
+         AVG(las.interest_rate_percent) AS avg_interest_rate,
+         SUM(CASE
+                 WHEN las.status = 'A' THEN 1
+                 ELSE 0
+             END) AS status_a_count,
+         SUM(CASE
+                 WHEN las.status = 'B' THEN 1
+                 ELSE 0
+             END) AS status_b_count,
+         SUM(CASE
+                 WHEN las.status = 'C' THEN 1
+                 ELSE 0
+             END) AS status_c_count,
+         SUM(CASE
+                 WHEN las.status = 'D' THEN 1
+                 ELSE 0
+             END) AS status_d_count,
+         AVG(las.avg_salary) AS avg_district_salary,
+         AVG(las.unemployment_rate_1995) AS avg_unemployment_rate,
+         COUNT(DISTINCT las.district_id) AS unique_districts,
+         COUNT(DISTINCT las.region) AS unique_regions,
+  
+    (SELECT region
+     FROM LoanAccountStats
+     GROUP BY region
+     ORDER BY COUNT(*) DESC
+     LIMIT 1) AS top_region
+  FROM LoanAccountStats AS las
+  WHERE las.amount_rank <= 50
+    AND EXISTS
+      (SELECT 1
+       FROM disp AS d
+       JOIN client AS c ON d.client_id = c.client_id
+       WHERE d.account_id = las.account_id
+         AND d.type = 'OWNER');
 
 sdms:
   - kind: postgres
@@ -10,7 +80,7 @@ sdms:
 
 thread:
   - name: bird-question-191
-    description: 'What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?'
+    description: "What are the statistics for the top 50 highest loan amounts among 24-month loans with weekly statement issuance that have an owner, including total count, average loan amount, payment details, interest rates, loan status distribution, and district economic indicators?"
     messages:
       - role: user
         content: |

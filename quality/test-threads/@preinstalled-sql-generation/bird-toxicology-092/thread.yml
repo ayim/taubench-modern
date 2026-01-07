@@ -1,7 +1,19 @@
 name: bird-toxicology-092
-description: 'BIRD Q286 (simple): Among all chemical compounds identified in the database, what percent of compounds form a triple-bond.'
+description: "BIRD Q286 (simple): Among all chemical compounds identified in the database, what percent of compounds form a triple-bond."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN bond_type = '#' THEN molecule_id
+                                 ELSE NULL
+                             END) AS REAL) * 100 / COUNT(DISTINCT molecule_id)
+  FROM bond
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-286
-    description: 'Among all chemical compounds identified in the database, what percent of compounds form a triple-bond.'
+    description: "Among all chemical compounds identified in the database, what percent of compounds form a triple-bond."
     messages:
       - role: user
         content: |

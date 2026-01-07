@@ -1,7 +1,21 @@
 name: bird-financial-071
-description: 'BIRD Q159 (simple): List all the withdrawals in cash transactions that the client with the id 3356 makes.'
+description: "BIRD Q159 (simple): List all the withdrawals in cash transactions that the client with the id 3356 makes."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T4.trans_id
+  FROM client AS T1
+  INNER JOIN disp AS T2 ON T1.client_id = T2.client_id
+  INNER JOIN ACCOUNT AS T3 ON T2.account_id = T3.account_id
+  INNER JOIN trans AS T4 ON T3.account_id = T4.account_id
+  WHERE T1.client_id = 3356
+    AND T4.operation = 'VYBER'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-159
-    description: 'List all the withdrawals in cash transactions that the client with the id 3356 makes.'
+    description: "List all the withdrawals in cash transactions that the client with the id 3356 makes."
     messages:
       - role: user
         content: |

@@ -1,7 +1,28 @@
 name: bird-card-games-191
-description: 'BIRD Q530 (moderate): List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any.'
+description: "BIRD Q530 (moderate): List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.frameVersion,
+         T1.name,
+         CASE
+             WHEN EXISTS
+                    (SELECT 1
+                     FROM legalities AS T2
+                     WHERE T2.uuid = T1.uuid
+                       AND T2.status = 'Banned') THEN 'Banned'
+             ELSE 'Not Banned'
+         END AS banned_status
+  FROM cards AS T1
+  WHERE T1.artist = 'Allen Williams'
+  ORDER BY T1.frameVersion ASC,
+           T1.name ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +31,7 @@ sdms:
 
 thread:
   - name: bird-question-530
-    description: 'List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any.'
+    description: "List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any."
     messages:
       - role: user
         content: |

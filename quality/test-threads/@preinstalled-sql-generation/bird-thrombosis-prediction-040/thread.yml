@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-040
-description: 'BIRD Q1188 (simple): How many female patients born in 1964 were admitted to the hospital? List them by ID.'
+description: "BIRD Q1188 (simple): How many female patients born in 1964 were admitted to the hospital? List them by ID."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT ID
+  FROM Patient
+  WHERE STRFTIME('%Y', Birthday) = '1964'
+    AND SEX = 'F'
+    AND Admission = '+'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1188
-    description: 'How many female patients born in 1964 were admitted to the hospital? List them by ID.'
+    description: "How many female patients born in 1964 were admitted to the hospital? List them by ID."
     messages:
       - role: user
         content: |

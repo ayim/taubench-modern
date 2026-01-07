@@ -1,7 +1,17 @@
 name: bird-debit-card-specializing-035
-description: 'BIRD Q1504 (simple): What is the average total price of the transactions taken place in January, 2012?'
+description: "BIRD Q1504 (simple): What is the average total price of the transactions taken place in January, 2012?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(Price)
+  FROM transactions_1k
+  WHERE Date LIKE '2012-01%'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1504
-    description: 'What is the average total price of the transactions taken place in January, 2012?'
+    description: "What is the average total price of the transactions taken place in January, 2012?"
     messages:
       - role: user
         content: |

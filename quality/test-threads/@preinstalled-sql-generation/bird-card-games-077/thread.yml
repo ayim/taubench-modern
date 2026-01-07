@@ -1,7 +1,21 @@
 name: bird-card-games-077
-description: 'BIRD Q416 (challenging): What percentage of cards without power are in French?'
+description: "BIRD Q416 (challenging): What percentage of cards without power are in French?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT (COUNT(DISTINCT CASE
+                             WHEN f.language = 'French' THEN c.id
+                         END) * 100.0 / NULLIF(COUNT(DISTINCT c.id), 0)) AS french_percentage
+  FROM cards c
+  LEFT JOIN foreign_data f ON c.uuid = f.uuid
+  WHERE c.power IS NULL
+    OR c.power = '*';
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-416
-    description: 'What percentage of cards without power are in French?'
+    description: "What percentage of cards without power are in French?"
     messages:
       - role: user
         content: |

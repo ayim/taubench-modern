@@ -1,7 +1,79 @@
 name: bird-financial-076
-description: 'BIRD Q164 (challenging): For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards.'
+description: "BIRD Q164 (challenging): For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH client_info AS
+    (SELECT c.client_id,
+            c.gender,
+            CAST(strftime('%Y', 'now') - strftime('%Y', c.birth_date) AS INTEGER) AS age,
+            d.A2 AS district_name,
+            d.A3 AS region
+     FROM client c
+     JOIN district d ON c.district_id = d.district_id),
+       order_details AS
+    (SELECT o.order_id,
+            o.account_id,
+            o.amount,
+            o.k_symbol,
+            a.district_id,
+            a.frequency,
+            RANK() OVER (PARTITION BY o.account_id
+                         ORDER BY o.amount DESC) AS amount_rank
+     FROM `order` o
+     JOIN ACCOUNT a ON o.account_id = a.account_id
+     WHERE o.order_id = 32423),
+       account_transactions AS
+    (SELECT t.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.date) AS last_transaction_date
+     FROM trans t
+     JOIN order_details od ON t.account_id = od.account_id
+     GROUP BY t.account_id)
+  SELECT ci.client_id,
+         ci.gender,
+         ci.age,
+         ci.district_name,
+         ci.region,
+         od.amount AS order_amount,
+         od.k_symbol AS order_type,
+         CASE
+             WHEN l.loan_id IS NOT NULL THEN 'Yes'
+             ELSE 'No'
+         END AS has_loan,
+         COALESCE(l.amount, 0) AS loan_amount,
+         COALESCE(l.status, 'N/A') AS loan_status,
+         at.transaction_count,
+         at.total_income,
+         at.total_expense,
+         at.total_income - at.total_expense AS net_balance,
+         at.last_transaction_date,
+  
+    (SELECT COUNT(card_id)
+     FROM card c
+     JOIN disp d ON c.disp_id = d.disp_id
+     WHERE d.client_id = ci.client_id) AS card_count
+  FROM order_details od
+  JOIN disp d ON od.account_id = d.account_id
+  JOIN client_info ci ON d.client_id = ci.client_id
+  JOIN account_transactions AT ON od.account_id = at.account_id
+  LEFT JOIN loan l ON od.account_id = l.account_id
+  WHERE d.type = 'OWNER'
+  ORDER BY ci.client_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +82,7 @@ sdms:
 
 thread:
   - name: bird-question-164
-    description: 'For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards.'
+    description: "For order 32423, provide a comprehensive profile of the account owner including their demographics, order details, loan status, transaction history, and number of credit cards."
     messages:
       - role: user
         content: |

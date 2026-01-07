@@ -1,7 +1,18 @@
 name: bird-codebase-community-101
-description: 'BIRD Q631 (simple): How many posts were created by Daniel Vassallo?'
+description: "BIRD Q631 (simple): How many posts were created by Daniel Vassallo?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T2.Id)
+  FROM users AS T1
+  INNER JOIN posts AS T2 ON T1.Id = T2.OwnerUserId
+  WHERE T1.DisplayName = 'Daniel Vassallo'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-631
-    description: 'How many posts were created by Daniel Vassallo?'
+    description: "How many posts were created by Daniel Vassallo?"
     messages:
       - role: user
         content: |

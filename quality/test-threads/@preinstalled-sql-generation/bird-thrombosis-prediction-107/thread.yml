@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-107
-description: 'BIRD Q1255 (moderate): For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?'
+description: "BIRD Q1255 (moderate): For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.Diagnosis
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.IGM NOT BETWEEN 40 AND 400
+  GROUP BY T1.Diagnosis
+  ORDER BY COUNT(T1.Diagnosis) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1255
-    description: 'For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?'
+    description: "For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?"
     messages:
       - role: user
         content: |

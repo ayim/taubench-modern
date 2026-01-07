@@ -1,7 +1,25 @@
 name: bird-european-football-2-013
-description: 'BIRD Q1032 (moderate): Give the name of the league with the highest matches of all time and how many matches were played in the said league.'
+description: "BIRD Q1032 (moderate): Give the name of the league with the highest matches of all time and how many matches were played in the said league."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t2.name,
+         t1.max_count
+  FROM League AS t2
+  JOIN
+    (SELECT league_id,
+            MAX(cnt) AS max_count
+     FROM
+       (SELECT league_id,
+               COUNT(id) AS cnt
+        FROM MATCH
+        GROUP BY league_id) AS subquery) AS t1 ON t1.league_id = t2.id
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-1032
-    description: 'Give the name of the league with the highest matches of all time and how many matches were played in the said league.'
+    description: "Give the name of the league with the highest matches of all time and how many matches were played in the said league."
     messages:
       - role: user
         content: |

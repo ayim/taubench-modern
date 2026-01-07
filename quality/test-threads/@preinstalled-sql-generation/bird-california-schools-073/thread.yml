@@ -1,7 +1,20 @@
 name: bird-california-schools-073
-description: 'BIRD Q72 (moderate): How many students from the ages of 5 to 17 are enrolled at the State Special School school in Fremont for the 2014-2015 academic year?'
+description: "BIRD Q72 (moderate): How many students from the ages of 5 to 17 are enrolled at the State Special School school in Fremont for the 2014-2015 academic year?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.`Enrollment (Ages 5-17)`
+  FROM frpm AS T1
+  INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T2.EdOpsCode = 'SSS'
+    AND T2.City = 'Fremont'
+    AND T1.`Academic Year` BETWEEN 2014 AND 2015
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-72
-    description: 'How many students from the ages of 5 to 17 are enrolled at the State Special School school in Fremont for the 2014-2015 academic year?'
+    description: "How many students from the ages of 5 to 17 are enrolled at the State Special School school in Fremont for the 2014-2015 academic year?"
     messages:
       - role: user
         content: |

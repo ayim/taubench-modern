@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-094
-description: 'BIRD Q1242 (challenging): For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level.'
+description: "BIRD Q1242 (challenging): For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.PLT BETWEEN 100 AND 400
+    AND STRFTIME('%Y', T2.Date) - STRFTIME('%Y', T1.Birthday) < 50
+    AND STRFTIME('%Y', T2.Date) = '1984'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1242
-    description: 'For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level.'
+    description: "For laboratory examinations take in 1984, list all patients below 50 years old with normal platelet level."
     messages:
       - role: user
         content: |

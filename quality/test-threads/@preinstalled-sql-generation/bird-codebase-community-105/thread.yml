@@ -1,7 +1,23 @@
 name: bird-codebase-community-105
-description: 'BIRD Q635 (moderate): How many posts by Matt Parker have more than 4 votes?'
+description: "BIRD Q635 (moderate): How many posts by Matt Parker have more than 4 votes?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM
+    (SELECT T2.Id
+     FROM users AS T1
+     INNER JOIN posts AS T2 ON T1.Id = T2.OwnerUserId
+     INNER JOIN votes AS T3 ON T3.PostId = T2.Id
+     WHERE T1.DisplayName = 'Matt Parker'
+     GROUP BY T2.Id
+     HAVING COUNT(T3.Id) > 4);
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-635
-    description: 'How many posts by Matt Parker have more than 4 votes?'
+    description: "How many posts by Matt Parker have more than 4 votes?"
     messages:
       - role: user
         content: |

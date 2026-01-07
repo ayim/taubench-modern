@@ -1,7 +1,72 @@
 name: bird-financial-012
-description: 'BIRD Q100 (challenging): What is the average age at account opening, total number with loans, number with successfully completed loans, and number currently in debt for female clients born before 1950 from Sokolov who own accounts? Also, what are the earliest and latest years these accounts were opened?'
+description: "BIRD Q100 (challenging): What is the average age at account opening, total number with loans, number with successfully completed loans, and number currently in debt for female clients born before 1950 from Sokolov who own accounts? Also, what are the earliest and latest years these accounts were opened?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH female_clients_from_sokolov AS
+    (SELECT c.client_id,
+            c.birth_date,
+            STRFTIME('%Y', c.birth_date) AS birth_year,
+            d.A2 AS district_name
+     FROM client c
+     INNER JOIN district d ON c.district_id = d.district_id
+     WHERE c.gender = 'F'
+       AND STRFTIME('%Y', c.birth_date) < '1950'
+       AND d.A2 = 'Sokolov'),
+       client_accounts AS
+    (SELECT fc.client_id,
+            fc.birth_year,
+            a.account_id,
+            a.date AS account_open_date,
+            STRFTIME('%Y', a.date) AS account_open_year,
+            CAST(STRFTIME('%Y', 'now') AS INTEGER) - CAST(fc.birth_year AS INTEGER) AS client_age_now,
+            CAST(STRFTIME('%Y', a.date) AS INTEGER) - CAST(fc.birth_year AS INTEGER) AS client_age_at_opening
+     FROM female_clients_from_sokolov fc
+     INNER JOIN disp d ON fc.client_id = d.client_id
+     INNER JOIN ACCOUNT a ON d.account_id = a.account_id
+     WHERE d.type = 'OWNER'),
+       client_loan_status AS
+    (SELECT ca.client_id,
+            ca.account_id,
+            ca.birth_year,
+            ca.account_open_date,
+            ca.client_age_at_opening,
+            CASE
+                WHEN l.loan_id IS NOT NULL THEN 'Has Loan'
+                ELSE 'No Loan'
+            END AS loan_status,
+            CASE
+                WHEN l.status = 'A' THEN 'Contract Finished/No Problems'
+                WHEN l.status = 'B' THEN 'Contract Finished/Loan Not Paid'
+                WHEN l.status = 'C' THEN 'Running Contract/OK So Far'
+                WHEN l.status = 'D' THEN 'Running Contract/Client in Debt'
+                ELSE 'No Loan'
+            END AS loan_details
+     FROM client_accounts ca
+     LEFT JOIN loan l ON ca.account_id = l.account_id)
+  SELECT COUNT(DISTINCT cls.client_id) AS total_female_clients,
+         AVG(cls.client_age_at_opening) AS avg_age_at_account_opening,
+         SUM(CASE
+                 WHEN cls.loan_status = 'Has Loan' THEN 1
+                 ELSE 0
+             END) AS clients_with_loans,
+         SUM(CASE
+                 WHEN cls.loan_details = 'Contract Finished/No Problems' THEN 1
+                 ELSE 0
+             END) AS clients_with_good_loans,
+         SUM(CASE
+                 WHEN cls.loan_details = 'Running Contract/Client in Debt' THEN 1
+                 ELSE 0
+             END) AS clients_with_debt,
+         MIN(STRFTIME('%Y', cls.account_open_date)) AS earliest_account_year,
+         MAX(STRFTIME('%Y', cls.account_open_date)) AS latest_account_year
+  FROM client_loan_status cls;
 
 sdms:
   - kind: postgres
@@ -10,7 +75,7 @@ sdms:
 
 thread:
   - name: bird-question-100
-    description: 'What is the average age at account opening, total number with loans, number with successfully completed loans, and number currently in debt for female clients born before 1950 from Sokolov who own accounts? Also, what are the earliest and latest years these accounts were opened?'
+    description: "What is the average age at account opening, total number with loans, number with successfully completed loans, and number currently in debt for female clients born before 1950 from Sokolov who own accounts? Also, what are the earliest and latest years these accounts were opened?"
     messages:
       - role: user
         content: |

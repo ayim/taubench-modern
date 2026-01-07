@@ -1,7 +1,19 @@
 name: bird-formula-1-013
-description: 'BIRD Q858 (simple): Which country is the constructor which got 1 point in the race No. 24 from?'
+description: "BIRD Q858 (simple): Which country is the constructor which got 1 point in the race No. 24 from?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.nationality
+  FROM constructorResults AS T1
+  INNER JOIN constructors AS T2 ON T2.constructorId = T1.constructorId
+  WHERE T1.raceId = 24
+    AND T1.points = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-858
-    description: 'Which country is the constructor which got 1 point in the race No. 24 from?'
+    description: "Which country is the constructor which got 1 point in the race No. 24 from?"
     messages:
       - role: user
         content: |

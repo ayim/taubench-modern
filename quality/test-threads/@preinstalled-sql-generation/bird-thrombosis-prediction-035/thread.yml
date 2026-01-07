@@ -1,7 +1,25 @@
 name: bird-thrombosis-prediction-035
-description: 'BIRD Q1183 (challenging): For the patient who was diagnosed SLE on 1997/1/27, what was his/her original diagnose when he/she came to the hospital for the first time?'
+description: "BIRD Q1183 (challenging): For the patient who was diagnosed SLE on 1997/1/27, what was his/her original diagnose when he/she came to the hospital for the first time?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.Diagnosis
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T1.ID =
+      (SELECT ID
+       FROM Examination
+       WHERE `Examination Date` = '1997-01-27'
+         AND Diagnosis = 'SLE'
+       ORDER BY ID ASC
+       LIMIT 1)
+    AND T2.`Examination Date` = T1.`First Date`
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-1183
-    description: 'For the patient who was diagnosed SLE on 1997/1/27, what was his/her original diagnose when he/she came to the hospital for the first time?'
+    description: "For the patient who was diagnosed SLE on 1997/1/27, what was his/her original diagnose when he/she came to the hospital for the first time?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,22 @@
 name: bird-european-football-2-128
-description: 'BIRD Q1147 (simple): Please name one player whose overall strength is the greatest.'
+description: "BIRD Q1147 (simple): Please name one player whose overall strength is the greatest."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.player_name
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE t2.overall_rating =
+      (SELECT MAX(overall_rating)
+       FROM Player_Attributes)
+  ORDER BY t1.player_name
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1147
-    description: 'Please name one player whose overall strength is the greatest.'
+    description: "Please name one player whose overall strength is the greatest."
     messages:
       - role: user
         content: |

@@ -1,7 +1,96 @@
 name: bird-financial-009
-description: 'BIRD Q97 (challenging): For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume.'
+description: "BIRD Q97 (challenging): For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ClientLoanInfo AS
+    (SELECT d.client_id,
+            d.type AS disposition_type,
+            a.frequency,
+            COUNT(l.loan_id) AS loan_count,
+            AVG(l.amount) AS avg_loan_amount,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS active_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS completed_loans
+     FROM disp d
+     JOIN ACCOUNT a ON d.account_id = a.account_id
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     WHERE a.frequency = 'POPLATEK PO OBRATU'
+       AND d.type = 'DISPONENT'
+     GROUP BY d.client_id,
+              d.type,
+              a.frequency),
+       ClientTransactions AS
+    (SELECT d.client_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.date) AS last_transaction_date
+     FROM disp d
+     JOIN ACCOUNT a ON d.account_id = a.account_id
+     JOIN trans t ON a.account_id = t.account_id
+     WHERE a.frequency = 'POPLATEK PO OBRATU'
+       AND d.type = 'DISPONENT'
+     GROUP BY d.client_id),
+       ClientCards AS
+    (SELECT d.client_id,
+            COUNT(c.card_id) AS card_count,
+            GROUP_CONCAT(DISTINCT c.type) AS card_types
+     FROM disp d
+     JOIN ACCOUNT a ON d.account_id = a.account_id
+     LEFT JOIN card c ON d.disp_id = c.disp_id
+     WHERE a.frequency = 'POPLATEK PO OBRATU'
+       AND d.type = 'DISPONENT'
+     GROUP BY d.client_id)
+  SELECT cli.client_id,
+         c.gender,
+         c.birth_date,
+         d.A2 AS district_name,
+         d.A3 AS region,
+         cli.loan_count,
+         cli.avg_loan_amount,
+         cli.active_loans,
+         cli.completed_loans,
+         ct.transaction_count,
+         ct.total_income,
+         ct.total_expense,
+         ct.total_income - ct.total_expense AS net_balance,
+         ct.last_transaction_date,
+         cc.card_count,
+         cc.card_types,
+         CASE
+             WHEN cli.loan_count > 0
+                  AND cc.card_count > 0 THEN 'Full Service Client'
+             WHEN cli.loan_count > 0 THEN 'Loan Only Client'
+             WHEN cc.card_count > 0 THEN 'Card Only Client'
+             ELSE 'Basic Client'
+         END AS client_category,
+         RANK() OVER (
+                      ORDER BY ct.transaction_count DESC) AS transaction_rank
+  FROM ClientLoanInfo cli
+  JOIN client c ON cli.client_id = c.client_id
+  JOIN district d ON c.district_id = d.district_id
+  LEFT JOIN ClientTransactions ct ON cli.client_id = ct.client_id
+  LEFT JOIN ClientCards cc ON cli.client_id = cc.client_id
+  ORDER BY transaction_rank,
+           cli.client_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +99,7 @@ sdms:
 
 thread:
   - name: bird-question-97
-    description: 'For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume.'
+    description: "For all disponent clients with accounts that have post-transaction issuance statements, provide a comprehensive profile including their loan statistics, transaction activity, credit card information, and categorize them based on their service usage, ranked by transaction volume."
     messages:
       - role: user
         content: |

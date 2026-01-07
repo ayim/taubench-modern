@@ -1,7 +1,59 @@
 name: bird-toxicology-001
-description: 'BIRD Q195 (challenging): For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type.'
+description: "BIRD Q195 (challenging): For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH BondCounts AS
+    (SELECT b.bond_type,
+            COUNT(b.bond_id) AS bond_count,
+            RANK() OVER (
+                         ORDER BY COUNT(b.bond_id) DESC) AS bond_rank
+     FROM bond b
+     GROUP BY b.bond_type),
+       MoleculeStats AS
+    (SELECT b.molecule_id,
+            b.bond_type,
+            COUNT(b.bond_id) AS bonds_per_molecule,
+            m.label AS molecule_label
+     FROM bond b
+     JOIN molecule m ON b.molecule_id = m.molecule_id
+     GROUP BY b.molecule_id,
+              b.bond_type,
+              m.label),
+       AtomConnections AS
+    (SELECT b.bond_type,
+            a1.element AS element1,
+            a2.element AS element2,
+            COUNT(*) AS connection_count
+     FROM connected c
+     JOIN bond b ON c.bond_id = b.bond_id
+     JOIN atom a1 ON c.atom_id = a1.atom_id
+     JOIN atom a2 ON c.atom_id2 = a2.atom_id
+     GROUP BY b.bond_type,
+              a1.element,
+              a2.element)
+  SELECT bc.bond_type,
+         bc.bond_count AS total_occurrences,
+         COUNT(DISTINCT ms.molecule_id) AS molecules_containing,
+         ROUND(AVG(ms.bonds_per_molecule), 2) AS avg_bonds_per_molecule,
+  
+    (SELECT COUNT(DISTINCT element1 || '-' || element2)
+     FROM AtomConnections ac
+     WHERE ac.bond_type = bc.bond_type) AS unique_element_pairs,
+         GROUP_CONCAT(DISTINCT ms.molecule_label) AS molecule_labels
+  FROM BondCounts bc
+  JOIN MoleculeStats ms ON bc.bond_type = ms.bond_type
+  WHERE bc.bond_rank = 1
+  GROUP BY bc.bond_type,
+           bc.bond_count
+  ORDER BY bc.bond_count DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +62,7 @@ sdms:
 
 thread:
   - name: bird-question-195
-    description: 'For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type.'
+    description: "For the most common bond type in the database, provide comprehensive statistics including its total occurrences, how many molecules contain it, the average number of such bonds per molecule, the number of unique element pairs it connects, and which molecule labels (carcinogenic or non-carcinogenic) contain this bond type."
     messages:
       - role: user
         content: |

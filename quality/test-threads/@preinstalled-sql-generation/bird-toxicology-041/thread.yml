@@ -1,7 +1,19 @@
 name: bird-toxicology-041
-description: 'BIRD Q235 (simple): How many molecules are carcinogenic and have the bromine element?'
+description: "BIRD Q235 (simple): How many molecules are carcinogenic and have the bromine element?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T2.molecule_id)
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.label = '+'
+    AND T1.element = 'br'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-235
-    description: 'How many molecules are carcinogenic and have the bromine element?'
+    description: "How many molecules are carcinogenic and have the bromine element?"
     messages:
       - role: user
         content: |

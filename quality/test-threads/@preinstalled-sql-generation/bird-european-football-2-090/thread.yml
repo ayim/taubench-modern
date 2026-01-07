@@ -1,7 +1,20 @@
 name: bird-european-football-2-090
-description: 'BIRD Q1109 (moderate): How was the build up play dribbling class for "LEI" on 2015/9/10?'
+description: "BIRD Q1109 (moderate): How was the build up play dribbling class for \"LEI\" on 2015/9/10?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t2.buildUpPlayDribblingClass
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t1.team_short_name = 'LEI'
+    AND t2.`date` >= '2015-09-10 00:00:00'
+    AND t2.`date` < '2015-09-11 00:00:00'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1109
-    description: 'How was the build up play dribbling class for "LEI" on 2015/9/10?'
+    description: "How was the build up play dribbling class for \"LEI\" on 2015/9/10?"
     messages:
       - role: user
         content: |

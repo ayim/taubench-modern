@@ -1,7 +1,19 @@
 name: bird-toxicology-036
-description: 'BIRD Q230 (challenging): What are the elements of molecule TR060 and its label?'
+description: "BIRD Q230 (challenging): What are the elements of molecule TR060 and its label?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.element,
+                  T2.label
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.molecule_id = 'TR060'
 
 sdms:
   - kind: postgres
@@ -10,12 +22,12 @@ sdms:
 
 thread:
   - name: bird-question-230
-    description: 'What are the elements of molecule TR060 and its label?'
+    description: "What are the elements of molecule TR060 and its label?"
     messages:
       - role: user
         content: |
           What are the elements of molecule TR060 and its label?
-          Evidence: TR060 is the molecule id;
+          Evidence: TR060 is the molecule id; 
 
 target-platforms:
   - name: openai

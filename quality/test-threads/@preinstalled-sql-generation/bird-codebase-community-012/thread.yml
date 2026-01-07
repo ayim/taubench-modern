@@ -1,7 +1,18 @@
 name: bird-codebase-community-012
-description: 'BIRD Q542 (simple): What is the total number of comments of all the posts owned by csgillespie?'
+description: "BIRD Q542 (simple): What is the total number of comments of all the posts owned by csgillespie?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T1.CommentCount)
+  FROM posts AS T1
+  INNER JOIN users AS T2 ON T1.OwnerUserId = T2.Id
+  WHERE T2.DisplayName = 'csgillespie'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-542
-    description: 'What is the total number of comments of all the posts owned by csgillespie?'
+    description: "What is the total number of comments of all the posts owned by csgillespie?"
     messages:
       - role: user
         content: |

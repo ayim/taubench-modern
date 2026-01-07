@@ -1,7 +1,19 @@
 name: bird-card-games-117
-description: 'BIRD Q456 (simple): What''s the list of all types for the card "Molimo, Maro-Sorcerer"?'
+description: "BIRD Q456 (simple): What's the list of all types for the card \"Molimo, Maro-Sorcerer\"?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT subtypes,
+                  supertypes,
+                  types
+  FROM cards
+  WHERE name = 'Molimo, Maro-Sorcerer'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-456
-    description: 'What''s the list of all types for the card "Molimo, Maro-Sorcerer"?'
+    description: "What's the list of all types for the card \"Molimo, Maro-Sorcerer\"?"
     messages:
       - role: user
         content: |

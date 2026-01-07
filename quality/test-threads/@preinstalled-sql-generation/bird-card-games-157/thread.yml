@@ -1,7 +1,19 @@
 name: bird-card-games-157
-description: 'BIRD Q496 (simple): How many cards are there in the set of "Rinascita di Alara"?'
+description: "BIRD Q496 (simple): How many cards are there in the set of \"Rinascita di Alara\"?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.baseSetSize
+  FROM
+  SETS AS T1
+  INNER JOIN set_translations AS T2 ON T2.setCode = T1.code
+  WHERE T2.translation = 'Rinascita di Alara'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-496
-    description: 'How many cards are there in the set of "Rinascita di Alara"?'
+    description: "How many cards are there in the set of \"Rinascita di Alara\"?"
     messages:
       - role: user
         content: |

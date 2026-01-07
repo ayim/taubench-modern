@@ -1,7 +1,88 @@
 name: bird-financial-051
-description: 'BIRD Q139 (challenging): What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?'
+description: "BIRD Q139 (challenging): What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH gold_owner_cards AS
+    (SELECT c.card_id,
+            c.disp_id,
+            c.type AS card_type,
+            c.issued,
+            d.account_id,
+            d.client_id,
+            d.type AS disp_type
+     FROM card AS c
+     INNER JOIN disp AS d ON c.disp_id = d.disp_id
+     WHERE c.type = 'gold'
+       AND d.type = 'OWNER'),
+       client_demographics AS
+    (SELECT cl.client_id,
+            cl.gender,
+            strftime('%Y', 'now') - strftime('%Y', cl.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', cl.birth_date)) AS age,
+            di.A2 AS district_name,
+            di.A3 AS region,
+            di.A10 AS urban_ratio,
+            di.A11 AS avg_salary
+     FROM client AS cl
+     JOIN district AS di ON cl.district_id = di.district_id),
+       account_activity AS
+    (SELECT a.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            AVG(t.balance) AS avg_balance,
+            COUNT(DISTINCT l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount
+     FROM ACCOUNT AS a
+     LEFT JOIN trans AS t ON a.account_id = t.account_id
+     LEFT JOIN loan AS l ON a.account_id = l.account_id
+     GROUP BY a.account_id)
+  SELECT COUNT(goc.card_id) AS total_gold_owner_cards,
+         AVG(cd.age) AS avg_cardholder_age,
+         SUM(CASE
+                 WHEN cd.gender = 'M' THEN 1
+                 ELSE 0
+             END) AS male_cardholders,
+         SUM(CASE
+                 WHEN cd.gender = 'F' THEN 1
+                 ELSE 0
+             END) AS female_cardholders,
+         AVG(cd.avg_salary) AS avg_district_salary,
+         AVG(aa.transaction_count) AS avg_transactions_per_account,
+         AVG(aa.total_income) AS avg_income_per_account,
+         AVG(aa.total_expense) AS avg_expense_per_account,
+         SUM(CASE
+                 WHEN aa.loan_count > 0 THEN 1
+                 ELSE 0
+             END) AS accounts_with_loans,
+         COUNT(DISTINCT cd.region) AS distinct_regions,
+  
+    (SELECT COUNT(*)
+     FROM card
+     WHERE TYPE = 'gold') AS total_gold_cards,
+         ROUND(COUNT(goc.card_id) * 100.0 /
+                 (SELECT COUNT(*)
+                  FROM card
+                  WHERE TYPE = 'gold'), 2) AS gold_owner_percentage
+  FROM gold_owner_cards AS goc
+  JOIN client_demographics AS cd ON goc.client_id = cd.client_id
+  JOIN account_activity AS aa ON goc.account_id = aa.account_id
+  WHERE aa.avg_balance > 1000
+  GROUP BY cd.gender
+  ORDER BY avg_cardholder_age DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +91,7 @@ sdms:
 
 thread:
   - name: bird-question-139
-    description: 'What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?'
+    description: "What is the demographic and financial profile of gold credit card owners with account balances averaging over 1,000, broken down by gender?"
     messages:
       - role: user
         content: |

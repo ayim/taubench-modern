@@ -1,7 +1,77 @@
 name: bird-california-schools-032
-description: 'BIRD Q31 (challenging): For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics.'
+description: "BIRD Q31 (challenging): For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH EnrollmentRanked AS
+    (SELECT f.CDSCode,
+            f.`School Name`,
+            f.`District Name`,
+            f.`County Name`,
+            f.`Enrollment (K-12)`,
+            f.`Free Meal Count (K-12)`,
+            CAST(f.`Free Meal Count (K-12)` AS REAL) / f.`Enrollment (K-12)` AS EligibleFreeRate,
+            ROW_NUMBER() OVER (
+                               ORDER BY f.`Enrollment (K-12)` DESC) AS EnrollmentRank
+     FROM frpm f
+     WHERE f.`Enrollment (K-12)` > 0),
+       SchoolDetails AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.City,
+            s.Charter,
+            s.GSoffered,
+            s.Website,
+            CASE
+                WHEN s.Charter = 1 THEN 'Charter School'
+                ELSE 'Regular School'
+            END AS SchoolType,
+            CASE
+                WHEN s.Latitude IS NOT NULL
+                     AND s.Longitude IS NOT NULL THEN 'Yes'
+                ELSE 'No'
+            END AS HasGeolocation
+     FROM schools s),
+       SATPerformance AS
+    (SELECT sat.cds,
+            sat.NumTstTakr,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.AvgScrWrite,
+            sat.NumGE1500,
+            CASE
+                WHEN sat.NumTstTakr > 0 THEN CAST(sat.NumGE1500 AS REAL) / sat.NumTstTakr
+                ELSE 0
+            END AS PercentageAbove1500
+     FROM satscores sat)
+  SELECT e.EnrollmentRank,
+         e.`School Name`,
+         e.`District Name`,
+         e.`County Name`,
+         e.`Enrollment (K-12)` AS TotalEnrollment,
+         e.`Free Meal Count (K-12)` AS FreeMealCount,
+         ROUND(e.EligibleFreeRate * 100, 2) || '%' AS EligibleFreeRate,
+         sd.City,
+         sd.SchoolType,
+         sd.GSoffered AS GradeSpan,
+         sd.Website,
+         COALESCE(sp.NumTstTakr, 0) AS SATTestTakers,
+         COALESCE(sp.AvgScrRead, 0) AS AvgReadingScore,
+         COALESCE(sp.AvgScrMath, 0) AS AvgMathScore,
+         COALESCE(sp.AvgScrWrite, 0) AS AvgWritingScore,
+         COALESCE(ROUND(sp.PercentageAbove1500 * 100, 2), 0) || '%' AS PercentAbove1500SAT
+  FROM EnrollmentRanked e
+  LEFT JOIN SchoolDetails sd ON e.CDSCode = sd.CDSCode
+  LEFT JOIN SATPerformance sp ON e.CDSCode = sp.cds
+  WHERE e.EnrollmentRank IN (10,
+                             11)
+  ORDER BY e.EnrollmentRank;
 
 sdms:
   - kind: postgres
@@ -10,7 +80,7 @@ sdms:
 
 thread:
   - name: bird-question-31
-    description: 'For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics.'
+    description: "For the 10th and 11th largest schools by K-12 enrollment, provide a comprehensive profile including their enrollment statistics, free meal eligibility rates, location details, school type, grade spans offered, and SAT performance metrics."
     messages:
       - role: user
         content: |

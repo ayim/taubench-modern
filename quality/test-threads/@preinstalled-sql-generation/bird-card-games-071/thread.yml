@@ -1,7 +1,20 @@
 name: bird-card-games-071
-description: 'BIRD Q410 (simple): Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID.'
+description: "BIRD Q410 (simple): Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.id
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.artist = 'Erica Yang'
+    AND T2.format = 'pauper'
+    AND T1.availability = 'paper';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-410
-    description: 'Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID.'
+    description: "Is there any card from Erica Yang artist in pauper format and available in paper? If so, indicate its ID."
     messages:
       - role: user
         content: |

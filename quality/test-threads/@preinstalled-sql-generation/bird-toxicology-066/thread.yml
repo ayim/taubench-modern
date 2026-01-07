@@ -1,7 +1,21 @@
 name: bird-toxicology-066
-description: 'BIRD Q260 (moderate): Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine.'
+description: "BIRD Q260 (moderate): Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.atom_id)
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  INNER JOIN bond AS T3 ON T2.molecule_id = T3.molecule_id
+  WHERE T3.bond_type = '#'
+    AND T1.element IN ('p',
+                       'br')
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-260
-    description: 'Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine.'
+    description: "Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine."
     messages:
       - role: user
         content: |

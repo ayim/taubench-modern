@@ -1,7 +1,20 @@
 name: bird-financial-042
-description: 'BIRD Q130 (moderate): How many of the account holders in South Bohemia still do not own credit cards?'
+description: "BIRD Q130 (moderate): How many of the account holders in South Bohemia still do not own credit cards?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T3.account_id)
+  FROM district AS T1
+  INNER JOIN client AS T2 ON T1.district_id = T2.district_id
+  INNER JOIN disp AS T3 ON T2.client_id = T3.client_id
+  WHERE T1.A3 = 'south Bohemia'
+    AND T3.type != 'OWNER'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-130
-    description: 'How many of the account holders in South Bohemia still do not own credit cards?'
+    description: "How many of the account holders in South Bohemia still do not own credit cards?"
     messages:
       - role: user
         content: |

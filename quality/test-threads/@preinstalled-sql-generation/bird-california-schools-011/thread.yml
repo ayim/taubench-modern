@@ -1,7 +1,93 @@
 name: bird-california-schools-011
-description: 'BIRD Q10 (challenging): For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.'
+description: "BIRD Q10 (challenging): For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolRankings AS
+    (SELECT T1.cds,
+            T1.sname,
+            T1.AvgScrRead,
+            T1.AvgScrMath,
+            T1.AvgScrWrite,
+            T1.NumTstTakr,
+            T1.NumGE1500,
+            RANK() OVER (
+                         ORDER BY T1.AvgScrRead DESC) AS ReadingRank,
+            RANK() OVER (
+                         ORDER BY T1.AvgScrMath DESC) AS MathRank,
+            RANK() OVER (
+                         ORDER BY T1.AvgScrWrite DESC) AS WritingRank,
+            RANK() OVER (
+                         ORDER BY (T1.AvgScrRead + T1.AvgScrMath + T1.AvgScrWrite) DESC) AS TotalScoreRank,
+            (T1.NumGE1500 * 100.0 / CASE
+                                        WHEN T1.NumTstTakr = 0 THEN 1
+                                        ELSE T1.NumTstTakr
+                                    END) AS PercentOver1500
+     FROM satscores AS T1
+     WHERE T1.NumTstTakr > 10),
+       TopSchools AS
+    (SELECT SR.cds,
+            SR.sname,
+            SR.AvgScrRead,
+            SR.AvgScrMath,
+            SR.AvgScrWrite,
+            SR.ReadingRank,
+            SR.MathRank,
+            SR.WritingRank,
+            SR.TotalScoreRank,
+            SR.PercentOver1500,
+            F.`FRPM Count (Ages 5-17)`,
+            F.`Percent (%) Eligible FRPM (Ages 5-17)`,
+            F.`Enrollment (Ages 5-17)`,
+            S.County,
+            S.City,
+            S.Charter,
+            S.GSoffered,
+            S.DOCType,
+            S.SOCType,
+            S.EdOpsName,
+            CASE
+                WHEN SR.ReadingRank <= 5 THEN 'Top 5 in Reading'
+                WHEN SR.ReadingRank <= 10 THEN 'Top 10 in Reading'
+                ELSE 'Other'
+            END AS ReadingCategory
+     FROM SchoolRankings SR
+     LEFT JOIN frpm F ON SR.cds = F.CDSCode
+     LEFT JOIN schools S ON SR.cds = S.CDSCode
+     WHERE SR.ReadingRank <= 20)
+  SELECT TS.sname AS SchoolName,
+         TS.County,
+         TS.City,
+         TS.GSoffered AS GradeSpan,
+         TS.AvgScrRead AS ReadingScore,
+         TS.AvgScrMath AS MathScore,
+         TS.AvgScrWrite AS WritingScore,
+         (TS.AvgScrRead + TS.AvgScrMath + TS.AvgScrWrite) AS TotalSATScore,
+         TS.ReadingRank,
+         TS.`FRPM Count (Ages 5-17)` AS FRPMCount,
+         TS.`Percent (%) Eligible FRPM (Ages 5-17)` AS FRPMPercentage,
+         TS.`Enrollment (Ages 5-17)` AS Enrollment,
+         TS.PercentOver1500 AS PercentScoring1500Plus,
+         CASE
+             WHEN TS.Charter = 1 THEN 'Charter School'
+             ELSE 'Non-Charter School'
+         END AS SchoolType,
+         CASE
+             WHEN TS.`Percent (%) Eligible FRPM (Ages 5-17)` > 0.75 THEN 'High Poverty (>75%)'
+             WHEN TS.`Percent (%) Eligible FRPM (Ages 5-17)` > 0.50 THEN 'Moderate Poverty (50-75%)'
+             WHEN TS.`Percent (%) Eligible FRPM (Ages 5-17)` > 0.25 THEN 'Low Poverty (25-50%)'
+             ELSE 'Very Low Poverty (<25%)'
+         END AS PovertyLevel
+  FROM TopSchools TS
+  WHERE TS.ReadingRank = 1
+  ORDER BY TS.AvgScrRead DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +96,7 @@ sdms:
 
 thread:
   - name: bird-question-10
-    description: 'For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status.'
+    description: "For the school with the highest average SAT Reading score among schools with more than 10 test takers, provide comprehensive details including its location, test scores across all sections, poverty indicators, enrollment, and charter status."
     messages:
       - role: user
         content: |

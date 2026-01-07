@@ -1,7 +1,17 @@
 name: bird-card-games-019
-description: 'BIRD Q358 (simple): What is the border color of card "Ancestor''s Chosen"?'
+description: "BIRD Q358 (simple): What is the border color of card \"Ancestor's Chosen\"?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT borderColor
+  FROM cards
+  WHERE name = 'Ancestor''s Chosen'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-358
-    description: 'What is the border color of card "Ancestor''s Chosen"?'
+    description: "What is the border color of card \"Ancestor's Chosen\"?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-codebase-community-083
-description: 'BIRD Q613 (simple): List out the dates that users who are located in Rochester, NY obtained their badges?'
+description: "BIRD Q613 (simple): List out the dates that users who are located in Rochester, NY obtained their badges?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Date
+  FROM users AS T1
+  INNER JOIN badges AS T2 ON T1.Id = T2.UserId
+  WHERE T1.Location = 'Rochester, NY'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-613
-    description: 'List out the dates that users who are located in Rochester, NY obtained their badges?'
+    description: "List out the dates that users who are located in Rochester, NY obtained their badges?"
     messages:
       - role: user
         content: |

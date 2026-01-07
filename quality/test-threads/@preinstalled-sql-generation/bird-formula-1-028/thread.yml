@@ -1,7 +1,20 @@
 name: bird-formula-1-028
-description: 'BIRD Q873 (simple): What is the actual finish time for Bruce McLaren in the race No.743?'
+description: "BIRD Q873 (simple): What is the actual finish time for Bruce McLaren in the race No.743?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.time
+  FROM drivers AS T1
+  INNER JOIN results AS T2 ON T2.driverId = T1.driverId
+  WHERE T2.raceId = 743
+    AND T1.forename = 'Bruce'
+    AND T1.surname = 'McLaren'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-873
-    description: 'What is the actual finish time for Bruce McLaren in the race No.743?'
+    description: "What is the actual finish time for Bruce McLaren in the race No.743?"
     messages:
       - role: user
         content: |

@@ -3,6 +3,26 @@ description: "BIRD Q730 (challenging): List the superheroes from Marvel Comics w
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT superhero_name
+  FROM superhero AS T1
+  WHERE EXISTS
+      (SELECT 1
+       FROM hero_power AS T2
+       INNER JOIN superpower AS T3 ON T2.power_id = T3.id
+       WHERE T3.power_name = 'Super Strength'
+         AND T1.id = T2.hero_id)
+    AND EXISTS
+      (SELECT 1
+       FROM publisher AS T4
+       WHERE T4.publisher_name = 'Marvel Comics'
+         AND T1.publisher_id = T4.id)
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_superhero

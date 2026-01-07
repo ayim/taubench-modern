@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-008
-description: 'BIRD Q1156 (moderate): State the ID and age of patient with positive degree of coagulation.'
+description: "BIRD Q1156 (moderate): State the ID and age of patient with positive degree of coagulation."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID,
+                  STRFTIME('%Y', CURRENT_TIMESTAMP) - STRFTIME('%Y', T1.Birthday) AS Age
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T2.RVVT = '+'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1156
-    description: 'State the ID and age of patient with positive degree of coagulation.'
+    description: "State the ID and age of patient with positive degree of coagulation."
     messages:
       - role: user
         content: |

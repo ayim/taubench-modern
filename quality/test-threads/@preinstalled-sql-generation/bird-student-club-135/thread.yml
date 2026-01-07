@@ -1,7 +1,19 @@
 name: bird-student-club-135
-description: 'BIRD Q1446 (simple): Calculate the percentage of zip codes that are PO boxes.'
+description: "BIRD Q1446 (simple): Calculate the percentage of zip codes that are PO boxes."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN TYPE = 'PO Box' THEN 1
+                      ELSE 0
+                  END) AS REAL) * 100 / COUNT(zip_code)
+  FROM zip_code
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1446
-    description: 'Calculate the percentage of zip codes that are PO boxes.'
+    description: "Calculate the percentage of zip codes that are PO boxes."
     messages:
       - role: user
         content: |

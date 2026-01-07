@@ -3,6 +3,77 @@ description: "BIRD Q105 (challenging): For the loan approved on August 25, 1994,
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanAccounts AS
+    (SELECT T2.account_id,
+            T2.date AS loan_date,
+            T1.district_id,
+            T1.date AS account_open_date,
+            JULIANDAY(T2.date) - JULIANDAY(T1.date) AS days_since_account_opened
+     FROM ACCOUNT AS T1
+     INNER JOIN loan AS T2 ON T1.account_id = T2.account_id
+     WHERE T2.date = '1994-08-25'),
+       DistrictInfo AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate_1995,
+            RANK() OVER (
+                         ORDER BY d.A11 DESC) AS salary_rank,
+            RANK() OVER (
+                         ORDER BY d.A12) AS unemployment_rank
+     FROM district d
+     INNER JOIN LoanAccounts la ON d.district_id = la.district_id),
+       ClientsInDistrict AS
+    (SELECT d.district_id,
+            COUNT(DISTINCT c.client_id) AS num_clients,
+            SUM(CASE
+                    WHEN c.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_clients,
+            SUM(CASE
+                    WHEN c.gender = 'F' THEN 1
+                    ELSE 0
+                END) AS female_clients,
+            AVG(JULIANDAY('1994-08-25') - JULIANDAY(c.birth_date))/365.25 AS avg_client_age
+     FROM client c
+     INNER JOIN district d ON c.district_id = d.district_id
+     GROUP BY d.district_id)
+  SELECT la.district_id,
+         di.district_name,
+         di.region,
+         la.account_open_date,
+         la.days_since_account_opened AS days_account_open_before_loan,
+         di.avg_salary,
+         di.unemployment_rate_1995,
+         di.salary_rank,
+         di.unemployment_rank,
+         cid.num_clients,
+         cid.male_clients,
+         cid.female_clients,
+         cid.avg_client_age,
+  
+    (SELECT COUNT(*)
+     FROM trans t
+     WHERE t.account_id = la.account_id
+       AND t.date < '1994-08-25') AS transactions_before_loan,
+  
+    (SELECT SUM(amount)
+     FROM trans t
+     WHERE t.account_id = la.account_id
+       AND t.date < '1994-08-25'
+       AND t.type = 'PRIJEM') AS total_income_before_loan
+  FROM LoanAccounts la
+  LEFT JOIN DistrictInfo di ON la.district_id = di.district_id
+  LEFT JOIN ClientsInDistrict cid ON la.district_id = cid.district_id
+  ORDER BY la.district_id;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

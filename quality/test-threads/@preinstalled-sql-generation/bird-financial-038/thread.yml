@@ -3,6 +3,81 @@ description: "BIRD Q126 (challenging): For accounts opened in 1993, provide a mo
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountsOpenedIn1993 AS
+    (SELECT a.account_id,
+            a.district_id,
+            d.A2 AS district_name,
+            STRFTIME('%m', a.date) AS opening_month
+     FROM ACCOUNT a
+     JOIN district d ON a.district_id = d.district_id
+     WHERE STRFTIME('%Y', a.date) = '1993'),
+       AccountsWithTransactions AS
+    (SELECT a.account_id,
+            a.district_name,
+            a.opening_month,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense
+     FROM AccountsOpenedIn1993 a
+     LEFT JOIN trans t ON a.account_id = t.account_id
+     GROUP BY a.account_id,
+              a.district_name,
+              a.opening_month),
+       MonthlyStats AS
+    (SELECT opening_month,
+            COUNT(*) AS accounts_count,
+            SUM(CASE
+                    WHEN district_name = 'Decin' THEN 1
+                    ELSE 0
+                END) AS decin_accounts_count,
+            AVG(transaction_count) AS avg_transactions,
+            AVG(total_income) AS avg_income,
+            AVG(total_expense) AS avg_expense
+     FROM AccountsWithTransactions
+     GROUP BY opening_month)
+  SELECT opening_month,
+         accounts_count,
+         decin_accounts_count,
+         CAST(decin_accounts_count AS REAL) * 100 / accounts_count AS decin_percentage,
+         avg_transactions,
+         avg_income,
+         avg_expense,
+  
+    (SELECT CAST(SUM(CASE
+                         WHEN district_name = 'Decin' THEN 1
+                         ELSE 0
+                     END) AS REAL) * 100 / COUNT(*)
+     FROM AccountsWithTransactions) AS overall_decin_percentage,
+         CASE
+             WHEN CAST(decin_accounts_count AS REAL) * 100 / accounts_count >
+                    (SELECT CAST(SUM(CASE
+                                         WHEN district_name = 'Decin' THEN 1
+                                         ELSE 0
+                                     END) AS REAL) * 100 / COUNT(*)
+                     FROM AccountsWithTransactions) THEN 'Above Average'
+             WHEN CAST(decin_accounts_count AS REAL) * 100 / accounts_count =
+                    (SELECT CAST(SUM(CASE
+                                         WHEN district_name = 'Decin' THEN 1
+                                         ELSE 0
+                                     END) AS REAL) * 100 / COUNT(*)
+                     FROM AccountsWithTransactions) THEN 'Average'
+             ELSE 'Below Average'
+         END AS comparison_to_overall
+  FROM MonthlyStats
+  ORDER BY opening_month;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

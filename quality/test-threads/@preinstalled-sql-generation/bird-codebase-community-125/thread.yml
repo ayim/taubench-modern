@@ -1,7 +1,20 @@
 name: bird-codebase-community-125
-description: 'BIRD Q655 (simple): Write down the related posts titles and link type IDs of the post "What are principal component scores?".'
+description: "BIRD Q655 (simple): Write down the related posts titles and link type IDs of the post \"What are principal component scores?\"."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.Title,
+         T2.LinkTypeId
+  FROM posts AS T1
+  INNER JOIN postLinks AS T2 ON T1.Id = T2.PostId
+  INNER JOIN posts AS T3 ON T2.RelatedPostId = T3.Id
+  WHERE T1.Title = 'What are principal component scores?'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-655
-    description: 'Write down the related posts titles and link type IDs of the post "What are principal component scores?".'
+    description: "Write down the related posts titles and link type IDs of the post \"What are principal component scores?\"."
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-student-club-153
-description: 'BIRD Q1464 (challenging): Write the full names of students who received funds on the date of 9/9/2019 and include the amount received.'
+description: "BIRD Q1464 (challenging): Write the full names of students who received funds on the date of 9/9/2019 and include the amount received."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.first_name,
+                  T1.last_name,
+                  T2.amount
+  FROM member AS T1
+  INNER JOIN income AS T2 ON T2.link_to_member = T1.member_id
+  WHERE T2.date_received = '2019-09-09'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1464
-    description: 'Write the full names of students who received funds on the date of 9/9/2019 and include the amount received.'
+    description: "Write the full names of students who received funds on the date of 9/9/2019 and include the amount received."
     messages:
       - role: user
         content: |

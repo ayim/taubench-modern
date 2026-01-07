@@ -1,7 +1,19 @@
 name: bird-toxicology-091
-description: 'BIRD Q285 (challenging): Name chemical elements that form a bond TR001_10_11.'
+description: "BIRD Q285 (challenging): Name chemical elements that form a bond TR001_10_11."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.element
+  FROM atom AS T1
+  INNER JOIN connected AS T2 ON T1.atom_id = T2.atom_id
+  INNER JOIN bond AS T3 ON T2.bond_id = T3.bond_id
+  WHERE T3.bond_id = 'TR001_10_11'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-285
-    description: 'Name chemical elements that form a bond TR001_10_11.'
+    description: "Name chemical elements that form a bond TR001_10_11."
     messages:
       - role: user
         content: |

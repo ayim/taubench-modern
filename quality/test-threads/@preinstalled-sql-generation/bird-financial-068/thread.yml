@@ -1,7 +1,85 @@
 name: bird-financial-068
-description: 'BIRD Q156 (challenging): What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?'
+description: "BIRD Q156 (challenging): What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanRanking AS
+    (SELECT l.account_id,
+            l.amount,
+            l.loan_id,
+            RANK() OVER (
+                         ORDER BY l.amount DESC) AS loan_rank
+     FROM loan l),
+       AccountOwners AS
+    (SELECT d.client_id,
+            d.account_id,
+            c.gender,
+            c.birth_date,
+            CAST(strftime('%Y', 'now') - strftime('%Y', c.birth_date) AS INTEGER) - CASE
+                                                                                        WHEN strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date) THEN 1
+                                                                                        ELSE 0
+                                                                                    END AS age
+     FROM disp d
+     JOIN client c ON d.client_id = c.client_id
+     WHERE d.type = 'OWNER'),
+       TransactionSummary AS
+    (SELECT account_id,
+            COUNT(*) AS transaction_count,
+            SUM(CASE
+                    WHEN TYPE = 'PRIJEM' THEN amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN TYPE = 'VYDAJ' THEN amount
+                    ELSE 0
+                END) AS total_expense
+     FROM trans
+     GROUP BY account_id),
+       DistrictInfo AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate
+     FROM district d)
+  SELECT ao.client_id,
+         c.gender,
+         ao.age,
+         di.district_name,
+         di.region,
+         lr.amount AS loan_amount,
+         lr.loan_id,
+         ts.transaction_count,
+         ts.total_income,
+         ts.total_expense,
+         ROUND((ts.total_income - ts.total_expense) * 1.0 / CASE
+                                                                WHEN ts.total_income = 0 THEN 1
+                                                                ELSE ts.total_income
+                                                            END * 100, 2) AS savings_rate_pct,
+         CASE
+             WHEN ao.age < 30 THEN 'Young'
+             WHEN ao.age BETWEEN 30 AND 50 THEN 'Middle-aged'
+             ELSE 'Senior'
+         END AS age_category,
+         CASE
+             WHEN di.unemployment_rate > 1.0 THEN 'High unemployment area'
+             ELSE 'Low unemployment area'
+         END AS area_status
+  FROM LoanRanking lr
+  JOIN AccountOwners ao ON lr.account_id = ao.account_id
+  JOIN client c ON ao.client_id = c.client_id
+  JOIN DistrictInfo di ON c.district_id = di.district_id
+  LEFT JOIN TransactionSummary ts ON ao.account_id = ts.account_id
+  WHERE lr.loan_rank = 1
+  ORDER BY lr.amount DESC,
+           ao.client_id ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +88,7 @@ sdms:
 
 thread:
   - name: bird-question-156
-    description: 'What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?'
+    description: "What are the demographic, financial, and transaction details of the account owner who has the largest loan amount, including their age category, savings rate, and the economic status of their district?"
     messages:
       - role: user
         content: |

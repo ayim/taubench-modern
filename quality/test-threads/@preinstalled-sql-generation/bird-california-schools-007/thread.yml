@@ -1,7 +1,67 @@
 name: bird-california-schools-007
-description: 'BIRD Q6 (challenging): For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores.'
+description: "BIRD Q6 (challenging): For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolMetrics AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.Magnet,
+            s.SOCType AS SchoolType,
+            s.EdOpsName AS EducationalOption,
+            sat.NumTstTakr,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.AvgScrWrite,
+            sat.NumGE1500,
+            CAST(sat.NumGE1500 AS FLOAT) / NULLIF(sat.NumTstTakr, 0) * 100 AS PercentHighScorers,
+            (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS TotalAvgScore,
+            f.`Enrollment (K-12)` AS Enrollment,
+            f.`FRPM Count (K-12)` AS FRPMCount,
+            f.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercent,
+            RANK() OVER(
+                        ORDER BY (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) DESC) AS ScoreRank,
+            DENSE_RANK() OVER(PARTITION BY s.County
+                              ORDER BY (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) DESC) AS CountyRank
+     FROM satscores sat
+     INNER JOIN schools s ON sat.cds = s.CDSCode
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     WHERE sat.NumTstTakr > 500)
+  SELECT sm.School,
+         sm.SchoolType,
+         sm.EducationalOption,
+         sm.NumTstTakr AS TestTakers,
+         sm.TotalAvgScore,
+         sm.AvgScrRead AS ReadingScore,
+         sm.AvgScrMath AS MathScore,
+         sm.AvgScrWrite AS WritingScore,
+         sm.PercentHighScorers,
+         sm.Enrollment,
+         sm.FRPMPercent AS FreeReducedMealPercentage,
+         sm.ScoreRank AS StateRank,
+         sm.CountyRank,
+         CASE
+             WHEN sm.FRPMPercent > 0.75 THEN 'High Poverty'
+             WHEN sm.FRPMPercent > 0.50 THEN 'Moderate Poverty'
+             WHEN sm.FRPMPercent > 0.25 THEN 'Low Poverty'
+             ELSE 'Very Low Poverty'
+         END AS PovertyLevel,
+         CASE
+             WHEN sm.TotalAvgScore > 1800 THEN 'Excellent'
+             WHEN sm.TotalAvgScore > 1500 THEN 'Good'
+             WHEN sm.TotalAvgScore > 1200 THEN 'Average'
+             ELSE 'Below Average'
+         END AS PerformanceCategory
+  FROM SchoolMetrics sm
+  WHERE sm.Magnet = 1
+  ORDER BY sm.TotalAvgScore DESC,
+           sm.PercentHighScorers DESC
 
 sdms:
   - kind: postgres
@@ -10,7 +70,7 @@ sdms:
 
 thread:
   - name: bird-question-6
-    description: 'For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores.'
+    description: "For magnet schools with over 500 SAT test takers, provide a comprehensive performance analysis including their SAT scores, rankings, poverty levels, and performance categories, sorted by total average SAT scores."
     messages:
       - role: user
         content: |

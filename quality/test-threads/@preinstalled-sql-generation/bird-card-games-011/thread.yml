@@ -1,7 +1,19 @@
 name: bird-card-games-011
-description: 'BIRD Q350 (simple): State the alternative languages available for card named Annul numbered 29.'
+description: "BIRD Q350 (simple): State the alternative languages available for card named Annul numbered 29."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.language
+  FROM cards AS T1
+  INNER JOIN foreign_data AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.name = 'Annul'
+    AND T1.number = '29'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-350
-    description: 'State the alternative languages available for card named Annul numbered 29.'
+    description: "State the alternative languages available for card named Annul numbered 29."
     messages:
       - role: user
         content: |

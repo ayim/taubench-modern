@@ -1,7 +1,23 @@
 name: bird-card-games-184
-description: 'BIRD Q523 (challenging): What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card.'
+description: "BIRD Q523 (challenging): What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT (CAST(SUM(T1.id) AS REAL) / COUNT(T1.id)) / 4,
+         T2.language
+  FROM
+  SETS AS T1
+  INNER JOIN set_translations AS T2 ON T1.id = T2.id
+  WHERE T1.releaseDate BETWEEN '2012-01-01' AND '2015-12-31'
+  GROUP BY T1.releaseDate
+  ORDER BY COUNT(T2.language) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-523
-    description: 'What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card.'
+    description: "What is the annual average number of sets that were released between 1/1/2012 to 12/31/2015? Indicate the common langugage of the card."
     messages:
       - role: user
         content: |

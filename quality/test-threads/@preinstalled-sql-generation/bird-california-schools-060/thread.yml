@@ -1,7 +1,20 @@
 name: bird-california-schools-060
-description: 'BIRD Q59 (simple): What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?'
+description: "BIRD Q59 (simple): What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Website
+  FROM schools
+  WHERE (AdmFName1 = 'Mike'
+         AND AdmLName1 = 'Larson')
+    OR (AdmFName1 = 'Dante'
+        AND AdmLName1 = 'Alvarez')
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-59
-    description: 'What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?'
+    description: "What is the website for the schools under the administrations of Mike Larson and Dante Alvarez?"
     messages:
       - role: user
         content: |

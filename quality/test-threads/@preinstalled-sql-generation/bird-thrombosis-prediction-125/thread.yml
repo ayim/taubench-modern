@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-125
-description: 'BIRD Q1273 (moderate): How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?'
+description: "BIRD Q1273 (moderate): How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.SSB = 'negative'
+    OR T2.SSB = '0'
+    AND T1.Diagnosis = 'SLE'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1273
-    description: 'How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?'
+    description: "How many patients have a normal anti-SSB and are diagnosed with SLE in the examination?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,17 @@
 name: bird-toxicology-047
-description: 'BIRD Q241 (simple): How many of the molecules are not carcinogenic?'
+description: "BIRD Q241 (simple): How many of the molecules are not carcinogenic?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T.molecule_id)
+  FROM molecule AS T
+  WHERE T.label = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-241
-    description: 'How many of the molecules are not carcinogenic?'
+    description: "How many of the molecules are not carcinogenic?"
     messages:
       - role: user
         content: |

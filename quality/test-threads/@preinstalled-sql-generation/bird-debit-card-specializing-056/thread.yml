@@ -1,7 +1,20 @@
 name: bird-debit-card-specializing-056
-description: 'BIRD Q1525 (simple): What is the percentage of the customers who used EUR in 2012/8/25?'
+description: "BIRD Q1525 (simple): What is the percentage of the customers who used EUR in 2012/8/25?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN T2.Currency = 'EUR' THEN T1.CustomerID
+                             END) AS FLOAT) * 100.0 / COUNT(DISTINCT T1.CustomerID) AS pct_eur_customers
+  FROM transactions_1k AS T1
+  INNER JOIN customers AS T2 ON T1.CustomerID = T2.CustomerID
+  WHERE T1.Date = '2012-08-25';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1525
-    description: 'What is the percentage of the customers who used EUR in 2012/8/25?'
+    description: "What is the percentage of the customers who used EUR in 2012/8/25?"
     messages:
       - role: user
         content: |

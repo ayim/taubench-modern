@@ -1,7 +1,82 @@
 name: bird-california-schools-021
-description: 'BIRD Q20 (challenging): What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?'
+description: "BIRD Q20 (challenging): What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolInfo AS
+    (SELECT s.CDSCode,
+            s.County,
+            s.School,
+            s.District,
+            f.`Low Grade`,
+            f.`High Grade`,
+            f.`Enrollment (K-12)` AS Enrollment,
+            f.`Charter School (Y/N)` AS IsCharter,
+            f.`FRPM Count (K-12)` AS FRPMCount,
+            f.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercent,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.25 THEN 'Low Poverty'
+                ELSE 'Very Low Poverty'
+            END AS PovertyLevel,
+            RANK() OVER (PARTITION BY s.County
+                         ORDER BY f.`Enrollment (K-12)` DESC) AS EnrollmentRank
+     FROM schools AS s
+     INNER JOIN frpm AS f ON s.CDSCode = f.CDSCode
+     WHERE s.County = 'Amador'
+       AND f.`Low Grade` = '9'
+       AND f.`High Grade` = '12'),
+       SATData AS
+    (SELECT si.CDSCode,
+            si.School,
+            si.County,
+            si.District,
+            sat.NumTstTakr,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.AvgScrWrite,
+            (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS TotalAvgScore,
+            (sat.NumGE1500 * 1.0 / NULLIF(sat.NumTstTakr, 0)) * 100 AS PercentAbove1500
+     FROM SchoolInfo si
+     LEFT JOIN satscores sat ON si.CDSCode = sat.cds)
+  SELECT COUNT(si.School) AS TotalSchools,
+         AVG(si.Enrollment) AS AvgEnrollment,
+         SUM(CASE
+                 WHEN si.IsCharter = 1 THEN 1
+                 ELSE 0
+             END) AS CharterSchools,
+         SUM(CASE
+                 WHEN si.IsCharter = 0 THEN 1
+                 ELSE 0
+             END) AS NonCharterSchools,
+         AVG(si.FRPMPercent) * 100 AS AvgFRPMPercentage,
+  
+    (SELECT COUNT(DISTINCT District)
+     FROM SchoolInfo) AS DistrictCount,
+  
+    (SELECT AVG(TotalAvgScore)
+     FROM SATData
+     WHERE NumTstTakr > 0) AS AvgSATScore,
+  
+    (SELECT MAX(PercentAbove1500)
+     FROM SATData
+     WHERE NumTstTakr > 0) AS MaxPercentAbove1500,
+  
+    (SELECT School
+     FROM SchoolInfo
+     WHERE EnrollmentRank = 1) AS LargestSchool,
+  
+    (SELECT COUNT(*)
+     FROM SchoolInfo
+     WHERE PovertyLevel = 'High Poverty') AS HighPovertySchools
+  FROM SchoolInfo si
 
 sdms:
   - kind: postgres
@@ -10,7 +85,7 @@ sdms:
 
 thread:
   - name: bird-question-20
-    description: 'What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?'
+    description: "What are the key statistics for high schools in Amador County, including total number of schools, average enrollment, charter vs non-charter breakdown, average poverty rate, number of districts, SAT performance metrics, the largest school by enrollment, and how many schools have high poverty levels?"
     messages:
       - role: user
         content: |

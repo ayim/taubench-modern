@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-032
-description: 'BIRD Q1501 (moderate): Please list the countries of the gas stations with transactions taken place in August, 2012.'
+description: "BIRD Q1501 (moderate): Please list the countries of the gas stations with transactions taken place in August, 2012."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT g.Country
+  FROM transactions_1k t
+  INNER JOIN gasstations g ON t.GasStationID = g.GasStationID
+  WHERE strftime('%Y%m', t.Date) = '201208'
+  ORDER BY g.Country;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1501
-    description: 'Please list the countries of the gas stations with transactions taken place in August, 2012.'
+    description: "Please list the countries of the gas stations with transactions taken place in August, 2012."
     messages:
       - role: user
         content: |

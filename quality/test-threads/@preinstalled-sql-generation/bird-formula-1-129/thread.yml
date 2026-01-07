@@ -1,7 +1,26 @@
 name: bird-formula-1-129
-description: 'BIRD Q974 (simple): Which racing year has the overall fastest lap time recorded?'
+description: "BIRD Q974 (simple): Which racing year has the overall fastest lap time recorded?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH times AS
+    (SELECT r.year,
+            res.fastestLapTime,
+            (CAST(SUBSTR(res.fastestLapTime, 1, INSTR(res.fastestLapTime, ':') - 1) AS REAL) * 60) + CAST(SUBSTR(res.fastestLapTime, INSTR(res.fastestLapTime, ':') + 1, INSTR(res.fastestLapTime, '.') - INSTR(res.fastestLapTime, ':') - 1) AS REAL) + CAST(SUBSTR(res.fastestLapTime, INSTR(res.fastestLapTime, '.') + 1) AS REAL) / 1000.0 AS secs
+     FROM results AS res
+     JOIN races AS r ON res.raceId = r.raceId
+     WHERE res.fastestLapTime IS NOT NULL)
+  SELECT YEAR
+  FROM times
+  ORDER BY secs ASC,
+           YEAR ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-974
-    description: 'Which racing year has the overall fastest lap time recorded?'
+    description: "Which racing year has the overall fastest lap time recorded?"
     messages:
       - role: user
         content: |

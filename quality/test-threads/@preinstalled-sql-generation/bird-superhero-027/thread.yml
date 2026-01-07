@@ -1,7 +1,24 @@
 name: bird-superhero-027
-description: 'BIRD Q743 (challenging): What is the percentage of superheroes who act in their own self-interest or make decisions based on their own moral code? Indicate how many of the said superheroes were published by Marvel Comics.'
+description: "BIRD Q743 (challenging): What is the percentage of superheroes who act in their own self-interest or make decisions based on their own moral code? Indicate how many of the said superheroes were published by Marvel Comics."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT (CAST(COUNT(*) AS REAL) * 100 /
+            (SELECT COUNT(*)
+             FROM superhero)), CAST(SUM(CASE
+                                            WHEN T2.publisher_name = 'Marvel Comics' THEN 1
+                                            ELSE 0
+                                        END) AS REAL)
+  FROM superhero AS T1
+  INNER JOIN publisher AS T2 ON T1.publisher_id = T2.id
+  INNER JOIN alignment AS T3 ON T3.id = T1.alignment_id
+  WHERE T3.alignment = 'Bad'
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-743
-    description: 'What is the percentage of superheroes who act in their own self-interest or make decisions based on their own moral code? Indicate how many of the said superheroes were published by Marvel Comics.'
+    description: "What is the percentage of superheroes who act in their own self-interest or make decisions based on their own moral code? Indicate how many of the said superheroes were published by Marvel Comics."
     messages:
       - role: user
         content: |

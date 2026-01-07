@@ -1,7 +1,75 @@
 name: bird-financial-069
-description: 'BIRD Q157 (challenging): For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?'
+description: "BIRD Q157 (challenging): For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CrimesByDistrict AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A15 AS crimes_1995,
+            d.A16 AS crimes_1996,
+            CASE
+                WHEN d.A16 > d.A15 THEN 'Increased'
+                WHEN d.A16 < d.A15 THEN 'Decreased'
+                ELSE 'Unchanged'
+            END AS crime_trend,
+            ROUND((d.A16 - d.A15) * 100.0 / d.A15, 2) AS percentage_change,
+            RANK() OVER (
+                         ORDER BY d.A15 DESC) AS crime_rank_1995,
+            RANK() OVER (
+                         ORDER BY d.A16 DESC) AS crime_rank_1996
+     FROM district d),
+       AccountInfo AS
+    (SELECT a.account_id,
+            a.district_id,
+            a.frequency,
+            COUNT(DISTINCT l.loan_id) AS loan_count,
+            COUNT(DISTINCT t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS bad_loans,
+            COUNT(DISTINCT c.client_id) AS client_count
+     FROM ACCOUNT a
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     LEFT JOIN trans t ON a.account_id = t.account_id
+     LEFT JOIN disp d ON a.account_id = d.account_id
+     LEFT JOIN client c ON d.client_id = c.client_id
+     WHERE a.account_id = 532
+     GROUP BY a.account_id,
+              a.district_id,
+              a.frequency)
+  SELECT cd.district_name,
+         cd.crimes_1995,
+         cd.crimes_1996,
+         cd.crime_trend,
+         cd.percentage_change,
+         cd.crime_rank_1995,
+         cd.crime_rank_1996,
+         ai.loan_count,
+         ai.transaction_count,
+         ai.bad_loans,
+         ai.client_count,
+  
+    (SELECT AVG(d2.A15)
+     FROM district d2) AS avg_crimes_across_districts,
+  
+    (SELECT COUNT(*)
+     FROM district
+     WHERE A15 > cd.crimes_1995) AS districts_with_more_crimes
+  FROM CrimesByDistrict cd
+  JOIN AccountInfo ai ON cd.district_id = ai.district_id
+  WHERE EXISTS
+      (SELECT 1
+       FROM ACCOUNT a
+       WHERE a.account_id = 532
+         AND a.district_id = cd.district_id)
 
 sdms:
   - kind: postgres
@@ -10,7 +78,7 @@ sdms:
 
 thread:
   - name: bird-question-157
-    description: 'For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?'
+    description: "For account 532, what is the crime trend and ranking of its district, including the percentage change in crimes between 1995 and 1996, how many loans and transactions the account has, and how it compares to the average crime rate across all districts?"
     messages:
       - role: user
         content: |

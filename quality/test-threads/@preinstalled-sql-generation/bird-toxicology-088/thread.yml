@@ -1,7 +1,23 @@
 name: bird-toxicology-088
-description: 'BIRD Q282 (challenging): What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label.'
+description: "BIRD Q282 (challenging): What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN element = 'h' THEN 1
+                        ELSE NULL
+                    END) AS REAL) / COUNT(*) AS ratio,
+         label
+  FROM atom
+  INNER JOIN molecule ON atom.molecule_id = molecule.molecule_id
+  WHERE atom.molecule_id = 'TR006'
+  GROUP BY label
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-282
-    description: 'What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label.'
+    description: "What is the ratio of Hydrogen elements in molecule ID TR006? List the ratio with its label."
     messages:
       - role: user
         content: |

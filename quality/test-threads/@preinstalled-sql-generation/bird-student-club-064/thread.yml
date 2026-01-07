@@ -1,7 +1,19 @@
 name: bird-student-club-064
-description: 'BIRD Q1375 (moderate): List all the members of the "School of Applied Sciences, Technology and Education" department.'
+description: "BIRD Q1375 (moderate): List all the members of the \"School of Applied Sciences, Technology and Education\" department."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name
+  FROM member AS T1
+  INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id
+  WHERE T2.department = 'School of Applied Sciences, Technology and Education'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1375
-    description: 'List all the members of the "School of Applied Sciences, Technology and Education" department.'
+    description: "List all the members of the \"School of Applied Sciences, Technology and Education\" department."
     messages:
       - role: user
         content: |

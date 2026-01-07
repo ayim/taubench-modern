@@ -1,7 +1,19 @@
 name: bird-card-games-188
-description: 'BIRD Q527 (moderate): What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates.'
+description: "BIRD Q527 (moderate): What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.text
+  FROM cards AS T1
+  INNER JOIN rulings AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.artist = 'Kev Walker'
+  ORDER BY T2.date DESC
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-527
-    description: 'What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates.'
+    description: "What are the rulings for the card named and designed by Kev Walker? List them in descending order of dates."
     messages:
       - role: user
         content: |

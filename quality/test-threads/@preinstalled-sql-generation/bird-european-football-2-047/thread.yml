@@ -1,7 +1,20 @@
 name: bird-european-football-2-047
-description: 'BIRD Q1066 (simple): What is the passing class of CLB team?'
+description: "BIRD Q1066 (simple): What is the passing class of CLB team?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t2.buildUpPlayPassingClass
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t1.team_short_name = 'CLB'
+  ORDER BY t2.id DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1066
-    description: 'What is the passing class of CLB team?'
+    description: "What is the passing class of CLB team?"
     messages:
       - role: user
         content: |

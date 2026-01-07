@@ -1,7 +1,78 @@
 name: bird-financial-018
-description: 'BIRD Q106 (challenging): For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?'
+description: "BIRD Q106 (challenging): For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH TransactionStats AS
+    (SELECT T4.account_id,
+            T4.trans_id,
+            T4.amount,
+            T4.type,
+            T4.date,
+            T4.balance,
+            RANK() OVER (PARTITION BY T4.account_id
+                         ORDER BY T4.amount DESC) AS amount_rank
+     FROM trans AS T4),
+       ClientCards AS
+    (SELECT T2.client_id,
+            T3.account_id,
+            T1.card_id,
+            T1.issued,
+            T1.type AS card_type,
+            T5.gender,
+            T5.birth_date,
+            (strftime('%Y', 'now') - strftime('%Y', T5.birth_date)) - (strftime('%m-%d', 'now') < strftime('%m-%d', T5.birth_date)) AS client_age
+     FROM card AS T1
+     JOIN disp AS T2 ON T1.disp_id = T2.disp_id
+     JOIN ACCOUNT AS T3 ON T2.account_id = T3.account_id
+     JOIN client AS T5 ON T2.client_id = T5.client_id
+     WHERE T1.issued = '1996-10-21'),
+       DistrictInfo AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate_95
+     FROM district d)
+  SELECT cc.client_id,
+         cc.card_id,
+         cc.card_type,
+         cc.gender,
+         cc.client_age,
+         di.district_name,
+         di.region,
+         ts.trans_id,
+         ts.amount AS largest_transaction_amount,
+         ts.type AS transaction_type,
+         ts.date AS transaction_date,
+         ts.balance AS balance_after_transaction,
+         CASE
+             WHEN ts.amount > 10000 THEN 'High Value'
+             WHEN ts.amount > 5000 THEN 'Medium Value'
+             ELSE 'Low Value'
+         END AS transaction_category,
+         CASE
+             WHEN l.loan_id IS NOT NULL THEN 'Has Loan'
+             ELSE 'No Loan'
+         END AS loan_status,
+         l.amount AS loan_amount,
+         o.order_id,
+         o.bank_to
+  FROM ClientCards cc
+  JOIN TransactionStats ts ON cc.account_id = ts.account_id
+  AND ts.amount_rank = 1
+  JOIN client c ON cc.client_id = c.client_id
+  JOIN DistrictInfo di ON c.district_id = di.district_id
+  LEFT JOIN loan l ON cc.account_id = l.account_id
+  LEFT JOIN "order" o ON cc.account_id = o.account_id
+  ORDER BY ts.amount DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +81,7 @@ sdms:
 
 thread:
   - name: bird-question-106
-    description: 'For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?'
+    description: "For the client who received a credit card on October 21, 1996, what are the complete details of their largest transaction, including their personal information, district details, and any associated loans or orders?"
     messages:
       - role: user
         content: |

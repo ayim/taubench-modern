@@ -1,7 +1,19 @@
 name: bird-toxicology-043
-description: 'BIRD Q237 (moderate): Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not.'
+description: "BIRD Q237 (moderate): Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.molecule_id,
+         IIF(T2.label = '+', 'YES', 'NO') AS flag_carcinogenic
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.atom_id = 'TR001_10'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-237
-    description: 'Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not.'
+    description: "Which molecule does the atom TR001_10 belong to? Please state whether this molecule is carcinogenic or not."
     messages:
       - role: user
         content: |

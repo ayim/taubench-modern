@@ -3,6 +3,20 @@ description: "BIRD Q88 (simple): What is the administrator's email address for t
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.AdmEmail1,
+         T2.School
+  FROM satscores AS T1
+  INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode
+  ORDER BY T1.NumGE1500 DESC,
+           T1.cds ASC
+  LIMIT 1
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_california_schools

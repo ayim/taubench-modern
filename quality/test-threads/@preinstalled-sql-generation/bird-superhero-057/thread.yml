@@ -1,7 +1,20 @@
 name: bird-superhero-057
-description: 'BIRD Q773 (challenging): Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero.'
+description: "BIRD Q773 (challenging): Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name,
+         T2.publisher_name
+  FROM superhero AS T1
+  INNER JOIN publisher AS T2 ON T1.publisher_id = T2.id
+  WHERE T1.eye_colour_id = T1.hair_colour_id
+    AND T1.eye_colour_id = T1.skin_colour_id
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-773
-    description: 'Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero.'
+    description: "Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero."
     messages:
       - role: user
         content: |

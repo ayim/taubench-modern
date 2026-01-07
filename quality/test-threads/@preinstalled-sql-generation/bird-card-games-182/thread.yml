@@ -1,7 +1,21 @@
 name: bird-card-games-182
-description: 'BIRD Q521 (challenging): Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?'
+description: "BIRD Q521 (challenging): Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.status
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.frameVersion = 1997
+    AND T1.hasContentWarning = 1
+    AND T1.artist = 'D. Alexander Gregory'
+    AND T2.format = 'legacy'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-521
-    description: 'Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?'
+    description: "Among the cards whose version of frame style is 1997, what is the status of the card illustrated by D. Alexander Gregory in legacy play format that has sensitive content?"
     messages:
       - role: user
         content: |

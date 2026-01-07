@@ -1,7 +1,17 @@
 name: bird-debit-card-specializing-016
-description: 'BIRD Q1485 (simple): How much more was customer 7 consuming in April 2013 than customer 5?'
+description: "BIRD Q1485 (simple): How much more was customer 7 consuming in April 2013 than customer 5?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(IIF(CustomerID = 7, Consumption, 0)) - SUM(IIF(CustomerID = 5, Consumption, 0))
+  FROM yearmonth
+  WHERE Date = '201304'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1485
-    description: 'How much more was customer 7 consuming in April 2013 than customer 5?'
+    description: "How much more was customer 7 consuming in April 2013 than customer 5?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-student-club-019
-description: 'BIRD Q1330 (simple): What college offers the major that Tyler Hewitt took?'
+description: "BIRD Q1330 (simple): What college offers the major that Tyler Hewitt took?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.college
+  FROM member AS T1
+  INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id
+  WHERE T1.first_name = 'Tyler'
+    AND T1.last_name = 'Hewitt'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1330
-    description: 'What college offers the major that Tyler Hewitt took?'
+    description: "What college offers the major that Tyler Hewitt took?"
     messages:
       - role: user
         content: |

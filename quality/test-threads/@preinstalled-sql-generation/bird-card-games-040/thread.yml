@@ -1,7 +1,17 @@
 name: bird-card-games-040
-description: 'BIRD Q379 (simple): What are the cards belong to duel deck a? List the ID.'
+description: "BIRD Q379 (simple): What are the cards belong to duel deck a? List the ID."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT id
+  FROM cards
+  WHERE duelDeck = 'a'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-379
-    description: 'What are the cards belong to duel deck a? List the ID.'
+    description: "What are the cards belong to duel deck a? List the ID."
     messages:
       - role: user
         content: |

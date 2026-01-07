@@ -1,7 +1,103 @@
 name: bird-financial-031
-description: 'BIRD Q119 (challenging): For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment.'
+description: "BIRD Q119 (challenging): For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountsIn1993 AS
+    (SELECT T1.account_id,
+            T1.district_id,
+            T1.date AS account_open_date
+     FROM ACCOUNT AS T1
+     WHERE T1.frequency = 'POPLATEK PO OBRATU'
+       AND STRFTIME('%Y', T1.date) = '1993'),
+       AccountStats AS
+    (SELECT a.account_id,
+            COUNT(DISTINCT t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            MIN(t.balance) AS min_balance
+     FROM AccountsIn1993 a
+     LEFT JOIN trans t ON a.account_id = t.account_id
+     GROUP BY a.account_id),
+       ClientDetails AS
+    (SELECT a.account_id,
+            COUNT(DISTINCT c.client_id) AS client_count,
+            MAX(CASE
+                    WHEN d.type = 'OWNER' THEN c.gender
+                    ELSE NULL
+                END) AS owner_gender,
+            AVG(JULIANDAY(a.account_open_date) - JULIANDAY(c.birth_date))/365.25 AS avg_client_age
+     FROM AccountsIn1993 a
+     JOIN disp d ON a.account_id = d.account_id
+     JOIN client c ON d.client_id = c.client_id
+     GROUP BY a.account_id),
+       LoanInfo AS
+    (SELECT a.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            AVG(l.duration) AS avg_loan_duration,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS running_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS finished_loans,
+            SUM(CASE
+                    WHEN l.status = 'C' THEN 1
+                    ELSE 0
+                END) AS defaulted_loans
+     FROM AccountsIn1993 a
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     GROUP BY a.account_id)
+  SELECT a.account_id,
+         d.A2 AS district_name,
+         d.A3 AS district_region,
+         CASE
+             WHEN d.A10 > 75 THEN 'Highly Urban'
+             WHEN d.A10 > 50 THEN 'Moderately Urban'
+             ELSE 'Rural'
+         END AS urbanization_category,
+         s.transaction_count,
+         ROUND(s.total_income - s.total_expense, 2) AS net_cash_flow,
+         s.max_balance - s.min_balance AS balance_volatility,
+         c.client_count,
+         c.owner_gender,
+         ROUND(c.avg_client_age, 1) AS avg_client_age,
+         l.loan_count,
+         l.total_loan_amount,
+         ROUND(l.avg_loan_duration, 1) AS avg_loan_duration_months,
+         l.running_loans,
+         l.finished_loans,
+         l.defaulted_loans,
+         CASE
+             WHEN l.defaulted_loans > 0 THEN 'High Risk'
+             WHEN l.loan_count > 0
+                  AND l.defaulted_loans = 0 THEN 'Low Risk'
+             ELSE 'No Loans'
+         END AS risk_category
+  FROM AccountsIn1993 a
+  INNER JOIN district d ON a.district_id = d.district_id
+  LEFT JOIN AccountStats s ON a.account_id = s.account_id
+  LEFT JOIN ClientDetails c ON a.account_id = c.account_id
+  LEFT JOIN LoanInfo l ON a.account_id = l.account_id
+  ORDER BY d.A3,
+           d.A2,
+           a.account_id
 
 sdms:
   - kind: postgres
@@ -10,7 +106,7 @@ sdms:
 
 thread:
   - name: bird-question-119
-    description: 'For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment.'
+    description: "For accounts opened in 1993 with statements issued after transactions, provide a comprehensive analysis including district information, transaction activity, client demographics, loan details, and risk assessment."
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-toxicology-075
-description: 'BIRD Q269 (simple): How many bond id have element iodine?'
+description: "BIRD Q269 (simple): How many bond id have element iodine?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T3.bond_id)
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  INNER JOIN bond AS T3 ON T2.molecule_id = T3.molecule_id
+  WHERE T1.element = 'i'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-269
-    description: 'How many bond id have element iodine?'
+    description: "How many bond id have element iodine?"
     messages:
       - role: user
         content: |

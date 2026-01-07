@@ -1,7 +1,19 @@
 name: bird-toxicology-083
-description: 'BIRD Q277 (challenging): What are the toxicology elements associated with bond ID TR000_1_2?'
+description: "BIRD Q277 (challenging): What are the toxicology elements associated with bond ID TR000_1_2?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.element
+  FROM atom AS T1
+  INNER JOIN connected AS T2 ON T1.atom_id = T2.atom_id
+  OR T1.atom_id = T2.atom_id2
+  WHERE T2.bond_id = 'TR000_1_2'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-277
-    description: 'What are the toxicology elements associated with bond ID TR000_1_2?'
+    description: "What are the toxicology elements associated with bond ID TR000_1_2?"
     messages:
       - role: user
         content: |

@@ -3,6 +3,17 @@ description: "BIRD Q584 (moderate): Write all the comments left by users who edi
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Comment
+  FROM posts AS T1
+  INNER JOIN postHistory AS T2 ON T1.Id = T2.PostId
+  WHERE T1.Title = 'Why square the difference instead of taking the absolute value in standard deviation?'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

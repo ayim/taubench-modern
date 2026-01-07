@@ -1,7 +1,20 @@
 name: bird-student-club-156
-description: 'BIRD Q1467 (simple): Calculate the total amount spent on speaker gifts and list the name of the event they were spent on.'
+description: "BIRD Q1467 (simple): Calculate the total amount spent on speaker gifts and list the name of the event they were spent on."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T1.spent),
+         T2.event_name
+  FROM budget AS T1
+  INNER JOIN event AS T2 ON T1.link_to_event = T2.event_id
+  WHERE T1.category = 'Speaker Gifts'
+  GROUP BY T2.event_name
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1467
-    description: 'Calculate the total amount spent on speaker gifts and list the name of the event they were spent on.'
+    description: "Calculate the total amount spent on speaker gifts and list the name of the event they were spent on."
     messages:
       - role: user
         content: |

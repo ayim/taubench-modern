@@ -1,7 +1,54 @@
 name: bird-toxicology-009
-description: 'BIRD Q203 (challenging): What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?'
+description: "BIRD Q203 (challenging): What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH BromineCount AS
+    (SELECT molecule_id,
+            SUM(CASE
+                    WHEN element = 'br' THEN 1
+                    ELSE 0
+                END) AS bromine_atoms,
+            COUNT(*) AS total_atoms
+     FROM atom
+     GROUP BY molecule_id),
+       MoleculeBonds AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT b.bond_id) AS bond_count
+     FROM molecule m
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     GROUP BY m.molecule_id,
+              m.label),
+       AtomConnections AS
+    (SELECT a.atom_id,
+            a.molecule_id,
+            a.element,
+            COUNT(c.bond_id) AS connection_count
+     FROM atom a
+     LEFT JOIN connected c ON a.atom_id = c.atom_id
+     GROUP BY a.atom_id,
+              a.molecule_id,
+              a.element)
+  SELECT COUNT(*) AS non_bromine_atoms,
+         SUM(CASE
+                 WHEN ac.connection_count > 2 THEN 1
+                 ELSE 0
+             END) AS highly_connected_non_bromine_atoms,
+         COUNT(DISTINCT ac.molecule_id) AS molecules_with_non_bromine_atoms,
+         ROUND(AVG(ac.connection_count), 2) AS avg_connections_per_non_bromine_atom
+  FROM AtomConnections ac
+  JOIN MoleculeBonds mb ON ac.molecule_id = mb.molecule_id
+  JOIN BromineCount bc ON ac.molecule_id = bc.molecule_id
+  WHERE ac.element <> 'br'
+    AND (mb.bond_count > 0
+         OR bc.total_atoms > 1)
 
 sdms:
   - kind: postgres
@@ -10,7 +57,7 @@ sdms:
 
 thread:
   - name: bird-question-203
-    description: 'What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?'
+    description: "What is the average number of connections per non-bromine atom across molecules that have bonds or multiple atoms, and how many of these non-bromine atoms have more than 2 connections?"
     messages:
       - role: user
         content: |

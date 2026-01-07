@@ -1,7 +1,43 @@
 name: bird-european-football-2-109
-description: 'BIRD Q1128 (simple): Which country has the highest average weight among all players who participated in matches in that country?'
+description: "BIRD Q1128 (simple): Which country has the highest average weight among all players who participated in matches in that country?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.name
+  FROM Country AS T1
+  INNER JOIN MATCH AS T2 ON T1.id = T2.country_id
+  INNER JOIN Player AS T3 ON T3.player_api_id IN (T2.home_player_1,
+                                                  T2.home_player_2,
+                                                  T2.home_player_3,
+                                                  T2.home_player_4,
+                                                  T2.home_player_5,
+                                                  T2.home_player_6,
+                                                  T2.home_player_7,
+                                                  T2.home_player_8,
+                                                  T2.home_player_9,
+                                                  T2.home_player_10,
+                                                  T2.home_player_11,
+                                                  T2.away_player_1,
+                                                  T2.away_player_2,
+                                                  T2.away_player_3,
+                                                  T2.away_player_4,
+                                                  T2.away_player_5,
+                                                  T2.away_player_6,
+                                                  T2.away_player_7,
+                                                  T2.away_player_8,
+                                                  T2.away_player_9,
+                                                  T2.away_player_10,
+                                                  T2.away_player_11)
+  WHERE T3.weight IS NOT NULL
+  GROUP BY T1.name
+  ORDER BY AVG(T3.weight) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +46,7 @@ sdms:
 
 thread:
   - name: bird-question-1128
-    description: 'Which country has the highest average weight among all players who participated in matches in that country?'
+    description: "Which country has the highest average weight among all players who participated in matches in that country?"
     messages:
       - role: user
         content: |

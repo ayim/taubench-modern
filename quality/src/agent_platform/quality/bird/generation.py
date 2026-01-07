@@ -19,6 +19,7 @@ import sqlite3
 from pathlib import Path
 
 import httpx
+import sqlparse
 
 
 def load_bird_questions(json_path: str | Path, db_id: str | None = None) -> list[dict]:
@@ -523,6 +524,7 @@ class BirdDatasetGenerator:
         question_text = question["question"]
         evidence = question.get("evidence", "")
         difficulty = question.get("difficulty", "unknown")
+        sql = question.get("SQL", "")
 
         # For description fields (single-line), escape quotes and replace newlines with spaces
         question_text_single_line = question_text.replace("\n", " ").replace('"', '\\"')
@@ -540,11 +542,38 @@ class BirdDatasetGenerator:
 
         content_block = "\n          ".join(content_parts)
 
+        # Format the reference SQL query
+        reference_sql_block = """# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  {indented_sql}
+"""
+        if sql:
+            try:
+                # Format SQL with proper indentation and uppercase keywords
+                formatted_sql = sqlparse.format(
+                    sql,
+                    reindent=True,
+                    keyword_case="upper",
+                    indent_width=2,
+                )
+            except Exception:
+                # If formatting fails, use the raw SQL
+                formatted_sql = sql
+            # Indent each line for YAML literal block (2 spaces)
+            sql_lines = formatted_sql.split("\n")
+            indented_sql = "\n  ".join(sql_lines)
+            reference_sql_block = reference_sql_block.format(indented_sql=indented_sql)
+
         yaml_content = f"""name: {self.test_name_prefix}-{test_number:03d}
 description: "BIRD Q{question_id} ({difficulty}): {question_text_single_line}"
 difficulty: {difficulty}
 timeout_seconds: 600
 
+{reference_sql_block}
 sdms:
   - kind: postgres
     sdm_path: {sdm_path}

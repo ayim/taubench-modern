@@ -1,7 +1,17 @@
 name: bird-toxicology-120
-description: 'BIRD Q314 (simple): How many single bonds are there in the list?'
+description: "BIRD Q314 (simple): How many single bonds are there in the list?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T.bond_id)
+  FROM bond AS T
+  WHERE T.bond_type = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-314
-    description: 'How many single bonds are there in the list?'
+    description: "How many single bonds are there in the list?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,17 @@
 name: bird-toxicology-081
-description: 'BIRD Q275 (simple): Give me the molecule ID of the double bond type.'
+description: "BIRD Q275 (simple): Give me the molecule ID of the double bond type."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T.molecule_id
+  FROM bond AS T
+  WHERE T.bond_type = '='
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-275
-    description: 'Give me the molecule ID of the double bond type.'
+    description: "Give me the molecule ID of the double bond type."
     messages:
       - role: user
         content: |

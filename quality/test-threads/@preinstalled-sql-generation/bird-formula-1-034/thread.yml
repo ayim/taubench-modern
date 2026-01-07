@@ -1,7 +1,19 @@
 name: bird-formula-1-034
-description: 'BIRD Q879 (moderate): For the driver who set the fastest lap speed, what is his nationality?'
+description: "BIRD Q879 (moderate): For the driver who set the fastest lap speed, what is his nationality?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.nationality
+  FROM drivers AS T1
+  INNER JOIN results AS T2 ON T2.driverId = T1.driverId
+  ORDER BY T2.fastestLapSpeed DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-879
-    description: 'For the driver who set the fastest lap speed, what is his nationality?'
+    description: "For the driver who set the fastest lap speed, what is his nationality?"
     messages:
       - role: user
         content: |

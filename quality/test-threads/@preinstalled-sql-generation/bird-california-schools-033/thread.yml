@@ -1,7 +1,65 @@
 name: bird-california-schools-033
-description: 'BIRD Q32 (challenging): For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?'
+description: "BIRD Q32 (challenging): For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolEligibilityRanking AS
+    (SELECT T1.CDSCode,
+            T2.School,
+            T2.County,
+            T2.District,
+            T2.SOCType,
+            T1.`Enrollment (K-12)`,
+            T1.`FRPM Count (K-12)`,
+            CAST(T1.`FRPM Count (K-12)` AS REAL) / T1.`Enrollment (K-12)` AS EligibilityRate,
+            RANK() OVER (
+                         ORDER BY T1.`FRPM Count (K-12)` DESC) AS FRPMRank
+     FROM frpm AS T1
+     INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+     WHERE T2.SOC = '66'
+       AND T1.`Enrollment (K-12)` > 0),
+       SATPerformance AS
+    (SELECT s.cds,
+            s.NumTstTakr,
+            s.AvgScrRead,
+            s.AvgScrMath,
+            s.AvgScrWrite,
+            s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite AS TotalSATScore,
+            CAST(s.NumGE1500 AS REAL) / NULLIF(s.NumTstTakr, 0) AS HighScorerRate
+     FROM satscores s
+     WHERE s.rtype = 'S' -- School level records only
+  )
+  SELECT r.FRPMRank,
+         r.School,
+         r.County,
+         r.District,
+         r.SOCType,
+         r.`Enrollment (K-12)` AS Enrollment,
+         r.`FRPM Count (K-12)` AS FRPMCount,
+         ROUND(r.EligibilityRate * 100, 2) || '%' AS EligibilityRate,
+         CASE
+             WHEN r.EligibilityRate >= 0.75 THEN 'Very High FRPM'
+             WHEN r.EligibilityRate >= 0.50 THEN 'High FRPM'
+             WHEN r.EligibilityRate >= 0.25 THEN 'Moderate FRPM'
+             ELSE 'Low FRPM'
+         END AS EligibilityCategory,
+         s.NumTstTakr AS SATTestTakers,
+         s.AvgScrRead AS AvgReading,
+         s.AvgScrMath AS AvgMath,
+         s.AvgScrWrite AS AvgWriting,
+         s.TotalSATScore,
+         ROUND(COALESCE(s.HighScorerRate * 100, 0), 2) || '%' AS HighSATScorerRate,
+         ROUND((CAST(s.NumTstTakr AS REAL) / NULLIF(r.`Enrollment (K-12)`, 0)) * 100, 2) || '%' AS SATParticipationRate
+  FROM SchoolEligibilityRanking r
+  LEFT JOIN SATPerformance s ON r.CDSCode = s.cds
+  WHERE r.FRPMRank <= 5
+  ORDER BY r.FRPMRank;
 
 sdms:
   - kind: postgres
@@ -10,7 +68,7 @@ sdms:
 
 thread:
   - name: bird-question-32
-    description: 'For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?'
+    description: "For the top 5 schools with the highest number of students eligible for free or reduced price meals in grades K-12 among schools with ownership code 66, what are their eligibility rates, SAT performance metrics, and how do they compare in terms of SAT participation and high scorer rates?"
     messages:
       - role: user
         content: |

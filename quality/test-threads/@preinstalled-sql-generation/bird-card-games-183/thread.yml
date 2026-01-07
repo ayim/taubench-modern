@@ -1,7 +1,22 @@
 name: bird-card-games-183
-description: 'BIRD Q522 (moderate): Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format.'
+description: "BIRD Q522 (moderate): Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.name,
+         T2.format
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.edhrecRank = 1
+    AND T2.status = 'Banned'
+  GROUP BY T1.name,
+           T2.format
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-522
-    description: 'Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format.'
+    description: "Which cards are ranked 1st on EDHRec? List all of the cards name and its banned play format."
     messages:
       - role: user
         content: |

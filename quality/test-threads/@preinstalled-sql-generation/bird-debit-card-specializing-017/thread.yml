@@ -1,7 +1,17 @@
 name: bird-debit-card-specializing-017
-description: 'BIRD Q1486 (simple): Is it true that more SMEs pay in Czech koruna than in euros? If so, how many more?'
+description: "BIRD Q1486 (simple): Is it true that more SMEs pay in Czech koruna than in euros? If so, how many more?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(Currency = 'CZK') - SUM(Currency = 'EUR')
+  FROM customers
+  WHERE SEGMENT = 'SME'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1486
-    description: 'Is it true that more SMEs pay in Czech koruna than in euros? If so, how many more?'
+    description: "Is it true that more SMEs pay in Czech koruna than in euros? If so, how many more?"
     messages:
       - role: user
         content: |

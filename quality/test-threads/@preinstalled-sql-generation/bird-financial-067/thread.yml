@@ -1,7 +1,52 @@
 name: bird-financial-067
-description: 'BIRD Q155 (challenging): What percentage of gold credit cards were issued before 1998, both overall and broken down by region?'
+description: "BIRD Q155 (challenging): What percentage of gold credit cards were issued before 1998, both overall and broken down by region?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH GoldCardStats AS
+    (SELECT c.card_id,
+            STRFTIME('%Y', c.issued) AS issue_year,
+            d.account_id,
+            CASE
+                WHEN STRFTIME('%Y', c.issued) < '1998' THEN 1
+                ELSE 0
+            END AS is_pre_1998
+     FROM card c
+     JOIN disp d ON c.disp_id = d.disp_id
+     WHERE c.type = 'gold'),
+       AccountDetails AS
+    (SELECT a.account_id,
+            a.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region
+     FROM ACCOUNT a
+     JOIN district d ON a.district_id = d.district_id),
+       RegionalStats AS
+    (SELECT ad.region,
+            COUNT(gcs.card_id) AS total_gold_cards,
+            SUM(gcs.is_pre_1998) AS pre_1998_gold_cards,
+            CAST(SUM(gcs.is_pre_1998) AS REAL) * 100.0 / NULLIF(COUNT(gcs.card_id), 0) AS percent_pre_1998
+     FROM GoldCardStats gcs
+     JOIN AccountDetails ad ON gcs.account_id = ad.account_id
+     GROUP BY ad.region)
+  SELECT 'Overall' AS category,
+         COUNT(card_id) AS total_gold_cards,
+         SUM(is_pre_1998) AS pre_1998_gold_cards,
+         CAST(SUM(is_pre_1998) AS REAL) * 100.0 / NULLIF(COUNT(card_id), 0) AS percent_pre_1998
+  FROM GoldCardStats
+  UNION ALL
+  SELECT 'By Region: ' || region AS category,
+         total_gold_cards,
+         pre_1998_gold_cards,
+         percent_pre_1998
+  FROM RegionalStats
+  ORDER BY percent_pre_1998 DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +55,7 @@ sdms:
 
 thread:
   - name: bird-question-155
-    description: 'What percentage of gold credit cards were issued before 1998, both overall and broken down by region?'
+    description: "What percentage of gold credit cards were issued before 1998, both overall and broken down by region?"
     messages:
       - role: user
         content: |

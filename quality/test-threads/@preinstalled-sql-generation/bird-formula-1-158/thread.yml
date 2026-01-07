@@ -1,7 +1,23 @@
 name: bird-formula-1-158
-description: 'BIRD Q1003 (moderate): How many accidents did the driver who had the highest number accidents in the Canadian Grand Prix have?'
+description: "BIRD Q1003 (moderate): How many accidents did the driver who had the highest number accidents in the Canadian Grand Prix have?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.driverId)
+  FROM results AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  INNER JOIN status AS T3 ON T1.statusId = T3.statusId
+  WHERE T3.statusId = 3
+    AND T2.name = 'Canadian Grand Prix'
+  GROUP BY T1.driverId
+  ORDER BY COUNT(T1.driverId) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,12 +26,13 @@ sdms:
 
 thread:
   - name: bird-question-1003
-    description: 'How many accidents did the driver who had the highest number accidents in the Canadian Grand Prix have?'
+    description: "How many accidents did the driver who had the highest number accidents in the Canadian Grand Prix have?"
     messages:
       - role: user
         content: |
           How many accidents did the driver who had the highest number accidents in the Canadian Grand Prix have?
           Evidence: number of accidents refers to the number where statusid = 3; Canadian Grand Prix refers to the race of name
+          
 
 target-platforms:
   - name: openai

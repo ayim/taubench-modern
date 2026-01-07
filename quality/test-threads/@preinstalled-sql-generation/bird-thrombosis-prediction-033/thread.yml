@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-033
-description: 'BIRD Q1181 (moderate): For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?'
+description: "BIRD Q1181 (moderate): For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT STRFTIME('%Y', T2.`Date`) - STRFTIME('%Y', T1.Birthday)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.UA = 8.4
+    AND T2.`Date` = '1991-10-21'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1181
-    description: 'For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?'
+    description: "For the patient who got the laboratory test of uric acid level as 8.4 on 1991-10-21, how old was he/she at that time?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,25 @@
 name: bird-codebase-community-110
-description: 'BIRD Q640 (moderate): Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos.'
+description: "BIRD Q640 (moderate): Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN T1.DisplayName = 'Mornington' THEN T2.ViewCount
+                 ELSE 0
+             END) - SUM(CASE
+                            WHEN T1.DisplayName = 'Amos' THEN T2.ViewCount
+                            ELSE 0
+                        END)
+  FROM users AS T1
+  INNER JOIN posts AS T2 ON T1.Id = T2.OwnerUserId
+  WHERE T1.DisplayName IN ('Mornington',
+                           'Amos')
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-640
-    description: 'Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos.'
+    description: "Calculate the difference in view count of posts posted by Mornington and view count of posts posted by Amos."
     messages:
       - role: user
         content: |

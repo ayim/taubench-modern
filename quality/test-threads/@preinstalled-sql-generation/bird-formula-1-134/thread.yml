@@ -1,7 +1,19 @@
 name: bird-formula-1-134
-description: 'BIRD Q979 (simple): What race number has the most finishers?'
+description: "BIRD Q979 (simple): What race number has the most finishers?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT raceId
+  FROM results
+  GROUP BY raceId
+  ORDER BY COUNT(TIME) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-979
-    description: 'What race number has the most finishers?'
+    description: "What race number has the most finishers?"
     messages:
       - role: user
         content: |

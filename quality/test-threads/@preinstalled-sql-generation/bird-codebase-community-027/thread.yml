@@ -1,7 +1,18 @@
 name: bird-codebase-community-027
-description: 'BIRD Q557 (moderate): Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?'
+description: "BIRD Q557 (moderate): Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(IIF(T2.Age > 65, 1, 0)) AS REAL) * 100 / COUNT(T1.Id)
+  FROM posts AS T1
+  INNER JOIN users AS T2 ON T1.OwnerUserId = T2.Id
+  WHERE T1.Score > 5
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-557
-    description: 'Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?'
+    description: "Among the posts with a score of over 5, what is the percentage of them being owned by an elder user?"
     messages:
       - role: user
         content: |

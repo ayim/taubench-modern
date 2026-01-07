@@ -1,7 +1,17 @@
 name: bird-european-football-2-025
-description: 'BIRD Q1044 (simple): List the football players with a birthyear of 1970 and a birthmonth of October.'
+description: "BIRD Q1044 (simple): List the football players with a birthyear of 1970 and a birthmonth of October."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT player_name
+  FROM Player
+  WHERE SUBSTR(birthday, 1, 7) = '1970-10'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1044
-    description: 'List the football players with a birthyear of 1970 and a birthmonth of October.'
+    description: "List the football players with a birthyear of 1970 and a birthmonth of October."
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-student-club-152
-description: 'BIRD Q1463 (simple): List the event names which were budgeted for the food.'
+description: "BIRD Q1463 (simple): List the event names which were budgeted for the food."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.event_name
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  WHERE T2.category = 'Food'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1463
-    description: 'List the event names which were budgeted for the food.'
+    description: "List the event names which were budgeted for the food."
     messages:
       - role: user
         content: |

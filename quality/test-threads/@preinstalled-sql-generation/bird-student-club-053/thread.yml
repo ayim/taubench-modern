@@ -3,6 +3,20 @@ description: "BIRD Q1364 (simple): Where is Amy Firth's hometown?"
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.city,
+         T2.county,
+         T2.state
+  FROM member AS T1
+  INNER JOIN zip_code AS T2 ON T1.zip = T2.zip_code
+  WHERE T1.first_name = 'Amy'
+    AND T1.last_name = 'Firth'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_student_club

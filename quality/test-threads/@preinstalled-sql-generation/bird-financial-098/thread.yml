@@ -1,7 +1,20 @@
 name: bird-financial-098
-description: 'BIRD Q186 (moderate): What percentage of male clients request for weekly statements to be issued?'
+description: "BIRD Q186 (moderate): What percentage of male clients request for weekly statements to be issued?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(T1.gender = 'M') AS REAL) * 100 / COUNT(T1.client_id)
+  FROM client AS T1
+  INNER JOIN ACCOUNT AS T2 ON T2.district_id = T1.district_id
+  INNER JOIN disp AS T3 ON T1.client_id = T3.client_id
+  AND T2.account_id = T3.account_id
+  WHERE T2.frequency = 'POPLATEK TYDNE'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-186
-    description: 'What percentage of male clients request for weekly statements to be issued?'
+    description: "What percentage of male clients request for weekly statements to be issued?"
     messages:
       - role: user
         content: |

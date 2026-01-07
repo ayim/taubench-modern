@@ -1,7 +1,20 @@
 name: bird-european-football-2-010
-description: 'BIRD Q1029 (moderate): What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?'
+description: "BIRD Q1029 (moderate): What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.buildUpPlaySpeed
+  FROM Team_Attributes AS t1
+  INNER JOIN Team AS t2 ON t1.team_api_id = t2.team_api_id
+  ORDER BY t1.buildUpPlaySpeed DESC,
+           t1.team_api_id ASC
+  LIMIT 4
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1029
-    description: 'What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?'
+    description: "What are the speeds at which attacks are put together for the top 4 teams with the highest build Up Play Speed?"
     messages:
       - role: user
         content: |

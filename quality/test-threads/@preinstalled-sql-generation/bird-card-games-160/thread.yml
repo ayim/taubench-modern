@@ -1,7 +1,19 @@
 name: bird-card-games-160
-description: 'BIRD Q499 (moderate): How many translations of the name of the set "Tenth Edition"?'
+description: "BIRD Q499 (moderate): How many translations of the name of the set \"Tenth Edition\"?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T2.translation)
+  FROM
+  SETS AS T1
+  INNER JOIN set_translations AS T2 ON T2.setCode = T1.code
+  WHERE T1.name = 'Tenth Edition'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-499
-    description: 'How many translations of the name of the set "Tenth Edition"?'
+    description: "How many translations of the name of the set \"Tenth Edition\"?"
     messages:
       - role: user
         content: |

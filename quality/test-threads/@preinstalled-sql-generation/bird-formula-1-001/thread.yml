@@ -1,7 +1,20 @@
 name: bird-formula-1-001
-description: 'BIRD Q846 (moderate): Please list the reference names of the drivers who are eliminated in the first period in race number 20.'
+description: "BIRD Q846 (moderate): Please list the reference names of the drivers who are eliminated in the first period in race number 20."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.driverRef
+  FROM qualifying AS T1
+  INNER JOIN drivers AS T2 ON T2.driverId = T1.driverId
+  WHERE T1.raceId = 20
+  ORDER BY T1.q1 DESC
+  LIMIT 5
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-846
-    description: 'Please list the reference names of the drivers who are eliminated in the first period in race number 20.'
+    description: "Please list the reference names of the drivers who are eliminated in the first period in race number 20."
     messages:
       - role: user
         content: |

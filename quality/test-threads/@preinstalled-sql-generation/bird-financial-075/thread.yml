@@ -1,7 +1,22 @@
 name: bird-financial-075
-description: 'BIRD Q163 (moderate): Which district has the most accounts with loan contracts finished with no problems?'
+description: "BIRD Q163 (moderate): Which district has the most accounts with loan contracts finished with no problems?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.A2
+  FROM District AS T1
+  INNER JOIN ACCOUNT AS T2 ON T1.District_id = T2.District_id
+  INNER JOIN Loan AS T3 ON T2.Account_id = T3.Account_id
+  WHERE T3.status = 'A'
+  GROUP BY T1.District_id
+  ORDER BY COUNT(T2.Account_id) DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-163
-    description: 'Which district has the most accounts with loan contracts finished with no problems?'
+    description: "Which district has the most accounts with loan contracts finished with no problems?"
     messages:
       - role: user
         content: |

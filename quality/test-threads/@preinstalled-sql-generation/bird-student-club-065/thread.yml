@@ -1,7 +1,20 @@
 name: bird-student-club-065
-description: 'BIRD Q1376 (moderate): Among all the closed events, which event has the highest spend-to-budget ratio?'
+description: "BIRD Q1376 (moderate): Among all the closed events, which event has the highest spend-to-budget ratio?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.event_name
+  FROM budget AS T1
+  INNER JOIN event AS T2 ON T1.link_to_event = T2.event_id
+  WHERE T2.status = 'Closed'
+  ORDER BY T1.spent / T1.amount DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1376
-    description: 'Among all the closed events, which event has the highest spend-to-budget ratio?'
+    description: "Among all the closed events, which event has the highest spend-to-budget ratio?"
     messages:
       - role: user
         content: |

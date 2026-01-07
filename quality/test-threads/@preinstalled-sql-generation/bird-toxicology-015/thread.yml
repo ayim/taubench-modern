@@ -1,7 +1,51 @@
 name: bird-toxicology-015
-description: 'BIRD Q209 (challenging): What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?'
+description: "BIRD Q209 (challenging): What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ChlorineAtoms AS
+    (SELECT atom_id,
+            molecule_id
+     FROM atom
+     WHERE element = 'cl'),
+       ChlorineBonds AS
+    (SELECT DISTINCT b.bond_id,
+                     b.molecule_id,
+                     b.bond_type
+     FROM bond b
+     JOIN connected c ON b.bond_id = c.bond_id
+     JOIN ChlorineAtoms ca ON c.atom_id = ca.atom_id),
+       BondStats AS
+    (SELECT bond_type,
+            COUNT(*) AS bond_count,
+            COUNT(DISTINCT molecule_id) AS molecule_count,
+            RANK() OVER (
+                         ORDER BY COUNT(*) DESC) AS popularity_rank
+     FROM ChlorineBonds
+     GROUP BY bond_type)
+  SELECT bs.bond_type,
+         bs.bond_count,
+         bs.molecule_count,
+         CASE
+             WHEN bs.popularity_rank = 1 THEN 'Most Common'
+             WHEN bs.popularity_rank = 2 THEN 'Second Most Common'
+             ELSE 'Less Common'
+         END AS popularity,
+  
+    (SELECT COUNT(DISTINCT a.atom_id)
+     FROM atom a
+     JOIN connected c ON a.atom_id = c.atom_id
+     JOIN bond b ON c.bond_id = b.bond_id
+     WHERE b.bond_type = bs.bond_type
+       AND a.element != 'cl') AS non_chlorine_atoms_in_bond
+  FROM BondStats bs
+  ORDER BY bs.popularity_rank ASC
 
 sdms:
   - kind: postgres
@@ -10,7 +54,7 @@ sdms:
 
 thread:
   - name: bird-question-209
-    description: 'What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?'
+    description: "What are the different types of bonds that chlorine atoms form, ranked by their frequency, and how many non-chlorine atoms are involved in each bond type?"
     messages:
       - role: user
         content: |

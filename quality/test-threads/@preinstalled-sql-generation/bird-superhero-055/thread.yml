@@ -1,7 +1,19 @@
 name: bird-superhero-055
-description: 'BIRD Q771 (simple): List the name of superheroes with flight power.'
+description: "BIRD Q771 (simple): List the name of superheroes with flight power."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN hero_power AS T2 ON T1.id = T2.hero_id
+  INNER JOIN superpower AS T3 ON T2.power_id = T3.id
+  WHERE T3.power_name = 'Flight'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-771
-    description: 'List the name of superheroes with flight power.'
+    description: "List the name of superheroes with flight power."
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-toxicology-026
-description: 'BIRD Q220 (challenging): Please list the top three elements in the molecule TR000 in alphabetical order.'
+description: "BIRD Q220 (challenging): Please list the top three elements in the molecule TR000 in alphabetical order."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T.element
+  FROM atom AS T
+  WHERE T.molecule_id = 'TR000'
+  ORDER BY T.element
+  LIMIT 3
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-220
-    description: 'Please list the top three elements in the molecule TR000 in alphabetical order.'
+    description: "Please list the top three elements in the molecule TR000 in alphabetical order."
     messages:
       - role: user
         content: |

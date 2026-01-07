@@ -1,7 +1,19 @@
 name: bird-codebase-community-117
-description: 'BIRD Q647 (simple): Provide the badge names received in 2011 for the user whose location is in the North Pole.'
+description: "BIRD Q647 (simple): Provide the badge names received in 2011 for the user whose location is in the North Pole."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Name
+  FROM users AS T1
+  INNER JOIN badges AS T2 ON T1.Id = T2.UserId
+  WHERE STRFTIME('%Y', T2.Date) = '2011'
+    AND T1.Location = 'North Pole'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-647
-    description: 'Provide the badge names received in 2011 for the user whose location is in the North Pole.'
+    description: "Provide the badge names received in 2011 for the user whose location is in the North Pole."
     messages:
       - role: user
         content: |

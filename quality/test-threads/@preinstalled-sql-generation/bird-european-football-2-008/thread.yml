@@ -1,7 +1,21 @@
 name: bird-european-football-2-008
-description: 'BIRD Q1027 (simple): Indicate the full names of the top 10 players with the highest penalties rating.'
+description: "BIRD Q1027 (simple): Indicate the full names of the top 10 players with the highest penalties rating."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t2.player_name
+  FROM Player_Attributes AS t1
+  JOIN Player AS t2 ON t1.player_api_id = t2.player_api_id
+  GROUP BY t2.player_api_id,
+           t2.player_name
+  ORDER BY MAX(t1.penalties) DESC, t2.player_api_id ASC
+  LIMIT 10;
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1027
-    description: 'Indicate the full names of the top 10 players with the highest penalties rating.'
+    description: "Indicate the full names of the top 10 players with the highest penalties rating."
     messages:
       - role: user
         content: |

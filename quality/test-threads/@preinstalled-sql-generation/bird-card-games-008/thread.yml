@@ -1,7 +1,20 @@
 name: bird-card-games-008
-description: 'BIRD Q347 (moderate): Find all cards illustrated by Stephen Daniel and describe the text of the ruling of these cards. State if these cards have missing or degraded properties and values.'
+description: "BIRD Q347 (moderate): Find all cards illustrated by Stephen Daniel and describe the text of the ruling of these cards. State if these cards have missing or degraded properties and values."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.id,
+         T2.text,
+         T1.hasContentWarning
+  FROM cards AS T1
+  INNER JOIN rulings AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.artist = 'Stephen Daniele'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-347
-    description: 'Find all cards illustrated by Stephen Daniel and describe the text of the ruling of these cards. State if these cards have missing or degraded properties and values.'
+    description: "Find all cards illustrated by Stephen Daniel and describe the text of the ruling of these cards. State if these cards have missing or degraded properties and values."
     messages:
       - role: user
         content: |

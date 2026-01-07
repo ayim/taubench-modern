@@ -1,7 +1,19 @@
 name: bird-student-club-125
-description: 'BIRD Q1436 (simple): Please provide links to events for members who have paid more than 50 dollar.'
+description: "BIRD Q1436 (simple): Please provide links to events for members who have paid more than 50 dollar."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T3.link_to_event
+  FROM expense AS T1
+  INNER JOIN member AS T2 ON T1.link_to_member = T2.member_id
+  INNER JOIN attendance AS T3 ON T2.member_id = T3.link_to_member
+  WHERE T1.cost > 50
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1436
-    description: 'Please provide links to events for members who have paid more than 50 dollar.'
+    description: "Please provide links to events for members who have paid more than 50 dollar."
     messages:
       - role: user
         content: |

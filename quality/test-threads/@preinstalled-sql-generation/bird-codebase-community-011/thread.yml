@@ -1,7 +1,19 @@
 name: bird-codebase-community-011
-description: 'BIRD Q541 (simple): What is the display name of the user who is the owner of the most valuable post?'
+description: "BIRD Q541 (simple): What is the display name of the user who is the owner of the most valuable post?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.DisplayName
+  FROM posts AS T1
+  INNER JOIN users AS T2 ON T1.OwnerUserId = T2.Id
+  ORDER BY T1.FavoriteCount DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-541
-    description: 'What is the display name of the user who is the owner of the most valuable post?'
+    description: "What is the display name of the user who is the owner of the most valuable post?"
     messages:
       - role: user
         content: |

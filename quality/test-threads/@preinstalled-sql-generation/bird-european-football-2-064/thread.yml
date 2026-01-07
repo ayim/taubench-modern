@@ -1,7 +1,20 @@
 name: bird-european-football-2-064
-description: 'BIRD Q1083 (simple): Which player has the strongest overall strength?'
+description: "BIRD Q1083 (simple): Which player has the strongest overall strength?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.player_name
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  ORDER BY t2.overall_rating DESC,
+           t1.player_api_id ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1083
-    description: 'Which player has the strongest overall strength?'
+    description: "Which player has the strongest overall strength?"
     messages:
       - role: user
         content: |

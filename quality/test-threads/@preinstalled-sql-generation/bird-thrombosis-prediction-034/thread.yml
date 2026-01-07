@@ -1,7 +1,22 @@
 name: bird-thrombosis-prediction-034
-description: 'BIRD Q1182 (moderate): For the patient who first came to the hospital on 1991/6/13 who was diagnosed with SJS, what is the total number of his/her Laboratory tests in 1995?'
+description: "BIRD Q1182 (moderate): For the patient who first came to the hospital on 1991/6/13 who was diagnosed with SJS, what is the total number of his/her Laboratory tests in 1995?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM Laboratory
+  WHERE ID =
+      (SELECT ID
+       FROM Patient
+       WHERE `First Date` = '1991-06-13'
+         AND Diagnosis = 'SJS')
+    AND STRFTIME('%Y', Date) = '1995'
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1182
-    description: 'For the patient who first came to the hospital on 1991/6/13 who was diagnosed with SJS, what is the total number of his/her Laboratory tests in 1995?'
+    description: "For the patient who first came to the hospital on 1991/6/13 who was diagnosed with SJS, what is the total number of his/her Laboratory tests in 1995?"
     messages:
       - role: user
         content: |

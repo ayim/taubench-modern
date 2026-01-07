@@ -1,7 +1,17 @@
 name: bird-card-games-083
-description: 'BIRD Q422 (simple): What is the language of the card with the multiverse number 149934?'
+description: "BIRD Q422 (simple): What is the language of the card with the multiverse number 149934?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT LANGUAGE
+  FROM foreign_data
+  WHERE multiverseid = 149934
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-422
-    description: 'What is the language of the card with the multiverse number 149934?'
+    description: "What is the language of the card with the multiverse number 149934?"
     messages:
       - role: user
         content: |

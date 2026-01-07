@@ -3,6 +3,26 @@ description: "BIRD Q501 (moderate): Which card name in the set 'Journey into Nyx
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH MaxCMC AS
+    (SELECT MAX(T1.convertedManaCost) AS max_cmc
+     FROM cards AS T1
+     INNER JOIN
+     SETS AS T2 ON T2.code = T1.setCode
+     WHERE T2.name = 'Journey into Nyx Hero''s Path')
+  SELECT T1.name
+  FROM cards AS T1
+  INNER JOIN
+  SETS AS T2 ON T2.code = T1.setCode
+  CROSS JOIN MaxCMC
+  WHERE T2.name = 'Journey into Nyx Hero''s Path'
+    AND T1.convertedManaCost = MaxCMC.max_cmc;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_card_games

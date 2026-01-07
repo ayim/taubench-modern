@@ -1,7 +1,19 @@
 name: bird-toxicology-058
-description: 'BIRD Q252 (simple): What are the atoms that can bond with the atom that has the element lead?'
+description: "BIRD Q252 (simple): What are the atoms that can bond with the atom that has the element lead?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.atom_id,
+         T2.atom_id2
+  FROM atom AS T1
+  INNER JOIN connected AS T2 ON T1.atom_id = T2.atom_id
+  WHERE T1.element = 'pb'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-252
-    description: 'What are the atoms that can bond with the atom that has the element lead?'
+    description: "What are the atoms that can bond with the atom that has the element lead?"
     messages:
       - role: user
         content: |

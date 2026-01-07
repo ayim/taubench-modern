@@ -1,7 +1,19 @@
 name: bird-toxicology-141
-description: 'BIRD Q335 (simple): What is the total number of molecules with double bonded oxygen?'
+description: "BIRD Q335 (simple): What is the total number of molecules with double bonded oxygen?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.molecule_id)
+  FROM atom AS T1
+  INNER JOIN bond AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.bond_type = '='
+    AND T1.element = 'o'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-335
-    description: 'What is the total number of molecules with double bonded oxygen?'
+    description: "What is the total number of molecules with double bonded oxygen?"
     messages:
       - role: user
         content: |

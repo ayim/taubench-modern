@@ -3,6 +3,18 @@ description: "BIRD Q58 (simple): What is the phone number and extension number f
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Phone,
+         Ext,
+         School
+  FROM schools
+  WHERE Zip = '95203-3704'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_california_schools

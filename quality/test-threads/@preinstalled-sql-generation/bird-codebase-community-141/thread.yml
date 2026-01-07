@@ -1,7 +1,21 @@
 name: bird-codebase-community-141
-description: 'BIRD Q671 (simple): What is the display name of the user who acquired the first Autobiographer badge?'
+description: "BIRD Q671 (simple): What is the display name of the user who acquired the first Autobiographer badge?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.DisplayName
+  FROM users AS T1
+  INNER JOIN badges AS T2 ON T1.Id = T2.UserId
+  WHERE T2.`Name` = 'Autobiographer'
+  ORDER BY T2.Date ASC,
+           T2.Id ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-671
-    description: 'What is the display name of the user who acquired the first Autobiographer badge?'
+    description: "What is the display name of the user who acquired the first Autobiographer badge?"
     messages:
       - role: user
         content: |

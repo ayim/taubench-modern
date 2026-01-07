@@ -1,7 +1,19 @@
 name: bird-toxicology-103
-description: 'BIRD Q297 (simple): Which atoms contain element carbon and are part of non-carcinogenic compounds?'
+description: "BIRD Q297 (simple): Which atoms contain element carbon and are part of non-carcinogenic compounds?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.atom_id
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.element = 'c'
+    AND T2.label = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-297
-    description: 'Which atoms contain element carbon and are part of non-carcinogenic compounds?'
+    description: "Which atoms contain element carbon and are part of non-carcinogenic compounds?"
     messages:
       - role: user
         content: |

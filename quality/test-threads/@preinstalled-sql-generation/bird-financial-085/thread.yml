@@ -1,7 +1,26 @@
 name: bird-financial-085
-description: 'BIRD Q173 (challenging): How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?'
+description: "BIRD Q173 (challenging): How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.frequency,
+         T2.k_symbol
+  FROM ACCOUNT AS T1
+  INNER JOIN
+    (SELECT account_id,
+            k_symbol,
+            SUM(amount) AS total_amount
+     FROM `order`
+     GROUP BY account_id,
+              k_symbol) AS T2 ON T1.account_id = T2.account_id
+  WHERE T1.account_id = 3
+    AND T2.total_amount = 3539
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-173
-    description: 'How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?'
+    description: "How often does account number 3 request an account statement to be released? What was the aim of debiting 3539 in total?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-toxicology-134
-description: 'BIRD Q328 (challenging): List all the elements with double bond, consisted in molecule TR024.'
+description: "BIRD Q328 (challenging): List all the elements with double bond, consisted in molecule TR024."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.element
+  FROM atom AS T1
+  INNER JOIN bond AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.molecule_id = 'TR024'
+    AND T2.bond_type = '='
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-328
-    description: 'List all the elements with double bond, consisted in molecule TR024.'
+    description: "List all the elements with double bond, consisted in molecule TR024."
     messages:
       - role: user
         content: |

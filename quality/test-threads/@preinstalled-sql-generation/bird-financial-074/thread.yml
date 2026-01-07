@@ -1,7 +1,87 @@
 name: bird-financial-074
-description: 'BIRD Q162 (challenging): For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?'
+description: "BIRD Q162 (challenging): For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ClientRegionInfo AS
+    (SELECT c.client_id,
+            d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate_1995
+     FROM client AS c
+     INNER JOIN district AS d ON c.district_id = d.district_id
+     WHERE c.client_id = 3541),
+       ClientAccounts AS
+    (SELECT cri.client_id,
+            cri.region,
+            cri.district_name,
+            a.account_id,
+            a.frequency,
+            a.date AS account_opening_date,
+            CASE
+                WHEN l.loan_id IS NOT NULL THEN 'Yes'
+                ELSE 'No'
+            END AS has_loan,
+            COALESCE(l.amount, 0) AS loan_amount,
+            COALESCE(l.status, 'N/A') AS loan_status
+     FROM ClientRegionInfo cri
+     INNER JOIN disp AS d ON cri.client_id = d.client_id
+     INNER JOIN ACCOUNT AS a ON d.account_id = a.account_id
+     LEFT JOIN loan AS l ON a.account_id = l.account_id),
+       TransactionStats AS
+    (SELECT ca.client_id,
+            ca.region,
+            ca.district_name,
+            ca.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.date) AS last_transaction_date,
+            AVG(t.amount) AS avg_transaction_amount,
+            ROW_NUMBER() OVER (PARTITION BY ca.client_id
+                               ORDER BY COUNT(t.trans_id) DESC) AS account_rank_by_activity
+     FROM ClientAccounts ca
+     LEFT JOIN trans AS t ON ca.account_id = t.account_id
+     GROUP BY ca.client_id,
+              ca.region,
+              ca.district_name,
+              ca.account_id)
+  SELECT ts.region,
+         ts.district_name,
+         ts.account_id,
+         ca.account_opening_date,
+         ca.has_loan,
+         ca.loan_amount,
+         ca.loan_status,
+         ts.transaction_count,
+         ts.total_income,
+         ts.total_expense,
+         ts.total_income - ts.total_expense AS net_balance,
+         ts.last_transaction_date,
+         ts.avg_transaction_amount,
+  
+    (SELECT COUNT(DISTINCT c2.client_id)
+     FROM client c2
+     INNER JOIN district d2 ON c2.district_id = d2.district_id
+     WHERE d2.A3 = ts.region) AS clients_in_same_region
+  FROM TransactionStats ts
+  INNER JOIN ClientAccounts ca ON ts.account_id = ca.account_id
+  WHERE ts.client_id = 3541
+  ORDER BY ts.account_rank_by_activity;
 
 sdms:
   - kind: postgres
@@ -10,7 +90,7 @@ sdms:
 
 thread:
   - name: bird-question-162
-    description: 'For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?'
+    description: "For client 3541, what are the complete financial details of all their accounts including region, loan information, transaction statistics, net balance, and how many other clients are in the same region, ordered by account activity?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-european-football-2-094
-description: 'BIRD Q1113 (moderate): For the team "Hannover 96", what was its defence aggression class on 2015/9/10?'
+description: "BIRD Q1113 (moderate): For the team \"Hannover 96\", what was its defence aggression class on 2015/9/10?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t2.defenceAggressionClass
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t1.team_long_name = 'Hannover 96'
+    AND t2.`date` LIKE '2015-09-10%'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1113
-    description: 'For the team "Hannover 96", what was its defence aggression class on 2015/9/10?'
+    description: "For the team \"Hannover 96\", what was its defence aggression class on 2015/9/10?"
     messages:
       - role: user
         content: |

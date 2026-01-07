@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-055
-description: 'BIRD Q1524 (simple): In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?'
+description: "BIRD Q1524 (simple): In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Country
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  WHERE T1.Date = '2012-08-24'
+    AND T1.Price = 548.4
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1524
-    description: 'In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?'
+    description: "In which country did the customer who spent 548.4 on 2012/8/24 make this transaction?"
     messages:
       - role: user
         content: |

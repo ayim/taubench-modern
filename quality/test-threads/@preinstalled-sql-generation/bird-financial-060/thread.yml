@@ -1,7 +1,101 @@
 name: bird-financial-060
-description: 'BIRD Q148 (challenging): For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance.'
+description: "BIRD Q148 (challenging): For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH EligibleAccounts AS
+    (SELECT T2.account_id,
+            T2.district_id,
+            T2.date AS account_open_date,
+            T1.A2 AS district_name,
+            T3.client_id
+     FROM district AS T1
+     INNER JOIN ACCOUNT AS T2 ON T1.district_id = T2.district_id
+     INNER JOIN disp AS T3 ON T2.account_id = T3.account_id
+     WHERE T3.type = 'OWNER'
+       AND T1.A2 = 'Tabor'),
+       AccountTransactionStats AS
+    (SELECT t.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            AVG(t.balance) AS avg_balance
+     FROM trans t
+     GROUP BY t.account_id),
+       ClientInfo AS
+    (SELECT c.client_id,
+            c.gender,
+            CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', c.birth_date) AS INTEGER) AS age,
+            COUNT(card.card_id) AS card_count,
+            GROUP_CONCAT(DISTINCT card.type) AS card_types
+     FROM client c
+     LEFT JOIN disp d ON c.client_id = d.client_id
+     LEFT JOIN card ON d.disp_id = card.disp_id
+     GROUP BY c.client_id,
+              c.gender,
+              c.birth_date),
+       LoanHistory AS
+    (SELECT l.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS good_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS bad_loans,
+            AVG(l.amount) AS avg_loan_amount
+     FROM loan l
+     GROUP BY l.account_id)
+  SELECT ea.account_id,
+         ea.district_name,
+         ea.account_open_date,
+         ci.gender,
+         ci.age,
+         ci.card_count,
+         ci.card_types,
+         COALESCE(ats.transaction_count, 0) AS transaction_count,
+         COALESCE(ats.total_income, 0) AS total_income,
+         COALESCE(ats.total_expense, 0) AS total_expense,
+         COALESCE(ats.max_balance, 0) AS max_balance,
+         COALESCE(ats.avg_balance, 0) AS avg_balance,
+         COALESCE(lh.loan_count, 0) AS previous_loan_count,
+         COALESCE(lh.good_loans, 0) AS good_loans,
+         COALESCE(lh.bad_loans, 0) AS bad_loans,
+         CASE
+             WHEN COALESCE(lh.loan_count, 0) = 0 THEN 'No Loan History'
+             WHEN lh.good_loans > lh.bad_loans THEN 'Good Credit History'
+             ELSE 'Poor Credit History'
+         END AS credit_status,
+         CASE
+             WHEN ci.age >= 50
+                  AND COALESCE(ats.avg_balance, 0) > 50000 THEN 'High Priority'
+             WHEN ci.age BETWEEN 30 AND 49
+                  AND COALESCE(ats.avg_balance, 0) > 30000 THEN 'Medium Priority'
+             ELSE 'Standard Priority'
+         END AS customer_priority,
+         RANK() OVER (
+                      ORDER BY COALESCE(ats.avg_balance, 0) DESC) AS balance_rank
+  FROM EligibleAccounts ea
+  LEFT JOIN AccountTransactionStats ats ON ea.account_id = ats.account_id
+  LEFT JOIN ClientInfo ci ON ea.client_id = ci.client_id
+  LEFT JOIN LoanHistory lh ON ea.account_id = lh.account_id
+  ORDER BY balance_rank,
+           ea.account_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +104,7 @@ sdms:
 
 thread:
   - name: bird-question-148
-    description: 'For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance.'
+    description: "For account owners in the Tabor district, provide a comprehensive customer profile including their demographics, transaction history, loan history, credit status, and customer priority ranking based on average balance."
     messages:
       - role: user
         content: |

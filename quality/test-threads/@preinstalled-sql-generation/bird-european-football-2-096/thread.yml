@@ -3,6 +3,26 @@ description: "BIRD Q1115 (challenging): What percentage is Landon Donovan's over
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT (SUM(CASE
+                  WHEN t1.player_name = 'Landon Donovan' THEN t2.overall_rating
+                  ELSE 0
+              END) * 1.0 - SUM(CASE
+                                   WHEN t1.player_name = 'Jordan Bowery' THEN t2.overall_rating
+                                   ELSE 0
+                               END)) * 100 / SUM(CASE
+                                                     WHEN t1.player_name = 'Landon Donovan' THEN t2.overall_rating
+                                                     ELSE 0
+                                                 END) LvsJ_percent
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_fifa_api_id = t2.player_fifa_api_id
+  WHERE SUBSTR(t2.`date`, 1, 10) = '2013-07-12'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

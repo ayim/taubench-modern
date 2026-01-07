@@ -1,6 +1,6 @@
 total_weekly_owners,gender,age_group,region,avg_cards_per_customer,avg_loans_per_customer,avg_loan_amount,avg_transactions,avg_net_balance,customers_with_loans,percent_with_loans
 23,M,Senior,central Bohemia,0.3,0.39,9704980.17,241.91,216785.09,9,39.13
-20,M,Senior,Prague,0.15,0.3,21594886.2,266.85,249570.3,6,30.0
+21,M,Senior,Prague,0.14,0.29,20566558.29,259.33,246499.33,6,28.57
 20,M,Senior,north Moravia,0.35,0.4,13779036.0,294.95,287031.4,8,40.0
 17,M,Senior,south Moravia,0.35,0.24,8642655.53,246.24,198340.88,4,23.53
 13,F,Senior,north Bohemia,0.31,0.15,8692753.85,253.54,236477.85,2,15.38
@@ -23,9 +23,9 @@ total_weekly_owners,gender,age_group,region,avg_cards_per_customer,avg_loans_per
 3,M,Middle-aged,south Moravia,0.33,0.67,63808660.0,326.67,367387.0,2,66.67
 2,F,Middle-aged,north Bohemia,1.0,0.0,0.0,92.5,214756.5,0,0.0
 2,F,Middle-aged,south Moravia,0.5,1.0,37892700.0,184.5,128045.0,2,100.0
-2,M,Middle-aged,Prague,0.5,0.5,41989896.0,224.0,156197.0,1,50.0
 2,M,Middle-aged,central Bohemia,1.0,0.5,26496720.0,178.5,189452.5,1,50.0
 2,M,Middle-aged,north Bohemia,0.0,1.0,17962632.0,224.5,226495.0,2,100.0
 1,F,Middle-aged,south Bohemia,0.0,0.0,0.0,51.0,20060.0,0,0.0
 1,F,Middle-aged,west Bohemia,1.0,0.0,0.0,177.0,273965.0,0,0.0
+1,M,Middle-aged,Prague,1.0,1.0,83979792.0,339.0,127314.0,1,100.0
 1,M,Middle-aged,west Bohemia,1.0,0.0,0.0,447.0,259659.0,0,0.0

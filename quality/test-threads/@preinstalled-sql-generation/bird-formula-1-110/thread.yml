@@ -1,7 +1,30 @@
 name: bird-formula-1-110
-description: 'BIRD Q955 (challenging): What is the average time in seconds of champion for each year, before year 1975?'
+description: "BIRD Q955 (challenging): What is the average time in seconds of champion for each year, before year 1975?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH champion_times AS
+    (SELECT T2.year,
+            CASE
+                WHEN INSTR(T1.time, ':') = 2 THEN CAST(SUBSTR(T1.time, 1, 1) AS REAL) * 3600 + CAST(SUBSTR(T1.time, 3, 2) AS REAL) * 60 + CAST(SUBSTR(T1.time, 6, 2) AS REAL) + CAST(SUBSTR(T1.time, 9) AS REAL) / 1000
+                WHEN INSTR(T1.time, ':') = 3 THEN CAST(SUBSTR(T1.time, 1, 2) AS REAL) * 3600 + CAST(SUBSTR(T1.time, 4, 2) AS REAL) * 60 + CAST(SUBSTR(T1.time, 7, 2) AS REAL) + CAST(SUBSTR(T1.time, 10) AS REAL) / 1000
+            END AS time_seconds
+     FROM results AS T1
+     INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+     WHERE T1.positionOrder = 1
+       AND T1.time IS NOT NULL
+       AND T2.year < 1975)
+  SELECT YEAR,
+         AVG(time_seconds)
+  FROM champion_times
+  GROUP BY YEAR
+  HAVING AVG(time_seconds) IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +33,7 @@ sdms:
 
 thread:
   - name: bird-question-955
-    description: 'What is the average time in seconds of champion for each year, before year 1975?'
+    description: "What is the average time in seconds of champion for each year, before year 1975?"
     messages:
       - role: user
         content: |

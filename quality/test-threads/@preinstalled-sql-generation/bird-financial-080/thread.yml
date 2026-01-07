@@ -1,7 +1,18 @@
 name: bird-financial-080
-description: 'BIRD Q168 (moderate): What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?'
+description: "BIRD Q168 (moderate): What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(T2.gender = 'F') AS REAL) * 100 / COUNT(T2.client_id)
+  FROM district AS T1
+  INNER JOIN client AS T2 ON T1.district_id = T2.district_id
+  WHERE T1.A11 > 10000;
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-168
-    description: 'What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?'
+    description: "What percentage of clients who opened their accounts in the district with an average salary of over 10000 are women?"
     messages:
       - role: user
         content: |

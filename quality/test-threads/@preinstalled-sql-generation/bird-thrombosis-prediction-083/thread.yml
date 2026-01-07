@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-083
-description: 'BIRD Q1231 (challenging): For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?'
+description: "BIRD Q1231 (challenging): For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE STRFTIME('%Y', T1.Birthday) BETWEEN '1936' AND '1956'
+    AND T1.SEX = 'M'
+    AND T2.CPK >= 250
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1231
-    description: 'For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?'
+    description: "For patient born between 1936-1956, how many male patients have creatinine phosphokinase beyond the normal range?"
     messages:
       - role: user
         content: |

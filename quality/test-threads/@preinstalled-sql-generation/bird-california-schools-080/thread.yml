@@ -1,7 +1,84 @@
 name: bird-california-schools-080
-description: 'BIRD Q79 (challenging): For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment.'
+description: "BIRD Q79 (challenging): For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH VirtualSchoolsByCounty AS
+    (SELECT s.County,
+            s.School,
+            s.Virtual,
+            s.SOCType,
+            s.GSoffered,
+            CASE
+                WHEN f.`Charter School (Y/N)` = 1 THEN 'Charter School'
+                ELSE 'Regular School'
+            END AS SchoolType,
+            f.`Enrollment (K-12)` AS Enrollment,
+            f.`FRPM Count (K-12)` AS FRPMCount,
+            ROUND(f.`Percent (%) Eligible FRPM (K-12)` * 100, 2) AS FRPMPercentage,
+            sat.NumTstTakr AS SATTestTakers,
+            sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite AS TotalSATScore,
+            ROW_NUMBER() OVER (PARTITION BY s.County
+                               ORDER BY f.`Enrollment (K-12)` DESC) AS EnrollmentRank
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE s.County IN ('San Diego',
+                        'Santa Barbara')
+       AND s.Virtual = 'F'),
+       CountyStats AS
+    (SELECT County,
+            COUNT(*) AS TotalVirtualSchools,
+            AVG(Enrollment) AS AvgEnrollment,
+            MAX(Enrollment) AS MaxEnrollment,
+            MIN(Enrollment) AS MinEnrollment,
+            SUM(CASE
+                    WHEN SchoolType = 'Charter School' THEN 1
+                    ELSE 0
+                END) AS CharterCount,
+            SUM(CASE
+                    WHEN SchoolType = 'Regular School' THEN 1
+                    ELSE 0
+                END) AS RegularCount,
+            AVG(FRPMPercentage) AS AvgFRPMPercentage,
+            AVG(TotalSATScore) AS AvgSATScore
+     FROM VirtualSchoolsByCounty
+     GROUP BY County),
+       RankedCounties AS
+    (SELECT County,
+            TotalVirtualSchools,
+            AvgEnrollment,
+            MaxEnrollment,
+            MinEnrollment,
+            CharterCount,
+            RegularCount,
+            AvgFRPMPercentage,
+            AvgSATScore,
+            RANK() OVER (
+                         ORDER BY TotalVirtualSchools DESC, AvgEnrollment DESC) AS CountyRank
+     FROM CountyStats)
+  SELECT r.County,
+         r.TotalVirtualSchools AS amount,
+         r.CharterCount AS CharterSchools,
+         r.RegularCount AS RegularSchools,
+         ROUND(r.AvgEnrollment, 2) AS AverageEnrollment,
+         r.MaxEnrollment AS HighestEnrollment,
+         r.MinEnrollment AS LowestEnrollment,
+         ROUND(r.AvgFRPMPercentage, 2) || '%' AS AvgFreeReducedMealPercentage,
+         ROUND(r.AvgSATScore, 2) AS AverageSATScore,
+  
+    (SELECT School
+     FROM VirtualSchoolsByCounty v
+     WHERE v.County = r.County
+       AND EnrollmentRank = 1) AS LargestVirtualSchool
+  FROM RankedCounties r
+  WHERE r.CountyRank = 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +87,7 @@ sdms:
 
 thread:
   - name: bird-question-79
-    description: 'For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment.'
+    description: "For fully virtual schools in San Diego and Santa Barbara counties, which county has the most virtual schools? Provide comprehensive statistics including the count, breakdown of charter vs regular schools, enrollment figures, average free/reduced meal percentage, average SAT scores, and identify the largest virtual school by enrollment."
     messages:
       - role: user
         content: |

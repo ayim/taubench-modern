@@ -1,7 +1,19 @@
 name: bird-superhero-116
-description: 'BIRD Q832 (simple): Name the tallest superhero.'
+description: "BIRD Q832 (simple): Name the tallest superhero."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT superhero_name
+  FROM superhero
+  ORDER BY height_cm DESC,
+           superhero_name ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-832
-    description: 'Name the tallest superhero.'
+    description: "Name the tallest superhero."
     messages:
       - role: user
         content: |

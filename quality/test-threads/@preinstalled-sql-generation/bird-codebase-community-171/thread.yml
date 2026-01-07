@@ -1,7 +1,23 @@
 name: bird-codebase-community-171
-description: 'BIRD Q701 (challenging): Among all the posts posted by the most influential user, identify the percentage with a score above 50.'
+description: "BIRD Q701 (challenging): Among all the posts posted by the most influential user, identify the percentage with a score above 50."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN T2.Score > 50 THEN 1
+                      ELSE 0
+                  END) AS REAL) * 100 / COUNT(T1.Id)
+  FROM users T1
+  INNER JOIN posts T2 ON T1.Id = T2.OwnerUserId
+  INNER JOIN
+    (SELECT MAX(Reputation) AS max_reputation
+     FROM users) T3 ON T1.Reputation = T3.max_reputation
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-701
-    description: 'Among all the posts posted by the most influential user, identify the percentage with a score above 50.'
+    description: "Among all the posts posted by the most influential user, identify the percentage with a score above 50."
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-european-football-2-083
-description: 'BIRD Q1102 (moderate): For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player.'
+description: "BIRD Q1102 (moderate): For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.player_name
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE SUBSTR(t2.`date`, 1, 10) = '2016-06-23'
+    AND t2.overall_rating = 77
+  ORDER BY t1.birthday ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1102
-    description: 'For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player.'
+    description: "For the players who had a 77 points overall rating on 2016/6/23, who was the oldest? Give the name of the player."
     messages:
       - role: user
         content: |

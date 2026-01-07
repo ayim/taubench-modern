@@ -1,7 +1,29 @@
 name: bird-financial-006
-description: 'BIRD Q94 (challenging): List out the account numbers of female clients who are oldest and has lowest average salary, calculate the gap between this lowest average salary with the highest average salary?'
+description: "BIRD Q94 (challenging): List out the account numbers of female clients who are oldest and has lowest average salary, calculate the gap between this lowest average salary with the highest average salary?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.account_id,
+    (SELECT MAX(A11) - MIN(A11)
+     FROM district)
+  FROM ACCOUNT AS T1
+  INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+  INNER JOIN disp AS T3 ON T1.account_id = T3.account_id
+  INNER JOIN client AS T4 ON T3.client_id = T4.client_id
+  WHERE T2.district_id =
+      (SELECT district_id
+       FROM client
+       WHERE gender = 'F'
+       ORDER BY birth_date ASC
+       LIMIT 1)
+  ORDER BY T2.A11 DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +32,7 @@ sdms:
 
 thread:
   - name: bird-question-94
-    description: 'List out the account numbers of female clients who are oldest and has lowest average salary, calculate the gap between this lowest average salary with the highest average salary?'
+    description: "List out the account numbers of female clients who are oldest and has lowest average salary, calculate the gap between this lowest average salary with the highest average salary?"
     messages:
       - role: user
         content: |

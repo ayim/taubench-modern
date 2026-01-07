@@ -1,7 +1,23 @@
 name: bird-thrombosis-prediction-041
-description: 'BIRD Q1189 (challenging): What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?'
+description: "BIRD Q1189 (challenging): What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM Examination
+  WHERE Thrombosis = 2
+    AND `ANA Pattern` = 'S'
+    AND `aCL IgM` >
+      (SELECT AVG(`aCL IgM`) * 1.2
+       FROM Examination
+       WHERE Thrombosis = 2
+         AND `ANA Pattern` = 'S')
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-1189
-    description: 'What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?'
+    description: "What number of patients with a degree of thrombosis level 2 and ANA pattern of only S, have a level of anti-Cardiolipin antibody (IgM) 20% higher than average?"
     messages:
       - role: user
         content: |

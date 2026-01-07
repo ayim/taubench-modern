@@ -1,7 +1,19 @@
 name: bird-codebase-community-132
-description: 'BIRD Q662 (simple): How many posts with votes that were created in 2011 have a bounty of 50?'
+description: "BIRD Q662 (simple): How many posts with votes that were created in 2011 have a bounty of 50?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.Id)
+  FROM posts AS T1
+  INNER JOIN votes AS T2 ON T1.Id = T2.PostId
+  WHERE T2.BountyAmount = 50
+    AND STRFTIME('%Y', T2.CreationDate) = '2011'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-662
-    description: 'How many posts with votes that were created in 2011 have a bounty of 50?'
+    description: "How many posts with votes that were created in 2011 have a bounty of 50?"
     messages:
       - role: user
         content: |

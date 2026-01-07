@@ -1,7 +1,19 @@
 name: bird-european-football-2-054
-description: 'BIRD Q1073 (moderate): How many matches were held in the league Germany 1. Bundesliga from August to October 2008?'
+description: "BIRD Q1073 (moderate): How many matches were held in the league Germany 1. Bundesliga from August to October 2008?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(t2.id)
+  FROM League AS t1
+  INNER JOIN MATCH AS t2 ON t1.id = t2.league_id
+  WHERE t1.name = 'Germany 1. Bundesliga'
+    AND SUBSTR(t2.`date`, 1, 7) BETWEEN '2008-08' AND '2008-10'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1073
-    description: 'How many matches were held in the league Germany 1. Bundesliga from August to October 2008?'
+    description: "How many matches were held in the league Germany 1. Bundesliga from August to October 2008?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,24 @@
 name: bird-superhero-094
-description: 'BIRD Q810 (simple): What is the most common race of the superhero with maximum attribute value?'
+description: "BIRD Q810 (simple): What is the most common race of the superhero with maximum attribute value?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT r.race
+  FROM superhero s
+  JOIN hero_attribute ha ON s.id = ha.hero_id
+  JOIN race r ON s.race_id = r.id
+  WHERE ha.attribute_value =
+      (SELECT MAX(attribute_value)
+       FROM hero_attribute)
+  GROUP BY r.race
+  ORDER BY COUNT(*) DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-810
-    description: 'What is the most common race of the superhero with maximum attribute value?'
+    description: "What is the most common race of the superhero with maximum attribute value?"
     messages:
       - role: user
         content: |

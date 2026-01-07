@@ -1,7 +1,21 @@
 name: bird-student-club-076
-description: 'BIRD Q1387 (moderate): Which student has been entrusted to manage the budget for the Yearly Kickoff?'
+description: "BIRD Q1387 (moderate): Which student has been entrusted to manage the budget for the Yearly Kickoff?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T4.first_name,
+         T4.last_name
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget
+  INNER JOIN member AS T4 ON T3.link_to_member = T4.member_id
+  WHERE T1.event_name = 'Yearly Kickoff'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1387
-    description: 'Which student has been entrusted to manage the budget for the Yearly Kickoff?'
+    description: "Which student has been entrusted to manage the budget for the Yearly Kickoff?"
     messages:
       - role: user
         content: |

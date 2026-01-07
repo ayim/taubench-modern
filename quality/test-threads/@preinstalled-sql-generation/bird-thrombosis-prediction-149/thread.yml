@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-149
-description: 'BIRD Q1297 (moderate): For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?'
+description: "BIRD Q1297 (moderate): For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  INNER JOIN Examination AS T3 ON T1.ID = T3.ID
+  WHERE T2.`T-CHO` >= 250
+    AND T3.KCT = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1297
-    description: 'For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?'
+    description: "For the patients whose total cholesterol is higher than normal, how many of them have a negative measure of degree of coagulation?"
     messages:
       - role: user
         content: |

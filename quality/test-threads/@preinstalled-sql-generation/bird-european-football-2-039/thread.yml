@@ -1,7 +1,32 @@
 name: bird-european-football-2-039
-description: 'BIRD Q1058 (challenging): Who has the highest average finishing rate between the highest and shortest football player?'
+description: "BIRD Q1058 (challenging): Who has the highest average finishing rate between the highest and shortest football player?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT A
+  FROM
+    (SELECT AVG(finishing) RESULT,
+                           'Max' A
+     FROM Player AS T1
+     INNER JOIN Player_Attributes AS T2 ON T1.player_api_id = T2.player_api_id
+     WHERE T1.height =
+         (SELECT MAX(height)
+          FROM Player)
+     UNION SELECT AVG(finishing) RESULT,
+                                 'Min' A
+     FROM Player AS T1
+     INNER JOIN Player_Attributes AS T2 ON T1.player_api_id = T2.player_api_id
+     WHERE T1.height =
+         (SELECT MIN(height)
+          FROM Player))
+  ORDER BY RESULT DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +35,7 @@ sdms:
 
 thread:
   - name: bird-question-1058
-    description: 'Who has the highest average finishing rate between the highest and shortest football player?'
+    description: "Who has the highest average finishing rate between the highest and shortest football player?"
     messages:
       - role: user
         content: |

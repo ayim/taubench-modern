@@ -1,7 +1,24 @@
 name: bird-european-football-2-088
-description: 'BIRD Q1107 (moderate): When was the first time did Kevin Constant have his highest crossing score? Give the date.'
+description: "BIRD Q1107 (moderate): When was the first time did Kevin Constant have his highest crossing score? Give the date."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT `date`
+  FROM
+    (SELECT t2.crossing,
+            t2.`date`
+     FROM Player AS t1
+     INNER JOIN Player_Attributes AS t2 ON t1.player_fifa_api_id = t2.player_fifa_api_id
+     WHERE t1.player_name = 'Kevin Constant'
+     ORDER BY t2.crossing DESC)
+  ORDER BY date DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-1107
-    description: 'When was the first time did Kevin Constant have his highest crossing score? Give the date.'
+    description: "When was the first time did Kevin Constant have his highest crossing score? Give the date."
     messages:
       - role: user
         content: |

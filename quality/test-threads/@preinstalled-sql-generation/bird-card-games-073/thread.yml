@@ -1,7 +1,24 @@
 name: bird-card-games-073
-description: 'BIRD Q412 (moderate): What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?'
+description: "BIRD Q412 (moderate): What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT name
+  FROM foreign_data
+  WHERE UUID IN
+      (SELECT UUID
+       FROM cards
+       WHERE types = 'Creature'
+         AND layout = 'normal'
+         AND borderColor = 'black'
+         AND artist = 'Matthew D. Wilson')
+    AND LANGUAGE = 'French'
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-412
-    description: 'What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?'
+    description: "What is the foreign name of the card in French of type Creature, normal layout and black border color, by artist Matthew D. Wilson?"
     messages:
       - role: user
         content: |

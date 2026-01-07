@@ -1,7 +1,20 @@
 name: bird-card-games-058
-description: 'BIRD Q397 (moderate): What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?'
+description: "BIRD Q397 (moderate): What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT manaCost
+  FROM cards
+  WHERE availability = 'mtgo,paper'
+    AND borderColor = 'black'
+    AND frameVersion = 2003
+    AND layout = 'normal';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-397
-    description: 'What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?'
+    description: "What is the mana cost of cards with a normal layout, a 2003 frame version, with a black border color, and available in paper and mtgo?"
     messages:
       - role: user
         content: |

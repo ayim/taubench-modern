@@ -1,7 +1,90 @@
 name: bird-financial-055
-description: 'BIRD Q143 (challenging): For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance.'
+description: "BIRD Q143 (challenging): For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH GoldCardAccounts AS
+    (SELECT T2.account_id,
+            COUNT(T1.card_id) AS gold_card_count
+     FROM disp AS T2
+     INNER JOIN card AS T1 ON T1.disp_id = T2.disp_id
+     WHERE T1.type = 'gold'
+     GROUP BY T2.account_id),
+       AccountDetails AS
+    (SELECT a.account_id,
+            a.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            a.frequency,
+            a.date AS account_opening_date,
+            JULIANDAY('now') - JULIANDAY(a.date) AS account_age_days
+     FROM ACCOUNT a
+     JOIN district d ON a.district_id = d.district_id),
+       AccountTransactions AS
+    (SELECT t.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            AVG(t.balance) AS avg_balance
+     FROM trans t
+     GROUP BY t.account_id),
+       AccountLoans AS
+    (SELECT l.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN l.amount
+                    ELSE 0
+                END) AS good_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN l.amount
+                    ELSE 0
+                END) AS bad_loans
+     FROM loan l
+     GROUP BY l.account_id)
+  SELECT gca.account_id,
+         gca.gold_card_count,
+         ad.district_name,
+         ad.region,
+         ad.frequency,
+         ad.account_opening_date,
+         ROUND(ad.account_age_days/365.25, 2) AS account_age_years,
+         COALESCE(at.transaction_count, 0) AS transaction_count,
+         COALESCE(at.total_income, 0) AS total_income,
+         COALESCE(at.total_expense, 0) AS total_expense,
+         COALESCE(at.total_income, 0) - COALESCE(at.total_expense, 0) AS net_flow,
+         COALESCE(at.max_balance, 0) AS max_balance,
+         COALESCE(at.avg_balance, 0) AS avg_balance,
+         COALESCE(al.loan_count, 0) AS loan_count,
+         COALESCE(al.total_loan_amount, 0) AS total_loan_amount,
+         COALESCE(al.good_loans, 0) AS good_loans,
+         COALESCE(al.bad_loans, 0) AS bad_loans,
+         CASE
+             WHEN COALESCE(al.loan_count, 0) = 0 THEN 'No Loans'
+             WHEN COALESCE(al.bad_loans, 0) > 0 THEN 'Has Bad Loans'
+             ELSE 'Good Standing'
+         END AS loan_status,
+         DENSE_RANK() OVER (
+                            ORDER BY COALESCE(at.avg_balance, 0) DESC) AS balance_rank
+  FROM GoldCardAccounts gca
+  LEFT JOIN AccountDetails ad ON gca.account_id = ad.account_id
+  LEFT JOIN AccountTransactions AT ON gca.account_id = at.account_id
+  LEFT JOIN AccountLoans al ON gca.account_id = al.account_id
+  ORDER BY balance_rank,
+           gca.account_id
 
 sdms:
   - kind: postgres
@@ -10,7 +93,7 @@ sdms:
 
 thread:
   - name: bird-question-143
-    description: 'For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance.'
+    description: "For each account with gold credit cards, provide a comprehensive financial profile including the number of gold cards, location details, transaction history, balance statistics, loan information, and rank the accounts by their average balance."
     messages:
       - role: user
         content: |

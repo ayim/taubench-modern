@@ -1,7 +1,19 @@
 name: bird-toxicology-033
-description: 'BIRD Q227 (simple): What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places.'
+description: "BIRD Q227 (simple): What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT ROUND(CAST(COUNT(CASE
+                              WHEN T.label = '+' THEN T.molecule_id
+                              ELSE NULL
+                          END) AS REAL) * 100 / COUNT(T.molecule_id), 3)
+  FROM molecule t
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-227
-    description: 'What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places.'
+    description: "What is the percentage of molecules that are carcinogenic? Please provide your answer as a percentage with three decimal places."
     messages:
       - role: user
         content: |

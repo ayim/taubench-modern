@@ -1,7 +1,20 @@
 name: bird-financial-104
-description: 'BIRD Q192 (moderate): What is the average amount of loan which are still on running contract with statement issuance after each transaction?'
+description: "BIRD Q192 (moderate): What is the average amount of loan which are still on running contract with statement issuance after each transaction?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.amount)
+  FROM ACCOUNT AS T1
+  INNER JOIN loan AS T2 ON T1.account_id = T2.account_id
+  WHERE T2.status IN ('C',
+                      'D')
+    AND T1.frequency = 'POPLATEK PO OBRATU'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-192
-    description: 'What is the average amount of loan which are still on running contract with statement issuance after each transaction?'
+    description: "What is the average amount of loan which are still on running contract with statement issuance after each transaction?"
     messages:
       - role: user
         content: |

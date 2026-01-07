@@ -1,7 +1,82 @@
 name: bird-financial-066
-description: 'BIRD Q154 (challenging): What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?'
+description: "BIRD Q154 (challenging): What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH PrahaClients AS
+    (SELECT c.client_id,
+            c.gender,
+            c.birth_date,
+            d.A2 AS district_name,
+            CASE
+                WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) < 30 THEN 'Young'
+                WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) BETWEEN 30 AND 50 THEN 'Middle-aged'
+                ELSE 'Senior'
+            END AS age_category
+     FROM client AS c
+     INNER JOIN district AS d ON c.district_id = d.district_id
+     WHERE c.gender = 'M'
+       AND d.A2 = 'Hl.m. Praha'),
+       ClientAccounts AS
+    (SELECT pc.client_id,
+            pc.gender,
+            pc.age_category,
+            a.account_id,
+            COUNT(DISTINCT l.loan_id) AS loan_count,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS good_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS bad_loans,
+            COUNT(DISTINCT c.card_id) AS card_count,
+            COUNT(DISTINCT t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense
+     FROM PrahaClients pc
+     INNER JOIN disp AS dp ON pc.client_id = dp.client_id
+     AND dp.type = 'OWNER'
+     INNER JOIN ACCOUNT AS a ON dp.account_id = a.account_id
+     LEFT JOIN loan AS l ON a.account_id = l.account_id
+     LEFT JOIN disp AS dp2 ON a.account_id = dp2.account_id
+     LEFT JOIN card AS c ON dp2.disp_id = c.disp_id
+     LEFT JOIN trans AS t ON a.account_id = t.account_id
+     GROUP BY pc.client_id,
+              pc.gender,
+              pc.age_category,
+              a.account_id)
+  SELECT age_category,
+         COUNT(DISTINCT client_id) AS client_count,
+         AVG(loan_count) AS avg_loans_per_client,
+         SUM(good_loans) AS total_good_loans,
+         SUM(bad_loans) AS total_bad_loans,
+         AVG(card_count) AS avg_cards_per_client,
+         AVG(transaction_count) AS avg_transactions_per_client,
+         SUM(total_income) AS total_income_all_clients,
+         SUM(total_expense) AS total_expense_all_clients,
+         SUM(total_income - total_expense) AS net_balance_all_clients
+  FROM ClientAccounts
+  GROUP BY age_category
+  HAVING COUNT(DISTINCT client_id) > 0
+  ORDER BY CASE
+               WHEN age_category = 'Young' THEN 1
+               WHEN age_category = 'Middle-aged' THEN 2
+               WHEN age_category = 'Senior' THEN 3
+           END;
 
 sdms:
   - kind: postgres
@@ -10,7 +85,7 @@ sdms:
 
 thread:
   - name: bird-question-154
-    description: 'What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?'
+    description: "What is the financial profile and banking behavior of male clients in Prague district, broken down by age groups (Young, Middle-aged, and Senior)?"
     messages:
       - role: user
         content: |

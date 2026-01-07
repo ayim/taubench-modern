@@ -1,7 +1,21 @@
 name: bird-formula-1-140
-description: 'BIRD Q985 (simple): Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap.'
+description: "BIRD Q985 (simple): Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.driverId
+  FROM lapTimes AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  WHERE T2.name = 'French Grand Prix'
+    AND T1.lap = 3
+  ORDER BY T1.time DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-985
-    description: 'Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap.'
+    description: "Among the drivers who participated in the French Grand Prix, who has the slowest time in the 3rd lap."
     messages:
       - role: user
         content: |

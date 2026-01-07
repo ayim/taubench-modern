@@ -1,7 +1,38 @@
 name: bird-formula-1-166
-description: 'BIRD Q1011 (challenging): Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names.'
+description: "BIRD Q1011 (challenging): Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH lap_times_in_seconds AS
+    (SELECT driverId,
+            (CASE
+                 WHEN SUBSTR(TIME, 1, INSTR(TIME, ':') - 1) <> '' THEN CAST(SUBSTR(TIME, 1, INSTR(TIME, ':') - 1) AS REAL) * 60
+                 ELSE 0
+             END + CASE
+                       WHEN SUBSTR(TIME, INSTR(TIME, ':') + 1, INSTR(TIME, '.') - INSTR(TIME, ':') - 1) <> '' THEN CAST(SUBSTR(TIME, INSTR(TIME, ':') + 1, INSTR(TIME, '.') - INSTR(TIME, ':') - 1) AS REAL)
+                       ELSE 0
+                   END + CASE
+                             WHEN SUBSTR(TIME, INSTR(TIME, '.') + 1) <> '' THEN CAST(SUBSTR(TIME, INSTR(TIME, '.') + 1) AS REAL) / 1000
+                             ELSE 0
+                         END) AS time_in_seconds
+     FROM lapTimes)
+  SELECT T2.forename,
+         T2.surname,
+         T1.driverId
+  FROM
+    (SELECT driverId,
+            MIN(time_in_seconds) AS min_time_in_seconds
+     FROM lap_times_in_seconds
+     GROUP BY driverId) AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  ORDER BY T1.min_time_in_seconds ASC
+  LIMIT 20
 
 sdms:
   - kind: postgres
@@ -10,7 +41,7 @@ sdms:
 
 thread:
   - name: bird-question-1011
-    description: 'Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names.'
+    description: "Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names."
     messages:
       - role: user
         content: |

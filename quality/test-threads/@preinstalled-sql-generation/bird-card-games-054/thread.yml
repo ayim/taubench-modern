@@ -1,7 +1,19 @@
 name: bird-card-games-054
-description: 'BIRD Q393 (simple): On how many cards designed by John Avon is its foil non-powerful?'
+description: "BIRD Q393 (simple): On how many cards designed by John Avon is its foil non-powerful?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(id)
+  FROM cards
+  WHERE (cardKingdomId IS NULL
+         OR cardKingdomFoilId IS NULL)
+    AND artist = 'John Avon'
 
 sdms:
   - kind: postgres
@@ -10,12 +22,13 @@ sdms:
 
 thread:
   - name: bird-question-393
-    description: 'On how many cards designed by John Avon is its foil non-powerful?'
+    description: "On how many cards designed by John Avon is its foil non-powerful?"
     messages:
       - role: user
         content: |
           On how many cards designed by John Avon is its foil non-powerful?
-          Evidence: John Avon refer to artist; foil poweful foils refers to cardKingdomId and cardKingdomFoildId is NOT NULL
+          Evidence: John Avon refer to artist; foil poweful foils refers to cardKingdomId and cardKingdomFoildId is NOT NULL 
+          
 
 target-platforms:
   - name: openai

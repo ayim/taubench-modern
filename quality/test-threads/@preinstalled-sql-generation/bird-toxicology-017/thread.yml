@@ -1,7 +1,19 @@
 name: bird-toxicology-017
-description: 'BIRD Q211 (simple): Indicate which atoms are connected in non-carcinogenic type molecules.'
+description: "BIRD Q211 (simple): Indicate which atoms are connected in non-carcinogenic type molecules."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.atom_id
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  INNER JOIN connected AS T3 ON T1.atom_id = T3.atom_id
+  WHERE T2.label = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-211
-    description: 'Indicate which atoms are connected in non-carcinogenic type molecules.'
+    description: "Indicate which atoms are connected in non-carcinogenic type molecules."
     messages:
       - role: user
         content: |

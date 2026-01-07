@@ -3,6 +3,78 @@ description: "BIRD Q122 (challenging): For loan ID 4990, provide a comprehensive
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanStats AS
+    (SELECT l.loan_id,
+            l.account_id,
+            l.amount,
+            l.duration,
+            l.status,
+            CASE
+                WHEN l.status = 'A' THEN 'Running - OK'
+                WHEN l.status = 'B' THEN 'Running - Issues'
+                WHEN l.status = 'C' THEN 'Finished - No Issues'
+                WHEN l.status = 'D' THEN 'Finished - Issues'
+                ELSE 'Unknown'
+            END AS status_description,
+            a.district_id,
+            ROUND(l.amount / l.duration, 2) AS avg_monthly_payment,
+            RANK() OVER (PARTITION BY a.district_id
+                         ORDER BY l.amount DESC) AS district_loan_rank
+     FROM loan AS l
+     JOIN ACCOUNT AS a ON l.account_id = a.account_id),
+       DistrictStats AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate_1995,
+            COUNT(DISTINCT l.loan_id) AS total_loans,
+            AVG(l.amount) AS avg_loan_amount,
+            SUM(CASE
+                    WHEN l.status IN ('B', 'D') THEN 1
+                    ELSE 0
+                END) AS problematic_loans
+     FROM district AS d
+     LEFT JOIN ACCOUNT AS a ON d.district_id = a.district_id
+     LEFT JOIN loan AS l ON a.account_id = l.account_id
+     GROUP BY d.district_id,
+              d.A2,
+              d.A3,
+              d.A11,
+              d.A12)
+  SELECT ls.loan_id,
+         d.A2 AS district_name,
+         d.A3 AS region,
+         c.gender,
+         DATE(c.birth_date) AS birth_date,
+         ls.amount AS loan_amount,
+         ls.duration AS loan_duration_months,
+         ls.status_description,
+         d.A11 AS district_avg_salary,
+         d.A12 AS unemployment_rate_1995,
+         ds.total_loans AS district_total_loans,
+         ds.avg_loan_amount AS district_avg_loan_amount,
+         ds.problematic_loans AS district_problematic_loans,
+         ls.district_loan_rank,
+  
+    (SELECT COUNT(*)
+     FROM trans AS t
+     WHERE t.account_id = a.account_id) AS total_transactions
+  FROM LoanStats AS ls
+  JOIN ACCOUNT AS a ON ls.account_id = a.account_id
+  JOIN district AS d ON ls.district_id = d.district_id
+  JOIN DistrictStats AS ds ON d.district_id = ds.district_id
+  JOIN disp AS dp ON a.account_id = dp.account_id
+  AND dp.type = 'OWNER'
+  JOIN client AS c ON dp.client_id = c.client_id
+  WHERE ls.loan_id = 4990
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

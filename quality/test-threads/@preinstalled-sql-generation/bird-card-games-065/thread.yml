@@ -1,7 +1,19 @@
 name: bird-card-games-065
-description: 'BIRD Q404 (simple): Indicates the name of all the languages into which the set whose number of cards is 309 is translated.'
+description: "BIRD Q404 (simple): Indicates the name of all the languages into which the set whose number of cards is 309 is translated."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.language
+  FROM
+  SETS AS T1
+  INNER JOIN set_translations AS T2 ON T1.code = T2.setCode
+  WHERE T1.baseSetSize = 309
 
 sdms:
   - kind: postgres
@@ -10,12 +22,14 @@ sdms:
 
 thread:
   - name: bird-question-404
-    description: 'Indicates the name of all the languages into which the set whose number of cards is 309 is translated.'
+    description: "Indicates the name of all the languages into which the set whose number of cards is 309 is translated."
     messages:
       - role: user
         content: |
           Indicates the name of all the languages into which the set whose number of cards is 309 is translated.
           Evidence: set refer to setCode; number of cards refers to baseSetSize; baseSetsize = 309
+          
+          
 
 target-platforms:
   - name: openai

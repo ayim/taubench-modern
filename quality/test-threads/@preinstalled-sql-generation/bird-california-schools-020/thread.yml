@@ -1,7 +1,69 @@
 name: bird-california-schools-020
-description: 'BIRD Q19 (challenging): For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals.'
+description: "BIRD Q19 (challenging): For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolRankings AS
+    (SELECT T2.cds,
+            T1.School,
+            T1.Phone,
+            T1.Website,
+            T2.AvgScrMath,
+            T2.AvgScrRead,
+            T2.AvgScrWrite,
+            (T2.AvgScrMath + T2.AvgScrRead + T2.AvgScrWrite) AS TotalScore,
+            RANK() OVER (
+                         ORDER BY T2.AvgScrMath DESC) AS MathRank,
+            RANK() OVER (
+                         ORDER BY T2.AvgScrRead DESC) AS ReadingRank,
+            RANK() OVER (
+                         ORDER BY T2.AvgScrWrite DESC) AS WritingRank,
+            RANK() OVER (
+                         ORDER BY (T2.AvgScrMath + T2.AvgScrRead + T2.AvgScrWrite) DESC) AS TotalRank
+     FROM schools AS T1
+     INNER JOIN satscores AS T2 ON T1.CDSCode = T2.cds
+     WHERE T1.StatusType = 'Active'
+       AND T2.NumTstTakr >= 10 -- Only consider schools with at least 10 test takers
+  ),
+       CharterAnalysis AS
+    (SELECT s.CDSCode,
+            s.School,
+            f.`Charter School (Y/N)` AS IsCharter,
+            f.`Enrollment (K-12)` AS Enrollment,
+            f.`Percent (%) Eligible FRPM (K-12)` AS PercentFRPM
+     FROM schools s
+     JOIN frpm f ON s.CDSCode = f.CDSCode
+     WHERE f.`Academic Year` = '2014-2015')
+  SELECT sr.School AS "Top Math School",
+         sr.Phone AS "Phone Number",
+         sr.Website AS "Website",
+         sr.AvgScrMath AS "Math Score",
+         sr.AvgScrRead AS "Reading Score",
+         sr.AvgScrWrite AS "Writing Score",
+         sr.TotalScore AS "Total Score",
+         CASE
+             WHEN ca.IsCharter = 1 THEN 'Yes'
+             ELSE 'No'
+         END AS "Is Charter School",
+         ca.Enrollment AS "Enrollment",
+         ROUND(ca.PercentFRPM * 100, 2) || '%' AS "% Free/Reduced Price Meals",
+  
+    (SELECT COUNT(DISTINCT cds)
+     FROM satscores) AS "Total Schools in SAT Dataset",
+  
+    (SELECT AVG(AvgScrMath)
+     FROM satscores) AS "Average Math Score Across All Schools"
+  FROM SchoolRankings sr
+  LEFT JOIN CharterAnalysis ca ON sr.cds = ca.CDSCode
+  WHERE sr.MathRank = 1
+  ORDER BY sr.AvgScrMath DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +72,7 @@ sdms:
 
 thread:
   - name: bird-question-19
-    description: 'For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals.'
+    description: "For the school with the highest average math SAT score among active schools with at least 10 test takers, provide its contact information, all SAT scores, charter status, enrollment, and percentage of students eligible for free or reduced price meals."
     messages:
       - role: user
         content: |

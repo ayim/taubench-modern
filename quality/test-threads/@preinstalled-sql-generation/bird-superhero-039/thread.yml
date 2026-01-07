@@ -1,7 +1,18 @@
 name: bird-superhero-039
-description: 'BIRD Q755 (simple): List down at least five full name of Demi-God superheroes.'
+description: "BIRD Q755 (simple): List down at least five full name of Demi-God superheroes."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.full_name
+  FROM superhero AS T1
+  INNER JOIN race AS T2 ON T1.race_id = T2.id
+  WHERE T2.race = 'Demi-God'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-755
-    description: 'List down at least five full name of Demi-God superheroes.'
+    description: "List down at least five full name of Demi-God superheroes."
     messages:
       - role: user
         content: |

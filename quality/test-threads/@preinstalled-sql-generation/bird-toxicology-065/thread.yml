@@ -1,7 +1,22 @@
 name: bird-toxicology-065
-description: 'BIRD Q259 (simple): How many elements are there for single bond molecules?'
+description: "BIRD Q259 (simple): How many elements are there for single bond molecules?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T.element)
+  FROM
+    (SELECT DISTINCT T2.molecule_id,
+                     T1.element
+     FROM atom AS T1
+     INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+     INNER JOIN bond AS T3 ON T2.molecule_id = T3.molecule_id
+     WHERE T3.bond_type = '-') AS T
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-259
-    description: 'How many elements are there for single bond molecules?'
+    description: "How many elements are there for single bond molecules?"
     messages:
       - role: user
         content: |

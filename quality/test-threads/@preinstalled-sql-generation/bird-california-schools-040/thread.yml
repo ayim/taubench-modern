@@ -1,7 +1,19 @@
 name: bird-california-schools-040
-description: 'BIRD Q39 (simple): What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?'
+description: "BIRD Q39 (simple): What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.NumTstTakr)
+  FROM satscores AS T1
+  INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode
+  WHERE strftime('%Y', T2.OpenDate) = '1980'
+    AND T2.County = 'Fresno'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-39
-    description: 'What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?'
+    description: "What is the average number of test takers from Fresno schools that opened between 1/1/1980 and 12/31/1980?"
     messages:
       - role: user
         content: |

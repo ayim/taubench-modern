@@ -3,6 +3,18 @@ description: "BIRD Q1522 (simple): There's one customer spent 214582.17 in the J
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Currency
+  FROM yearmonth AS T1
+  INNER JOIN customers AS T2 ON T1.CustomerID = T2.CustomerID
+  WHERE T1.Date = '201306'
+    AND T1.Consumption = 214582.17
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_debit_card_specializing

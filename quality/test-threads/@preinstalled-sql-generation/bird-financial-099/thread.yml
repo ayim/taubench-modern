@@ -3,6 +3,57 @@ description: "BIRD Q187 (challenging): What are the key statistics for account o
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ClientTransactionStats AS
+    (SELECT T2.client_id,
+            COUNT(DISTINCT T3.trans_id) AS transaction_count,
+            SUM(T3.amount) AS total_transaction_amount,
+            AVG(T3.balance) AS avg_balance
+     FROM ACCOUNT AS T1
+     JOIN disp AS T2 ON T2.account_id = T1.account_id
+     JOIN trans AS T3 ON T3.account_id = T1.account_id
+     WHERE T1.frequency = 'POPLATEK TYDNE'
+       AND T2.type = 'OWNER'
+     GROUP BY T2.client_id),
+       ClientCards AS
+    (SELECT T2.client_id,
+            COUNT(DISTINCT C.card_id) AS card_count,
+            GROUP_CONCAT(DISTINCT C.type) AS card_types
+     FROM ACCOUNT AS T1
+     JOIN disp AS T2 ON T2.account_id = T1.account_id
+     JOIN disp AS D ON D.client_id = T2.client_id
+     LEFT JOIN card AS C ON C.disp_id = D.disp_id
+     WHERE T1.frequency = 'POPLATEK TYDNE'
+       AND T2.type = 'OWNER'
+     GROUP BY T2.client_id)
+  SELECT COUNT(DISTINCT CTS.client_id) AS total_weekly_statement_owners,
+         AVG(CTS.transaction_count) AS avg_transactions_per_client,
+         SUM(CASE
+                 WHEN CC.card_count > 0 THEN 1
+                 ELSE 0
+             END) AS clients_with_cards,
+         SUM(CASE
+                 WHEN CTS.total_transaction_amount > 10000 THEN 1
+                 ELSE 0
+             END) AS high_volume_clients,
+  
+    (SELECT COUNT(DISTINCT CL.district_id)
+     FROM client CL
+     JOIN disp D ON D.client_id = CL.client_id
+     JOIN ACCOUNT A ON A.account_id = D.account_id
+     WHERE A.frequency = 'POPLATEK TYDNE'
+       AND D.type = 'OWNER') AS districts_count,
+         ROUND(AVG(CTS.avg_balance), 2) AS average_client_balance
+  FROM ClientTransactionStats CTS
+  LEFT JOIN ClientCards CC ON CC.client_id = CTS.client_id
+  WHERE CTS.transaction_count > 0
+    OR CC.card_count > 0;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

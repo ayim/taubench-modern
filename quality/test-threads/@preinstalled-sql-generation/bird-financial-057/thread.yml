@@ -1,7 +1,23 @@
 name: bird-financial-057
-description: 'BIRD Q145 (moderate): Who are the account holder identification numbers whose who have transactions on the credit card with the amount is less than the average, in 1998?'
+description: "BIRD Q145 (moderate): Who are the account holder identification numbers whose who have transactions on the credit card with the amount is less than the average, in 1998?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.account_id
+  FROM trans AS T1
+  INNER JOIN ACCOUNT AS T2 ON T1.account_id = T2.account_id
+  WHERE STRFTIME('%Y', T1.date) = '1998'
+    AND T1.operation = 'VYBER KARTOU'
+    AND T1.amount <
+      (SELECT AVG(amount)
+       FROM trans
+       WHERE STRFTIME('%Y', date) = '1998')
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-145
-    description: 'Who are the account holder identification numbers whose who have transactions on the credit card with the amount is less than the average, in 1998?'
+    description: "Who are the account holder identification numbers whose who have transactions on the credit card with the amount is less than the average, in 1998?"
     messages:
       - role: user
         content: |

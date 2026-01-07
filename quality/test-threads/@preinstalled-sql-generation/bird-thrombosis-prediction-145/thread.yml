@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-145
-description: 'BIRD Q1293 (moderate): What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?'
+description: "BIRD Q1293 (moderate): What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT MAX(T2.ANA)
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  INNER JOIN Laboratory AS T3 ON T1.ID = T3.ID
+  WHERE T3.CRE < 1.5
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1293
-    description: 'What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?'
+    description: "What is the highest anti-nucleus antibody concentration level of a patient with a normal creatinine level?"
     messages:
       - role: user
         content: |

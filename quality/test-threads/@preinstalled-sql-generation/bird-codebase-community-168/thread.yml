@@ -3,6 +3,17 @@ description: "BIRD Q698 (simple): How many comments and answers were left by the
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CommentCount,
+         AnswerCount
+  FROM posts
+  WHERE Title = 'Clustering 1D data';
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

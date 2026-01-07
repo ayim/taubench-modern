@@ -1,7 +1,21 @@
 name: bird-formula-1-094
-description: 'BIRD Q939 (moderate): How many drivers from the UN participated in the 2008 Australian Grand Prix?'
+description: "BIRD Q939 (moderate): How many drivers from the UN participated in the 2008 Australian Grand Prix?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.driverId)
+  FROM drivers AS T1
+  INNER JOIN results AS T2 ON T1.driverId = T2.driverId
+  INNER JOIN races AS T3 ON T3.raceId = T2.raceId
+  WHERE T3.name = 'Australian Grand Prix'
+    AND T3.year = 2008
+    AND T1.nationality = 'British'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-939
-    description: 'How many drivers from the UN participated in the 2008 Australian Grand Prix?'
+    description: "How many drivers from the UN participated in the 2008 Australian Grand Prix?"
     messages:
       - role: user
         content: |

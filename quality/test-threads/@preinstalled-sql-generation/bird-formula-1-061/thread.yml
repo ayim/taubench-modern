@@ -1,7 +1,23 @@
 name: bird-formula-1-061
-description: 'BIRD Q906 (moderate): Which was Lewis Hamilton first race? What was his points recorded for his first race event?'
+description: "BIRD Q906 (moderate): Which was Lewis Hamilton first race? What was his points recorded for his first race event?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.name,
+         T2.points
+  FROM races AS T1
+  INNER JOIN driverStandings AS T2 ON T2.raceId = T1.raceId
+  INNER JOIN drivers AS T3 ON T3.driverId = T2.driverId
+  WHERE T3.forename = 'Lewis'
+    AND T3.surname = 'Hamilton'
+  ORDER BY T1.year ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-906
-    description: 'Which was Lewis Hamilton first race? What was his points recorded for his first race event?'
+    description: "Which was Lewis Hamilton first race? What was his points recorded for his first race event?"
     messages:
       - role: user
         content: |

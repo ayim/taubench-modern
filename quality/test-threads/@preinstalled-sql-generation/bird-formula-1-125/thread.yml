@@ -1,7 +1,27 @@
 name: bird-formula-1-125
-description: 'BIRD Q970 (moderate): List the top 3 German drivers who were born from 1980–1990 with the fastest lap time.'
+description: "BIRD Q970 (moderate): List the top 3 German drivers who were born from 1980–1990 with the fastest lap time."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT d.driverId,
+         (d.forename || ' ' || d.surname) AS driver_name,
+         MIN(lt.milliseconds) AS best_lap_ms
+  FROM drivers AS d
+  JOIN lapTimes AS lt ON lt.driverId = d.driverId
+  WHERE d.nationality = 'German'
+    AND STRFTIME('%Y', d.dob) BETWEEN '1980' AND '1990'
+    AND lt.milliseconds IS NOT NULL
+  GROUP BY d.driverId,
+           driver_name
+  ORDER BY best_lap_ms ASC,
+           driver_name ASC
+  LIMIT 3;
 
 sdms:
   - kind: postgres
@@ -10,7 +30,7 @@ sdms:
 
 thread:
   - name: bird-question-970
-    description: 'List the top 3 German drivers who were born from 1980–1990 with the fastest lap time.'
+    description: "List the top 3 German drivers who were born from 1980–1990 with the fastest lap time."
     messages:
       - role: user
         content: |

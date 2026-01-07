@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-047
-description: 'BIRD Q1195 (moderate): What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?'
+description: "BIRD Q1195 (moderate): What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.ALB)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.PLT > 400
+    AND T1.Diagnosis = 'SLE'
+    AND T1.SEX = 'F'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1195
-    description: 'What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?'
+    description: "What is the average blood albumin level for female patients with a PLT greater than 400 who have been diagnosed with SLE?"
     messages:
       - role: user
         content: |

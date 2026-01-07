@@ -1,7 +1,19 @@
 name: bird-student-club-081
-description: 'BIRD Q1392 (simple): Indicate the top source of funds received in September 2019 based on their amount.'
+description: "BIRD Q1392 (simple): Indicate the top source of funds received in September 2019 based on their amount."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SOURCE
+  FROM income
+  WHERE date_received BETWEEN '2019-09-01' AND '2019-09-30'
+  ORDER BY SOURCE DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1392
-    description: 'Indicate the top source of funds received in September 2019 based on their amount.'
+    description: "Indicate the top source of funds received in September 2019 based on their amount."
     messages:
       - role: user
         content: |

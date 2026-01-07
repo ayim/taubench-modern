@@ -1,7 +1,19 @@
 name: bird-formula-1-097
-description: 'BIRD Q942 (moderate): What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?'
+description: "BIRD Q942 (moderate): What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(CAST(SUBSTR(T2.fastestLapTime, 1, INSTR(T2.fastestLapTime, ':') - 1) AS INTEGER) * 60 + CAST(SUBSTR(T2.fastestLapTime, INSTR(T2.fastestLapTime, ':') + 1) AS REAL))
+  FROM drivers AS T1
+  INNER JOIN results AS T2 ON T1.driverId = T2.driverId
+  WHERE T1.surname = 'Hamilton'
+    AND T1.forename = 'Lewis'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-942
-    description: 'What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?'
+    description: "What is the average fastest lap time in seconds for Lewis Hamilton in all the Formula_1 races?"
     messages:
       - role: user
         content: |

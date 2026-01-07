@@ -1,7 +1,18 @@
 name: bird-card-games-039
-description: 'BIRD Q378 (simple): What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs.'
+description: "BIRD Q378 (simple): What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT id
+  FROM cards
+  WHERE cardKingdomId IS NOT NULL
+    AND cardKingdomFoilId IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-378
-    description: 'What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs.'
+    description: "What are the foiled cards that are incredibly powerful when paired with non foiled cards? List the IDs."
     messages:
       - role: user
         content: |

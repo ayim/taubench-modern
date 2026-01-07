@@ -1,7 +1,20 @@
 name: bird-student-club-119
-description: 'BIRD Q1430 (moderate): What is the last name and position of the student that bought pizza on 09/10/2019?'
+description: "BIRD Q1430 (moderate): What is the last name and position of the student that bought pizza on 09/10/2019?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.last_name,
+         T1.position
+  FROM member AS T1
+  INNER JOIN expense AS T2 ON T1.member_id = T2.link_to_member
+  WHERE T2.expense_date = '2019-09-10'
+    AND T2.expense_description = 'Pizza'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1430
-    description: 'What is the last name and position of the student that bought pizza on 09/10/2019?'
+    description: "What is the last name and position of the student that bought pizza on 09/10/2019?"
     messages:
       - role: user
         content: |

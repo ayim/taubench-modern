@@ -1,7 +1,85 @@
 name: bird-financial-056
-description: 'BIRD Q144 (challenging): What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?'
+description: "BIRD Q144 (challenging): What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CardHolders AS
+    (SELECT c.client_id,
+            c.gender,
+            d.disp_id,
+            d.account_id,
+            a.district_id,
+            cd.type AS card_type,
+            cd.issued AS card_issue_date
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     JOIN card cd ON d.disp_id = cd.disp_id
+     JOIN ACCOUNT a ON d.account_id = a.account_id
+     WHERE d.type = 'OWNER'),
+       TransactionStats AS
+    (SELECT t.account_id,
+            ch.client_id,
+            ch.gender,
+            ch.card_type,
+            STRFTIME('%Y', t.date) AS trans_year,
+            STRFTIME('%m', t.date) AS trans_month,
+            t.amount,
+            t.operation,
+            t.balance,
+            t.k_symbol,
+            t.bank,
+            ROW_NUMBER() OVER (PARTITION BY t.account_id
+                               ORDER BY t.date) AS transaction_sequence,
+            AVG(t.amount) OVER (PARTITION BY t.account_id) AS avg_transaction_amount,
+            SUM(t.amount) OVER (PARTITION BY t.account_id) AS total_spent,
+            COUNT(*) OVER (PARTITION BY t.account_id) AS transaction_count
+     FROM trans t
+     JOIN CardHolders ch ON t.account_id = ch.account_id
+     WHERE t.operation = 'VYBER KARTOU'
+       AND STRFTIME('%Y', t.date) = '1998'),
+       DistrictInfo AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            CAST(d.A11 AS INTEGER) AS avg_salary,
+            CAST(d.A10 AS REAL) AS urban_ratio
+     FROM district d)
+  SELECT di.region,
+         di.district_name,
+         ts.gender,
+         ts.card_type,
+         COUNT(DISTINCT ts.client_id) AS num_clients,
+         COUNT(DISTINCT ts.account_id) AS num_accounts,
+         ROUND(AVG(ts.amount), 2) AS avg_transaction_amount,
+         ROUND(SUM(ts.amount), 2) AS total_amount,
+         ROUND(MAX(ts.amount), 2) AS max_transaction,
+         ROUND(MIN(ts.amount), 2) AS min_transaction,
+         AVG(ts.transaction_count) AS avg_transactions_per_account,
+         ROUND(AVG(CASE
+                       WHEN ts.gender = 'M' THEN ts.amount
+                       ELSE NULL
+                   END), 2) AS male_avg_amount,
+         ROUND(AVG(CASE
+                       WHEN ts.gender = 'F' THEN ts.amount
+                       ELSE NULL
+                   END), 2) AS female_avg_amount,
+         ROUND(AVG(di.avg_salary), 2) AS district_avg_salary,
+         ROUND(AVG(ts.amount) / AVG(di.avg_salary) * 100, 2) AS pct_of_avg_salary
+  FROM TransactionStats ts
+  JOIN CardHolders ch ON ts.account_id = ch.account_id
+  JOIN DistrictInfo di ON ch.district_id = di.district_id
+  GROUP BY di.region,
+           di.district_name,
+           ts.gender,
+           ts.card_type
+  HAVING COUNT(ts.amount) > 0
+  ORDER BY avg_transaction_amount DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +88,7 @@ sdms:
 
 thread:
   - name: bird-question-144
-    description: 'What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?'
+    description: "What is the breakdown of credit card transaction patterns in 1998 by region, district, gender, and card type, including average transaction amounts, total spending, and how these amounts compare to district average salaries?"
     messages:
       - role: user
         content: |

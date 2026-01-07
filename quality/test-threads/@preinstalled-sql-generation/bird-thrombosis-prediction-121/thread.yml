@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-121
-description: 'BIRD Q1269 (moderate): Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70.'
+description: "BIRD Q1269 (moderate): Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.ID
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.SC170 IN ('negative',
+                     '0')
+    AND T2.Date > '1997-01-01'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1269
-    description: 'Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70.'
+    description: "Please list the IDs of the patients who had the examination done after 1997/1/1 and had a normal anti-scl70."
     messages:
       - role: user
         content: |

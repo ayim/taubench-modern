@@ -1,7 +1,25 @@
 name: bird-formula-1-149
-description: 'BIRD Q994 (challenging): Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team.'
+description: "BIRD Q994 (challenging): Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T1.points),
+         T2.name,
+         T2.nationality
+  FROM constructorResults AS T1
+  INNER JOIN constructors AS T2 ON T1.constructorId = T2.constructorId
+  INNER JOIN races AS T3 ON T3.raceid = T1.raceid
+  WHERE T3.name = 'Monaco Grand Prix'
+    AND T3.year BETWEEN 1980 AND 2010
+  GROUP BY T2.name
+  ORDER BY SUM(T1.points) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-994
-    description: 'Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team.'
+    description: "Which constructor scored most points from Monaco Grand Prix between 1980 and 2010? List the score, name and nationality of this team."
     messages:
       - role: user
         content: |

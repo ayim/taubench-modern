@@ -1,7 +1,17 @@
 name: bird-toxicology-045
-description: 'BIRD Q239 (simple): How many connections does the atom 19 have?'
+description: "BIRD Q239 (simple): How many connections does the atom 19 have?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T.bond_id)
+  FROM connected AS T
+  WHERE T.atom_id LIKE '%_19'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-239
-    description: 'How many connections does the atom 19 have?'
+    description: "How many connections does the atom 19 have?"
     messages:
       - role: user
         content: |

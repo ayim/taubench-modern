@@ -1,7 +1,20 @@
 name: bird-superhero-112
-description: 'BIRD Q828 (simple): Count the fastest superheroes.'
+description: "BIRD Q828 (simple): Count the fastest superheroes."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T3.superhero_name)
+  FROM hero_attribute AS T1
+  INNER JOIN attribute AS T2 ON T1.attribute_id = T2.id
+  INNER JOIN superhero AS T3 ON T1.hero_id = T3.id
+  WHERE T2.attribute_name = 'Speed'
+    AND T1.attribute_value = 100
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-828
-    description: 'Count the fastest superheroes.'
+    description: "Count the fastest superheroes."
     messages:
       - role: user
         content: |

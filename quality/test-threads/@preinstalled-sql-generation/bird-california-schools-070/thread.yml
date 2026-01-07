@@ -1,7 +1,74 @@
 name: bird-california-schools-070
-description: 'BIRD Q69 (challenging): For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest.'
+description: "BIRD Q69 (challenging): For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH StateSpecialSchools AS
+    (SELECT s.CDSCode,
+            s.NCESDist,
+            s.School,
+            s.DOCType,
+            s.SOC,
+            CASE
+                WHEN s.Charter = 1 THEN 'Charter'
+                ELSE 'Non-Charter'
+            END AS SchoolType,
+            s.OpenDate,
+            s.ClosedDate,
+            CASE
+                WHEN s.ClosedDate IS NULL THEN 'Active'
+                ELSE 'Closed'
+            END AS CurrentStatus
+     FROM schools s
+     WHERE s.DOCType = 'State Special Schools'),
+       SchoolMetrics AS
+    (SELECT s.CDSCode,
+            f.`Enrollment (K-12)`,
+            f.`FRPM Count (K-12)`,
+            f.`Percent (%) Eligible FRPM (K-12)`,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.25 THEN 'Low Poverty'
+                ELSE 'Very Low Poverty'
+            END AS PovertyLevel,
+            COALESCE(sat.NumTstTakr, 0) AS SATTestTakers,
+            COALESCE(sat.AvgScrRead, 0) AS AvgReadingScore,
+            COALESCE(sat.AvgScrMath, 0) AS AvgMathScore,
+            COALESCE(sat.AvgScrWrite, 0) AS AvgWritingScore,
+            COALESCE(sat.NumGE1500, 0) AS StudentsOver1500,
+            RANK() OVER (
+                         ORDER BY f.`Enrollment (K-12)` DESC) AS EnrollmentRank
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE s.DOCType = 'State Special Schools')
+  SELECT ss.NCESDist,
+         ss.School,
+         ss.SchoolType,
+         ss.CurrentStatus,
+         CASE
+             WHEN ss.OpenDate IS NOT NULL THEN date(ss.OpenDate)
+             ELSE 'Unknown'
+         END AS OpeningDate,
+         sm.`Enrollment (K-12)` AS Enrollment,
+         sm.PovertyLevel,
+         sm.AvgReadingScore,
+         sm.AvgMathScore,
+         sm.AvgWritingScore,
+         ROUND((sm.AvgReadingScore + sm.AvgMathScore + sm.AvgWritingScore)/3.0, 2) AS AvgTotalScore,
+         sm.EnrollmentRank
+  FROM StateSpecialSchools ss
+  JOIN SchoolMetrics sm ON ss.CDSCode = sm.CDSCode
+  WHERE ss.SOC = '31'
+    OR ss.SOC LIKE '3%'
+  ORDER BY sm.EnrollmentRank ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +77,7 @@ sdms:
 
 thread:
   - name: bird-question-69
-    description: 'For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest.'
+    description: "For State Special Schools with a School Ownership Code starting with 3, show me their NCES district ID, school name, charter status, current operational status, opening date, enrollment, poverty classification, SAT scores by subject, overall average SAT score, and enrollment ranking. Sort the results by enrollment from highest to lowest."
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-formula-1-056
-description: 'BIRD Q901 (simple): Name the races along with its circuit name and location for f1 races hosted in September 2005.'
+description: "BIRD Q901 (simple): Name the races along with its circuit name and location for f1 races hosted in September 2005."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.name,
+                  T1.name,
+                  T1.location
+  FROM circuits AS T1
+  INNER JOIN races AS T2 ON T2.circuitID = T1.circuitId
+  WHERE T2.year = 2005
+    AND STRFTIME('%m', T2.date) = '09'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-901
-    description: 'Name the races along with its circuit name and location for f1 races hosted in September 2005.'
+    description: "Name the races along with its circuit name and location for f1 races hosted in September 2005."
     messages:
       - role: user
         content: |

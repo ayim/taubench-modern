@@ -1,7 +1,75 @@
 name: bird-toxicology-006
-description: 'BIRD Q200 (challenging): For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds.'
+description: "BIRD Q200 (challenging): For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH MoleculeStats AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT a.atom_id) AS atom_count,
+            COUNT(DISTINCT b.bond_id) AS bond_count,
+            SUM(CASE
+                    WHEN a.element = 'c' THEN 1
+                    ELSE 0
+                END) AS carbon_count,
+            SUM(CASE
+                    WHEN a.element = 'n' THEN 1
+                    ELSE 0
+                END) AS nitrogen_count,
+            SUM(CASE
+                    WHEN b.bond_type = '#' THEN 1
+                    ELSE 0
+                END) AS triple_bond_count
+     FROM molecule m
+     LEFT JOIN atom a ON m.molecule_id = a.molecule_id
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     GROUP BY m.molecule_id,
+              m.label),
+       TripleBondedAtoms AS
+    (SELECT c.atom_id,
+            c.atom_id2,
+            a1.element AS element1,
+            a2.element AS element2,
+            b.molecule_id
+     FROM connected c
+     JOIN bond b ON c.bond_id = b.bond_id
+     JOIN atom a1 ON c.atom_id = a1.atom_id
+     JOIN atom a2 ON c.atom_id2 = a2.atom_id
+     WHERE b.bond_type = '#')
+  SELECT ms.molecule_id,
+         ms.atom_count,
+         ms.bond_count,
+         ms.carbon_count,
+         ms.nitrogen_count,
+         ms.triple_bond_count,
+  
+    (SELECT COUNT(*)
+     FROM TripleBondedAtoms tba
+     WHERE tba.molecule_id = ms.molecule_id
+       AND tba.element1 = 'n'
+       AND tba.element2 = 'n') AS nitrogen_triple_bonds,
+  
+    (SELECT COUNT(*)
+     FROM TripleBondedAtoms tba
+     WHERE tba.molecule_id = ms.molecule_id
+       AND (tba.element1 = 'c'
+            OR tba.element2 = 'c')) AS carbon_containing_triple_bonds,
+         CASE
+             WHEN ms.triple_bond_count > 1 THEN 'Multiple Triple Bonds'
+             WHEN ms.triple_bond_count = 1 THEN 'Single Triple Bond'
+             ELSE 'No Triple Bonds'
+         END AS bond_category
+  FROM MoleculeStats ms
+  WHERE ms.label = '+'
+    AND ms.triple_bond_count > 0
+  ORDER BY ms.triple_bond_count DESC,
+           ms.atom_count DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +78,7 @@ sdms:
 
 thread:
   - name: bird-question-200
-    description: 'For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds.'
+    description: "For carcinogenic molecules that contain triple bonds, provide detailed statistics including atom counts, bond counts, carbon and nitrogen counts, and specifically identify how many nitrogen-to-nitrogen triple bonds and carbon-containing triple bonds exist in each molecule, categorizing them by their number of triple bonds."
     messages:
       - role: user
         content: |

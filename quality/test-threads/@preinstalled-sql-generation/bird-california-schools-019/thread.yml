@@ -1,7 +1,67 @@
 name: bird-california-schools-019
-description: 'BIRD Q18 (challenging): What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?'
+description: "BIRD Q18 (challenging): What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolStats AS
+    (SELECT f.CDSCode,
+            f.`School Name`,
+            f.`County Name`,
+            f.`Charter Funding Type`,
+            s.NumTstTakr,
+            s.AvgScrRead,
+            s.AvgScrMath,
+            s.AvgScrWrite,
+            (s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite) AS TotalAvgScore,
+            s.NumGE1500,
+            CASE
+                WHEN s.NumTstTakr > 0 THEN CAST(s.NumGE1500 AS REAL) / s.NumTstTakr
+                ELSE 0
+            END AS PercentageGE1500,
+            f.`Enrollment (K-12)`,
+            f.`FRPM Count (K-12)`,
+            f.`Percent (%) Eligible FRPM (K-12)`,
+            sc.GSoffered,
+            sc.OpenDate,
+            CASE
+                WHEN sc.OpenDate IS NULL THEN NULL
+                ELSE (strftime('%Y', 'now') - strftime('%Y', sc.OpenDate))
+            END AS SchoolAge,
+            ROW_NUMBER() OVER (PARTITION BY f.`County Name`
+                               ORDER BY s.NumTstTakr) AS CountyRank
+     FROM frpm AS f
+     INNER JOIN satscores AS s ON f.CDSCode = s.cds
+     INNER JOIN schools AS sc ON f.CDSCode = sc.CDSCode
+     WHERE f.`Charter Funding Type` = 'Directly funded')
+  SELECT COUNT(DISTINCT ss.CDSCode) AS TotalSchools,
+         ss.`County Name`,
+         ROUND(AVG(ss.NumTstTakr), 2) AS AvgTestTakers,
+         ROUND(AVG(ss.TotalAvgScore), 2) AS AvgTotalScore,
+         ROUND(AVG(ss.PercentageGE1500) * 100, 2) AS AvgPercentScoring1500Plus,
+         ROUND(AVG(ss.`Percent (%) Eligible FRPM (K-12)`) * 100, 2) AS AvgFRPMPercentage,
+         ROUND(AVG(ss.SchoolAge), 1) AS AvgSchoolAgeInYears,
+         COUNT(CASE
+                   WHEN ss.NumTstTakr <= 50 THEN 1
+               END) AS SchoolsWithUnder50Testers,
+         COUNT(CASE
+                   WHEN ss.NumTstTakr > 50
+                        AND ss.NumTstTakr <= 100 THEN 1
+               END) AS SchoolsWith50To100Testers,
+         COUNT(CASE
+                   WHEN ss.NumTstTakr > 100
+                        AND ss.NumTstTakr <= 250 THEN 1
+               END) AS SchoolsWith100To250Testers
+  FROM SchoolStats ss
+  WHERE ss.`County Name` = 'Fresno'
+    AND ss.NumTstTakr <= 250
+  GROUP BY ss.`County Name`
+  HAVING COUNT(DISTINCT ss.CDSCode) > 0
 
 sdms:
   - kind: postgres
@@ -10,7 +70,7 @@ sdms:
 
 thread:
   - name: bird-question-18
-    description: 'What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?'
+    description: "What are the average SAT statistics and school characteristics for directly funded charter schools in Fresno County that have 250 or fewer test takers, including the breakdown by testing volume categories?"
     messages:
       - role: user
         content: |

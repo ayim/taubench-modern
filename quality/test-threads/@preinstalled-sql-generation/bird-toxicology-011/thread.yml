@@ -1,7 +1,70 @@
 name: bird-toxicology-011
-description: 'BIRD Q205 (challenging): For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule.'
+description: "BIRD Q205 (challenging): For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CarbonMolecules AS
+    (SELECT DISTINCT a.molecule_id
+     FROM atom AS a
+     WHERE a.element = 'c'),
+       MoleculeStats AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT a.atom_id) AS atom_count,
+            COUNT(DISTINCT b.bond_id) AS bond_count,
+            SUM(CASE
+                    WHEN a.element = 'c' THEN 1
+                    ELSE 0
+                END) AS carbon_count,
+            SUM(CASE
+                    WHEN a.element = 'cl' THEN 1
+                    ELSE 0
+                END) AS chlorine_count,
+            SUM(CASE
+                    WHEN b.bond_type = '=' THEN 1
+                    ELSE 0
+                END) AS double_bond_count
+     FROM molecule m
+     JOIN atom a ON m.molecule_id = a.molecule_id
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     WHERE m.molecule_id IN
+         (SELECT molecule_id
+          FROM CarbonMolecules)
+     GROUP BY m.molecule_id,
+              m.label),
+       RankedMolecules AS
+    (SELECT molecule_id,
+            label,
+            atom_count,
+            bond_count,
+            carbon_count,
+            chlorine_count,
+            double_bond_count,
+            RANK() OVER (
+                         ORDER BY carbon_count DESC, atom_count DESC) AS carbon_rank
+     FROM MoleculeStats)
+  SELECT rm.molecule_id,
+         rm.label,
+         rm.atom_count,
+         rm.bond_count,
+         rm.carbon_count,
+         rm.chlorine_count,
+         rm.double_bond_count,
+         rm.carbon_rank,
+  
+    (SELECT COUNT(DISTINCT c.atom_id2)
+     FROM connected c
+     JOIN atom a ON c.atom_id = a.atom_id
+     WHERE a.molecule_id = rm.molecule_id) AS connections_count
+  FROM RankedMolecules rm
+  ORDER BY rm.carbon_rank,
+           rm.molecule_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +73,7 @@ sdms:
 
 thread:
   - name: bird-question-205
-    description: 'For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule.'
+    description: "For all molecules containing carbon, provide comprehensive statistics including the number of atoms, bonds, carbon atoms, chlorine atoms, and double bonds. Rank these molecules by their carbon content (highest first), and for ties, rank by total atom count. Also include the total number of atomic connections in each molecule."
     messages:
       - role: user
         content: |

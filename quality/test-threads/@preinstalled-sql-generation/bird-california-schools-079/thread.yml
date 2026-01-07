@@ -1,7 +1,64 @@
 name: bird-california-schools-079
-description: 'BIRD Q78 (challenging): For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?'
+description: "BIRD Q78 (challenging): For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolsByGradeSpan AS
+    (SELECT s.GSserved,
+            COUNT(s.CDSCode) AS school_count,
+            RANK() OVER (
+                         ORDER BY COUNT(s.CDSCode) DESC) AS grade_span_rank
+     FROM schools s
+     WHERE s.City = 'Adelanto'
+     GROUP BY s.GSserved),
+       SchoolStats AS
+    (SELECT s.GSserved,
+            s.School,
+            f.`Enrollment (K-12)`,
+            f.`FRPM Count (K-12)`,
+            f.`Percent (%) Eligible FRPM (K-12)`,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium Poverty'
+                ELSE 'Low Poverty'
+            END AS poverty_level,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.AvgScrWrite
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE s.City = 'Adelanto'
+       AND s.StatusType = 'Active')
+  SELECT sbs.GSserved AS most_common_grade_span,
+         sbs.school_count,
+         COUNT(ss.School) AS active_schools,
+         AVG(ss.`Enrollment (K-12)`) AS avg_enrollment,
+         SUM(ss.`Enrollment (K-12)`) AS total_enrollment,
+         AVG(ss.`Percent (%) Eligible FRPM (K-12)`) AS avg_frpm_percentage,
+         COUNT(CASE
+                   WHEN ss.poverty_level = 'High Poverty' THEN 1
+               END) AS high_poverty_schools,
+         COUNT(CASE
+                   WHEN ss.poverty_level = 'Medium Poverty' THEN 1
+               END) AS medium_poverty_schools,
+         COUNT(CASE
+                   WHEN ss.poverty_level = 'Low Poverty' THEN 1
+               END) AS low_poverty_schools,
+         AVG(ss.AvgScrRead) AS avg_reading_score,
+         AVG(ss.AvgScrMath) AS avg_math_score,
+         AVG(ss.AvgScrWrite) AS avg_writing_score
+  FROM SchoolsByGradeSpan sbs
+  JOIN SchoolStats ss ON sbs.GSserved = ss.GSserved
+  WHERE sbs.grade_span_rank = 1
+  GROUP BY sbs.GSserved,
+           sbs.school_count;
 
 sdms:
   - kind: postgres
@@ -10,7 +67,7 @@ sdms:
 
 thread:
   - name: bird-question-78
-    description: 'For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?'
+    description: "For the most common grade span served in Adelanto, what are the enrollment statistics, poverty levels, and average SAT scores across all active schools?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-formula-1-138
-description: 'BIRD Q983 (simple): Which of the Italian constructor got the highest point to date? Give its introduction website?'
+description: "BIRD Q983 (simple): Which of the Italian constructor got the highest point to date? Give its introduction website?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.url
+  FROM constructors AS T1
+  INNER JOIN constructorStandings AS T2 ON T1.constructorId = T2.constructorId
+  WHERE T1.nationality = 'Italian'
+  ORDER BY T2.points DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-983
-    description: 'Which of the Italian constructor got the highest point to date? Give its introduction website?'
+    description: "Which of the Italian constructor got the highest point to date? Give its introduction website?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-debit-card-specializing-043
-description: 'BIRD Q1512 (simple): Which customer paid the most in 2012/8/25? If there is a tie, list any one customer.'
+description: "BIRD Q1512 (simple): Which customer paid the most in 2012/8/25? If there is a tie, list any one customer."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CustomerID
+  FROM transactions_1k
+  WHERE Date = '2012-08-25'
+  GROUP BY CustomerID
+  ORDER BY SUM(Price) DESC, CustomerID ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1512
-    description: 'Which customer paid the most in 2012/8/25? If there is a tie, list any one customer.'
+    description: "Which customer paid the most in 2012/8/25? If there is a tie, list any one customer."
     messages:
       - role: user
         content: |

@@ -1,7 +1,17 @@
 name: bird-european-football-2-024
-description: 'BIRD Q1043 (simple): What is the short name of the football team Queens Park Rangers?'
+description: "BIRD Q1043 (simple): What is the short name of the football team Queens Park Rangers?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT team_short_name
+  FROM Team
+  WHERE team_long_name = 'Queens Park Rangers'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1043
-    description: 'What is the short name of the football team Queens Park Rangers?'
+    description: "What is the short name of the football team Queens Park Rangers?"
     messages:
       - role: user
         content: |

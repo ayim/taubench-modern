@@ -1,7 +1,19 @@
 name: bird-toxicology-055
-description: 'BIRD Q249 (challenging): What are the elements of the atoms of TR144_8_19?'
+description: "BIRD Q249 (challenging): What are the elements of the atoms of TR144_8_19?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.element
+  FROM connected AS T1
+  INNER JOIN atom AS T2 ON T2.atom_id IN (T1.atom_id,
+                                          T1.atom_id2)
+  WHERE T1.bond_id = 'TR144_8_19'
 
 sdms:
   - kind: postgres
@@ -10,12 +22,12 @@ sdms:
 
 thread:
   - name: bird-question-249
-    description: 'What are the elements of the atoms of TR144_8_19?'
+    description: "What are the elements of the atoms of TR144_8_19?"
     messages:
       - role: user
         content: |
           What are the elements of the atoms of TR144_8_19?
-          Evidence: TR144_8_19 is the bond id;
+          Evidence: TR144_8_19 is the bond id; 
 
 target-platforms:
   - name: openai

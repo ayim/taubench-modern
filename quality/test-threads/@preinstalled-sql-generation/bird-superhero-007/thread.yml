@@ -1,7 +1,21 @@
 name: bird-superhero-007
-description: 'BIRD Q723 (moderate): Among the superheroes with blue eyes, how many of them have the super power of "Agility"?'
+description: "BIRD Q723 (moderate): Among the superheroes with blue eyes, how many of them have the super power of \"Agility\"?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.id)
+  FROM superhero AS T1
+  INNER JOIN hero_power AS T2 ON T1.id = T2.hero_id
+  INNER JOIN superpower AS T3 ON T2.power_id = T3.id
+  INNER JOIN colour AS T4 ON T1.eye_colour_id = T4.id
+  WHERE T3.power_name = 'Agility'
+    AND T4.colour = 'Blue'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-723
-    description: 'Among the superheroes with blue eyes, how many of them have the super power of "Agility"?'
+    description: "Among the superheroes with blue eyes, how many of them have the super power of \"Agility\"?"
     messages:
       - role: user
         content: |

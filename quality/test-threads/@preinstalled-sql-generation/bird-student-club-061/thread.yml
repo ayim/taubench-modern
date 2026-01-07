@@ -1,7 +1,19 @@
 name: bird-student-club-061
-description: 'BIRD Q1372 (simple): When did the member, Casey Mason, received the income?'
+description: "BIRD Q1372 (simple): When did the member, Casey Mason, received the income?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.date_received
+  FROM member AS T1
+  INNER JOIN income AS T2 ON T1.member_id = T2.link_to_member
+  WHERE T1.first_name = 'Casey'
+    AND T1.last_name = 'Mason'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1372
-    description: 'When did the member, Casey Mason, received the income?'
+    description: "When did the member, Casey Mason, received the income?"
     messages:
       - role: user
         content: |

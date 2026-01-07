@@ -1,7 +1,115 @@
 name: bird-financial-058
-description: 'BIRD Q146 (challenging): What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?'
+description: "BIRD Q146 (challenging): What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountOwners AS
+    (SELECT T1.client_id,
+            T1.gender,
+            T1.birth_date,
+            T2.account_id,
+            T2.disp_id,
+            T5.district_id,
+            T5.frequency
+     FROM client AS T1
+     INNER JOIN disp AS T2 ON T1.client_id = T2.client_id
+     INNER JOIN ACCOUNT AS T5 ON T2.account_id = T5.account_id
+     WHERE T1.gender = 'F'
+       AND T2.type = 'OWNER'),
+       CardHolders AS
+    (SELECT AO.client_id,
+            AO.account_id,
+            COUNT(T4.card_id) AS card_count,
+            MAX(T4.issued) AS latest_card_issued,
+            MIN(T4.issued) AS first_card_issued,
+            GROUP_CONCAT(T4.type, ', ') AS card_types
+     FROM AccountOwners AS AO
+     INNER JOIN card AS T4 ON AO.disp_id = T4.disp_id
+     GROUP BY AO.client_id,
+              AO.account_id),
+       LoanDetails AS
+    (SELECT AO.client_id,
+            AO.account_id,
+            COUNT(T3.loan_id) AS loan_count,
+            SUM(T3.amount) AS total_loan_amount,
+            AVG(T3.payments) AS avg_monthly_payment,
+            MAX(CASE
+                    WHEN T3.status = 'A' THEN 'Good Standing'
+                    WHEN T3.status = 'B' THEN 'Default'
+                    ELSE T3.status
+                END) AS loan_status
+     FROM AccountOwners AS AO
+     INNER JOIN loan AS T3 ON AO.account_id = T3.account_id
+     GROUP BY AO.client_id,
+              AO.account_id),
+       TransactionStats AS
+    (SELECT AO.client_id,
+            AO.account_id,
+            COUNT(TR.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN TR.type = 'PRIJEM' THEN TR.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN TR.type = 'VYDAJ' THEN TR.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(TR.balance) AS max_balance
+     FROM AccountOwners AS AO
+     INNER JOIN trans AS TR ON AO.account_id = TR.account_id
+     GROUP BY AO.client_id,
+              AO.account_id),
+       DistrictInfo AS
+    (SELECT D.district_id,
+            D.A2 AS district_name,
+            D.A3 AS region,
+            D.A11 AS avg_salary,
+            D.A12 AS unemployment_rate_95,
+            D.A14 AS entrepreneurs_per_1000
+     FROM district AS D)
+  SELECT AO.client_id,
+         'Client #' || AO.client_id || ' (Born: ' || strftime('%Y-%m-%d', AO.birth_date) || ')' AS client_description,
+         DI.district_name,
+         DI.region,
+         CH.card_count,
+         CH.card_types,
+         LD.loan_count,
+         LD.total_loan_amount,
+         LD.avg_monthly_payment,
+         LD.loan_status,
+         TS.transaction_count,
+         TS.total_income,
+         TS.total_expense,
+         TS.total_income - TS.total_expense AS net_cash_flow,
+         ROUND((TS.total_income - TS.total_expense) * 100.0 / CASE
+                                                                  WHEN TS.total_income = 0 THEN 1
+                                                                  ELSE TS.total_income
+                                                              END, 2) || '%' AS savings_rate,
+         CASE
+             WHEN LD.total_loan_amount > 100000 THEN 'High Loan'
+             WHEN LD.total_loan_amount > 50000 THEN 'Medium Loan'
+             ELSE 'Low Loan'
+         END AS loan_category,
+         DENSE_RANK() OVER (PARTITION BY DI.region
+                            ORDER BY LD.total_loan_amount DESC) AS loan_rank_in_region
+  FROM AccountOwners AS AO
+  INNER JOIN CardHolders AS CH ON AO.client_id = CH.client_id
+  AND AO.account_id = CH.account_id
+  INNER JOIN LoanDetails AS LD ON AO.client_id = LD.client_id
+  AND AO.account_id = LD.account_id
+  INNER JOIN TransactionStats AS TS ON AO.client_id = TS.client_id
+  AND AO.account_id = TS.account_id
+  INNER JOIN DistrictInfo AS DI ON AO.district_id = DI.district_id
+  WHERE (julianday('now') - julianday(AO.birth_date))/365.25 >= 18
+  ORDER BY LD.total_loan_amount DESC,
+           CH.card_count DESC
+  LIMIT 100;
 
 sdms:
   - kind: postgres
@@ -10,7 +118,7 @@ sdms:
 
 thread:
   - name: bird-question-146
-    description: 'What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?'
+    description: "What are the top 100 female account owners with credit cards and loans, ranked by their total loan amounts, showing their financial profile including card details, loan status, transaction statistics, savings rate, and regional loan ranking?"
     messages:
       - role: user
         content: |

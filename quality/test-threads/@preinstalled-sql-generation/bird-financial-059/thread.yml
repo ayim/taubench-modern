@@ -1,7 +1,90 @@
 name: bird-financial-059
-description: 'BIRD Q147 (challenging): What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?'
+description: "BIRD Q147 (challenging): What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ClientAccounts AS
+    (SELECT c.client_id,
+            c.gender,
+            a.account_id,
+            d.A3 AS region,
+            d.A2 AS district_name,
+            CASE
+                WHEN c.birth_date > '1980-01-01' THEN 'Young'
+                WHEN c.birth_date BETWEEN '1960-01-01' AND '1980-01-01' THEN 'Middle-aged'
+                ELSE 'Senior'
+            END AS age_category,
+            a.frequency
+     FROM client c
+     JOIN district d ON c.district_id = d.district_id
+     JOIN disp dp ON c.client_id = dp.client_id
+     JOIN ACCOUNT a ON dp.account_id = a.account_id
+     WHERE c.gender = 'F'
+       AND d.A3 = 'south Bohemia'
+       AND dp.type = 'OWNER'),
+       AccountTransactions AS
+    (SELECT ca.client_id,
+            ca.account_id,
+            ca.district_name,
+            ca.age_category,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance
+     FROM ClientAccounts ca
+     LEFT JOIN trans t ON ca.account_id = t.account_id
+     GROUP BY ca.client_id,
+              ca.account_id,
+              ca.district_name,
+              ca.age_category),
+       LoanStatus AS
+    (SELECT ca.client_id,
+            ca.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS active_loans
+     FROM ClientAccounts ca
+     LEFT JOIN loan l ON ca.account_id = l.account_id
+     GROUP BY ca.client_id,
+              ca.account_id)
+  SELECT at.district_name,
+         at.age_category,
+         COUNT(DISTINCT at.client_id) AS client_count,
+         COUNT(DISTINCT at.account_id) AS account_count,
+         ROUND(AVG(at.transaction_count), 2) AS avg_transactions_per_account,
+         ROUND(AVG(at.total_income - at.total_expense), 2) AS avg_net_balance,
+         ROUND(AVG(CASE
+                       WHEN ls.loan_count > 0 THEN ls.total_loan_amount / ls.loan_count
+                       ELSE 0
+                   END), 2) AS avg_loan_amount,
+         SUM(ls.active_loans) AS total_active_loans,
+         ROUND(SUM(ls.active_loans) * 100.0 / COUNT(DISTINCT at.client_id), 2) AS active_loans_per_100_clients
+  FROM AccountTransactions AT
+  LEFT JOIN LoanStatus ls ON at.client_id = ls.client_id
+  AND at.account_id = ls.account_id
+  GROUP BY at.district_name,
+           at.age_category
+  ORDER BY at.district_name,
+           CASE
+               WHEN at.age_category = 'Young' THEN 1
+               WHEN at.age_category = 'Middle-aged' THEN 2
+               ELSE 3
+           END;
 
 sdms:
   - kind: postgres
@@ -10,7 +93,7 @@ sdms:
 
 thread:
   - name: bird-question-147
-    description: 'What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?'
+    description: "What is the demographic and financial profile of female account owners in south Bohemia, broken down by district and age group, including their average transaction activity, net balance, loan amounts, and active loan rates?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,98 @@
 name: bird-financial-025
-description: 'BIRD Q113 (challenging): For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans.'
+description: "BIRD Q113 (challenging): For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanClient AS
+    (SELECT T1.loan_id,
+            T1.account_id,
+            T1.date AS loan_date,
+            T1.amount,
+            T1.duration,
+            T1.payments,
+            T1.status,
+            T4.client_id,
+            T4.birth_date,
+            T4.gender,
+            T4.district_id AS client_district_id,
+            T2.district_id AS account_district_id,
+            CAST(strftime('%Y', T1.date) AS INTEGER) - CAST(strftime('%Y', T4.birth_date) AS INTEGER) - CASE
+                                                                                                            WHEN strftime('%m%d', T1.date) < strftime('%m%d', T4.birth_date) THEN 1
+                                                                                                            ELSE 0
+                                                                                                        END AS age_at_loan
+     FROM loan AS T1
+     INNER JOIN ACCOUNT AS T2 ON T1.account_id = T2.account_id
+     INNER JOIN disp AS T3 ON T2.account_id = T3.account_id
+     AND T3.type = 'OWNER'
+     INNER JOIN client AS T4 ON T3.client_id = T4.client_id
+     WHERE T1.date = '1996-01-03'
+       AND T1.amount = 98832),
+       ClientTransactions AS
+    (SELECT LC.client_id,
+            LC.birth_date,
+            LC.age_at_loan,
+            COUNT(DISTINCT t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            MIN(t.balance) AS min_balance,
+            d.A2 AS district_name,
+            d.A3 AS region
+     FROM LoanClient LC
+     JOIN ACCOUNT a ON LC.account_id = a.account_id
+     LEFT JOIN trans t ON a.account_id = t.account_id
+     AND t.date < LC.loan_date
+     LEFT JOIN district d ON LC.client_district_id = d.district_id
+     GROUP BY LC.client_id,
+              LC.birth_date,
+              LC.age_at_loan,
+              d.A2,
+              d.A3),
+       CardInfo AS
+    (SELECT LC.client_id,
+            COUNT(DISTINCT c.card_id) AS card_count,
+            GROUP_CONCAT(DISTINCT c.type) AS card_types
+     FROM LoanClient LC
+     JOIN disp d ON LC.client_id = d.client_id
+     LEFT JOIN card c ON d.disp_id = c.disp_id
+     GROUP BY LC.client_id)
+  SELECT CT.birth_date,
+         CT.age_at_loan,
+         CT.district_name,
+         CT.region,
+         CT.transaction_count,
+         CT.total_income,
+         CT.total_expense,
+         CASE
+             WHEN CT.total_income > 0 THEN ROUND((CT.total_expense * 100.0) / CT.total_income, 2)
+             ELSE 0
+         END AS expense_to_income_ratio,
+         CT.max_balance,
+         CT.min_balance,
+         COALESCE(CI.card_count, 0) AS card_count,
+         COALESCE(CI.card_types, 'None') AS card_types,
+  
+    (SELECT COUNT(*)
+     FROM loan l
+     JOIN ACCOUNT a ON l.account_id = a.account_id
+     JOIN disp d ON a.account_id = d.account_id
+     WHERE d.client_id = CT.client_id
+       AND l.date < '1996-01-03') AS previous_loans
+  FROM ClientTransactions CT
+  LEFT JOIN CardInfo CI ON CT.client_id = CI.client_id
+  ORDER BY CT.birth_date;
 
 sdms:
   - kind: postgres
@@ -10,7 +101,7 @@ sdms:
 
 thread:
   - name: bird-question-113
-    description: 'For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans.'
+    description: "For the client who applied for a 98832 USD loan on January 3rd, 1996, provide a comprehensive profile including their birthday, age at the time of loan application, location, transaction history before the loan, expense-to-income ratio, balance range, credit card information, and number of previous loans."
     messages:
       - role: user
         content: |

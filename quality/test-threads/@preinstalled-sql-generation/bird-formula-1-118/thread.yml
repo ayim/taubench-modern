@@ -1,7 +1,19 @@
 name: bird-formula-1-118
-description: 'BIRD Q963 (moderate): How many French drivers who obtain the laptime less than 02:00.00?'
+description: "BIRD Q963 (moderate): How many French drivers who obtain the laptime less than 02:00.00?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.driverId)
+  FROM drivers AS T1
+  INNER JOIN lapTimes AS T2 ON T1.driverId = T2.driverId
+  WHERE T1.nationality = 'French'
+    AND (CAST(SUBSTR(T2.time, 1, 2) AS INTEGER) * 60 + CAST(SUBSTR(T2.time, 4, 2) AS INTEGER) + CAST(SUBSTR(T2.time, 7, 2) AS REAL) / 1000) < 120;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-963
-    description: 'How many French drivers who obtain the laptime less than 02:00.00?'
+    description: "How many French drivers who obtain the laptime less than 02:00.00?"
     messages:
       - role: user
         content: |

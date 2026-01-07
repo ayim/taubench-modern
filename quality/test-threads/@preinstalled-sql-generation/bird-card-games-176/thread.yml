@@ -1,7 +1,26 @@
 name: bird-card-games-176
-description: 'BIRD Q515 (moderate): When was the oldest mythic card released and what are its legal play formats?'
+description: "BIRD Q515 (moderate): When was the oldest mythic card released and what are its legal play formats?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.originalReleaseDate,
+         T2.format
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.rarity = 'mythic'
+    AND T1.originalReleaseDate IS NOT NULL
+    AND T2.status = 'Legal'
+    AND T1.originalReleaseDate =
+      (SELECT MIN(originalReleaseDate)
+       FROM cards
+       WHERE rarity = 'mythic'
+         AND originalReleaseDate IS NOT NULL)
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-515
-    description: 'When was the oldest mythic card released and what are its legal play formats?'
+    description: "When was the oldest mythic card released and what are its legal play formats?"
     messages:
       - role: user
         content: |

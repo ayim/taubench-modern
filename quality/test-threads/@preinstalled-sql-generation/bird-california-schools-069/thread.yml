@@ -1,7 +1,27 @@
 name: bird-california-schools-069
-description: 'BIRD Q68 (moderate): Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?'
+description: "BIRD Q68 (moderate): Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT County
+  FROM
+    (SELECT County,
+            COUNT(CDSCode) AS closure_count,
+            DENSE_RANK() OVER (
+                               ORDER BY COUNT(CDSCode) DESC) AS rank_num
+     FROM schools
+     WHERE strftime('%Y', ClosedDate) BETWEEN '1980' AND '1989'
+       AND StatusType = 'Closed'
+       AND SOC = '11'
+     GROUP BY County)
+  WHERE rank_num = 1
+  ORDER BY County ASC
 
 sdms:
   - kind: postgres
@@ -10,7 +30,7 @@ sdms:
 
 thread:
   - name: bird-question-68
-    description: 'Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?'
+    description: "Which county reported the most number of school closure in the 1980s with school wonership code belonging to Youth Authority Facilities (CEA)?"
     messages:
       - role: user
         content: |

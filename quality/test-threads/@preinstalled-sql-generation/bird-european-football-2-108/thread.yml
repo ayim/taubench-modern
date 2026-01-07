@@ -1,7 +1,20 @@
 name: bird-european-football-2-108
-description: 'BIRD Q1127 (moderate): Locate players with vision scores of 90 and above, state the country of these players.'
+description: "BIRD Q1127 (moderate): Locate players with vision scores of 90 and above, state the country of these players."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t4.name
+  FROM Player_Attributes AS t1
+  INNER JOIN Player AS t2 ON t1.player_api_id = t2.player_api_id
+  INNER JOIN MATCH AS t3 ON t2.player_api_id = t3.home_player_8
+  INNER JOIN Country AS t4 ON t3.country_id = t4.id
+  WHERE t1.vision > 89
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1127
-    description: 'Locate players with vision scores of 90 and above, state the country of these players.'
+    description: "Locate players with vision scores of 90 and above, state the country of these players."
     messages:
       - role: user
         content: |

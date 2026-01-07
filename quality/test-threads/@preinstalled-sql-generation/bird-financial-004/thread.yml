@@ -1,7 +1,70 @@
 name: bird-financial-004
-description: 'BIRD Q92 (challenging): What are the overall statistics for female clients in districts where the average salary is between 6,000 and 10,000, ranking in the top 3 for salary within their region, having at least 5 female clients, and with active loan accounts?'
+description: "BIRD Q92 (challenging): What are the overall statistics for female clients in districts where the average salary is between 6,000 and 10,000, ranking in the top 3 for salary within their region, having at least 5 female clients, and with active loan accounts?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH DistrictStats AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            COUNT(DISTINCT c.client_id) AS female_clients,
+            AVG(CAST(strftime('%Y', 'now') - strftime('%Y', c.birth_date) AS INTEGER)) AS avg_age,
+            RANK() OVER (PARTITION BY d.A3
+                         ORDER BY d.A11 DESC) AS salary_rank_in_region
+     FROM district d
+     JOIN client c ON d.district_id = c.district_id
+     WHERE c.gender = 'F'
+     GROUP BY d.district_id,
+              d.A2,
+              d.A3,
+              d.A11
+     HAVING d.A11 BETWEEN 6000 AND 10000),
+       AccountActivity AS
+    (SELECT a.district_id,
+            COUNT(DISTINCT a.account_id) AS total_accounts,
+            COUNT(DISTINCT l.loan_id) AS total_loans,
+            ROUND(AVG(l.amount), 2) AS avg_loan_amount,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS active_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS completed_loans,
+            SUM(CASE
+                    WHEN l.status = 'C' THEN 1
+                    ELSE 0
+                END) AS defaulted_loans
+     FROM ACCOUNT a
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     JOIN disp d ON a.account_id = d.account_id
+     JOIN client c ON d.client_id = c.client_id
+     WHERE c.gender = 'F'
+     GROUP BY a.district_id)
+  SELECT COUNT(DISTINCT ds.district_id) AS district_count,
+         SUM(ds.female_clients) AS total_female_clients,
+         ROUND(AVG(ds.avg_salary), 2) AS average_female_salary,
+         ROUND(AVG(ds.avg_age), 1) AS average_female_age,
+         SUM(aa.total_accounts) AS total_female_accounts,
+         SUM(aa.total_loans) AS total_female_loans,
+         ROUND(AVG(aa.avg_loan_amount), 2) AS average_female_loan_amount,
+         SUM(aa.active_loans) AS active_female_loans,
+         SUM(aa.completed_loans) AS completed_female_loans,
+         SUM(aa.defaulted_loans) AS defaulted_female_loans,
+         GROUP_CONCAT(DISTINCT ds.region) AS regions_represented
+  FROM DistrictStats ds
+  JOIN AccountActivity aa ON ds.district_id = aa.district_id
+  WHERE ds.salary_rank_in_region <= 3
+    AND ds.female_clients >= 5
+    AND aa.total_loans > 0;
 
 sdms:
   - kind: postgres
@@ -10,7 +73,7 @@ sdms:
 
 thread:
   - name: bird-question-92
-    description: 'What are the overall statistics for female clients in districts where the average salary is between 6,000 and 10,000, ranking in the top 3 for salary within their region, having at least 5 female clients, and with active loan accounts?'
+    description: "What are the overall statistics for female clients in districts where the average salary is between 6,000 and 10,000, ranking in the top 3 for salary within their region, having at least 5 female clients, and with active loan accounts?"
     messages:
       - role: user
         content: |

@@ -3,6 +3,23 @@ description: "BIRD Q1205 (moderate): Was the patient with the number 57266's uri
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CASE
+             WHEN (T1.SEX = 'F'
+                   AND T2.UA > 6.5)
+                  OR (T1.SEX = 'M'
+                      AND T2.UA > 8.0) THEN TRUE
+             ELSE FALSE
+         END
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T1.ID = 57266
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_thrombosis_prediction

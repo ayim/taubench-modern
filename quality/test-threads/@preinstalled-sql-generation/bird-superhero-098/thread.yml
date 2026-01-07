@@ -1,7 +1,19 @@
 name: bird-superhero-098
-description: 'BIRD Q814 (moderate): List the skin colour of the superheroes with 100 attribute value.'
+description: "BIRD Q814 (moderate): List the skin colour of the superheroes with 100 attribute value."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.colour
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.skin_colour_id = T2.id
+  INNER JOIN hero_attribute AS T3 ON T1.id = T3.hero_id
+  WHERE T3.attribute_value = 100
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-814
-    description: 'List the skin colour of the superheroes with 100 attribute value.'
+    description: "List the skin colour of the superheroes with 100 attribute value."
     messages:
       - role: user
         content: |

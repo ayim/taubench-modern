@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-153
-description: 'BIRD Q1301 (simple): Please list the IDs of the patients with no thrombosis and an abnormal level of creatinine phosphokinase.'
+description: "BIRD Q1301 (simple): Please list the IDs of the patients with no thrombosis and an abnormal level of creatinine phosphokinase."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID
+  FROM Laboratory AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T2.Thrombosis = 0
+    AND T1.CPK < 250
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1301
-    description: 'Please list the IDs of the patients with no thrombosis and an abnormal level of creatinine phosphokinase.'
+    description: "Please list the IDs of the patients with no thrombosis and an abnormal level of creatinine phosphokinase."
     messages:
       - role: user
         content: |

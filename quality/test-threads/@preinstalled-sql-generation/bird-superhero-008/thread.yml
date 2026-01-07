@@ -1,7 +1,20 @@
 name: bird-superhero-008
-description: 'BIRD Q724 (challenging): Please list the superhero names of all the superheroes that have blue eyes and blond hair.'
+description: "BIRD Q724 (challenging): Please list the superhero names of all the superheroes that have blue eyes and blond hair."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.eye_colour_id = T2.id
+  INNER JOIN colour AS T3 ON T1.hair_colour_id = T3.id
+  WHERE T2.colour = 'Blue'
+    AND T3.colour = 'Blond'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-724
-    description: 'Please list the superhero names of all the superheroes that have blue eyes and blond hair.'
+    description: "Please list the superhero names of all the superheroes that have blue eyes and blond hair."
     messages:
       - role: user
         content: |

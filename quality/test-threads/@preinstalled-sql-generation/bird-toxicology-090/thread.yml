@@ -1,7 +1,18 @@
 name: bird-toxicology-090
-description: 'BIRD Q284 (moderate): Determine the bond type that is formed in the chemical compound containing element Carbon.'
+description: "BIRD Q284 (moderate): Determine the bond type that is formed in the chemical compound containing element Carbon."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.bond_type
+  FROM atom AS T1
+  INNER JOIN bond AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.element = 'c'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-284
-    description: 'Determine the bond type that is formed in the chemical compound containing element Carbon.'
+    description: "Determine the bond type that is formed in the chemical compound containing element Carbon."
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-superhero-110
-description: 'BIRD Q826 (simple): Identify the heaviest superhero in DC Comics.'
+description: "BIRD Q826 (simple): Identify the heaviest superhero in DC Comics."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN publisher AS T2 ON T1.publisher_id = T2.id
+  WHERE T2.publisher_name = 'DC Comics'
+  ORDER BY T1.weight_kg DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-826
-    description: 'Identify the heaviest superhero in DC Comics.'
+    description: "Identify the heaviest superhero in DC Comics."
     messages:
       - role: user
         content: |

@@ -1,7 +1,23 @@
 name: bird-student-club-080
-description: 'BIRD Q1391 (simple): What is the ratio of students majoring in finance to those majoring in physics?'
+description: "BIRD Q1391 (simple): What is the ratio of students majoring in finance to those majoring in physics?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN m2.major_name = 'Finance' THEN 1
+                      ELSE 0
+                  END) AS FLOAT) / NULLIF(CAST(SUM(CASE
+                                                       WHEN m2.major_name = 'Physics' THEN 1
+                                                       ELSE 0
+                                                   END) AS FLOAT), 0) AS ratio
+  FROM member m1
+  JOIN major m2 ON m1.link_to_major = m2.major_id
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-1391
-    description: 'What is the ratio of students majoring in finance to those majoring in physics?'
+    description: "What is the ratio of students majoring in finance to those majoring in physics?"
     messages:
       - role: user
         content: |

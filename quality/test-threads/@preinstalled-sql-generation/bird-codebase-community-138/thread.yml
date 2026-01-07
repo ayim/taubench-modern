@@ -1,7 +1,20 @@
 name: bird-codebase-community-138
-description: 'BIRD Q668 (simple): What is the display name of the user who acquired the highest amount of badges?'
+description: "BIRD Q668 (simple): What is the display name of the user who acquired the highest amount of badges?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.DisplayName
+  FROM users AS T1
+  INNER JOIN badges AS T2 ON T1.Id = T2.UserId
+  GROUP BY T1.DisplayName
+  ORDER BY COUNT(T2.Id) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-668
-    description: 'What is the display name of the user who acquired the highest amount of badges?'
+    description: "What is the display name of the user who acquired the highest amount of badges?"
     messages:
       - role: user
         content: |

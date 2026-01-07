@@ -1,7 +1,18 @@
 name: bird-european-football-2-048
-description: 'BIRD Q1067 (moderate): Which teams have build up play passing more than 70? Please list their short names.'
+description: "BIRD Q1067 (moderate): Which teams have build up play passing more than 70? Please list their short names."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t1.team_short_name
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t2.buildUpPlayPassing > 70;
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1067
-    description: 'Which teams have build up play passing more than 70? Please list their short names.'
+    description: "Which teams have build up play passing more than 70? Please list their short names."
     messages:
       - role: user
         content: |

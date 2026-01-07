@@ -1,7 +1,82 @@
 name: bird-financial-049
-description: 'BIRD Q137 (challenging): What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?'
+description: "BIRD Q137 (challenging): What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountsWithRunningLoans AS
+    (SELECT a.account_id,
+            a.district_id,
+            l.status,
+            l.amount,
+            l.duration,
+            l.payments,
+            (l.amount - (l.payments * l.duration)) AS remaining_debt
+     FROM ACCOUNT AS a
+     INNER JOIN loan AS l ON a.account_id = l.account_id
+     WHERE a.district_id = 1
+       AND (l.status = 'C'
+            OR l.status = 'D')),
+       ClientDetails AS
+    (SELECT d.account_id,
+            c.client_id,
+            c.gender,
+            strftime('%Y', 'now') - strftime('%Y', c.birth_date) AS client_age,
+            COUNT(card.card_id) AS num_cards
+     FROM disp AS d
+     INNER JOIN client AS c ON d.client_id = c.client_id
+     LEFT JOIN card ON d.disp_id = card.disp_id
+     WHERE d.type = 'OWNER'
+     GROUP BY d.account_id,
+              c.client_id,
+              c.gender,
+              c.birth_date),
+       TransactionStats AS
+    (SELECT account_id,
+            COUNT(*) AS transaction_count,
+            SUM(CASE
+                    WHEN TYPE = 'PRIJEM' THEN amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN TYPE = 'VYDAJ' THEN amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(balance) AS max_balance
+     FROM trans
+     GROUP BY account_id)
+  SELECT COUNT(DISTINCT arl.account_id) AS total_accounts_with_running_contracts,
+         ROUND(AVG(arl.remaining_debt), 2) AS avg_remaining_debt,
+         SUM(CASE
+                 WHEN cd.gender = 'M' THEN 1
+                 ELSE 0
+             END) AS male_account_owners,
+         SUM(CASE
+                 WHEN cd.gender = 'F' THEN 1
+                 ELSE 0
+             END) AS female_account_owners,
+         ROUND(AVG(cd.client_age), 0) AS avg_client_age,
+         ROUND(AVG(cd.num_cards), 1) AS avg_cards_per_account,
+         ROUND(AVG(CASE
+                       WHEN ts.transaction_count IS NOT NULL THEN ts.transaction_count
+                       ELSE 0
+                   END), 0) AS avg_transactions_per_account,
+         ROUND(AVG(CASE
+                       WHEN ts.max_balance IS NOT NULL THEN ts.max_balance
+                       ELSE 0
+                   END), 2) AS avg_max_balance,
+         d.A2 AS district_name,
+         d.A3 AS region,
+         d.A11 AS avg_salary_in_district
+  FROM AccountsWithRunningLoans AS arl
+  LEFT JOIN ClientDetails AS cd ON arl.account_id = cd.account_id
+  LEFT JOIN TransactionStats AS ts ON arl.account_id = ts.account_id
+  JOIN district AS d ON arl.district_id = d.district_id
 
 sdms:
   - kind: postgres
@@ -10,7 +85,7 @@ sdms:
 
 thread:
   - name: bird-question-137
-    description: 'What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?'
+    description: "What are the demographics and financial statistics of account owners with running loan contracts in district 1, including their average remaining debt, gender distribution, age, card ownership, transaction activity, and account balances?"
     messages:
       - role: user
         content: |

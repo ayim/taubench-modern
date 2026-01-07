@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-050
-description: 'BIRD Q1519 (simple): What was the product id of the transaction happened at 2012/8/23 21:20:00?'
+description: "BIRD Q1519 (simple): What was the product id of the transaction happened at 2012/8/23 21:20:00?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.ProductID
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  WHERE T1.Date = '2012-08-23'
+    AND T1.Time = '21:20:00'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1519
-    description: 'What was the product id of the transaction happened at 2012/8/23 21:20:00?'
+    description: "What was the product id of the transaction happened at 2012/8/23 21:20:00?"
     messages:
       - role: user
         content: |

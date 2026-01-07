@@ -1,7 +1,18 @@
 name: bird-codebase-community-158
-description: 'BIRD Q688 (simple): Identify the number of posts that have been viewed over 35000 times but have received no comments from other users.'
+description: "BIRD Q688 (simple): Identify the number of posts that have been viewed over 35000 times but have received no comments from other users."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(Id)
+  FROM posts
+  WHERE ViewCount > 35000
+    AND CommentCount = 0
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-688
-    description: 'Identify the number of posts that have been viewed over 35000 times but have received no comments from other users.'
+    description: "Identify the number of posts that have been viewed over 35000 times but have received no comments from other users."
     messages:
       - role: user
         content: |

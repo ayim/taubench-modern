@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-151
-description: 'BIRD Q1299 (simple): Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?'
+description: "BIRD Q1299 (simple): Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID)
+  FROM Examination AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.TG < 200
+    AND T1.Symptoms IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1299
-    description: 'Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?'
+    description: "Among the patients with the normal level of triglyceride, how many of them have other symptoms observed?"
     messages:
       - role: user
         content: |

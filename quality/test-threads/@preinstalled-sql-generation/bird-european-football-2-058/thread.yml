@@ -3,6 +3,16 @@ description: "BIRD Q1077 (simple): What's the long name for the team GEN?"
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT team_long_name
+  FROM Team
+  WHERE team_short_name = 'GEN'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

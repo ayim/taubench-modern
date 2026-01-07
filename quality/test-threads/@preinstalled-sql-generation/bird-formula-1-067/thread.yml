@@ -3,6 +3,16 @@ description: "BIRD Q912 (simple): What's the reference name of Marina Bay Street
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT circuitRef
+  FROM circuits
+  WHERE name = 'Marina Bay Street Circuit'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_formula_1

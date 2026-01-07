@@ -1,7 +1,19 @@
 name: bird-student-club-075
-description: 'BIRD Q1386 (simple): What is the total expense for the Yearly Kickoff?'
+description: "BIRD Q1386 (simple): What is the total expense for the Yearly Kickoff?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T3.cost)
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget
+  WHERE T1.event_name = 'Yearly Kickoff'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1386
-    description: 'What is the total expense for the Yearly Kickoff?'
+    description: "What is the total expense for the Yearly Kickoff?"
     messages:
       - role: user
         content: |

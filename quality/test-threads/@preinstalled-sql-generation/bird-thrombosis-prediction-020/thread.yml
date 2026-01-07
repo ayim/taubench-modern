@@ -3,6 +3,25 @@ description: "BIRD Q1168 (challenging): The oldest SJS patient's latest medical 
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Max(T1.Date) AS LatestLabDate,
+         STRFTIME('%Y', T2.`First Date`) - STRFTIME('%Y', T2.Birthday) AS AgeFirstArrived,
+         T2.Birthday
+  FROM Laboratory AS T1
+  INNER JOIN Patient AS T2 ON T1.ID = T2.ID
+  WHERE T2.ID =
+      (SELECT ID
+       FROM Patient
+       WHERE Diagnosis = 'SJS'
+         AND Birthday IS NOT NULL
+       ORDER BY Birthday ASC
+       LIMIT 1)
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_thrombosis_prediction

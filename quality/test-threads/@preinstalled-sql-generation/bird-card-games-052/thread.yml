@@ -1,7 +1,19 @@
 name: bird-card-games-052
-description: 'BIRD Q391 (moderate): Among the Artifact cards, which are black color and comes with foreign languague translation?'
+description: "BIRD Q391 (moderate): Among the Artifact cards, which are black color and comes with foreign languague translation?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.name
+  FROM cards AS T1
+  INNER JOIN foreign_data AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.originalType = 'Artifact'
+    AND T1.colors = 'B'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-391
-    description: 'Among the Artifact cards, which are black color and comes with foreign languague translation?'
+    description: "Among the Artifact cards, which are black color and comes with foreign languague translation?"
     messages:
       - role: user
         content: |

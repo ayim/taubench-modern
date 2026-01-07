@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-039
-description: 'BIRD Q1508 (simple): How many transactions taken place in the gas station in the Czech Republic are with a price of over 1000?'
+description: "BIRD Q1508 (simple): How many transactions taken place in the gas station in the Czech Republic are with a price of over 1000?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.TransactionID)
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  WHERE T2.Country = 'CZE'
+    AND T1.Price > 1000
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1508
-    description: 'How many transactions taken place in the gas station in the Czech Republic are with a price of over 1000?'
+    description: "How many transactions taken place in the gas station in the Czech Republic are with a price of over 1000?"
     messages:
       - role: user
         content: |

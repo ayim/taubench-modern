@@ -1,7 +1,17 @@
 name: bird-formula-1-120
-description: 'BIRD Q965 (simple): List out the Id number of races which were hold in 2009.'
+description: "BIRD Q965 (simple): List out the Id number of races which were hold in 2009."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT raceId
+  FROM races
+  WHERE YEAR = 2009
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-965
-    description: 'List out the Id number of races which were hold in 2009.'
+    description: "List out the Id number of races which were hold in 2009."
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-card-games-062
-description: 'BIRD Q401 (moderate): What percentage of legendary frame effect cards that are only available in online game variations?'
+description: "BIRD Q401 (moderate): What percentage of legendary frame effect cards that are only available in online game variations?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN isOnlineOnly = 1 THEN 1.0
+                 ELSE 0
+             END) / COUNT(id) * 100
+  FROM cards
+  WHERE frameEffects = 'legendary'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-401
-    description: 'What percentage of legendary frame effect cards that are only available in online game variations?'
+    description: "What percentage of legendary frame effect cards that are only available in online game variations?"
     messages:
       - role: user
         content: |

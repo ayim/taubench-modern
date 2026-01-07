@@ -1,7 +1,19 @@
 name: bird-codebase-community-059
-description: 'BIRD Q589 (simple): Which user ID has the highest reputation?'
+description: "BIRD Q589 (simple): Which user ID has the highest reputation?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Id
+  FROM users
+  WHERE Reputation =
+      (SELECT MAX(Reputation)
+       FROM users)
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-589
-    description: 'Which user ID has the highest reputation?'
+    description: "Which user ID has the highest reputation?"
     messages:
       - role: user
         content: |

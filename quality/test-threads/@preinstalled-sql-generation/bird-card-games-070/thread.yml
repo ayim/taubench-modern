@@ -1,7 +1,21 @@
 name: bird-card-games-070
-description: 'BIRD Q409 (moderate): Indicates the number of cards with pre-modern format, ruling text "This is a triggered mana ability." that do not have multiple faces.'
+description: "BIRD Q409 (moderate): Indicates the number of cards with pre-modern format, ruling text \"This is a triggered mana ability.\" that do not have multiple faces."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.id)
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T1.uuid = T2.uuid
+  INNER JOIN rulings AS T3 ON T1.uuid = T3.uuid
+  WHERE T2.format = 'premodern'
+    AND T3.text = 'This is a triggered mana ability.'
+    AND T1.Side IS NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-409
-    description: 'Indicates the number of cards with pre-modern format, ruling text "This is a triggered mana ability." that do not have multiple faces.'
+    description: "Indicates the number of cards with pre-modern format, ruling text \"This is a triggered mana ability.\" that do not have multiple faces."
     messages:
       - role: user
         content: |

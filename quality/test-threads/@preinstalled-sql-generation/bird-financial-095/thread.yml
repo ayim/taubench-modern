@@ -1,7 +1,107 @@
 name: bird-financial-095
-description: 'BIRD Q183 (challenging): For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?'
+description: "BIRD Q183 (challenging): For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountsInBeroun AS
+    (SELECT a.account_id,
+            a.date,
+            d.A2 AS district_name,
+            STRFTIME('%Y', a.date) AS opening_year,
+            a.frequency
+     FROM ACCOUNT AS a
+     INNER JOIN district AS d ON a.district_id = d.district_id
+     WHERE d.A2 = 'Beroun'
+       AND STRFTIME('%Y', a.date) > '1996'),
+       ClientsWithAccounts AS
+    (SELECT c.client_id,
+            c.gender,
+            c.birth_date,
+            STRFTIME('%Y', 'now') - STRFTIME('%Y', c.birth_date) AS client_age,
+            aib.account_id,
+            aib.opening_year
+     FROM client AS c
+     INNER JOIN disp AS dp ON c.client_id = dp.client_id
+     INNER JOIN AccountsInBeroun AS aib ON dp.account_id = aib.account_id
+     WHERE dp.type = 'OWNER'),
+       TransactionStats AS
+    (SELECT aib.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance
+     FROM AccountsInBeroun AS aib
+     LEFT JOIN trans AS t ON aib.account_id = t.account_id
+     GROUP BY aib.account_id),
+       LoanInfo AS
+    (SELECT aib.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            AVG(l.duration) AS avg_loan_duration,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS successful_loans,
+            SUM(CASE
+                    WHEN l.status = 'B' THEN 1
+                    ELSE 0
+                END) AS running_loans,
+            SUM(CASE
+                    WHEN l.status = 'C' THEN 1
+                    ELSE 0
+                END) AS defaulted_loans
+     FROM AccountsInBeroun AS aib
+     LEFT JOIN loan AS l ON aib.account_id = l.account_id
+     GROUP BY aib.account_id)
+  SELECT COUNT(DISTINCT aib.account_id) AS total_accounts,
+         aib.opening_year,
+         AVG(CASE
+                 WHEN cwa.gender = 'M' THEN 1
+                 ELSE 0
+             END) * 100 AS male_percentage,
+         AVG(CASE
+                 WHEN cwa.gender = 'F' THEN 1
+                 ELSE 0
+             END) * 100 AS female_percentage,
+         AVG(cwa.client_age) AS avg_client_age,
+         SUM(ts.transaction_count) AS total_transactions,
+         SUM(ts.total_income) AS total_income,
+         SUM(ts.total_expense) AS total_expense,
+         SUM(ts.total_income) - SUM(ts.total_expense) AS net_balance,
+         SUM(li.loan_count) AS total_loans,
+         SUM(li.total_loan_amount) AS total_loan_amount,
+         SUM(li.successful_loans) AS successful_loans,
+         SUM(li.defaulted_loans) AS defaulted_loans,
+         CASE
+             WHEN SUM(li.loan_count) > 0 THEN ROUND((SUM(li.successful_loans) * 100.0 / SUM(li.loan_count)), 2)
+             ELSE 0
+         END AS loan_success_rate,
+         COUNT(DISTINCT CASE
+                            WHEN c.type = 'gold' THEN c.card_id
+                        END) AS gold_cards,
+         COUNT(DISTINCT CASE
+                            WHEN c.type = 'classic' THEN c.card_id
+                        END) AS classic_cards
+  FROM AccountsInBeroun AS aib
+  LEFT JOIN ClientsWithAccounts AS cwa ON aib.account_id = cwa.account_id
+  LEFT JOIN TransactionStats AS ts ON aib.account_id = ts.account_id
+  LEFT JOIN LoanInfo AS li ON aib.account_id = li.account_id
+  LEFT JOIN disp AS d ON aib.account_id = d.account_id
+  LEFT JOIN card AS c ON d.disp_id = c.disp_id
+  GROUP BY aib.opening_year
+  ORDER BY aib.opening_year;
 
 sdms:
   - kind: postgres
@@ -10,7 +110,7 @@ sdms:
 
 thread:
   - name: bird-question-183
-    description: 'For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?'
+    description: "For accounts opened in Beroun after 1996, what are the yearly statistics including account owner demographics, transaction volumes, loan performance, and credit card distribution?"
     messages:
       - role: user
         content: |

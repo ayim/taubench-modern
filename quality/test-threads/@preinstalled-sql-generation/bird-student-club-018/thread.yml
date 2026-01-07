@@ -1,7 +1,19 @@
 name: bird-student-club-018
-description: 'BIRD Q1329 (simple): What county did Sherri Ramsey grew up?'
+description: "BIRD Q1329 (simple): What county did Sherri Ramsey grew up?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.county
+  FROM member AS T1
+  INNER JOIN zip_code AS T2 ON T1.zip = T2.zip_code
+  WHERE T1.first_name = 'Sherri'
+    AND T1.last_name = 'Ramsey'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1329
-    description: 'What county did Sherri Ramsey grew up?'
+    description: "What county did Sherri Ramsey grew up?"
     messages:
       - role: user
         content: |

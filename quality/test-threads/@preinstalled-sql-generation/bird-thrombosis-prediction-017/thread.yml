@@ -1,7 +1,18 @@
 name: bird-thrombosis-prediction-017
-description: 'BIRD Q1165 (moderate): What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?'
+description: "BIRD Q1165 (moderate): What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT STRFTIME('%Y', MAX(T1.Birthday)) - STRFTIME('%Y', MIN(T1.Birthday))
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.TG >= 200
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1165
-    description: 'What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?'
+    description: "What is the age gap between the youngest and oldest patient with a normal triglyceride recorded?"
     messages:
       - role: user
         content: |

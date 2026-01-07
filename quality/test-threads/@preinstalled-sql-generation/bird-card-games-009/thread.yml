@@ -3,6 +3,18 @@ description: "BIRD Q348 (simple): Describe the information about rulings for car
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.text
+  FROM cards AS T1
+  INNER JOIN rulings AS T2 ON T1.uuid = T2.uuid
+  WHERE T1.name = 'Sublime Epiphany'
+    AND T1.number = '74s'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_card_games

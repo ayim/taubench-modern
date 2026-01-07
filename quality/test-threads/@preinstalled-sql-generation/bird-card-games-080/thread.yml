@@ -1,7 +1,18 @@
 name: bird-card-games-080
-description: 'BIRD Q419 (simple): How many color cards with no borders have been ranked higher than 12000 on EDHRec?'
+description: "BIRD Q419 (simple): How many color cards with no borders have been ranked higher than 12000 on EDHRec?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(id)
+  FROM cards
+  WHERE edhrecRank > 12000
+    AND borderColor = 'borderless'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-419
-    description: 'How many color cards with no borders have been ranked higher than 12000 on EDHRec?'
+    description: "How many color cards with no borders have been ranked higher than 12000 on EDHRec?"
     messages:
       - role: user
         content: |

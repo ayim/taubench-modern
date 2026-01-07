@@ -1,7 +1,19 @@
 name: bird-european-football-2-127
-description: 'BIRD Q1146 (moderate): Please provide the full name of the away team that scored the most goals.'
+description: "BIRD Q1146 (moderate): Please provide the full name of the away team that scored the most goals."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t2.team_long_name
+  FROM MATCH AS t1
+  INNER JOIN Team AS t2 ON t1.away_team_api_id = t2.team_api_id
+  ORDER BY t1.away_team_goal DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1146
-    description: 'Please provide the full name of the away team that scored the most goals.'
+    description: "Please provide the full name of the away team that scored the most goals."
     messages:
       - role: user
         content: |

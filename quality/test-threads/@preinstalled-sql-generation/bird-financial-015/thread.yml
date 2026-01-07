@@ -1,7 +1,79 @@
 name: bird-financial-015
-description: 'BIRD Q103 (challenging): For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group.'
+description: "BIRD Q103 (challenging): For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ClientCardInfo AS
+    (SELECT c.client_id,
+            c.gender,
+            c.birth_date,
+            cd.issued,
+            cd.type AS card_type,
+            STRFTIME('%Y', c.birth_date) AS birth_year,
+            STRFTIME('%Y', cd.issued) - STRFTIME('%Y', c.birth_date) AS age_at_card_issue
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     JOIN card cd ON d.disp_id = cd.disp_id
+     WHERE cd.issued = '1994-03-03'),
+       ClientAccountInfo AS
+    (SELECT c.client_id,
+            COUNT(DISTINCT a.account_id) AS account_count,
+            SUM(CASE
+                    WHEN l.loan_id IS NOT NULL THEN 1
+                    ELSE 0
+                END) AS loan_count,
+            SUM(CASE
+                    WHEN l.status = 'A' THEN 1
+                    ELSE 0
+                END) AS active_loans,
+            AVG(CASE
+                    WHEN l.loan_id IS NOT NULL THEN l.amount
+                    ELSE NULL
+                END) AS avg_loan_amount
+     FROM client c
+     JOIN disp d ON c.client_id = d.client_id
+     JOIN ACCOUNT a ON d.account_id = a.account_id
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     GROUP BY c.client_id),
+       ClientDistrictInfo AS
+    (SELECT c.client_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            d.A11 AS avg_salary,
+            d.A14 AS entrepreneurs_per_1000
+     FROM client c
+     JOIN district d ON c.district_id = d.district_id)
+  SELECT ci.client_id,
+         ci.gender,
+         ci.birth_date,
+         ci.card_type,
+         ci.age_at_card_issue,
+         cai.account_count,
+         cai.loan_count,
+         cai.active_loans,
+         cai.avg_loan_amount,
+         cdi.district_name,
+         cdi.region,
+         cdi.avg_salary,
+         CASE
+             WHEN cai.loan_count > 0
+                  AND ci.age_at_card_issue < 30 THEN 'Young borrower'
+             WHEN cai.loan_count > 0
+                  AND ci.age_at_card_issue >= 30 THEN 'Mature borrower'
+             ELSE 'Non-borrower'
+         END AS borrower_category,
+         RANK() OVER (PARTITION BY ci.gender
+                      ORDER BY ci.age_at_card_issue) AS age_rank_by_gender
+  FROM ClientCardInfo ci
+  JOIN ClientAccountInfo cai ON ci.client_id = cai.client_id
+  JOIN ClientDistrictInfo cdi ON ci.client_id = cdi.client_id
+  ORDER BY ci.client_id;
 
 sdms:
   - kind: postgres
@@ -10,7 +82,7 @@ sdms:
 
 thread:
   - name: bird-question-103
-    description: 'For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group.'
+    description: "For all clients who received their credit card on March 3rd, 1994, provide a comprehensive profile including their personal information, banking activity, loan history, and district characteristics. Categorize them as borrowers based on their age and loan status, and rank them by age within their gender group."
     messages:
       - role: user
         content: |

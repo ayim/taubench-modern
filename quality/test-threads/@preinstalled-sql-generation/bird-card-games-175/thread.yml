@@ -1,7 +1,23 @@
 name: bird-card-games-175
-description: 'BIRD Q514 (simple): In duels, what are the top 10 cards with the highest converted mana cost?'
+description: "BIRD Q514 (simple): In duels, what are the top 10 cards with the highest converted mana cost?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT name
+  FROM cards
+  WHERE UUID IN
+      (SELECT UUID
+       FROM legalities
+       WHERE format = 'duel')
+  ORDER BY convertedManaCost DESC,
+           name ASC
+  LIMIT 10
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-514
-    description: 'In duels, what are the top 10 cards with the highest converted mana cost?'
+    description: "In duels, what are the top 10 cards with the highest converted mana cost?"
     messages:
       - role: user
         content: |

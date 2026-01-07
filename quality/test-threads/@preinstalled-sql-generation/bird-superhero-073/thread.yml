@@ -1,7 +1,18 @@
 name: bird-superhero-073
-description: 'BIRD Q789 (simple): Find the average weight of the heroes who are aliens.'
+description: "BIRD Q789 (simple): Find the average weight of the heroes who are aliens."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(T1.weight_kg) AS REAL) / COUNT(T1.id)
+  FROM superhero AS T1
+  INNER JOIN race AS T2 ON T1.race_id = T2.id
+  WHERE T2.race = 'Alien'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-789
-    description: 'Find the average weight of the heroes who are aliens.'
+    description: "Find the average weight of the heroes who are aliens."
     messages:
       - role: user
         content: |

@@ -3,6 +3,74 @@ description: "BIRD Q2 (challenging): For charter schools in Fresno County Office
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CharterSchoolInfo AS
+    (SELECT T1.CDSCode,
+            T1.`School Name` AS CharterSchoolName,
+            T1.`District Name`,
+            T1.`Charter School Number`,
+            T1.`Charter Funding Type`,
+            T1.`Enrollment (K-12)` AS Enrollment,
+            T1.`FRPM Count (K-12)` AS FRPMCount,
+            T1.`Percent (%) Eligible FRPM (K-12)` AS PercentFRPM,
+            T2.Zip,
+            T2.City,
+            T2.Street,
+            T2.OpenDate,
+            CASE
+                WHEN T2.ClosedDate IS NULL THEN 'Active'
+                ELSE 'Closed'
+            END AS CurrentStatus,
+            CASE
+                WHEN T1.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High FRPM'
+                WHEN T1.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium FRPM'
+                ELSE 'Low FRPM'
+            END AS FRPMCategory
+     FROM frpm AS T1
+     INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+     WHERE T1.`District Name` = 'Fresno County Office of Education'
+       AND T1.`Charter School (Y/N)` = 1),
+       SATPerformance AS
+    (SELECT cds,
+            sname,
+            NumTstTakr,
+            AvgScrRead,
+            AvgScrMath,
+            AvgScrWrite,
+            (AvgScrRead + AvgScrMath + AvgScrWrite) AS TotalSATScore,
+            CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) AS PercentageAbove1500
+     FROM satscores
+     WHERE rtype = 'S')
+  SELECT c.Zip,
+         c.City,
+         c.CharterSchoolName,
+         c.`Charter Funding Type`,
+         c.Enrollment,
+         c.PercentFRPM,
+         c.FRPMCategory,
+         STRFTIME('%Y', c.OpenDate) AS YearOpened,
+         c.CurrentStatus,
+         s.NumTstTakr AS SATTestTakers,
+         s.TotalSATScore,
+         s.PercentageAbove1500,
+         RANK() OVER (
+                      ORDER BY s.TotalSATScore DESC NULLS LAST) AS SATRanking,
+         RANK() OVER (
+                      ORDER BY c.Enrollment DESC) AS EnrollmentRanking
+  FROM CharterSchoolInfo c
+  LEFT JOIN SATPerformance s ON c.CDSCode = s.cds
+  ORDER BY CASE
+               WHEN s.TotalSATScore IS NULL THEN 1
+               ELSE 0
+           END,
+           s.TotalSATScore DESC,
+           c.Enrollment DESC;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_california_schools

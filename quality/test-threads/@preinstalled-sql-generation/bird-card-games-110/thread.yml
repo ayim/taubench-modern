@@ -1,7 +1,19 @@
 name: bird-card-games-110
-description: 'BIRD Q449 (simple): What is the language of the card that has azorius watermark? List out the type of this card.'
+description: "BIRD Q449 (simple): What is the language of the card that has azorius watermark? List out the type of this card."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.language,
+                  T1.type
+  FROM cards AS T1
+  INNER JOIN foreign_data AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.watermark = 'azorius'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-449
-    description: 'What is the language of the card that has azorius watermark? List out the type of this card.'
+    description: "What is the language of the card that has azorius watermark? List out the type of this card."
     messages:
       - role: user
         content: |

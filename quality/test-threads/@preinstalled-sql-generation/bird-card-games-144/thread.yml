@@ -1,7 +1,21 @@
 name: bird-card-games-144
-description: 'BIRD Q483 (moderate): Please list the Italian text ruling of all the cards in the set Coldsnap.'
+description: "BIRD Q483 (moderate): Please list the Italian text ruling of all the cards in the set Coldsnap."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.text
+  FROM foreign_data AS T1
+  INNER JOIN cards AS T2 ON T2.uuid = T1.uuid
+  INNER JOIN
+  SETS AS T3 ON T3.code = T2.setCode
+  WHERE T3.name = 'Coldsnap'
+    AND T1.language = 'Italian'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-483
-    description: 'Please list the Italian text ruling of all the cards in the set Coldsnap.'
+    description: "Please list the Italian text ruling of all the cards in the set Coldsnap."
     messages:
       - role: user
         content: |

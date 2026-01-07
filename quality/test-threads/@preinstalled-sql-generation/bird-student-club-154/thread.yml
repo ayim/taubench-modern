@@ -3,6 +3,17 @@ description: "BIRD Q1465 (simple): Which budget category does the expense 'Poste
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.category
+  FROM expense AS T1
+  INNER JOIN budget AS T2 ON T1.link_to_budget = T2.budget_id
+  WHERE T1.expense_description = 'Posters'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_student_club

@@ -1,7 +1,28 @@
 name: bird-formula-1-063
-description: 'BIRD Q908 (simple): What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted.'
+description: "BIRD Q908 (simple): What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.name,
+         T2.year,
+         T1.location,
+         MAX(T3.lap) AS max_laps
+  FROM circuits AS T1
+  INNER JOIN races AS T2 ON T1.circuitId = T2.circuitId
+  INNER JOIN lapTimes AS T3 ON T3.raceId = T2.raceId
+  GROUP BY T2.raceId,
+           T2.name,
+           T2.year,
+           T1.location
+  ORDER BY max_laps DESC,
+           T2.raceId ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +31,7 @@ sdms:
 
 thread:
   - name: bird-question-908
-    description: 'What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted.'
+    description: "What is the most laps f1 races had? Name the race, year and circuit location where the races with most laps was hosted."
     messages:
       - role: user
         content: |

@@ -1,7 +1,23 @@
 name: bird-formula-1-049
-description: 'BIRD Q894 (moderate): What is the best lap time recorded? List the driver and race with such recorded lap time.'
+description: "BIRD Q894 (moderate): What is the best lap time recorded? List the driver and race with such recorded lap time."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.milliseconds,
+         T1.forename,
+         T1.surname,
+         T3.name
+  FROM drivers AS T1
+  INNER JOIN lapTimes AS T2 ON T1.driverId = T2.driverId
+  INNER JOIN races AS T3 ON T2.raceId = T3.raceId
+  ORDER BY T2.milliseconds ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-894
-    description: 'What is the best lap time recorded? List the driver and race with such recorded lap time.'
+    description: "What is the best lap time recorded? List the driver and race with such recorded lap time."
     messages:
       - role: user
         content: |

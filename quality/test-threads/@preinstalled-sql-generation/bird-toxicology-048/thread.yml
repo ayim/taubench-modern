@@ -1,7 +1,19 @@
 name: bird-toxicology-048
-description: 'BIRD Q242 (moderate): Among all the atoms from 21 to 25, list all the molecules that are carcinogenic.'
+description: "BIRD Q242 (moderate): Among all the atoms from 21 to 25, list all the molecules that are carcinogenic."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.molecule_id
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE SUBSTR(T1.atom_id, -2) BETWEEN '21' AND '25'
+    AND T2.label = '+'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-242
-    description: 'Among all the atoms from 21 to 25, list all the molecules that are carcinogenic.'
+    description: "Among all the atoms from 21 to 25, list all the molecules that are carcinogenic."
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-codebase-community-067
-description: 'BIRD Q597 (simple): How many users from India have the teacher badges?'
+description: "BIRD Q597 (simple): How many users from India have the teacher badges?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.Id)
+  FROM badges AS T1
+  INNER JOIN users AS T2 ON T1.UserId = T2.Id
+  WHERE T2.Location = 'India'
+    AND T1.Name = 'Teacher';
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-597
-    description: 'How many users from India have the teacher badges?'
+    description: "How many users from India have the teacher badges?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-student-club-087
-description: 'BIRD Q1398 (moderate): Name the event with the highest amount spent on advertisement.'
+description: "BIRD Q1398 (moderate): Name the event with the highest amount spent on advertisement."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.event_name
+  FROM budget AS T1
+  INNER JOIN event AS T2 ON T1.link_to_event = T2.event_id
+  WHERE T1.category = 'Advertisement'
+  ORDER BY T1.spent DESC,
+           T2.event_id ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1398
-    description: 'Name the event with the highest amount spent on advertisement.'
+    description: "Name the event with the highest amount spent on advertisement."
     messages:
       - role: user
         content: |

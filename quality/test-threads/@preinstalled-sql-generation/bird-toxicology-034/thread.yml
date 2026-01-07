@@ -1,7 +1,20 @@
 name: bird-toxicology-034
-description: 'BIRD Q228 (moderate): How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places.'
+description: "BIRD Q228 (moderate): How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT ROUND(CAST(COUNT(CASE
+                              WHEN T.element = 'h' THEN T.atom_id
+                              ELSE NULL
+                          END) AS REAL) * 100 / COUNT(T.atom_id), 4)
+  FROM atom AS T
+  WHERE T.molecule_id = 'TR206'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-228
-    description: 'How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places.'
+    description: "How much of the hydrogen in molecule TR206 is accounted for? Please provide your answer as a percentage with four decimal places."
     messages:
       - role: user
         content: |

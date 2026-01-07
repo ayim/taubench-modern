@@ -3,6 +3,21 @@ description: "BIRD Q529 (moderate): Find and list the names of sets which doesn'
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT name
+  FROM
+  SETS
+  WHERE code IN
+      (SELECT setCode
+       FROM set_translations
+       WHERE LANGUAGE = 'Korean'
+         AND LANGUAGE NOT LIKE '%Japanese%')
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_card_games

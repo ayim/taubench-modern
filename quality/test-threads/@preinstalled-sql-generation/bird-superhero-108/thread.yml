@@ -1,7 +1,20 @@
 name: bird-superhero-108
-description: 'BIRD Q824 (moderate): Identify superheroes who can control wind and list their names in alphabetical order.'
+description: "BIRD Q824 (moderate): Identify superheroes who can control wind and list their names in alphabetical order."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN hero_power AS T2 ON T1.id = T2.hero_id
+  INNER JOIN superpower AS T3 ON T2.power_id = T3.id
+  WHERE T3.power_name = 'Wind Control'
+  ORDER BY T1.superhero_name
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-824
-    description: 'Identify superheroes who can control wind and list their names in alphabetical order.'
+    description: "Identify superheroes who can control wind and list their names in alphabetical order."
     messages:
       - role: user
         content: |

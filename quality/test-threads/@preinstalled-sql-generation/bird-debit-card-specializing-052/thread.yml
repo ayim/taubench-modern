@@ -1,7 +1,20 @@
 name: bird-debit-card-specializing-052
-description: 'BIRD Q1521 (moderate): For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?'
+description: "BIRD Q1521 (moderate): For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.TransactionID)
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  WHERE T1.Date = '2012-08-26'
+    AND T1.Time BETWEEN '08:00:00' AND '09:00:00'
+    AND T2.Country = 'CZE'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1521
-    description: 'For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?'
+    description: "For all the transactions happened during 8:00-9:00 in 2012/8/26, how many happened in CZE?"
     messages:
       - role: user
         content: |

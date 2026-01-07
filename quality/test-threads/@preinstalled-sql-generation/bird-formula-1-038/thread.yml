@@ -1,7 +1,18 @@
 name: bird-formula-1-038
-description: 'BIRD Q883 (simple): How many races were there in 2005? Name all the races in descending order.'
+description: "BIRD Q883 (simple): How many races were there in 2005? Name all the races in descending order."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT name
+  FROM races
+  WHERE YEAR = 2005
+  ORDER BY name DESC
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-883
-    description: 'How many races were there in 2005? Name all the races in descending order.'
+    description: "How many races were there in 2005? Name all the races in descending order."
     messages:
       - role: user
         content: |

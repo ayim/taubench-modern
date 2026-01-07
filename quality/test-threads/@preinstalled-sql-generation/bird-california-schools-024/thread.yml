@@ -1,7 +1,19 @@
 name: bird-california-schools-024
-description: 'BIRD Q23 (moderate): List the names of schools with more than 30 difference in enrollements between K-12 and ages 5-17? Please also give the full street adress of the schools.'
+description: "BIRD Q23 (moderate): List the names of schools with more than 30 difference in enrollements between K-12 and ages 5-17? Please also give the full street adress of the schools."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.School,
+         T1.Street
+  FROM schools AS T1
+  INNER JOIN frpm AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T2.`Enrollment (K-12)` - T2.`Enrollment (Ages 5-17)` > 30;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-23
-    description: 'List the names of schools with more than 30 difference in enrollements between K-12 and ages 5-17? Please also give the full street adress of the schools.'
+    description: "List the names of schools with more than 30 difference in enrollements between K-12 and ages 5-17? Please also give the full street adress of the schools."
     messages:
       - role: user
         content: |

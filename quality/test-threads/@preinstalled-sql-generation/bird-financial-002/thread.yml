@@ -1,7 +1,19 @@
 name: bird-financial-002
-description: 'BIRD Q90 (simple): How many accounts who have region in Prague are eligible for loans?'
+description: "BIRD Q90 (simple): How many accounts who have region in Prague are eligible for loans?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.account_id)
+  FROM ACCOUNT AS T1
+  INNER JOIN loan AS T2 ON T1.account_id = T2.account_id
+  INNER JOIN district AS T3 ON T1.district_id = T3.district_id
+  WHERE T3.A3 = 'Prague'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-90
-    description: 'How many accounts who have region in Prague are eligible for loans?'
+    description: "How many accounts who have region in Prague are eligible for loans?"
     messages:
       - role: user
         content: |

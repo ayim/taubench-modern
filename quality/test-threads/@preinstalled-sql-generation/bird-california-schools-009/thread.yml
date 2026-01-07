@@ -1,7 +1,81 @@
 name: bird-california-schools-009
-description: 'BIRD Q8 (challenging): For the top 10 schools with the highest number of students eligible for free or reduced price meals, provide detailed information including their location, type, FRPM statistics, and SAT performance metrics.'
+description: "BIRD Q8 (challenging): For the top 10 schools with the highest number of students eligible for free or reduced price meals, provide detailed information including their location, type, FRPM statistics, and SAT performance metrics."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolsWithHighFRPM AS
+    (SELECT f.CDSCode,
+            f.`School Name`,
+            f.`FRPM Count (K-12)`,
+            f.`Enrollment (K-12)`,
+            f.`Percent (%) Eligible FRPM (K-12)`,
+            RANK() OVER (
+                         ORDER BY f.`FRPM Count (K-12)` DESC) AS frpm_rank
+     FROM frpm f
+     WHERE f.`FRPM Count (K-12)` IS NOT NULL),
+       SchoolDetails AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.County,
+            s.District,
+            s.Charter,
+            s.GSoffered,
+            CASE
+                WHEN s.Charter = 1 THEN 'Charter School'
+                ELSE 'Non-Charter School'
+            END AS school_type,
+            CASE
+                WHEN s.GSoffered LIKE '%K%'
+                     AND s.GSoffered LIKE '%12%' THEN 'K-12'
+                WHEN s.GSoffered LIKE '%9%'
+                     AND s.GSoffered LIKE '%12%' THEN 'High School'
+                WHEN s.GSoffered LIKE '%6%'
+                     AND s.GSoffered LIKE '%8%' THEN 'Middle School'
+                WHEN s.GSoffered LIKE '%K%'
+                     AND s.GSoffered LIKE '%5%' THEN 'Elementary School'
+                ELSE 'Other'
+            END AS grade_level
+     FROM schools s),
+       SATDetails AS
+    (SELECT sat.cds,
+            sat.NumTstTakr,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.AvgScrWrite,
+            sat.NumGE1500,
+            (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS total_avg_score,
+            CASE
+                WHEN sat.enroll12 > 0 THEN ROUND((CAST(sat.NumTstTakr AS REAL) / sat.enroll12) * 100, 2)
+                ELSE NULL
+            END AS percent_taking_sat
+     FROM satscores sat)
+  SELECT sd.County,
+         sd.District,
+         sd.School,
+         sd.school_type,
+         sd.grade_level,
+         hwf.`FRPM Count (K-12)` AS frpm_count,
+         hwf.`Enrollment (K-12)` AS enrollment,
+         hwf.`Percent (%) Eligible FRPM (K-12)` * 100 AS percent_eligible_frpm,
+         sat.NumTstTakr AS num_sat_takers,
+         sat.percent_taking_sat,
+         sat.AvgScrRead AS avg_reading,
+         sat.AvgScrMath AS avg_math,
+         sat.AvgScrWrite AS avg_writing,
+         sat.total_avg_score,
+         ROUND((CAST(sat.NumGE1500 AS REAL) / sat.NumTstTakr) * 100, 2) AS percent_scoring_over_1500,
+         hwf.frpm_rank
+  FROM SchoolsWithHighFRPM hwf
+  JOIN SchoolDetails sd ON hwf.CDSCode = sd.CDSCode
+  LEFT JOIN SATDetails sat ON hwf.CDSCode = sat.cds
+  WHERE hwf.frpm_rank <= 10
+  ORDER BY hwf.frpm_rank;
 
 sdms:
   - kind: postgres
@@ -10,7 +84,7 @@ sdms:
 
 thread:
   - name: bird-question-8
-    description: 'For the top 10 schools with the highest number of students eligible for free or reduced price meals, provide detailed information including their location, type, FRPM statistics, and SAT performance metrics.'
+    description: "For the top 10 schools with the highest number of students eligible for free or reduced price meals, provide detailed information including their location, type, FRPM statistics, and SAT performance metrics."
     messages:
       - role: user
         content: |

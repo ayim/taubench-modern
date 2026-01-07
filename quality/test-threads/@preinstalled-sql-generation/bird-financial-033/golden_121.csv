@@ -1,5 +1,5 @@
 account_id,opening_date,district_name,region,gender,client_age,transaction_count,total_income,total_expense,net_balance,max_balance,loan_count,total_loan_amount,loan_status,customer_category,balance_rank
-1862,1995-04-15,Prachatice,south Bohemia,F,75,275,1937054,1375122,561932,120872,1,396120,No Default,High Activity,1
+1862,1995-04-15,Prachatice,south Bohemia,F,76,275,1937054,1375122,561932,120872,1,396120,No Default,High Activity,1
 2982,1996-06-04,Prachatice,south Bohemia,M,87,303,1686907,1219683,467224,138939,1,41256,No Default,High Activity,2
 2762,1993-03-20,Prachatice,south Bohemia,M,58,634,3724568,3301789,422779,166548,1,111384,No Default,High Activity,3
 7733,1996-07-08,Prachatice,south Bohemia,F,75,194,1406101,1067238,338863,116826,1,140064,No Default,High Activity,4
@@ -27,11 +27,11 @@ account_id,opening_date,district_name,region,gender,client_age,transaction_count
 2991,1993-05-22,Prachatice,south Bohemia,F,63,525,1642575,1582215,60360,84029,0,0,No Loans,Active Customer,26
 2440,1997-12-18,Prachatice,south Bohemia,F,68,68,310789,251275,59514,71111,0,0,No Loans,Active Customer,27
 221,1996-10-30,Prachatice,south Bohemia,F,58,139,617634,559127,58507,69998,0,0,No Loans,Active Customer,28
-1470,1994-02-10,Prachatice,south Bohemia,M,76,313,806995,748935,58060,63311,0,0,No Loans,Active Customer,29
+1470,1994-02-10,Prachatice,south Bohemia,M,77,313,806995,748935,58060,63311,0,0,No Loans,Active Customer,29
 2895,1993-03-09,Prachatice,south Bohemia,M,56,406,1390856,1337265,53591,64151,0,0,No Loans,Active Customer,30
 252,1996-12-26,Prachatice,south Bohemia,F,91,109,143338,92875,50463,52630,0,0,No Loans,Active Customer,31
 1635,1993-12-29,Prachatice,south Bohemia,F,55,348,1200324,1150670,49654,68386,0,0,No Loans,Active Customer,32
-2025,1994-10-02,Prachatice,south Bohemia,F,62,268,853040,808714,44326,54132,0,0,No Loans,Active Customer,33
+2025,1994-10-02,Prachatice,south Bohemia,F,63,268,853040,808714,44326,54132,0,0,No Loans,Active Customer,33
 825,1996-03-06,Prachatice,south Bohemia,M,77,218,624045,582306,41739,65122,1,53076,No Default,High Activity,34
 2357,1993-01-04,Prachatice,south Bohemia,M,97,357,471141,432868,38273,38943,0,0,No Loans,Active Customer,35
 2960,1994-09-20,Prachatice,south Bohemia,F,79,272,765490,729554,35936,48961,0,0,No Loans,Active Customer,36

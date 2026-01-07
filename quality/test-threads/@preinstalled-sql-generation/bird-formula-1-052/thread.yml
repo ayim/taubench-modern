@@ -1,7 +1,26 @@
 name: bird-formula-1-052
-description: 'BIRD Q897 (moderate): Name the driver with the most winning. Mention his nationality and what is his maximum point scores.'
+description: "BIRD Q897 (moderate): Name the driver with the most winning. Mention his nationality and what is his maximum point scores."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.forename,
+         T1.surname,
+         T1.nationality,
+         MAX(T2.points)
+  FROM drivers AS T1
+  INNER JOIN driverStandings AS T2 ON T2.driverId = T1.driverId
+  WHERE T2.wins >= 1
+  GROUP BY T1.forename,
+           T1.surname,
+           T1.nationality
+  ORDER BY COUNT(T2.wins) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-897
-    description: 'Name the driver with the most winning. Mention his nationality and what is his maximum point scores.'
+    description: "Name the driver with the most winning. Mention his nationality and what is his maximum point scores."
     messages:
       - role: user
         content: |

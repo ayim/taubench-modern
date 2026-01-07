@@ -1,7 +1,21 @@
 name: bird-debit-card-specializing-060
-description: 'BIRD Q1529 (moderate): What is the amount spent by customer 38508 at the gas stations? How much had the customer spent in January 2012?'
+description: "BIRD Q1529 (moderate): What is the amount spent by customer 38508 at the gas stations? How much had the customer spent in January 2012?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(Price) AS total_spent,
+         SUM(CASE
+                 WHEN strftime('%Y%m', Date) = '201201' THEN Price
+                 ELSE 0
+             END) AS jan_2012_spent
+  FROM transactions_1k
+  WHERE CustomerID = 38508;
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1529
-    description: 'What is the amount spent by customer 38508 at the gas stations? How much had the customer spent in January 2012?'
+    description: "What is the amount spent by customer 38508 at the gas stations? How much had the customer spent in January 2012?"
     messages:
       - role: user
         content: |

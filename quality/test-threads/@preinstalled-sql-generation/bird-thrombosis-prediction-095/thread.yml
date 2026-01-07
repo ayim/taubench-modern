@@ -1,7 +1,23 @@
 name: bird-thrombosis-prediction-095
-description: 'BIRD Q1243 (challenging): For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?'
+description: "BIRD Q1243 (challenging): For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN T2.PT >= 14
+                                      AND T1.SEX = 'F' THEN T1.ID
+                             END) AS REAL) / COUNT(DISTINCT CASE
+                                                                WHEN T2.PT >= 14 THEN T1.ID
+                                                            END) * 100 AS abnormal_pt_female_percentage
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE STRFTIME('%Y', CURRENT_TIMESTAMP) - STRFTIME('%Y', T1.Birthday) > 55;
 
 sdms:
   - kind: postgres
@@ -10,12 +26,12 @@ sdms:
 
 thread:
   - name: bird-question-1243
-    description: 'For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?'
+    description: "For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?"
     messages:
       - role: user
         content: |
           For all patients who are older than 55 years old, what is the percentage of female who has abnormal prothrombin time (PT)?
-          Evidence: older than 55 years old = SUBTRACT(year(current_timestamp), year(Birthday)) > 55; abnormal prothrombin time (PT) refers to PT > = 14; percentage = DIVIDE(SUM(PT > = 14 AND SEX = 'F'), SUM(PT > = 14)) * 100; female refers to sex = 'F';
+          Evidence: older than 55 years old = SUBTRACT(year(current_timestamp), year(Birthday)) > 55; abnormal prothrombin time (PT) refers to PT > = 14; percentage = DIVIDE(SUM(PT > = 14 AND SEX = 'F'), SUM(PT > = 14)) * 100; female refers to sex = 'F'; 
 
 target-platforms:
   - name: openai

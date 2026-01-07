@@ -1,7 +1,23 @@
 name: bird-codebase-community-074
-description: 'BIRD Q604 (moderate): What is the average of the up votes and the average user age for users creating more than 10 posts?'
+description: "BIRD Q604 (moderate): What is the average of the up votes and the average user age for users creating more than 10 posts?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.UpVotes),
+         AVG(T1.Age)
+  FROM users AS T1
+  INNER JOIN
+    (SELECT OwnerUserId,
+            COUNT(*) AS post_count
+     FROM posts
+     GROUP BY OwnerUserId
+     HAVING post_count > 10) AS T2 ON T1.Id = T2.OwnerUserId
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-604
-    description: 'What is the average of the up votes and the average user age for users creating more than 10 posts?'
+    description: "What is the average of the up votes and the average user age for users creating more than 10 posts?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-codebase-community-122
-description: 'BIRD Q652 (moderate): List the post IDs and badge names of the user Samuel in 2013.'
+description: "BIRD Q652 (moderate): List the post IDs and badge names of the user Samuel in 2013."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.PostId,
+         T2.Name
+  FROM postHistory AS T1
+  INNER JOIN badges AS T2 ON T1.UserId = T2.UserId
+  WHERE T1.UserDisplayName = 'Samuel'
+    AND STRFTIME('%Y', T1.CreationDate) = '2013'
+    AND STRFTIME('%Y', T2.`Date`) = '2013'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-652
-    description: 'List the post IDs and badge names of the user Samuel in 2013.'
+    description: "List the post IDs and badge names of the user Samuel in 2013."
     messages:
       - role: user
         content: |

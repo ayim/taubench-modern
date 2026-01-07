@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-004
-description: 'BIRD Q1473 (moderate): What was the average monthly consumption of customers in SME for the year 2013?'
+description: "BIRD Q1473 (moderate): What was the average monthly consumption of customers in SME for the year 2013?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.Consumption) / 12
+  FROM customers AS T1
+  INNER JOIN yearmonth AS T2 ON T1.CustomerID = T2.CustomerID
+  WHERE SUBSTR(T2.Date, 1, 4) = '2013'
+    AND T1.Segment = 'SME'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1473
-    description: 'What was the average monthly consumption of customers in SME for the year 2013?'
+    description: "What was the average monthly consumption of customers in SME for the year 2013?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-california-schools-057
-description: 'BIRD Q56 (simple): Of all the schools with a mailing state address in California, how many are active in San Joaquin city?'
+description: "BIRD Q56 (simple): Of all the schools with a mailing state address in California, how many are active in San Joaquin city?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(CDSCode)
+  FROM schools
+  WHERE City = 'San Joaquin'
+    AND MailState = 'CA'
+    AND StatusType = 'Active'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-56
-    description: 'Of all the schools with a mailing state address in California, how many are active in San Joaquin city?'
+    description: "Of all the schools with a mailing state address in California, how many are active in San Joaquin city?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,22 @@
 name: bird-thrombosis-prediction-099
-description: 'BIRD Q1247 (challenging): Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?'
+description: "BIRD Q1247 (challenging): Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT p.ID) AS male_count
+  FROM Patient AS p
+  JOIN Laboratory AS l ON l.ID = p.ID
+  WHERE p.SEX = 'M'
+    AND (l.FG <= 150
+         OR l.FG >= 450)
+    AND l.WBC > 3.5
+    AND l.WBC < 9.0;
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1247
-    description: 'Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?'
+    description: "Among the male patients who have a normal level of white blood cells, how many of them have an abnormal fibrinogen level?"
     messages:
       - role: user
         content: |

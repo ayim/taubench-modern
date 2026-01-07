@@ -1,7 +1,20 @@
 name: bird-formula-1-104
-description: 'BIRD Q949 (simple): Which constructor has the highest point?'
+description: "BIRD Q949 (simple): Which constructor has the highest point?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.name
+  FROM constructorStandings AS T1
+  INNER JOIN constructors AS T2 ON T1.constructorId = T2.constructorId
+  GROUP BY T2.name
+  ORDER BY SUM(T1.points) DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-949
-    description: 'Which constructor has the highest point?'
+    description: "Which constructor has the highest point?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,25 @@
 name: bird-european-football-2-009
-description: 'BIRD Q1028 (challenging): In Scotland Premier League, which away team won the most during the 2010 season?'
+description: "BIRD Q1028 (challenging): In Scotland Premier League, which away team won the most during the 2010 season?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t.team_long_name
+  FROM League l
+  JOIN `Match` m ON l.id = m.league_id
+  JOIN Team t ON m.away_team_api_id = t.team_api_id
+  WHERE l.name = 'Scotland Premier League'
+    AND m.season = '2009/2010'
+    AND m.away_team_goal > m.home_team_goal
+  GROUP BY m.away_team_api_id,
+           t.team_long_name
+  ORDER BY COUNT(*) DESC, t.team_api_id ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-1028
-    description: 'In Scotland Premier League, which away team won the most during the 2010 season?'
+    description: "In Scotland Premier League, which away team won the most during the 2010 season?"
     messages:
       - role: user
         content: |

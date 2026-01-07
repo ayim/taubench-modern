@@ -1,7 +1,20 @@
 name: bird-toxicology-039
-description: 'BIRD Q233 (simple): Please list top two bonds that happened with the molecule TR006 in alphabetical order.'
+description: "BIRD Q233 (simple): Please list top two bonds that happened with the molecule TR006 in alphabetical order."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.bond_id
+  FROM atom AS T1
+  INNER JOIN connected AS T2 ON T1.atom_id = T2.atom_id
+  WHERE T1.molecule_id = 'TR006'
+  ORDER BY T2.bond_id
+  LIMIT 2
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-233
-    description: 'Please list top two bonds that happened with the molecule TR006 in alphabetical order.'
+    description: "Please list top two bonds that happened with the molecule TR006 in alphabetical order."
     messages:
       - role: user
         content: |

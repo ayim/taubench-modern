@@ -1,7 +1,20 @@
 name: bird-california-schools-023
-description: 'BIRD Q22 (simple): Which school in Contra Costa has the highest number of test takers?'
+description: "BIRD Q22 (simple): Which school in Contra Costa has the highest number of test takers?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT sname
+  FROM satscores
+  WHERE cname = 'Contra Costa'
+    AND sname IS NOT NULL
+  ORDER BY NumTstTakr DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-22
-    description: 'Which school in Contra Costa has the highest number of test takers?'
+    description: "Which school in Contra Costa has the highest number of test takers?"
     messages:
       - role: user
         content: |

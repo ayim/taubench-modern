@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-072
-description: 'BIRD Q1220 (simple): Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?'
+description: "BIRD Q1220 (simple): Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID,
+                  T1.SEX,
+                  T1.Birthday
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.UN = 29
 
 sdms:
   - kind: postgres
@@ -10,12 +23,12 @@ sdms:
 
 thread:
   - name: bird-question-1220
-    description: 'Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?'
+    description: "Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?"
     messages:
       - role: user
         content: |
           Provide all ID, sex and birthday of patients whose urea nitrogen (UN) just within the borderline of passing?
-          Evidence: urea nitrogen (UN) just within the borderline of passing refers to UN = 29;
+          Evidence: urea nitrogen (UN) just within the borderline of passing refers to UN = 29; 
 
 target-platforms:
   - name: openai

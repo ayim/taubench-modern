@@ -1,7 +1,18 @@
 name: bird-debit-card-specializing-014
-description: 'BIRD Q1483 (simple): How much did customer 6 consume in total between August and November 2013?'
+description: "BIRD Q1483 (simple): How much did customer 6 consume in total between August and November 2013?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(Consumption)
+  FROM yearmonth
+  WHERE CustomerID = 6
+    AND Date BETWEEN '201308' AND '201311'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1483
-    description: 'How much did customer 6 consume in total between August and November 2013?'
+    description: "How much did customer 6 consume in total between August and November 2013?"
     messages:
       - role: user
         content: |

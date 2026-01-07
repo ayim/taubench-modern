@@ -1,7 +1,23 @@
 name: bird-student-club-145
-description: 'BIRD Q1456 (moderate): List the full name of the top five members who spend the most money in the descending order of spending.'
+description: "BIRD Q1456 (moderate): List the full name of the top five members who spend the most money in the descending order of spending."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.first_name,
+         T2.last_name
+  FROM expense AS T1
+  INNER JOIN member AS T2 ON T1.link_to_member = T2.member_id
+  GROUP BY T2.member_id,
+           T2.first_name,
+           T2.last_name
+  ORDER BY SUM(T1.cost) DESC
+  LIMIT 5
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-1456
-    description: 'List the full name of the top five members who spend the most money in the descending order of spending.'
+    description: "List the full name of the top five members who spend the most money in the descending order of spending."
     messages:
       - role: user
         content: |

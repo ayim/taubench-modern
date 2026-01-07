@@ -1,7 +1,22 @@
 name: bird-european-football-2-007
-description: 'BIRD Q1026 (moderate): Which home team had lost the fewest matches in the 2016 season?'
+description: "BIRD Q1026 (moderate): Which home team had lost the fewest matches in the 2016 season?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT teamDetails.team_long_name
+  FROM MATCH AS matchData
+  INNER JOIN Team AS teamDetails ON matchData.home_team_api_id = teamDetails.team_api_id
+  WHERE matchData.season = '2015/2016'
+    AND matchData.home_team_goal - matchData.away_team_goal < 0
+  GROUP BY matchData.home_team_api_id
+  ORDER BY COUNT(*) ASC, teamDetails.team_api_id ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1026
-    description: 'Which home team had lost the fewest matches in the 2016 season?'
+    description: "Which home team had lost the fewest matches in the 2016 season?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-debit-card-specializing-041
-description: 'BIRD Q1510 (simple): What is the average total price of the transactions taken place in gas stations in the Czech Republic?'
+description: "BIRD Q1510 (simple): What is the average total price of the transactions taken place in gas stations in the Czech Republic?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.Price)
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  WHERE T2.Country = 'CZE'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1510
-    description: 'What is the average total price of the transactions taken place in gas stations in the Czech Republic?'
+    description: "What is the average total price of the transactions taken place in gas stations in the Czech Republic?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-california-schools-030
-description: 'BIRD Q29 (simple): When did the first-through-twelfth-grade school with the largest enrollment open?'
+description: "BIRD Q29 (simple): When did the first-through-twelfth-grade school with the largest enrollment open?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.OpenDate
+  FROM frpm AS T1
+  INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+  ORDER BY T1.`Enrollment (K-12)` DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-29
-    description: 'When did the first-through-twelfth-grade school with the largest enrollment open?'
+    description: "When did the first-through-twelfth-grade school with the largest enrollment open?"
     messages:
       - role: user
         content: |

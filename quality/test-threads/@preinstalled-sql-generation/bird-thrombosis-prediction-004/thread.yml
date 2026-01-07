@@ -3,6 +3,22 @@ description: "BIRD Q1152 (moderate): What is the ratio of outpatient to inpatien
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN Admission = '-' THEN 1.0
+                 ELSE 0
+             END) / NULLIF(SUM(CASE
+                                   WHEN Admission = '+' THEN 1
+                                   ELSE 0
+                               END), 0)
+  FROM Patient
+  WHERE Diagnosis = 'SLE'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_thrombosis_prediction

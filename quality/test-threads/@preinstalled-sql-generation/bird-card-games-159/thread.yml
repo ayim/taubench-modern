@@ -1,7 +1,20 @@
 name: bird-card-games-159
-description: 'BIRD Q498 (moderate): What''s the French name of the set of cards with "Tendo Ice Bridge" is in?'
+description: "BIRD Q498 (moderate): What's the French name of the set of cards with \"Tendo Ice Bridge\" is in?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.translation
+  FROM cards AS T1
+  INNER JOIN set_translations AS T2 ON T2.setCode = T1.setCode
+  WHERE T1.name = 'Tendo Ice Bridge'
+    AND T2.language = 'French'
+    AND T2.translation IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-498
-    description: 'What''s the French name of the set of cards with "Tendo Ice Bridge" is in?'
+    description: "What's the French name of the set of cards with \"Tendo Ice Bridge\" is in?"
     messages:
       - role: user
         content: |

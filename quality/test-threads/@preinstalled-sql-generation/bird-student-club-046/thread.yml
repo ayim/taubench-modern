@@ -1,7 +1,20 @@
 name: bird-student-club-046
-description: 'BIRD Q1357 (simple): State the date Connor Hilton paid his/her dues.'
+description: "BIRD Q1357 (simple): State the date Connor Hilton paid his/her dues."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.date_received
+  FROM member AS T1
+  INNER JOIN income AS T2 ON T1.member_id = T2.link_to_member
+  WHERE T1.first_name = 'Connor'
+    AND T1.last_name = 'Hilton'
+    AND T2.source = 'Dues'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1357
-    description: 'State the date Connor Hilton paid his/her dues.'
+    description: "State the date Connor Hilton paid his/her dues."
     messages:
       - role: user
         content: |

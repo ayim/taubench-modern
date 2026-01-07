@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-061
-description: 'BIRD Q1530 (simple): Which are the top five best selling products? Please state the full name of them.'
+description: "BIRD Q1530 (simple): Which are the top five best selling products? Please state the full name of them."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Description
+  FROM transactions_1k AS T1
+  INNER JOIN products AS T2 ON T1.ProductID = T2.ProductID
+  ORDER BY T1.Amount DESC
+  LIMIT 5
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1530
-    description: 'Which are the top five best selling products? Please state the full name of them.'
+    description: "Which are the top five best selling products? Please state the full name of them."
     messages:
       - role: user
         content: |

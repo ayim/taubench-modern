@@ -1,7 +1,65 @@
 name: bird-california-schools-046
-description: 'BIRD Q45 (challenging): For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.'
+description: "BIRD Q45 (challenging): For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolStats AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.AdmFName1,
+            s.AdmLName1,
+            sat.AvgScrWrite,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.NumTstTakr,
+            f.`Enrollment (K-12)`,
+            f.`Percent (%) Eligible FRPM (K-12)` * 100 AS FRPMPercentage,
+            (sat.AvgScrWrite + sat.AvgScrRead + sat.AvgScrMath) AS TotalSATScore,
+            RANK() OVER (
+                         ORDER BY sat.AvgScrWrite DESC) AS WriteScoreRank,
+            RANK() OVER (
+                         ORDER BY (sat.AvgScrWrite + sat.AvgScrRead + sat.AvgScrMath) DESC) AS TotalScoreRank
+     FROM schools s
+     INNER JOIN satscores sat ON s.CDSCode = sat.cds
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     WHERE s.AdmFName1 = 'Ricci'
+       AND s.AdmLName1 = 'Ulrich'),
+       DistrictAverages AS
+    (SELECT s.District,
+            AVG(sat.AvgScrWrite) AS DistrictAvgWriteScore,
+            AVG(sat.AvgScrRead) AS DistrictAvgReadScore,
+            AVG(sat.AvgScrMath) AS DistrictAvgMathScore
+     FROM schools s
+     INNER JOIN satscores sat ON s.CDSCode = sat.cds
+     GROUP BY s.District)
+  SELECT ss.School,
+         ss.AvgScrWrite,
+         ss.AvgScrRead,
+         ss.AvgScrMath,
+         ss.TotalSATScore,
+         ss.NumTstTakr,
+         ss.`Enrollment (K-12)`,
+         ss.FRPMPercentage,
+         ss.WriteScoreRank,
+         ss.TotalScoreRank,
+         da.DistrictAvgWriteScore,
+         CASE
+             WHEN ss.AvgScrWrite > da.DistrictAvgWriteScore THEN 'Above District Average'
+             WHEN ss.AvgScrWrite = da.DistrictAvgWriteScore THEN 'Equal to District Average'
+             ELSE 'Below District Average'
+         END AS ComparisonToDistrictAvg,
+         ROUND((ss.AvgScrWrite - da.DistrictAvgWriteScore), 2) AS DifferenceFromDistrictAvg,
+         ROUND((ss.NumTstTakr * 100.0 / ss.`Enrollment (K-12)`), 2) AS PercentageTakingSAT
+  FROM SchoolStats ss
+  LEFT JOIN schools s ON ss.CDSCode = s.CDSCode
+  LEFT JOIN DistrictAverages da ON s.District = da.District
+  ORDER BY ss.AvgScrWrite DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +68,7 @@ sdms:
 
 thread:
   - name: bird-question-45
-    description: 'For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average.'
+    description: "For schools administered by Ricci Ulrich, provide a comprehensive performance analysis including their SAT scores in all three sections, total SAT score, rankings compared to other schools, FRPM eligibility rate, test participation rate, and how their writing scores compare to their district average."
     messages:
       - role: user
         content: |

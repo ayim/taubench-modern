@@ -1,7 +1,19 @@
 name: bird-debit-card-specializing-036
-description: 'BIRD Q1505 (simple): Among the customers who paid in euro, how many of them have a monthly consumption of over 1000?'
+description: "BIRD Q1505 (simple): Among the customers who paid in euro, how many of them have a monthly consumption of over 1000?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.CustomerID)
+  FROM yearmonth AS T1
+  INNER JOIN customers AS T2 ON T1.CustomerID = T2.CustomerID
+  WHERE T2.Currency = 'EUR'
+    AND T1.Consumption > 1000.00
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1505
-    description: 'Among the customers who paid in euro, how many of them have a monthly consumption of over 1000?'
+    description: "Among the customers who paid in euro, how many of them have a monthly consumption of over 1000?"
     messages:
       - role: user
         content: |

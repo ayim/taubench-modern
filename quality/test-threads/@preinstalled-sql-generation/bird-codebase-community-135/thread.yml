@@ -1,7 +1,19 @@
 name: bird-codebase-community-135
-description: 'BIRD Q665 (moderate): What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?'
+description: "BIRD Q665 (moderate): What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(T1.Id) AS REAL) / 12
+  FROM postLinks AS T1
+  INNER JOIN posts AS T2 ON T1.PostId = T2.Id
+  WHERE T2.AnswerCount <= 2
+    AND STRFTIME('%Y', T1.CreationDate) = '2010'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-665
-    description: 'What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?'
+    description: "What is the average monthly number of links created in 2010 for posts that have no more than 2 answers?"
     messages:
       - role: user
         content: |

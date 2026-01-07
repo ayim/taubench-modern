@@ -1,7 +1,21 @@
 name: bird-european-football-2-018
-description: 'BIRD Q1037 (challenging): Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992.'
+description: "BIRD Q1037 (challenging): Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN t2.preferred_foot = 'left' THEN t1.player_api_id
+                                 ELSE NULL
+                             END) AS REAL) * 100 / COUNT(DISTINCT t1.player_api_id) AS percent
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE SUBSTR(t1.birthday, 1, 4) BETWEEN '1987' AND '1992'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1037
-    description: 'Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992.'
+    description: "Calculate the percentage of players who prefer left foot, who were born between 1987 and 1992."
     messages:
       - role: user
         content: |

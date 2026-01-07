@@ -1,7 +1,19 @@
 name: bird-codebase-community-175
-description: 'BIRD Q705 (simple): Give the user''s reputation and up vote number of the user that commented "fine, you win :)".'
+description: "BIRD Q705 (simple): Give the user's reputation and up vote number of the user that commented \"fine, you win :)\"."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Reputation,
+         T2.UpVotes
+  FROM comments AS T1
+  INNER JOIN users AS T2 ON T1.UserId = T2.Id
+  WHERE T1.Text = 'fine, you win :)'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-705
-    description: 'Give the user''s reputation and up vote number of the user that commented "fine, you win :)".'
+    description: "Give the user's reputation and up vote number of the user that commented \"fine, you win :)\"."
     messages:
       - role: user
         content: |

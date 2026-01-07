@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-082
-description: 'BIRD Q1230 (simple): List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids.'
+description: "BIRD Q1230 (simple): List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.CPK < 250
+    AND T1.Admission = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1230
-    description: 'List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids.'
+    description: "List all outpatient within normal range of creatinine phosphokinase. Give me the distinct ids."
     messages:
       - role: user
         content: |

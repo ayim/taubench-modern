@@ -1,7 +1,21 @@
 name: bird-student-club-118
-description: 'BIRD Q1429 (challenging): What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?'
+description: "BIRD Q1429 (challenging): What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.event_name
+  FROM attendance AS T1
+  INNER JOIN event AS T2 ON T2.event_id = T1.link_to_event
+  INNER JOIN member AS T3 ON T1.link_to_member = T3.member_id
+  WHERE T3.position = 'Vice President'
+    AND T2.location = '900 E. Washington St.'
+    AND T2.type = 'Social'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1429
-    description: 'What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?'
+    description: "What is the name of the social event that was attended by the vice president of the Student_Club located at 900 E. Washington St.?"
     messages:
       - role: user
         content: |

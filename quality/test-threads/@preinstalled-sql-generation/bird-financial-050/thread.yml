@@ -1,7 +1,76 @@
 name: bird-financial-050
-description: 'BIRD Q138 (challenging): For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories.'
+description: "BIRD Q138 (challenging): For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CrimeRanking AS
+    (SELECT district_id,
+            A15,
+            RANK() OVER (
+                         ORDER BY A15 DESC) AS crime_rank
+     FROM district),
+       SecondHighestCrimeDistrict AS
+    (SELECT district_id,
+            A15
+     FROM CrimeRanking
+     WHERE crime_rank = 2),
+       ClientStats AS
+    (SELECT c.client_id,
+            c.gender,
+            c.district_id,
+            COUNT(DISTINCT d.disp_id) AS num_dispositions,
+            COUNT(DISTINCT a.account_id) AS num_accounts,
+            COUNT(DISTINCT l.loan_id) AS num_loans,
+            COUNT(DISTINCT card.card_id) AS num_cards,
+            CASE
+                WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) < 30 THEN 'Young'
+                WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) BETWEEN 30 AND 50 THEN 'Middle-aged'
+                ELSE 'Senior'
+            END AS age_category
+     FROM client c
+     LEFT JOIN disp d ON c.client_id = d.client_id
+     LEFT JOIN ACCOUNT a ON d.account_id = a.account_id
+     LEFT JOIN loan l ON a.account_id = l.account_id
+     LEFT JOIN card ON d.disp_id = card.disp_id
+     WHERE c.gender = 'M'
+     GROUP BY c.client_id,
+              c.gender,
+              c.district_id)
+  SELECT COUNT(cs.client_id) AS total_male_clients,
+         shcd.A15 AS crime_count_1995,
+         SUM(cs.num_accounts) AS total_accounts,
+         SUM(cs.num_loans) AS total_loans,
+         SUM(cs.num_cards) AS total_cards,
+         ROUND(AVG(cs.num_dispositions), 2) AS avg_dispositions_per_client,
+         SUM(CASE
+                 WHEN cs.num_loans > 0 THEN 1
+                 ELSE 0
+             END) AS clients_with_loans,
+         SUM(CASE
+                 WHEN cs.age_category = 'Young' THEN 1
+                 ELSE 0
+             END) AS young_clients,
+         SUM(CASE
+                 WHEN cs.age_category = 'Middle-aged' THEN 1
+                 ELSE 0
+             END) AS middle_aged_clients,
+         SUM(CASE
+                 WHEN cs.age_category = 'Senior' THEN 1
+                 ELSE 0
+             END) AS senior_clients
+  FROM ClientStats cs
+  JOIN SecondHighestCrimeDistrict shcd ON cs.district_id = shcd.district_id
+  JOIN district d ON cs.district_id = d.district_id
+  WHERE cs.gender = 'M'
+  GROUP BY cs.district_id,
+           d.A2,
+           shcd.A15
 
 sdms:
   - kind: postgres
@@ -10,7 +79,7 @@ sdms:
 
 thread:
   - name: bird-question-138
-    description: 'For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories.'
+    description: "For the district with the second-highest number of crimes committed in 1995, provide a comprehensive breakdown of all male clients including their total count, the crime count for that year, total accounts, loans, credit cards, average dispositions per client, number of clients with loans, and age distribution across young (under 30), middle-aged (30-50), and senior (over 50) categories."
     messages:
       - role: user
         content: |

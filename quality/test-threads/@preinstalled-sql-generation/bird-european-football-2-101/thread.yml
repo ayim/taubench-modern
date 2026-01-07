@@ -1,7 +1,32 @@
 name: bird-european-football-2-101
-description: 'BIRD Q1120 (moderate): Sum up the away team goal scored by both Daan Smith and Filipe Ferreira.'
+description: "BIRD Q1120 (moderate): Sum up the away team goal scored by both Daan Smith and Filipe Ferreira."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(m.away_team_goal)
+  FROM `Match` AS m
+  WHERE EXISTS
+      (SELECT 1
+       FROM Player AS p
+       WHERE p.player_name IN ('Daan Smith',
+                               'Filipe Ferreira')
+         AND p.player_api_id IN (m.away_player_1,
+                                 m.away_player_2,
+                                 m.away_player_3,
+                                 m.away_player_4,
+                                 m.away_player_5,
+                                 m.away_player_6,
+                                 m.away_player_7,
+                                 m.away_player_8,
+                                 m.away_player_9,
+                                 m.away_player_10,
+                                 m.away_player_11));
 
 sdms:
   - kind: postgres
@@ -10,7 +35,7 @@ sdms:
 
 thread:
   - name: bird-question-1120
-    description: 'Sum up the away team goal scored by both Daan Smith and Filipe Ferreira.'
+    description: "Sum up the away team goal scored by both Daan Smith and Filipe Ferreira."
     messages:
       - role: user
         content: |

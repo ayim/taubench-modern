@@ -1,7 +1,24 @@
 name: bird-formula-1-168
-description: 'BIRD Q1013 (simple): What is the lap record for the Austrian Grand Prix Circuit?'
+description: "BIRD Q1013 (simple): What is the lap record for the Austrian Grand Prix Circuit?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH fastest_lap_times AS
+    (SELECT T1.raceId,
+            T1.fastestLapTime
+     FROM results AS T1
+     WHERE T1.FastestLapTime IS NOT NULL)
+  SELECT MIN(fastest_lap_times.fastestLapTime) AS lap_record
+  FROM fastest_lap_times
+  INNER JOIN races AS T2 ON fastest_lap_times.raceId = T2.raceId
+  INNER JOIN circuits AS T3 ON T2.circuitId = T3.circuitId
+  WHERE T2.name = 'Austrian Grand Prix'
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-1013
-    description: 'What is the lap record for the Austrian Grand Prix Circuit?'
+    description: "What is the lap record for the Austrian Grand Prix Circuit?"
     messages:
       - role: user
         content: |

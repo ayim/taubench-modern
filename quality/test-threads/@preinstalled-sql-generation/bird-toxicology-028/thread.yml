@@ -1,7 +1,22 @@
 name: bird-toxicology-028
-description: 'BIRD Q222 (moderate): What is the difference between the number of molecules that are carcinogenic and those that are not?'
+description: "BIRD Q222 (moderate): What is the difference between the number of molecules that are carcinogenic and those that are not?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(CASE
+                   WHEN T.label = '+' THEN T.molecule_id
+                   ELSE NULL
+               END) - COUNT(CASE
+                                WHEN T.label = '-' THEN T.molecule_id
+                                ELSE NULL
+                            END) AS diff_car_notcar
+  FROM molecule t
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-222
-    description: 'What is the difference between the number of molecules that are carcinogenic and those that are not?'
+    description: "What is the difference between the number of molecules that are carcinogenic and those that are not?"
     messages:
       - role: user
         content: |

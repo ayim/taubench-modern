@@ -3,6 +3,18 @@ description: "BIRD Q1034 (simple): List the players' api id who had the highest 
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT player_api_id
+  FROM Player_Attributes
+  WHERE SUBSTR(`date`, 1, 4) = '2010'
+  ORDER BY overall_rating DESC
+  LIMIT 1
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

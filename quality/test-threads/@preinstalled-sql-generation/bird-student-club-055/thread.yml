@@ -1,7 +1,19 @@
 name: bird-student-club-055
-description: 'BIRD Q1366 (simple): List all the members who attended the event "October Meeting".'
+description: "BIRD Q1366 (simple): List all the members who attended the event \"October Meeting\"."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T3.member_id
+  FROM event AS T1
+  INNER JOIN attendance AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN member AS T3 ON T2.link_to_member = T3.member_id
+  WHERE T1.event_name = 'October Meeting'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1366
-    description: 'List all the members who attended the event "October Meeting".'
+    description: "List all the members who attended the event \"October Meeting\"."
     messages:
       - role: user
         content: |

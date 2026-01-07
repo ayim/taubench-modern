@@ -1,7 +1,20 @@
 name: bird-debit-card-specializing-063
-description: 'BIRD Q1532 (simple): Which country had the gas station that sold the most expensive product id No.2 for one unit?'
+description: "BIRD Q1532 (simple): Which country had the gas station that sold the most expensive product id No.2 for one unit?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Country
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  WHERE T1.ProductID = 2
+  ORDER BY T1.Price DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1532
-    description: 'Which country had the gas station that sold the most expensive product id No.2 for one unit?'
+    description: "Which country had the gas station that sold the most expensive product id No.2 for one unit?"
     messages:
       - role: user
         content: |

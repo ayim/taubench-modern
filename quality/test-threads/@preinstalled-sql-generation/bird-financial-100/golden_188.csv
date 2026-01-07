@@ -1,2 +1,2 @@
 account_id,loan_amount,loan_duration_months,account_opening_date,district_name,region,num_transactions,total_income,total_expense,net_cash_flow,max_balance,num_cards,card_types,num_clients,male_clients,female_clients,average_client_age,order_count
-6453,10944,36,1996-07-27,Chomutov,north Bohemia,226,184228,163838,20390,35828,0,None,1,1,0,74.0,4
+6453,10944,36,1996-07-27,Chomutov,north Bohemia,226,184228,163838,20390,35828,0,None,1,1,0,75.0,4

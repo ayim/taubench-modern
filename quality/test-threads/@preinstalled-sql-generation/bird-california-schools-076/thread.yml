@@ -1,7 +1,20 @@
 name: bird-california-schools-076
-description: 'BIRD Q75 (simple): What is the educational level name for the schools with Breakfast Provision 2 in county code 37? Indicate the name of the school.'
+description: "BIRD Q75 (simple): What is the educational level name for the schools with Breakfast Provision 2 in county code 37? Indicate the name of the school."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.EILName,
+         T2.School
+  FROM frpm AS T1
+  INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode
+  WHERE T1.`NSLP Provision Status` = 'Breakfast Provision 2'
+    AND T1.`County Code` = 37
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-75
-    description: 'What is the educational level name for the schools with Breakfast Provision 2 in county code 37? Indicate the name of the school.'
+    description: "What is the educational level name for the schools with Breakfast Provision 2 in county code 37? Indicate the name of the school."
     messages:
       - role: user
         content: |

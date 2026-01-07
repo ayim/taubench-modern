@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-089
-description: 'BIRD Q1237 (simple): Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex.'
+description: "BIRD Q1237 (simple): Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID,
+                  T1.SEX
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.HGB < 10
+    AND T1.Admission = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1237
-    description: 'Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex.'
+    description: "Among all outpatients, list out those have low hemoglobin level. State the different IDs and their sex."
     messages:
       - role: user
         content: |

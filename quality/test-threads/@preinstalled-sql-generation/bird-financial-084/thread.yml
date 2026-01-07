@@ -1,7 +1,18 @@
 name: bird-financial-084
-description: 'BIRD Q172 (simple): How many owner and disponent dispositions are there from account number 1 to account number 10?'
+description: "BIRD Q172 (simple): How many owner and disponent dispositions are there from account number 1 to account number 10?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(TYPE = 'OWNER'),
+         SUM(TYPE = 'DISPONENT')
+  FROM disp
+  WHERE account_id BETWEEN 1 AND 10
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-172
-    description: 'How many owner and disponent dispositions are there from account number 1 to account number 10?'
+    description: "How many owner and disponent dispositions are there from account number 1 to account number 10?"
     messages:
       - role: user
         content: |

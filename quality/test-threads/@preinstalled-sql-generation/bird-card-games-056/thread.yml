@@ -1,7 +1,19 @@
 name: bird-card-games-056
-description: 'BIRD Q395 (simple): How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?'
+description: "BIRD Q395 (simple): How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(id)
+  FROM cards
+  WHERE hAND = '-1'
+    AND artist = 'UDON'
+    AND Availability = 'mtgo'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-395
-    description: 'How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?'
+    description: "How many cards designed by UDON and available in mtgo print type has a starting maximum hand size of -1?"
     messages:
       - role: user
         content: |

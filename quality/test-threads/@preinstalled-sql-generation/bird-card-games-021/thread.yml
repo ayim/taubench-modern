@@ -3,6 +3,17 @@ description: "BIRD Q360 (moderate): What are the languages available for the set
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT s.`language`
+  FROM cards AS c
+  JOIN set_translations AS s ON s.setCode = c.setCode
+  WHERE c.name = 'Angel of Mercy'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_card_games

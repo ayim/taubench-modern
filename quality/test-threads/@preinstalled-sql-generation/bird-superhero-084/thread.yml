@@ -1,7 +1,20 @@
 name: bird-superhero-084
-description: 'BIRD Q800 (moderate): Calculate the percentage of superheroes with blue eyes.'
+description: "BIRD Q800 (moderate): Calculate the percentage of superheroes with blue eyes."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN T2.colour = 'Blue' THEN 1
+                        ELSE NULL
+                    END) AS REAL) * 100 / COUNT(T1.id)
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.eye_colour_id = T2.id
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-800
-    description: 'Calculate the percentage of superheroes with blue eyes.'
+    description: "Calculate the percentage of superheroes with blue eyes."
     messages:
       - role: user
         content: |

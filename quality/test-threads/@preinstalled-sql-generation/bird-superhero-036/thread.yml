@@ -1,7 +1,18 @@
 name: bird-superhero-036
-description: 'BIRD Q752 (simple): Give the name of the alien superheroes.'
+description: "BIRD Q752 (simple): Give the name of the alien superheroes."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN race AS T2 ON T1.race_id = T2.id
+  WHERE T2.race = 'Alien'
 
 sdms:
   - kind: postgres
@@ -10,12 +21,12 @@ sdms:
 
 thread:
   - name: bird-question-752
-    description: 'Give the name of the alien superheroes.'
+    description: "Give the name of the alien superheroes."
     messages:
       - role: user
         content: |
           Give the name of the alien superheroes.
-          Evidence:
+          Evidence:  
 
 target-platforms:
   - name: openai

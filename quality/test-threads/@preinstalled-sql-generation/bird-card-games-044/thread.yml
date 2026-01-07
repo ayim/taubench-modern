@@ -1,7 +1,19 @@
 name: bird-card-games-044
-description: 'BIRD Q383 (simple): How many of the cards which is banned at least in one format are white border?'
+description: "BIRD Q383 (simple): How many of the cards which is banned at least in one format are white border?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.id)
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T1.uuid = T2.uuid
+  WHERE T2.status = 'Banned'
+    AND T1.borderColor = 'white'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-383
-    description: 'How many of the cards which is banned at least in one format are white border?'
+    description: "How many of the cards which is banned at least in one format are white border?"
     messages:
       - role: user
         content: |

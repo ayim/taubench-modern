@@ -1,7 +1,20 @@
 name: bird-european-football-2-082
-description: 'BIRD Q1101 (moderate): What is the average number of goals made by Parma as the away team while playing in Italy?'
+description: "BIRD Q1101 (moderate): What is the average number of goals made by Parma as the away team while playing in Italy?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(T1.away_team_goal) AS REAL) / COUNT(T1.id)
+  FROM "Match" AS T1
+  INNER JOIN TEAM AS T2 ON T1.away_team_api_id = T2.team_api_id
+  INNER JOIN Country AS T3 ON T1.country_id = T3.id
+  WHERE T2.team_long_name = 'Parma'
+    AND T3.name = 'Italy'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1101
-    description: 'What is the average number of goals made by Parma as the away team while playing in Italy?'
+    description: "What is the average number of goals made by Parma as the away team while playing in Italy?"
     messages:
       - role: user
         content: |

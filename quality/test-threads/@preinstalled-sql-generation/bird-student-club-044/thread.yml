@@ -1,7 +1,19 @@
 name: bird-student-club-044
-description: 'BIRD Q1355 (simple): Where is the hometown state for "Sacha Harrison"?'
+description: "BIRD Q1355 (simple): Where is the hometown state for \"Sacha Harrison\"?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.state
+  FROM member AS T1
+  INNER JOIN zip_code AS T2 ON T1.zip = T2.zip_code
+  WHERE T1.first_name = 'Sacha'
+    AND T1.last_name = 'Harrison'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1355
-    description: 'Where is the hometown state for "Sacha Harrison"?'
+    description: "Where is the hometown state for \"Sacha Harrison\"?"
     messages:
       - role: user
         content: |

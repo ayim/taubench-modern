@@ -1,7 +1,75 @@
 name: bird-california-schools-006
-description: 'BIRD Q5 (challenging): What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?'
+description: "BIRD Q5 (challenging): What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH VirtualSchools AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.Virtual,
+            s.Charter,
+            s.City,
+            CASE
+                WHEN s.Virtual = 'F' THEN 'Fully Virtual'
+                WHEN s.Virtual = 'P' THEN 'Partially Virtual'
+                WHEN s.Virtual = 'N' THEN 'Not Virtual'
+                ELSE 'Unknown'
+            END AS VirtualStatus
+     FROM schools s
+     WHERE s.Virtual = 'F'),
+       SATPerformance AS
+    (SELECT sat.cds,
+            sat.sname,
+            sat.AvgScrMath,
+            sat.AvgScrRead,
+            sat.AvgScrWrite,
+            (sat.AvgScrMath + sat.AvgScrRead + sat.AvgScrWrite) AS TotalScore,
+            RANK() OVER (
+                         ORDER BY sat.AvgScrMath DESC) AS MathRank,
+            RANK() OVER (
+                         ORDER BY (sat.AvgScrMath + sat.AvgScrRead + sat.AvgScrWrite) DESC) AS TotalScoreRank
+     FROM satscores sat
+     WHERE sat.AvgScrMath > 400),
+       SchoolEnrollmentData AS
+    (SELECT f.CDSCode,
+            f.`School Name`,
+            f.`Enrollment (K-12)`,
+            f.`FRPM Count (K-12)`,
+            f.`Percent (%) Eligible FRPM (K-12)`,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.75 THEN 'High Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.50 THEN 'Medium Poverty'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` >= 0.25 THEN 'Low Poverty'
+                ELSE 'Very Low Poverty'
+            END AS PovertyLevel
+     FROM frpm f)
+  SELECT vs.School AS SchoolName,
+         vs.City,
+         vs.VirtualStatus,
+         CASE
+             WHEN vs.Charter = 1 THEN 'Charter School'
+             ELSE 'Regular School'
+         END AS SchoolType,
+         sp.AvgScrMath AS MathScore,
+         sp.AvgScrRead AS ReadingScore,
+         sp.AvgScrWrite AS WritingScore,
+         sp.TotalScore,
+         sp.MathRank,
+         sp.TotalScoreRank,
+         sed.`Enrollment (K-12)` AS Enrollment,
+         sed.PovertyLevel,
+         ROUND(sed.`Percent (%) Eligible FRPM (K-12)` * 100, 1) || '%' AS FRPMPercentage
+  FROM VirtualSchools vs
+  JOIN SATPerformance sp ON vs.CDSCode = sp.cds
+  LEFT JOIN SchoolEnrollmentData sed ON vs.CDSCode = sed.CDSCode
+  ORDER BY sp.TotalScore DESC,
+           sed.`Enrollment (K-12)` DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +78,7 @@ sdms:
 
 thread:
   - name: bird-question-5
-    description: 'What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?'
+    description: "What are the details of fully virtual schools that have an average SAT Math score above 400, including their SAT performance rankings, enrollment, and poverty levels, ordered by their total SAT scores?"
     messages:
       - role: user
         content: |

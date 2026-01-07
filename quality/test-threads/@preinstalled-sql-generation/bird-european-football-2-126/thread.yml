@@ -1,7 +1,21 @@
 name: bird-european-football-2-126
-description: 'BIRD Q1145 (simple): Which top 4 leagues had the most games in the 2015-2016 season?'
+description: "BIRD Q1145 (simple): Which top 4 leagues had the most games in the 2015-2016 season?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.name
+  FROM League AS t1
+  INNER JOIN MATCH AS t2 ON t1.id = t2.league_id
+  WHERE t2.season = '2015/2016'
+  GROUP BY t1.name
+  ORDER BY COUNT(t2.id) DESC
+  LIMIT 4
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1145
-    description: 'Which top 4 leagues had the most games in the 2015-2016 season?'
+    description: "Which top 4 leagues had the most games in the 2015-2016 season?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,22 @@
 name: bird-formula-1-164
-description: 'BIRD Q1009 (simple): Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix.'
+description: "BIRD Q1009 (simple): Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.forename,
+         T3.surname,
+         T1.Duration
+  FROM pitStops AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  INNER JOIN drivers AS T3 ON T1.driverId=T3.driverId
+  WHERE T2.year = 2011
+    AND T2.name = 'Australian Grand Prix'
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1009
-    description: 'Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix.'
+    description: "Please list the time each driver spent at the pit stop during the 2011 Australian Grand Prix."
     messages:
       - role: user
         content: |

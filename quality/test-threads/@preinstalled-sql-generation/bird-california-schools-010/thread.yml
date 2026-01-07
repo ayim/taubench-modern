@@ -1,7 +1,19 @@
 name: bird-california-schools-010
-description: 'BIRD Q9 (simple): Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?'
+description: "BIRD Q9 (simple): Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T2.`School Code`)
+  FROM satscores AS T1
+  INNER JOIN frpm AS T2 ON T1.cds = T2.CDSCode
+  WHERE T1.AvgScrMath > 560
+    AND T2.`Charter Funding Type` = 'Directly funded'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-9
-    description: 'Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?'
+    description: "Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?"
     messages:
       - role: user
         content: |

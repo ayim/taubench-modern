@@ -1,7 +1,19 @@
 name: bird-superhero-037
-description: 'BIRD Q753 (moderate): Among the superheroes with height from 170 to 190, list the names of the superheroes with no eye color.'
+description: "BIRD Q753 (moderate): Among the superheroes with height from 170 to 190, list the names of the superheroes with no eye color."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.superhero_name
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.eye_colour_id = T2.id
+  WHERE T1.height_cm BETWEEN 170 AND 190
+    AND T2.colour = 'No Colour'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-753
-    description: 'Among the superheroes with height from 170 to 190, list the names of the superheroes with no eye color.'
+    description: "Among the superheroes with height from 170 to 190, list the names of the superheroes with no eye color."
     messages:
       - role: user
         content: |

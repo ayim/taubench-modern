@@ -1,7 +1,74 @@
 name: bird-california-schools-062
-description: 'BIRD Q61 (challenging): For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?'
+description: "BIRD Q61 (challenging): For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CharterSchoolStats AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.City,
+            s.DOC,
+            s.Charter,
+            f.`Charter School Number`,
+            f.`Charter Funding Type`,
+            f.`Enrollment (K-12)` AS EnrollmentK12,
+            f.`FRPM Count (K-12)` AS FRPMCount,
+            f.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercent,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.75 THEN 'High FRPM'
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.50 THEN 'Medium FRPM'
+                ELSE 'Low FRPM'
+            END AS FRPMCategory,
+            ROW_NUMBER() OVER (PARTITION BY s.City
+                               ORDER BY f.`Enrollment (K-12)` DESC) AS SizeRank
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     WHERE s.DOC = '52'
+       AND s.Charter = 1
+       AND s.StatusType = 'Active'),
+       SATPerformance AS
+    (SELECT cds,
+            sname,
+            NumTstTakr,
+            AvgScrRead,
+            AvgScrMath,
+            AvgScrWrite,
+            (AvgScrRead + AvgScrMath + AvgScrWrite) AS TotalScore,
+            CAST(NumGE1500 AS REAL) / NULLIF(NumTstTakr, 0) AS PercentOver1500
+     FROM satscores
+     WHERE rtype = 'S')
+  SELECT c.CDSCode,
+         c.School,
+         c.City,
+         c.EnrollmentK12,
+         c.FRPMCount,
+         c.FRPMPercent,
+         c.FRPMCategory,
+         c.SizeRank,
+         s.NumTstTakr AS SATTestTakers,
+         s.AvgScrRead AS SATReadingScore,
+         s.AvgScrMath AS SATMathScore,
+         s.AvgScrWrite AS SATWritingScore,
+         s.TotalScore AS SATTotalScore,
+         s.PercentOver1500 AS PercentOver1500,
+         CASE
+             WHEN s.PercentOver1500 IS NULL THEN 'No SAT Data'
+             WHEN s.PercentOver1500 > 0.5 THEN 'High Performing'
+             WHEN s.PercentOver1500 > 0.25 THEN 'Average Performing'
+             ELSE 'Low Performing'
+         END AS SATPerformanceCategory,
+         COUNT(*) OVER () AS TotalCharterSchools,
+         AVG(c.EnrollmentK12) OVER () AS AvgCharterEnrollment
+  FROM CharterSchoolStats c
+  LEFT JOIN SATPerformance s ON c.CDSCode = s.cds
+  WHERE c.City = 'Hickman'
+  ORDER BY c.EnrollmentK12 DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +77,7 @@ sdms:
 
 thread:
   - name: bird-question-61
-    description: 'For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?'
+    description: "For charter schools owned by Elementary School Districts in Hickman, what are their enrollment sizes, free and reduced price meal eligibility rates, SAT performance metrics, and how do they rank by size within the city?"
     messages:
       - role: user
         content: |

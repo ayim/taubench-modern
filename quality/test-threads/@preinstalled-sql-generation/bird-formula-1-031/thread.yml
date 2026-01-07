@@ -1,7 +1,19 @@
 name: bird-formula-1-031
-description: 'BIRD Q876 (simple): For the race happened in 2015/11/29, how many drivers did not finish the race?'
+description: "BIRD Q876 (simple): For the race happened in 2015/11/29, how many drivers did not finish the race?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T2.driverId)
+  FROM races AS T1
+  INNER JOIN results AS T2 ON T2.raceId = T1.raceId
+  WHERE T1.date = '2015-11-29'
+    AND T2.time IS NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-876
-    description: 'For the race happened in 2015/11/29, how many drivers did not finish the race?'
+    description: "For the race happened in 2015/11/29, how many drivers did not finish the race?"
     messages:
       - role: user
         content: |

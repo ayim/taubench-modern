@@ -1,7 +1,17 @@
 name: bird-codebase-community-058
-description: 'BIRD Q588 (simple): Give the total number of comments posted by user ID 13.'
+description: "BIRD Q588 (simple): Give the total number of comments posted by user ID 13."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(Id)
+  FROM comments
+  WHERE UserId = 13
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-588
-    description: 'Give the total number of comments posted by user ID 13.'
+    description: "Give the total number of comments posted by user ID 13."
     messages:
       - role: user
         content: |

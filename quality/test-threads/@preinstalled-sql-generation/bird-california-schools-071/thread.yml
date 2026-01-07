@@ -1,7 +1,20 @@
 name: bird-california-schools-071
-description: 'BIRD Q70 (simple): How many active and closed District Community Day Schools are there in the county of Alpine?'
+description: "BIRD Q70 (simple): How many active and closed District Community Day Schools are there in the county of Alpine?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(School)
+  FROM schools
+  WHERE (StatusType = 'Closed'
+         OR StatusType = 'Active')
+    AND SOC = 69
+    AND County = 'Alpine'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-70
-    description: 'How many active and closed District Community Day Schools are there in the county of Alpine?'
+    description: "How many active and closed District Community Day Schools are there in the county of Alpine?"
     messages:
       - role: user
         content: |

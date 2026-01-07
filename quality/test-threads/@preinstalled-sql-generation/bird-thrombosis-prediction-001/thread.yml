@@ -1,7 +1,23 @@
 name: bird-thrombosis-prediction-001
-description: 'BIRD Q1149 (moderate): Are there more in-patient or outpatient who were male? What is the deviation in percentage?'
+description: "BIRD Q1149 (moderate): Are there more in-patient or outpatient who were male? What is the deviation in percentage?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN Admission = '+' THEN 1
+                      ELSE 0
+                  END) AS REAL) * 100 / SUM(CASE
+                                                WHEN Admission = '-' THEN 1
+                                                ELSE 0
+                                            END)
+  FROM Patient
+  WHERE SEX = 'M'
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-1149
-    description: 'Are there more in-patient or outpatient who were male? What is the deviation in percentage?'
+    description: "Are there more in-patient or outpatient who were male? What is the deviation in percentage?"
     messages:
       - role: user
         content: |

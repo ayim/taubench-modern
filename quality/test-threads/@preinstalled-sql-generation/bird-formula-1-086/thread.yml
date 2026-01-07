@@ -1,7 +1,22 @@
 name: bird-formula-1-086
-description: 'BIRD Q931 (moderate): What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?'
+description: "BIRD Q931 (moderate): What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.fastestLapSpeed
+  FROM races AS T1
+  INNER JOIN results AS T2 ON T2.raceId = T1.raceId
+  WHERE T1.name = 'Spanish Grand Prix'
+    AND T1.year = 2009
+    AND T2.fastestLapSpeed IS NOT NULL
+  ORDER BY T2.fastestLapSpeed DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-931
-    description: 'What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?'
+    description: "What was the fastest lap speed among all drivers in the 2009 Spanish Grand Prix?"
     messages:
       - role: user
         content: |

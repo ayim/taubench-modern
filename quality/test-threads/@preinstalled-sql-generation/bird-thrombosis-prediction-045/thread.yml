@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-045
-description: 'BIRD Q1193 (moderate): Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?'
+description: "BIRD Q1193 (moderate): Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T2.`ANA Pattern` != 'P'
+    AND STRFTIME('%Y', T1.Birthday) BETWEEN '1980' AND '1989'
+    AND T1.SEX = 'F'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1193
-    description: 'Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?'
+    description: "Excluding all P only ANA Pattern patients, how many of the remainder are women born between 1980 and 1989?"
     messages:
       - role: user
         content: |

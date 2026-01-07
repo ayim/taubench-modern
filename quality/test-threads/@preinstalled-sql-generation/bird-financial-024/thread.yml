@@ -1,7 +1,86 @@
 name: bird-financial-024
-description: 'BIRD Q112 (challenging): For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators.'
+description: "BIRD Q112 (challenging): For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH female_client AS
+    (SELECT c.client_id,
+            c.birth_date,
+            c.district_id,
+            d.A2 AS district_name
+     FROM client c
+     JOIN district d ON c.district_id = d.district_id
+     WHERE c.birth_date = '1976-01-29'
+       AND c.gender = 'F'),
+       client_accounts AS
+    (SELECT fc.client_id,
+            fc.district_name AS residence_district,
+            a.account_id,
+            a.date AS account_open_date,
+            d2.A2 AS account_district,
+            d2.A3 AS account_region,
+            CASE
+                WHEN fc.district_id = a.district_id THEN 'Same as residence'
+                ELSE 'Different from residence'
+            END AS district_comparison,
+            ROW_NUMBER() OVER (PARTITION BY fc.client_id
+                               ORDER BY a.date) AS account_order
+     FROM female_client fc
+     JOIN disp dp ON fc.client_id = dp.client_id
+     JOIN ACCOUNT a ON dp.account_id = a.account_id
+     JOIN district d2 ON a.district_id = d2.district_id
+     WHERE dp.type = 'OWNER'),
+       account_transactions AS
+    (SELECT ca.client_id,
+            ca.account_id,
+            ca.account_district,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance,
+            COUNT(DISTINCT t.k_symbol) AS distinct_transaction_types
+     FROM client_accounts ca
+     LEFT JOIN trans t ON ca.account_id = t.account_id
+     GROUP BY ca.client_id,
+              ca.account_id,
+              ca.account_district)
+  SELECT ca.residence_district,
+         ca.account_district,
+         ca.district_comparison,
+         ca.account_open_date,
+         at.transaction_count,
+         at.total_income,
+         at.total_expense,
+         at.max_balance,
+  
+    (SELECT COUNT(*)
+     FROM loan l
+     WHERE l.account_id = ca.account_id) AS loan_count,
+  
+    (SELECT COUNT(*)
+     FROM card c
+     JOIN disp d ON c.disp_id = d.disp_id
+     WHERE d.account_id = ca.account_id) AS card_count,
+         d.A3 AS region,
+         d.A10 AS urban_ratio,
+         d.A11 AS avg_salary,
+         d.A14 AS entrepreneurs_per_1000
+  FROM client_accounts ca
+  JOIN account_transactions AT ON ca.account_id = at.account_id
+  JOIN district d ON ca.account_district = d.A2
+  ORDER BY ca.account_open_date;
 
 sdms:
   - kind: postgres
@@ -10,7 +89,7 @@ sdms:
 
 thread:
   - name: bird-question-112
-    description: 'For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators.'
+    description: "For the female client born on January 29, 1976, provide a comprehensive analysis of all her owned accounts including their locations, transaction activity, financial products, and regional economic indicators."
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-financial-091
-description: 'BIRD Q179 (simple): How much, in total, did client number 617 pay for all of the transactions in 1998?'
+description: "BIRD Q179 (simple): How much, in total, did client number 617 pay for all of the transactions in 1998?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(T2.amount)
+  FROM disp AS T1
+  INNER JOIN trans AS T2 ON T2.account_id = T1.account_id
+  WHERE STRFTIME('%Y', T2.date) = '1998'
+    AND T1.client_id = 617
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-179
-    description: 'How much, in total, did client number 617 pay for all of the transactions in 1998?'
+    description: "How much, in total, did client number 617 pay for all of the transactions in 1998?"
     messages:
       - role: user
         content: |

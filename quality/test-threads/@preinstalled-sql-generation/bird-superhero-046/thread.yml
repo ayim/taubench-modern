@@ -1,7 +1,20 @@
 name: bird-superhero-046
-description: 'BIRD Q762 (simple): Which power do superheroes have the most of?'
+description: "BIRD Q762 (simple): Which power do superheroes have the most of?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.power_name
+  FROM hero_power AS T1
+  INNER JOIN superpower AS T2 ON T1.power_id = T2.id
+  GROUP BY T2.power_name
+  ORDER BY COUNT(T1.hero_id) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-762
-    description: 'Which power do superheroes have the most of?'
+    description: "Which power do superheroes have the most of?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-formula-1-162
-description: 'BIRD Q1007 (simple): What was the longest time that Lewis Hamilton had spent at a pit stop?'
+description: "BIRD Q1007 (simple): What was the longest time that Lewis Hamilton had spent at a pit stop?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.duration
+  FROM pitStops AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  WHERE T2.forename = 'Lewis'
+    AND T2.surname = 'Hamilton'
+  ORDER BY T1.duration DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1007
-    description: 'What was the longest time that Lewis Hamilton had spent at a pit stop?'
+    description: "What was the longest time that Lewis Hamilton had spent at a pit stop?"
     messages:
       - role: user
         content: |

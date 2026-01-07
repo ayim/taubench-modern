@@ -1,7 +1,20 @@
 name: bird-financial-005
-description: 'BIRD Q93 (moderate): How many male customers who are living in North Bohemia have average salary greater than 8000?'
+description: "BIRD Q93 (moderate): How many male customers who are living in North Bohemia have average salary greater than 8000?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.client_id)
+  FROM client AS T1
+  INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+  WHERE T1.gender = 'M'
+    AND T2.A3 = 'north Bohemia'
+    AND T2.A11 > 8000;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-93
-    description: 'How many male customers who are living in North Bohemia have average salary greater than 8000?'
+    description: "How many male customers who are living in North Bohemia have average salary greater than 8000?"
     messages:
       - role: user
         content: |

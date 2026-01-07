@@ -1,7 +1,20 @@
 name: bird-card-games-119
-description: 'BIRD Q458 (simple): How many artists have designed a card with a black border color and is available in both "arena" and "mtgo" printing type?'
+description: "BIRD Q458 (simple): How many artists have designed a card with a black border color and is available in both \"arena\" and \"mtgo\" printing type?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(CASE
+                   WHEN availability LIKE '%arena,mtgo%'
+                        AND borderColor = 'black' THEN 1
+                   ELSE NULL
+               END)
+  FROM cards
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-458
-    description: 'How many artists have designed a card with a black border color and is available in both "arena" and "mtgo" printing type?'
+    description: "How many artists have designed a card with a black border color and is available in both \"arena\" and \"mtgo\" printing type?"
     messages:
       - role: user
         content: |

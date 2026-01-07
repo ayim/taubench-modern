@@ -1,7 +1,21 @@
 name: bird-superhero-095
-description: 'BIRD Q811 (simple): Give the alignment and superpowers of the superhero named Atom IV.'
+description: "BIRD Q811 (simple): Give the alignment and superpowers of the superhero named Atom IV."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T4.alignment,
+         T3.power_name
+  FROM superhero AS T1
+  INNER JOIN hero_power AS T2 ON T1.id = T2.hero_id
+  INNER JOIN superpower AS T3 ON T3.id = T2.power_id
+  INNER JOIN alignment AS T4 ON T1.alignment_id = T4.id
+  WHERE T1.superhero_name = 'Atom IV'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-811
-    description: 'Give the alignment and superpowers of the superhero named Atom IV.'
+    description: "Give the alignment and superpowers of the superhero named Atom IV."
     messages:
       - role: user
         content: |

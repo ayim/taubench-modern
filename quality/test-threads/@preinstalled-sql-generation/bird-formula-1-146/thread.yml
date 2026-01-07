@@ -1,7 +1,20 @@
 name: bird-formula-1-146
-description: 'BIRD Q991 (simple): What is the full name and date of birth of Austrian drivers born between 1981 and 1991?'
+description: "BIRD Q991 (simple): What is the full name and date of birth of Austrian drivers born between 1981 and 1991?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT forename,
+         surname,
+         dob
+  FROM drivers
+  WHERE nationality = 'Austrian'
+    AND STRFTIME('%Y', dob) BETWEEN '1981' AND '1991'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-991
-    description: 'What is the full name and date of birth of Austrian drivers born between 1981 and 1991?'
+    description: "What is the full name and date of birth of Austrian drivers born between 1981 and 1991?"
     messages:
       - role: user
         content: |

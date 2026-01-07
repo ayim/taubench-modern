@@ -1,7 +1,20 @@
 name: bird-european-football-2-050
-description: 'BIRD Q1069 (simple): Which football player has the shortest height?'
+description: "BIRD Q1069 (simple): Which football player has the shortest height?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT player_name
+  FROM Player
+  WHERE height =
+      (SELECT MIN(height)
+       FROM Player)
+  ORDER BY player_name ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1069
-    description: 'Which football player has the shortest height?'
+    description: "Which football player has the shortest height?"
     messages:
       - role: user
         content: |

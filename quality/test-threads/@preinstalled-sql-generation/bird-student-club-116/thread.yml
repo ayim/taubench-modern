@@ -1,7 +1,21 @@
 name: bird-student-club-116
-description: 'BIRD Q1427 (moderate): What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?'
+description: "BIRD Q1427 (moderate): What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.category,
+                  T1.type
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  WHERE T1.location = 'MU 215'
+    AND T2.spent = 0
+    AND T1.type = 'Guest Speaker'
 
 sdms:
   - kind: postgres
@@ -10,12 +24,12 @@ sdms:
 
 thread:
   - name: bird-question-1427
-    description: 'What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?'
+    description: "What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?"
     messages:
       - role: user
         content: |
           What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?
-          Evidence: budget category refers to category; events located at refers to location; type = 'Guest Speaker'; 0 budget spent refers to spent = 0;
+          Evidence: budget category refers to category; events located at refers to location; type = 'Guest Speaker'; 0 budget spent refers to spent = 0; 
 
 target-platforms:
   - name: openai

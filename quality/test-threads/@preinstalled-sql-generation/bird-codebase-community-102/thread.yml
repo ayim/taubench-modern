@@ -1,7 +1,19 @@
 name: bird-codebase-community-102
-description: 'BIRD Q632 (simple): How many votes were made by Harlan?'
+description: "BIRD Q632 (simple): How many votes were made by Harlan?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.Id)
+  FROM users AS T1
+  INNER JOIN postHistory AS T2 ON T1.Id = T2.UserId
+  INNER JOIN votes AS T3 ON T3.PostId = T2.PostId
+  WHERE T1.DisplayName = 'Harlan'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-632
-    description: 'How many votes were made by Harlan?'
+    description: "How many votes were made by Harlan?"
     messages:
       - role: user
         content: |

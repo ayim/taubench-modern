@@ -1,7 +1,21 @@
 name: bird-financial-106
-description: 'BIRD Q194 (moderate): Provide the IDs and age of the client with high level credit card, which is eligible for loans.'
+description: "BIRD Q194 (moderate): Provide the IDs and age of the client with high level credit card, which is eligible for loans."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.client_id,
+         STRFTIME('%Y', CURRENT_TIMESTAMP) - STRFTIME('%Y', T3.birth_date)
+  FROM disp AS T1
+  INNER JOIN card AS T2 ON T2.disp_id = T1.disp_id
+  INNER JOIN client AS T3 ON T1.client_id = T3.client_id
+  WHERE T2.type = 'gold'
+    AND T1.type = 'OWNER'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-194
-    description: 'Provide the IDs and age of the client with high level credit card, which is eligible for loans.'
+    description: "Provide the IDs and age of the client with high level credit card, which is eligible for loans."
     messages:
       - role: user
         content: |

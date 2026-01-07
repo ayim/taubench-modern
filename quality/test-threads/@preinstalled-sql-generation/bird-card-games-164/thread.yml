@@ -1,7 +1,21 @@
 name: bird-card-games-164
-description: 'BIRD Q503 (simple): What was the expansion type for the set which card "Samite Pilgrim" in it?'
+description: "BIRD Q503 (simple): What was the expansion type for the set which card \"Samite Pilgrim\" in it?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT TYPE
+  FROM
+  SETS
+  WHERE code IN
+      (SELECT setCode
+       FROM cards
+       WHERE name = 'Samite Pilgrim')
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-503
-    description: 'What was the expansion type for the set which card "Samite Pilgrim" in it?'
+    description: "What was the expansion type for the set which card \"Samite Pilgrim\" in it?"
     messages:
       - role: user
         content: |

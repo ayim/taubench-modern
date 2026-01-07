@@ -1,7 +1,17 @@
 name: bird-toxicology-128
-description: 'BIRD Q322 (challenging): What is the element of toxicology for the atom with the ID of TR000_1?'
+description: "BIRD Q322 (challenging): What is the element of toxicology for the atom with the ID of TR000_1?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T.element
+  FROM atom AS T
+  WHERE T.atom_id = 'TR000_1'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-322
-    description: 'What is the element of toxicology for the atom with the ID of TR000_1?'
+    description: "What is the element of toxicology for the atom with the ID of TR000_1?"
     messages:
       - role: user
         content: |

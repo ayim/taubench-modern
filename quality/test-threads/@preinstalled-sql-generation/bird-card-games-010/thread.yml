@@ -1,7 +1,28 @@
 name: bird-card-games-010
-description: 'BIRD Q349 (moderate): Name the card and artist with the most ruling information. Also state if the card is a promotional printing.'
+description: "BIRD Q349 (moderate): Name the card and artist with the most ruling information. Also state if the card is a promotional printing."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.name,
+         T1.artist,
+         CASE
+             WHEN T1.isPromo = 1 THEN 'yes'
+             ELSE 'no'
+         END AS isPromo
+  FROM cards AS T1
+  JOIN rulings AS T2 ON T2.uuid = T1.uuid
+  GROUP BY T1.uuid,
+           T1.name,
+           T1.artist,
+           T1.isPromo
+  ORDER BY COUNT(T2.uuid) DESC, T1.uuid ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +31,7 @@ sdms:
 
 thread:
   - name: bird-question-349
-    description: 'Name the card and artist with the most ruling information. Also state if the card is a promotional printing.'
+    description: "Name the card and artist with the most ruling information. Also state if the card is a promotional printing."
     messages:
       - role: user
         content: |

@@ -1,7 +1,22 @@
 name: bird-formula-1-091
-description: 'BIRD Q936 (simple): Which was the fastest lap for Lewis Hamilton in the 2008 Australian Grand Prix?'
+description: "BIRD Q936 (simple): Which was the fastest lap for Lewis Hamilton in the 2008 Australian Grand Prix?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.fastestLap
+  FROM results AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  INNER JOIN drivers AS T3 ON T1.driverId = T3.driverId
+  WHERE T2.name = 'Australian Grand Prix'
+    AND T2.year = 2008
+    AND T3.forename = 'Lewis'
+    AND T3.surname = 'Hamilton'
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-936
-    description: 'Which was the fastest lap for Lewis Hamilton in the 2008 Australian Grand Prix?'
+    description: "Which was the fastest lap for Lewis Hamilton in the 2008 Australian Grand Prix?"
     messages:
       - role: user
         content: |

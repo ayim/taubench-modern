@@ -1,7 +1,20 @@
 name: bird-european-football-2-117
-description: 'BIRD Q1136 (moderate): How many players had the highest potential score for crossing that preferred to use their left foots while attacking?'
+description: "BIRD Q1136 (moderate): How many players had the highest potential score for crossing that preferred to use their left foots while attacking?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(t1.id)
+  FROM Player_Attributes AS t1
+  WHERE t1.preferred_foot = 'left'
+    AND t1.crossing =
+      (SELECT MAX(crossing)
+       FROM Player_Attributes)
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1136
-    description: 'How many players had the highest potential score for crossing that preferred to use their left foots while attacking?'
+    description: "How many players had the highest potential score for crossing that preferred to use their left foots while attacking?"
     messages:
       - role: user
         content: |

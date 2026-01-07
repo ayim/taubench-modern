@@ -1,7 +1,20 @@
 name: bird-student-club-099
-description: 'BIRD Q1410 (simple): List out the full name and total cost that member id "rec4BLdZHS2Blfp4v" incurred?'
+description: "BIRD Q1410 (simple): List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name,
+         SUM(T2.cost)
+  FROM member AS T1
+  INNER JOIN expense AS T2 ON T1.member_id = T2.link_to_member
+  WHERE T1.member_id = 'rec4BLdZHS2Blfp4v'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1410
-    description: 'List out the full name and total cost that member id "rec4BLdZHS2Blfp4v" incurred?'
+    description: "List out the full name and total cost that member id \"rec4BLdZHS2Blfp4v\" incurred?"
     messages:
       - role: user
         content: |

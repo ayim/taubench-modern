@@ -1,7 +1,21 @@
 name: bird-codebase-community-163
-description: 'BIRD Q693 (simple): Identify the number of posts and comments left by the user, who has the latest created user account.'
+description: "BIRD Q693 (simple): Identify the number of posts and comments left by the user, who has the latest created user account."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T2.Id),
+         COUNT(DISTINCT T3.Id)
+  FROM users AS T1
+  LEFT JOIN posts AS T2 ON T2.OwnerUserId = T1.Id
+  LEFT JOIN comments AS T3 ON T3.UserID = T1.Id
+  ORDER BY T1.CreationDate DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-693
-    description: 'Identify the number of posts and comments left by the user, who has the latest created user account.'
+    description: "Identify the number of posts and comments left by the user, who has the latest created user account."
     messages:
       - role: user
         content: |

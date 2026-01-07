@@ -1,7 +1,19 @@
 name: bird-student-club-105
-description: 'BIRD Q1416 (simple): How many members of Business have the Medium size of tee shirt?'
+description: "BIRD Q1416 (simple): How many members of Business have the Medium size of tee shirt?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T2.member_id)
+  FROM major AS T1
+  INNER JOIN member AS T2 ON T1.major_id = T2.link_to_major
+  WHERE T1.major_name = 'Business'
+    AND T2.t_shirt_size = 'Medium'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1416
-    description: 'How many members of Business have the Medium size of tee shirt?'
+    description: "How many members of Business have the Medium size of tee shirt?"
     messages:
       - role: user
         content: |

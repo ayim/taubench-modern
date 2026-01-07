@@ -1,7 +1,19 @@
 name: bird-codebase-community-181
-description: 'BIRD Q711 (simple): Among product comments with 0 score, what is the total number of users aged 40 years old?'
+description: "BIRD Q711 (simple): Among product comments with 0 score, what is the total number of users aged 40 years old?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T2.Id)
+  FROM comments AS T1
+  INNER JOIN users AS T2 ON T1.UserId = T2.Id
+  WHERE T1.Score = 0
+    AND T2.Age = 40;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-711
-    description: 'Among product comments with 0 score, what is the total number of users aged 40 years old?'
+    description: "Among product comments with 0 score, what is the total number of users aged 40 years old?"
     messages:
       - role: user
         content: |

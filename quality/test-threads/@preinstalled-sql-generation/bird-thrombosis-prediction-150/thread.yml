@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-150
-description: 'BIRD Q1298 (moderate): Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?'
+description: "BIRD Q1298 (moderate): Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID) AS qualified_patient_count
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  INNER JOIN Examination AS T3 ON T1.ID = T3.ID
+  WHERE T2.`T-CHO` < 250
+    AND T3.`ANA Pattern` = 'P';
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1298
-    description: 'Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?'
+    description: "Among the patients whose total cholesterol is within the normal range, how many of them have a P pattern observed in the sheet of ANA examination?"
     messages:
       - role: user
         content: |

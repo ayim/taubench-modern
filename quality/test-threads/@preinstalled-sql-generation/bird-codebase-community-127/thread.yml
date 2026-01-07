@@ -1,7 +1,23 @@
 name: bird-codebase-community-127
-description: 'BIRD Q657 (moderate): Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount.'
+description: "BIRD Q657 (moderate): Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DisplayName,
+         WebsiteUrl
+  FROM users
+  WHERE Id =
+      (SELECT UserId
+       FROM votes
+       WHERE VoteTypeId = 8
+       ORDER BY BountyAmount DESC
+       LIMIT 1)
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-657
-    description: 'Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount.'
+    description: "Under the vote type of 8, provide the display names and websites URLs of the user who got the highest bounty amount."
     messages:
       - role: user
         content: |

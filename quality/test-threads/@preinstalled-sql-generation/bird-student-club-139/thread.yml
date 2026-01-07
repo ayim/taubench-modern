@@ -1,7 +1,18 @@
 name: bird-student-club-139
-description: 'BIRD Q1450 (simple): In the events with budget more than forty, list the location at which the event is happening.'
+description: "BIRD Q1450 (simple): In the events with budget more than forty, list the location at which the event is happening."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.location
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  WHERE T2.amount > 40
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1450
-    description: 'In the events with budget more than forty, list the location at which the event is happening.'
+    description: "In the events with budget more than forty, list the location at which the event is happening."
     messages:
       - role: user
         content: |

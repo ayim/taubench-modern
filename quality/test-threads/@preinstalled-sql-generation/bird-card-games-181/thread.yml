@@ -1,7 +1,21 @@
 name: bird-card-games-181
-description: 'BIRD Q520 (moderate): Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated.'
+description: "BIRD Q520 (moderate): Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.artist,
+         T2.format
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T2.uuid = T1.uuid
+  GROUP BY T1.artist
+  ORDER BY COUNT(T1.id) ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-520
-    description: 'Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated.'
+    description: "Who is the illustrator that illustrated the least amount of cards? List the format of play of the cards that he/she illustrated."
     messages:
       - role: user
         content: |

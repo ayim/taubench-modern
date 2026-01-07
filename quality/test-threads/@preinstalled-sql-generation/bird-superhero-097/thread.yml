@@ -1,7 +1,19 @@
 name: bird-superhero-097
-description: 'BIRD Q813 (simple): Calculate the average attribute value of all neutral superheroes.'
+description: "BIRD Q813 (simple): Calculate the average attribute value of all neutral superheroes."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.attribute_value)
+  FROM hero_attribute AS T1
+  INNER JOIN superhero AS T2 ON T1.hero_id = T2.id
+  INNER JOIN alignment AS T3 ON T2.alignment_id = T3.id
+  WHERE T3.alignment = 'Neutral'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-813
-    description: 'Calculate the average attribute value of all neutral superheroes.'
+    description: "Calculate the average attribute value of all neutral superheroes."
     messages:
       - role: user
         content: |

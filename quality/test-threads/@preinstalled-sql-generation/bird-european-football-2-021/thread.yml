@@ -3,6 +3,20 @@ description: "BIRD Q1040 (moderate): List the top 10 players' names whose height
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.player_name
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE t1.height > 180
+  GROUP BY t1.id
+  ORDER BY CAST(SUM(t2.heading_accuracy) AS REAL) / COUNT(t2.`player_fifa_api_id`) DESC
+  LIMIT 10
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

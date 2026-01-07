@@ -1,7 +1,19 @@
 name: bird-formula-1-105
-description: 'BIRD Q950 (simple): Please list the constructor names with 0 points at race 291.'
+description: "BIRD Q950 (simple): Please list the constructor names with 0 points at race 291."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.name
+  FROM constructorStandings AS T1
+  INNER JOIN constructors AS T2 ON T1.constructorId = T2.constructorId
+  WHERE T1.points = 0
+    AND T1.raceId = 291;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-950
-    description: 'Please list the constructor names with 0 points at race 291.'
+    description: "Please list the constructor names with 0 points at race 291."
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-student-club-126
-description: 'BIRD Q1437 (challenging): Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event.'
+description: "BIRD Q1437 (challenging): Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.link_to_member,
+                  T3.link_to_event
+  FROM expense AS T1
+  INNER JOIN member AS T2 ON T1.link_to_member = T2.member_id
+  INNER JOIN attendance AS T3 ON T2.member_id = T3.link_to_member
+  WHERE date(SUBSTR(T1.expense_date, 1, 10)) BETWEEN '2019-01-10' AND '2019-11-19'
+    AND T1.approved = 'true'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1437
-    description: 'Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event.'
+    description: "Which members who were approved from 1/10/2019 to 11/19/2019? Please identify the member who attended the event and the link to their event."
     messages:
       - role: user
         content: |

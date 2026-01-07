@@ -1,7 +1,21 @@
 name: bird-formula-1-135
-description: 'BIRD Q980 (moderate): List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday.'
+description: "BIRD Q980 (moderate): List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.driverRef,
+         T2.nationality,
+         T2.dob
+  FROM qualifying AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  WHERE T1.raceId = 23
+    AND T1.q2 IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-980
-    description: 'List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday.'
+    description: "List the reference name of the drivers who passed the second qualifying lap during race no. 23. Indicate their nationality and birthday."
     messages:
       - role: user
         content: |

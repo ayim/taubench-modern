@@ -3,6 +3,83 @@ description: "BIRD Q104 (challenging): For the transaction of 840 on October 14,
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH TransactionDetails AS
+    (SELECT t.account_id,
+            t.amount,
+            t.date AS transaction_date,
+            t.type,
+            t.operation,
+            t.balance,
+            t.k_symbol,
+            a.date AS account_opening_date,
+            a.frequency,
+            d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            ROW_NUMBER() OVER (PARTITION BY t.account_id
+                               ORDER BY t.date) AS transaction_rank
+     FROM trans t
+     JOIN ACCOUNT a ON t.account_id = a.account_id
+     JOIN district d ON a.district_id = d.district_id
+     WHERE t.amount = 840
+       AND t.date = '1998-10-14'),
+       AccountOwners AS
+    (SELECT disp.account_id,
+            client.client_id,
+            client.gender,
+            client.birth_date,
+            CASE
+                WHEN client.gender = 'M' THEN 'Male'
+                WHEN client.gender = 'F' THEN 'Female'
+                ELSE 'Unknown'
+            END AS gender_full,
+            CAST(strftime('%Y', '1998-10-14') AS INTEGER) - CAST(strftime('%Y', client.birth_date) AS INTEGER) - CASE
+                                                                                                                     WHEN strftime('%m%d', '1998-10-14') < strftime('%m%d', client.birth_date) THEN 1
+                                                                                                                     ELSE 0
+                                                                                                                 END AS age_at_transaction,
+                                                                                                                 disp.type AS disposition_type
+     FROM disp
+     JOIN client ON disp.client_id = client.client_id
+     WHERE disp.type = 'OWNER')
+  SELECT td.account_id,
+         td.account_opening_date,
+         td.transaction_date,
+         CAST(julianday(td.transaction_date) - julianday(td.account_opening_date) AS INTEGER) AS days_account_open_before_transaction,
+         td.amount,
+         td.balance,
+         td.district_name,
+         td.region,
+         ao.client_id,
+         ao.gender_full,
+         ao.age_at_transaction,
+  
+    (SELECT COUNT(*)
+     FROM trans
+     WHERE account_id = td.account_id
+       AND date <= td.transaction_date) AS total_transactions_to_date,
+  
+    (SELECT COUNT(*)
+     FROM card c
+     JOIN disp d ON c.disp_id = d.disp_id
+     WHERE d.account_id = td.account_id) AS cards_issued,
+         CASE
+             WHEN EXISTS
+                    (SELECT 1
+                     FROM loan
+                     WHERE account_id = td.account_id
+                       AND date <= td.transaction_date) THEN 'Yes'
+             ELSE 'No'
+         END AS has_loan_before_transaction
+  FROM TransactionDetails td
+  LEFT JOIN AccountOwners ao ON td.account_id = ao.account_id
+  ORDER BY td.account_opening_date;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

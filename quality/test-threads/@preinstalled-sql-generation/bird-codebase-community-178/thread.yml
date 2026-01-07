@@ -1,7 +1,19 @@
 name: bird-codebase-community-178
-description: 'BIRD Q708 (moderate): List the creation date and age of the user that commented with webiste.'
+description: "BIRD Q708 (moderate): List the creation date and age of the user that commented with webiste."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.CreationDate,
+         T2.Age
+  FROM comments AS T1
+  INNER JOIN users AS T2 ON T1.UserId = T2.Id
+  WHERE T1.text LIKE '%http://%'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-708
-    description: 'List the creation date and age of the user that commented with webiste.'
+    description: "List the creation date and age of the user that commented with webiste."
     messages:
       - role: user
         content: |

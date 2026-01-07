@@ -1,7 +1,26 @@
 name: bird-toxicology-117
-description: 'BIRD Q311 (simple): How many molecules without sulphur element is not having double bond?'
+description: "BIRD Q311 (simple): How many molecules without sulphur element is not having double bond?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM molecule M
+  WHERE NOT EXISTS
+      (SELECT 1
+       FROM atom A
+       WHERE A.molecule_id = M.molecule_id
+         AND A.element = 's')
+    AND NOT EXISTS
+      (SELECT 1
+       FROM bond B
+       WHERE B.molecule_id = M.molecule_id
+         AND B.bond_type = '=')
 
 sdms:
   - kind: postgres
@@ -10,7 +29,7 @@ sdms:
 
 thread:
   - name: bird-question-311
-    description: 'How many molecules without sulphur element is not having double bond?'
+    description: "How many molecules without sulphur element is not having double bond?"
     messages:
       - role: user
         content: |

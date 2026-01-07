@@ -1,7 +1,19 @@
 name: bird-toxicology-143
-description: 'BIRD Q337 (challenging): List the element and bond type included in the molecule with molecule ID of TR002.'
+description: "BIRD Q337 (challenging): List the element and bond type included in the molecule with molecule ID of TR002."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.element,
+                  T2.bond_type
+  FROM atom AS T1
+  INNER JOIN bond AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.molecule_id = 'TR002'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-337
-    description: 'List the element and bond type included in the molecule with molecule ID of TR002.'
+    description: "List the element and bond type included in the molecule with molecule ID of TR002."
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-toxicology-067
-description: 'BIRD Q261 (simple): Write down bond id for molecules that are carcinogenic.'
+description: "BIRD Q261 (simple): Write down bond id for molecules that are carcinogenic."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.bond_id
+  FROM bond AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.label = '+'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-261
-    description: 'Write down bond id for molecules that are carcinogenic.'
+    description: "Write down bond id for molecules that are carcinogenic."
     messages:
       - role: user
         content: |

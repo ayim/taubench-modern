@@ -1,7 +1,20 @@
 name: bird-codebase-community-070
-description: 'BIRD Q600 (simple): List out all post that are related to post ID 61217 and what is the popularity of this post?'
+description: "BIRD Q600 (simple): List out all post that are related to post ID 61217 and what is the popularity of this post?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT p.Id,
+                  p.Title,
+                  p.ViewCount
+  FROM postLinks AS pl
+  INNER JOIN posts AS p ON p.Id = pl.RelatedPostId
+  WHERE pl.PostId = 61217;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-600
-    description: 'List out all post that are related to post ID 61217 and what is the popularity of this post?'
+    description: "List out all post that are related to post ID 61217 and what is the popularity of this post?"
     messages:
       - role: user
         content: |

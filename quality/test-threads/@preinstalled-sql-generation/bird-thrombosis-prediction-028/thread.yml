@@ -1,7 +1,18 @@
 name: bird-thrombosis-prediction-028
-description: 'BIRD Q1176 (simple): What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?'
+description: "BIRD Q1176 (simple): What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT ANA
+  FROM Examination
+  WHERE ID = 3605340
+    AND `Examination Date` = '1996-12-02'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1176
-    description: 'What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?'
+    description: "What was the anti-nucleus antibody concentration level for the patient id 3605340 on 1996/12/2?"
     messages:
       - role: user
         content: |

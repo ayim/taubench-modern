@@ -1,7 +1,19 @@
 name: bird-toxicology-087
-description: 'BIRD Q281 (challenging): Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.'
+description: "BIRD Q281 (challenging): Tally the toxicology element of the 4th atom of each molecule that was carcinogenic."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.element
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.label = '+'
+    AND SUBSTR(T1.atom_id, 7, 1) = '4'
 
 sdms:
   - kind: postgres
@@ -10,12 +22,12 @@ sdms:
 
 thread:
   - name: bird-question-281
-    description: 'Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.'
+    description: "Tally the toxicology element of the 4th atom of each molecule that was carcinogenic."
     messages:
       - role: user
         content: |
           Tally the toxicology element of the 4th atom of each molecule that was carcinogenic.
-          Evidence: label = '+' means molecules are carcinogenic; 4th atom of each molecule refers to substr(atom_id, 7, 1) = '4';
+          Evidence: label = '+' means molecules are carcinogenic; 4th atom of each molecule refers to substr(atom_id, 7, 1) = '4'; 
 
 target-platforms:
   - name: openai

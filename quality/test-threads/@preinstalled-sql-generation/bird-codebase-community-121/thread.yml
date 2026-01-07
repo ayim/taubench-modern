@@ -1,7 +1,19 @@
 name: bird-codebase-community-121
-description: 'BIRD Q651 (simple): Provide the related post title of "How to tell if something happened in a data set which monitors a value over time".'
+description: "BIRD Q651 (simple): Provide the related post title of \"How to tell if something happened in a data set which monitors a value over time\"."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.Title
+  FROM postLinks AS T1
+  INNER JOIN posts AS T2 ON T1.PostId = T2.Id
+  INNER JOIN posts AS T3 ON T1.RelatedPostId = T3.Id
+  WHERE T2.Title = 'How to tell if something happened in a data set which monitors a value over time'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-651
-    description: 'Provide the related post title of "How to tell if something happened in a data set which monitors a value over time".'
+    description: "Provide the related post title of \"How to tell if something happened in a data set which monitors a value over time\"."
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-toxicology-140
-description: 'BIRD Q334 (challenging): What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?'
+description: "BIRD Q334 (challenging): What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.element
+  FROM atom AS T1
+  INNER JOIN molecule AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T1.atom_id = 'TR004_7'
+    AND T2.label = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-334
-    description: 'What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?'
+    description: "What is the element with the atom ID of TR004_7 in molecule that is not carcinogenic?"
     messages:
       - role: user
         content: |

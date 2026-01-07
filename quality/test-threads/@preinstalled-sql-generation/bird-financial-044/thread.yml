@@ -1,7 +1,20 @@
 name: bird-financial-044
-description: 'BIRD Q132 (simple): What is the average loan amount by male borrowers?'
+description: "BIRD Q132 (simple): What is the average loan amount by male borrowers?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T4.amount)
+  FROM client AS T1
+  INNER JOIN disp AS T2 ON T1.client_id = T2.client_id
+  INNER JOIN ACCOUNT AS T3 ON T2.account_id = T3.account_id
+  INNER JOIN loan AS T4 ON T3.account_id = T4.account_id
+  WHERE T1.gender = 'M'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-132
-    description: 'What is the average loan amount by male borrowers?'
+    description: "What is the average loan amount by male borrowers?"
     messages:
       - role: user
         content: |

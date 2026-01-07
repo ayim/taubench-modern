@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-119
-description: 'BIRD Q1267 (moderate): Among the patients with normal anti-SM, how many of them does not have thrombosis?'
+description: "BIRD Q1267 (moderate): Among the patients with normal anti-SM, how many of them does not have thrombosis?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.ID)
+  FROM Examination AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.SM IN ('negative',
+                  '0')
+    AND T1.Thrombosis = 0
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1267
-    description: 'Among the patients with normal anti-SM, how many of them does not have thrombosis?'
+    description: "Among the patients with normal anti-SM, how many of them does not have thrombosis?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,22 @@
 name: bird-card-games-155
-description: 'BIRD Q494 (challenging): For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values.'
+description: "BIRD Q494 (challenging): For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.text,
+         CASE
+             WHEN T1.hasContentWarning = 1 THEN 'YES'
+             ELSE 'NO'
+         END
+  FROM cards AS T1
+  INNER JOIN rulings AS T2 ON T2.uuid = T1.uuid
+  WHERE T1.artist = 'Jim Pavelec'
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-494
-    description: 'For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values.'
+    description: "For all cards illustrated by Jim Pavelec. and describe the text of the ruling of these cards. Do these cards have missing or degraded properties and values."
     messages:
       - role: user
         content: |

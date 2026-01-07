@@ -1,7 +1,20 @@
 name: bird-formula-1-002
-description: 'BIRD Q847 (simple): What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?'
+description: "BIRD Q847 (simple): What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.surname
+  FROM qualifying AS T1
+  INNER JOIN drivers AS T2 ON T2.driverId = T1.driverId
+  WHERE T1.raceId = 19
+  ORDER BY T1.q2 ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-847
-    description: 'What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?'
+    description: "What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?"
     messages:
       - role: user
         content: |

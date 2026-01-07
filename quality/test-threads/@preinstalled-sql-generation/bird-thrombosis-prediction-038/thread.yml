@@ -3,6 +3,17 @@ description: "BIRD Q1186 (moderate): Lists all patients by ID who were diagnosed
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT ID
+  FROM Examination
+  WHERE `Examination Date` BETWEEN '1997-01-01' AND '1997-12-31'
+    AND Diagnosis = 'Behcet'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_thrombosis_prediction

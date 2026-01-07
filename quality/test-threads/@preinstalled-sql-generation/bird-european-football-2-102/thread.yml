@@ -3,6 +3,17 @@ description: "BIRD Q1121 (moderate): Calculate the total home team goal scored b
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(t2.home_team_goal)
+  FROM Player AS t1
+  INNER JOIN MATCH AS t2 ON t1.player_api_id = t2.home_player_1
+  WHERE datetime(CURRENT_TIMESTAMP, 'localtime') - datetime(T1.birthday) < 31
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

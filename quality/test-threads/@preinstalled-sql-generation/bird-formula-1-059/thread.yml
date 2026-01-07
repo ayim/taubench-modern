@@ -1,7 +1,23 @@
 name: bird-formula-1-059
-description: 'BIRD Q904 (moderate): State the race and year of race in which Michael Schumacher had his fastest lap.'
+description: "BIRD Q904 (moderate): State the race and year of race in which Michael Schumacher had his fastest lap."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.name,
+         T1.year
+  FROM races AS T1
+  INNER JOIN lapTimes AS T2 ON T2.raceId = T1.raceId
+  INNER JOIN drivers AS T3 ON T3.driverId = T2.driverId
+  WHERE T3.forename = 'Michael'
+    AND T3.surname = 'Schumacher'
+  ORDER BY T2.milliseconds ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-904
-    description: 'State the race and year of race in which Michael Schumacher had his fastest lap.'
+    description: "State the race and year of race in which Michael Schumacher had his fastest lap."
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-codebase-community-128
-description: 'BIRD Q658 (simple): What are the titles of the top 5 posts with the highest popularity?'
+description: "BIRD Q658 (simple): What are the titles of the top 5 posts with the highest popularity?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT Title
+  FROM posts
+  ORDER BY ViewCount DESC,
+           Id ASC
+  LIMIT 5;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-658
-    description: 'What are the titles of the top 5 posts with the highest popularity?'
+    description: "What are the titles of the top 5 posts with the highest popularity?"
     messages:
       - role: user
         content: |

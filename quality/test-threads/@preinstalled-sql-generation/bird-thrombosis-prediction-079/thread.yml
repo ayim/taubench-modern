@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-079
-description: 'BIRD Q1227 (moderate): What is the average age of the male patient with high cholesterol?'
+description: "BIRD Q1227 (moderate): What is the average age of the male patient with high cholesterol?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(STRFTIME('%Y', date('NOW')) - STRFTIME('%Y', T1.Birthday))
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.`T-CHO` >= 250
+    AND T1.SEX = 'M'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1227
-    description: 'What is the average age of the male patient with high cholesterol?'
+    description: "What is the average age of the male patient with high cholesterol?"
     messages:
       - role: user
         content: |

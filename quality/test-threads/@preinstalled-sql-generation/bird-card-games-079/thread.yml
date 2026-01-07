@@ -1,7 +1,17 @@
 name: bird-card-games-079
-description: 'BIRD Q418 (simple): What kind of printing is on the card that Daren Bader created?'
+description: "BIRD Q418 (simple): What kind of printing is on the card that Daren Bader created?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT availability
+  FROM cards
+  WHERE artist = 'Daren Bader'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-418
-    description: 'What kind of printing is on the card that Daren Bader created?'
+    description: "What kind of printing is on the card that Daren Bader created?"
     messages:
       - role: user
         content: |

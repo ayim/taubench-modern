@@ -1,7 +1,20 @@
 name: bird-card-games-005
-description: 'BIRD Q344 (moderate): List all the mythic rarity print cards banned in gladiator format.'
+description: "BIRD Q344 (moderate): List all the mythic rarity print cards banned in gladiator format."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.id
+  FROM cards AS T1
+  INNER JOIN legalities AS T2 ON T1.uuid = T2.uuid
+  WHERE T2.format = 'gladiator'
+    AND T2.status = 'Banned'
+    AND T1.rarity = 'mythic'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-344
-    description: 'List all the mythic rarity print cards banned in gladiator format.'
+    description: "List all the mythic rarity print cards banned in gladiator format."
     messages:
       - role: user
         content: |

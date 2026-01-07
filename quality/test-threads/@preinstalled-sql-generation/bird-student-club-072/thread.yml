@@ -1,7 +1,20 @@
 name: bird-student-club-072
-description: 'BIRD Q1383 (simple): State the name of students from Georgetown, South Carolina.'
+description: "BIRD Q1383 (simple): State the name of students from Georgetown, South Carolina."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name
+  FROM member AS T1
+  INNER JOIN zip_code AS T2 ON T1.zip = T2.zip_code
+  WHERE T2.city = 'Georgetown'
+    AND T2.state = 'South Carolina'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1383
-    description: 'State the name of students from Georgetown, South Carolina.'
+    description: "State the name of students from Georgetown, South Carolina."
     messages:
       - role: user
         content: |

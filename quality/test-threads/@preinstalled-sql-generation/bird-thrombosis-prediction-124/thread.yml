@@ -1,7 +1,22 @@
 name: bird-thrombosis-prediction-124
-description: 'BIRD Q1272 (moderate): Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID.'
+description: "BIRD Q1272 (moderate): Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.ID
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T1.`First Date` IS NOT NULL
+    AND T2.SSA NOT IN ('negative',
+                       '0')
+  ORDER BY T1.`First Date` ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-1272
-    description: 'Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID.'
+    description: "Which patient is the first patient with an abnormal anti-SSA to come to the hospital? Please give his or her ID."
     messages:
       - role: user
         content: |

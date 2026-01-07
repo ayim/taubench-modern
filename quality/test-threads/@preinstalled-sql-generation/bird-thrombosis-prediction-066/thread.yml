@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-066
-description: 'BIRD Q1214 (simple): List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index.'
+description: "BIRD Q1214 (simple): List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.ID,
+                  T1.SEX,
+                  T1.Birthday
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.TP < 6.0
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1214
-    description: 'List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index.'
+    description: "List ID, sex and date of birth of the patient whose total protein (TP) is below the lower range of the normal index."
     messages:
       - role: user
         content: |

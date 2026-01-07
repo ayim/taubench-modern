@@ -1,7 +1,62 @@
 name: bird-financial-046
-description: 'BIRD Q134 (challenging): For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there.'
+description: "BIRD Q134 (challenging): For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CrimeStats AS
+    (SELECT district_id,
+            A16 AS crimes_1996,
+            RANK() OVER (
+                         ORDER BY A16 DESC) AS crime_rank
+     FROM district),
+       AccountsByDistrict AS
+    (SELECT a.district_id,
+            COUNT(a.account_id) AS account_count,
+            AVG(JULIANDAY('1996-12-31') - JULIANDAY(a.date))/365.25 AS avg_account_age_years
+     FROM ACCOUNT a
+     WHERE a.date <= '1996-12-31'
+     GROUP BY a.district_id),
+       ClientsByDistrict AS
+    (SELECT c.district_id,
+            COUNT(c.client_id) AS client_count,
+            SUM(CASE
+                    WHEN c.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_clients,
+            SUM(CASE
+                    WHEN c.gender = 'F' THEN 1
+                    ELSE 0
+                END) AS female_clients
+     FROM client c
+     GROUP BY c.district_id),
+       DistrictInfo AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            CAST(d.A4 AS INTEGER) AS inhabitants,
+            d.A10 AS urban_ratio,
+            d.A11 AS avg_salary,
+            d.A15 AS crimes_1995,
+            d.A16 AS crimes_1996,
+            (d.A16 - d.A15) * 100.0 / NULLIF(d.A15, 0) AS crime_increase_percent
+     FROM district d)
+  SELECT di.district_name,
+         di.region,
+         di.inhabitants,
+         di.crimes_1996,
+         di.crime_increase_percent,
+         ad.account_count AS accounts_opened
+  FROM CrimeStats cs
+  JOIN AccountsByDistrict ad ON cs.district_id = ad.district_id
+  JOIN ClientsByDistrict cd ON cs.district_id = cd.district_id
+  JOIN DistrictInfo di ON cs.district_id = di.district_id
+  WHERE cs.crime_rank = 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +65,7 @@ sdms:
 
 thread:
   - name: bird-question-134
-    description: 'For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there.'
+    description: "For the district with the highest number of crimes in 1996, provide details including the district name, region, population, number of crimes, percentage increase in crimes from 1995 to 1996, and how many accounts were opened there."
     messages:
       - role: user
         content: |

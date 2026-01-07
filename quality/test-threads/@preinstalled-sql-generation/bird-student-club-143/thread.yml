@@ -1,7 +1,21 @@
 name: bird-student-club-143
-description: 'BIRD Q1454 (moderate): What is the percentage of the cost for the meeting events?'
+description: "BIRD Q1454 (moderate): What is the percentage of the cost for the meeting events?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN T1.type = 'Meeting' THEN T3.cost
+                 ELSE 0
+             END) * 100 / SUM(T3.cost)
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1454
-    description: 'What is the percentage of the cost for the meeting events?'
+    description: "What is the percentage of the cost for the meeting events?"
     messages:
       - role: user
         content: |

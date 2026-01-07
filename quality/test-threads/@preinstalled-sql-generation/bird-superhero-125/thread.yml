@@ -1,7 +1,19 @@
 name: bird-superhero-125
-description: 'BIRD Q841 (simple): Provide the weight and race of the superhero with superhero ID 40.'
+description: "BIRD Q841 (simple): Provide the weight and race of the superhero with superhero ID 40."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.weight_kg,
+         T2.race
+  FROM superhero AS T1
+  INNER JOIN race AS T2 ON T1.race_id = T2.id
+  WHERE T1.id = 40
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-841
-    description: 'Provide the weight and race of the superhero with superhero ID 40.'
+    description: "Provide the weight and race of the superhero with superhero ID 40."
     messages:
       - role: user
         content: |

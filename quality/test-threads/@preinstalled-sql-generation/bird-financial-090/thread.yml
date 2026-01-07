@@ -3,6 +3,34 @@ description: "BIRD Q178 (challenging): What are the complete details of client n
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT cl.client_id,
+         cl.gender,
+         DATE(cl.birth_date) AS birth_date,
+         cd.type AS card_type,
+         DATE(cd.issued) AS card_issued_date,
+         CASE
+             WHEN cd.type = 'gold' THEN 'Premium Customer'
+             WHEN cd.type = 'classic' THEN 'Regular Customer'
+             ELSE 'Other Customer Type'
+         END AS customer_status,
+  
+    (SELECT COUNT(*)
+     FROM disp
+     WHERE client_id = 9) AS total_accounts_owned,
+         (julianday('now') - julianday(cd.issued))/365.25 AS card_age_years
+  FROM client AS cl
+  INNER JOIN disp AS d ON cl.client_id = d.client_id
+  INNER JOIN card AS cd ON d.disp_id = cd.disp_id
+  WHERE cl.client_id = 9
+  ORDER BY cd.issued DESC
+  LIMIT 1;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

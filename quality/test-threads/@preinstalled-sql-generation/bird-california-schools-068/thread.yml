@@ -1,7 +1,19 @@
 name: bird-california-schools-068
-description: 'BIRD Q67 (simple): What is the total amount of Community College District closure in 1989 in the city of San Francisco?'
+description: "BIRD Q67 (simple): What is the total amount of Community College District closure in 1989 in the city of San Francisco?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(School)
+  FROM schools
+  WHERE strftime('%Y', ClosedDate) = '1989'
+    AND City = 'San Francisco'
+    AND DOCType = 'Community College District'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-67
-    description: 'What is the total amount of Community College District closure in 1989 in the city of San Francisco?'
+    description: "What is the total amount of Community College District closure in 1989 in the city of San Francisco?"
     messages:
       - role: user
         content: |

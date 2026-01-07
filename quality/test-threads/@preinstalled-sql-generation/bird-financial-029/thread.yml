@@ -1,7 +1,69 @@
 name: bird-financial-029
-description: 'BIRD Q117 (challenging): For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans.'
+description: "BIRD Q117 (challenging): For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoansByDistrict AS
+    (SELECT d.A2 AS district_name,
+            d.A3 AS region,
+            l.status,
+            l.amount,
+            l.duration,
+            l.payments,
+            a.frequency,
+            strftime('%Y', l.date) AS loan_year,
+            CASE
+                WHEN c.gender = 'M' THEN 'Male'
+                WHEN c.gender = 'F' THEN 'Female'
+                ELSE 'Unknown'
+            END AS gender,
+            ROUND((l.payments * l.duration) - l.amount, 2) AS interest_paid
+     FROM loan l
+     JOIN ACCOUNT a ON l.account_id = a.account_id
+     JOIN district d ON a.district_id = d.district_id
+     JOIN disp di ON a.account_id = di.account_id
+     AND di.type = 'OWNER'
+     JOIN client c ON di.client_id = c.client_id),
+       RegionSummary AS
+    (SELECT region,
+            SUM(CASE
+                    WHEN status = 'A' THEN amount
+                    ELSE 0
+                END) AS paid_amount,
+            SUM(amount) AS total_amount,
+            COUNT(CASE
+                      WHEN status = 'A' THEN 1
+                  END) AS successful_loans,
+            COUNT(*) AS total_loans,
+            ROUND(AVG(CASE
+                          WHEN status = 'A' THEN interest_paid
+                      END), 2) AS avg_interest_paid_successful,
+            ROUND(AVG(interest_paid), 2) AS avg_interest_paid_all
+     FROM LoansByDistrict
+     GROUP BY region)
+  SELECT region,
+         ROUND((CAST(paid_amount AS REAL) * 100) / total_amount, 2) AS paid_amount_percentage,
+         ROUND((CAST(successful_loans AS REAL) * 100) / total_loans, 2) AS successful_loans_percentage,
+         successful_loans,
+         total_loans,
+         paid_amount,
+         total_amount,
+         avg_interest_paid_successful,
+         avg_interest_paid_all,
+  
+    (SELECT ROUND((CAST(SUM(CASE
+                                WHEN status = 'A' THEN amount
+                                ELSE 0
+                            END) AS REAL) * 100) / SUM(amount), 2)
+     FROM loan) AS overall_percentage
+  FROM RegionSummary
+  ORDER BY paid_amount_percentage DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +72,7 @@ sdms:
 
 thread:
   - name: bird-question-117
-    description: 'For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans.'
+    description: "For each region, what percentage of the total loan amount has been fully paid without issues, and what percentage of loans were successfully completed? Also include the average interest paid on successful loans compared to all loans."
     messages:
       - role: user
         content: |

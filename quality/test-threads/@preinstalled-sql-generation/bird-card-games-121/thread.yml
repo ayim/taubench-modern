@@ -1,7 +1,17 @@
 name: bird-card-games-121
-description: 'BIRD Q460 (simple): Which artist designed the card whose promotional name is "Battra, Dark Destroyer"?'
+description: "BIRD Q460 (simple): Which artist designed the card whose promotional name is \"Battra, Dark Destroyer\"?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT artist
+  FROM cards
+  WHERE flavorName = 'Battra, Dark Destroyer'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-460
-    description: 'Which artist designed the card whose promotional name is "Battra, Dark Destroyer"?'
+    description: "Which artist designed the card whose promotional name is \"Battra, Dark Destroyer\"?"
     messages:
       - role: user
         content: |

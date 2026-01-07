@@ -1,7 +1,42 @@
 name: bird-formula-1-099
-description: 'BIRD Q944 (challenging): How much faster in percentage is the champion than the driver who finished the race last in the 2008 Australian Grand Prix?'
+description: "BIRD Q944 (challenging): How much faster in percentage is the champion than the driver who finished the race last in the 2008 Australian Grand Prix?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH time_in_seconds AS
+    (SELECT T1.positionOrder,
+            CASE
+                WHEN T1.positionOrder = 1 THEN (CAST(SUBSTR(T1.time, 1, 1) AS REAL) * 3600) + (CAST(SUBSTR(T1.time, 3, 2) AS REAL) * 60) + CAST(SUBSTR(T1.time, 6) AS REAL)
+                ELSE CAST(SUBSTR(T1.time, 2) AS REAL)
+            END AS time_seconds
+     FROM results AS T1
+     INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+     WHERE T2.name = 'Australian Grand Prix'
+       AND T1.time IS NOT NULL
+       AND T2.year = 2008),
+       champion_time AS
+    (SELECT time_seconds
+     FROM time_in_seconds
+     WHERE positionOrder = 1),
+       last_driver_incremental AS
+    (SELECT time_seconds
+     FROM time_in_seconds
+     WHERE positionOrder =
+         (SELECT MAX(positionOrder)
+          FROM time_in_seconds))
+  SELECT (CAST(
+                 (SELECT time_seconds
+                  FROM last_driver_incremental) AS REAL) * 100) /
+    (SELECT time_seconds +
+       (SELECT time_seconds
+        FROM last_driver_incremental)
+     FROM champion_time);
 
 sdms:
   - kind: postgres
@@ -10,7 +45,7 @@ sdms:
 
 thread:
   - name: bird-question-944
-    description: 'How much faster in percentage is the champion than the driver who finished the race last in the 2008 Australian Grand Prix?'
+    description: "How much faster in percentage is the champion than the driver who finished the race last in the 2008 Australian Grand Prix?"
     messages:
       - role: user
         content: |

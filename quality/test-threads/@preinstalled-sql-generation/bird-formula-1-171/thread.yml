@@ -1,7 +1,38 @@
 name: bird-formula-1-171
-description: 'BIRD Q1016 (challenging): In the race a driver set the lap record for the Austrian Grand Prix Circuit, how long did he spent at the pit stop at that same race?'
+description: "BIRD Q1016 (challenging): In the race a driver set the lap record for the Austrian Grand Prix Circuit, how long did he spent at the pit stop at that same race?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH fastest_lap_times AS
+    (SELECT T1.raceId,
+            T1.driverId,
+            T1.FastestLapTime,
+            (CAST(SUBSTR(T1.FastestLapTime, 1, INSTR(T1.FastestLapTime, ':') - 1) AS REAL) * 60) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, ':') + 1, INSTR(T1.FastestLapTime, '.') - INSTR(T1.FastestLapTime, ':') - 1) AS REAL)) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, '.') + 1) AS REAL) / 1000) AS time_in_seconds
+     FROM results AS T1
+     WHERE T1.FastestLapTime IS NOT NULL),
+       lap_record_race AS
+    (SELECT T1.raceId,
+            T1.driverId
+     FROM results AS T1
+     INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+     INNER JOIN circuits AS T3 ON T2.circuitId = T3.circuitId
+     INNER JOIN
+       (SELECT MIN(fastest_lap_times.time_in_seconds) AS min_time_in_seconds
+        FROM fastest_lap_times
+        INNER JOIN races AS T2 ON fastest_lap_times.raceId = T2.raceId
+        INNER JOIN circuits AS T3 ON T2.circuitId = T3.circuitId
+        WHERE T2.name = 'Austrian Grand Prix') AS T4 ON (CAST(SUBSTR(T1.FastestLapTime, 1, INSTR(T1.FastestLapTime, ':') - 1) AS REAL) * 60) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, ':') + 1, INSTR(T1.FastestLapTime, '.') - INSTR(T1.FastestLapTime, ':') - 1) AS REAL)) + (CAST(SUBSTR(T1.FastestLapTime, INSTR(T1.FastestLapTime, '.') + 1) AS REAL) / 1000) = T4.min_time_in_seconds
+     WHERE T2.name = 'Austrian Grand Prix')
+  SELECT T4.duration
+  FROM lap_record_race
+  INNER JOIN pitStops AS T4 ON lap_record_race.raceId = T4.raceId
+  AND lap_record_race.driverId = T4.driverId
 
 sdms:
   - kind: postgres
@@ -10,7 +41,7 @@ sdms:
 
 thread:
   - name: bird-question-1016
-    description: 'In the race a driver set the lap record for the Austrian Grand Prix Circuit, how long did he spent at the pit stop at that same race?'
+    description: "In the race a driver set the lap record for the Austrian Grand Prix Circuit, how long did he spent at the pit stop at that same race?"
     messages:
       - role: user
         content: |

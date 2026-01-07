@@ -1,7 +1,19 @@
 name: bird-student-club-131
-description: 'BIRD Q1442 (simple): What is the percentage of the events that went over budget?'
+description: "BIRD Q1442 (simple): What is the percentage of the events that went over budget?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN b.remaining < 0 THEN b.link_to_event
+                             END) AS REAL) / COUNT(DISTINCT e.event_id) * 100 AS over_budget_event_percentage
+  FROM event e
+  LEFT JOIN budget b ON e.event_id = b.link_to_event;
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1442
-    description: 'What is the percentage of the events that went over budget?'
+    description: "What is the percentage of the events that went over budget?"
     messages:
       - role: user
         content: |

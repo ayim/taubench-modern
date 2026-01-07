@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-016
-description: 'BIRD Q1164 (moderate): How many of the patients with the most serious thrombosis cases examined in 1997 are women?'
+description: "BIRD Q1164 (moderate): How many of the patients with the most serious thrombosis cases examined in 1997 are women?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T1.SEX = 'F'
+    AND STRFTIME('%Y', T2.`Examination Date`) = '1997'
+    AND T2.Thrombosis = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1164
-    description: 'How many of the patients with the most serious thrombosis cases examined in 1997 are women?'
+    description: "How many of the patients with the most serious thrombosis cases examined in 1997 are women?"
     messages:
       - role: user
         content: |

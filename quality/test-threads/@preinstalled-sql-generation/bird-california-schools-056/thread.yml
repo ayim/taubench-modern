@@ -1,7 +1,128 @@
 name: bird-california-schools-056
-description: 'BIRD Q55 (challenging): What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?'
+description: "BIRD Q55 (challenging): What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ColusaSchools AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.County,
+            s.Charter,
+            f.`FRPM Count (K-12)`,
+            f.`Enrollment (K-12)`,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.5 THEN 'High FRPM'
+                ELSE 'Low FRPM'
+            END AS FRPM_Category,
+            sat.NumTstTakr,
+            sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite AS TotalSATScore
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE s.MailState = 'CA'
+       AND s.County = 'Colusa'),
+       HumboldtSchools AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.County,
+            s.Charter,
+            f.`FRPM Count (K-12)`,
+            f.`Enrollment (K-12)`,
+            CASE
+                WHEN f.`Percent (%) Eligible FRPM (K-12)` > 0.5 THEN 'High FRPM'
+                ELSE 'Low FRPM'
+            END AS FRPM_Category,
+            sat.NumTstTakr,
+            sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite AS TotalSATScore
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE s.MailState = 'CA'
+       AND s.County = 'Humboldt'),
+       ColosaStats AS
+    (SELECT COUNT(*) AS TotalSchools,
+            SUM(CASE
+                    WHEN Charter = 1 THEN 1
+                    ELSE 0
+                END) AS CharterSchools,
+            SUM(CASE
+                    WHEN FRPM_Category = 'High FRPM' THEN 1
+                    ELSE 0
+                END) AS HighFRPMSchools,
+            AVG(CASE
+                    WHEN TotalSATScore IS NOT NULL THEN TotalSATScore
+                    ELSE NULL
+                END) AS AvgSATScore,
+            SUM(`FRPM Count (K-12)`) AS TotalFRPMStudents,
+            SUM(`Enrollment (K-12)`) AS TotalEnrollment
+     FROM ColusaSchools),
+       HumboldtStats AS
+    (SELECT COUNT(*) AS TotalSchools,
+            SUM(CASE
+                    WHEN Charter = 1 THEN 1
+                    ELSE 0
+                END) AS CharterSchools,
+            SUM(CASE
+                    WHEN FRPM_Category = 'High FRPM' THEN 1
+                    ELSE 0
+                END) AS HighFRPMSchools,
+            AVG(CASE
+                    WHEN TotalSATScore IS NOT NULL THEN TotalSATScore
+                    ELSE NULL
+                END) AS AvgSATScore,
+            SUM(`FRPM Count (K-12)`) AS TotalFRPMStudents,
+            SUM(`Enrollment (K-12)`) AS TotalEnrollment
+     FROM HumboldtSchools)
+  SELECT 'Total Schools Ratio' AS Metric,
+         CAST(c.TotalSchools AS REAL) / h.TotalSchools AS Ratio
+  FROM ColosaStats c,
+       HumboldtStats h
+  UNION ALL
+  SELECT 'Charter Schools Ratio' AS Metric,
+         CASE
+             WHEN h.CharterSchools = 0 THEN NULL
+             ELSE CAST(c.CharterSchools AS REAL) / h.CharterSchools
+         END AS Ratio
+  FROM ColosaStats c,
+       HumboldtStats h
+  UNION ALL
+  SELECT 'High FRPM Schools Ratio' AS Metric,
+         CASE
+             WHEN h.HighFRPMSchools = 0 THEN NULL
+             ELSE CAST(c.HighFRPMSchools AS REAL) / h.HighFRPMSchools
+         END AS Ratio
+  FROM ColosaStats c,
+       HumboldtStats h
+  UNION ALL
+  SELECT 'Average SAT Score Ratio' AS Metric,
+         CASE
+             WHEN h.AvgSATScore = 0 THEN NULL
+             ELSE CAST(c.AvgSATScore AS REAL) / h.AvgSATScore
+         END AS Ratio
+  FROM ColosaStats c,
+       HumboldtStats h
+  UNION ALL
+  SELECT 'FRPM Students Ratio' AS Metric,
+         CASE
+             WHEN h.TotalFRPMStudents = 0 THEN NULL
+             ELSE CAST(c.TotalFRPMStudents AS REAL) / h.TotalFRPMStudents
+         END AS Ratio
+  FROM ColosaStats c,
+       HumboldtStats h
+  UNION ALL
+  SELECT 'Total Enrollment Ratio' AS Metric,
+         CASE
+             WHEN h.TotalEnrollment = 0 THEN NULL
+             ELSE CAST(c.TotalEnrollment AS REAL) / h.TotalEnrollment
+         END AS Ratio
+  FROM ColosaStats c,
+       HumboldtStats h;
 
 sdms:
   - kind: postgres
@@ -10,7 +131,7 @@ sdms:
 
 thread:
   - name: bird-question-55
-    description: 'What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?'
+    description: "What are the ratios comparing various educational metrics between schools in Colusa County and Humboldt County in California, including total number of schools, charter schools, schools with high free meal eligibility rates, average SAT scores, total students receiving free or reduced-price meals, and total enrollment?"
     messages:
       - role: user
         content: |

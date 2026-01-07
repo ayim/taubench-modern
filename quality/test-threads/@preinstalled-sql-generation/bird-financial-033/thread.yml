@@ -1,7 +1,89 @@
 name: bird-financial-033
-description: 'BIRD Q121 (challenging): For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest.'
+description: "BIRD Q121 (challenging): For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountsInPrachatice AS
+    (SELECT a.account_id,
+            a.date,
+            a.district_id
+     FROM ACCOUNT AS a
+     INNER JOIN district AS d ON a.district_id = d.district_id
+     WHERE d.A2 = 'Prachatice'),
+       ClientsWithPrachaticeAccounts AS
+    (SELECT c.client_id,
+            c.gender,
+            c.birth_date,
+            d.disp_id,
+            d.account_id
+     FROM client AS c
+     INNER JOIN disp AS d ON c.client_id = d.client_id
+     INNER JOIN AccountsInPrachatice AS a ON d.account_id = a.account_id
+     WHERE d.type = 'OWNER'),
+       TransactionStats AS
+    (SELECT t.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance
+     FROM trans AS t
+     INNER JOIN AccountsInPrachatice AS a ON t.account_id = a.account_id
+     GROUP BY t.account_id),
+       LoanInfo AS
+    (SELECT l.account_id,
+            COUNT(l.loan_id) AS loan_count,
+            SUM(l.amount) AS total_loan_amount,
+            CASE
+                WHEN MAX(CASE
+                             WHEN l.status = 'B' THEN 1
+                             ELSE 0
+                         END) = 1 THEN 'Has Default'
+                ELSE 'No Default'
+            END AS loan_status
+     FROM loan AS l
+     INNER JOIN AccountsInPrachatice AS a ON l.account_id = a.account_id
+     GROUP BY l.account_id)
+  SELECT a.account_id,
+         a.date AS opening_date,
+         d.A2 AS district_name,
+         d.A3 AS region,
+         c.gender,
+         strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) AS client_age,
+         COALESCE(ts.transaction_count, 0) AS transaction_count,
+         COALESCE(ts.total_income, 0) AS total_income,
+         COALESCE(ts.total_expense, 0) AS total_expense,
+         COALESCE(ts.total_income, 0) - COALESCE(ts.total_expense, 0) AS net_balance,
+         COALESCE(ts.max_balance, 0) AS max_balance,
+         COALESCE(l.loan_count, 0) AS loan_count,
+         COALESCE(l.total_loan_amount, 0) AS total_loan_amount,
+         COALESCE(l.loan_status, 'No Loans') AS loan_status,
+         CASE
+             WHEN COALESCE(l.loan_count, 0) > 0
+                  AND COALESCE(ts.transaction_count, 0) > 10 THEN 'High Activity'
+             WHEN COALESCE(l.loan_count, 0) > 0 THEN 'Loan Customer'
+             WHEN COALESCE(ts.transaction_count, 0) > 10 THEN 'Active Customer'
+             ELSE 'Regular Customer'
+         END AS customer_category,
+         ROW_NUMBER() OVER (
+                            ORDER BY COALESCE(ts.total_income, 0) - COALESCE(ts.total_expense, 0) DESC) AS balance_rank
+  FROM AccountsInPrachatice AS a
+  INNER JOIN district AS d ON a.district_id = d.district_id
+  LEFT JOIN ClientsWithPrachaticeAccounts AS c ON a.account_id = c.account_id
+  LEFT JOIN TransactionStats AS ts ON a.account_id = ts.account_id
+  LEFT JOIN LoanInfo AS l ON a.account_id = l.account_id
+  ORDER BY balance_rank;
 
 sdms:
   - kind: postgres
@@ -10,7 +92,7 @@ sdms:
 
 thread:
   - name: bird-question-121
-    description: 'For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest.'
+    description: "For accounts opened in Prachatice district, provide a comprehensive financial profile including account details, owner demographics, transaction statistics, loan information, customer categorization, and rank them by net balance from highest to lowest."
     messages:
       - role: user
         content: |

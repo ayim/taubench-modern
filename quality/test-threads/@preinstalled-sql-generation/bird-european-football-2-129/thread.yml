@@ -1,7 +1,21 @@
 name: bird-european-football-2-129
-description: 'BIRD Q1148 (moderate): What is the percentage of players that are under 180 cm who have an overall strength of more than 70?'
+description: "BIRD Q1148 (moderate): What is the percentage of players that are under 180 cm who have an overall strength of more than 70?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN t2.overall_rating > 70 THEN t1.id
+                        ELSE NULL
+                    END) AS REAL) * 100 / COUNT(t1.id) percent
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE t1.height < 180
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1148
-    description: 'What is the percentage of players that are under 180 cm who have an overall strength of more than 70?'
+    description: "What is the percentage of players that are under 180 cm who have an overall strength of more than 70?"
     messages:
       - role: user
         content: |

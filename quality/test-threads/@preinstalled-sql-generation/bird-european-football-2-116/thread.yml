@@ -3,6 +3,18 @@ description: "BIRD Q1135 (moderate): Please provide top five football players' I
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT id
+  FROM Player_Attributes
+  WHERE preferred_foot = 'right'
+  ORDER BY potential
+  LIMIT 5
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

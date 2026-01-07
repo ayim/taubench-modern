@@ -3,6 +3,20 @@ description: "BIRD Q1154 (simple): State the sex and birthday of patient ID '163
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.SEX,
+         T1.Birthday,
+         T2.`Examination Date`,
+         T2.Symptoms
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE T1.ID = 163109
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_thrombosis_prediction

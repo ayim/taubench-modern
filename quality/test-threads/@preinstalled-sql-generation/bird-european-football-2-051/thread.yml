@@ -1,7 +1,18 @@
 name: bird-european-football-2-051
-description: 'BIRD Q1070 (simple): Which country is the league Italy Serie A from?'
+description: "BIRD Q1070 (simple): Which country is the league Italy Serie A from?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.name
+  FROM Country AS t1
+  INNER JOIN League AS t2 ON t1.id = t2.country_id
+  WHERE t2.name = 'Italy Serie A'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1070
-    description: 'Which country is the league Italy Serie A from?'
+    description: "Which country is the league Italy Serie A from?"
     messages:
       - role: user
         content: |

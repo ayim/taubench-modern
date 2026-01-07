@@ -1,7 +1,22 @@
 name: bird-california-schools-018
-description: 'BIRD Q17 (simple): Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers.'
+description: "BIRD Q17 (simple): Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CharterNum,
+         AvgScrWrite,
+         RANK() OVER (
+                      ORDER BY AvgScrWrite DESC) AS WritingScoreRank
+  FROM schools AS T1
+  INNER JOIN satscores AS T2 ON T1.CDSCode = T2.cds
+  WHERE T2.AvgScrWrite > 499
+    AND CharterNum IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-17
-    description: 'Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers.'
+    description: "Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers."
     messages:
       - role: user
         content: |

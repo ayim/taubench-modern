@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-136
-description: 'BIRD Q1284 (moderate): For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?'
+description: "BIRD Q1284 (moderate): For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.`First Date`
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.LDH < 500
+  ORDER BY T2.LDH DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1284
-    description: 'For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?'
+    description: "For the patient with the highest lactate dehydrogenase in the normal range, when was his or her data first recorded?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-formula-1-087
-description: 'BIRD Q932 (simple): In which years did Lewis Hamilton participate in a Formula_1 race?'
+description: "BIRD Q932 (simple): In which years did Lewis Hamilton participate in a Formula_1 race?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.year
+  FROM races AS T1
+  INNER JOIN results AS T2 ON T2.raceId = T1.raceId
+  INNER JOIN drivers AS T3 ON T3.driverId = T2.driverId
+  WHERE T3.forename = 'Lewis'
+    AND T3.surname = 'Hamilton'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-932
-    description: 'In which years did Lewis Hamilton participate in a Formula_1 race?'
+    description: "In which years did Lewis Hamilton participate in a Formula_1 race?"
     messages:
       - role: user
         content: |

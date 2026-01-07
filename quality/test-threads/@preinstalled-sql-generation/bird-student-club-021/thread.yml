@@ -1,7 +1,19 @@
 name: bird-student-club-021
-description: 'BIRD Q1332 (moderate): How much did the Student_Club members spend on food in the September Meeting?'
+description: "BIRD Q1332 (moderate): How much did the Student_Club members spend on food in the September Meeting?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.spent
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  WHERE T1.event_name = 'September Meeting'
+    AND T2.category = 'Food'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1332
-    description: 'How much did the Student_Club members spend on food in the September Meeting?'
+    description: "How much did the Student_Club members spend on food in the September Meeting?"
     messages:
       - role: user
         content: |

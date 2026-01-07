@@ -1,7 +1,55 @@
 name: bird-toxicology-013
-description: 'BIRD Q207 (challenging): For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?'
+description: "BIRD Q207 (challenging): For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH ElementsInDoubleBonds AS
+    (SELECT T1.element,
+            T1.atom_id,
+            T1.molecule_id
+     FROM atom AS T1
+     INNER JOIN connected AS T3 ON T1.atom_id = T3.atom_id
+     INNER JOIN bond AS T2 ON T3.bond_id = T2.bond_id
+     WHERE T2.bond_type = '='),
+       MoleculeStats AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT a.atom_id) AS total_atoms,
+            COUNT(DISTINCT b.bond_id) AS total_bonds,
+            SUM(CASE
+                    WHEN b.bond_type = '=' THEN 1
+                    ELSE 0
+                END) AS double_bonds_count
+     FROM molecule m
+     LEFT JOIN atom a ON m.molecule_id = a.molecule_id
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     GROUP BY m.molecule_id,
+              m.label
+     HAVING double_bonds_count > 0)
+  SELECT e.element,
+         COUNT(DISTINCT e.atom_id) AS atom_count,
+         COUNT(DISTINCT e.molecule_id) AS molecule_count,
+         ROUND(COUNT(DISTINCT e.atom_id) * 100.0 /
+                 (SELECT COUNT(*)
+                  FROM atom), 2) AS percentage_of_all_atoms,
+  
+    (SELECT GROUP_CONCAT(ms.molecule_id || ' (' || ms.label || ')', ', ')
+     FROM MoleculeStats ms
+     WHERE ms.molecule_id IN
+         (SELECT DISTINCT edb.molecule_id
+          FROM ElementsInDoubleBonds edb
+          WHERE edb.element = e.element)
+     LIMIT 3) AS sample_molecules
+  FROM ElementsInDoubleBonds e
+  GROUP BY e.element
+  ORDER BY atom_count DESC,
+           e.element ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +58,7 @@ sdms:
 
 thread:
   - name: bird-question-207
-    description: 'For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?'
+    description: "For each element that participates in double bonds, what is the count of atoms, the number of molecules containing them, their percentage of all atoms in the database, and examples of up to 3 molecules (with labels) where they appear in double bonds?"
     messages:
       - role: user
         content: |

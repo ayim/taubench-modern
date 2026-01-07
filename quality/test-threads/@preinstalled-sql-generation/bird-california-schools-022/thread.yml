@@ -1,7 +1,77 @@
 name: bird-california-schools-022
-description: 'BIRD Q21 (challenging): For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?'
+description: "BIRD Q21 (challenging): For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolMealStats AS
+    (SELECT f.CDSCode,
+            f.`School Name`,
+            f.`County Name`,
+            f.`Free Meal Count (K-12)` AS FreeMeals,
+            f.`FRPM Count (K-12)` AS TotalFRPM,
+            f.`Enrollment (K-12)` AS Enrollment,
+            ROUND(f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)` * 100, 2) AS FreePercentage,
+            ROUND(f.`FRPM Count (K-12)` / f.`Enrollment (K-12)` * 100, 2) AS FRPMPercentage,
+            s.Street,
+            s.City,
+            s.Charter,
+            s.GSoffered AS GradeSpan,
+            CASE
+                WHEN f.`Free Meal Count (K-12)` > 600 THEN 'Very High'
+                WHEN f.`Free Meal Count (K-12)` > 500 THEN 'High'
+                ELSE 'Moderate'
+            END AS FreeMealCategory
+     FROM frpm f
+     JOIN schools s ON f.CDSCode = s.CDSCode
+     WHERE f.`County Name` = 'Los Angeles'
+       AND f.`Free Meal Count (K-12)` > 500
+       AND f.`FRPM Count (K-12)` < 700),
+       SATData AS
+    (SELECT cds,
+            sname,
+            NumTstTakr,
+            AvgScrRead + AvgScrMath + AvgScrWrite AS TotalSATScore,
+            CAST(NumGE1500 AS FLOAT) / NULLIF(NumTstTakr, 0) * 100 AS PercentOver1500
+     FROM satscores
+     WHERE cname = 'Los Angeles'),
+       CategoryBreakdown AS
+    (SELECT FreeMealCategory,
+            COUNT(*) AS CategoryCount
+     FROM SchoolMealStats
+     GROUP BY FreeMealCategory)
+  SELECT COUNT(DISTINCT sms.CDSCode) AS TotalSchools,
+         AVG(sms.FreeMeals) AS AvgFreeMeals,
+         AVG(sms.TotalFRPM) AS AvgTotalFRPM,
+         AVG(sms.FreePercentage) AS AvgFreePercentage,
+         AVG(sms.FRPMPercentage) AS AvgFRPMPercentage,
+         SUM(CASE
+                 WHEN sms.Charter = 1 THEN 1
+                 ELSE 0
+             END) AS CharterSchoolCount,
+         SUM(CASE
+                 WHEN sms.Charter = 0 THEN 1
+                 ELSE 0
+             END) AS NonCharterSchoolCount,
+         AVG(CASE
+                 WHEN sd.TotalSATScore IS NOT NULL THEN sd.TotalSATScore
+                 ELSE NULL
+             END) AS AvgSATScore,
+  
+    (SELECT COUNT(DISTINCT sms2.CDSCode)
+     FROM SchoolMealStats sms2
+     LEFT JOIN SATData sd2 ON sms2.CDSCode = sd2.cds
+     WHERE sd2.cds IS NULL) AS SchoolsWithoutSATData,
+  
+    (SELECT GROUP_CONCAT(FreeMealCategory || ': ' || CategoryCount)
+     FROM CategoryBreakdown) AS FreeMealCategoryBreakdown
+  FROM SchoolMealStats sms
+  LEFT JOIN SATData sd ON sms.CDSCode = sd.cds;
 
 sdms:
   - kind: postgres
@@ -10,7 +80,7 @@ sdms:
 
 thread:
   - name: bird-question-21
-    description: 'For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?'
+    description: "For Los Angeles schools with more than 500 free meals but less than 700 FRPM meals for K-12 students, what is the average percentage of students receiving free meals, how many are charter versus non-charter schools, what is their average SAT score, and how are they distributed across free meal categories?"
     messages:
       - role: user
         content: |

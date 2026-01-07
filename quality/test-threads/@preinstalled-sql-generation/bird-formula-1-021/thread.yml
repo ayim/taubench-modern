@@ -1,7 +1,21 @@
 name: bird-formula-1-021
-description: 'BIRD Q866 (moderate): Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website.'
+description: "BIRD Q866 (moderate): Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.forename,
+                  T2.surname,
+                  T2.url
+  FROM lapTimes AS T1
+  INNER JOIN drivers AS T2 ON T2.driverId = T1.driverId
+  WHERE T1.raceId = 161
+    AND T1.time LIKE '1:27%';
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-866
-    description: 'Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website.'
+    description: "Who was the player that got the lap time of 0:01:27 in the race No. 161? Show his introduction website."
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-thrombosis-prediction-140
-description: 'BIRD Q1288 (simple): Please list the diagnosis of the patients whose total protein is lower than normal.'
+description: "BIRD Q1288 (simple): Please list the diagnosis of the patients whose total protein is lower than normal."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.Diagnosis
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.TP < 6.0
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1288
-    description: 'Please list the diagnosis of the patients whose total protein is lower than normal.'
+    description: "Please list the diagnosis of the patients whose total protein is lower than normal."
     messages:
       - role: user
         content: |

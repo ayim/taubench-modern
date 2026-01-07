@@ -1,7 +1,21 @@
 name: bird-card-games-115
-description: 'BIRD Q454 (simple): Among the cards with a white border color, how many of them have unknown power?'
+description: "BIRD Q454 (simple): Among the cards with a white border color, how many of them have unknown power?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN power = '*'
+                      OR power IS NULL THEN 1
+                 ELSE 0
+             END)
+  FROM cards
+  WHERE borderColor = 'white'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-454
-    description: 'Among the cards with a white border color, how many of them have unknown power?'
+    description: "Among the cards with a white border color, how many of them have unknown power?"
     messages:
       - role: user
         content: |

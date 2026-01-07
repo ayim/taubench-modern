@@ -1,7 +1,25 @@
 name: bird-formula-1-035
-description: 'BIRD Q880 (challenging): Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?'
+description: "BIRD Q880 (challenging): Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT ((MAX(CASE
+                   WHEN T2.raceId = 853 THEN CAST(T2.fastestLapSpeed AS REAL)
+               END) - MAX(CASE
+                              WHEN T2.raceId = 854 THEN CAST(T2.fastestLapSpeed AS REAL)
+                          END)) * 100) / MAX(CASE
+                                                 WHEN T2.raceId = 853 THEN CAST(T2.fastestLapSpeed AS REAL)
+                                             END) AS faster_percentage
+  FROM drivers AS T1
+  INNER JOIN results AS T2 ON T2.driverId = T1.driverId
+  WHERE T1.forename = 'Paul'
+    AND T1.surname = 'di Resta';
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-880
-    description: 'Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?'
+    description: "Paul di Resta was in the No. 853 race, what percent faster did he finish in the 853rd race than the next race for the fastest lap speed?"
     messages:
       - role: user
         content: |

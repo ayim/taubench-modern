@@ -1,7 +1,18 @@
 name: bird-european-football-2-110
-description: 'BIRD Q1129 (simple): List down the long name for slow speed class team.'
+description: "BIRD Q1129 (simple): List down the long name for slow speed class team."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t1.team_long_name
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t2.buildUpPlaySpeedClass = 'Slow'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1129
-    description: 'List down the long name for slow speed class team.'
+    description: "List down the long name for slow speed class team."
     messages:
       - role: user
         content: |

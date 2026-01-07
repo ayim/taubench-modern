@@ -3,6 +3,17 @@ description: "BIRD Q1373 (simple): How many of the members' hometowns are from M
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T2.member_id)
+  FROM zip_code AS T1
+  INNER JOIN member AS T2 ON T1.zip_code = T2.zip
+  WHERE T1.state = 'Maryland';
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_student_club

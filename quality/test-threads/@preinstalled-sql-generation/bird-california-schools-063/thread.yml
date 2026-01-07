@@ -1,7 +1,75 @@
 name: bird-california-schools-063
-description: 'BIRD Q62 (challenging): For non-chartered schools in Los Angeles County with a free meal rate below 0.18%, provide details about each school including their enrollment, free meal count, exact free meal percentage, their rank within the county, and statistics about how many schools in the county fall into this low free meal category.'
+description: "BIRD Q62 (challenging): For non-chartered schools in Los Angeles County with a free meal rate below 0.18%, provide details about each school including their enrollment, free meal count, exact free meal percentage, their rank within the county, and statistics about how many schools in the county fall into this low free meal category."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolStats AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.County,
+            s.District,
+            s.Charter,
+            f.`Free Meal Count (K-12)`,
+            f.`Enrollment (K-12)`,
+            CAST(f.`Free Meal Count (K-12)` AS REAL) * 100 / f.`Enrollment (K-12)` AS FreePercent,
+            f.`FRPM Count (K-12)`,
+            CAST(f.`FRPM Count (K-12)` AS REAL) * 100 / f.`Enrollment (K-12)` AS FRPMPercent,
+            CASE
+                WHEN CAST(f.`Free Meal Count (K-12)` AS REAL) * 100 / f.`Enrollment (K-12)` < 0.18 THEN 'Very Low'
+                WHEN CAST(f.`Free Meal Count (K-12)` AS REAL) * 100 / f.`Enrollment (K-12)` < 10 THEN 'Low'
+                WHEN CAST(f.`Free Meal Count (K-12)` AS REAL) * 100 / f.`Enrollment (K-12)` < 30 THEN 'Medium'
+                ELSE 'High'
+            END AS FreeCategory,
+            ROW_NUMBER() OVER (PARTITION BY s.County
+                               ORDER BY CAST(f.`Free Meal Count (K-12)` AS REAL) * 100 / f.`Enrollment (K-12)`) AS CountyRank
+     FROM schools s
+     INNER JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE s.Charter = 0
+       AND f.`Enrollment (K-12)` > 0),
+       CountyStats AS
+    (SELECT County,
+            COUNT(*) AS TotalSchools,
+            COUNT(CASE
+                      WHEN FreePercent < 0.18 THEN 1
+                  END) AS LowFreeSchools,
+            AVG(FreePercent) AS AvgFreePercent,
+            MIN(FreePercent) AS MinFreePercent,
+            MAX(FreePercent) AS MaxFreePercent
+     FROM SchoolStats
+     GROUP BY County
+     HAVING COUNT(CASE
+                      WHEN FreePercent < 0.18 THEN 1
+                  END) > 0)
+  SELECT ss.CDSCode,
+         ss.School,
+         ss.District,
+         ss.County,
+         ss.`Enrollment (K-12)` AS Enrollment,
+         ss.`Free Meal Count (K-12)` AS FreeMealCount,
+         ROUND(ss.FreePercent, 4) AS FreePercentage,
+         ss.FreeCategory,
+         ss.CountyRank,
+         cs.TotalSchools,
+         cs.LowFreeSchools,
+         ROUND(cs.AvgFreePercent, 4) AS CountyAvgFreePercent,
+         ROUND(100.0 * cs.LowFreeSchools / cs.TotalSchools, 2) || '%' AS PctLowFreeInCounty,
+  
+    (SELECT COUNT(*)
+     FROM SchoolStats
+     WHERE County = 'Los Angeles'
+       AND FreePercent < 0.18) AS LATotalLowFree
+  FROM SchoolStats ss
+  JOIN CountyStats cs ON ss.County = cs.County
+  WHERE ss.County = 'Los Angeles'
+    AND ss.FreePercent < 0.18
+  ORDER BY ss.FreePercent ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +78,7 @@ sdms:
 
 thread:
   - name: bird-question-62
-    description: 'For non-chartered schools in Los Angeles County with a free meal rate below 0.18%, provide details about each school including their enrollment, free meal count, exact free meal percentage, their rank within the county, and statistics about how many schools in the county fall into this low free meal category.'
+    description: "For non-chartered schools in Los Angeles County with a free meal rate below 0.18%, provide details about each school including their enrollment, free meal count, exact free meal percentage, their rank within the county, and statistics about how many schools in the county fall into this low free meal category."
     messages:
       - role: user
         content: |

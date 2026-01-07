@@ -3,6 +3,20 @@ description: "BIRD Q1175 (moderate): How old was the patient who had the highest
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT STRFTIME('%Y', T2.Date) - STRFTIME('%Y', T1.Birthday),
+         T1.Diagnosis
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.HGB =
+      (SELECT MAX(HGB)
+       FROM Laboratory)
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_thrombosis_prediction

@@ -1,7 +1,21 @@
 name: bird-toxicology-007
-description: 'BIRD Q201 (moderate): What is the percentage of carbon in double-bond molecules?'
+description: "BIRD Q201 (moderate): What is the percentage of carbon in double-bond molecules?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(DISTINCT CASE
+                                 WHEN T1.element = 'c' THEN T1.atom_id
+                                 ELSE NULL
+                             END) AS REAL) * 100 / COUNT(DISTINCT T1.atom_id)
+  FROM atom AS T1
+  INNER JOIN bond AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.bond_type = '='
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-201
-    description: 'What is the percentage of carbon in double-bond molecules?'
+    description: "What is the percentage of carbon in double-bond molecules?"
     messages:
       - role: user
         content: |

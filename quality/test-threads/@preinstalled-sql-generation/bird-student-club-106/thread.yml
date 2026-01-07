@@ -1,7 +1,18 @@
 name: bird-student-club-106
-description: 'BIRD Q1417 (simple): List out the type of events which have remaining budget more than 30 USD.'
+description: "BIRD Q1417 (simple): List out the type of events which have remaining budget more than 30 USD."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.type
+  FROM event AS T1
+  INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event
+  WHERE T2.remaining > 30
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1417
-    description: 'List out the type of events which have remaining budget more than 30 USD.'
+    description: "List out the type of events which have remaining budget more than 30 USD."
     messages:
       - role: user
         content: |

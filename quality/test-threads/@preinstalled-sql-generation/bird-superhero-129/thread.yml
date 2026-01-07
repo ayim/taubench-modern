@@ -1,7 +1,21 @@
 name: bird-superhero-129
-description: 'BIRD Q845 (moderate): List the power of superheroes with height greater than 80% of the average height of all superheroes.'
+description: "BIRD Q845 (moderate): List the power of superheroes with height greater than 80% of the average height of all superheroes."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.power_name
+  FROM superhero AS T1
+  INNER JOIN hero_power AS T2 ON T1.id = T2.hero_id
+  INNER JOIN superpower AS T3 ON T2.power_id = T3.id
+  WHERE T1.height_cm * 100 >
+      (SELECT AVG(height_cm)
+       FROM superhero) * 80
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-845
-    description: 'List the power of superheroes with height greater than 80% of the average height of all superheroes.'
+    description: "List the power of superheroes with height greater than 80% of the average height of all superheroes."
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-superhero-048
-description: 'BIRD Q764 (simple): What are the superpowers of heroes with ID 1?'
+description: "BIRD Q764 (simple): What are the superpowers of heroes with ID 1?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T2.power_name
+  FROM hero_power AS T1
+  INNER JOIN superpower AS T2 ON T1.power_id = T2.id
+  WHERE T1.hero_id = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-764
-    description: 'What are the superpowers of heroes with ID 1?'
+    description: "What are the superpowers of heroes with ID 1?"
     messages:
       - role: user
         content: |

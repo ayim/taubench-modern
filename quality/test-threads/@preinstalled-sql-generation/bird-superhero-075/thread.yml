@@ -1,7 +1,16 @@
 name: bird-superhero-075
-description: 'BIRD Q791 (simple): Calculate the average height for each superhero.'
+description: "BIRD Q791 (simple): Calculate the average height for each superhero."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(height_cm) AS REAL) / COUNT(id)
+  FROM superhero
 
 sdms:
   - kind: postgres
@@ -10,7 +19,7 @@ sdms:
 
 thread:
   - name: bird-question-791
-    description: 'Calculate the average height for each superhero.'
+    description: "Calculate the average height for each superhero."
     messages:
       - role: user
         content: |

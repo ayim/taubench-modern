@@ -3,6 +3,74 @@ description: "BIRD Q218 (challenging): For carcinogenic molecules, what is the p
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CarcinogenicMolecules AS
+    (SELECT molecule_id
+     FROM molecule
+     WHERE label = '+'),
+       MoleculesWithFluorine AS
+    (SELECT DISTINCT molecule_id
+     FROM atom
+     WHERE element = 'f'),
+       MoleculesWithoutFluorine AS
+    (SELECT cm.molecule_id
+     FROM CarcinogenicMolecules cm
+     WHERE cm.molecule_id NOT IN
+         (SELECT molecule_id
+          FROM MoleculesWithFluorine)),
+       AtomCounts AS
+    (SELECT m.molecule_id,
+            COUNT(DISTINCT a.atom_id) AS atom_count,
+            SUM(CASE
+                    WHEN a.element = 'f' THEN 1
+                    ELSE 0
+                END) AS fluorine_count,
+            COUNT(DISTINCT b.bond_id) AS bond_count
+     FROM molecule m
+     LEFT JOIN atom a ON m.molecule_id = a.molecule_id
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     WHERE m.label = '+'
+     GROUP BY m.molecule_id),
+       ConnectionStats AS
+    (SELECT a.molecule_id,
+            COUNT(DISTINCT c.bond_id) AS connection_count,
+            AVG(CASE
+                    WHEN b.bond_type = '=' THEN 2
+                    WHEN b.bond_type = '#' THEN 3
+                    ELSE 1
+                END) AS avg_bond_strength
+     FROM atom a
+     JOIN connected c ON a.atom_id = c.atom_id
+     JOIN bond b ON c.bond_id = b.bond_id
+     WHERE a.molecule_id IN
+         (SELECT molecule_id
+          FROM CarcinogenicMolecules)
+     GROUP BY a.molecule_id)
+  SELECT ROUND(COUNT(DISTINCT mwof.molecule_id) * 100.0 / COUNT(DISTINCT cm.molecule_id), 2) AS percentage_without_fluorine,
+         ROUND(AVG(ac.atom_count), 2) AS avg_atoms_per_molecule,
+         ROUND(AVG(CASE
+                       WHEN mwf.molecule_id IS NULL THEN ac.bond_count
+                       ELSE NULL
+                   END), 2) AS avg_bonds_in_non_fluorine_molecules,
+         ROUND(AVG(CASE
+                       WHEN mwf.molecule_id IS NOT NULL THEN ac.bond_count
+                       ELSE NULL
+                   END), 2) AS avg_bonds_in_fluorine_molecules,
+         ROUND(AVG(CASE
+                       WHEN cs.avg_bond_strength IS NOT NULL THEN cs.avg_bond_strength
+                       ELSE 0
+                   END), 2) AS avg_bond_strength_carcinogenic
+  FROM CarcinogenicMolecules cm
+  LEFT JOIN MoleculesWithFluorine mwf ON cm.molecule_id = mwf.molecule_id
+  LEFT JOIN MoleculesWithoutFluorine mwof ON cm.molecule_id = mwof.molecule_id
+  LEFT JOIN AtomCounts ac ON cm.molecule_id = ac.molecule_id
+  LEFT JOIN ConnectionStats cs ON cm.molecule_id = cs.molecule_id;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_toxicology

@@ -1,7 +1,21 @@
 name: bird-card-games-063
-description: 'BIRD Q402 (moderate): What is the percentage of Story Spotlight cards that do not have a text box?'
+description: "BIRD Q402 (moderate): What is the percentage of Story Spotlight cards that do not have a text box?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT
+    (SELECT COUNT (id)
+     FROM cards
+     WHERE isTextless = 1
+       AND isStorySpotlight = 1) * 100 / COUNT(id)
+  FROM cards
+  WHERE isStorySpotlight = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-402
-    description: 'What is the percentage of Story Spotlight cards that do not have a text box?'
+    description: "What is the percentage of Story Spotlight cards that do not have a text box?"
     messages:
       - role: user
         content: |

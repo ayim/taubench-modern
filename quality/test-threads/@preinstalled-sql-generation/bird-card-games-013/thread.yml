@@ -1,7 +1,20 @@
 name: bird-card-games-013
-description: 'BIRD Q352 (moderate): Calculate the percentage of the cards availabe in Chinese Simplified.'
+description: "BIRD Q352 (moderate): Calculate the percentage of the cards availabe in Chinese Simplified."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN T2.language = 'Chinese Simplified' THEN 1
+                      ELSE 0
+                  END) AS REAL) * 100 / COUNT(T1.id)
+  FROM cards AS T1
+  INNER JOIN foreign_data AS T2 ON T1.uuid = T2.uuid
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-352
-    description: 'Calculate the percentage of the cards availabe in Chinese Simplified.'
+    description: "Calculate the percentage of the cards availabe in Chinese Simplified."
     messages:
       - role: user
         content: |

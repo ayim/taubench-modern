@@ -1,7 +1,18 @@
 name: bird-formula-1-123
-description: 'BIRD Q968 (simple): What is reference name of Robert Kubica?'
+description: "BIRD Q968 (simple): What is reference name of Robert Kubica?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT driverRef
+  FROM drivers
+  WHERE forename = 'Robert'
+    AND surname = 'Kubica'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-968
-    description: 'What is reference name of Robert Kubica?'
+    description: "What is reference name of Robert Kubica?"
     messages:
       - role: user
         content: |

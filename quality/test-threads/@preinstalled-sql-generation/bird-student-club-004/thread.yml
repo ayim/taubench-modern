@@ -1,7 +1,18 @@
 name: bird-student-club-004
-description: 'BIRD Q1315 (simple): How many students of the Student_Club have attended the event "Women''s Soccer"?'
+description: "BIRD Q1315 (simple): How many students of the Student_Club have attended the event \"Women's Soccer\"?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.event_id)
+  FROM event AS T1
+  INNER JOIN attendance AS T2 ON T1.event_id = T2.link_to_event
+  WHERE T1.event_name = 'Women''s Soccer'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1315
-    description: 'How many students of the Student_Club have attended the event "Women''s Soccer"?'
+    description: "How many students of the Student_Club have attended the event \"Women's Soccer\"?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-card-games-180
-description: 'BIRD Q519 (simple): What is the language of the "Battlebond" set?'
+description: "BIRD Q519 (simple): What is the language of the \"Battlebond\" set?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT LANGUAGE
+  FROM set_translations
+  WHERE id IN
+      (SELECT id
+       FROM
+       SETS
+       WHERE name = 'Battlebond')
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-519
-    description: 'What is the language of the "Battlebond" set?'
+    description: "What is the language of the \"Battlebond\" set?"
     messages:
       - role: user
         content: |

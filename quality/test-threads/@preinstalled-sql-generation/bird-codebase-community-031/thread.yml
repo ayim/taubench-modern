@@ -1,7 +1,21 @@
 name: bird-codebase-community-031
-description: 'BIRD Q561 (simple): What are the titles of all posts that have comments with the highest score?'
+description: "BIRD Q561 (simple): What are the titles of all posts that have comments with the highest score?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT p.Title
+  FROM posts p
+  INNER JOIN comments c ON p.Id = c.PostId
+  WHERE c.Score =
+      (SELECT MAX(Score)
+       FROM comments)
+  ORDER BY p.Title ASC
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-561
-    description: 'What are the titles of all posts that have comments with the highest score?'
+    description: "What are the titles of all posts that have comments with the highest score?"
     messages:
       - role: user
         content: |

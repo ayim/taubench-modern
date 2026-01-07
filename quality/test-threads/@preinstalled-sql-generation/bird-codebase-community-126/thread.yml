@@ -1,7 +1,21 @@
 name: bird-codebase-community-126
-description: 'BIRD Q656 (simple): Describe the display name of the parent ID for child post with the highest score.'
+description: "BIRD Q656 (simple): Describe the display name of the parent ID for child post with the highest score."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DisplayName
+  FROM posts AS T1
+  JOIN posts AS T2 ON T2.ID = T1.ParentId
+  LEFT JOIN users AS T3 ON T3.Id = T2.OwnerUserId
+  WHERE T1.ParentId IS NOT NULL
+  ORDER BY T1.Score DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-656
-    description: 'Describe the display name of the parent ID for child post with the highest score.'
+    description: "Describe the display name of the parent ID for child post with the highest score."
     messages:
       - role: user
         content: |

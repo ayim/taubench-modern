@@ -1,7 +1,20 @@
 name: bird-toxicology-111
-description: 'BIRD Q305 (simple): Name all bonds with single bond types and what atoms are connected to the molecules.'
+description: "BIRD Q305 (simple): Name all bonds with single bond types and what atoms are connected to the molecules."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.bond_id,
+         T2.atom_id,
+         T2.atom_id2
+  FROM bond AS T1
+  INNER JOIN connected AS T2 ON T1.bond_id = T2.bond_id
+  WHERE T1.bond_type = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-305
-    description: 'Name all bonds with single bond types and what atoms are connected to the molecules.'
+    description: "Name all bonds with single bond types and what atoms are connected to the molecules."
     messages:
       - role: user
         content: |

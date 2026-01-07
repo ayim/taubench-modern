@@ -1,7 +1,56 @@
 name: bird-california-schools-013
-description: 'BIRD Q12 (challenging): Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?'
+description: "BIRD Q12 (challenging): Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolExcellenceRates AS
+    (SELECT T2.cds,
+            T2.sname,
+            T2.NumGE1500,
+            T2.NumTstTakr,
+            CAST(T2.NumGE1500 AS REAL) / T2.NumTstTakr AS excellence_rate,
+            T1.`Free Meal Count (Ages 5-17)`,
+            T1.`Enrollment (Ages 5-17)`,
+            CAST(T1.`Free Meal Count (Ages 5-17)` AS REAL) / T1.`Enrollment (Ages 5-17)` AS eligible_free_rate,
+            T3.County,
+            T3.City,
+            CASE
+                WHEN T3.Charter = 1 THEN 'Charter School'
+                ELSE 'Non-Charter School'
+            END AS school_type,
+            RANK() OVER (PARTITION BY T3.County
+                         ORDER BY CAST(T1.`Free Meal Count (Ages 5-17)` AS REAL) / T1.`Enrollment (Ages 5-17)` DESC) AS county_rank
+     FROM frpm AS T1
+     INNER JOIN satscores AS T2 ON T1.CDSCode = T2.cds
+     INNER JOIN schools AS T3 ON T1.CDSCode = T3.CDSCode
+     WHERE CAST(T2.NumGE1500 AS REAL) / T2.NumTstTakr > 0.3
+       AND T1.`Enrollment (Ages 5-17)` > 0
+       AND T3.StatusType = 'Active')
+  SELECT sname AS SchoolName,
+         County,
+         City,
+         school_type,
+         excellence_rate,
+         eligible_free_rate,
+         county_rank,
+  
+    (SELECT AVG(eligible_free_rate)
+     FROM SchoolExcellenceRates) AS avg_eligible_free_rate,
+         CASE
+             WHEN eligible_free_rate > 0.5 THEN 'High Free Meal Rate'
+             WHEN eligible_free_rate > 0.25 THEN 'Medium Free Meal Rate'
+             ELSE 'Low Free Meal Rate'
+         END AS free_meal_category
+  FROM SchoolExcellenceRates
+  WHERE county_rank = 1
+  ORDER BY eligible_free_rate DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +59,7 @@ sdms:
 
 thread:
   - name: bird-question-12
-    description: 'Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?'
+    description: "Among the schools with an SAT excellence rate over 30%, which school has the highest free meal eligibility rate in its county, and what are its details?"
     messages:
       - role: user
         content: |

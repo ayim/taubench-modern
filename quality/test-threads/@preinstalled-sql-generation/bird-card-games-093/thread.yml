@@ -1,7 +1,28 @@
 name: bird-card-games-093
-description: 'BIRD Q432 (moderate): Which Russian set of cards contains the most cards overall?'
+description: "BIRD Q432 (moderate): Which Russian set of cards contains the most cards overall?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.id,
+         T1.name,
+         T1.totalSetSize
+  FROM
+  SETS AS T1
+  INNER JOIN set_translations AS T2 ON T1.code = T2.setCode
+  WHERE T2.language = 'Russian'
+    AND T1.totalSetSize =
+      (SELECT MAX(s.totalSetSize)
+       FROM
+       SETS AS s
+       INNER JOIN set_translations AS st ON s.code = st.setCode
+       WHERE st.language = 'Russian')
+  ORDER BY T1.id ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +31,7 @@ sdms:
 
 thread:
   - name: bird-question-432
-    description: 'Which Russian set of cards contains the most cards overall?'
+    description: "Which Russian set of cards contains the most cards overall?"
     messages:
       - role: user
         content: |

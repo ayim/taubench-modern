@@ -1,7 +1,20 @@
 name: bird-codebase-community-124
-description: 'BIRD Q654 (moderate): Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag.'
+description: "BIRD Q654 (moderate): Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.DisplayName,
+         T3.Location
+  FROM tags AS T1
+  INNER JOIN posts AS T2 ON T1.ExcerptPostId = T2.Id
+  INNER JOIN users AS T3 ON T3.Id = T2.OwnerUserId
+  WHERE T1.TagName = 'hypothesis-testing'
 
 sdms:
   - kind: postgres
@@ -10,12 +23,12 @@ sdms:
 
 thread:
   - name: bird-question-654
-    description: 'Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag.'
+    description: "Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag."
     messages:
       - role: user
         content: |
           Mention the display name and location of the user who owned the excerpt post with hypothesis-testing tag.
-          Evidence:
+          Evidence:  
 
 target-platforms:
   - name: openai

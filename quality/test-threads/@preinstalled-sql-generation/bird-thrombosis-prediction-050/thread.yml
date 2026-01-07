@@ -1,7 +1,18 @@
 name: bird-thrombosis-prediction-050
-description: 'BIRD Q1198 (simple): How many female patients were given an APS diagnosis?'
+description: "BIRD Q1198 (simple): How many female patients were given an APS diagnosis?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(ID)
+  FROM Patient
+  WHERE SEX = 'F'
+    AND Diagnosis = 'APS'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1198
-    description: 'How many female patients were given an APS diagnosis?'
+    description: "How many female patients were given an APS diagnosis?"
     messages:
       - role: user
         content: |

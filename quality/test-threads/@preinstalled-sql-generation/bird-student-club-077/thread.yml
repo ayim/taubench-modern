@@ -1,7 +1,24 @@
 name: bird-student-club-077
-description: 'BIRD Q1388 (moderate): Which students manage to generate the highest income. State his/her full name along with the income source.'
+description: "BIRD Q1388 (moderate): Which students manage to generate the highest income. State his/her full name along with the income source."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name,
+         T2.source
+  FROM member AS T1
+  INNER JOIN income AS T2 ON T1.member_id = T2.link_to_member
+  GROUP BY T1.first_name,
+           T1.last_name,
+           T2.source
+  ORDER BY SUM(T2.amount) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-1388
-    description: 'Which students manage to generate the highest income. State his/her full name along with the income source.'
+    description: "Which students manage to generate the highest income. State his/her full name along with the income source."
     messages:
       - role: user
         content: |

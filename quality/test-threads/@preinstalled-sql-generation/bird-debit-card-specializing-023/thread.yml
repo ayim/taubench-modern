@@ -1,7 +1,17 @@
 name: bird-debit-card-specializing-023
-description: 'BIRD Q1492 (simple): What percentage of KAM customers pay in euros?'
+description: "BIRD Q1492 (simple): What percentage of KAM customers pay in euros?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(Currency = 'EUR') AS FLOAT) * 100 / COUNT(CustomerID)
+  FROM customers
+  WHERE SEGMENT = 'KAM'
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1492
-    description: 'What percentage of KAM customers pay in euros?'
+    description: "What percentage of KAM customers pay in euros?"
     messages:
       - role: user
         content: |

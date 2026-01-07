@@ -3,6 +3,17 @@ description: "BIRD Q576 (simple): Name the user that commented 'thank you user93
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.DisplayName
+  FROM users AS T1
+  INNER JOIN comments AS T2 ON T1.Id = T2.UserId
+  WHERE T2.Text = 'thank you user93!'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

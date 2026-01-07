@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-014
-description: 'BIRD Q1162 (moderate): How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?'
+description: "BIRD Q1162 (moderate): How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM Patient
+  WHERE STRFTIME('%Y', Description) = '1997'
+    AND SEX = 'F'
+    AND Admission = '-'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1162
-    description: 'How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?'
+    description: "How many female patients who came at the hospital in 1997 was immediately followed at the outpatient clinic?"
     messages:
       - role: user
         content: |

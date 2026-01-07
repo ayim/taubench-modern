@@ -1,7 +1,20 @@
 name: bird-formula-1-111
-description: 'BIRD Q956 (simple): Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames.'
+description: "BIRD Q956 (simple): Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.forename,
+         T2.surname
+  FROM results AS T1
+  INNER JOIN drivers AS T2 ON T1.driverId = T2.driverId
+  WHERE STRFTIME('%Y', T2.dob) > '1975'
+    AND T1.rank = 2
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-956
-    description: 'Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames.'
+    description: "Which drivers born after 1975 have been ranked 2? Please give their forenames and surnames."
     messages:
       - role: user
         content: |

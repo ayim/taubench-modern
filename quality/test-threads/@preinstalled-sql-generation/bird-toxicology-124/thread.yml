@@ -1,7 +1,18 @@
 name: bird-toxicology-124
-description: 'BIRD Q318 (simple): What is the molecule id of bond id TR001_1_7?'
+description: "BIRD Q318 (simple): What is the molecule id of bond id TR001_1_7?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.molecule_id
+  FROM atom AS T1
+  INNER JOIN connected AS T2 ON T1.atom_id = T2.atom_id
+  WHERE T2.bond_id = 'TR001_1_7'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-318
-    description: 'What is the molecule id of bond id TR001_1_7?'
+    description: "What is the molecule id of bond id TR001_1_7?"
     messages:
       - role: user
         content: |

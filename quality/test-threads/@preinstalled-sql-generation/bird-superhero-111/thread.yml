@@ -1,7 +1,20 @@
 name: bird-superhero-111
-description: 'BIRD Q827 (moderate): What is the average height of a non-human superhero in Dark Horse Comics?'
+description: "BIRD Q827 (moderate): What is the average height of a non-human superhero in Dark Horse Comics?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T1.height_cm)
+  FROM superhero AS T1
+  INNER JOIN publisher AS T2 ON T1.publisher_id = T2.id
+  INNER JOIN race AS T3 ON T1.race_id = T3.id
+  WHERE T2.publisher_name = 'Dark Horse Comics'
+    AND T3.race != 'Human'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-827
-    description: 'What is the average height of a non-human superhero in Dark Horse Comics?'
+    description: "What is the average height of a non-human superhero in Dark Horse Comics?"
     messages:
       - role: user
         content: |

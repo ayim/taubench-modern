@@ -1,7 +1,16 @@
 name: bird-debit-card-specializing-002
-description: 'BIRD Q1471 (simple): What is the ratio of customers who pay in EUR against customers who pay in CZK?'
+description: "BIRD Q1471 (simple): What is the ratio of customers who pay in EUR against customers who pay in CZK?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(IIF(Currency = 'EUR', 1, 0)) AS FLOAT) / SUM(IIF(Currency = 'CZK', 1, 0)) AS ratio
+  FROM customers
 
 sdms:
   - kind: postgres
@@ -10,7 +19,7 @@ sdms:
 
 thread:
   - name: bird-question-1471
-    description: 'What is the ratio of customers who pay in EUR against customers who pay in CZK?'
+    description: "What is the ratio of customers who pay in EUR against customers who pay in CZK?"
     messages:
       - role: user
         content: |

@@ -3,6 +3,62 @@ description: "BIRD Q118 (challenging): For loans under $100,000, what is the per
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH LoanStatusByRegion AS
+    (SELECT d.A3 AS region,
+            l.status,
+            l.amount,
+            l.duration,
+            CASE
+                WHEN l.status = 'C' THEN 1
+                ELSE 0
+            END AS is_running_ok,
+            CASE
+                WHEN l.amount < 50000 THEN 'Small'
+                WHEN l.amount < 100000 THEN 'Medium'
+                ELSE 'Large'
+            END AS loan_size_category
+     FROM loan l
+     JOIN ACCOUNT a ON l.account_id = a.account_id
+     JOIN district d ON a.district_id = d.district_id
+     WHERE l.amount < 100000),
+       RegionalStats AS
+    (SELECT region,
+            loan_size_category,
+            COUNT(status) AS total_loans,
+            SUM(is_running_ok) AS running_ok_loans,
+            CAST(SUM(is_running_ok) AS REAL) * 100 / COUNT(status) AS percentage_running_ok,
+            AVG(amount) AS avg_loan_amount,
+            AVG(duration) AS avg_duration
+     FROM LoanStatusByRegion
+     GROUP BY region,
+              loan_size_category),
+       OverallStats AS
+    (SELECT loan_size_category,
+            COUNT(status) AS total_loans,
+            SUM(is_running_ok) AS running_ok_loans,
+            CAST(SUM(is_running_ok) AS REAL) * 100 / COUNT(status) AS percentage_running_ok
+     FROM LoanStatusByRegion
+     GROUP BY loan_size_category)
+  SELECT r.region,
+         r.loan_size_category,
+         r.total_loans,
+         r.running_ok_loans,
+         ROUND(r.percentage_running_ok, 2) AS percentage_running_ok,
+         ROUND(r.avg_loan_amount, 2) AS avg_loan_amount,
+         r.avg_duration,
+         ROUND(o.percentage_running_ok, 2) AS overall_percentage,
+         ROUND(r.percentage_running_ok - o.percentage_running_ok, 2) AS diff_from_overall
+  FROM RegionalStats r
+  JOIN OverallStats o ON r.loan_size_category = o.loan_size_category
+  ORDER BY r.region,
+           r.loan_size_category;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_financial

@@ -3,6 +3,21 @@ description: "BIRD Q51 (simple): In which mailing street address can you find th
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.MailStreet,
+         T2.School
+  FROM satscores AS T1
+  INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode
+  WHERE T1.AvgScrRead IS NOT NULL
+  ORDER BY T1.AvgScrRead ASC,
+           T1.cds DESC
+  LIMIT 1
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_california_schools

@@ -1,7 +1,73 @@
 name: bird-california-schools-004
-description: 'BIRD Q3 (challenging): For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate.'
+description: "BIRD Q3 (challenging): For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH SchoolRanking AS
+    (SELECT T1.CDSCode,
+            T1.`School Name`,
+            T1.`FRPM Count (K-12)`,
+            T1.`Enrollment (K-12)`,
+            T1.`Percent (%) Eligible FRPM (K-12)`,
+            RANK() OVER (
+                         ORDER BY T1.`FRPM Count (K-12)` DESC) AS frpm_rank,
+            RANK() OVER (
+                         ORDER BY T1.`Percent (%) Eligible FRPM (K-12)` DESC) AS frpm_percent_rank
+     FROM frpm AS T1
+     WHERE T1.`Enrollment (K-12)` > 100 -- Only consider schools with significant enrollment
+  
+       AND T1.`Charter School (Y/N)` = 0 -- Non-charter schools only
+  ),
+       SATPerformance AS
+    (SELECT s.cds,
+            s.sname,
+            s.NumTstTakr,
+            s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite AS TotalSATScore,
+            CASE
+                WHEN s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite >= 1500 THEN 'High'
+                WHEN s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite >= 1200 THEN 'Medium'
+                ELSE 'Low'
+            END AS PerformanceCategory,
+            CAST(s.NumGE1500 AS FLOAT) / NULLIF(s.NumTstTakr, 0) * 100 AS PercentHighScorers
+     FROM satscores s
+     WHERE s.NumTstTakr > 10 -- Only schools with enough test takers
+  )
+  SELECT sr.`School Name` AS SchoolName,
+         sch.County,
+         sch.City,
+         sch.MailStreet AS UnabbreviatedMailingAddress,
+         sch.Website,
+         sr.`Enrollment (K-12)` AS Enrollment,
+         sr.`FRPM Count (K-12)` AS FRPMCount,
+         sr.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercentage,
+         sp.TotalSATScore,
+         sp.PerformanceCategory,
+         sp.PercentHighScorers,
+         CASE
+             WHEN sp.PercentHighScorers IS NULL THEN 'No SAT data'
+             WHEN sr.`Percent (%) Eligible FRPM (K-12)` > 0.7
+                  AND sp.PercentHighScorers > 20 THEN 'High-performing despite high FRPM'
+             WHEN sr.`Percent (%) Eligible FRPM (K-12)` < 0.3
+                  AND sp.PercentHighScorers < 10 THEN 'Low-performing despite low FRPM'
+             ELSE 'Expected performance'
+         END AS PerformanceClassification,
+         sch.OpenDate,
+         CASE
+             WHEN sch.ClosedDate IS NOT NULL THEN 'Closed'
+             ELSE 'Active'
+         END AS SchoolStatus
+  FROM SchoolRanking sr
+  JOIN schools sch ON sr.CDSCode = sch.CDSCode
+  LEFT JOIN SATPerformance sp ON sr.CDSCode = sp.cds
+  WHERE sr.frpm_rank = 1 -- School with highest FRPM count
+  ORDER BY sr.`FRPM Count (K-12)` DESC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +76,7 @@ sdms:
 
 thread:
   - name: bird-question-3
-    description: 'For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate.'
+    description: "For the non-charter school with more than 100 students that has the highest number of FRPM-eligible K-12 students, provide its name, location details, unabbreviated mailing address, website, enrollment statistics, SAT performance metrics, and determine whether it performs unexpectedly well or poorly given its FRPM rate."
     messages:
       - role: user
         content: |

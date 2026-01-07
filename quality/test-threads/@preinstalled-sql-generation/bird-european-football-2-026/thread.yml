@@ -1,7 +1,18 @@
 name: bird-european-football-2-026
-description: 'BIRD Q1045 (simple): What is the attacking work rate of the football playerr Franco Zennaro?'
+description: "BIRD Q1045 (simple): What is the attacking work rate of the football playerr Franco Zennaro?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t2.attacking_work_rate
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE t1.player_name = 'Franco Zennaro'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1045
-    description: 'What is the attacking work rate of the football playerr Franco Zennaro?'
+    description: "What is the attacking work rate of the football playerr Franco Zennaro?"
     messages:
       - role: user
         content: |

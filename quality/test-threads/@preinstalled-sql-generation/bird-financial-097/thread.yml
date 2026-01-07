@@ -1,7 +1,18 @@
 name: bird-financial-097
-description: 'BIRD Q185 (moderate): What proportion of customers who have accounts at the Prague branch are female?'
+description: "BIRD Q185 (moderate): What proportion of customers who have accounts at the Prague branch are female?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(T2.gender = 'F') AS REAL) / COUNT(T2.client_id) * 100
+  FROM district AS T1
+  INNER JOIN client AS T2 ON T1.district_id = T2.district_id
+  WHERE T1.A3 = 'Prague';
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-185
-    description: 'What proportion of customers who have accounts at the Prague branch are female?'
+    description: "What proportion of customers who have accounts at the Prague branch are female?"
     messages:
       - role: user
         content: |

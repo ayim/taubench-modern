@@ -3,6 +3,19 @@ description: "BIRD Q881 (moderate): For the drivers who took part in the race in
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN T2.time IS NOT NULL THEN T2.driverId
+                    END) AS REAL) * 100 / COUNT(T2.driverId)
+  FROM races AS T1
+  INNER JOIN results AS T2 ON T2.raceId = T1.raceId
+  WHERE T1.date = '1983-07-16'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_formula_1

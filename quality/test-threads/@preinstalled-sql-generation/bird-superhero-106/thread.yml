@@ -1,7 +1,20 @@
 name: bird-superhero-106
-description: 'BIRD Q822 (moderate): How many green-skinned villains are there in the superhero universe?'
+description: "BIRD Q822 (moderate): How many green-skinned villains are there in the superhero universe?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.id)
+  FROM superhero AS T1
+  INNER JOIN alignment AS T2 ON T1.alignment_id = T2.id
+  INNER JOIN colour AS T3 ON T1.skin_colour_id = T3.id
+  WHERE T2.alignment = 'Bad'
+    AND T3.colour = 'Green'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-822
-    description: 'How many green-skinned villains are there in the superhero universe?'
+    description: "How many green-skinned villains are there in the superhero universe?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-025
-description: 'BIRD Q1173 (challenging): What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?'
+description: "BIRD Q1173 (challenging): What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Diagnosis
+  FROM Examination AS T1
+  INNER JOIN Patient AS T2 ON T1.ID = T2.ID
+  WHERE T1.`Examination Date` BETWEEN '1985-01-01' AND '1995-12-31'
+  GROUP BY T2.Diagnosis
+  ORDER BY COUNT(T2.Diagnosis) DESC, T2.Diagnosis DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1173
-    description: 'What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?'
+    description: "What is the most common illness that doctors identified among the patients whose lab work was done between 1/1/1985 and 12/31/1995?"
     messages:
       - role: user
         content: |

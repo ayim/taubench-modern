@@ -1,7 +1,20 @@
 name: bird-codebase-community-091
-description: 'BIRD Q621 (simple): What are the name of badges that users who have the lowest reputation obtained?'
+description: "BIRD Q621 (simple): What are the name of badges that users who have the lowest reputation obtained?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Name
+  FROM users AS T1
+  INNER JOIN badges AS T2 ON T1.Id = T2.UserId
+  WHERE T1.Reputation =
+      (SELECT MIN(Reputation)
+       FROM users)
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-621
-    description: 'What are the name of badges that users who have the lowest reputation obtained?'
+    description: "What are the name of badges that users who have the lowest reputation obtained?"
     messages:
       - role: user
         content: |

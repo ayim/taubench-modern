@@ -261,6 +261,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "rich" },
+    { name = "sqlparse" },
     { name = "structlog" },
     { name = "testcontainers" },
 ]
@@ -280,6 +281,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "rich", specifier = ">=13.0.0,<14.0.0" },
+    { name = "sqlparse", specifier = ">=0.4.0,<1.0.0" },
     { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
     { name = "testcontainers", specifier = ">=4.0.0" },
 ]
@@ -4437,6 +4439,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/2c/8b/a19c3d9d6933f8ee6ea05a1df6e8b7ce48fd910bbb366ac9fbf522dcaa38/sqlglot-27.12.0.tar.gz", hash = "sha256:1bb0500503eea375bf86ddc72b2e9ca955113bd0cbf8968bcf4ed5f4cd8d5575", size = 5450508, upload-time = "2025-09-04T16:53:26.6Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/89/9dc71793f4cfbebbe9529986f887c1a627ffc57550f5de246409a5f721d4/sqlglot-27.12.0-py3-none-any.whl", hash = "sha256:b3a3d9d0cc27d7eece4057ff97714fe2d950ae9c5dc0df702db6fcd333565bb8", size = 510978, upload-time = "2025-09-04T16:53:23.87Z" },
+]
+
+[[package]]
+name = "sqlparse"
+version = "0.5.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/76/437d71068094df0726366574cf3432a4ed754217b436eb7429415cf2d480/sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e", size = 120815, upload-time = "2025-12-19T07:17:45.073Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba", size = 46138, upload-time = "2025-12-19T07:17:46.573Z" },
 ]
 
 [[package]]

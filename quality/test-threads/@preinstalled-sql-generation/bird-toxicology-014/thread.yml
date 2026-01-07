@@ -1,7 +1,61 @@
 name: bird-toxicology-014
-description: 'BIRD Q208 (challenging): For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?'
+description: "BIRD Q208 (challenging): For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH hydrogen_molecules AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(a.atom_id) AS hydrogen_count
+     FROM molecule m
+     JOIN atom a ON m.molecule_id = a.molecule_id
+     WHERE a.element = 'h'
+     GROUP BY m.molecule_id,
+              m.label),
+       molecule_bond_stats AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT b.bond_id) AS bond_count,
+            SUM(CASE
+                    WHEN b.bond_type = '-' THEN 1
+                    ELSE 0
+                END) AS single_bonds,
+            SUM(CASE
+                    WHEN b.bond_type = '=' THEN 1
+                    ELSE 0
+                END) AS double_bonds
+     FROM molecule m
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     GROUP BY m.molecule_id,
+              m.label),
+       ranked_labels AS
+    (SELECT h.label,
+            SUM(h.hydrogen_count) AS total_hydrogens,
+            AVG(h.hydrogen_count) AS avg_hydrogens_per_molecule,
+            AVG(mbs.bond_count) AS avg_bonds_per_molecule,
+            SUM(mbs.single_bonds) AS total_single_bonds,
+            SUM(mbs.double_bonds) AS total_double_bonds,
+            RANK() OVER (
+                         ORDER BY SUM(h.hydrogen_count) DESC) AS hydrogen_rank
+     FROM hydrogen_molecules h
+     JOIN molecule_bond_stats mbs ON h.molecule_id = mbs.molecule_id
+     GROUP BY h.label)
+  SELECT label,
+         total_hydrogens,
+         avg_hydrogens_per_molecule,
+         avg_bonds_per_molecule,
+         total_single_bonds,
+         total_double_bonds
+  FROM ranked_labels
+  WHERE hydrogen_rank = 1
+  ORDER BY label ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +64,7 @@ sdms:
 
 thread:
   - name: bird-question-208
-    description: 'For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?'
+    description: "For the label with the most hydrogen atoms, what are the total number of hydrogen atoms, average hydrogen atoms per molecule, average bonds per molecule, total single bonds, and total double bonds?"
     messages:
       - role: user
         content: |

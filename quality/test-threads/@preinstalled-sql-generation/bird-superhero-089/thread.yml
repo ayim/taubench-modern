@@ -1,7 +1,19 @@
 name: bird-superhero-089
-description: 'BIRD Q805 (simple): List the full names of superheroes with missing weight.'
+description: "BIRD Q805 (simple): List the full names of superheroes with missing weight."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT full_name
+  FROM superhero
+  WHERE full_name IS NOT NULL
+    AND (weight_kg IS NULL
+         OR weight_kg = 0)
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-805
-    description: 'List the full names of superheroes with missing weight.'
+    description: "List the full names of superheroes with missing weight."
     messages:
       - role: user
         content: |

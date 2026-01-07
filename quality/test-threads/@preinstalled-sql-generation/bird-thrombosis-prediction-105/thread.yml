@@ -1,7 +1,21 @@
 name: bird-thrombosis-prediction-105
-description: 'BIRD Q1253 (simple): For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?'
+description: "BIRD Q1253 (simple): For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT patientData.Diagnosis
+  FROM Patient AS patientData
+  INNER JOIN Laboratory AS labData ON patientData.ID = labData.ID
+  WHERE labData.IGA BETWEEN 80 AND 500
+  ORDER BY labData.IGA DESC,
+           patientData.ID
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1253
-    description: 'For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?'
+    description: "For the patient who has the highest Ig A within the normal range, what is his or her diagnosis?"
     messages:
       - role: user
         content: |

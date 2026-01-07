@@ -1,7 +1,23 @@
 name: bird-card-games-091
-description: 'BIRD Q430 (simple): Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order.'
+description: "BIRD Q430 (simple): Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T1.name,
+                  T1.id
+  FROM
+  SETS AS T1
+  JOIN set_translations AS T2 ON T1.code = T2.setCode
+  WHERE T1.block = 'Shadowmoor'
+    AND T2.language = 'Italian'
+  ORDER BY T1.name ASC
+  LIMIT 2;
 
 sdms:
   - kind: postgres
@@ -10,7 +26,7 @@ sdms:
 
 thread:
   - name: bird-question-430
-    description: 'Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order.'
+    description: "Please list top two sets of cards with their IDs that have Italian-language cards and are located in the Shadowmoor block in alphabetical order."
     messages:
       - role: user
         content: |

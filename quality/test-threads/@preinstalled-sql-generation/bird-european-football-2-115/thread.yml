@@ -3,6 +3,21 @@ description: "BIRD Q1134 (simple): What is the difference between players 6 and 
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN t1.id = 6 THEN t1.jumping
+                 ELSE 0
+             END) - SUM(CASE
+                            WHEN t1.id = 23 THEN t1.jumping
+                            ELSE 0
+                        END)
+  FROM Player_Attributes AS t1;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

@@ -1,7 +1,20 @@
 name: bird-european-football-2-049
-description: 'BIRD Q1068 (moderate): From 2010 to 2015, what was the average overall rating of players who are higher than 170?'
+description: "BIRD Q1068 (moderate): From 2010 to 2015, what was the average overall rating of players who are higher than 170?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(t2.overall_rating) AS REAL) / COUNT(t2.id)
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE t1.height > 170
+    AND STRFTIME('%Y', t2.`date`) >= '2010'
+    AND STRFTIME('%Y', t2.`date`) <= '2015'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1068
-    description: 'From 2010 to 2015, what was the average overall rating of players who are higher than 170?'
+    description: "From 2010 to 2015, what was the average overall rating of players who are higher than 170?"
     messages:
       - role: user
         content: |

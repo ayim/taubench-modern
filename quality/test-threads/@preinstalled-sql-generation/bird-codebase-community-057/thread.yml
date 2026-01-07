@@ -3,6 +3,21 @@ description: "BIRD Q587 (moderate): Calculate the average view count of each pos
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.ViewCount),
+         T2.Title,
+         T1.Text
+  FROM comments AS T1
+  INNER JOIN posts AS T2 ON T2.Id = T1.PostId
+  WHERE T2.Tags = '<humor>'
+  GROUP BY T2.Title,
+           T1.Text
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

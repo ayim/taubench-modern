@@ -1,7 +1,20 @@
 name: bird-codebase-community-136
-description: 'BIRD Q666 (simple): Among the posts that were voted by user 1465, what is the id of the most valuable post?'
+description: "BIRD Q666 (simple): Among the posts that were voted by user 1465, what is the id of the most valuable post?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Id
+  FROM votes AS T1
+  INNER JOIN posts AS T2 ON T1.PostId = T2.Id
+  WHERE T1.UserId = 1465
+  ORDER BY T2.FavoriteCount DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-666
-    description: 'Among the posts that were voted by user 1465, what is the id of the most valuable post?'
+    description: "Among the posts that were voted by user 1465, what is the id of the most valuable post?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-european-football-2-045
-description: 'BIRD Q1064 (simple): List out of players whose preferred foot is left.'
+description: "BIRD Q1064 (simple): List out of players whose preferred foot is left."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t1.id,
+                  t1.player_name
+  FROM Player AS t1
+  INNER JOIN Player_Attributes AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE t2.preferred_foot = 'left'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1064
-    description: 'List out of players whose preferred foot is left.'
+    description: "List out of players whose preferred foot is left."
     messages:
       - role: user
         content: |

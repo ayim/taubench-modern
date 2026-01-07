@@ -1,7 +1,24 @@
 name: bird-financial-101
-description: 'BIRD Q189 (moderate): Name the account numbers of female clients who are oldest and have lowest average salary?'
+description: "BIRD Q189 (moderate): Name the account numbers of female clients who are oldest and have lowest average salary?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.account_id
+  FROM client AS T1
+  INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+  INNER JOIN ACCOUNT AS T3 ON T2.district_id = T3.district_id
+  INNER JOIN disp AS T4 ON T1.client_id = T4.client_id
+  AND T4.account_id = T3.account_id
+  WHERE T1.gender = 'F'
+  ORDER BY T1.birth_date ASC,
+           T2.A11 ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-189
-    description: 'Name the account numbers of female clients who are oldest and have lowest average salary?'
+    description: "Name the account numbers of female clients who are oldest and have lowest average salary?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-student-club-117
-description: 'BIRD Q1428 (moderate): List the city and state of members enrolled under electrical and computer engineering department.'
+description: "BIRD Q1428 (moderate): List the city and state of members enrolled under electrical and computer engineering department."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT city,
+         state
+  FROM member AS T1
+  INNER JOIN major AS T2 ON T2.major_id = T1.link_to_major
+  INNER JOIN zip_code AS T3 ON T3.zip_code = T1.zip
+  WHERE department = 'Electrical and Computer Engineering Department'
+    AND POSITION = 'Member'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1428
-    description: 'List the city and state of members enrolled under electrical and computer engineering department.'
+    description: "List the city and state of members enrolled under electrical and computer engineering department."
     messages:
       - role: user
         content: |

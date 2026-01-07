@@ -1,7 +1,20 @@
 name: bird-formula-1-172
-description: 'BIRD Q1017 (moderate): Please list the location coordinates of the circuits whose lap record is 1:29.488.'
+description: "BIRD Q1017 (moderate): Please list the location coordinates of the circuits whose lap record is 1:29.488."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T3.lat,
+         T3.lng
+  FROM lapTimes AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  INNER JOIN circuits AS T3 ON T2.circuitId = T3.circuitId
+  WHERE T1.time = '1:29.488'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1017
-    description: 'Please list the location coordinates of the circuits whose lap record is 1:29.488.'
+    description: "Please list the location coordinates of the circuits whose lap record is 1:29.488."
     messages:
       - role: user
         content: |

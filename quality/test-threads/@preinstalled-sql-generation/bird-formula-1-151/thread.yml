@@ -1,7 +1,18 @@
 name: bird-formula-1-151
-description: 'BIRD Q996 (simple): What is the annual average number of races held during the first 10 years of the 21st century?'
+description: "BIRD Q996 (simple): What is the annual average number of races held during the first 10 years of the 21st century?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(*) AS REAL) / 10 AS annual_average
+  FROM races
+  WHERE YEAR BETWEEN 2000 AND 2009
+    AND YEAR IS NOT NULL
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-996
-    description: 'What is the annual average number of races held during the first 10 years of the 21st century?'
+    description: "What is the annual average number of races held during the first 10 years of the 21st century?"
     messages:
       - role: user
         content: |

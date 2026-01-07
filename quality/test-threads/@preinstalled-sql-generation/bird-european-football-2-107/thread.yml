@@ -1,7 +1,40 @@
 name: bird-european-football-2-107
-description: 'BIRD Q1126 (simple): State the names of players who played in matches held in Belgium.'
+description: "BIRD Q1126 (simple): State the names of players who played in matches held in Belgium."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT p.player_name
+  FROM Country AS c
+  JOIN `Match` AS m ON c.id = m.country_id
+  JOIN Player AS p ON p.player_api_id IN (m.home_player_1,
+                                          m.home_player_2,
+                                          m.home_player_3,
+                                          m.home_player_4,
+                                          m.home_player_5,
+                                          m.home_player_6,
+                                          m.home_player_7,
+                                          m.home_player_8,
+                                          m.home_player_9,
+                                          m.home_player_10,
+                                          m.home_player_11,
+                                          m.away_player_1,
+                                          m.away_player_2,
+                                          m.away_player_3,
+                                          m.away_player_4,
+                                          m.away_player_5,
+                                          m.away_player_6,
+                                          m.away_player_7,
+                                          m.away_player_8,
+                                          m.away_player_9,
+                                          m.away_player_10,
+                                          m.away_player_11)
+  WHERE c.name = 'Belgium';
 
 sdms:
   - kind: postgres
@@ -10,7 +43,7 @@ sdms:
 
 thread:
   - name: bird-question-1126
-    description: 'State the names of players who played in matches held in Belgium.'
+    description: "State the names of players who played in matches held in Belgium."
     messages:
       - role: user
         content: |

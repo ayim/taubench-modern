@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-023
-description: 'BIRD Q1171 (challenging): How many underage patients were examined during the course of the three-year period from 1990 to 1993?'
+description: "BIRD Q1171 (challenging): How many underage patients were examined during the course of the three-year period from 1990 to 1993?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Examination AS T2 ON T1.ID = T2.ID
+  WHERE STRFTIME('%Y', T2.`Examination Date`) BETWEEN '1990' AND '1993'
+    AND STRFTIME('%Y', T2.`Examination Date`) - STRFTIME('%Y', T1.Birthday) < 18
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1171
-    description: 'How many underage patients were examined during the course of the three-year period from 1990 to 1993?'
+    description: "How many underage patients were examined during the course of the three-year period from 1990 to 1993?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-financial-010
-description: 'BIRD Q98 (moderate): Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement.'
+description: "BIRD Q98 (moderate): Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.account_id
+  FROM loan AS T1
+  INNER JOIN ACCOUNT AS T2 ON T1.account_id = T2.account_id
+  WHERE STRFTIME('%Y', T1.date) = '1997'
+    AND T2.frequency = 'POPLATEK TYDNE'
+  ORDER BY T1.amount
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-98
-    description: 'Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement.'
+    description: "Among the accounts who have approved loan date in 1997, list out the accounts that have the lowest approved amount and choose weekly issuance statement."
     messages:
       - role: user
         content: |

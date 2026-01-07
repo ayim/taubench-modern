@@ -1,7 +1,19 @@
 name: bird-toxicology-131
-description: 'BIRD Q325 (simple): How many carcinogenic molecules that consisted of Nitrogen?'
+description: "BIRD Q325 (simple): How many carcinogenic molecules that consisted of Nitrogen?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.molecule_id)
+  FROM molecule AS T1
+  INNER JOIN atom AS T2 ON T1.molecule_id = T2.molecule_id
+  WHERE T2.element = 'n'
+    AND T1.label = '+'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-325
-    description: 'How many carcinogenic molecules that consisted of Nitrogen?'
+    description: "How many carcinogenic molecules that consisted of Nitrogen?"
     messages:
       - role: user
         content: |

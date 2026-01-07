@@ -1,7 +1,20 @@
 name: bird-student-club-016
-description: 'BIRD Q1327 (moderate): List the full name of all the members of the Student_Club who attended the "Laugh Out Loud" event.'
+description: "BIRD Q1327 (moderate): List the full name of all the members of the Student_Club who attended the \"Laugh Out Loud\" event."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.first_name,
+         T1.last_name
+  FROM member AS T1
+  INNER JOIN attendance AS T2 ON T1.member_id = T2.link_to_member
+  INNER JOIN event AS T3 ON T2.link_to_event = T3.event_id
+  WHERE T3.event_name = 'Laugh Out Loud'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1327
-    description: 'List the full name of all the members of the Student_Club who attended the "Laugh Out Loud" event.'
+    description: "List the full name of all the members of the Student_Club who attended the \"Laugh Out Loud\" event."
     messages:
       - role: user
         content: |

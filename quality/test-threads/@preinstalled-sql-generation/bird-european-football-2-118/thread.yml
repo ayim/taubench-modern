@@ -1,7 +1,20 @@
 name: bird-european-football-2-118
-description: 'BIRD Q1137 (simple): What percentage of players have a strength and stamina score of more than 80?'
+description: "BIRD Q1137 (simple): What percentage of players have a strength and stamina score of more than 80?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN strength > 80
+                             AND stamina > 80 THEN id
+                        ELSE NULL
+                    END) AS REAL) * 100 / COUNT(id)
+  FROM Player_Attributes t
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1137
-    description: 'What percentage of players have a strength and stamina score of more than 80?'
+    description: "What percentage of players have a strength and stamina score of more than 80?"
     messages:
       - role: user
         content: |

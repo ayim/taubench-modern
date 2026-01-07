@@ -3,6 +3,64 @@ description: "BIRD Q0 (challenging): For the school with the highest free meal r
 difficulty: challenging
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CountyStats AS
+    (SELECT f.`County Name`,
+            f.`School Name`,
+            f.`Free Meal Count (K-12)`,
+            f.`Enrollment (K-12)`,
+            CAST(f.`Free Meal Count (K-12)` AS REAL) / f.`Enrollment (K-12)` AS FreeRate,
+            s.sname,
+            s.AvgScrRead,
+            s.AvgScrMath,
+            s.AvgScrWrite,
+            (s.AvgScrRead + s.AvgScrMath + s.AvgScrWrite) AS TotalSATScore,
+            sc.Charter,
+            sc.GSserved,
+            RANK() OVER (PARTITION BY f.`County Name`
+                         ORDER BY CAST(f.`Free Meal Count (K-12)` AS REAL) / f.`Enrollment (K-12)` DESC) AS CountyRank
+     FROM frpm f
+     LEFT JOIN schools sc ON f.CDSCode = sc.CDSCode
+     LEFT JOIN satscores s ON f.CDSCode = s.cds
+     WHERE f.`Enrollment (K-12)` > 0
+       AND f.`County Name` = 'Alameda')
+  SELECT cs.`County Name` AS County,
+         cs.`School Name`,
+         cs.FreeRate AS HighestFreeRate,
+         cs.`Free Meal Count (K-12)` AS FreeMealCount,
+         cs.`Enrollment (K-12)` AS TotalEnrollment,
+         CASE
+             WHEN cs.Charter = 1 THEN 'Yes'
+             WHEN cs.Charter = 0 THEN 'No'
+             ELSE 'Unknown'
+         END AS IsCharterSchool,
+         cs.GSserved AS GradesServed,
+         CASE
+             WHEN cs.TotalSATScore IS NULL THEN 'No SAT Data'
+             WHEN cs.TotalSATScore < 1200 THEN 'Below Average'
+             WHEN cs.TotalSATScore BETWEEN 1200 AND 1500 THEN 'Average'
+             ELSE 'Above Average'
+         END AS SATPerformance,
+  
+    (SELECT AVG(CAST(f2.`Free Meal Count (K-12)` AS REAL) / f2.`Enrollment (K-12)`)
+     FROM frpm f2
+     WHERE f2.`County Name` = 'Alameda'
+       AND f2.`Enrollment (K-12)` > 0) AS CountyAverageFreeRate,
+         cs.FreeRate -
+    (SELECT AVG(CAST(f2.`Free Meal Count (K-12)` AS REAL) / f2.`Enrollment (K-12)`)
+     FROM frpm f2
+     WHERE f2.`County Name` = 'Alameda'
+       AND f2.`Enrollment (K-12)` > 0) AS DeviationFromCountyAverage
+  FROM CountyStats cs
+  WHERE cs.CountyRank = 1
+  ORDER BY cs.FreeRate DESC
+  LIMIT 1;
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_california_schools

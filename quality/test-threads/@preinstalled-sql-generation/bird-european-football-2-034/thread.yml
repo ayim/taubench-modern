@@ -1,7 +1,18 @@
 name: bird-european-football-2-034
-description: 'BIRD Q1053 (moderate): List the football teams that has a chance creation passing class of Risky. Inidcate its short name only.'
+description: "BIRD Q1053 (moderate): List the football teams that has a chance creation passing class of Risky. Inidcate its short name only."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t1.team_short_name
+  FROM Team AS t1
+  INNER JOIN Team_attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t2.chanceCreationPassingClass = 'Risky'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1053
-    description: 'List the football teams that has a chance creation passing class of Risky. Inidcate its short name only.'
+    description: "List the football teams that has a chance creation passing class of Risky. Inidcate its short name only."
     messages:
       - role: user
         content: |

@@ -1,7 +1,18 @@
 name: bird-european-football-2-111
-description: 'BIRD Q1130 (moderate): What are the short name of team who played safe while creating chance of passing?'
+description: "BIRD Q1130 (moderate): What are the short name of team who played safe while creating chance of passing?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT t1.team_short_name
+  FROM Team AS t1
+  INNER JOIN Team_Attributes AS t2 ON t1.team_api_id = t2.team_api_id
+  WHERE t2.chanceCreationPassingClass = 'Safe'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1130
-    description: 'What are the short name of team who played safe while creating chance of passing?'
+    description: "What are the short name of team who played safe while creating chance of passing?"
     messages:
       - role: user
         content: |

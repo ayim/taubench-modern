@@ -1,7 +1,20 @@
 name: bird-california-schools-017
-description: 'BIRD Q16 (simple): How many schools in merged Alameda have number of test takers less than 100?'
+description: "BIRD Q16 (simple): How many schools in merged Alameda have number of test takers less than 100?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.CDSCode)
+  FROM schools AS T1
+  INNER JOIN satscores AS T2 ON T1.CDSCode = T2.cds
+  WHERE T1.StatusType = 'Merged'
+    AND T2.NumTstTakr < 100
+    AND T1.County = 'Alameda'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-16
-    description: 'How many schools in merged Alameda have number of test takers less than 100?'
+    description: "How many schools in merged Alameda have number of test takers less than 100?"
     messages:
       - role: user
         content: |

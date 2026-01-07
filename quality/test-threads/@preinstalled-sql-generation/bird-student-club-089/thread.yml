@@ -3,6 +3,19 @@ description: "BIRD Q1400 (moderate): Among all events hold by the Student_Club i
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(SUM(CASE
+                      WHEN TYPE = 'Community Service' THEN 1
+                      ELSE 0
+                  END) AS REAL) * 100 / COUNT(TYPE)
+  FROM event
+  WHERE SUBSTR(event_date, 1, 4) = '2019'
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_student_club

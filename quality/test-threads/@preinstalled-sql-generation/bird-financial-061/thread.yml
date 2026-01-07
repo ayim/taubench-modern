@@ -1,7 +1,20 @@
 name: bird-financial-061
-description: 'BIRD Q149 (challenging): Please list the account types that are not eligible for loans, and the average income of residents in the district where the account is located exceeds $8000 but is no more than $9000.'
+description: "BIRD Q149 (challenging): Please list the account types that are not eligible for loans, and the average income of residents in the district where the account is located exceeds $8000 but is no more than $9000."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T3.type
+  FROM district AS T1
+  INNER JOIN ACCOUNT AS T2 ON T1.district_id = T2.district_id
+  INNER JOIN disp AS T3 ON T2.account_id = T3.account_id
+  WHERE T3.type != 'OWNER'
+    AND T1.A11 BETWEEN 8000 AND 9000
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-149
-    description: 'Please list the account types that are not eligible for loans, and the average income of residents in the district where the account is located exceeds $8000 but is no more than $9000.'
+    description: "Please list the account types that are not eligible for loans, and the average income of residents in the district where the account is located exceeds $8000 but is no more than $9000."
     messages:
       - role: user
         content: |

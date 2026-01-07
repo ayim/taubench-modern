@@ -1,7 +1,24 @@
 name: bird-thrombosis-prediction-071
-description: 'BIRD Q1219 (moderate): For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?'
+description: "BIRD Q1219 (moderate): For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.UA)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE (T2.UA < 6.5
+         AND T1.SEX = 'F')
+    OR (T2.UA < 8.0
+        AND T1.SEX = 'M')
+    AND T2.Date =
+      (SELECT MAX(Date)
+       FROM Laboratory)
 
 sdms:
   - kind: postgres
@@ -10,7 +27,7 @@ sdms:
 
 thread:
   - name: bird-question-1219
-    description: 'For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?'
+    description: "For all patients with normal uric acid (UA), what is the average UA index based on their latest laboratory examination result?"
     messages:
       - role: user
         content: |

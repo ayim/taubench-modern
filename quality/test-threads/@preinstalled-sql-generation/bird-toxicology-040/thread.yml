@@ -1,7 +1,20 @@
 name: bird-toxicology-040
-description: 'BIRD Q234 (moderate): How many bonds which involved atom 12 does molecule TR009 have?'
+description: "BIRD Q234 (moderate): How many bonds which involved atom 12 does molecule TR009 have?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T2.bond_id)
+  FROM bond AS T1
+  INNER JOIN connected AS T2 ON T1.bond_id = T2.bond_id
+  WHERE T1.molecule_id = 'TR009'
+    AND T2.atom_id = T1.molecule_id || '_1'
+    AND T2.atom_id2 = T1.molecule_id || '_2'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-234
-    description: 'How many bonds which involved atom 12 does molecule TR009 have?'
+    description: "How many bonds which involved atom 12 does molecule TR009 have?"
     messages:
       - role: user
         content: |

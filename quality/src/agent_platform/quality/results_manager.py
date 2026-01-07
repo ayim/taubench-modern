@@ -319,6 +319,7 @@ class QualityResultsManager:
                             "passed": eval_result.passed,
                             "actual_value": json.dumps(eval_result.actual_value),
                             "error": eval_result.error,
+                            "reference_sql": result.test_case.reference_sql,
                         }
                         for eval_result in result.evaluation_results
                     ],

@@ -1,7 +1,75 @@
 name: bird-financial-063
-description: 'BIRD Q151 (challenging): For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level.'
+description: "BIRD Q151 (challenging): For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH district_withdrawal_counts AS
+    (SELECT T1.district_id,
+            T1.A2 AS district_name,
+            COUNT(DISTINCT T3.trans_id) AS withdrawal_count,
+            SUM(T3.amount) AS total_withdrawal_amount,
+            AVG(T3.amount) AS avg_withdrawal_amount
+     FROM district AS T1
+     INNER JOIN ACCOUNT AS T2 ON T1.district_id = T2.district_id
+     INNER JOIN trans AS T3 ON T2.account_id = T3.account_id
+     WHERE T3.type = 'VYDAJ'
+     GROUP BY T1.district_id,
+              T1.A2),
+       district_demographics AS
+    (SELECT d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region,
+            CAST(d.A4 AS INTEGER) AS population,
+            d.A10 AS urban_ratio,
+            d.A11 AS avg_salary,
+            d.A12 AS unemployment_rate_95,
+            COUNT(DISTINCT c.client_id) AS client_count,
+            SUM(CASE
+                    WHEN c.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_clients,
+            SUM(CASE
+                    WHEN c.gender = 'F' THEN 1
+                    ELSE 0
+                END) AS female_clients
+     FROM district d
+     LEFT JOIN client c ON d.district_id = c.district_id
+     GROUP BY d.district_id,
+              d.A2,
+              d.A3,
+              d.A4,
+              d.A10,
+              d.A11,
+              d.A12)
+  SELECT dw.district_name,
+         dw.withdrawal_count,
+         dw.total_withdrawal_amount,
+         dw.avg_withdrawal_amount,
+         dd.region,
+         dd.population,
+         dd.urban_ratio,
+         dd.avg_salary,
+         dd.unemployment_rate_95,
+         dd.client_count,
+         dd.male_clients,
+         dd.female_clients,
+         ROUND(dw.total_withdrawal_amount / CAST(dd.population AS REAL), 2) AS withdrawal_per_capita,
+         RANK() OVER (
+                      ORDER BY dw.total_withdrawal_amount DESC) AS district_rank_by_withdrawal,
+         CASE
+             WHEN dd.unemployment_rate_95 > 2.0 THEN 'High Unemployment'
+             WHEN dd.unemployment_rate_95 BETWEEN 1.0 AND 2.0 THEN 'Medium Unemployment'
+             ELSE 'Low Unemployment'
+         END AS unemployment_category
+  FROM district_withdrawal_counts dw
+  JOIN district_demographics dd ON dw.district_id = dd.district_id
+  ORDER BY dw.total_withdrawal_amount DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +78,7 @@ sdms:
 
 thread:
   - name: bird-question-151
-    description: 'For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level.'
+    description: "For each district with withdrawal transactions, provide a comprehensive analysis including the total number and amount of withdrawals, demographic information, withdrawal per capita, and rank the districts by total withdrawal amount. Also categorize each district by unemployment level."
     messages:
       - role: user
         content: |

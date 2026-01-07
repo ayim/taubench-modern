@@ -1,7 +1,20 @@
 name: bird-thrombosis-prediction-117
-description: 'BIRD Q1265 (moderate): How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?'
+description: "BIRD Q1265 (moderate): How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.RNP = 'negative'
+    OR T2.RNP = '0'
+    AND T1.Admission = '+'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1265
-    description: 'How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?'
+    description: "How many patients have a normal level of anti-ribonuclear protein and have been admitted to the hospital?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,20 @@
 name: bird-formula-1-144
-description: 'BIRD Q989 (moderate): Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time.'
+description: "BIRD Q989 (moderate): Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.time
+  FROM results AS T1
+  INNER JOIN races AS T2 ON T1.raceId = T2.raceId
+  WHERE T2.name = 'Canadian Grand Prix'
+    AND T2.year = 2008
+    AND T1.time LIKE '_:%:__.___'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-989
-    description: 'Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time.'
+    description: "Who is the champion of the Canadian Grand Prix in 2008? Indicate his finish time."
     messages:
       - role: user
         content: |

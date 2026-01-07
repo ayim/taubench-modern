@@ -1,7 +1,19 @@
 name: bird-codebase-community-093
-description: 'BIRD Q623 (simple): How many elders obtained the "Supporter" badge?'
+description: "BIRD Q623 (simple): How many elders obtained the \"Supporter\" badge?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.Id)
+  FROM users AS T1
+  INNER JOIN badges AS T2 ON T1.Id = T2.UserId
+  WHERE T1.Age > 65
+    AND T2.Name = 'Supporter'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-623
-    description: 'How many elders obtained the "Supporter" badge?'
+    description: "How many elders obtained the \"Supporter\" badge?"
     messages:
       - role: user
         content: |

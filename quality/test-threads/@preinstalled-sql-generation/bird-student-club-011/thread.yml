@@ -1,7 +1,21 @@
 name: bird-student-club-011
-description: 'BIRD Q1322 (moderate): Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?'
+description: "BIRD Q1322 (moderate): Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*) AS meeting_events_over_10
+  FROM event AS e
+  WHERE e.type = 'Meeting'
+    AND
+      (SELECT COUNT(*)
+       FROM attendance AS a
+       WHERE a.link_to_event = e.event_id) > 10;
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1322
-    description: 'Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?'
+    description: "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?"
     messages:
       - role: user
         content: |

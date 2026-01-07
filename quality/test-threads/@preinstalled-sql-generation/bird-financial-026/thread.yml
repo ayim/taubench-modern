@@ -1,7 +1,20 @@
 name: bird-financial-026
-description: 'BIRD Q114 (simple): For the first client who opened his/her account in Prague, what is his/her account ID?'
+description: "BIRD Q114 (simple): For the first client who opened his/her account in Prague, what is his/her account ID?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.account_id
+  FROM ACCOUNT AS T1
+  INNER JOIN district AS T2 ON T1.district_id = T2.district_id
+  WHERE T2.A3 = 'Prague'
+  ORDER BY T1.date ASC
+  LIMIT 1;
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-114
-    description: 'For the first client who opened his/her account in Prague, what is his/her account ID?'
+    description: "For the first client who opened his/her account in Prague, what is his/her account ID?"
     messages:
       - role: user
         content: |

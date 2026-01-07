@@ -3,6 +3,23 @@ description: "BIRD Q1140 (simple): What are Alexis Blin's latest sprint speed, a
 difficulty: simple
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT sprint_speed,
+         agility,
+         acceleration
+  FROM Player_Attributes
+  WHERE player_api_id IN
+      (SELECT player_api_id
+       FROM Player
+       WHERE player_name = 'Alexis Blin')
+  ORDER BY date DESC
+  LIMIT 1
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_european_football_2

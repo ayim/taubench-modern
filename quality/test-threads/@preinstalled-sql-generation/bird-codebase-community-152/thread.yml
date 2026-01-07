@@ -3,6 +3,20 @@ description: "BIRD Q682 (moderate): Which is the most valuable post in 2010? Ple
 difficulty: moderate
 timeout_seconds: 600
 
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.OwnerUserId,
+         T1.DisplayName
+  FROM users AS T1
+  INNER JOIN posts AS T2 ON T1.Id = T2.OwnerUserId
+  WHERE STRFTIME('%Y', T2.CreaionDate) = '2010'
+  ORDER BY T2.FavoriteCount DESC
+  LIMIT 1
+
 sdms:
   - kind: postgres
     sdm_path: sdms/bird_codebase_community

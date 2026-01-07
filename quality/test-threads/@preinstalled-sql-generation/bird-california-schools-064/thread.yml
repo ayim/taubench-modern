@@ -1,7 +1,21 @@
 name: bird-california-schools-064
-description: 'BIRD Q63 (simple): In chartered schools with charter number 00D2, what are the names of all the administrators? Include the name of the school and the city to which it belongs'
+description: "BIRD Q63 (simple): In chartered schools with charter number 00D2, what are the names of all the administrators? Include the name of the school and the city to which it belongs"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AdmFName1,
+         AdmLName1,
+         School,
+         City
+  FROM schools
+  WHERE Charter = 1
+    AND CharterNum = '00D2'
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-63
-    description: 'In chartered schools with charter number 00D2, what are the names of all the administrators? Include the name of the school and the city to which it belongs'
+    description: "In chartered schools with charter number 00D2, what are the names of all the administrators? Include the name of the school and the city to which it belongs"
     messages:
       - role: user
         content: |

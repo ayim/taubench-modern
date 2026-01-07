@@ -1,7 +1,19 @@
 name: bird-card-games-030
-description: 'BIRD Q369 (simple): How many cards that illusrtated in German have been reprinted?'
+description: "BIRD Q369 (simple): How many cards that illusrtated in German have been reprinted?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.id)
+  FROM cards AS T1
+  INNER JOIN foreign_data AS T2 ON T1.uuid = T2.uuid
+  WHERE T2.language = 'German'
+    AND T1.isReprint = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-369
-    description: 'How many cards that illusrtated in German have been reprinted?'
+    description: "How many cards that illusrtated in German have been reprinted?"
     messages:
       - role: user
         content: |

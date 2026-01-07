@@ -1,7 +1,18 @@
 name: bird-codebase-community-052
-description: 'BIRD Q582 (simple): List the title of posts which were edited by Vebjorn Ljosa.'
+description: "BIRD Q582 (simple): List the title of posts which were edited by Vebjorn Ljosa."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.Title
+  FROM posts AS T1
+  INNER JOIN users AS T2 ON T1.LastEditorUserId = T2.Id
+  WHERE T2.DisplayName = 'Vebjorn Ljosa';
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-582
-    description: 'List the title of posts which were edited by Vebjorn Ljosa.'
+    description: "List the title of posts which were edited by Vebjorn Ljosa."
     messages:
       - role: user
         content: |

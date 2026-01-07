@@ -1,7 +1,20 @@
 name: bird-european-football-2-012
-description: 'BIRD Q1031 (challenging): Calculate the current age of players who have a sprint speed of at least 97 between 2013 and 2015.'
+description: "BIRD Q1031 (challenging): Calculate the current age of players who have a sprint speed of at least 97 between 2013 and 2015."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT DATETIME() - T2.birthday age
+  FROM Player_Attributes AS t1
+  INNER JOIN Player AS t2 ON t1.player_api_id = t2.player_api_id
+  WHERE STRFTIME('%Y', t1.`date`) >= '2013'
+    AND STRFTIME('%Y', t1.`date`) <= '2015'
+    AND t1.sprint_speed >= 97
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1031
-    description: 'Calculate the current age of players who have a sprint speed of at least 97 between 2013 and 2015.'
+    description: "Calculate the current age of players who have a sprint speed of at least 97 between 2013 and 2015."
     messages:
       - role: user
         content: |

@@ -1,7 +1,78 @@
 name: bird-toxicology-010
-description: 'BIRD Q204 (challenging): What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?'
+description: "BIRD Q204 (challenging): What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH MoleculeInfo AS
+    (SELECT m.molecule_id,
+            m.label,
+            COUNT(DISTINCT a.atom_id) AS atom_count,
+            COUNT(DISTINCT b.bond_id) AS bond_count,
+            SUM(CASE
+                    WHEN a.element = 'c' THEN 1
+                    ELSE 0
+                END) AS carbon_count,
+            SUM(CASE
+                    WHEN a.element = 'h' THEN 1
+                    ELSE 0
+                END) AS hydrogen_count,
+            SUM(CASE
+                    WHEN a.element = 'o' THEN 1
+                    ELSE 0
+                END) AS oxygen_count,
+            SUM(CASE
+                    WHEN a.element = 'n' THEN 1
+                    ELSE 0
+                END) AS nitrogen_count,
+            SUM(CASE
+                    WHEN a.element NOT IN ('c', 'h', 'o', 'n') THEN 1
+                    ELSE 0
+                END) AS other_element_count,
+            SUM(CASE
+                    WHEN b.bond_type = '=' THEN 1
+                    ELSE 0
+                END) AS double_bond_count,
+            ROW_NUMBER() OVER (
+                               ORDER BY m.molecule_id) AS molecule_rank
+     FROM molecule m
+     LEFT JOIN atom a ON m.molecule_id = a.molecule_id
+     LEFT JOIN bond b ON m.molecule_id = b.molecule_id
+     WHERE m.molecule_id BETWEEN 'TR000' AND 'TR099'
+     GROUP BY m.molecule_id,
+              m.label),
+       ConnectionStats AS
+    (SELECT m.molecule_id,
+            COUNT(DISTINCT c.atom_id) AS connected_atoms,
+            AVG(CASE
+                    WHEN a.element = 'c'
+                         AND a2.element = 'c' THEN 1
+                    ELSE 0
+                END) AS carbon_carbon_ratio
+     FROM molecule m
+     JOIN atom a ON m.molecule_id = a.molecule_id
+     JOIN connected c ON a.atom_id = c.atom_id
+     JOIN atom a2 ON c.atom_id2 = a2.atom_id
+     WHERE m.molecule_id BETWEEN 'TR000' AND 'TR099'
+     GROUP BY m.molecule_id)
+  SELECT COUNT(mi.molecule_id) AS carcinogenic_count,
+         AVG(mi.atom_count) AS avg_atoms_in_carcinogenic,
+         AVG(mi.carbon_count) AS avg_carbon_in_carcinogenic,
+         AVG(mi.bond_count) AS avg_bonds_in_carcinogenic,
+         AVG(mi.double_bond_count) AS avg_double_bonds_in_carcinogenic,
+         AVG(cs.connected_atoms) AS avg_connected_atoms,
+         AVG(cs.carbon_carbon_ratio) AS avg_carbon_carbon_ratio
+  FROM MoleculeInfo mi
+  LEFT JOIN ConnectionStats cs ON mi.molecule_id = cs.molecule_id
+  WHERE mi.label = '+'
+    AND mi.molecule_rank <= 100
+    AND (mi.carbon_count > 0
+         OR mi.hydrogen_count > 0)
 
 sdms:
   - kind: postgres
@@ -10,7 +81,7 @@ sdms:
 
 thread:
   - name: bird-question-204
-    description: 'What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?'
+    description: "What are the average structural characteristics of carcinogenic molecules among the first 100 molecules, including the number of atoms, carbon atoms, bonds, double bonds, connected atoms, and the ratio of carbon-to-carbon connections?"
     messages:
       - role: user
         content: |

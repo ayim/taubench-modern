@@ -1,7 +1,22 @@
 name: bird-california-schools-088
-description: 'BIRD Q87 (challenging): What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?'
+description: "BIRD Q87 (challenging): What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AdmEmail1,
+         AdmEmail2
+  FROM schools
+  WHERE County = 'San Bernardino'
+    AND City = 'San Bernardino'
+    AND DOC = 54
+    AND strftime('%Y', OpenDate) BETWEEN '2009' AND '2010'
+    AND SOC = 62
 
 sdms:
   - kind: postgres
@@ -10,7 +25,7 @@ sdms:
 
 thread:
   - name: bird-question-87
-    description: 'What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?'
+    description: "What are the valid e-mail addresses of the administrator of the school located in the San Bernardino county, City of San Bernardino that belongs to a Unified School District and opened between 1/1/2009 to 12/31/2010 whose school types are public Intermediate/Middle Schools?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,21 @@
 name: bird-european-football-2-019
-description: 'BIRD Q1038 (moderate): List the top 5 leagues in ascending order of the number of goals made in all seasons combined.'
+description: "BIRD Q1038 (moderate): List the top 5 leagues in ascending order of the number of goals made in all seasons combined."
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t1.name,
+         SUM(t2.home_team_goal) + SUM(t2.away_team_goal)
+  FROM League AS t1
+  INNER JOIN MATCH AS t2 ON t1.id = t2.league_id
+  GROUP BY t1.name
+  ORDER BY SUM(t2.home_team_goal) + SUM(t2.away_team_goal) ASC
+  LIMIT 5
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1038
-    description: 'List the top 5 leagues in ascending order of the number of goals made in all seasons combined.'
+    description: "List the top 5 leagues in ascending order of the number of goals made in all seasons combined."
     messages:
       - role: user
         content: |

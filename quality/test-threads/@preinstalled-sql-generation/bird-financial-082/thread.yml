@@ -1,7 +1,18 @@
 name: bird-financial-082
-description: 'BIRD Q170 (simple): How many credit card withdrawals were recorded after 1995?'
+description: "BIRD Q170 (simple): How many credit card withdrawals were recorded after 1995?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(account_id)
+  FROM trans
+  WHERE STRFTIME('%Y', date) > '1995'
+    AND OPERATION = 'VYBER KARTOU'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-170
-    description: 'How many credit card withdrawals were recorded after 1995?'
+    description: "How many credit card withdrawals were recorded after 1995?"
     messages:
       - role: user
         content: |

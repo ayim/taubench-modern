@@ -1,7 +1,27 @@
 name: bird-codebase-community-063
-description: 'BIRD Q593 (simple): How many users from New York have a teacher and supporter badge?'
+description: "BIRD Q593 (simple): How many users from New York have a teacher and supporter badge?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(*)
+  FROM users AS U
+  WHERE U.Location = 'New York'
+    AND EXISTS
+      (SELECT 1
+       FROM badges AS B1
+       WHERE B1.UserId = U.Id
+         AND B1.Name = 'Supporter')
+    AND EXISTS
+      (SELECT 1
+       FROM badges AS B2
+       WHERE B2.UserId = U.Id
+         AND B2.Name = 'Teacher')
 
 sdms:
   - kind: postgres
@@ -10,7 +30,7 @@ sdms:
 
 thread:
   - name: bird-question-593
-    description: 'How many users from New York have a teacher and supporter badge?'
+    description: "How many users from New York have a teacher and supporter badge?"
     messages:
       - role: user
         content: |

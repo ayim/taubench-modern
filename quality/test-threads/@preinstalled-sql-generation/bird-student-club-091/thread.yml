@@ -1,7 +1,19 @@
 name: bird-student-club-091
-description: 'BIRD Q1402 (simple): What is the most popular size of t-shirt ordered by the club members?'
+description: "BIRD Q1402 (simple): What is the most popular size of t-shirt ordered by the club members?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT t_shirt_size
+  FROM member
+  GROUP BY t_shirt_size
+  ORDER BY COUNT(t_shirt_size) DESC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1402
-    description: 'What is the most popular size of t-shirt ordered by the club members?'
+    description: "What is the most popular size of t-shirt ordered by the club members?"
     messages:
       - role: user
         content: |

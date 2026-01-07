@@ -1,7 +1,20 @@
 name: bird-european-football-2-059
-description: 'BIRD Q1078 (simple): Which player is older, Aaron Lennon or Abdelaziz Barrada?'
+description: "BIRD Q1078 (simple): Which player is older, Aaron Lennon or Abdelaziz Barrada?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT player_name
+  FROM Player
+  WHERE player_name IN ('Aaron Lennon',
+                        'Abdelaziz Barrada')
+  ORDER BY birthday ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1078
-    description: 'Which player is older, Aaron Lennon or Abdelaziz Barrada?'
+    description: "Which player is older, Aaron Lennon or Abdelaziz Barrada?"
     messages:
       - role: user
         content: |

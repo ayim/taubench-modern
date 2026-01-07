@@ -1,7 +1,19 @@
 name: bird-toxicology-130
-description: 'BIRD Q324 (simple): Find the percentage of atoms with single bond.'
+description: "BIRD Q324 (simple): Find the percentage of atoms with single bond."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT CAST(COUNT(CASE
+                        WHEN T.bond_type = '-' THEN T.bond_id
+                        ELSE NULL
+                    END) AS REAL) * 100 / COUNT(T.bond_id)
+  FROM bond t
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-324
-    description: 'Find the percentage of atoms with single bond.'
+    description: "Find the percentage of atoms with single bond."
     messages:
       - role: user
         content: |

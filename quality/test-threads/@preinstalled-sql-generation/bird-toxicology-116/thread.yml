@@ -1,7 +1,21 @@
 name: bird-toxicology-116
-description: 'BIRD Q310 (moderate): How many molecules have a double bond type and among these molecule, how many are labeled as carcinogenic compound?'
+description: "BIRD Q310 (moderate): How many molecules have a double bond type and among these molecule, how many are labeled as carcinogenic compound?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(DISTINCT T2.molecule_id) AS mol_with_double_bond,
+         COUNT(DISTINCT CASE
+                            WHEN T2.label = '+' THEN T2.molecule_id
+                        END) AS carcinogenic_with_double_bond
+  FROM bond AS T1
+  JOIN molecule AS T2 ON T2.molecule_id = T1.molecule_id
+  WHERE T1.bond_type = '=';
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-310
-    description: 'How many molecules have a double bond type and among these molecule, how many are labeled as carcinogenic compound?'
+    description: "How many molecules have a double bond type and among these molecule, how many are labeled as carcinogenic compound?"
     messages:
       - role: user
         content: |

@@ -1,7 +1,19 @@
 name: bird-thrombosis-prediction-097
-description: 'BIRD Q1245 (moderate): For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?'
+description: "BIRD Q1245 (moderate): For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.ID)
+  FROM Patient AS T1
+  INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID
+  WHERE T2.Date > '1997-01-01'
+    AND T2.APTT >= 45
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-1245
-    description: 'For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?'
+    description: "For the examinations done after 1997/1/1, how many of them have the result of an inactivated partial prothrom bin time?"
     messages:
       - role: user
         content: |

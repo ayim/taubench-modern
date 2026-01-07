@@ -1,7 +1,19 @@
 name: bird-california-schools-015
-description: 'BIRD Q14 (simple): List the top five schools, by descending order, from the highest to the lowest, the most number of Enrollment (Ages 5-17). Please give their NCES school identification number.'
+description: "BIRD Q14 (simple): List the top five schools, by descending order, from the highest to the lowest, the most number of Enrollment (Ages 5-17). Please give their NCES school identification number."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T1.NCESSchool
+  FROM schools AS T1
+  INNER JOIN frpm AS T2 ON T1.CDSCode = T2.CDSCode
+  ORDER BY T2.`Enrollment (Ages 5-17)` DESC
+  LIMIT 5
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-14
-    description: 'List the top five schools, by descending order, from the highest to the lowest, the most number of Enrollment (Ages 5-17). Please give their NCES school identification number.'
+    description: "List the top five schools, by descending order, from the highest to the lowest, the most number of Enrollment (Ages 5-17). Please give their NCES school identification number."
     messages:
       - role: user
         content: |

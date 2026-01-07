@@ -1,7 +1,118 @@
 name: bird-financial-100
-description: 'BIRD Q188 (challenging): For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity.'
+description: "BIRD Q188 (challenging): For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH AccountsWithLongLoans AS
+    (SELECT l.account_id,
+            l.amount,
+            l.duration,
+            a.date AS account_opening_date,
+            STRFTIME('%Y', a.date) AS opening_year,
+            d.district_id,
+            d.A2 AS district_name,
+            d.A3 AS region
+     FROM loan AS l
+     INNER JOIN ACCOUNT AS a ON l.account_id = a.account_id
+     INNER JOIN district AS d ON a.district_id = d.district_id
+     WHERE l.duration > 24
+       AND STRFTIME('%Y', a.date) < '1997'),
+       AccountTransactionStats AS
+    (SELECT a.account_id,
+            COUNT(t.trans_id) AS transaction_count,
+            SUM(CASE
+                    WHEN t.type = 'PRIJEM' THEN t.amount
+                    ELSE 0
+                END) AS total_income,
+            SUM(CASE
+                    WHEN t.type = 'VYDAJ' THEN t.amount
+                    ELSE 0
+                END) AS total_expense,
+            MAX(t.balance) AS max_balance
+     FROM AccountsWithLongLoans AS a
+     LEFT JOIN trans AS t ON a.account_id = t.account_id
+     GROUP BY a.account_id),
+       AccountWithCards AS
+    (SELECT a.account_id,
+            COUNT(c.card_id) AS card_count,
+            GROUP_CONCAT(DISTINCT c.type) AS card_types
+     FROM AccountsWithLongLoans AS a
+     INNER JOIN disp AS d ON a.account_id = d.account_id
+     LEFT JOIN card AS c ON d.disp_id = c.disp_id
+     GROUP BY a.account_id),
+       ClientInfo AS
+    (SELECT a.account_id,
+            COUNT(DISTINCT c.client_id) AS client_count,
+            SUM(CASE
+                    WHEN c.gender = 'M' THEN 1
+                    ELSE 0
+                END) AS male_count,
+            SUM(CASE
+                    WHEN c.gender = 'F' THEN 1
+                    ELSE 0
+                END) AS female_count,
+            AVG(CAST(STRFTIME('%Y', 'now') AS INTEGER) - CAST(STRFTIME('%Y', c.birth_date) AS INTEGER)) AS avg_age
+     FROM AccountsWithLongLoans AS a
+     INNER JOIN disp AS d ON a.account_id = d.account_id
+     INNER JOIN client AS c ON d.client_id = c.client_id
+     GROUP BY a.account_id),
+       MinimumLoanAmount AS
+    (SELECT MIN(amount) AS min_amount
+     FROM AccountsWithLongLoans),
+       RankedAccounts AS
+    (SELECT a.*,
+            ts.transaction_count,
+            ts.total_income,
+            ts.total_expense,
+            ts.max_balance,
+            c.card_count,
+            c.card_types,
+            ci.client_count,
+            ci.male_count,
+            ci.female_count,
+            ci.avg_age,
+            RANK() OVER (
+                         ORDER BY a.amount ASC) AS amount_rank
+     FROM AccountsWithLongLoans AS a
+     LEFT JOIN AccountTransactionStats AS ts ON a.account_id = ts.account_id
+     LEFT JOIN AccountWithCards AS c ON a.account_id = c.account_id
+     LEFT JOIN ClientInfo AS ci ON a.account_id = ci.account_id
+     WHERE a.amount =
+         (SELECT min_amount
+          FROM MinimumLoanAmount))
+  SELECT r.account_id,
+         r.amount AS loan_amount,
+         r.duration AS loan_duration_months,
+         r.account_opening_date,
+         r.district_name,
+         r.region,
+         CASE
+             WHEN r.transaction_count IS NULL THEN 0
+             ELSE r.transaction_count
+         END AS num_transactions,
+         COALESCE(r.total_income, 0) AS total_income,
+         COALESCE(r.total_expense, 0) AS total_expense,
+         COALESCE(r.total_income, 0) - COALESCE(r.total_expense, 0) AS net_cash_flow,
+         COALESCE(r.max_balance, 0) AS max_balance,
+         COALESCE(r.card_count, 0) AS num_cards,
+         COALESCE(r.card_types, 'None') AS card_types,
+         COALESCE(r.client_count, 0) AS num_clients,
+         COALESCE(r.male_count, 0) AS male_clients,
+         COALESCE(r.female_count, 0) AS female_clients,
+         COALESCE(r.avg_age, 0) AS average_client_age,
+  
+    (SELECT COUNT(*)
+     FROM `order` o
+     WHERE o.account_id = r.account_id) AS order_count
+  FROM RankedAccounts r
+  WHERE r.amount_rank = 1
+  ORDER BY r.account_id ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +121,7 @@ sdms:
 
 thread:
   - name: bird-question-188
-    description: 'For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity.'
+    description: "For accounts with loans exceeding 24 months duration that were opened before 1997, provide comprehensive details about the account(s) with the smallest loan amount, including transaction history, card information, client demographics, and order activity."
     messages:
       - role: user
         content: |

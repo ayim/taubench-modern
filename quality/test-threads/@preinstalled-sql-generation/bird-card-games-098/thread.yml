@@ -1,7 +1,18 @@
 name: bird-card-games-098
-description: 'BIRD Q437 (simple): Among black card borders, which card has full artwork?'
+description: "BIRD Q437 (simple): Among black card borders, which card has full artwork?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT id
+  FROM cards
+  WHERE borderColor = 'black'
+    AND isFullArt = 1
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-437
-    description: 'Among black card borders, which card has full artwork?'
+    description: "Among black card borders, which card has full artwork?"
     messages:
       - role: user
         content: |

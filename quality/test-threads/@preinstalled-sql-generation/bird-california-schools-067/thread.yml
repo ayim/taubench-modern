@@ -1,7 +1,81 @@
 name: bird-california-schools-067
-description: 'BIRD Q66 (challenging): For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance.'
+description: "BIRD Q66 (challenging): For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH DirectlyFundedSchools AS
+    (SELECT s.CDSCode,
+            s.School,
+            s.County,
+            s.OpenDate,
+            s.FundingType,
+            strftime('%Y', s.OpenDate) AS OpenYear,
+            f.`Charter School (Y/N)` AS IsCharter,
+            f.`Enrollment (K-12)` AS Enrollment,
+            f.`FRPM Count (K-12)` AS FRPMCount,
+            f.`Percent (%) Eligible FRPM (K-12)` AS FRPMPercent,
+            CASE
+                WHEN f.`Educational Option Type` = 'Traditional' THEN 'Traditional'
+                ELSE 'Non-Traditional'
+            END AS SchoolType,
+            sat.AvgScrRead,
+            sat.AvgScrMath,
+            sat.AvgScrWrite,
+            (sat.AvgScrRead + sat.AvgScrMath + sat.AvgScrWrite) AS TotalSATScore
+     FROM schools s
+     LEFT JOIN frpm f ON s.CDSCode = f.CDSCode
+     LEFT JOIN satscores sat ON s.CDSCode = sat.cds
+     WHERE strftime('%Y', s.OpenDate) BETWEEN '2000' AND '2005'
+       AND s.County = 'Stanislaus'
+       AND s.FundingType = 'Directly funded'),
+       CountyStats AS
+    (SELECT County,
+            COUNT(*) AS TotalSchools,
+            AVG(Enrollment) AS AvgEnrollment,
+            AVG(FRPMPercent) AS AvgFRPMPercent,
+            AVG(TotalSATScore) AS AvgTotalSATScore,
+            SUM(CASE
+                    WHEN IsCharter = 1 THEN 1
+                    ELSE 0
+                END) AS CharterCount,
+            SUM(CASE
+                    WHEN SchoolType = 'Traditional' THEN 1
+                    ELSE 0
+                END) AS TraditionalCount
+     FROM DirectlyFundedSchools
+     GROUP BY County)
+  SELECT dfs.School,
+         dfs.OpenDate,
+         dfs.OpenYear,
+         dfs.Enrollment,
+         dfs.FRPMCount,
+         dfs.FRPMPercent,
+         dfs.SchoolType,
+         dfs.AvgScrRead,
+         dfs.AvgScrMath,
+         dfs.AvgScrWrite,
+         dfs.TotalSATScore,
+         cs.TotalSchools AS CountyTotalSchools,
+         cs.AvgEnrollment AS CountyAvgEnrollment,
+         cs.AvgFRPMPercent AS CountyAvgFRPMPercent,
+         CASE
+             WHEN dfs.FRPMPercent > cs.AvgFRPMPercent THEN 'Above County Average'
+             WHEN dfs.FRPMPercent < cs.AvgFRPMPercent THEN 'Below County Average'
+             ELSE 'At County Average'
+         END AS FRPMStatus,
+         RANK() OVER (
+                      ORDER BY dfs.FRPMPercent DESC) AS FRPMRank,
+         RANK() OVER (
+                      ORDER BY dfs.TotalSATScore DESC) AS SATScoreRank
+  FROM DirectlyFundedSchools dfs
+  JOIN CountyStats cs ON dfs.County = cs.County
+  ORDER BY dfs.OpenDate ASC;
 
 sdms:
   - kind: postgres
@@ -10,7 +84,7 @@ sdms:
 
 thread:
   - name: bird-question-66
-    description: 'For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance.'
+    description: "For directly funded schools that opened in Stanislaus County between 2000 and 2005, provide detailed information about each school including their enrollment, free or reduced price meal eligibility rates, SAT scores, and how they compare to the county average. Also rank them by their FRPM percentage and SAT performance."
     messages:
       - role: user
         content: |

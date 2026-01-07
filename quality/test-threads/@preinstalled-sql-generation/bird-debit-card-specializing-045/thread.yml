@@ -1,7 +1,20 @@
 name: bird-debit-card-specializing-045
-description: 'BIRD Q1514 (simple): What kind of currency did the customer paid at 16:25:00 in 2012/8/24?'
+description: "BIRD Q1514 (simple): What kind of currency did the customer paid at 16:25:00 in 2012/8/24?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT DISTINCT T3.Currency
+  FROM transactions_1k AS T1
+  INNER JOIN gasstations AS T2 ON T1.GasStationID = T2.GasStationID
+  INNER JOIN customers AS T3 ON T1.CustomerID = T3.CustomerID
+  WHERE T1.Date = '2012-08-24'
+    AND T1.Time = '16:25:00'
 
 sdms:
   - kind: postgres
@@ -10,7 +23,7 @@ sdms:
 
 thread:
   - name: bird-question-1514
-    description: 'What kind of currency did the customer paid at 16:25:00 in 2012/8/24?'
+    description: "What kind of currency did the customer paid at 16:25:00 in 2012/8/24?"
     messages:
       - role: user
         content: |

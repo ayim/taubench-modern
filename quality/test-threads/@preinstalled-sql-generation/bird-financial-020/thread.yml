@@ -1,7 +1,27 @@
 name: bird-financial-020
-description: 'BIRD Q108 (simple): For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?'
+description: "BIRD Q108 (simple): For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH max_loan_account AS
+    (SELECT l.account_id,
+            a.date AS account_open_date
+     FROM loan l
+     JOIN ACCOUNT a ON l.account_id = a.account_id
+     ORDER BY l.amount DESC
+     LIMIT 1)
+  SELECT t.amount
+  FROM trans t
+  JOIN max_loan_account m ON t.account_id = m.account_id
+  WHERE t.date >= m.account_open_date
+  ORDER BY t.date ASC
+  LIMIT 1
 
 sdms:
   - kind: postgres
@@ -10,7 +30,7 @@ sdms:
 
 thread:
   - name: bird-question-108
-    description: 'For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?'
+    description: "For the client who applied the biggest loan, what was his/her first amount of transaction after opened the account?"
     messages:
       - role: user
         content: |

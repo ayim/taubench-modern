@@ -1,7 +1,25 @@
 name: bird-superhero-103
-description: 'BIRD Q819 (challenging): In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color.'
+description: "BIRD Q819 (challenging): In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT SUM(CASE
+                 WHEN T2.id = 7 THEN 1
+                 ELSE 0
+             END) - SUM(CASE
+                            WHEN T2.id = 1 THEN 1
+                            ELSE 0
+                        END)
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.eye_colour_id = T2.id
+  WHERE T1.weight_kg = 0
+    OR T1.weight_kg IS NULL;
 
 sdms:
   - kind: postgres
@@ -10,7 +28,7 @@ sdms:
 
 thread:
   - name: bird-question-819
-    description: 'In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color.'
+    description: "In superheroes with missing weight data, calculate the difference between the number of superheroes with blue eyes and no eye color."
     messages:
       - role: user
         content: |

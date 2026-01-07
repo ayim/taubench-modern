@@ -1,7 +1,19 @@
 name: bird-california-schools-039
-description: 'BIRD Q38 (simple): What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?'
+description: "BIRD Q38 (simple): What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.Website
+  FROM satscores AS T1
+  INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode
+  WHERE T1.NumTstTakr BETWEEN 2000 AND 3000
+    AND T2.County = 'Los Angeles'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-38
-    description: 'What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?'
+    description: "What are the webpages for the Los Angeles County school that has between 2,000 and 3,000 test takers?"
     messages:
       - role: user
         content: |

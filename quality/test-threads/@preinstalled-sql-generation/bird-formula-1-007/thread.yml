@@ -1,7 +1,36 @@
 name: bird-formula-1-007
-description: 'BIRD Q852 (moderate): How many races in the year 2010 are held on grand prixs outside Asia and Europe?'
+description: "BIRD Q852 (moderate): How many races in the year 2010 are held on grand prixs outside Asia and Europe?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T3.raceId)
+  FROM circuits AS T1
+  INNER JOIN races AS T3 ON T3.circuitID = T1.circuitId
+  WHERE T1.country NOT IN ('Bahrain',
+                           'China',
+                           'Singapore',
+                           'Japan',
+                           'Korea',
+                           'Turkey',
+                           'UAE',
+                           'Malaysia',
+                           'Spain',
+                           'Monaco',
+                           'Azerbaijan',
+                           'Austria',
+                           'Belgium',
+                           'France',
+                           'Germany',
+                           'Hungary',
+                           'Italy',
+                           'UK')
+    AND T3.year = 2010
 
 sdms:
   - kind: postgres
@@ -10,7 +39,7 @@ sdms:
 
 thread:
   - name: bird-question-852
-    description: 'How many races in the year 2010 are held on grand prixs outside Asia and Europe?'
+    description: "How many races in the year 2010 are held on grand prixs outside Asia and Europe?"
     messages:
       - role: user
         content: |

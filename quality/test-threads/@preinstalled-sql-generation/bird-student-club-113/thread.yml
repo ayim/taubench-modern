@@ -1,7 +1,18 @@
 name: bird-student-club-113
-description: 'BIRD Q1424 (simple): Among the members, how many of them have an extra large t-shirt size?'
+description: "BIRD Q1424 (simple): Among the members, how many of them have an extra large t-shirt size?"
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(member_id)
+  FROM member
+  WHERE POSITION = 'Member'
+    AND t_shirt_size = 'X-Large'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-1424
-    description: 'Among the members, how many of them have an extra large t-shirt size?'
+    description: "Among the members, how many of them have an extra large t-shirt size?"
     messages:
       - role: user
         content: |

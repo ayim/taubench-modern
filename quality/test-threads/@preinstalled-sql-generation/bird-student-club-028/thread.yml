@@ -1,7 +1,21 @@
 name: bird-student-club-028
-description: 'BIRD Q1339 (challenging): Calculate the total average cost that Elijah Allen spent in the events on September and October.'
+description: "BIRD Q1339 (challenging): Calculate the total average cost that Elijah Allen spent in the events on September and October."
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT AVG(T2.cost)
+  FROM member AS T1
+  INNER JOIN expense AS T2 ON T1.member_id = T2.link_to_member
+  WHERE T1.last_name = 'Allen'
+    AND T1.first_name = 'Elijah'
+    AND (SUBSTR(T2.expense_date, 6, 2) = '09'
+         OR SUBSTR(T2.expense_date, 6, 2) = '10')
 
 sdms:
   - kind: postgres
@@ -10,7 +24,7 @@ sdms:
 
 thread:
   - name: bird-question-1339
-    description: 'Calculate the total average cost that Elijah Allen spent in the events on September and October.'
+    description: "Calculate the total average cost that Elijah Allen spent in the events on September and October."
     messages:
       - role: user
         content: |

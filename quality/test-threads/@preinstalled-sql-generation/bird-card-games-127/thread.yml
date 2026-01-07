@@ -1,7 +1,19 @@
 name: bird-card-games-127
-description: 'BIRD Q466 (moderate): Among the cards in the set "Hauptset Zehnte Edition", how many of them are designed by Adam Rex?'
+description: "BIRD Q466 (moderate): Among the cards in the set \"Hauptset Zehnte Edition\", how many of them are designed by Adam Rex?"
 difficulty: moderate
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.id)
+  FROM cards AS T1
+  INNER JOIN set_translations AS T2 ON T2.setCode = T1.setCode
+  WHERE T2.translation = 'Hauptset Zehnte Edition'
+    AND T1.artist = 'Adam Rex'
 
 sdms:
   - kind: postgres
@@ -10,7 +22,7 @@ sdms:
 
 thread:
   - name: bird-question-466
-    description: 'Among the cards in the set "Hauptset Zehnte Edition", how many of them are designed by Adam Rex?'
+    description: "Among the cards in the set \"Hauptset Zehnte Edition\", how many of them are designed by Adam Rex?"
     messages:
       - role: user
         content: |

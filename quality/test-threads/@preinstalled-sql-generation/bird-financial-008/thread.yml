@@ -1,7 +1,82 @@
 name: bird-financial-008
-description: 'BIRD Q96 (challenging): What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?'
+description: "BIRD Q96 (challenging): What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?"
 difficulty: challenging
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  WITH CustomerWeeklyStatements AS
+    (SELECT T2.client_id,
+            T1.account_id,
+            T1.district_id,
+            T1.date AS account_open_date,
+            COUNT(DISTINCT T3.card_id) AS num_cards
+     FROM ACCOUNT AS T1
+     INNER JOIN disp AS T2 ON T1.account_id = T2.account_id
+     LEFT JOIN card AS T3 ON T2.disp_id = T3.disp_id
+     WHERE T2.type = 'OWNER'
+       AND T1.frequency = 'POPLATEK TYDNE'
+     GROUP BY T2.client_id,
+              T1.account_id,
+              T1.district_id,
+              T1.date),
+       ClientInfo AS
+    (SELECT c.client_id,
+            c.gender,
+            c.birth_date,
+            CASE
+                WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) < 30 THEN 'Young'
+                WHEN strftime('%Y', 'now') - strftime('%Y', c.birth_date) - (strftime('%m-%d', 'now') < strftime('%m-%d', c.birth_date)) BETWEEN 30 AND 50 THEN 'Middle-aged'
+                ELSE 'Senior'
+            END AS age_group,
+            d.A2 AS district_name,
+            d.A3 AS region
+     FROM client c
+     JOIN district d ON c.district_id = d.district_id),
+       LoanAndTransactionData AS
+    (SELECT cws.client_id,
+            COUNT(DISTINCT l.loan_id) AS num_loans,
+            COALESCE(SUM(l.amount), 0) AS total_loan_amount,
+            COALESCE(MAX(l.amount), 0) AS max_loan_amount,
+            COUNT(DISTINCT t.trans_id) AS num_transactions,
+            COALESCE(SUM(CASE
+                             WHEN t.type = 'PRIJEM' THEN t.amount
+                             ELSE 0
+                         END), 0) AS total_income,
+            COALESCE(SUM(CASE
+                             WHEN t.type = 'VYDAJ' THEN t.amount
+                             ELSE 0
+                         END), 0) AS total_expense
+     FROM CustomerWeeklyStatements cws
+     LEFT JOIN loan l ON cws.account_id = l.account_id
+     LEFT JOIN trans t ON cws.account_id = t.account_id
+     GROUP BY cws.client_id)
+  SELECT COUNT(DISTINCT cws.client_id) AS total_weekly_owners,
+         ci.gender,
+         ci.age_group,
+         ci.region,
+         ROUND(AVG(cws.num_cards), 2) AS avg_cards_per_customer,
+         ROUND(AVG(ltd.num_loans), 2) AS avg_loans_per_customer,
+         ROUND(AVG(ltd.total_loan_amount), 2) AS avg_loan_amount,
+         ROUND(AVG(ltd.num_transactions), 2) AS avg_transactions,
+         ROUND(AVG(ltd.total_income - ltd.total_expense), 2) AS avg_net_balance,
+         COUNT(DISTINCT CASE
+                            WHEN ltd.num_loans > 0 THEN cws.client_id
+                        END) AS customers_with_loans,
+         ROUND(COUNT(DISTINCT CASE
+                                  WHEN ltd.num_loans > 0 THEN cws.client_id
+                              END) * 100.0 / COUNT(DISTINCT cws.client_id), 2) AS percent_with_loans
+  FROM CustomerWeeklyStatements cws
+  JOIN ClientInfo ci ON cws.client_id = ci.client_id
+  JOIN LoanAndTransactionData ltd ON cws.client_id = ltd.client_id
+  GROUP BY ci.gender,
+           ci.age_group,
+           ci.region
+  ORDER BY total_weekly_owners DESC;
 
 sdms:
   - kind: postgres
@@ -10,7 +85,7 @@ sdms:
 
 thread:
   - name: bird-question-96
-    description: 'What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?'
+    description: "What is the demographic breakdown and financial profile of account owners who receive weekly statements, segmented by gender, age group, and region?"
     messages:
       - role: user
         content: |

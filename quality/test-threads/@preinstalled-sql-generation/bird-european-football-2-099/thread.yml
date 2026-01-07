@@ -1,7 +1,17 @@
 name: bird-european-football-2-099
-description: 'BIRD Q1118 (simple): List down the name of players who are 35 years old and above.'
+description: "BIRD Q1118 (simple): List down the name of players who are 35 years old and above."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT player_name
+  FROM Player
+  WHERE CAST((JULIANDAY('now') - JULIANDAY(birthday)) AS REAL) / 365 >= 35
 
 sdms:
   - kind: postgres
@@ -10,7 +20,7 @@ sdms:
 
 thread:
   - name: bird-question-1118
-    description: 'List down the name of players who are 35 years old and above.'
+    description: "List down the name of players who are 35 years old and above."
     messages:
       - role: user
         content: |

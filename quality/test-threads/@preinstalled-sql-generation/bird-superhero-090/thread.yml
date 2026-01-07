@@ -1,7 +1,18 @@
 name: bird-superhero-090
-description: 'BIRD Q806 (simple): Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.'
+description: "BIRD Q806 (simple): Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name."
 difficulty: simple
 timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.colour
+  FROM superhero AS T1
+  INNER JOIN colour AS T2 ON T1.eye_colour_id = T2.id
+  WHERE T1.full_name = 'Karen Beecher-Duncan'
 
 sdms:
   - kind: postgres
@@ -10,7 +21,7 @@ sdms:
 
 thread:
   - name: bird-question-806
-    description: 'Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name.'
+    description: "Provide the eye colour of the superhero who has Karen Beecher-Duncan as their full name."
     messages:
       - role: user
         content: |
