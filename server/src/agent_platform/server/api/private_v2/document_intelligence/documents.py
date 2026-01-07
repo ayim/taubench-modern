@@ -174,9 +174,11 @@ class SchemaCacheKeyStrategy(CacheKeyStrategy):
             file_ref: The file reference of the source document
 
         Returns:
-            Cache file name in the format: {file_ref}.schema.json
+            Cache file name in the format: {file_ref}.extract_schema.json
         """
-        return f"{file_ref}.schema.json"
+        # NOTE: do not use `{file_ref}.schema.json` here — that name is reserved for the
+        # document-intelligence v2 schema cache (and historically caused collisions).
+        return f"{file_ref}.extract_schema.json"
 
 
 class SchemaWithPrompt(BaseModel):
@@ -253,18 +255,21 @@ async def get_extraction_schema_for_document(
 
     di_service = cast(DIService, di_service_with_persistence)
 
-    # Get cached schema using DIService
+    # Get cached schema using DIService (with metadata for API endpoints)
     doc = await di_service.document_v2.new_document(file.file_ref)
-    schema = await di_service.document_v2.get_schema(doc)
+    schema_with_metadata = await di_service.document_v2.get_schema_with_metadata(doc)
 
-    if schema is None:
+    if schema_with_metadata is None:
         raise PlatformHTTPError(
             error_code=ErrorCode.NOT_FOUND,
             message=f"No cached schema found for file {file_name}",
         )
 
     # Return the schema to the caller
-    return GenerateSchemaResponsePayload(schema=schema)
+    return GenerateSchemaResponsePayload(
+        schema=schema_with_metadata.extract_schema,
+        user_prompt=schema_with_metadata.user_prompt,
+    )
 
 
 @router.post("/documents/generate-schema")
@@ -310,8 +315,12 @@ async def generate_extraction_schema_from_document(
         user_prompt=instructions,
     )
 
+    # For API endpoints, also get the metadata (user_prompt) from the cache
+    schema_with_metadata = await di_service.document_v2.get_schema_with_metadata(doc)
+    user_prompt = schema_with_metadata.user_prompt if schema_with_metadata else None
+
     # Return the schema to the caller
-    return GenerateSchemaResponsePayload(schema=schema)
+    return GenerateSchemaResponsePayload(schema=schema, user_prompt=user_prompt)
 
 
 @router.post("/documents/parse")

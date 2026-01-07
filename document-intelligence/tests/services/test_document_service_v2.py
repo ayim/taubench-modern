@@ -299,3 +299,135 @@ class TestDocumentServiceV2:
         assert cached_result.job_id == original_result.job_id
         assert cached_result.duration == original_result.duration
         assert len(cached_result.result.chunks) == len(original_result.result.chunks)
+
+    @pytest.mark.asyncio
+    async def test_get_schema_returns_without_metadata(
+        self, document_service_v2, sample_document: DocumentV2, context_v2
+    ):
+        """Test that get_schema returns schema WITHOUT user_prompt metadata."""
+        from unittest.mock import Mock
+
+        user_prompt = "Extract all invoice details."
+        expected_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+            },
+        }
+
+        # Mock the agent_client.generate_schema
+        context_v2.agent_client.generate_schema = Mock(return_value=expected_schema)
+
+        # First generate a schema with user_prompt to populate cache
+        await document_service_v2.generate_schema(
+            sample_document,
+            user_prompt=user_prompt,
+        )
+
+        # Now get the cached schema using get_schema
+        cached_schema = await document_service_v2.get_schema(sample_document)
+
+        # Verify schema is returned WITHOUT user_prompt
+        assert cached_schema is not None
+        assert cached_schema == expected_schema
+        assert "user_prompt" not in cached_schema
+
+    @pytest.mark.asyncio
+    async def test_get_schema_with_metadata_returns_with_metadata(
+        self, document_service_v2, sample_document: DocumentV2, context_v2
+    ):
+        """Test that get_schema_with_metadata returns schema WITH user_prompt metadata."""
+        from unittest.mock import Mock
+
+        user_prompt = "Extract all invoice details."
+        expected_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+            },
+        }
+
+        # Mock the agent_client.generate_schema
+        context_v2.agent_client.generate_schema = Mock(return_value=expected_schema)
+
+        # First generate a schema with user_prompt to populate cache
+        await document_service_v2.generate_schema(
+            sample_document,
+            user_prompt=user_prompt,
+        )
+
+        # Now get the cached schema WITH metadata
+        cached_schema_with_metadata = await document_service_v2.get_schema_with_metadata(
+            sample_document
+        )
+
+        # Verify schema is returned WITH user_prompt
+        assert cached_schema_with_metadata is not None
+        assert cached_schema_with_metadata.user_prompt == user_prompt
+        assert cached_schema_with_metadata.extract_schema["type"] == "object"
+        assert (
+            cached_schema_with_metadata.extract_schema["properties"]
+            == expected_schema["properties"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_schema_returns_none_when_no_cache(
+        self, document_service_v2, sample_document: DocumentV2
+    ):
+        """Test that get_schema returns None when no cached schema exists."""
+        # Don't generate any schema, cache should be empty
+        cached_schema = await document_service_v2.get_schema(sample_document)
+
+        assert cached_schema is None
+
+    @pytest.mark.asyncio
+    async def test_get_schema_with_metadata_returns_none_when_no_cache(
+        self, document_service_v2, sample_document: DocumentV2
+    ):
+        """Test that get_schema_with_metadata returns None when no cached schema exists."""
+        # Don't generate any schema, cache should be empty
+        cached_schema = await document_service_v2.get_schema_with_metadata(sample_document)
+
+        assert cached_schema is None
+
+    @pytest.mark.asyncio
+    async def test_generate_schema_force_reload_updates_user_prompt(
+        self, document_service_v2, sample_document: DocumentV2, context_v2
+    ):
+        """Test that force_reload=True updates the cached user_prompt."""
+        from unittest.mock import Mock
+
+        schema_v1 = {
+            "type": "object",
+            "properties": {"invoice_number": {"type": "string"}},
+        }
+        schema_v2 = {
+            "type": "object",
+            "properties": {"invoice_number": {"type": "string"}, "total": {"type": "number"}},
+        }
+
+        # Mock to return different schemas on subsequent calls
+        context_v2.agent_client.generate_schema = Mock(side_effect=[schema_v1, schema_v2])
+
+        # Generate schema with first user_prompt
+        user_prompt_v1 = "Extract invoice number only."
+        await document_service_v2.generate_schema(
+            sample_document,
+            user_prompt=user_prompt_v1,
+        )
+
+        # Verify first user_prompt is cached
+        cached = await document_service_v2.get_schema_with_metadata(sample_document)
+        assert cached.user_prompt == user_prompt_v1
+
+        # Force reload with different user_prompt
+        user_prompt_v2 = "Extract invoice number and total."
+        await document_service_v2.generate_schema(
+            sample_document,
+            force_reload=True,
+            user_prompt=user_prompt_v2,
+        )
+
+        # Verify the cached user_prompt was updated
+        cached = await document_service_v2.get_schema_with_metadata(sample_document)
+        assert cached.user_prompt == user_prompt_v2

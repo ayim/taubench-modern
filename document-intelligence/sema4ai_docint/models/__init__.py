@@ -5,6 +5,7 @@ from .extraction import ExtractionResult
 from .initialize import initialize_database, initialize_dataserver, initialize_project
 from .mapping import Mapping, MappingRow
 from .migration import migrate_tables
+from .schema_metadata import SchemaWithMetadata
 
 __all__ = [
     "DataModel",
@@ -13,6 +14,7 @@ __all__ = [
     "ExtractionResult",
     "Mapping",
     "MappingRow",
+    "SchemaWithMetadata",
     "initialize_database",
     "initialize_dataserver",
     "initialize_project",

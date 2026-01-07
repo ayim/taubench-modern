@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 from pathlib import PurePath
+from typing import TYPE_CHECKING
 
 from reducto.types import ParseResponse
 
@@ -10,6 +11,9 @@ from sema4ai_docint.models.document_v2 import DocumentV2
 from sema4ai_docint.services._context import _DIContext
 from sema4ai_docint.services.exceptions import DocumentServiceError
 from sema4ai_docint.utils import compute_document_id
+
+if TYPE_CHECKING:
+    from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
 
 
 class _DocumentServiceV2:
@@ -98,6 +102,24 @@ class _DocumentServiceV2:
         return response
 
     async def get_schema(self, document: DocumentV2) -> dict | None:
+        """Get the cached schema for a document without internal metadata.
+
+        Returns the schema without internal metadata fields like 'user_prompt'.
+        For the full cached schema including metadata, use get_schema_with_metadata().
+        """
+        schema_with_metadata = await self.get_schema_with_metadata(document)
+        if schema_with_metadata:
+            return schema_with_metadata.extract_schema
+
+        return None
+
+    async def get_schema_with_metadata(self, document: DocumentV2) -> "SchemaWithMetadata | None":
+        """Get the cached schema for a document including internal metadata.
+
+        Returns the full cached schema including metadata fields like 'user_prompt'.
+        This is primarily for internal API usage.
+        """
+        from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
         from sema4ai_docint.services.persistence import DocumentOperationType
 
         assert self._context.persistence_service is not None, "Persistence service is required."
@@ -108,7 +130,7 @@ class _DocumentServiceV2:
 
         cached = await self._context.persistence_service.load(cache_key)
         if cached:
-            return json.loads(cached)
+            return SchemaWithMetadata.model_validate_json(cached)
 
         return None
 
@@ -151,18 +173,17 @@ class _DocumentServiceV2:
         )
         assert self._context.persistence_service is not None, "Persistence service is required."
 
+        # Check cache first (unless force_reload)
+        if not force_reload:
+            cached_schema = await self.get_schema(document)
+            if cached_schema is not None:
+                return cached_schema
+
         # Generate cache key for schema operation
         cache_key = self._context.persistence_service.cache_key_for(
             document.file_name, DocumentOperationType.SCHEMA
         )
 
-        # Check cache first (unless force_reload)
-        if not force_reload:
-            cached = await self._context.persistence_service.load(cache_key)
-            if cached is not None:
-                return json.loads(cached)
-
-        # Generate new schema using agent client in a thread to avoid blocking the event loop
         schema = await asyncio.to_thread(
             self._context.agent_client.generate_schema,
             document.file_name,
@@ -172,9 +193,19 @@ class _DocumentServiceV2:
             user_prompt=user_prompt,
         )
 
-        # Save to cache
-        await self._context.persistence_service.save(cache_key, json.dumps(schema).encode())
+        # Store with metadata for internal tracking
+        from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
 
+        schema_with_metadata = SchemaWithMetadata.from_schema(
+            schema=schema, user_prompt=user_prompt
+        )
+
+        # Save to cache (with metadata)
+        await self._context.persistence_service.save(
+            cache_key, schema_with_metadata.model_dump_json().encode()
+        )
+
+        # Return clean schema without metadata (for library compatibility)
         return schema
 
     async def extract_document(

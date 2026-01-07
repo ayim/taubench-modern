@@ -22,6 +22,7 @@ class GenerateLayoutResponsePayload:
 @dataclass(frozen=True)
 class GenerateSchemaResponsePayload:
     schema: dict[str, Any]
+    user_prompt: str | None = None
 
 
 @dataclass(frozen=True)

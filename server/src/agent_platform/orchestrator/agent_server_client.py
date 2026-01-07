@@ -1079,7 +1079,13 @@ class AgentServerClient:
             ) from e
         return response
 
-    def generate_extraction_schema(self, file_ref: str, thread_id: str, agent_id: str) -> GenerateSchemaResponsePayload:
+    def generate_extraction_schema(
+        self,
+        file_ref: str,
+        thread_id: str,
+        agent_id: str,
+        instructions: str = "",
+    ) -> GenerateSchemaResponsePayload:
         url = urljoin(
             self.base_url + "/",
             f"document-intelligence/documents/generate-schema?thread_id={thread_id}&agent_id={agent_id}&file_ref={file_ref}",
@@ -1089,7 +1095,7 @@ class AgentServerClient:
             "Accept": "application/json",
         }
 
-        response = requests.post(url, headers=headers, json={"instructions": ""})
+        response = requests.post(url, headers=headers, json={"instructions": instructions})
 
         try:
             response.raise_for_status()

@@ -26,6 +26,7 @@ from sema4ai_docint.extraction.reducto.exceptions import (
     UploadMissingPresignedUrlError,
 )
 from sema4ai_docint.models.constants import DATA_SOURCE_NAME
+from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
 
 from agent_platform.core.data_connections import DataConnection, DataSources
 from agent_platform.core.data_server.data_server import (
@@ -3385,6 +3386,9 @@ class TestGenerateExtractionSchemaFromDocument:
         fake_doc_v2 = Mock()
         fake_doc_v2.new_document = AsyncMock(return_value=Mock(file_name="test.pdf"))
         fake_doc_v2.generate_schema = AsyncMock(return_value=expected_schema)
+        fake_doc_v2.get_schema_with_metadata = AsyncMock(
+            return_value=SchemaWithMetadata(extract_schema=expected_schema, user_prompt="")
+        )
         fake_di_service.document_v2 = fake_doc_v2
 
         app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
@@ -3607,6 +3611,147 @@ class TestGenerateExtractionSchemaFromDocument:
 
             # Both calls should return the same schema
             assert body1 == body2, "Both calls should return identical schema"
+
+    async def test_generate_schema_returns_user_prompt(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+        tmp_path: Path,
+    ):
+        """Test that generate_schema endpoint returns user_prompt in response."""
+        storage_instance = StorageService.get_instance()
+        sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
+        await sample_model_creator.setup()
+        sample_thread = await sample_model_creator.obtain_sample_thread()
+
+        fake_stored_file = UploadedFile(
+            file_id="file-123",
+            file_path="/path/to/file.pdf",
+            file_ref="test_invoice.pdf",
+            file_hash="hash123",
+            file_size_raw=1024,
+            mime_type="application/pdf",
+            created_at=datetime.now(),
+        )
+
+        fake_file_manager = Mock()
+        fake_file_manager.refresh_file_paths = AsyncMock(return_value=[fake_stored_file])
+        fake_file_manager.read_file_contents = AsyncMock(return_value=b"{}")
+        fake_file_manager.delete = AsyncMock()
+
+        mock_client = Mock()
+        expected_schema = {"type": "object", "properties": {"invoice_number": {"type": "string"}}}
+        instructions = "Extract all invoice details."
+
+        # Create mock DIService with mocked methods
+        fake_di_service = Mock()
+        fake_doc_v2 = Mock()
+        fake_doc_v2.new_document = AsyncMock(return_value=Mock(file_name="test_invoice.pdf"))
+        fake_doc_v2.generate_schema = AsyncMock(return_value=expected_schema)
+        # Mock get_schema_with_metadata to return schema with user_prompt
+        fake_doc_v2.get_schema_with_metadata = AsyncMock(
+            return_value=SchemaWithMetadata(extract_schema=expected_schema, user_prompt=instructions)
+        )
+        fake_di_service.document_v2 = fake_doc_v2
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=sample_thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=fake_stored_file)),
+            patch.object(storage_instance, "_validate_agent_exists", new=AsyncMock()),
+        ):
+            # Override dependencies
+            fastapi_app.dependency_overrides[get_file_manager] = lambda: fake_file_manager
+            fastapi_app.dependency_overrides[get_agent_server_client] = (
+                lambda agent_id, request=None, thread_id=None: mock_client
+            )
+            fastapi_app.dependency_overrides[di_service_with_persistence] = (
+                lambda user=None, agent_id=None, thread_id=None, storage=None, transport=None: fake_di_service
+            )
+
+            # Call generate-schema with instructions
+            response = client.post(
+                "/api/v2/document-intelligence/documents/generate-schema",
+                params={
+                    "thread_id": sample_thread.thread_id,
+                    "agent_id": sample_thread.agent_id,
+                    "file_ref": "test_invoice.pdf",
+                },
+                json={"instructions": instructions},
+            )
+
+        assert response.status_code == 200, f"Request failed: {response.text}"
+        body = response.json()
+        resp = GenerateSchemaResponsePayload(**body)
+
+        # Verify response contains both schema and user_prompt
+        assert resp.schema == expected_schema
+        assert resp.user_prompt == instructions
+
+    async def test_get_schema_returns_user_prompt(
+        self,
+        client: TestClient,
+        fastapi_app: FastAPI,
+        tmp_path: Path,
+    ):
+        """Test that get_schema endpoint returns user_prompt from cached metadata."""
+        storage_instance = StorageService.get_instance()
+        sample_model_creator = SampleModelCreator(storage_instance, tmp_path)
+        await sample_model_creator.setup()
+        sample_thread = await sample_model_creator.obtain_sample_thread()
+
+        file_name = "test_invoice.pdf"
+        fake_stored_file = UploadedFile(
+            file_id="file-123",
+            file_path="/path/to/file.pdf",
+            file_ref=file_name,
+            file_hash="hash123",
+            file_size_raw=1024,
+            mime_type="application/pdf",
+            created_at=datetime.now(),
+        )
+
+        expected_schema = {"type": "object", "properties": {"invoice_number": {"type": "string"}}}
+        cached_user_prompt = "Extract all invoice details."
+
+        # Create mock DIService
+        fake_di_service = Mock()
+        fake_doc_v2 = Mock()
+        fake_doc_v2.new_document = AsyncMock(return_value=Mock(file_name=file_name))
+        # Mock get_schema_with_metadata to return cached schema with user_prompt
+        fake_doc_v2.get_schema_with_metadata = AsyncMock(
+            return_value=SchemaWithMetadata(extract_schema=expected_schema, user_prompt=cached_user_prompt)
+        )
+        # Mock get_schema to return schema without user_prompt
+        fake_doc_v2.get_schema = AsyncMock(return_value=expected_schema)
+        fake_di_service.document_v2 = fake_doc_v2
+
+        with (
+            patch.object(storage_instance, "get_thread", new=AsyncMock(return_value=sample_thread)),
+            patch.object(storage_instance, "get_file_by_ref", new=AsyncMock(return_value=fake_stored_file)),
+        ):
+            # Override dependencies
+            fastapi_app.dependency_overrides[di_service_with_persistence] = (
+                lambda user=None, agent_id=None, thread_id=None, storage=None, transport=None: fake_di_service
+            )
+
+            # Call GET /documents/schema to retrieve cached schema
+            response = client.get(
+                "/api/v2/document-intelligence/documents/schema",
+                params={
+                    "thread_id": sample_thread.thread_id,
+                    "agent_id": sample_thread.agent_id,
+                    "file_name": file_name,
+                },
+            )
+
+        assert response.status_code == 200, f"Request failed: {response.text}"
+        body = response.json()
+        resp = GenerateSchemaResponsePayload(**body)
+
+        # Verify response contains both schema (without user_prompt) and user_prompt separately
+        assert resp.schema == expected_schema
+        assert "user_prompt" not in resp.schema
+        assert resp.user_prompt == cached_user_prompt
 
 
 @pytest.fixture

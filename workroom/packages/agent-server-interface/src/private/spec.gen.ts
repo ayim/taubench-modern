@@ -15047,6 +15047,17 @@ export const spec = {
             type: 'object',
             title: 'Schema',
           },
+          user_prompt: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'User Prompt',
+          },
         },
         type: 'object',
         required: ['schema'],

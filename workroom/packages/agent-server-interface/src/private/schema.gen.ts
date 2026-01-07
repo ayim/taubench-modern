@@ -6100,6 +6100,8 @@ export interface components {
       schema: {
         [key: string]: unknown;
       };
+      /** User Prompt */
+      user_prompt?: string | null;
     };
     /**
      * GenerateSemanticDataModelPayload

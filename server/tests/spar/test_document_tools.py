@@ -104,6 +104,44 @@ def test_generate_schema_via_api(
     assert retrieved_schema.schema == schema_result.schema
 
 
+def test_get_schema_returns_user_prompt_via_api(
+    agent_server_client: AgentServerClient,
+    agent_factory: Callable[[], str],
+    spar_resources_path: Path,
+):
+    """Test that get_schema API returns cached user_prompt."""
+    agent_id = agent_factory()
+    thread_id = agent_server_client.create_thread_and_return_thread_id(agent_id)
+
+    resource_path = spar_resources_path / "sample_invoice_1.pdf"
+    file_result = upload_file_to_thread(agent_server_client, thread_id, resource_path)
+
+    instructions = "Extract all financial data including taxes and discounts."
+
+    generate_result = agent_server_client.generate_extraction_schema(
+        file_ref=file_result.file_ref,
+        thread_id=thread_id,
+        agent_id=agent_id,
+        instructions=instructions,
+    )
+    assert generate_result.user_prompt == instructions
+
+    retrieved_schema = agent_server_client.get_extraction_schema(
+        file_ref=file_result.file_ref,
+        thread_id=thread_id,
+        agent_id=agent_id,
+    )
+
+    assert retrieved_schema.schema == generate_result.schema
+
+    # Verify user_prompt is returned from cache
+    assert retrieved_schema.user_prompt is not None
+    assert retrieved_schema.user_prompt == instructions
+
+    # Verify the schema itself does NOT contain user_prompt
+    assert "user_prompt" not in retrieved_schema.schema
+
+
 def test_simple_extract_document_via_api(
     agent_server_client: AgentServerClient,
     agent_factory: Callable[[], str],
