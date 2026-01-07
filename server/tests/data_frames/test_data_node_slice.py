@@ -165,3 +165,54 @@ async def test_data_frame_slice_with_limit_minus_one_and_order_by(
     assert loaded[0]["name"] == "Carol"  # age=30
     assert loaded[1]["name"] == "Bob"  # age=25
     assert loaded[2]["name"] == "Alice"  # age=20
+
+
+@pytest.mark.asyncio
+async def test_data_frame_slice_with_nan_values(
+    storage_stub: "StorageStub",
+    data_frames_kernel: "DataFramesKernel",
+):
+    """Test that NaN and Infinity values are correctly converted to null in JSON output."""
+    tid = storage_stub.thread.tid
+
+    # Create an in-memory data frame with NaN and Infinity values
+    await storage_stub.create_in_memory_data_frame(
+        name="monthly_quality_check_v2",
+        contents={
+            "month": ["2024-01-01", "2024-02-01", "2024-03-01"],
+            "oil_produced_bbl": [float("nan"), float("nan"), 150.0],
+            "oil_runs_bbl": [36134906.0, 179870096.0, 17351248.0],
+            "percentage": [float("nan"), float("inf"), 0.000008],
+            "status": ["missing", "error", "ok"],
+        },
+    )
+
+    # Get the data frame and resolve it
+    data_frames = await storage_stub.list_data_frames(tid)
+    assert len(data_frames) == 1
+    resolved = await data_frames_kernel.resolve_data_frame(data_frames[0])
+
+    result = await resolved.slice(offset=0, limit=-1, output_format="json")
+    loaded = json.loads(typing.cast(bytes, result))
+
+    # Verify structure
+    assert len(loaded) == 3, "Should return all 3 rows"
+
+    # Verify that NaN values are converted to None (JSON null)
+    assert loaded[0]["month"] == "2024-01-01"
+    assert loaded[0]["oil_produced_bbl"] is None, "NaN should be converted to null"
+    assert loaded[0]["oil_runs_bbl"] == 36134906.0, "Normal values should be preserved"
+    assert loaded[0]["percentage"] is None, "NaN should be converted to null"
+    assert loaded[0]["status"] == "missing"
+
+    # Verify that Infinity values are converted to None (JSON null)
+    assert loaded[1]["month"] == "2024-02-01"
+    assert loaded[1]["oil_produced_bbl"] is None, "NaN should be converted to null"
+    assert loaded[1]["percentage"] is None, "Infinity should be converted to null"
+    assert loaded[1]["status"] == "error"
+
+    # Verify that normal values are preserved correctly
+    assert loaded[2]["month"] == "2024-03-01"
+    assert loaded[2]["oil_produced_bbl"] == 150.0, "Normal float values should be preserved"
+    assert loaded[2]["percentage"] == 0.000008, "Small float values should be preserved"
+    assert loaded[2]["status"] == "ok"

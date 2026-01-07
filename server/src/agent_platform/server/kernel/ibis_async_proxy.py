@@ -12,7 +12,6 @@ if typing.TYPE_CHECKING:
     from ibis.expr.schema import Schema as IbisSchema
     from ibis.expr.types import Column as IbisColumn
     from ibis.expr.types import Table as IbisTable
-    from ibis.expr.types import Value as IbisValue
 
 
 class AsyncIbisConnection:
@@ -177,14 +176,27 @@ class AsyncIbisTable:
 
         return await execute_count_with_backend_handler(count_expr, engine=self._engine)
 
-    async def to_pyarrow(self) -> pyarrow.Table:
-        """Convert table to PyArrow table.
+    async def to_pyarrow_unsafe(self) -> pyarrow.Table:
+        """Convert table to PyArrow table WITHOUT dialect-specific transformations.
+
+        ⚠️  WARNING: This method bypasses dialect-specific safety transformations!
+        ⚠️  DO NOT USE DIRECTLY for user-facing data conversions.
+        ⚠️  Use IbisTableAdapter.to_pyarrow() instead.
+
+        This method performs a direct conversion to PyArrow without applying
+        dialect-specific transformations that handle edge cases like:
+        - Postgres NUMERIC (DECIMAL) columns containing NaN values
+        - Other database-specific type conversion issues
 
         This is a blocking I/O operation. Uses the backend handler system
         to route to the appropriate handler (Snowflake, MySQL, etc.).
 
+
         Returns:
-            PyArrow table
+            PyArrow table (may have issues with certain data types)
+
+        See Also:
+            IbisTableAdapter.to_pyarrow() - Safe conversion with dialect handling
         """
         from agent_platform.server.semantic_data_models.handlers import (
             execute_query_with_backend_handler,
@@ -502,6 +514,20 @@ class AsyncIbisColumn:
         result = self._column.cast(*args, **kwargs)
         return AsyncIbisColumn(result, engine=self._engine)
 
+    def name(self, new_name: str) -> AsyncIbisColumn:
+        """Rename/alias the column.
+
+        This is a lazy operation (no I/O).
+
+        Args:
+            new_name: New name for the column
+
+        Returns:
+            AsyncIbisColumn wrapping the renamed column
+        """
+        result = self._column.name(new_name)
+        return AsyncIbisColumn(cast("IbisColumn", result), engine=self._engine)
+
     def desc(self) -> IbisColumn:
         """Create descending sort expression.
 
@@ -521,39 +547,3 @@ class AsyncIbisColumn:
             Raw ibis sort expression (used in order_by)
         """
         return self._column.asc()
-
-    def isin(self, values: list) -> IbisValue:
-        """Check if column value is in a list of values.
-
-        This is a lazy operation (no I/O).
-
-        Args:
-            values: List of values to check against
-
-        Returns:
-            Raw ibis boolean expression (Value type)
-        """
-        return self._column.isin(values)
-
-    def notnull(self) -> IbisValue:
-        """Check if column value is not null.
-
-        This is a lazy operation (no I/O).
-
-        Returns:
-            Raw ibis boolean expression (Value type)
-        """
-        return self._column.notnull()
-
-    def name(self, new_name: str) -> IbisValue:
-        """Rename the column (create an alias).
-
-        This is a lazy operation (no I/O).
-
-        Args:
-            new_name: New name for the column
-
-        Returns:
-            Raw ibis value expression with new name
-        """
-        return self._column.name(new_name)

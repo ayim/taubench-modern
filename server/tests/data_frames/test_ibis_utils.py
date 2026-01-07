@@ -64,7 +64,7 @@ async def test_create_ibis_connection_sqlite(tmp_path: Path):
     users_table = await con.sql("SELECT * FROM users")
 
     # Execute query using async API
-    users_arrow = await users_table.to_pyarrow()
+    users_arrow = await users_table.to_pyarrow_unsafe()
     users_result = users_arrow.to_pandas()
 
     assert len(users_result) == 3

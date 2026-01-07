@@ -138,7 +138,7 @@ class TestAsyncIbisTable:
 
     @pytest.mark.asyncio
     async def test_to_pyarrow_uses_backend_handler(self, mock_ibis_table):
-        """Test that to_pyarrow() uses execute_query_with_backend_handler."""
+        """Test that to_pyarrow_unsafe() uses execute_query_with_backend_handler."""
         async_table = AsyncIbisTable(mock_ibis_table, engine="postgres")
         mock_arrow_table = MagicMock()
 
@@ -147,7 +147,7 @@ class TestAsyncIbisTable:
             new_callable=AsyncMock,
         ) as mock_handler:
             mock_handler.return_value = mock_arrow_table
-            result = await async_table.to_pyarrow()
+            result = await async_table.to_pyarrow_unsafe()
 
             assert result == mock_arrow_table
             mock_handler.assert_called_once_with(mock_ibis_table, engine="postgres")

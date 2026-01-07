@@ -318,7 +318,7 @@ class DataConnectionInspector:
 
         This method does NOT need asyncio.to_thread because it only constructs
         an ibis expression (lazy evaluation, no I/O). The actual I/O happens
-        when the expression is executed via .to_pyarrow() which IS wrapped.
+        when the expression is executed via IbisTableAdapter.to_pyarrow().
         """
         return table.select(columns_to_inspect).limit(n_sample_rows)
 
@@ -337,10 +337,14 @@ class DataConnectionInspector:
         Raises:
             Exception: If query execution fails
         """
+        from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
+
         # Build query using async proxy (returns AsyncIbisExpression)
         sample_query = self._select_with_limit(table, columns_to_inspect, self.request.n_sample_rows)
-        # Use async proxy's to_pyarrow which handles backend routing
-        return await sample_query.to_pyarrow()
+
+        # Use adapter for dialect-specific safe conversion (e.g., Postgres DECIMAL NaN handling)
+        adapter = IbisTableAdapter(sample_query)
+        return await adapter.to_pyarrow()
 
     async def _fetch_sample_data_per_column(
         self, table: "AsyncIbisTable", columns_to_inspect: list[str], table_name: str
@@ -355,6 +359,7 @@ class DataConnectionInspector:
         Returns:
             Dictionary mapping column names to their sample data (or None if failed)
         """
+        from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
         from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
 
         sample_table_dict: dict[str, pyarrow.Table | None] = {}
@@ -362,8 +367,10 @@ class DataConnectionInspector:
             try:
                 # Build query using async proxy (returns AsyncIbisExpression)
                 sample_query = table.select(column_name).limit(self.request.n_sample_rows)
-                # Use async proxy's to_pyarrow which handles backend routing
-                result = await sample_query.to_pyarrow()
+
+                # Use adapter for dialect-specific safe conversion (e.g., Postgres DECIMAL NaN handling)
+                adapter = IbisTableAdapter(sample_query)
+                result = await adapter.to_pyarrow()
                 sample_table_dict[column_name] = result
             except IbisDbCallNotInWorkerThreadError as e:
                 raise e

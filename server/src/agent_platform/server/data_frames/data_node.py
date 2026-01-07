@@ -226,8 +226,11 @@ async def _convert_ibis_slice_to_format(
         else:
             result = result[offset : offset + limit]
 
-    # Convert to pyarrow table via async proxy
-    table = await result.to_pyarrow()
+    # Convert to pyarrow table using adapter (handles DECIMAL→float64 transformation)
+    from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
+
+    adapter = IbisTableAdapter(result)
+    table = await adapter.to_pyarrow()
     return _convert_arrow_to_format(table, output_format)
 
 
@@ -312,6 +315,13 @@ _VALID_PY_TYPES = int | float | bool | str | None
 def convert_to_valid_json_types(
     as_py: Any,
 ) -> str | int | float | bool | list | dict | None:
+    import math
+
+    # Handle NaN and Infinity values before checking type
+    # These are not valid JSON values and must be converted to None (JSON null)
+    if isinstance(as_py, float) and (math.isnan(as_py) or math.isinf(as_py)):
+        return None
+
     if isinstance(as_py, _VALID_PY_TYPES):
         return as_py
     if isinstance(as_py, datetime.datetime):
@@ -548,8 +558,11 @@ class DataNodeFromIbisResult(DataNodeResult):
         return self._full_sql_query_logical_str
 
     async def _to_arrow_safe(self, ibis_table: "AsyncIbisTable") -> "pyarrow.Table":
-        """Convert ibis table to Arrow using backend-specific handler."""
-        return await ibis_table.to_pyarrow()
+        """Convert ibis table to Arrow with necessary transformations."""
+        from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
+
+        adapter = IbisTableAdapter(ibis_table)
+        return await adapter.to_pyarrow()
 
     async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if num_samples == 0:

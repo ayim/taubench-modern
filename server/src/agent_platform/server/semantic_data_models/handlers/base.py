@@ -174,7 +174,7 @@ async def execute_query_with_backend_handler(
 
     This is the main entry point for executing queries with
     backend-specific logic. Called internally by AsyncIbisExpression and
-    AsyncIbisTable.to_pyarrow() methods.
+    AsyncIbisTable.to_pyarrow_unsafe() methods.
 
     Args:
         ibis_expr: A raw ibis expression to execute
