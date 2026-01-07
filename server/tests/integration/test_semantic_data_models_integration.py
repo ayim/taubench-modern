@@ -9,7 +9,13 @@ logger = get_logger(__name__)
 @pytest.mark.integration
 def test_semantic_data_models_integration(base_url_agent_server_session, datadir, resources_dir):
     """Test semantic data model API endpoints integration."""
+    from uuid import uuid4
+
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    # Use unique name to avoid conflicts with other test runs
+    unique_suffix = str(uuid4())[:8]
+    test_model_name = f"test_semantic_model_{unique_suffix}"
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
         # Create an agent and thread
@@ -50,7 +56,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Create a semantic data model
         semantic_model = {
-            "name": "test_semantic_model",
+            "name": test_model_name,
             "description": "A test semantic model for integration testing",
             "tables": [
                 {
@@ -156,11 +162,15 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         assert created_model_id_and_references["data_connection_ids"] == [data_connection_1["id"]]
         assert created_model_id_and_references["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
 
-        # Test creating with a specific ID
+        # Test creating with a specific ID (use a different name to avoid duplicate)
         model_id = "test-model-id-123"
+        semantic_model_with_specific_id = {
+            **semantic_model,
+            "name": f"{test_model_name}_with_specific_id",
+        }
         created_model_with_id = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=dict(semantic_model=semantic_model),
+            semantic_model=dict(semantic_model=semantic_model_with_specific_id),
         )
         assert created_model_with_id["semantic_data_model_id"] == model_id
         assert created_model_with_id["data_connection_ids"] == [data_connection_1["id"]]
@@ -168,11 +178,11 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Test getting the semantic data model
         retrieved_model = agent_client.get_semantic_data_model(model_id)
-        assert retrieved_model == semantic_model
+        assert retrieved_model == semantic_model_with_specific_id
 
-        # Test updating the semantic data model
+        # Test updating the semantic data model (keep the same name as the model we're updating)
         updated_semantic_model = semantic_model = {
-            "name": "test_semantic_model",
+            "name": f"{test_model_name}_with_specific_id",
             "description": "A test semantic model for integration testing",
             "tables": [
                 {
@@ -257,13 +267,273 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
 
 @pytest.mark.integration
+def test_cannot_create_semantic_data_model_with_duplicate_name(base_url_agent_server_session, resources_dir):
+    """Test that creating an SDM fails when one already exists with the same name."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create data connection
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-duplicate-create",
+            description="Test connection for duplicate name validation",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file),
+            },
+        )
+
+        # Create first semantic data model
+        semantic_model_1 = {
+            "name": "Sales Analysis Model",
+            "description": "First model",
+            "tables": [
+                {
+                    "name": "ai_training_costs",
+                    "base_table": {
+                        "database": "",
+                        "schema": "",
+                        "table": "artificial_intelligence_training_computation",
+                        "data_connection_id": data_connection["id"],
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "Entity name",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_1))
+        assert created_model["semantic_data_model_id"] is not None
+
+        # Try to create another model with the exact same name - should fail with 409 CONFLICT
+        semantic_model_duplicate = {
+            "name": "Sales Analysis Model",  # Same name
+            "description": "Duplicate model",
+            "tables": semantic_model_1["tables"],
+        }
+
+        with pytest.raises(Exception, match=r"409|conflict|already exists") as exc_info:
+            agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_duplicate))
+        error_msg = str(exc_info.value).lower()
+        assert "sales analysis model" in error_msg or "unique" in error_msg or "case-insensitive" in error_msg, (
+            f"Expected error message about duplicate name, got: {exc_info.value}"
+        )
+
+
+@pytest.mark.integration
+def test_cannot_create_semantic_data_model_with_case_insensitive_duplicate(
+    base_url_agent_server_session, resources_dir
+):
+    """Test that name validation is case-insensitive when creating SDMs."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create data connection
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-case-insensitive",
+            description="Test connection for case-insensitive validation",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file),
+            },
+        )
+
+        # Create semantic data model with lowercase name
+        semantic_model = {
+            "name": "customer insights model",
+            "description": "Test model",
+            "tables": [
+                {
+                    "name": "ai_systems",
+                    "base_table": {
+                        "database": "",
+                        "schema": "",
+                        "table": "artificial_intelligence_training_computation",
+                        "data_connection_id": data_connection["id"],
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "Entity name",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+        assert created_model["semantic_data_model_id"] is not None
+
+        # Try to create with different case - should fail (case-insensitive check)
+        semantic_model_different_case = {
+            "name": "CUSTOMER INSIGHTS MODEL",  # Different case
+            "description": "Model with different case",
+            "tables": semantic_model["tables"],
+        }
+
+        with pytest.raises(Exception, match=r"409|conflict|already exists"):
+            agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_different_case))
+
+
+@pytest.mark.integration
+def test_cannot_rename_semantic_data_model_to_existing_name(base_url_agent_server_session, resources_dir):
+    """Test that renaming an SDM fails when another SDM already has that name."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create data connection
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-rename",
+            description="Test connection for rename validation",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file),
+            },
+        )
+
+        # Create first semantic data model
+        semantic_model_1 = {
+            "name": "Revenue Analysis",
+            "description": "First model",
+            "tables": [
+                {
+                    "name": "ai_data",
+                    "base_table": {
+                        "database": "",
+                        "schema": "",
+                        "table": "artificial_intelligence_training_computation",
+                        "data_connection_id": data_connection["id"],
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "Entity name",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        created_model_1 = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_1))
+        model_id_1 = created_model_1["semantic_data_model_id"]
+
+        # Create second semantic data model with different name
+        semantic_model_2 = {
+            "name": "Cost Analysis",
+            "description": "Second model",
+            "tables": semantic_model_1["tables"],
+        }
+
+        created_model_2 = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_2))
+        model_id_2 = created_model_2["semantic_data_model_id"]
+        assert model_id_2 != model_id_1
+
+        # Try to rename model_2 to have the same name as model_1 - should fail
+        updated_model_2 = {
+            "name": "Revenue Analysis",  # Rename to existing name
+            "description": "Updated model with duplicate name",
+            "tables": semantic_model_1["tables"],
+        }
+
+        with pytest.raises(Exception, match=r"409|conflict|already exists"):
+            agent_client.set_semantic_data_model(
+                semantic_data_model_id=model_id_2,
+                semantic_model=dict(semantic_model=updated_model_2),
+            )
+
+        # Verify model_2 still has its original name
+        retrieved_model_2 = agent_client.get_semantic_data_model(model_id_2)
+        assert retrieved_model_2["name"] == "Cost Analysis"
+
+
+@pytest.mark.integration
+def test_can_update_semantic_data_model_with_same_name(base_url_agent_server_session, resources_dir):
+    """Test that updating an SDM with its own name succeeds (exclude_model_id logic)."""
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create data connection
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-same-name-update",
+            description="Test connection for same name update",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file),
+            },
+        )
+
+        # Create semantic data model
+        semantic_model = {
+            "name": "Product Metrics",
+            "description": "Original description",
+            "tables": [
+                {
+                    "name": "metrics",
+                    "base_table": {
+                        "database": "",
+                        "schema": "",
+                        "table": "artificial_intelligence_training_computation",
+                        "data_connection_id": data_connection["id"],
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "Entity name",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+        model_id = created_model["semantic_data_model_id"]
+
+        # Update with the same name but different description - should succeed
+        updated_model = {
+            "name": "Product Metrics",  # Keep same name
+            "description": "Updated description",
+            "tables": semantic_model["tables"],
+        }
+
+        agent_client.set_semantic_data_model(
+            semantic_data_model_id=model_id,
+            semantic_model=dict(semantic_model=updated_model),
+        )
+
+        # Verify the update succeeded
+        retrieved_model = agent_client.get_semantic_data_model(model_id)
+        assert retrieved_model["name"] == "Product Metrics"
+        assert retrieved_model["description"] == "Updated description"
+
+
+@pytest.mark.integration
 def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_session, resources_dir, openai_api_key):
     """Test semantic data model query with LLM integration."""
     import json
+    from uuid import uuid4
 
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
+
+    # Use unique name to avoid conflicts with other test runs
+    unique_suffix = str(uuid4())[:8]
+    test_model_name_llm = f"generated_semantic_model_integration_{unique_suffix}"
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
         # Create an agent and thread
@@ -307,7 +577,7 @@ def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_se
 
         # Generate semantic data model from the connection
         generate_payload = {
-            "name": "generated_semantic_model_integration",
+            "name": test_model_name_llm,
             "description": "A generated semantic model for integration testing",
             "data_connections_info": [
                 {
@@ -881,6 +1151,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
     """Test saving a data frame as validated query and creating a new data frame from it."""
     import json
     from urllib.parse import urljoin
+    from uuid import uuid4
 
     import requests
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
@@ -933,9 +1204,13 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         assert "tables" in inspect_response
         assert len(inspect_response["tables"]) > 0
 
+        # Use unique name to avoid conflicts with other test runs
+        unique_suffix = str(uuid4())[:8]
+        test_model_name = f"generated_semantic_model_integration_{unique_suffix}"
+
         # Generate semantic data model from the connection
         generate_payload = {
-            "name": "generated_semantic_model_integration",
+            "name": test_model_name,
             "description": "A generated semantic model for integration testing",
             "data_connections_info": [
                 {

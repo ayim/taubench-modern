@@ -1,6 +1,15 @@
 """Unit tests for semantic data model enhancer."""
 
+from __future__ import annotations
+
+import typing
+from pathlib import Path
+
 import pytest
+
+if typing.TYPE_CHECKING:
+    from agent_platform.server.storage.postgres import PostgresStorage
+    from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
 @pytest.fixture
@@ -864,3 +873,133 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         # File table should NOT be modified - keeps clean logical names
         assert file_tbl["name"] == "products_inventory"
         assert file_dims[0]["name"] == "product_name"
+
+
+@pytest.mark.asyncio
+async def test_enhancer_duplicate_name_gets_counter_appended(
+    storage: SQLiteStorage | PostgresStorage,
+    tmpdir: Path,
+) -> None:
+    """Test that when enhancer generates a duplicate name, the API appends a counter.
+
+    This test verifies that after the enhancer generates a semantic data model with a
+    name that already exists in storage, the generate_semantic_data_model API properly
+    detects this and appends (1), (2), etc. to make it unique.
+
+    The test mocks only the LLM call to return a duplicate name, then calls the actual
+    API logic to verify it handles the duplication correctly.
+    """
+    from unittest.mock import AsyncMock, patch
+
+    from agent_platform.core.payloads import GenerateSemanticDataModelPayload
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        ColumnInfo,
+        DataConnectionInfo,
+        TableInfo,
+    )
+    from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
+    from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.user import User
+
+    # Setup: Create an existing semantic data model with a specific name
+    existing_model_name = "Sales Analytics Model"
+    existing_model = {
+        "name": existing_model_name,
+        "description": "Existing model",
+        "tables": [
+            {
+                "name": "sales",
+                "base_table": {"database": "test_db", "schema": "public", "table": "sales"},
+                "dimensions": [{"name": "id", "expr": "id", "data_type": "INTEGER"}],
+            }
+        ],
+    }
+    await storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=existing_model,
+        data_connection_ids=[],
+        file_references=[],
+    )
+
+    # Mock the LLM to return a tool call with the duplicate name
+    enhanced_tool_input = f"""{{
+  "name": "{existing_model_name}",
+  "description": "Enhanced semantic model",
+  "tables": [
+    {{
+      "name": "products",
+      "base_table": {{
+        "table": "products",
+        "schema": "public"
+      }},
+      "columns": [
+        {{
+          "name": "product_id",
+          "expr": "product_id",
+          "data_type": "TEXT",
+          "category": "dimension"
+        }}
+      ]
+    }}
+  ]
+}}"""
+
+    async def mock_prompt_generate(*args, **kwargs):
+        """Mock that returns a tool call with the duplicate name."""
+        return ResponseMessage(
+            role="agent",
+            content=[
+                ResponseToolUseContent(
+                    tool_call_id="call_1",
+                    tool_name="enhance_semantic_data_model",
+                    tool_input_raw=enhanced_tool_input,
+                )
+            ],
+        )
+
+    # Mock get_data_connection for the API
+    mock_connection = AsyncMock()
+    mock_connection.id = "conn_123"
+    mock_connection.name = "test_connection"
+    mock_connection.engine = "postgres"
+    storage.get_data_connection = AsyncMock(return_value=mock_connection)
+
+    # Create the payload to test the API
+    column_info = ColumnInfo(name="product_id", data_type="TEXT", sample_values=["P1", "P2"])
+    table_info = TableInfo(name="products", database="test_db", schema="public", columns=[column_info])
+    data_connection_info = DataConnectionInfo(data_connection_id="conn_123", tables_info=[table_info])
+
+    payload = GenerateSemanticDataModelPayload(
+        name="Initial Model Name",  # This will be replaced by the enhancer
+        description="Test model",
+        data_connections_info=[data_connection_info],
+        files_info=[],
+        agent_id="test_agent_id",
+        existing_semantic_data_model=None,
+    )
+
+    mock_user = User(user_id="test_user", sub="test_user")
+
+    # Patch prompt_generate and call the actual API
+    with patch(
+        "agent_platform.server.api.private_v2.prompt.prompt_generate",
+        new=mock_prompt_generate,
+    ):
+        from agent_platform.server.api.private_v2.semantic_data_model_api import (
+            generate_semantic_data_model,
+        )
+
+        # Call the actual API function
+        response = await generate_semantic_data_model(
+            payload=payload,
+            user=mock_user,
+            storage=storage,
+        )
+
+    # Verify the API properly handled the duplicate name by appending a counter
+    result_model = response.semantic_model
+    result_name = result_model.get("name")
+
+    assert result_name == f"{existing_model_name} (1)", (
+        f"Expected API to append (1) to duplicate name, got '{result_name}'"
+    )

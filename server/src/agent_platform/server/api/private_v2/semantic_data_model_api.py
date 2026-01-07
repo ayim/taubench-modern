@@ -1,4 +1,3 @@
-# ruff: noqa: C901, PLR0912, PLR0915
 """API endpoints for semantic data models."""
 
 from __future__ import annotations
@@ -221,6 +220,9 @@ async def set_semantic_data_model(
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
+    from agent_platform.server.semantic_data_models import (
+        validate_semantic_data_model_name_is_unique,
+    )
 
     # Convert file_references from list of dicts to list of tuples
     semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_model)
@@ -231,6 +233,13 @@ async def set_semantic_data_model(
             raise PlatformHTTPError(
                 error_code=ErrorCode.BAD_REQUEST,
                 message="The semantic data model is invalid: \n" + "\n".join(references.errors),
+            )
+
+        # Validate name uniqueness (exclude current model for updates)
+        model_name = semantic_data_model.get("name")
+        if model_name:
+            await validate_semantic_data_model_name_is_unique(
+                model_name, exclude_model_id=semantic_data_model_id, storage=storage
             )
 
         # Convert file_references from list of dicts to list of tuples
@@ -274,6 +283,9 @@ async def create_semantic_data_model(
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
+    from agent_platform.server.semantic_data_models import (
+        validate_semantic_data_model_name_is_unique,
+    )
 
     # Convert file_references from list of dicts to list of tuples
     semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_model)
@@ -285,6 +297,11 @@ async def create_semantic_data_model(
                 error_code=ErrorCode.BAD_REQUEST,
                 message="The semantic data model is invalid: \n" + "\n".join(references.errors),
             )
+
+        # Validate name uniqueness
+        model_name = semantic_data_model.get("name")
+        if model_name:
+            await validate_semantic_data_model_name_is_unique(model_name, storage=storage)
 
         # Convert file_references from list of dicts to list of tuples
         file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
@@ -480,6 +497,18 @@ async def generate_semantic_data_model(
                 semantic_model_dict = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model), exclude_none=False)
                 if existing_model_name is not None:
                     semantic_model_dict["name"] = existing_model_name
+                else:
+                    # If there's no existing model name, ensure the enhanced name is unique
+                    # The enhancer might have generated a name that already exists
+                    from agent_platform.server.semantic_data_models import (
+                        make_semantic_data_model_name_unique,
+                    )
+
+                    enhanced_name = semantic_model_dict.get("name")
+                    if enhanced_name:
+                        semantic_model_dict["name"] = await make_semantic_data_model_name_unique(
+                            enhanced_name, storage=storage
+                        )
                 # Restore description (either user-provided for new models or from existing model)
                 if preserve_description is not None:
                     semantic_model_dict["description"] = preserve_description
@@ -690,6 +719,9 @@ async def import_semantic_data_model(
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
+    from agent_platform.server.semantic_data_models import (
+        validate_semantic_data_model_name_is_unique,
+    )
 
     # Parse YAML string if provided
     # FastAPI doesn't call custom model_validate for dataclasses, so we handle it here
@@ -771,6 +803,11 @@ async def import_semantic_data_model(
 
     # Always create new SDM
     if not model_id:
+        # Validate name uniqueness
+        model_name = resolved_model.get("name")
+        if model_name:
+            await validate_semantic_data_model_name_is_unique(model_name, storage=storage)
+
         # Convert file_references from list of dicts to list of tuples
         file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
 
