@@ -3,18 +3,14 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request
 from structlog import get_logger
 
-from agent_platform.core.data_connections.data_connections import (
-    DataConnection as DbDataConnection,
+from agent_platform.core.data_connections.data_connections import DataConnection as DbDataConnection
+from agent_platform.core.payloads.data_connection import (
+    DataConnection as DataConnectionPayload,
 )
 from agent_platform.core.payloads.data_connection import (
-    ColumnInfo,
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
     DataConnectionTag,
-    TableInfo,
-)
-from agent_platform.core.payloads.data_connection import (
-    DataConnection as DataConnectionPayload,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
@@ -264,67 +260,6 @@ async def inspect_data_connection(
         ) from e
 
 
-def _infer_data_type(sample_values: list) -> str:
-    """Infer data type from sample values."""
-    if not sample_values:
-        return "string"
-
-    for value in sample_values:
-        if value is not None:
-            if isinstance(value, int | float):
-                return "numeric"
-            elif isinstance(value, bool):
-                return "boolean"
-            break
-    return "string"
-
-
-def _create_column_info(header: str, sample_rows: list, column_index: int) -> ColumnInfo:
-    """Create ColumnInfo from header and sample data."""
-    sample_values = [row[column_index] for row in sample_rows if column_index < len(row)] if sample_rows else []
-    data_type = _infer_data_type(sample_values)
-
-    return ColumnInfo(
-        name=header,
-        data_type=data_type,
-        sample_values=sample_values[:3] if sample_values else None,
-        primary_key=None,
-        unique=None,
-        description=None,
-        synonyms=None,
-    )
-
-
-def _create_table_info(sheet, file_name: str, has_multiple_sheets: bool) -> TableInfo:
-    """Create TableInfo from a data reader sheet.
-
-    For files, we use the database field to store the filename, providing natural grouping
-    like 'sales_data.xlsx.Q1' and 'sales_data.xlsx.Q2'. This mirrors the database.table
-    pattern used for actual database connections.
-    """
-    sample_rows = sheet.list_sample_rows(5)
-    columns = []
-
-    for i, header in enumerate(sheet.column_headers):
-        column_info = _create_column_info(header, sample_rows, i)
-        columns.append(column_info)
-
-    # For single-sheet files (like CSV or single-sheet Excel), use the filename as table name
-    # For multi-sheet Excel files, use the sheet name as table name
-    if has_multiple_sheets and sheet.name:
-        table_name = sheet.name
-    else:
-        table_name = file_name
-
-    return TableInfo(
-        name=table_name,
-        database=file_name,  # Use filename as "database" for grouping
-        schema=None,
-        description=f"Data from file: {file_name}",
-        columns=columns,
-    )
-
-
 @router.post("/inspect-file-as-data-connection")
 async def inspect_file_as_data_connection(
     request: Request,
@@ -361,10 +296,12 @@ async def inspect_file_as_data_connection(
         )
 
         # Convert the data reader sheets to TableInfo objects
+        from agent_platform.server.data_frames.file_inspection_utils import create_table_info
+
         tables = []
         has_multiple_sheets = data_reader.has_multiple_sheets()
         for sheet in data_reader.iter_sheets():
-            table_info = _create_table_info(sheet, file_name, has_multiple_sheets)
+            table_info = create_table_info(sheet, file_name, has_multiple_sheets)
             tables.append(table_info)
 
         # Add inspection timestamp

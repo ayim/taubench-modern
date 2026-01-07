@@ -60,15 +60,15 @@ def test_xlsx_without_header():
 
 def test_csv_table_uses_filename():
     """Test that CSV files use the filename as table name."""
-    from agent_platform.server.api.private_v2.data_connections import _create_table_info
     from agent_platform.server.data_frames.data_reader import CsvDataReader
+    from agent_platform.server.data_frames.file_inspection_utils import create_table_info
 
     csv_bytes = b"name,age\nJohn,25\nJane,30"
     reader = CsvDataReader(csv_bytes)
     sheet = next(reader.iter_sheets())
 
     has_multiple_sheets = reader.has_multiple_sheets()
-    table_info = _create_table_info(sheet, "test_data.csv", has_multiple_sheets)
+    table_info = create_table_info(sheet, "test_data.csv", has_multiple_sheets)
 
     assert table_info.name == "test_data.csv"
     assert sheet.name is None
@@ -77,8 +77,8 @@ def test_csv_table_uses_filename():
 
 def test_single_sheet_excel_uses_filename():
     """Test that single-sheet Excel files use filename as table name."""
-    from agent_platform.server.api.private_v2.data_connections import _create_table_info
     from agent_platform.server.data_frames.data_reader import ExcelDataReader
+    from agent_platform.server.data_frames.file_inspection_utils import create_table_info
 
     # Use the sample.xlsx file for this test (it has multiple sheets, but we'll test the logic)
     test_data_path = Path(__file__).parent.parent / "data_frames" / "test_file_data_readers"
@@ -96,7 +96,7 @@ def test_single_sheet_excel_uses_filename():
     if has_multiple_sheets:
         # Use the first sheet but test single-sheet behavior
         sheet = next(reader.iter_sheets())
-        table_info = _create_table_info(sheet, "report.xlsx", has_multiple_sheets=False)
+        table_info = create_table_info(sheet, "report.xlsx", has_multiple_sheets=False)
 
         # With has_multiple_sheets=False, should use filename
         assert table_info.name == "report.xlsx"
@@ -104,8 +104,8 @@ def test_single_sheet_excel_uses_filename():
 
 def test_multi_sheet_excel_uses_sheet_names():
     """Test that multi-sheet Excel files use sheet names as table names."""
-    from agent_platform.server.api.private_v2.data_connections import _create_table_info
     from agent_platform.server.data_frames.data_reader import ExcelDataReader
+    from agent_platform.server.data_frames.file_inspection_utils import create_table_info
 
     # Use the correct test data directory
     test_data_path = Path(__file__).parent.parent / "data_frames" / "test_file_data_readers"
@@ -124,7 +124,7 @@ def test_multi_sheet_excel_uses_sheet_names():
         assert len(sheets) > 1
 
         for sheet in sheets:
-            table_info = _create_table_info(sheet, "workbook.xlsx", has_multiple_sheets)
+            table_info = create_table_info(sheet, "workbook.xlsx", has_multiple_sheets)
             # Should use sheet name, not filename
             assert table_info.name == sheet.name
             assert table_info.name != "workbook.xlsx"
@@ -132,7 +132,7 @@ def test_multi_sheet_excel_uses_sheet_names():
 
 def test_table_naming_with_mock_sheets():
     """Test table naming logic with mocked sheet objects."""
-    from agent_platform.server.api.private_v2.data_connections import _create_table_info
+    from agent_platform.server.data_frames.file_inspection_utils import create_table_info
 
     # Mock a single-sheet scenario
     mock_sheet = MagicMock()
@@ -141,16 +141,16 @@ def test_table_naming_with_mock_sheets():
     mock_sheet.list_sample_rows.return_value = [["John", 25], ["Jane", 30]]
 
     # Single sheet - should use filename
-    table_info = _create_table_info(mock_sheet, "data.xlsx", has_multiple_sheets=False)
+    table_info = create_table_info(mock_sheet, "data.xlsx", has_multiple_sheets=False)
     assert table_info.name == "data.xlsx"
 
     # Multiple sheets - should use sheet name
-    table_info = _create_table_info(mock_sheet, "data.xlsx", has_multiple_sheets=True)
+    table_info = create_table_info(mock_sheet, "data.xlsx", has_multiple_sheets=True)
     assert table_info.name == "Sheet1"
 
     # CSV (sheet.name is None) - should use filename
     mock_sheet.name = None
-    table_info = _create_table_info(mock_sheet, "data.csv", has_multiple_sheets=False)
+    table_info = create_table_info(mock_sheet, "data.csv", has_multiple_sheets=False)
     assert table_info.name == "data.csv"
 
 
