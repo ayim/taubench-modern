@@ -54,8 +54,8 @@ export const ModelScore: FC<Props> = ({ children }) => {
     >
       <Box flex="1">
         <Box display="flex" alignItems="center" gap="$8" mb="$4">
-          <Typography color="content.subtle.light">Data Understanding</Typography>
-          <Tooltip text="The data understanding score is a measure of how well the data model captures the data.">
+          <Typography color="content.subtle.light">Model Completeness</Typography>
+          <Tooltip text="The model completeness score indicates how complete the descriptions, synonyms and samples are. It's a proxy of how well the model is able to perform natural language queries.">
             <IconHelpSmall color="background.subtle" />
           </Tooltip>
         </Box>

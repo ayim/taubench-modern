@@ -64,9 +64,9 @@ export const FileSource: ConfigurationStepView = ({ onClose, setActiveStep }) =>
           Upload a File
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
-          Upload your data file (.xlsx, .xls, .json or .csv) to start building your data model. The file will be used to
-          extract its structure and columns in the next step — it won’t be stored in your agent.{' '}
-          <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+          Upload your data file (.xlsx, .xls, .json or .csv) to start building your semantic data model. The file will
+          be used to extract its structure and columns in the next step — it won’t be stored with your agent.{' '}
+          <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
             Learn more
           </Link>
         </Typography>

@@ -23,9 +23,9 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
             Select Data
           </Typography>
           <Typography variant="body-large" color="content.subtle" mb="$40">
-            Select the tables and columns you want your agent to use. Add a brief explanation of the structure and
-            business meaning so the agent can interpret the data correctly.{' '}
-            <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+            Select the tables/views and columns you want to include in your semantic data model. Add a brief explanation
+            of the structure and business meaning so the agent can interpret the data correctly.{' '}
+            <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
               Learn more
             </Link>
           </Typography>
@@ -35,7 +35,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
             label="Business Context"
             rows={4}
             autoGrow
-            placeholder="Paste or write here anything that helps us understand the business context of your data."
+            placeholder="Paste or write here anything that helps us understand the business context of your data. More detailed explanations will lead to a more accurate semantic data model."
           />
 
           <DataSelector data={inspectionResult?.tables || []} />

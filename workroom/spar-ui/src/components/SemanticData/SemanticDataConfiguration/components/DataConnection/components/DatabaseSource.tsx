@@ -63,16 +63,16 @@ export const DatabaseSource: ConfigurationStepView = ({ onClose, setActiveStep }
           Connect to Your Database
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
-          Connect a database so your agent can securely access the data it needs. This connection is the first step
-          toward building data models and enabling the agent to work with your information.{' '}
-          <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+          Connect a database so your agent can securely access the data it needs without copying the data. This
+          connection is the first step towards building a semantic data model.{' '}
+          <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
             Learn more
           </Link>
         </Typography>
 
         <DataConnectionSelect />
         <Typography color="content.subtle.light" mt="$12">
-          Use one of existing data connections or{' '}
+          Select an existing data connection or{' '}
           <Link
             as="button"
             type="button"

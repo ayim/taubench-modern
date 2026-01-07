@@ -34,12 +34,13 @@ export const DataConnection: ConfigurationStepView<Props> = ({
     <>
       <Dialog.Content maxWidth={768}>
         <Typography variant="display-medium" mb="$12">
-          Add Data
+          Add Semantic Data Model
         </Typography>
         <Typography variant="body-large" color="content.subtle" mb="$40">
-          Choose whether to link a database, upload files, or import an existing data model. We&apos;ll create a data
-          model that provides structure and context, helping your agent accurately interpret and work with your data.{' '}
-          <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+          Choose whether to connect to a database, upload files, or import an existing data model. We&apos;ll
+          automatically create a semantic data model that provides structure and context, helping your agent accurately
+          interpret and work with your data in natural language.{' '}
+          <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
             Learn more
           </Link>
         </Typography>
@@ -62,7 +63,7 @@ export const DataConnection: ConfigurationStepView<Props> = ({
             onClick={() => setDataSourceType(DataSourceType.Import)}
             title="Import Data Model"
             icon={IconDataModelImport}
-            description="Integrate an existing data model from Snowflake or another platform to extend your agent’s capabilities."
+            description="Bring in an existing data model by importing the model .yaml file."
             as="button"
           />
         </Grid>

@@ -218,7 +218,9 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
         <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
           <EmptyState
             title="Verified Queries"
-            description="Create verified queries that allow your agents to securely retrieve specific, optimized data from your enterprise databases. Create them here, from data frames or directly through chat when requesting data."
+            description="Create verified queries that allow your agents to quickly answer the
+            frequently asked questions. Verified queries increase the accuracy, improve
+            speed and save tokens."
             action={
               <Button variant="primary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
                 Create
@@ -228,7 +230,7 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
               <Link
                 icon={IconInformation}
                 iconAfter={IconArrowUpRight}
-                href={EXTERNAL_LINKS.NAMED_QUERIES}
+                href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS}
                 target="_blank"
                 rel="noopener"
                 variant="primary"

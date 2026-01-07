@@ -39,7 +39,7 @@ export const SemanticDataSection = ({ titleBadge }: Props) => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb="$4">
         <Box display="flex" alignItems="center" gap="$4">
           <Typography variant="body-medium" fontWeight="bold">
-            Data
+            Semantic Data Models
           </Typography>
           {titleBadge || null}
         </Box>
@@ -58,7 +58,7 @@ export const SemanticDataSection = ({ titleBadge }: Props) => {
       {semanticDataModels?.length ? (
         semanticDataModels.map((model) => <SemanticModelItem key={model.id} model={model} />)
       ) : (
-        <Typography>Connect your agent to data from databases or files using Sema4.ai Data Models.</Typography>
+        <Typography>Connect your agent to data from databases or spreadsheets using Semantic Data Models.</Typography>
       )}
       {isConfigurationOpen && <SemanticDataConfiguration onClose={onToggleEditModel} />}
     </Box>

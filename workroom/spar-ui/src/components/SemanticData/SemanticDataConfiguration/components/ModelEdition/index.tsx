@@ -75,7 +75,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
                   Review your data model and add details to improve how your agent understands the data. Use
                   descriptions and synonyms to clarify meaning, provide business context, and make the data easier for
                   the agent to work with.{' '}
-                  <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+                  <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
                     Learn more
                   </Link>
                 </Typography>

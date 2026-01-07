@@ -65,8 +65,8 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
               Upload File
             </Typography>
             <Typography variant="body-large" color="content.subtle" mb="$40">
-              Upload a .yml file containing your data model to begin the import process.{' '}
-              <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+              Upload a .yaml file containing your semantic data model to begin the import process.{' '}
+              <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
                 Learn more
               </Link>
             </Typography>
@@ -105,7 +105,7 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
             <Typography variant="body-large" color="content.subtle" mb="$40">
               Connect the database associated with your uploaded file so your agent can securely access the necessary
               data.{' '}
-              <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+              <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
                 Learn more
               </Link>
             </Typography>

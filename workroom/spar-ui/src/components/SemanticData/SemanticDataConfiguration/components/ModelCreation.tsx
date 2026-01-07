@@ -19,7 +19,7 @@ export const ModelCreation: ConfigurationStepView = ({ onClose }) => {
         <Typography variant="body-large" color="content.subtle" mb="$40">
           Select the tables and columns you want your agent to use. Add a brief explanation of the structure and
           business meaning so the agent can interpret the data correctly.{' '}
-          <Link href={EXTERNAL_LINKS.DATA_ACCESS} target="_blank">
+          <Link href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS} target="_blank">
             Learn more
           </Link>
         </Typography>
