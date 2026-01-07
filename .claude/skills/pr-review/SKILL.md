@@ -9,6 +9,7 @@ description: Guidelines for reviewing PRs in the agent-platform's workroom codeb
 - New learnings should be added to this list.
 - Conflicting learnings should be raised.
 - Formatting, linting and type-checking are part of the review process: a PR not passing the checks is not ready for review
+- This skill covers Typescript/React codebases. For Python changes, refer to [Agent Platform's server AGENTS.md](../../../server/AGENTS.md)
 
 Distilled learnings from code reviews. Use these as a checklist when reviewing or writing code.
 
