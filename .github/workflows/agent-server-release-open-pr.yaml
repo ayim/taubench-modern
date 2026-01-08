@@ -77,6 +77,8 @@ jobs:
           grep "^version" server/pyproject.toml
 
       - name: Run make sync
+        env:
+          CI: false
         run: make sync
 
       - name: Run make update-interface
