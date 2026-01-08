@@ -88,3 +88,53 @@ class AgentPackageConfig:
         metadata=FieldMetadata(description="The readme filename for agent packages."),
     )
     """The README filename for agent packages."""
+
+    def is_known_file(self, file_path: str) -> bool:
+        """Check if a file path is a known agent package file.
+
+        Only known agent package files should be considered for operations like
+        deletion markers to avoid accidentally affecting user-specific files.
+
+        Args:
+            file_path: The file path to check.
+
+        Returns:
+            True if the file is a known agent package file, False otherwise.
+        """
+        # Known root-level files
+        known_root_files = {
+            self.agent_spec_filename,
+            self.runbook_filename,
+            self.conversation_guide_filename,
+            self.metadata_filename,
+            self.agent_package_icon_filename,
+            self.agent_package_changelog_filename,
+            self.agent_package_readme_filename,
+        }
+
+        if file_path in known_root_files:
+            return True
+
+        # Known directories (files within these directories are known)
+        known_directories = [
+            f"{self.actions_dirname}/",
+            f"{self.semantic_data_models_dirname}/",
+            self.knowledge_dir,
+        ]
+
+        for known_dir in known_directories:
+            if file_path.startswith(known_dir):
+                return True
+
+        return False
+
+    def is_agent_package_metadata_file(self, file_path: str) -> bool:
+        """Check if a file path is a metadata file.
+
+        Args:
+            file_path: The file path to check.
+
+        Returns:
+            True if the file is a metadata file, False otherwise.
+        """
+        return file_path == self.metadata_filename

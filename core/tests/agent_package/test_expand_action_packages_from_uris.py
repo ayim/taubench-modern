@@ -180,3 +180,87 @@ class TestExpandActionPackagesFromUris:
         error_msg = str(exc_info.value)
         assert "Missing required action packages" in error_msg
         assert "email" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_filter_packages_expands_only_specified_packages(self, tmp_path: Path):
+        """Test that filter_packages only expands the specified packages."""
+        # Agent has two action packages defined
+        action_packages = [
+            ActionPackage(name="browsing", organization="Sema4.ai", version="1.3.3"),
+            ActionPackage(name="email", organization="Sema4.ai", version="2.0.0"),
+        ]
+        agent = create_minimal_agent(action_packages=action_packages)
+
+        # Create both action package zip files
+        browsing_files = create_action_package_with_metadata("browsing", "1.3.3")
+        browsing_zip_bytes = create_action_package_zip(browsing_files)
+        browsing_path = tmp_path / "browsing.zip"
+        browsing_path.write_bytes(browsing_zip_bytes)
+
+        email_files = create_action_package_with_metadata("email", "2.0.0")
+        email_zip_bytes = create_action_package_zip(email_files)
+        email_path = tmp_path / "email.zip"
+        email_path.write_bytes(email_zip_bytes)
+
+        uris = [browsing_path.as_uri(), email_path.as_uri()]
+
+        # Filter to only expand 'email' package
+        filter_set = {("Sema4.ai", "email", "2.0.0")}
+        result = await expand_action_packages_from_uris(agent, uris, filter_packages=filter_set, require_all=False)
+
+        # Only email should be in the result
+        assert len(result) == 1
+        assert "Sema4.ai/email" in result
+        assert "Sema4.ai/browsing" not in result
+
+    @pytest.mark.asyncio
+    async def test_require_all_false_allows_missing_packages(self, tmp_path: Path):
+        """Test that require_all=False allows missing action packages."""
+        # Agent expects two action packages
+        action_packages = [
+            ActionPackage(name="browsing", organization="Sema4.ai", version="1.3.3"),
+            ActionPackage(name="email", organization="Sema4.ai", version="2.0.0"),
+        ]
+        agent = create_minimal_agent(action_packages=action_packages)
+
+        # Only provide one action package (browsing)
+        browsing_files = create_action_package_with_metadata("browsing", "1.3.3")
+        browsing_zip_bytes = create_action_package_zip(browsing_files)
+        browsing_path = tmp_path / "browsing.zip"
+        browsing_path.write_bytes(browsing_zip_bytes)
+
+        file_uri = browsing_path.as_uri()
+
+        # With require_all=False, this should NOT raise an error
+        result = await expand_action_packages_from_uris(agent, [file_uri], require_all=False)
+
+        # Only browsing should be in the result
+        assert len(result) == 1
+        assert "Sema4.ai/browsing" in result
+
+    @pytest.mark.asyncio
+    async def test_filter_packages_skips_validation_for_missing(self, tmp_path: Path):
+        """Test that filter_packages skips the 'all packages required' validation."""
+        # Agent expects two action packages
+        action_packages = [
+            ActionPackage(name="browsing", organization="Sema4.ai", version="1.3.3"),
+            ActionPackage(name="email", organization="Sema4.ai", version="2.0.0"),
+        ]
+        agent = create_minimal_agent(action_packages=action_packages)
+
+        # Only provide one action package
+        browsing_files = create_action_package_with_metadata("browsing", "1.3.3")
+        browsing_zip_bytes = create_action_package_zip(browsing_files)
+        browsing_path = tmp_path / "browsing.zip"
+        browsing_path.write_bytes(browsing_zip_bytes)
+
+        file_uri = browsing_path.as_uri()
+
+        # When filter_packages is set, the 'require_all' validation is skipped
+        # because we only want specific packages
+        filter_set = {("Sema4.ai", "browsing", "1.3.3")}
+        result = await expand_action_packages_from_uris(agent, [file_uri], filter_packages=filter_set)
+
+        # Should not raise an error and return the filtered package
+        assert len(result) == 1
+        assert "Sema4.ai/browsing" in result

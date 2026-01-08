@@ -1,3 +1,4 @@
+from enum import Enum
 from io import StringIO
 from typing import Any, Literal
 
@@ -54,6 +55,7 @@ SpecWorkerMode = Literal["conversational", "worker"]
 SpecVersion = Literal["v2", "v2.1", "v3"]
 SpecDocumentIntelligence = Literal["v2", "v2.1"]
 
+
 DEFAULT_AGENT_PACKAGE_EXCLUDE = [
     "./.git/**",
     "./.vscode/**",
@@ -71,6 +73,26 @@ DEFAULT_AGENT_PACKAGE_SPEC_VERSION = "v2.1"
 # The ID of the agent used for comparison purposes
 DEFAULT_AGENT_TEMP_ID = "default_agent_temp_id"
 DEFAULT_AGENT_TEMP_USER_ID = "default_agent_temp_user_id"
+
+
+class AgentPackageSpecFileFields(Enum):
+    """Fields of Agent Package Spec that map to files in the Agent Package.
+
+    Maps field_path patterns from the diff to logical file categories:
+        - spec: agent-spec.yaml
+        - runbook: runbook.md
+        - runbook_structured: runbook.md
+        - conversation_guide: conversation-guide.yaml
+        - question_groups: conversation-guide.yaml
+        - semantic_data_models: semantic-data-models/ directory
+    """
+
+    spec = "spec"
+    runbook = "runbook"
+    runbook_structured = "runbook_structured"
+    question_groups = "question_groups"
+    conversation_guide = "conversation_guide"
+    semantic_data_models = "semantic_data_models"
 
 
 class SpecAgentModel(BaseModel):
@@ -261,6 +283,10 @@ class SpecAgent(BaseModel):
             A YAML string representation of the SpecAgent model.
         """
         return _model_to_yaml(self, exclude_none=exclude_none)
+
+    @classmethod
+    def get_fields(cls) -> list[str]:
+        return list(cls.model_fields.keys())
 
 
 class AgentPackageSpecContents(BaseModel):

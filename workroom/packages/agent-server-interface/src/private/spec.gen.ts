@@ -6634,6 +6634,51 @@ export const spec = {
         },
       },
     },
+    '/api/v2/package/patch': {
+      post: {
+        tags: ['package'],
+        summary: 'Create a patch for an agent project from an agent package',
+        description:
+          'Compares the incoming Agent Package with the current Agent state and returns a ZIP containing only the files that need to be updated. The client can unzip the returned patch into the Agent Project to apply the changes.',
+        operationId: 'patch_agent_project_package_patch_post',
+        parameters: [
+          {
+            name: 'agent_id',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Agent Id',
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                $ref: '#/components/schemas/Body_patch_agent_project_package_patch_post',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/platforms/': {
       get: {
         tags: ['platforms'],
@@ -12125,6 +12170,31 @@ export const spec = {
         required: ['file'],
         title:
           'Body_ingest_document_document_intelligence_documents_ingest_post',
+      },
+      Body_patch_agent_project_package_patch_post: {
+        properties: {
+          agent_package_zip: {
+            type: 'string',
+            format: 'binary',
+            title: 'Agent Package Zip',
+            description: 'Agent Package ZIP file',
+          },
+          action_packages_uris: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Action Packages Uris',
+            description: 'JSON array of action package URIs',
+          },
+        },
+        type: 'object',
+        required: ['agent_package_zip'],
+        title: 'Body_patch_agent_project_package_patch_post',
       },
       Body_read_agent_package_package_read_post: {
         properties: {

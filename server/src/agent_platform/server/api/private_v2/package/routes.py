@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from structlog import get_logger
 
@@ -406,3 +406,94 @@ async def diff_agent_package(
     except Exception as e:
         logger.exception("Failed to compare agent package with deployed agent")
         return StatusResponse.failure([StatusError.from_message(f"Failed to compare packages: {e}", code="unexpected")])
+
+
+@router.post(
+    "/patch",
+    response_class=Response,
+    summary="Create a patch for an agent project from an agent package",
+    description=(
+        "Compares the incoming Agent Package with the current Agent state and returns a ZIP "
+        "containing only the files that need to be updated. The client can unzip the returned "
+        "patch into the Agent Project to apply the changes."
+    ),
+)
+async def patch_agent_project(
+    user: AuthedUser,
+    storage: StorageDependency,
+    agent_id: str,
+    agent_package_zip: UploadFile = File(..., description="Agent Package ZIP file"),  # noqa: B008
+    action_packages_uris: str | None = Form(None, description="JSON array of action package URIs"),
+) -> Response:
+    """Create a patch for an agent project from an agent package.
+
+    Compares the incoming Agent Package (current local state) with the deployed Agent state
+    and returns a ZIP containing only the files that differ. This enables partial updates
+    where only changed files are overwritten instead of replacing the entire package.
+    Returns 204 No Content if there are no changes to patch.
+
+    Args:
+        user: The authenticated user.
+        storage: The storage dependency.
+        agent_id: The ID of the agent to compare against.
+        agent_package_zip: The zip file containing the Agent Package (current local state).
+        action_packages_uris: Optional JSON string containing array of action package URIs.
+
+    Returns:
+        A Response containing the patch zip file with only the changed files.
+    """
+    import json
+    from typing import cast
+
+    from agent_platform.core.agent_package.patch import create_agent_project_patch
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    # Parse action_packages_uris from JSON string
+    parsed_action_packages_uris: list[str] = []
+    if action_packages_uris:
+        try:
+            parsed = json.loads(action_packages_uris)
+            if isinstance(parsed, list):
+                parsed_action_packages_uris = [uri for uri in parsed if isinstance(uri, str)]
+        except json.JSONDecodeError as e:
+            raise PlatformHTTPError(
+                error_code=ErrorCode.BAD_REQUEST,
+                message=f"Invalid JSON in action_packages_uris: {e}",
+            ) from e
+
+    # Check if the agent exists
+    agent = await storage.get_agent(user.user_id, agent_id)
+    if not agent:
+        raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="Agent not found")
+
+    # Get semantic data models associated with this agent (if any)
+    semantic_data_models: list[SemanticDataModel] = []
+    try:
+        sdm_dicts = await storage.get_agent_semantic_data_models(agent_id)
+        semantic_data_models = cast(list[SemanticDataModel], sdm_dicts)
+    except Exception as e:
+        logger.warning("Failed to fetch semantic data models", agent_id=agent_id, error=str(e))
+
+    # Create handler from the uploaded zip file (current local state)
+    with await AgentPackageHandler.from_stream(iter_upload_file_chunks(agent_package_zip)) as agent_package_handler:
+        # Create the patch by comparing incoming package with deployed state
+        patch_stream = await create_agent_project_patch(
+            deployed_agent=agent,
+            deployed_sdms=semantic_data_models,
+            action_packages_uris=parsed_action_packages_uris,
+            agent_package_handler=agent_package_handler,
+        )
+
+        # Return 204 No Content - if there are no changes
+        if patch_stream is None:
+            return Response(status_code=204)
+
+        # Return 200 OK - with the patch zip file
+        headers = {"Content-Disposition": 'attachment; filename="agent_patch.zip"'}
+        return StreamingResponse(
+            patch_stream,
+            media_type="application/zip",
+            headers=headers,
+        )

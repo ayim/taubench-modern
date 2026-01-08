@@ -12,7 +12,13 @@ from agent_platform.core.data_frames.semantic_data_model_types import SemanticDa
 logger = structlog.get_logger(__name__)
 
 
-async def expand_action_packages_from_uris(agent: Agent, action_packages_uris: list[str]) -> ActionPackageMap:
+async def expand_action_packages_from_uris(
+    agent: Agent,
+    action_packages_uris: list[str],
+    *,
+    filter_packages: set[tuple[str, str, str]] | None = None,
+    require_all: bool = True,
+) -> ActionPackageMap:
     """Expand action packages from a list of URIs.
 
     Each URI points to an action package zip file. Supported URI schemes:
@@ -28,6 +34,11 @@ async def expand_action_packages_from_uris(agent: Agent, action_packages_uris: l
         agent: The agent to extract action packages for. Used to match action packages
                by name/version and provide organization info.
         action_packages_uris: List of URIs pointing to action package zip files.
+        filter_packages: Optional set of (organization, name, version) tuples. If provided,
+                        only action packages matching these tuples will be expanded.
+                        Packages not in this set will be skipped.
+        require_all: If True (default), validates that all agent action packages are present
+                    in the URIs. If False, missing packages are allowed.
 
     Returns:
         A dictionary mapping action package paths to their expanded contents.
@@ -37,7 +48,7 @@ async def expand_action_packages_from_uris(agent: Agent, action_packages_uris: l
     Raises:
         PlatformHTTPError: If a URI is invalid, the package cannot be fetched,
                           the package can't be matched to an agent action package,
-                          or required action packages are missing.
+                          or (when require_all=True) required action packages are missing.
     """
     from agent_platform.core.agent_package.utils import create_action_package_path
     from agent_platform.core.errors import ErrorCode, PlatformHTTPError
@@ -100,6 +111,19 @@ async def expand_action_packages_from_uris(agent: Agent, action_packages_uris: l
                 )
 
             organization, matched_name, matched_version = agent_ap_lookup[lookup_key]
+
+            # If filtering is enabled, skip packages not in the filter set
+            if filter_packages is not None:
+                if (organization, matched_name, matched_version) not in filter_packages:
+                    logger.debug(
+                        "Skipping action package not in filter set",
+                        uri=uri,
+                        organization=organization,
+                        name=matched_name,
+                        version=matched_version,
+                    )
+                    continue
+
             matched_keys.add(lookup_key)
 
             # Create folder-style path using the organization from the agent definition
@@ -120,20 +144,21 @@ async def expand_action_packages_from_uris(agent: Agent, action_packages_uris: l
 
             action_packages_map[action_package_folder_path] = expanded_contents
 
-    # Validate that all action packages defined in the agent are present
-    required_keys = set(agent_ap_lookup.keys())
-    missing_keys = required_keys - matched_keys
-    if missing_keys:
-        missing_descriptions = [f"{name} (version {version})" for name, version in sorted(missing_keys)]
-        logger.error(
-            "Missing required action packages",
-            missing_count=len(missing_keys),
-            missing=missing_descriptions,
-        )
-        raise PlatformHTTPError(
-            error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-            message=f"Missing required action packages: {', '.join(missing_descriptions)}",
-        )
+    # Validate that all action packages defined in the agent are present (unless filtering)
+    if require_all and filter_packages is None:
+        required_keys = set(agent_ap_lookup.keys())
+        missing_keys = required_keys - matched_keys
+        if missing_keys:
+            missing_descriptions = [f"{name} (version {version})" for name, version in sorted(missing_keys)]
+            logger.error(
+                "Missing required action packages",
+                missing_count=len(missing_keys),
+                missing=missing_descriptions,
+            )
+            raise PlatformHTTPError(
+                error_code=ErrorCode.UNPROCESSABLE_ENTITY,
+                message=f"Missing required action packages: {', '.join(missing_descriptions)}",
+            )
     return action_packages_map
 
 

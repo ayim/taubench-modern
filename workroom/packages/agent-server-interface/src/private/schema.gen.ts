@@ -2524,6 +2524,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/package/patch': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a patch for an agent project from an agent package
+     * @description Compares the incoming Agent Package with the current Agent state and returns a ZIP containing only the files that need to be updated. The client can unzip the returned patch into the Agent Project to apply the changes.
+     */
+    post: operations['patch_agent_project_package_patch_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/platforms/': {
     parameters: {
       query?: never;
@@ -4889,6 +4909,20 @@ export interface components {
     Body_ingest_document_document_intelligence_documents_ingest_post: {
       /** File */
       file: string;
+    };
+    /** Body_patch_agent_project_package_patch_post */
+    Body_patch_agent_project_package_patch_post: {
+      /**
+       * Agent Package Zip
+       * Format: binary
+       * @description Agent Package ZIP file
+       */
+      agent_package_zip: string;
+      /**
+       * Action Packages Uris
+       * @description JSON array of action package URIs
+       */
+      action_packages_uris?: string | null;
     };
     /** Body_read_agent_package_package_read_post */
     Body_read_agent_package_package_read_post: {
@@ -19999,6 +20033,39 @@ export interface operations {
         content: {
           'application/json': components['schemas']['StatusResponse_AgentDiffResult_'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  patch_agent_project_package_patch_post: {
+    parameters: {
+      query: {
+        agent_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': components['schemas']['Body_patch_agent_project_package_patch_post'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

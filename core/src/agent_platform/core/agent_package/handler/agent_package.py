@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from agent_platform.core.agent_package.handler.action_package import (
         ActionPackageContent,
         ActionPackageHandler,
+        ActionPackageMap,
         ActionPackagePath,
     )
 
@@ -357,11 +358,22 @@ class AgentPackageHandler(BasePackageHandler):
     async def write_action_package(
         self, action_package_path: "ActionPackagePath", action_package_content: "ActionPackageContent"
     ) -> None:
-        """Write the action packages to the zip file.
+        """Write an action package to the zip file with expanded contents.
 
         Args:
-            action_packages: The action packages to write.
+            action_package_path: The path for the action package (e.g., "Sema4.ai/browsing").
+            action_package_content: Dictionary mapping file paths to their content bytes.
         """
         for file_path, file_content in action_package_content.items():
             full_path = f"{AgentPackageConfig.actions_dirname}/{action_package_path}/{file_path}"
             await self.write_file(full_path, file_content)
+
+    async def write_all_action_packages(self, action_packages_map: "ActionPackageMap") -> None:
+        """Write all action packages to the zip file with expanded contents.
+
+        Args:
+            action_packages_map: Dictionary mapping action package paths to their expanded
+                file contents. Example: {"Sema4.ai/browsing": {"package.yaml": b"...", ...}}
+        """
+        for ap_path, ap_content in action_packages_map.items():
+            await self.write_action_package(ap_path, ap_content)
