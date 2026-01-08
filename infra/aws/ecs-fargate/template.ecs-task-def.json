@@ -141,19 +141,7 @@
           "awslogs-create-group": "true"
         }
       },
-      "portMappings": [
-        { "containerPort": 8003, "protocol": "tcp" },
-        { "containerPort": 20000, "protocol": "tcp" },
-        { "containerPort": 20001, "protocol": "tcp" },
-        { "containerPort": 20002, "protocol": "tcp" },
-        { "containerPort": 20003, "protocol": "tcp" },
-        { "containerPort": 20004, "protocol": "tcp" },
-        { "containerPort": 20005, "protocol": "tcp" },
-        { "containerPort": 20006, "protocol": "tcp" },
-        { "containerPort": 20007, "protocol": "tcp" },
-        { "containerPort": 20008, "protocol": "tcp" },
-        { "containerPort": 20009, "protocol": "tcp" }
-      ],
+      "portMappings": [{ "containerPort": 8003, "protocol": "tcp" }],
       "secrets": [
         { "name": "POSTGRES_HOST", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:host::" },
         { "name": "POSTGRES_PORT", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:port::" },

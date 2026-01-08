@@ -96,7 +96,7 @@ export const appRouter = router({
           status: deployment.status,
           url: getDeploymentUrl({
             configuration: ctx.configuration,
-            deploymentPort: deployment.port,
+            deploymentId: deployment.id,
           }),
         };
       }),
@@ -118,7 +118,7 @@ export const appRouter = router({
           status: deployment.status,
           url: getDeploymentUrl({
             configuration: ctx.configuration,
-            deploymentPort: deployment.port,
+            deploymentId: deployment.id,
           }),
         })) satisfies ListDeploymentsResponse;
       }),

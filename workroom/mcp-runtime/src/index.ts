@@ -7,6 +7,7 @@ import z from 'zod';
 import { getConfiguration } from './configuration.ts';
 import { runMigrationsAndGetDatabaseClient } from './lib/database.ts';
 import { createActionDeployer, getDeploymentUrl } from './lib/deployments.ts';
+import { createDeploymentProxyMiddleware } from './lib/proxy.ts';
 import { appRouter } from './router.ts';
 
 const run = async () => {
@@ -83,7 +84,7 @@ const run = async () => {
             status: createDeploymentResult.data.status,
             url: getDeploymentUrl({
               configuration,
-              deploymentPort: createDeploymentResult.data.port,
+              deploymentId: createDeploymentResult.data.id,
             }),
           })
           .send();
@@ -114,6 +115,9 @@ const run = async () => {
       }),
     }),
   );
+
+  const deploymentProxyMiddleware = createDeploymentProxyMiddleware({ db });
+  app.use('/deployments/:deploymentId', deploymentProxyMiddleware);
 
   applicationReady = true;
 

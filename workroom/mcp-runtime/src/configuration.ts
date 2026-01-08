@@ -34,11 +34,8 @@ export const getConfiguration = (): Configuration => {
     // Persistent directory for storing deployment artifacts
     persistentDataDirectory: parseEnvVariable('SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR'),
     // Maximum number of Action Servers we allow to run and the lowest port we
-    // allocate. Note: Server ports (20000-20009) are hard coded in the
-    // following files and must be adjusted accordingly if this is changed.
-    // CLOUD-5777 will address this need for manual changes.
-    // - infra/aws/ecs-fargate/template.ecs-task-def.json
-    // - compose.yml
+    // allocate. Note: The ports need not be exposed - the servers are accessed
+    // through a reverse proxy (workroom/mcp-runtime/src/lib/proxy.ts)
     maxServerCount: 10,
     minServerPort: 20000,
     // This is the maximum allowed size for an Agent Package upload

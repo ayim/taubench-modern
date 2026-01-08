@@ -36,17 +36,14 @@ const AgentSpecActionPackages = z.object({
 
 export const getDeploymentUrl = ({
   configuration,
-  deploymentPort,
+  deploymentId,
 }: {
-  configuration: Pick<Configuration, 'serverHttpUrl'>;
-  deploymentPort: number | null;
-}): string | null => {
-  if (deploymentPort === null) {
-    return null;
-  }
+  configuration: Pick<Configuration, 'serverHttpUrl' | 'httpApiPort'>;
+  deploymentId: string;
+}): string => {
   const deploymentUrl = new URL(configuration.serverHttpUrl);
-  deploymentUrl.port = deploymentPort.toString();
-  deploymentUrl.pathname = '/mcp/';
+  deploymentUrl.port = configuration.httpApiPort.toString();
+  deploymentUrl.pathname = `/deployments/${deploymentId}/mcp/`;
   return deploymentUrl.href;
 };
 
@@ -269,10 +266,7 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
     port: number;
     waitForServer?: boolean;
   }): Promise<{ port: number }> => {
-    const serverUrl = getDeploymentUrl({ configuration, deploymentPort: port });
-    if (serverUrl === null) {
-      throw new Error(`Unexpected: Could not get deployment URL for deployment ${deploymentId}`);
-    }
+    const serverUrl = getDeploymentUrl({ configuration, deploymentId });
 
     const actionServerDataDir = await getActionServerDataDir({ deploymentId });
     const isEmpty = (await readdir(actionServerDataDir)).length === 0;
@@ -292,7 +286,7 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
         'start',
         `--server-url=${serverUrl}`,
         '--address',
-        '0.0.0.0',
+        '127.0.0.1',
         '--port',
         port.toString(),
         '--verbose',
@@ -349,9 +343,8 @@ export const createActionDeployer = (ctx: { configuration: Configuration; db: Da
 
       const checkServerResponsive = async () => {
         try {
-          const serverOpenApiSpecUrl = new URL(serverUrl);
-          serverOpenApiSpecUrl.pathname = '/openapi.json';
-          const response = await fetch(serverOpenApiSpecUrl.href, {
+          const internalUrl = `http://127.0.0.1:${port}/openapi.json`;
+          const response = await fetch(internalUrl, {
             method: 'GET',
             signal: AbortSignal.timeout(500),
           });

@@ -16,6 +16,12 @@
 | `GET`    | `/api/deployments`                | List all deployments    |
 | `DELETE` | `/api/deployments/{deploymentId}` | Delete a deployment     |
 
+### Action Server Proxy
+
+| Method | Path                            | Description                                   |
+| ------ | ------------------------------- | --------------------------------------------- |
+| `*`    | `/deployments/{deploymentId}/*` | Proxy requests to the deployment Action Server |
+
 ---
 
 ### Endpoint Details
@@ -39,6 +45,15 @@
 
 - **Returns:** `{ deploymentId, deleted: true }` on success
 - Returns error if deployment not found
+
+#### `/deployments/{deploymentId}/*`
+
+- Proxies all requests to the internal Action Server for the given deployment
+- Example: `GET /deployments/abc-123/mcp/actions` → `GET http://localhost:20001/mcp/actions`
+- Returns `404` if deployment not found
+- Returns `502` on proxy errors
+
+#### Errors
 
 All endpoints may return error responses in the format:
 
