@@ -6,7 +6,10 @@
       "Bash(grep:*)",
       "WebFetch(domain:github.com)",
       "Bash(npm run build:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "mcp__linear-server__list_issues",
+      "mcp__linear-server__update_issue",
+      "mcp__linear-server__get_issue"
     ],
     "deny": [],
     "ask": []
