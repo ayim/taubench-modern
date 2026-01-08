@@ -4,13 +4,19 @@ import asyncio
 from dataclasses import asdict
 from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 
-from agent_platform.core.actions.action_utils import ActionResponse
 from agent_platform.core.responses.content.tool_use import ResponseToolUseContent
 from agent_platform.core.tools import ToolDefinition
 from agent_platform.server.kernel.tools import AgentServerToolsInterface
+
+
+def build_dummy_tool_call_context(tool_call_id: str = "unset"):
+    from agent_platform.core.tools.tool_definition import ToolCallContext
+
+    return ToolCallContext(
+        agent_id="unset", user_id="unset", tenant_id="unset", thread_id="unset", tool_call_id=tool_call_id
+    )
 
 
 @pytest.fixture
@@ -130,6 +136,8 @@ async def test_action_response_inline_error_result_error_pattern(
     """ActionResponse with {"result": None, "error": "..."} should elevate error."""
 
     async def tool_func(**kwargs):
+        from agent_platform.core.actions.action_utils import ActionResponse
+
         return ActionResponse(result=None, error="Boom")
 
     tool_def = ToolDefinition(
@@ -159,6 +167,8 @@ async def test_async_action_timeout_error_message(
     """Ensure ReadTimeout exceptions surface a non-empty error message."""
 
     async def timeout_tool(**kwargs):
+        import httpx
+
         raise httpx.ReadTimeout("")
 
     tool_def = ToolDefinition(
@@ -1022,173 +1032,6 @@ async def test_client_tool_categories_in_execute_pending_tool_calls(
 
 
 @pytest.mark.asyncio
-async def test_tool_call_headers_with_user_id(tools_interface: AgentServerToolsInterface, mock_kernel):
-    """Test that tool call headers include user ID when available."""
-    from unittest.mock import AsyncMock
-
-    captured_headers = {}
-
-    # Create a tool that captures the extra_headers parameter
-    async def header_capture_tool(extra_headers=None, **kwargs):
-        nonlocal captured_headers
-        captured_headers = extra_headers or {}
-        return {"result": "success"}
-
-    tool_def = ToolDefinition(
-        name="header_capture_tool",
-        description="A tool that captures headers",
-        input_schema={"type": "object", "properties": {}},
-        function=header_capture_tool,
-    )
-
-    # Create the tools interface with mocked kernel
-    mock_kernel.outgoing_events.dispatch = AsyncMock()
-    mock_kernel.user.cr_user_id = "test-user-id"
-    mock_kernel.user.cr_system_id = "test-system-id"
-
-    tools_interface.attach_kernel(mock_kernel)
-
-    # Create a tool use request
-    tool_use = ResponseToolUseContent(
-        tool_call_id="call_123",
-        tool_name="header_capture_tool",
-        tool_input_raw="{}",
-    )
-
-    # Execute pending tool calls
-    pending_calls = [(tool_def, tool_use)]
-    results = []
-
-    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
-        results.append(result)
-
-    # Verify headers were passed correctly
-    assert len(results) == 1
-    assert results[0].error is None
-    assert results[0].output_raw == {"result": "success"}
-
-    # Verify the headers include user ID (not system ID) when user ID is available
-    assert "x-invoked_by_assistant_id" in captured_headers
-    assert captured_headers["x-invoked_by_assistant_id"] == "test-agent-id"
-    assert "x-invoked_on_behalf_of_user_id" in captured_headers
-    assert captured_headers["x-invoked_on_behalf_of_user_id"] == "test-user-id"
-    assert "x-invoked_for_thread_id" in captured_headers
-    assert captured_headers["x-invoked_for_thread_id"] == "test-thread-id"
-    assert "x-action_invocation_id" in captured_headers
-    assert captured_headers["x-action_invocation_id"] == "call_123"
-
-
-@pytest.mark.asyncio
-async def test_tool_call_headers_with_system_id_fallback(tools_interface: AgentServerToolsInterface, mock_kernel):
-    """Test that tool call headers use system ID when user ID is empty."""
-    captured_headers = {}
-
-    # Create a tool that captures the extra_headers parameter
-    async def header_capture_tool(extra_headers=None, **kwargs):
-        nonlocal captured_headers
-        captured_headers = extra_headers or {}
-        return {"result": "success"}
-
-    tool_def = ToolDefinition(
-        name="header_capture_tool",
-        description="A tool that captures headers",
-        input_schema={"type": "object", "properties": {}},
-        function=header_capture_tool,
-    )
-
-    # Create the tools interface with mocked kernel
-    mock_kernel.agent.agent_id = "test-agent-id"
-    mock_kernel.thread.thread_id = "test-thread-id"
-    mock_kernel.user.cr_user_id = None  # No user ID - should use system ID
-    mock_kernel.user.cr_system_id = "test-system-id"
-
-    tools_interface.attach_kernel(mock_kernel)
-
-    # Create a tool use request
-    tool_use = ResponseToolUseContent(
-        tool_call_id="call_456",
-        tool_name="header_capture_tool",
-        tool_input_raw="{}",
-    )
-
-    # Execute pending tool calls
-    pending_calls = [(tool_def, tool_use)]
-    results = []
-
-    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
-        results.append(result)
-
-    # Verify headers were passed correctly
-    assert len(results) == 1
-    assert results[0].error is None
-    assert results[0].output_raw == {"result": "success"}
-
-    # Verify the headers use system ID when user ID is None
-    assert "x-invoked_by_assistant_id" in captured_headers
-    assert captured_headers["x-invoked_by_assistant_id"] == "test-agent-id"
-    assert "x-invoked_on_behalf_of_user_id" in captured_headers
-    assert captured_headers["x-invoked_on_behalf_of_user_id"] == "test-system-id"
-    assert "x-invoked_for_thread_id" in captured_headers
-    assert captured_headers["x-invoked_for_thread_id"] == "test-thread-id"
-    assert "x-action_invocation_id" in captured_headers
-    assert captured_headers["x-action_invocation_id"] == "call_456"
-
-
-@pytest.mark.asyncio
-async def test_tool_call_headers_with_empty_string_user_id(tools_interface: AgentServerToolsInterface, mock_kernel):
-    """Test that tool call headers use system ID when user ID is empty string."""
-    captured_headers = {}
-
-    # Create a tool that captures the extra_headers parameter
-    async def header_capture_tool(extra_headers=None, **kwargs):
-        nonlocal captured_headers
-        captured_headers = extra_headers or {}
-        return {"result": "success"}
-
-    tool_def = ToolDefinition(
-        name="header_capture_tool",
-        description="A tool that captures headers",
-        input_schema={"type": "object", "properties": {}},
-        function=header_capture_tool,
-    )
-
-    # Create the tools interface with mocked kernel
-    mock_kernel.agent.agent_id = "test-agent-id"
-    mock_kernel.thread.thread_id = "test-thread-id"
-    mock_kernel.user.cr_user_id = ""  # Empty string user ID - should use system ID
-    mock_kernel.user.cr_system_id = "test-system-id"
-
-    # Create a tool use request
-    tool_use = ResponseToolUseContent(
-        tool_call_id="call_789",
-        tool_name="header_capture_tool",
-        tool_input_raw="{}",
-    )
-
-    # Execute pending tool calls
-    pending_calls = [(tool_def, tool_use)]
-    results = []
-
-    async for result in tools_interface.execute_pending_tool_calls(pending_calls):
-        results.append(result)
-
-    # Verify headers were passed correctly
-    assert len(results) == 1
-    assert results[0].error is None
-    assert results[0].output_raw == {"result": "success"}
-
-    # Verify the headers use system ID when user ID is empty string
-    assert "x-invoked_by_assistant_id" in captured_headers
-    assert captured_headers["x-invoked_by_assistant_id"] == "test-agent-id"
-    assert "x-invoked_on_behalf_of_user_id" in captured_headers
-    assert captured_headers["x-invoked_on_behalf_of_user_id"] == "test-system-id"
-    assert "x-invoked_for_thread_id" in captured_headers
-    assert captured_headers["x-invoked_for_thread_id"] == "test-thread-id"
-    assert "x-action_invocation_id" in captured_headers
-    assert captured_headers["x-action_invocation_id"] == "call_789"
-
-
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "scenario",
     [
@@ -1201,6 +1044,7 @@ async def test_tool_call_headers_with_empty_string_user_id(tools_interface: Agen
 )
 async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInterface, mock_kernel, scenario):
     """Test that internal-tool category tools do not receive extra_headers."""
+
     function_called_with = {}
 
     # Create a "fake" MCP type tool
@@ -1239,13 +1083,10 @@ async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInte
         tool_input_raw='{"param": "test_value"}',
     )
 
-    # Execute the tool directly with extra_headers
-    extra_headers = {
-        "x-test-header": "test-value",
-        "x-another-header": "another-value",
-    }
-
-    result = await tools_interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
+    result = await tools_interface._safe_execute_tool(
+        tool_def,
+        tool_use,
+    )
 
     # Verify the tool was called successfully
     if scenario == "structured_content":
@@ -1280,6 +1121,7 @@ async def test_mcp_tool_no_runtime_headers(tools_interface: AgentServerToolsInte
 @pytest.mark.asyncio
 async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterface, mock_kernel):
     """Test that internal-tool category tools do not receive extra_headers."""
+
     function_called_with = {}
 
     # Create a tool that captures its call arguments
@@ -1303,13 +1145,10 @@ async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterfa
         tool_input_raw='{"param": "test_value"}',
     )
 
-    # Execute the tool directly with extra_headers
-    extra_headers = {
-        "x-test-header": "test-value",
-        "x-another-header": "another-value",
-    }
-
-    result = await tools_interface._safe_execute_tool(tool_def, tool_use, extra_headers=extra_headers)
+    result = await tools_interface._safe_execute_tool(
+        tool_def,
+        tool_use,
+    )
 
     # Verify the tool was called successfully
     assert result.error is None
@@ -1317,9 +1156,8 @@ async def test_internal_tool_no_headers(tools_interface: AgentServerToolsInterfa
     assert result.definition == tool_def
     assert result.tool_call_id == "internal_call"
 
-    # Verify that the function was called with ONLY the JSON args, no extra_headers
+    # Verify that the function was called with ONLY the JSON args, no tool call context
     assert function_called_with == {"param": "test_value"}
-    assert "extra_headers" not in function_called_with
 
 
 @pytest.mark.asyncio

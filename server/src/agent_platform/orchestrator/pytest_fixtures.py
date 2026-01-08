@@ -2,9 +2,15 @@
 # Meant to be used in pytest tests.
 import logging
 import os
+import typing
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
+
+if typing.TYPE_CHECKING:
+    from agent_platform.orchestrator.bootstrap_action_server import ActionServerProcess
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +87,7 @@ def assert_status(response, message: str = "", valid_statuses: tuple[int, ...] =
         )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def action_server_executable_path() -> Path:
     from agent_platform.orchestrator.default_locations import (
         get_action_server_executable_path,
@@ -92,14 +98,20 @@ def action_server_executable_path() -> Path:
 
 
 @pytest.fixture
-def action_server_process(tmpdir, action_server_executable_path: Path):
+def action_server_process(tmpdir, action_server_executable_path: Path) -> "Iterator[ActionServerProcess]":
+    with action_server_process_context(Path(tmpdir), action_server_executable_path) as action_server_process:
+        yield action_server_process
+
+
+@contextmanager
+def action_server_process_context(tmpdir: Path, action_server_executable_path: Path) -> "Iterator[ActionServerProcess]":
     import subprocess
     import threading
 
     from agent_platform.orchestrator.bootstrap_action_server import ActionServerProcess
 
     action_server_process = ActionServerProcess(
-        datadir=Path(tmpdir) / "action_server_data",
+        datadir=tmpdir / "action_server_data",
         executable_path=action_server_executable_path,
     )
     yield action_server_process

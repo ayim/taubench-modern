@@ -2,6 +2,7 @@ import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import TypedDict
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +22,7 @@ def files_location(tmpdir) -> Path:
     return Path(tmpdir) / "files"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def resources_dir() -> Path:
     return Path(os.path.normpath(os.path.abspath(__file__))).parent / "resources"
 
@@ -105,13 +106,20 @@ def base_url_agent_server_with_data_frames(tmpdir, logs_dir, files_location):
         yield url
 
 
+class BaseUrlAgentServerSyncAndAsyncActionsAndSyncMode(TypedDict):
+    url: str
+    sync_mode: str
+
+
 @pytest.fixture(
     params=[
         "async",
         "sync",
     ]
 )
-def base_url_agent_server_sync_and_async_actions_and_sync_mode(tmpdir, logs_dir, files_location, request):
+def base_url_agent_server_sync_and_async_actions_and_sync_mode(
+    tmpdir, logs_dir, files_location, request
+) -> Iterator[BaseUrlAgentServerSyncAndAsyncActionsAndSyncMode]:
     """Fixture that starts agent server with async actions enabled."""
 
     sync_mode = request.param

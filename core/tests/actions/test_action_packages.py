@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from agent_platform.core.actions.action_package import ActionPackage
-from agent_platform.core.tools.tool_definition import ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolCallContext, ToolDefinition
 from agent_platform.core.utils import SecretString
 
 
@@ -167,7 +167,7 @@ class TestActionPackage:
         assert package.allowed_actions == ["action1", "action2"]
 
     @pytest.mark.asyncio
-    @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")
+    @patch("agent_platform.core.actions.action_utils.get_spec_and_build_tool_definitions")
     async def test_to_tool_definitions(self, mock_get_spec):
         """Test conversion to tool definitions with mocked API response."""
         # Setup mock return value
@@ -189,18 +189,26 @@ class TestActionPackage:
             allowed_actions=["action1"],
         )
 
+        # Create a mock tool_call_context
+        tool_call_context = ToolCallContext(
+            user_id="test-user",
+            agent_id=None,
+            tenant_id=None,
+            thread_id=None,
+        )
+
         # Call the method
-        tool_definitions = await package.to_tool_definitions()
+        tool_definitions = await package.to_tool_definitions(tool_call_context)
 
         # Verify results
         assert len(tool_definitions) == 1
         assert tool_definitions[0] == tool_def
 
         # Verify the mock was called with correct arguments
-        mock_get_spec.assert_called_once_with("http://example.com", "test-api-key", ["action1"], None)
+        mock_get_spec.assert_called_once_with("http://example.com", "test-api-key", ["action1"], tool_call_context)
 
     @pytest.mark.asyncio
-    @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")
+    @patch("agent_platform.core.actions.action_utils.get_spec_and_build_tool_definitions")
     async def test_to_tool_definitions_missing_url(self, mock_get_spec):
         """Test conversion with missing URL."""
         mock_get_spec.return_value = []
@@ -212,13 +220,21 @@ class TestActionPackage:
             api_key=SecretString("test-api-key"),
         )
 
-        tool_definitions = await package.to_tool_definitions()
+        # Create a mock tool_call_context
+        tool_call_context = ToolCallContext(
+            user_id="test-user",
+            agent_id=None,
+            tenant_id=None,
+            thread_id=None,
+        )
+
+        tool_definitions = await package.to_tool_definitions(tool_call_context)
 
         assert tool_definitions == []
-        mock_get_spec.assert_called_once_with("", "test-api-key", [], None)
+        mock_get_spec.assert_called_once_with("", "test-api-key", [], tool_call_context)
 
     @pytest.mark.asyncio
-    @patch("agent_platform.core.actions.action_package.get_spec_and_build_tool_definitions")
+    @patch("agent_platform.core.actions.action_utils.get_spec_and_build_tool_definitions")
     async def test_to_tool_definitions_missing_api_key(self, mock_get_spec):
         """Test conversion with missing API key."""
         mock_get_spec.return_value = []
@@ -230,7 +246,15 @@ class TestActionPackage:
             url="http://example.com",
         )
 
-        tool_definitions = await package.to_tool_definitions()
+        # Create a mock tool_call_context
+        tool_call_context = ToolCallContext(
+            user_id="test-user",
+            agent_id=None,
+            tenant_id=None,
+            thread_id=None,
+        )
+
+        tool_definitions = await package.to_tool_definitions(tool_call_context)
 
         assert tool_definitions == []
-        mock_get_spec.assert_called_once_with("http://example.com", "", [], None)
+        mock_get_spec.assert_called_once_with("http://example.com", "", [], tool_call_context)

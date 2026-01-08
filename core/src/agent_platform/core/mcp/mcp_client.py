@@ -33,8 +33,6 @@ Public surface
 """
 
 import asyncio
-import base64
-import json
 import os
 import random
 import re
@@ -58,13 +56,11 @@ from mcp.types import CallToolRequest, CallToolRequestParams, CallToolResult, Cl
 from structlog.stdlib import BoundLogger, get_logger
 
 from agent_platform.core.configurations import Configuration, FieldMetadata
-from agent_platform.core.data_server.data_server import DataServerDetails, DataServerEndpointKind
-from agent_platform.core.mcp.mcp_types import MCPVariables, MCPVariableTypeOAuth2Secret, MCPVariableTypeSecret
 from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if TYPE_CHECKING:
     from agent_platform.core.mcp.mcp_server import MCPServer
-    from agent_platform.server.api.dependencies import StorageDependency
+    from agent_platform.core.tools.tool_definition import ToolCallContext
 
 
 # --------------------------------------------------------------------------- #
@@ -200,9 +196,7 @@ class MCPClient:
     def __init__(
         self,
         target_server: "MCPServer",
-        additional_headers: dict[str, str] | None = None,
-        data_server_details: DataServerDetails | None = None,
-        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
+        tool_call_context: "ToolCallContext",
     ) -> None:
         """
         Initialize MCP client.
@@ -211,48 +205,19 @@ class MCPClient:
         ----------
         target_server : MCPServer
             The MCP server configuration
-        additional_headers : dict[str, str] | None
-            Additional headers to include in requests
-        data_server_details : DataServerDetails | None
-            Data server connection details for X-Data-Context header
-        mcp_sema4ai_action_invocation_context : dict[str, str] | None
-            Context headers (agent_id, thread_id, tenant_id, user_id) for Sema4AI action servers.
-            Only used when target_server.type == "sema4ai_action_server" to build
-            X-Action-Invocation-Context header.
+        tool_call_context: ToolCallContext
+            The tool call context
         """
         self._cfg = MCPClientConfiguration  # class-level singleton per ConfigMeta
         self.target_server = target_server
-        self.data_server_details = data_server_details
+        assert target_server.type != "sema4ai_action_server", (
+            "Sema4AI Action Servers should use native protocol, not MCP Client"
+        )
 
-        # Merge headers from server config and additional headers
-        self._headers: dict[str, str] = {}
-        if target_server.headers:
-            # For Sema4AI Action Servers, filter out secrets (they go in X-Action-Context)
-            # For Generic MCP Servers, send all headers including secrets
-            if target_server.type == "sema4ai_action_server":
-                target_headers: dict[str, str] = {
-                    key: value if isinstance(value, str) else value.value or ""
-                    for key, value in target_server.headers.items()
-                    if not isinstance(value, MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret)
-                }
-            else:
-                # Generic MCP Servers get all headers, including secrets
-                target_headers: dict[str, str] = {
-                    key: value if isinstance(value, str) else value.value or ""
-                    for key, value in target_server.headers.items()
-                }
-            self._headers.update(target_headers)
-        if additional_headers:
-            self._headers.update(additional_headers)
+        if tool_call_context.mcp_server_kind == "unset":
+            tool_call_context = tool_call_context.with_mcp_server_info(target_server)
 
-        if target_server.type == "sema4ai_action_server":
-            # Add X-Action-Context header if not already present and if we have secrets to send
-            self._ensure_action_context_header(target_server.headers)
-            # Add X-Action-Invocation-Context header with provided context
-            self._ensure_action_invocation_header(mcp_sema4ai_action_invocation_context)
-            if data_server_details:
-                # Add X-Data-Context header if we have data server details
-                self._ensure_data_context_header()
+        self._headers: dict[str, str] = tool_call_context.build_headers_for_mcp_server()
 
         self._session: ClientSession | None = None
         self._get_session_id_cb: Callable[[], str | None] | None = None
@@ -280,35 +245,6 @@ class MCPClient:
     #  Public properties                                                 #
     # ------------------------------------------------------------------ #
 
-    @classmethod
-    async def with_data_context(
-        cls,
-        target_server: "MCPServer",
-        storage: "StorageDependency",
-        additional_headers: dict[str, str] | None = None,
-        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
-    ) -> "MCPClient":
-        """
-        Create an MCPClient with data server details automatically included.
-
-        This is a convenience method that evaluates get_dids_connection_details()
-        and creates the client with the appropriate data context.
-        """
-        try:
-            from agent_platform.server.api.dependencies import get_dids_connection_details
-
-            data_server_details = await get_dids_connection_details(storage)
-            return cls(
-                target_server,
-                additional_headers,
-                data_server_details,
-                mcp_sema4ai_action_invocation_context,
-            )
-        except Exception:
-            # If we can't get data server details, create client without them
-            # This allows the client to work even when data context is unavailable
-            return cls(target_server, additional_headers, None, mcp_sema4ai_action_invocation_context)
-
     @property
     def is_connected(self) -> bool:
         return self._connected and self._session is not None
@@ -330,110 +266,6 @@ class MCPClient:
         if self._get_session_id_cb:
             return self._get_session_id_cb()
         return None
-
-    # ------------------------------------------------------------------ #
-    #  Header preparation                                                #
-    # ------------------------------------------------------------------ #
-
-    def _ensure_data_context_header(self) -> None:
-        """
-        Creates the encrypted x-data-context header value based on data server credentials.
-        """
-        if not self.data_server_details:
-            return
-
-        if (
-            not self.data_server_details.username
-            or not self.data_server_details.password_str
-            or not self.data_server_details.data_server_endpoints
-        ):
-            return
-
-        data_context = {"data-server": {}}
-
-        for endpoint in self.data_server_details.data_server_endpoints:
-            if endpoint.kind == DataServerEndpointKind.HTTP:
-                data_context["data-server"]["http"] = {
-                    "url": f"http://{endpoint.full_address}",
-                    "user": self.data_server_details.username,
-                    "password": self.data_server_details.password_str,
-                }
-            elif endpoint.kind == DataServerEndpointKind.MYSQL:
-                data_context["data-server"]["mysql"] = {
-                    "host": endpoint.host,
-                    "port": endpoint.port,
-                    "user": self.data_server_details.username,
-                    "password": self.data_server_details.password_str,
-                }
-
-        if data_context["data-server"]:
-            payload_to_encrypt = json.dumps(data_context)
-            x_data_context_value = base64.b64encode(payload_to_encrypt.encode("utf-8")).decode("ascii")
-
-            self._headers["X-Data-Context"] = x_data_context_value
-            logger.info("X-Data-Context header added to the headers")
-
-    def _ensure_action_context_header(self, target_headers: MCPVariables | None) -> None:
-        """
-        Add X-Action-Context header if not already present.
-        Ref: https://github.com/Sema4AI/actions/blob/master/action_server/docs/guides/07-secrets.md#passing-secrets-as-environment-variables-or-headers
-        """
-        if target_headers is None:
-            return
-
-        # Check if X-Action-Context header already exists (case-insensitive)
-        for header_name in target_headers:
-            if header_name.lower() == "x-action-context":
-                # Header already exists, don't create a new one
-                return
-
-        # Only process headers that are MCP secret types
-        secrets = {}
-        for header_name, header_value in target_headers.items():
-            if isinstance(header_value, MCPVariableTypeSecret | MCPVariableTypeOAuth2Secret):
-                secrets[header_name] = header_value.value
-
-        # If we have secrets, create the X-Action-Context header
-        if secrets:
-            action_context = {"secrets": secrets}
-            x_action_context_value = base64.b64encode(json.dumps(action_context).encode("utf-8")).decode("ascii")
-
-            self._headers["X-Action-Context"] = x_action_context_value
-            logger.info("X-Action-Context header added to the headers")
-
-    def _ensure_action_invocation_header(self, action_invocation_context: dict[str, str] | None = None) -> None:
-        """Creates the X-Action-Invocation-Context header value with invocation metadata only.
-
-        This header contains only metadata
-        (agent_id, user_id, thread_id, tenant_id, action_invocation_id)
-        and is base64 encoded (SPCS) or encrypted (full ACE system).
-
-        Parameters
-        ----------
-        action_invocation_context : dict[str, str] | None
-            Context data (agent_id, thread_id, tenant_id, user_id). If None, will try to get
-            from headers.
-        """
-        if action_invocation_context is None:
-            logger.warning("No action invocation context provided")
-            return
-
-        import uuid
-
-        # Extract context data from provided action_invocation_context
-        context_data = json.dumps(
-            {
-                "agent_id": action_invocation_context.get("agent_id", ""),
-                "invoked_on_behalf_of_user_id": action_invocation_context.get("invoked_on_behalf_of_user_id", ""),
-                "thread_id": action_invocation_context.get("thread_id", ""),
-                "tenant_id": action_invocation_context.get("tenant_id", ""),
-                "action_invocation_id": str(uuid.uuid4()),
-            }
-        )
-
-        # Encode and set the header
-        self._headers["X-Action-Invocation-Context"] = base64.b64encode(context_data.encode("utf-8")).decode("utf-8")
-        logger.info("X-Action-Invocation-Context header added to the headers")
 
     # ------------------------------------------------------------------ #
     #  Connect / close                                                   #
