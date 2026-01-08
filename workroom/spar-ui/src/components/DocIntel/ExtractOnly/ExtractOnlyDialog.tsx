@@ -5,7 +5,7 @@ import { ConfigurationPanel, ConfigurationPanelRef } from './ConfigurationPanel'
 import { ExtractResultsPanel } from './ExtractResultsPanel';
 import { DocumentViewer } from '../shared/components/DocumentViewer';
 import { useResizablePanel, useResultsSelection } from '../shared/hooks';
-import { extractedDataToBlocks } from '../shared/utils';
+import { toRenderedExtractBlocks } from '../shared/utils/data-lib';
 import type { ExtractSchemaResponse, ExtractResponse } from '../shared/types';
 import { usePdfAnnotations } from '../shared/hooks/usePdfAnnotations';
 import { useExtractDialogState } from './hooks/useExtractDialogState';
@@ -148,7 +148,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   // Transform extracted data to blocks for Results tab
   const extractedBlocks = useMemo(() => {
     if (!extractResultData) return [];
-    return extractedDataToBlocks(extractResultData);
+    return toRenderedExtractBlocks(extractResultData);
   }, [extractResultData]);
 
   // Bidirectional selection between PDF and Results
