@@ -46,9 +46,12 @@ jobs:
 
             # How to review
 
-            Use the pr-review skill. Follow CLAUDE.md and AGENTS.md for style guidance.
+            Use the following MD files:
+            - skills/pr-review/SKILL.md
+            - any CLAUDE.md
+            - any AGENTS.md
 
-            Include links to resources used (use main branch URLs).
+            Include links to the MD files you used for the review (use main branch URLs).
 
             # What to review
 
