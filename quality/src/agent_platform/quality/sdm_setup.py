@@ -208,14 +208,69 @@ class SDMSetup:
         # Attach SDMs to the thread
         await self._attach_sdms_to_thread(thread_id, sdm_ids)
 
+    async def _find_sdm_by_name(self, sdm_name: str) -> list[str]:
+        """Find SDM IDs that match the given name (case-insensitive).
+
+        Args:
+            sdm_name: The name of the SDM to search for.
+
+        Returns:
+            List of SDM IDs with matching names (empty if none found).
+        """
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"{self.server_url}/api/v2/semantic-data-models/")
+            response.raise_for_status()
+            all_sdms = response.json() or []
+
+        matching_ids = []
+        for sdm_info in all_sdms:
+            sdm_model = sdm_info.get("semantic_data_model", {})
+            existing_name = sdm_model.get("name", "")
+            if existing_name.lower() == sdm_name.lower():
+                sdm_id = sdm_info.get("semantic_data_model_id")
+                if sdm_id:
+                    matching_ids.append(sdm_id)
+
+        return matching_ids
+
     async def _import_sdm_uncached(self, semantic_model: dict[str, Any], agent_id: str | None, source_key: str) -> str:
-        """Import SDM and cache the result. No locking - must be called during setup phase."""
+        """Import SDM and cache the result. Deletes existing SDMs with same name first.
+
+        No locking - must be called during setup phase.
+        """
         cache_key = (source_key, agent_id)
 
         # Check cache first (idempotent)
         cached = self._import_cache.get(cache_key)
         if cached:
             return cached
+
+        # Check for existing SDMs with same name and delete them
+        sdm_name = semantic_model.get("name")
+        if sdm_name:
+            existing_ids = await self._find_sdm_by_name(sdm_name)
+            if existing_ids:
+                logger.warning(
+                    "sdm_setup.deleting_existing_sdms",
+                    sdm_name=sdm_name,
+                    count=len(existing_ids),
+                    sdm_ids=existing_ids,
+                )
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    for sdm_id in existing_ids:
+                        try:
+                            await client.delete(
+                                f"{self.server_url}/api/v2/semantic-data-models/{sdm_id}",
+                            )
+                            logger.info("sdm_setup.deleted_existing_sdm", sdm_id=sdm_id)
+                        except httpx.HTTPStatusError as e:
+                            # Log but continue - 404 means already deleted
+                            if e.response.status_code != http.HTTPStatus.NOT_FOUND:
+                                logger.warning(
+                                    "sdm_setup.delete_failed",
+                                    sdm_id=sdm_id,
+                                    status=e.response.status_code,
+                                )
 
         payload: dict[str, Any] = {"semantic_model": semantic_model}
         if agent_id is not None:
