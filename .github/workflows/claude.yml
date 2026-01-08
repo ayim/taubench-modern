@@ -42,9 +42,15 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
 
-            Review this pull request and provide feedback on it:
+            Review this pull request and provide feedback on it by replying on the PR
 
-            # Content
+            # How to review
+
+            Use the pr-review skill. Follow CLAUDE.md and AGENTS.md for style guidance.
+
+            Include links to resources used (use main branch URLs).
+
+            # What to review
 
             - Code quality and best practices
             - Potential bugs or issues
@@ -52,11 +58,7 @@ jobs:
             - Security concerns
             - Test coverage
 
-            Use the pr-review skill. Follow CLAUDE.md and AGENTS.md for style guidance.
-
-            Include links to resources used (use main branch URLs).
-
-            # Formatting
+            # How to surface the review
 
             - Clearly surface if the PR is ready to be merged or not (score out of 10) with warning emoji if below 8
             - Collapse the entire analysis under <details>:
