@@ -191,6 +191,10 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         **Tips for working with documents:**
         - Use `parse_document(file_name="filename.pdf")` to get the content from
           a document. If force_reload is False, the result will pulled from cache.
+          After *each* `parse_document` call, you must respond with:
+          - A short summary of what the document contains.
+          - For each table found give it a title if it doesn't have one, highlight it, then describe it in one sentence.
+          Make sure tables that extend to multiple pages are counted as one table.
         - After parsing, you can create data frames from the content using
           `create_data_frame_from_json`.
         - Use `generate_schema(file_name="filename.pdf")` to automatically generate
