@@ -59,6 +59,7 @@ def build_executable(  # noqa: PLR0913
 ) -> None:
     """Build the server project executable via PyInstaller."""
     import shutil
+    import time
     import sys
 
     def _format_size(num_bytes: int) -> str:
@@ -119,6 +120,7 @@ def build_executable(  # noqa: PLR0913
 
     print(f"Building executable with version: {version}")
 
+    start_time = time.monotonic()
     build_and_sign_executable(
         root_dir=get_root_dir(),
         name="agent-server",
@@ -129,6 +131,7 @@ def build_executable(  # noqa: PLR0913
         go_wrapper=go_wrapper,
         version=version,
     )
+    print(f"Time to build and sign executable: {time.monotonic() - start_time:.2f} seconds")
 
     dist_root = server_dir / dist_path
     pyinstaller_build_dir = server_dir / "build" / "agent-server"
@@ -146,6 +149,7 @@ def build_executable(  # noqa: PLR0913
     # to check if signed:  spctl -a -vvv -t install /server/dist/final/agent-server
 
     if go_wrapper:
+        start_time = time.monotonic()
         # Now, copy from server/dist/final/agent-server to dist/agent-server
         # (.exe if windows)
         final_exe_path = server_dir / dist_path / "final" / "agent-server"
@@ -160,6 +164,7 @@ def build_executable(  # noqa: PLR0913
         os.makedirs(dest_exe_path.parent, exist_ok=True)
 
         shutil.copy(final_exe_path, dest_exe_path)
+        print(f"Time to build go wrapper: {time.monotonic() - start_time:.2f} seconds")
         print(f"agent-server executable at: {dest_exe_path}")
 
 

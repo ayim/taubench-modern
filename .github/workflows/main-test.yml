@@ -219,7 +219,7 @@ jobs:
           echo "PKG_CONFIG_PATH=$(brew --prefix mysql-client)/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Build and Sign Server Executable
-        run: make build
+        run: make build-exe
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
