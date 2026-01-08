@@ -3,7 +3,7 @@ import logging
 import re
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mindsdb_sql import parse_sql
 from sema4ai.data import DataSource
@@ -34,6 +34,9 @@ from .transport import (
     TransportBase,
 )
 from .transport._utils import call_transport_method
+
+if TYPE_CHECKING:
+    from reducto.types.shared.parse_response import ParseResponse
 
 logger = logging.getLogger(__name__)
 
@@ -428,6 +431,30 @@ class AgentServerClient:
             # but we do truncate the results to the limit count
         )[:limit_count]
 
+    def _parse_response_to_content_blocks(
+        self, parse_response: "ParseResponse"
+    ) -> list[dict[str, Any]]:
+        """Convert Reducto ParseResponse to content blocks for LLM consumption.
+
+        Args:
+            parse_response: The Reducto ParseResponse
+
+        Returns:
+            List of content block dictionaries suitable for LLM messages
+        """
+        # Our call to parse already guarantees that we have a ResultFullResponse
+        result = parse_response.result
+
+        # Extract only the textual content (avoid dumping blocks/bboxes/metadata).
+        extracted_text = "\n\n".join(c.content for c in result.chunks if c.content)
+
+        return [
+            {
+                "kind": "text",
+                "text": f"Document content (parsed by Reducto):\n\n{extracted_text}\n\n",
+            }
+        ]
+
     def _coerce_file_to_content_blocks(
         self, file_name: str, start_page: int | None = None, end_page: int | None = None
     ) -> list[dict[str, Any]]:
@@ -529,6 +556,7 @@ class AgentServerClient:
         start_page: int | None = None,
         end_page: int | None = None,
         user_prompt: str | None = None,
+        parse_response: "ParseResponse | None" = None,
     ) -> dict[str, Any]:
         """Unified schema generation from a file with optional model schema guidance.
 
@@ -543,6 +571,9 @@ class AgentServerClient:
             start_page: Optional starting page number (1-indexed) for page range extraction
             end_page: Optional ending page number (1-indexed) for page range extraction
             user_prompt: Optional user prompt to guide the schema generation
+            parse_response: Optional Reducto ParseResponse to use instead of reading the file.
+                If provided, this will be used to extract content, supporting all Reducto
+                file formats (30+ types including PPTX, CSV, RTF, etc.)
 
         Returns:
             dict[str, Any]: Sanitized JSON Schema with top-level type=object
@@ -557,9 +588,17 @@ class AgentServerClient:
         # Build messages progressively
         base_messages: list[dict[str, Any]] = [{"kind": "text", "text": instructions}]
 
-        base_messages.extend(
-            self._coerce_file_to_content_blocks(file_name, start_page=start_page, end_page=end_page)
-        )
+        # Get content blocks - either from parse_response or by reading the file
+        if parse_response is not None:
+            # Use Reducto parse response (supports all file formats)
+            base_messages.extend(self._parse_response_to_content_blocks(parse_response))
+        else:
+            # Fallback to legacy file reading (limited format support)
+            base_messages.extend(
+                self._coerce_file_to_content_blocks(
+                    file_name, start_page=start_page, end_page=end_page
+                )
+            )
 
         # If model schema is provided, add it with guidance to mimic structure
         if model_schema is not None:

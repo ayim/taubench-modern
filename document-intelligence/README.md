@@ -6,7 +6,7 @@ A Python library for document intelligence operations including document extract
 
 The Document Intelligence Core provides a unified service layer for:
 
-- **Document Processing**: Extract and transform content from PDF documents
+- **Document Processing**: Extract and transform content from 30+ document formats
 - **Data Model Management**: Create and manage document schemas and business views
 - **Layout Management**: Generate translation schemas for mapping between different data formats
 - **Content Extraction**: Leverage Reducto AI for intelligent document parsing

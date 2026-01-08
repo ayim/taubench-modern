@@ -16,10 +16,3 @@ class SchemaWithMetadata(BaseModel):
 
     extract_schema: dict[str, Any]
     user_prompt: str | None = None
-
-    @classmethod
-    def from_schema(
-        cls, schema: dict[str, Any], user_prompt: str | None = None
-    ) -> SchemaWithMetadata:
-        """Create a SchemaWithMetadata from a schema dict and optional user prompt."""
-        return cls(extract_schema=schema, user_prompt=user_prompt)

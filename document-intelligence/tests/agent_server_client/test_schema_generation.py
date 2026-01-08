@@ -233,3 +233,137 @@ class TestSchemaGeneration:
         ]
         assert any("reserved SQL keyword" in text for text in error_texts)
         assert any("select" in text for text in error_texts)
+
+
+class TestParseResponseToContentBlocks:
+    """Test _parse_response_to_content_blocks method for Reducto-based schema generation."""
+
+    def test_parse_response_to_content_blocks_with_full_result(
+        self, agent_client: AgentServerClient
+    ):
+        """Test converting a full ParseResponse to content blocks."""
+        from reducto.types.shared import BoundingBox, ParseResponse, ParseUsage
+        from reducto.types.shared.parse_response import (
+            ResultFullResult,
+            ResultFullResultChunk,
+            ResultFullResultChunkBlock,
+        )
+
+        # Create a mock ParseResponse with full result
+        chunk1 = ResultFullResultChunk(
+            blocks=[
+                ResultFullResultChunkBlock.model_construct(
+                    bbox=BoundingBox.model_construct(
+                        height=50.0,
+                        left=50.0,
+                        page=1,
+                        top=700.0,
+                        width=250.0,
+                        original_page=1,
+                    ),
+                    content="First chunk content",
+                    type="Text",
+                    confidence="high",
+                    image_url=None,
+                )
+            ],
+            content="First chunk content",
+            embed="First chunk content",
+        )
+
+        chunk2 = ResultFullResultChunk(
+            blocks=[
+                ResultFullResultChunkBlock.model_construct(
+                    bbox=BoundingBox.model_construct(
+                        height=50.0,
+                        left=50.0,
+                        page=2,
+                        top=700.0,
+                        width=250.0,
+                        original_page=2,
+                    ),
+                    content="Second chunk content",
+                    type="Text",
+                    confidence="high",
+                    image_url=None,
+                )
+            ],
+            content="Second chunk content",
+            embed="Second chunk content",
+        )
+
+        parse_response = ParseResponse.model_construct(
+            result=ResultFullResult(
+                chunks=[chunk1, chunk2],
+                type="full",
+            ),
+            duration=2.5,
+            job_id="test-job-123",
+            usage=ParseUsage.model_construct(
+                num_pages=2,
+                credits=10.0,
+            ),
+        )
+
+        # Convert to content blocks
+        content_blocks = agent_client._parse_response_to_content_blocks(parse_response)
+
+        # Verify structure
+        assert isinstance(content_blocks, list)
+        assert len(content_blocks) == 1
+        assert content_blocks[0]["kind"] == "text"
+        assert "First chunk content" in content_blocks[0]["text"]
+        assert "Second chunk content" in content_blocks[0]["text"]
+        assert "Document content (parsed by Reducto)" in content_blocks[0]["text"]
+
+    def test_parse_response_to_content_blocks_with_url_result(
+        self, agent_client: AgentServerClient
+    ):
+        """Test converting a ParseResponse that has already been localized to a full result."""
+        from reducto.types.shared import BoundingBox, ParseResponse, ParseUsage
+        from reducto.types.shared.parse_response import (
+            ResultFullResult,
+            ResultFullResultChunk,
+            ResultFullResultChunkBlock,
+        )
+
+        chunk = ResultFullResultChunk(
+            blocks=[
+                ResultFullResultChunkBlock.model_construct(
+                    bbox=BoundingBox.model_construct(
+                        height=50.0,
+                        left=50.0,
+                        page=1,
+                        top=700.0,
+                        width=250.0,
+                        original_page=1,
+                    ),
+                    content="Localized content",
+                    type="Text",
+                    confidence="high",
+                    image_url=None,
+                )
+            ],
+            content="Localized content",
+            embed="Localized content",
+        )
+
+        parse_response = ParseResponse.model_construct(
+            result=ResultFullResult(
+                chunks=[chunk],
+                type="full",
+            ),
+            duration=1.0,
+            job_id="test-job-789",
+            usage=ParseUsage.model_construct(
+                num_pages=1,
+                credits=5.0,
+            ),
+        )
+
+        content_blocks = agent_client._parse_response_to_content_blocks(parse_response)
+
+        # Verify it was converted
+        assert isinstance(content_blocks, list)
+        assert len(content_blocks) == 1
+        assert "Localized content" in content_blocks[0]["text"]

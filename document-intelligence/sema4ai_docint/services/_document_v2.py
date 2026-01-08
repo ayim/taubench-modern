@@ -97,6 +97,7 @@ class _DocumentServiceV2:
         async with document.get_local_path(self._context.agent_server_transport) as local_path:
             reducto_id = await self._context.extraction_service_async.upload(local_path)
             response = await self._context.extraction_service_async.parse(reducto_id, config=config)
+
         await self._context.persistence_service.save(cache_key, response.model_dump_json().encode())
 
         return response
@@ -147,7 +148,8 @@ class _DocumentServiceV2:
         """Generate a JSON Schema from a document by analyzing its structure and content.
 
         This method analyzes a document (PDF, DOCX, Excel, images, etc.) and generates a JSON Schema
-        that describes the document's data structure.
+        that describes the document's data structure. Now supports all Reducto file formats
+        (30+ types including PPTX, PPT, CSV, RTF, HEIC, and more).
 
         The generated schema is automatically cached in thread storage. Subsequent calls
         with the same file_name will return the cached result unless force_reload is True.
@@ -184,6 +186,24 @@ class _DocumentServiceV2:
             document.file_name, DocumentOperationType.SCHEMA
         )
 
+        # Parse the document with Reducto first (supports all file formats)
+        # This will use cached parse response if available, avoiding redundant API calls
+        parse_config = None
+        if start_page is not None or end_page is not None:
+            # Apply page range to parse config if specified
+            parse_config = {
+                "advanced_options": {
+                    "page_range": {
+                        "start": start_page,
+                        "end": end_page,
+                    }
+                }
+            }
+
+        parse_response = await self.parse(document, force_reload=force_reload, config=parse_config)
+
+        # Generate new schema using agent client in a thread to avoid blocking the event loop
+        # Pass the parse_response so it uses Reducto-parsed content (supports all formats)
         schema = await asyncio.to_thread(
             self._context.agent_client.generate_schema,
             document.file_name,
@@ -191,14 +211,13 @@ class _DocumentServiceV2:
             start_page=start_page,
             end_page=end_page,
             user_prompt=user_prompt,
+            parse_response=parse_response,
         )
 
         # Store with metadata for internal tracking
         from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
 
-        schema_with_metadata = SchemaWithMetadata.from_schema(
-            schema=schema, user_prompt=user_prompt
-        )
+        schema_with_metadata = SchemaWithMetadata(extract_schema=schema, user_prompt=user_prompt)
 
         # Save to cache (with metadata)
         await self._context.persistence_service.save(

@@ -353,7 +353,6 @@ class _DocumentTools:
                 doc = await di_service.document_v2.new_document(file_name)
                 parse_response = await di_service.document_v2.parse(doc, force_reload=force_reload)
 
-                # Convert response to LLM-friendly dictionary
                 return parse_response.model_dump()
 
         except PlatformHTTPError as e:

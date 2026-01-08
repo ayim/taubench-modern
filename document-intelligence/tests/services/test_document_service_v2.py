@@ -431,3 +431,112 @@ class TestDocumentServiceV2:
         # Verify the cached user_prompt was updated
         cached = await document_service_v2.get_schema_with_metadata(sample_document)
         assert cached.user_prompt == user_prompt_v2
+
+    @pytest.mark.asyncio
+    async def test_generate_schema_uses_parse_response(
+        self,
+        document_service_v2,
+        sample_document: DocumentV2,
+        context_v2,
+        mock_extraction_service_async,
+    ):
+        """Test that generate_schema uses Reducto parse response for all file formats."""
+        from unittest.mock import Mock
+
+        expected_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+                "date": {"type": "string"},
+            },
+        }
+
+        # Mock the agent_client.generate_schema to capture the parse_response parameter
+        context_v2.agent_client.generate_schema = Mock(return_value=expected_schema)
+
+        # Generate schema
+        schema = await document_service_v2.generate_schema(sample_document)
+
+        # Verify schema was generated
+        assert schema == expected_schema
+
+        # Verify parse was called (for Reducto parsing)
+        assert mock_extraction_service_async.parse.call_count == 1
+
+        # Verify agent_client.generate_schema was called with parse_response
+        assert context_v2.agent_client.generate_schema.call_count == 1
+        call_kwargs = context_v2.agent_client.generate_schema.call_args.kwargs
+        assert "parse_response" in call_kwargs
+        assert call_kwargs["parse_response"] is not None
+
+        # Verify the parse_response is a ParseResponse object
+        parse_response = call_kwargs["parse_response"]
+        assert hasattr(parse_response, "result")
+        assert hasattr(parse_response, "job_id")
+
+    @pytest.mark.asyncio
+    async def test_generate_schema_with_page_range_applies_to_parse(
+        self,
+        document_service_v2,
+        sample_document: DocumentV2,
+        context_v2,
+        mock_extraction_service_async,
+    ):
+        """Test that start_page/end_page parameters are applied to Reducto parse config."""
+        from unittest.mock import Mock
+
+        expected_schema = {
+            "type": "object",
+            "properties": {"content": {"type": "string"}},
+        }
+
+        context_v2.agent_client.generate_schema = Mock(return_value=expected_schema)
+
+        # Generate schema with page range
+        await document_service_v2.generate_schema(
+            sample_document,
+            start_page=2,
+            end_page=5,
+        )
+
+        # Verify parse was called with page range config
+        assert mock_extraction_service_async.parse.call_count == 1
+        parse_call_kwargs = mock_extraction_service_async.parse.call_args.kwargs
+        assert "config" in parse_call_kwargs
+        config = parse_call_kwargs["config"]
+        assert config is not None
+        assert "advanced_options" in config
+        assert "page_range" in config["advanced_options"]
+        assert config["advanced_options"]["page_range"]["start"] == 2
+        assert config["advanced_options"]["page_range"]["end"] == 5
+
+    @pytest.mark.asyncio
+    async def test_generate_schema_leverages_parse_cache(
+        self,
+        document_service_v2,
+        sample_document: DocumentV2,
+        context_v2,
+        mock_extraction_service_async,
+    ):
+        """Test that generate_schema reuses cached parse response."""
+        from unittest.mock import Mock
+
+        expected_schema = {
+            "type": "object",
+            "properties": {"invoice_number": {"type": "string"}},
+        }
+
+        context_v2.agent_client.generate_schema = Mock(return_value=expected_schema)
+
+        # First call: parse the document
+        await document_service_v2.parse(sample_document)
+        assert mock_extraction_service_async.parse.call_count == 1
+
+        # Second call: generate schema (should reuse parse cache)
+        await document_service_v2.generate_schema(sample_document)
+
+        # Verify parse was NOT called again (cache was used)
+        assert mock_extraction_service_async.parse.call_count == 1
+
+        # But generate_schema was called
+        assert context_v2.agent_client.generate_schema.call_count == 1
