@@ -109,7 +109,7 @@ jobs:
               matrix = {
                   "include": [
                       {
-                          "os": "ubuntu-24.04",
+                          "os": "linux-x64-latest-32core",
                           "ext": "",
                           "artifact-name": "agent-server-build-ubuntu-x64",
                           "s3-path": "linux_x64"
@@ -119,9 +119,9 @@ jobs:
           else:
               matrix = {
                   "include": [
-                      {"os": "ubuntu-24.04", "ext": "",    "artifact-name": "agent-server-build-ubuntu-x64", "s3-path": "linux_x64"},
-                      {"os": "macos-15",    "ext": "",    "artifact-name": "agent-server-build-macos-arm64", "s3-path": "macos_arm64"},
-                      {"os": "windows-2025","ext": ".exe","artifact-name": "agent-server-build-windows-x64", "s3-path": "windows_x64"}
+                      {"os": "linux-x64-latest-32core", "ext": "", "artifact-name": "agent-server-build-ubuntu-x64", "s3-path": "linux_x64"},
+                      {"os": "macos-15", "ext": "", "artifact-name": "agent-server-build-macos-arm64", "s3-path": "macos_arm64"},
+                      {"os": "windows-latest-32core", "ext": ".exe", "artifact-name": "agent-server-build-windows-x64", "s3-path": "windows_x64"}
                   ]
               }
 
@@ -161,7 +161,7 @@ jobs:
 
       - name: Run unit tests
         timeout-minutes: 30 # TODO: This might be longer than needed.
-        run: make test-unit PYTEST_PARALLEL=0
+        run: make test-unit PYTEST_PARALLEL=auto
 
   build:
     name: Build Server • ${{ matrix.os }}
@@ -270,7 +270,7 @@ jobs:
         timeout-minutes: 40
         env:
           SEMA4AI_TEST_AGENT_SERVER_EXECUTABLE: ${{ runner.os == 'Windows' && '.\\dist\\agent-server.exe' || './dist/agent-server' }}
-        run: make test-integration PYTEST_PARALLEL=0
+        run: make test-integration PYTEST_PARALLEL=auto
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

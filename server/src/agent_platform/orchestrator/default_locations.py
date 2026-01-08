@@ -10,7 +10,7 @@ from sema4ai.common.tools import BaseTool
 get_default_sema4ai_home_dir = common_get_default_sema4ai_home_dir
 get_executable_path = get_default_executable_path
 
-DEFAULT_ACTION_SERVER_VERSION = "2.17.0"
+DEFAULT_ACTION_SERVER_VERSION = "3.0.0"
 
 
 def get_action_server_executable_path(version: str = DEFAULT_ACTION_SERVER_VERSION, download: bool = True) -> Path:

@@ -63,7 +63,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-ARG ACTION_SERVER_VERSION=2.17.0
+ARG ACTION_SERVER_VERSION=3.0.0
 ADD --chmod=755 https://cdn.sema4.ai/action-server/releases/${ACTION_SERVER_VERSION}/linux64/action-server /usr/local/bin/action-server
 
 ARG USERNAME=mcp-runtime

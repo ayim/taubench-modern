@@ -150,7 +150,7 @@ def verify_action_server_downloaded_ok(
     return False
 
 
-ACTION_SERVER_VERSION = "2.3.0"
+ACTION_SERVER_VERSION = "3.0.0"
 
 PARENT_PATH = Path(__file__).absolute().parent
 
