@@ -79,7 +79,7 @@ def save_golden_csv(output_path: Path, col_names: list[str], results: list[tuple
         results: List of result tuples to write as rows
     """
     with open(output_path, "w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(col_names)
         writer.writerows(results)
 

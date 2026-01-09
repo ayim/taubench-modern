@@ -223,27 +223,6 @@ class BaseDataFrameComparator(ABC):
             num_rows_reference=len(reference_df),
         )
 
-    @staticmethod
-    def _normalize_value(val) -> str | int | float | None:
-        """Normalize a value for comparison (similar to BIRD's approach).
-
-        Args:
-            val: The value to normalize.
-
-        Returns:
-            Normalized value (None, lowercase string, int, or rounded float).
-        """
-        if val is None or (isinstance(val, float) and str(val) == "nan"):
-            return None
-        if isinstance(val, str):
-            return val.strip().lower()
-        if isinstance(val, float):
-            # Round to reasonable precision and convert to int if whole number
-            if val == int(val):
-                return int(val)
-            return round(val, 10)
-        return val
-
 
 class OrderedComparator(BaseDataFrameComparator):
     """Compare dataframes row-by-row in exact order.
@@ -399,22 +378,30 @@ class ValuesOnlyComparator(BaseDataFrameComparator):
             ComparisonResult with match status and explanation.
         """
         try:
-            compare_df = compare_df.copy()
-            reference_df = reference_df.copy()
+            # Convert any NaN values to a string that will (hopefully) not match any other value.
+            compare_df = compare_df.copy().fillna("__S4NULL__")
+            reference_df = reference_df.copy().fillna("__S4NULL__")
 
             compare_cols = list(compare_df.columns)
             reference_cols = list(reference_df.columns)
 
-            compare_set = self._df_to_value_set(compare_df)
-            reference_set = self._df_to_value_set(reference_df)
+            # Convert the dataframes to multisets (bags) of tuples to preserve duplicate counts.
+            from collections import Counter
 
-            if compare_set == reference_set:
+            compare_bag = Counter(map(tuple, compare_df.values))
+            reference_bag = Counter(map(tuple, reference_df.values))
+
+            if compare_bag == reference_bag:
                 return ComparisonResult(
                     matched=True,
-                    explanation=f"Value sets match ({len(compare_set)} unique rows)",
+                    explanation=f"Values match ({len(compare_df)} rows, {len(compare_bag)} unique)",
                     num_rows_compared=len(compare_df),
                     num_rows_reference=len(reference_df),
                 )
+
+            # Convert to sets for detailed diagnostic comparison below
+            compare_set = set(compare_bag.keys())
+            reference_set = set(reference_bag.keys())
 
             # Build detailed diagnostic information
             details = []
@@ -434,6 +421,25 @@ class ValuesOnlyComparator(BaseDataFrameComparator):
                 details.append(f"{len(missing_from_compare)} rows missing from result")
             if extra_in_compare:
                 details.append(f"{len(extra_in_compare)} extra rows in result")
+
+            # Check for duplicate count mismatches (sets match but counts differ)
+            if not missing_from_compare and not extra_in_compare:
+                # Same unique rows, but different duplicate counts
+                count_diffs = []
+                for row in compare_set:
+                    compare_count = compare_bag[row]
+                    reference_count = reference_bag[row]
+                    if compare_count != reference_count:
+                        count_diffs.append((row, compare_count, reference_count))
+                if count_diffs:
+                    details.append(
+                        f"{len(count_diffs)} rows have different duplicate counts "
+                        f"(result has {len(compare_df)} rows, reference has {len(reference_df)} rows)"
+                    )
+                    # Show a sample
+                    sample = count_diffs[:2]
+                    for row, cmp_cnt, ref_cnt in sample:
+                        details.append(f"  Row {row}: result has {cmp_cnt}x, reference has {ref_cnt}x")
 
             # Add sample tuples for debugging (only if column counts match, otherwise too confusing)
             if len(compare_cols) == len(reference_cols) and (missing_from_compare or extra_in_compare):
@@ -458,21 +464,6 @@ class ValuesOnlyComparator(BaseDataFrameComparator):
                 num_rows_compared=len(compare_df),
                 num_rows_reference=len(reference_df),
             )
-
-    def _df_to_value_set(self, df: pd.DataFrame) -> set[tuple]:
-        """Convert dataframe to set of normalized value tuples.
-
-        Args:
-            df: The dataframe to convert.
-
-        Returns:
-            Set of tuples, where each tuple is a normalized row.
-        """
-        rows = set()
-        for _, row in df.iterrows():
-            normalized_row = tuple(self._normalize_value(v) for v in row.values)
-            rows.add(normalized_row)
-        return rows
 
 
 def create_comparator(
@@ -612,7 +603,32 @@ def load_dataframe_from_file(file_path: Path) -> pd.DataFrame:
     # Parse based on file extension
     file_lower = file_path.name.lower()
     if file_lower.endswith(".csv"):
-        return pd.read_csv(file_path)
+        # Do not implicitly convert any string values to NaN other than NaN itself.
+        return pd.read_csv(
+            file_path,
+            keep_default_na=False,
+            na_values=[
+                "",
+                "#N/A",
+                "#N/A N/A",
+                "#NA",
+                "-1.#IND",
+                "-1.#QNAN",
+                "-NaN",
+                "-nan",
+                "1.#IND",
+                "1.#QNAN",
+                "<NA>",
+                "N/A",
+                "NA",
+                "NULL",
+                "NaN",
+                # 'None',       # Skip "None" as this exists in the data set as a valid string.
+                "n/a",
+                "nan",
+                "null",
+            ],
+        )
     elif file_lower.endswith((".xlsx", ".xls")):
         return pd.read_excel(file_path)
     elif file_lower.endswith(".json"):
