@@ -22,6 +22,7 @@ interface ConfigurationPanelProps {
   error: string | null;
   onReExtract?: (schema: ExtractionSchemaPayload, prompt: string) => Promise<void>;
   onHasChanges?: (hasChanges: boolean) => void;
+  initialPrompt?: string | null;
   onConfiguratorSchemaChange?: (schema: ConfigurationSchema) => void;
 }
 
@@ -41,13 +42,20 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
       error,
       onReExtract,
       onHasChanges,
+      initialPrompt,
       onConfiguratorSchemaChange,
     },
     ref,
   ) => {
-    const [currentPrompt, setCurrentPrompt] = useState('');
+    const [currentPrompt, setCurrentPrompt] = useState(initialPrompt ?? '');
     const [hasChanges, setHasChanges] = useState(false);
     const { addSnackbar } = useSnackbar();
+
+    useEffect(() => {
+      if (initialPrompt && currentPrompt === '') {
+        setCurrentPrompt(initialPrompt);
+      }
+    }, [initialPrompt]);
 
     // Notify parent about changes
     useEffect(() => {

@@ -15,6 +15,25 @@ import {
   toRenderedDocumentSchema,
 } from '../../shared/utils/schema-lib';
 
+/**
+ * Extracts just the user's original instructions from the full formatted prompt.
+ * The backend stores the full prompt which includes "# Instructions" + user text + "# Schema reference" + schema.
+ * This function parses out just the user's original instructions.
+ *
+ * TODO https://linear.app/sema4ai/issue/DIN-XXX: Backend should return raw user instructions separately
+ */
+const parseUserInstructions = (userPrompt: string | null | undefined): string | null => {
+  if (!userPrompt) return null;
+
+  // Look for content between "# Instructions" and "# Schema reference"
+  const instructionsRegex = /# Instructions\s*([\s\S]*?)(?=# Schema reference|$)/i;
+  const instructionsMatch = instructionsRegex.exec(userPrompt);
+  if (!instructionsMatch) return null;
+
+  const instructions = instructionsMatch[1].trim();
+  return instructions || null;
+};
+
 interface UseExtractDialogStateProps {
   agentId: string;
   threadId: string;
@@ -33,7 +52,6 @@ export const useExtractDialogState = ({
   const { addSnackbar } = useSnackbar();
   const hasInitialized = useRef(false);
 
-  // Extract result from the backend
   const [extractResult, setExtractResult] = useState<ExtractResponse | null>(initialExtractResult ?? null);
 
   // Current working schema - the jsonschema that user can modify
@@ -41,7 +59,6 @@ export const useExtractDialogState = ({
   const [currentSchema, setCurrentSchema] = useState<ExtractionSchemaPayload | null>(
     (schema?.schema as ExtractionSchemaPayload) ?? null,
   );
-
   const [configuratorSchema, setConfiguratorSchema] = useState<ConfigurationSchema>({
     type: 'object',
     children: [],
@@ -59,9 +76,10 @@ export const useExtractDialogState = ({
 
   // Boolean to track if user has modified the schema since last extraction
   const [hasChanges, setHasChanges] = useState(false);
-
-  // Counter incremented on each extraction to force PDF viewer re-render with new annotations
   const [extractRevision, setExtractRevision] = useState(0);
+
+  // User prompt from schema generation - used to pre-populate business instructions
+  const [userPrompt, setUserPrompt] = useState<string | null>(parseUserInstructions(schema?.user_prompt));
 
   // Fetch cached schema
   const { isLoading: isFetchingCachedSchema, refetch: refetchCachedSchema } = useGetSchemaQuery(
@@ -109,6 +127,7 @@ export const useExtractDialogState = ({
         });
 
         setCurrentSchema(result.schema as ExtractionSchemaPayload);
+        setUserPrompt(parseUserInstructions(result.user_prompt));
         return result;
       } catch (err) {
         addSnackbar({ message: (err as Error).message, variant: 'danger' });
@@ -122,6 +141,9 @@ export const useExtractDialogState = ({
   const handleFetchCachedSchema = useCallback(async (): Promise<ExtractSchemaResponse | null> => {
     try {
       const result = await refetchCachedSchema();
+      if (result.data) {
+        setUserPrompt(parseUserInstructions(result.data.user_prompt));
+      }
       return (result.data as ExtractSchemaResponse) ?? null;
     } catch {
       return null; // 404 or error - fall back to generation
@@ -214,6 +236,7 @@ export const useExtractDialogState = ({
     (schemaResponse: ExtractSchemaResponse, extractResponse: ExtractResponse) => {
       setCurrentSchema(schemaResponse.schema as ExtractionSchemaPayload);
       setExtractResult(extractResponse);
+      setUserPrompt(parseUserInstructions(schemaResponse.user_prompt));
     },
     [],
   );
@@ -228,6 +251,7 @@ export const useExtractDialogState = ({
     hasChanges,
     extractRevision,
     extractedDataWithCitations,
+    userPrompt,
     isGeneratingSchema,
     isExtracting,
     isFetchingCachedSchema,

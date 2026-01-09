@@ -43,6 +43,7 @@ interface Props {
   agentId: string;
   isGeneratingSchema: boolean;
   isExtracting: boolean;
+  userPrompt?: string | null;
 }
 
 const Content: FC<Omit<Props, 'open' | 'schema'>> = ({
@@ -53,6 +54,7 @@ const Content: FC<Omit<Props, 'open' | 'schema'>> = ({
   onGenerateSchema,
   isGeneratingSchema,
   isExtracting,
+  userPrompt,
 }) => {
   const { data: schemaData, isLoading: isLoadingSchema } = useGetSchemaQuery({ fileName, threadId, agentId });
 
@@ -66,16 +68,23 @@ const Content: FC<Omit<Props, 'open' | 'schema'>> = ({
   } = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      context: '',
+      context: userPrompt ?? '',
       schema: schemaData ? safeStringify(schemaData.schema.extract_schema ?? schemaData.schema) : '',
     },
   });
+
+  // Pre-populate context from userPrompt when it becomes available
+  useEffect(() => {
+    if (userPrompt && !getFieldState('context').isDirty) {
+      setValue('context', userPrompt, { shouldDirty: false });
+    }
+  }, [userPrompt, getFieldState, setValue]);
 
   useEffect(() => {
     if (schemaData && !getFieldState('schema').isDirty) {
       setValue('schema', safeStringify(schemaData.schema.extract_schema ?? schemaData), { shouldDirty: false });
     }
-  }, [schemaData]);
+  }, [schemaData, getFieldState, setValue]);
 
   const shouldCloseEarly = isSubmitting && isGeneratingSchema;
   useEffect(() => {
@@ -143,11 +152,11 @@ const Content: FC<Omit<Props, 'open' | 'schema'>> = ({
   );
 };
 
-export const RegenerateFileSchemaDialog: FC<Props> = ({ open, onClose, ...props }) => (
+export const RegenerateFileSchemaDialog: FC<Props> = ({ open, onClose, userPrompt, ...props }) => (
   <Dialog open={open} onClose={onClose} size="medium" width="800px">
     <Dialog.Header>
       <Dialog.Header.Title title="Generate new schema" />
     </Dialog.Header>
-    <Content {...props} onClose={onClose} />
+    <Content {...props} onClose={onClose} userPrompt={userPrompt} />
   </Dialog>
 );

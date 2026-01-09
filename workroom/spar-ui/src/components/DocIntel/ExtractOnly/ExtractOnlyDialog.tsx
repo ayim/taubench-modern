@@ -61,6 +61,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     hasChanges,
     extractRevision,
     extractedDataWithCitations,
+    userPrompt,
     isGeneratingSchema,
     isExtracting,
     isFetchingCachedSchema,
@@ -127,6 +128,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
           onReExtract={handleReExtract}
           onConfiguratorSchemaChange={handleConfiguratorSchemaChange}
           onHasChanges={setHasChanges}
+          initialPrompt={userPrompt}
         />
       );
     }
@@ -498,6 +500,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
         onGenerateSchema={handleGenerateSchemaAndExtract}
         isGeneratingSchema={isGeneratingSchema}
         isExtracting={isExtracting}
+        userPrompt={userPrompt}
       />
 
       <Dialog open={shouldShowExitConfirmation} onClose={handleCancelClose} size="medium">
