@@ -261,29 +261,45 @@ class AgentPackageBuilder:
         - actions/ directory (already processed)
         - directories (empty entries)
         """
+        from sema4ai.common.package_exclude import PackageExcludeHandler
+
         if not self._project_handler or not self._output_handler:
             raise RuntimeError("Builder must be used as async context manager")
 
         all_files = await self._project_handler.list_files()
         logger.debug("Copying project files to output", total_files_in_project=len(all_files))
 
-        copied_count = 0
+        exclude_rules = self._agent_package_spec.agent_package.exclude if self._agent_package_spec else []
+        exclude_rules_list = exclude_rules if exclude_rules is not None else []
+
+        logger.debug("Applying exclude rules", exclude_rules=exclude_rules_list)
+
+        exclude_handler = PackageExcludeHandler()
+        exclude_handler.fill_exclude_patterns(exclude_rules_list)
+
+        candidate_files: list[str] = []
         for filename in all_files:
             # Skip directories
             if filename.endswith("/"):
                 continue
-
             # Skip agent-spec.yaml (we write the updated version separately)
             if filename == AgentPackageConfig.agent_spec_filename:
                 continue
-
             # Skip action packages folder (already processed)
             if filename.startswith(f"{AgentPackageConfig.actions_dirname}/"):
                 continue
+            candidate_files.append(filename)
 
+        logger.debug("Filtering project files", candidate_files=candidate_files)
+
+        accepted_files = exclude_handler.filter_relative_paths_excluding_patterns(candidate_files)
+        logger.debug("Project files after filtering", accepted_files=accepted_files)
+
+        files_included_in_agent_project_count = 0
+        for filename in accepted_files:
             # Copy the file
             file_content = await self._project_handler.read_file(filename)
             await self._output_handler.write_file(filename, file_content)
-            copied_count += 1
+            files_included_in_agent_project_count += 1
 
-        logger.debug("Project files copied to output", copied_count=copied_count)
+        logger.debug("Project files copied to output", total_files_included=files_included_in_agent_project_count)

@@ -60,4 +60,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["sema4ai-common==0.1.0"]
+dev = ["sema4ai-common==0.3.0"]

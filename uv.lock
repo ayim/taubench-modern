@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12.9, <3.13"
 
 [manifest]
@@ -247,7 +247,7 @@ requires-dist = [
 provides-extras = ["image-support", "platforms-snowflake", "platforms-openai", "platforms-anthropic", "platforms-aws", "platforms-google", "platforms-groq", "platforms-reducto", "platforms-all"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "sema4ai-common", specifier = "==0.1.0" }]
+dev = [{ name = "sema4ai-common", specifier = "==0.3.0" }]
 
 [[package]]
 name = "agent-platform-quality"
@@ -345,7 +345,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1,<7.0.0" },
     { name = "reductoai", specifier = ">=0.9.0" },
     { name = "sema4ai-actions", specifier = ">=1.6.1" },
-    { name = "sema4ai-common", specifier = "==0.1.0" },
+    { name = "sema4ai-common", specifier = "==0.3.0" },
     { name = "sema4ai-docint", extras = ["memory"] },
     { name = "siphash", specifier = "==0.0.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.0,<3.0.0" },
@@ -4155,7 +4155,7 @@ wheels = [
 
 [[package]]
 name = "sema4ai-common"
-version = "0.1.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "msgspec" },
@@ -4163,9 +4163,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "sema4ai-http-helper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/27/868fe30f17d56617ad2da531e7c15469fc9919d8e62769889e94278c7f52/sema4ai_common-0.1.0.tar.gz", hash = "sha256:0185f2e39fca7578a52558d6bf08d347c161f19757c3c779ad5345103660e16f", size = 71358, upload-time = "2025-04-02T09:05:35.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/79/c63b59c7d5e4f1049183f1220539f8a9e1f70b27e700b4f2452797a0b3aa/sema4ai_common-0.3.0.tar.gz", hash = "sha256:d6ce3276c72fa18ca913e7dd1462e529dce01ddd92380b76d89bbcd41e49ec75", size = 72353, upload-time = "2026-01-08T10:34:55.771Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/82/3ef8886e8ce2ad19b94b2d4383e374c39193c4f54fdf5f488b22d517cb16/sema4ai_common-0.1.0-py3-none-any.whl", hash = "sha256:46c8e07d1420bf507300a51624e27e0dad1ecc3036604f57513d91d29926a917", size = 88523, upload-time = "2025-04-02T09:05:33.198Z" },
+    { url = "https://files.pythonhosted.org/packages/79/11/f962f96689387ecfd22d18d13abaeed3840f2ae30b93957165ea47144770/sema4ai_common-0.3.0-py3-none-any.whl", hash = "sha256:199c90e368925f487d77f72ec4cf3709bbe5c6506470875c97e3942076f1d5de", size = 90012, upload-time = "2026-01-08T10:34:54.44Z" },
 ]
 
 [[package]]
