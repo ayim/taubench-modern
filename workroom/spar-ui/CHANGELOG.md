@@ -1,5 +1,15 @@
 # @sema4ai/spar-ui
 
+## 0.16.0
+
+### Minor Changes
+
+- 2b795d8: pre-populate business instructions from schema generation user_prompt
+
+### Patch Changes
+
+- f004894: New Schema Editor for DI
+
 ## 0.15.0
 
 ### Minor Changes
