@@ -1,5 +1,17 @@
 # @sema4ai/spar-ui
 
+## 0.15.0
+
+### Minor Changes
+
+- d2afade: add data transformation lib in DocIntel UI
+
+### Patch Changes
+
+- e2cbbc2: Allow to use DI parse results in conversation
+- adc42ae: chore/add oauth_config support to MCP Server update endpoint
+- 8ad2613: Preserve current active Chat sidebar when navigating between threads or workitems
+
 ## 0.14.0
 
 ### Minor Changes
