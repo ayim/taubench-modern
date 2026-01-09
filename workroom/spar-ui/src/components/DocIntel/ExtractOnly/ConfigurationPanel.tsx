@@ -3,7 +3,7 @@ import { Box, Typography, Input, useSnackbar } from '@sema4ai/components';
 import type { ConfigurationSchema } from '../shared/utils/schema-lib';
 import { ProcessingLoadingState } from '../shared/components/ProcessingLoadingState';
 import { FormattedJsonData } from '../shared/components/FormattedJsonData';
-import type { ExtractionSchemaPayload, ExtractResponse } from '../shared/types';
+import type { ExtractionSchemaPayload, SimpleExtractResponse } from '../shared/types';
 import { PROCESSING_STATES } from '../shared/constants/processingStates';
 import { SchemaEditor } from './SchemaEditor';
 
@@ -15,7 +15,7 @@ import { SchemaEditor } from './SchemaEditor';
 interface ConfigurationPanelProps {
   currentSchema: ExtractionSchemaPayload | null;
   configuratorSchema: ConfigurationSchema; // Schema in SchemaConfigurator format
-  extractResultData?: ExtractResponse | null;
+  extractResultData?: SimpleExtractResponse | null;
   showRawJson?: boolean;
   isGeneratingSchema: boolean;
   isExtracting: boolean;

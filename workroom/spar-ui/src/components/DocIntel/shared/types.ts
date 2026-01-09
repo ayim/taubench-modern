@@ -30,3 +30,5 @@ export type ExtractResponse = ServerResponse<'post', '/api/v2/document-intellige
  * Used for structuring extraction schemas in document layouts
  */
 export type ExtractionSchemaPayload = components['schemas']['_ExtractionSchema'];
+
+export type SimpleExtractResponse = ServerResponse<'post', '/api/v2/document-intelligence/documents/simple-extract'>;

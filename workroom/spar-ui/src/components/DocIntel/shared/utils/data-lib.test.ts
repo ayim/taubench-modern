@@ -56,7 +56,7 @@ const parseChunksWithSections: ParseResultChunks = [
 ];
 
 const simpleExtractResult = {
-  result: {
+  results: {
     invoice_number: 'INV-001',
     customer_name: 'John Doe',
     total_amount: 150,
@@ -65,7 +65,7 @@ const simpleExtractResult = {
 };
 
 const extractResultWithNestedObject = {
-  result: {
+  results: {
     merchant_name: 'ACME Corp',
     address: {
       city: 'New York',
@@ -78,7 +78,7 @@ const extractResultWithNestedObject = {
 };
 
 const extractResultWithSimpleArray = {
-  result: {
+  results: {
     store_name: 'Electronics Store',
     payment: [
       { method: 'Visa', amount: 100, last_four: '1234' },
@@ -89,7 +89,7 @@ const extractResultWithSimpleArray = {
 };
 
 const extractResultWithTableWrapper = {
-  result: {
+  results: {
     receipt_id: 'REC-001',
     tables: [
       {
@@ -230,15 +230,15 @@ describe('toRenderedExtractBlocks', () => {
   });
 
   it.each([
-    { result: null, description: 'null' },
-    { result: undefined, description: 'undefined' },
-  ])('returns empty array for $description result', ({ result }) => {
-    expect(toRenderedExtractBlocks({ result, citations: null })).toEqual([]);
+    { results: null, description: 'null' },
+    { results: undefined, description: 'undefined' },
+  ])('returns empty array for $description results', ({ results }) => {
+    expect(toRenderedExtractBlocks({ results, citations: null })).toEqual([]);
   });
 
   it('handles arrays with optional/undefined fields (isPrimitive fix)', () => {
     const data = {
-      result: {
+      results: {
         items: [
           { sku: 'A1', name: 'Alpha', quantity: 1, notes: 'Fragile' },
           { sku: 'B2', name: 'Beta', quantity: 2, notes: undefined },
@@ -259,7 +259,7 @@ describe('toRenderedExtractBlocks', () => {
 
   it('formats field labels by replacing underscores with spaces', () => {
     const blocks = toRenderedExtractBlocks({
-      result: { customer_first_name: 'John' },
+      results: { customer_first_name: 'John' },
       citations: null,
     });
 
@@ -268,7 +268,7 @@ describe('toRenderedExtractBlocks', () => {
 
   it('skips empty and whitespace-only string values', () => {
     const blocks = toRenderedExtractBlocks({
-      result: { filled: 'value', empty: '', whitespace: '   ' },
+      results: { filled: 'value', empty: '', whitespace: '   ' },
       citations: null,
     });
 
@@ -321,7 +321,7 @@ describe('parseChunksToThreadJSON', () => {
 describe('Edge Cases', () => {
   it('handles deeply nested extract data', () => {
     const blocks = toRenderedExtractBlocks({
-      result: { level1: { level2: { level3: { deep_value: 'Found it!' } } } },
+      results: { level1: { level2: { level3: { deep_value: 'Found it!' } } } },
       citations: null,
     });
 
@@ -330,7 +330,7 @@ describe('Edge Cases', () => {
 
   it('does not render primitive arrays as tables', () => {
     const blocks = toRenderedExtractBlocks({
-      result: { tags: ['red', 'green', 'blue'] },
+      results: { tags: ['red', 'green', 'blue'] },
       citations: null,
     });
 
@@ -339,7 +339,7 @@ describe('Edge Cases', () => {
 
   it('does not render single-key object arrays as tables', () => {
     const blocks = toRenderedExtractBlocks({
-      result: { items: [{ value: 1 }, { value: 2 }] },
+      results: { items: [{ value: 1 }, { value: 2 }] },
       citations: null,
     });
 
@@ -348,7 +348,7 @@ describe('Edge Cases', () => {
 
   it('handles multiple table wrappers with correct section headers', () => {
     const blocks = toRenderedExtractBlocks({
-      result: {
+      results: {
         tables: [
           { table_name: 'products', rows: [{ id: '1', name: 'A', price: 10 }] },
           { table_name: 'categories', rows: [{ id: 'C1', cat: 'Electronics' }] },
@@ -366,7 +366,7 @@ describe('Edge Cases', () => {
 
   it('converts boolean and number values to strings', () => {
     const blocks = toRenderedExtractBlocks({
-      result: { active: true, count: 42, rate: 3.14 },
+      results: { active: true, count: 42, rate: 3.14 },
       citations: null,
     });
 
@@ -381,7 +381,7 @@ describe('Edge Cases', () => {
 describe('Costco Receipt Scenario', () => {
   it('renders table wrapper with optional fields correctly', () => {
     const blocks = toRenderedExtractBlocks({
-      result: {
+      results: {
         merchant_name: 'COSTCO WHOLESALE',
         tables: [
           {

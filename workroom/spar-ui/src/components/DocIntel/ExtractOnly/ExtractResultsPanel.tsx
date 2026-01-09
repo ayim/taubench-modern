@@ -3,7 +3,7 @@ import { Box, Typography } from '@sema4ai/components';
 import { ProcessingLoadingState } from '../shared/components/ProcessingLoadingState';
 import { FormattedJsonData } from '../shared/components/FormattedJsonData';
 import { DocumentResultsRenderer } from '../shared/components/DocumentResultsRenderer';
-import { ExtractResponse, ExtractionSchemaPayload } from '../shared/types';
+import { SimpleExtractResponse, ExtractionSchemaPayload } from '../shared/types';
 import { PROCESSING_STATES } from '../shared/constants/processingStates';
 import type { ParsedBlock } from '../shared/components/DocumentResultsRenderer';
 
@@ -14,7 +14,7 @@ import type { ParsedBlock } from '../shared/components/DocumentResultsRenderer';
 
 interface ExtractResultsPanelProps {
   currentSchema: ExtractionSchemaPayload | null;
-  extractResult: ExtractResponse | null;
+  extractResult: SimpleExtractResponse | null;
   extractedBlocks?: ParsedBlock[];
   isGeneratingSchema: boolean;
   isExtracting: boolean;
@@ -81,7 +81,7 @@ export const ExtractResultsPanel: FC<ExtractResultsPanelProps> = ({
 
     // Raw JSON view
     if (showRawJson) {
-      const dataToDisplay = extractResult.result || extractResult;
+      const dataToDisplay = extractResult.results || extractResult;
       return (
         <Box padding="$24" display="flex" flexDirection="column" height="100%" overflow="auto">
           <FormattedJsonData data={dataToDisplay} variant="extraction-data" />

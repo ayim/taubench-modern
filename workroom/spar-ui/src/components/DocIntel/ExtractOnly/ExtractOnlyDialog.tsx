@@ -6,7 +6,7 @@ import { ExtractResultsPanel } from './ExtractResultsPanel';
 import { DocumentViewer } from '../shared/components/DocumentViewer';
 import { useResizablePanel, useResultsSelection, useSendResultsToThread } from '../shared/hooks';
 import { toRenderedExtractBlocks } from '../shared/utils/data-lib';
-import type { ExtractSchemaResponse, ExtractResponse } from '../shared/types';
+import type { ExtractSchemaResponse, SimpleExtractResponse } from '../shared/types';
 import { usePdfAnnotations } from '../shared/hooks/usePdfAnnotations';
 import { useExtractDialogState } from './hooks/useExtractDialogState';
 import { RegenerateFileSchemaDialog } from '../shared/components/RegenerateFileSchemaDialog';
@@ -24,7 +24,7 @@ interface ExtractOnlyDialogProps {
   agentId: string;
   threadId: string;
   schema?: ExtractSchemaResponse;
-  extractResult?: ExtractResponse;
+  extractResult?: SimpleExtractResponse;
 }
 
 export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
@@ -287,7 +287,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   ]);
 
   const { sendResultsToThread, enabled: sendingResultsEnabled } = useSendResultsToThread({
-    results: extractResultData?.result,
+    results: extractResultData?.results,
     agentId,
     threadId,
     fileName: file.name,

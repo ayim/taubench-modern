@@ -44,8 +44,8 @@ const BlockRenderer: FC<{ block: ParsedBlock }> = ({ block }) => {
 export const ExtractedDataRenderer: FC<{ data: unknown }> = ({ data }) => {
   // Transform raw data to ParsedBlock[] using the same logic as Results panel
   const blocks = useMemo(() => {
-    // Wrap data in ExtractResponse shape (citations not available in thread)
-    return toRenderedExtractBlocks({ result: data, citations: null });
+    // Wrap data in SimpleExtractResponse shape (citations not available in thread)
+    return toRenderedExtractBlocks({ results: data, citations: null });
   }, [data]);
 
   if (blocks.length === 0) {

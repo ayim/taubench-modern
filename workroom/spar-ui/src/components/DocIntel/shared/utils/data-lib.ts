@@ -33,7 +33,6 @@ export type ParseResultChunks = ServerResponse<
   'post',
   '/api/v2/document-intelligence/documents/parse'
 >['result']['chunks'];
-export type ExtractResponse = ServerResponse<'post', '/api/v2/document-intelligence/documents/extract'>;
 
 interface Citation {
   bbox?: { page?: number };
@@ -400,11 +399,11 @@ export const parseChunksToThreadJSON = (chunks: ParseResultChunks): JSONParseRes
 /**
  * Transform extracted data into renderable blocks for UI display.
  */
-export const toRenderedExtractBlocks = (extractedData: { result: unknown; citations?: unknown }): ParsedBlock[] => {
+export const toRenderedExtractBlocks = (extractedData: { results: unknown; citations?: unknown }): ParsedBlock[] => {
   const blocks: ParsedBlock[] = [];
-  if (!extractedData?.result) {
+  if (!extractedData?.results) {
     return blocks;
   }
-  flattenExtractedData(extractedData.result, extractedData.citations, '', blocks, 0);
+  flattenExtractedData(extractedData.results, extractedData.citations, '', blocks, 0);
   return blocks;
 };

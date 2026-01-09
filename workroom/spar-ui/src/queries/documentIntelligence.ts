@@ -22,9 +22,8 @@ const getSchemaQueryKey = (agentId: string, threadId: string, fileName: string) 
 
 type CreateDataModelRequest = components['schemas']['CreateDataModelRequest'];
 type UpdateDataModelRequest = components['schemas']['UpdateDataModelRequest'];
-
 type ExtractDocumentPayload = components['schemas']['ExtractDocumentPayload'];
-
+type SimpleExtractPayload = components['schemas']['SimpleExtractPayload'];
 type GenerateDataQualityChecksRequest = components['schemas']['GenerateDataQualityChecksRequest'];
 type ExecuteQualityChecksRequest = ServerRequest<
   'post',
@@ -110,6 +109,59 @@ export const getDataModelQueryOptions = createSparQueryOptions<{ modelName: stri
 );
 
 export const useGetDataModelQuery = createSparQuery(getDataModelQueryOptions);
+
+export const useSimpleExtractMutation = createSparMutation<
+  object,
+  {
+    agentId: string;
+    threadId: string;
+    fileRef: string;
+    extractionSchema: SimpleExtractPayload['extraction_schema'];
+    extractionConfig?: SimpleExtractPayload['extraction_config'];
+    prompt?: SimpleExtractPayload['prompt'];
+    startPage?: SimpleExtractPayload['start_page'];
+    endPage?: SimpleExtractPayload['end_page'];
+    force?: SimpleExtractPayload['force'];
+  }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({
+    agentId,
+    threadId,
+    fileRef,
+    extractionSchema,
+    extractionConfig,
+    prompt,
+    startPage,
+    endPage,
+    force,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/simple-extract'>> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'post',
+      '/api/v2/document-intelligence/documents/simple-extract',
+      {
+        params: {
+          query: {
+            agent_id: agentId,
+            thread_id: threadId,
+            file_ref: fileRef,
+          },
+        },
+        body: {
+          extraction_schema: extractionSchema,
+          extraction_config: extractionConfig,
+          prompt,
+          start_page: startPage,
+          end_page: endPage,
+          force: force ?? false,
+        },
+      },
+    );
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
 
 export const useParseDocumentMutation = createSparMutation<
   object,

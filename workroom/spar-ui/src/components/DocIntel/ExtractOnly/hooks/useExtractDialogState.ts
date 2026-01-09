@@ -1,12 +1,11 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useSnackbar } from '@sema4ai/components';
-import type { components } from '@sema4ai/agent-server-interface';
 import {
   useGenerateExtractionSchemaMutation,
-  useExtractDocumentMutation,
   useGetSchemaQuery,
+  useSimpleExtractMutation,
 } from '../../../../queries/documentIntelligence';
-import type { ExtractSchemaResponse, ExtractResponse, ExtractionSchemaPayload } from '../../shared/types';
+import type { SimpleExtractResponse, ExtractSchemaResponse, ExtractionSchemaPayload } from '../../shared/types';
 import { extractFieldPathsFromSchema, filterDataBySchema, filterCitationsBySchema } from '../utils/schemaUtils';
 import {
   type ConfigurationSchema,
@@ -39,7 +38,7 @@ interface UseExtractDialogStateProps {
   threadId: string;
   file: File;
   schema?: ExtractSchemaResponse;
-  extractResult?: ExtractResponse;
+  extractResult?: SimpleExtractResponse;
 }
 
 export const useExtractDialogState = ({
@@ -52,7 +51,7 @@ export const useExtractDialogState = ({
   const { addSnackbar } = useSnackbar();
   const hasInitialized = useRef(false);
 
-  const [extractResult, setExtractResult] = useState<ExtractResponse | null>(initialExtractResult ?? null);
+  const [extractResult, setExtractResult] = useState<SimpleExtractResponse | null>(initialExtractResult ?? null);
 
   // Current working schema - the jsonschema that user can modify
   // Initialized from backend response, then becomes the editable version
@@ -93,14 +92,14 @@ export const useExtractDialogState = ({
     error: schemaError,
   } = useGenerateExtractionSchemaMutation({});
 
-  const { mutateAsync: extractDocument, isPending: isExtracting, error: extractError } = useExtractDocumentMutation({});
+  const { mutateAsync: simpleExtract, isPending: isExtracting, error: extractError } = useSimpleExtractMutation({});
 
   const extractedDataWithCitations = useMemo(() => {
     if (!extractResult) return null;
 
     if (currentSchema && hasChanges) {
       const validPaths = extractFieldPathsFromSchema(currentSchema);
-      const filteredResult = filterDataBySchema(extractResult.result, validPaths);
+      const filteredResult = filterDataBySchema(extractResult.results, validPaths);
       const filteredCitations = filterCitationsBySchema(extractResult.citations as Record<string, unknown>, validPaths);
 
       return {
@@ -110,7 +109,7 @@ export const useExtractDialogState = ({
     }
 
     return {
-      ...extractResult.result,
+      ...extractResult.results,
       citations: extractResult.citations,
     };
   }, [extractResult, currentSchema, hasChanges]);
@@ -156,15 +155,11 @@ export const useExtractDialogState = ({
         const extractionSchema = (schemaResponse.schema.extract_schema ??
           schemaResponse.schema) as ExtractionSchemaPayload;
 
-        const documentLayout: Partial<components['schemas']['DocumentLayoutPayload']> = {
-          extraction_schema: extractionSchema,
-        };
-
-        const result = await extractDocument({
+        const result = await simpleExtract({
+          agentId,
           threadId,
-          fileName: file.name,
-          documentLayout,
-          generateCitations: true,
+          fileRef: file.name,
+          extractionSchema,
         });
 
         // Update current schema
@@ -176,22 +171,18 @@ export const useExtractDialogState = ({
         addSnackbar({ message: (err as Error).message, variant: 'danger' });
       }
     },
-    [threadId, file.name, extractDocument, addSnackbar],
+    [agentId, threadId, file.name, simpleExtract, addSnackbar, setCurrentConfiguratorSchema],
   );
 
   const handleReExtract = useCallback(
     async (updatedSchema: ExtractionSchemaPayload, prompt: string) => {
       try {
-        const documentLayout: Partial<components['schemas']['DocumentLayoutPayload']> = {
-          extraction_schema: updatedSchema,
-          ...(prompt && { prompt }),
-        };
-
-        const result = await extractDocument({
+        const result = await simpleExtract({
+          agentId,
           threadId,
-          fileName: file.name,
-          documentLayout,
-          generateCitations: true,
+          fileRef: file.name,
+          extractionSchema: updatedSchema,
+          prompt: prompt || undefined,
         });
 
         // Update current schema
@@ -204,7 +195,7 @@ export const useExtractDialogState = ({
         throw err;
       }
     },
-    [threadId, file.name, extractDocument, addSnackbar],
+    [agentId, threadId, file.name, simpleExtract, addSnackbar, setCurrentConfiguratorSchema],
   );
 
   /**
@@ -233,7 +224,7 @@ export const useExtractDialogState = ({
 
   // Initialize from existing schema and extract result (e.g., from thread state)
   const initializeFromExisting = useCallback(
-    (schemaResponse: ExtractSchemaResponse, extractResponse: ExtractResponse) => {
+    (schemaResponse: ExtractSchemaResponse, extractResponse: SimpleExtractResponse) => {
       setCurrentSchema(schemaResponse.schema as ExtractionSchemaPayload);
       setExtractResult(extractResponse);
       setUserPrompt(parseUserInstructions(schemaResponse.user_prompt));
