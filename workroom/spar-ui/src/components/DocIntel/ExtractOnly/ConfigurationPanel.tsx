@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Box, Typography, Input, useSnackbar } from '@sema4ai/components';
-import { SchemaEditor } from './SchemaEditor';
+import type { ConfigurationSchema } from '../shared/utils/schema-lib';
 import { ProcessingLoadingState } from '../shared/components/ProcessingLoadingState';
 import { FormattedJsonData } from '../shared/components/FormattedJsonData';
 import type { ExtractionSchemaPayload, ExtractResponse } from '../shared/types';
 import { PROCESSING_STATES } from '../shared/constants/processingStates';
+import { SchemaEditor } from './SchemaEditor';
 
 /**
  * ConfigurationPanel
@@ -13,6 +14,7 @@ import { PROCESSING_STATES } from '../shared/constants/processingStates';
 
 interface ConfigurationPanelProps {
   currentSchema: ExtractionSchemaPayload | null;
+  configuratorSchema: ConfigurationSchema; // Schema in SchemaConfigurator format
   extractResultData?: ExtractResponse | null;
   showRawJson?: boolean;
   isGeneratingSchema: boolean;
@@ -20,7 +22,7 @@ interface ConfigurationPanelProps {
   error: string | null;
   onReExtract?: (schema: ExtractionSchemaPayload, prompt: string) => Promise<void>;
   onHasChanges?: (hasChanges: boolean) => void;
-  onSchemaChange?: (schema: ExtractionSchemaPayload | null) => void;
+  onConfiguratorSchemaChange?: (schema: ConfigurationSchema) => void;
 }
 
 export interface ConfigurationPanelRef {
@@ -31,6 +33,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
   (
     {
       currentSchema,
+      configuratorSchema,
       extractResultData,
       showRawJson = false,
       isGeneratingSchema,
@@ -38,7 +41,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
       error,
       onReExtract,
       onHasChanges,
-      onSchemaChange,
+      onConfiguratorSchemaChange,
     },
     ref,
   ) => {
@@ -52,11 +55,11 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
     }, [hasChanges, onHasChanges]);
 
     const handleSchemaChange = useCallback(
-      (schema: ExtractionSchemaPayload) => {
-        onSchemaChange?.(schema);
+      (updatedSchema: ConfigurationSchema) => {
+        onConfiguratorSchemaChange?.(updatedSchema);
         setHasChanges(true);
       },
-      [onSchemaChange],
+      [onConfiguratorSchemaChange],
     );
 
     const handleReExtract = useCallback(async () => {
@@ -152,7 +155,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelRef, Configuratio
           {/* Schema Editor */}
           <Box flex="1" minHeight="400px">
             <SchemaEditor
-              schema={currentSchema}
+              schema={currentSchema ? configuratorSchema : null}
               onChange={handleSchemaChange}
               disabled={isGeneratingSchema || isExtracting}
             />

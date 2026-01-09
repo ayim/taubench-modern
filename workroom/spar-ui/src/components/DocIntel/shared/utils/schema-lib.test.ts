@@ -1317,6 +1317,8 @@ describe('toRenderedDocumentSchema', () => {
     expect(result.success).toBe(true);
     if (!result.success) throw new Error('Expected success');
 
+    // Object arrays are wrapped in a synthetic __object_item__ container
+    // for SchemaConfigurator compatibility
     expect(result.data).toEqual({
       description: undefined,
       fields: [
@@ -1327,13 +1329,41 @@ describe('toRenderedDocumentSchema', () => {
           description: 'Tables',
           children: [
             {
-              id: 'tables.rows',
-              name: 'rows',
-              type: 'array',
-              description: 'Rows',
+              id: 'tables.__object_item__',
+              name: '__object_item__',
+              type: 'object',
+              description: '',
               children: [
-                { id: 'tables.rows.name', name: 'name', type: 'text', description: 'Name field', children: [] },
-                { id: 'tables.rows.email', name: 'email', type: 'text', description: 'Email field', children: [] },
+                {
+                  id: 'tables.__object_item__.rows',
+                  name: 'rows',
+                  type: 'array',
+                  description: 'Rows',
+                  children: [
+                    {
+                      id: 'tables.__object_item__.rows.__object_item__',
+                      name: '__object_item__',
+                      type: 'object',
+                      description: '',
+                      children: [
+                        {
+                          id: 'tables.__object_item__.rows.__object_item__.name',
+                          name: 'name',
+                          type: 'text',
+                          description: 'Name field',
+                          children: [],
+                        },
+                        {
+                          id: 'tables.__object_item__.rows.__object_item__.email',
+                          name: 'email',
+                          type: 'text',
+                          description: 'Email field',
+                          children: [],
+                        },
+                      ],
+                    },
+                  ],
+                },
               ],
             },
           ],
@@ -1728,6 +1758,247 @@ describe('toJSONDocumentSchema', () => {
     expect(result).toEqual({
       type: 'object',
       properties: {},
+    });
+  });
+
+  it('converts primitive array (synthetic wrapper) back to simple items type', () => {
+    // This tests that primitive arrays round-trip correctly through the ConfigurationSchema format
+    const fields: RenderedField[] = [
+      {
+        id: 'tags',
+        name: 'tags',
+        type: 'array',
+        description: 'Tags list',
+        children: [
+          // Synthetic wrapper created by parsePropertyToRenderedField for primitive arrays
+          { id: 'tags.__primitive_item__', name: '__primitive_item__', type: 'text', description: '', children: [] },
+        ],
+      },
+    ];
+
+    const result = toJSONDocumentSchema(fields);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        tags: {
+          type: 'array',
+          description: 'Tags list',
+          items: {
+            type: 'string',
+          },
+        },
+      },
+    });
+  });
+
+  it('converts primitive array with description back correctly', () => {
+    const fields: RenderedField[] = [
+      {
+        id: 'numbers',
+        name: 'numbers',
+        type: 'array',
+        description: 'List of numbers',
+        children: [
+          {
+            id: 'numbers.__primitive_item__',
+            name: '__primitive_item__',
+            type: 'number',
+            description: 'A number value',
+            children: [],
+          },
+        ],
+      },
+    ];
+
+    const result = toJSONDocumentSchema(fields);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        numbers: {
+          type: 'array',
+          description: 'List of numbers',
+          items: {
+            type: 'number',
+            description: 'A number value',
+          },
+        },
+      },
+    });
+  });
+
+  it('round-trips primitive array through toRenderedDocumentSchema and back', () => {
+    const originalSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        address_lines: {
+          type: 'array',
+          description: 'Address lines',
+          items: {
+            type: 'string',
+            description: 'An address line',
+          },
+        },
+      },
+    };
+
+    const rendered = toRenderedDocumentSchema(originalSchema);
+    expect(rendered.success).toBe(true);
+
+    if (rendered.success) {
+      // Verify the synthetic wrapper was created
+      expect(rendered.data.fields[0].children).toHaveLength(1);
+      expect(rendered.data.fields[0].children[0].name).toBe('__primitive_item__');
+      expect(rendered.data.fields[0].children[0].type).toBe('text');
+
+      // Verify round-trip back to JSON Schema
+      const roundTripped = toJSONDocumentSchema(rendered.data.fields);
+      expect(roundTripped).toEqual(originalSchema);
+    }
+  });
+
+  it('filters out synthetic wrapper when user adds fields to a primitive array', () => {
+    // Simulates: user loads a primitive array, then adds a new field via SchemaConfigurator
+    // The synthetic wrapper should be filtered out, keeping only the user-added fields
+    const fieldsWithSyntheticAndUserAdded: RenderedField[] = [
+      {
+        id: 'line_items',
+        name: 'line_items',
+        type: 'array',
+        description: 'Line items',
+        children: [
+          // Synthetic wrapper from original primitive array
+          {
+            id: 'line_items.__primitive_item__',
+            name: '__primitive_item__',
+            type: 'text',
+            description: '',
+            children: [],
+          },
+          // User-added field via SchemaConfigurator
+          {
+            id: 'line_items.product_name',
+            name: 'product_name',
+            type: 'text',
+            description: 'Product name',
+            children: [],
+          },
+          { id: 'line_items.amount', name: 'amount', type: 'number', description: 'Amount', children: [] },
+        ],
+      },
+    ];
+
+    const result = toJSONDocumentSchema(fieldsWithSyntheticAndUserAdded);
+
+    // The synthetic __primitive_item__ should be filtered out
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        line_items: {
+          type: 'array',
+          description: 'Line items',
+          items: {
+            type: 'object',
+            properties: {
+              product_name: { type: 'string', description: 'Product name' },
+              amount: { type: 'number', description: 'Amount' },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('round-trips object array through toRenderedDocumentSchema and back', () => {
+    const originalSchema: JSONSchema = {
+      type: 'object',
+      properties: {
+        line_items: {
+          type: 'array',
+          description: 'Order line items',
+          items: {
+            type: 'object',
+            properties: {
+              product: { type: 'string', description: 'Product name' },
+              quantity: { type: 'number', description: 'Quantity' },
+              price: { type: 'number', description: 'Unit price' },
+            },
+          },
+        },
+      },
+    };
+
+    const rendered = toRenderedDocumentSchema(originalSchema);
+    expect(rendered.success).toBe(true);
+
+    if (rendered.success) {
+      // Verify the synthetic container was created
+      expect(rendered.data.fields[0].children).toHaveLength(1);
+      expect(rendered.data.fields[0].children[0].name).toBe('__object_item__');
+      expect(rendered.data.fields[0].children[0].type).toBe('object');
+      expect(rendered.data.fields[0].children[0].children).toHaveLength(3);
+
+      // Verify round-trip back to JSON Schema
+      const roundTripped = toJSONDocumentSchema(rendered.data.fields);
+      expect(roundTripped).toEqual(originalSchema);
+    }
+  });
+
+  it('handles user adding fields to object array via SchemaConfigurator', () => {
+    // Simulates: user loads an object array, then adds a new field
+    // The synthetic __object_item__ container should be preserved and new field included
+    const fieldsWithUserAddedField: RenderedField[] = [
+      {
+        id: 'line_items',
+        name: 'line_items',
+        type: 'array',
+        description: 'Line items',
+        children: [
+          {
+            id: 'line_items.__object_item__',
+            name: '__object_item__',
+            type: 'object',
+            description: '',
+            children: [
+              {
+                id: 'line_items.__object_item__.position',
+                name: 'position',
+                type: 'number',
+                description: 'Row position',
+                children: [],
+              },
+              // User-added field via SchemaConfigurator
+              {
+                id: 'line_items.__object_item__.product_name',
+                name: 'product_name',
+                type: 'text',
+                description: 'Product name',
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const result = toJSONDocumentSchema(fieldsWithUserAddedField);
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: {
+        line_items: {
+          type: 'array',
+          description: 'Line items',
+          items: {
+            type: 'object',
+            properties: {
+              position: { type: 'number', description: 'Row position' },
+              product_name: { type: 'string', description: 'Product name' },
+            },
+          },
+        },
+      },
     });
   });
 });

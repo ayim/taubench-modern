@@ -12,9 +12,12 @@
  *   - zod: ^3.24.2
  */
 
+import { ConfigurationSchema } from '@sema4ai/layouts';
 import * as jsonpointer from 'jsonpointer';
 import { cloneDeep } from 'lodash';
 import { z } from 'zod';
+
+export type { ConfigurationSchema };
 
 /* ========================================================================
    0. ZOD VALIDATION SCHEMAS
@@ -483,6 +486,20 @@ function fromUIType(uiType: string): string {
   return uiType;
 }
 
+/**
+ * Special marker name for synthetic primitive array item wrappers.
+ * SchemaConfigurator requires arrays to have object children, so we wrap
+ * primitive array items (string[], number[]) in a synthetic object.
+ */
+const PRIMITIVE_ARRAY_ITEM_NAME = '__primitive_item__';
+
+/**
+ * Special marker name for synthetic object array item containers.
+ * SchemaConfigurator expects: array.children = [{ type: 'object', children: [...fields] }]
+ * So we wrap object array item fields in a synthetic object container.
+ */
+const OBJECT_ARRAY_ITEM_NAME = '__object_item__';
+
 function renderedFieldToProperty(field: RenderedField): JSONSchema {
   const schemaType = fromUIType(field.type);
 
@@ -503,16 +520,51 @@ function renderedFieldToProperty(field: RenderedField): JSONSchema {
     property.properties = childProperties;
   }
 
-  // Array: children become items.properties
+  // Array: children become items.properties or primitive items
   if (field.type === 'array' && field.children.length > 0) {
-    const itemProperties: Record<string, JSONSchema> = {};
-    field.children.forEach((child) => {
-      itemProperties[child.name] = renderedFieldToProperty(child);
-    });
-    property.items = {
-      type: 'object',
-      properties: itemProperties,
-    };
+    // Check if this is a synthetic primitive array wrapper
+    const isPrimitiveArray = field.children.length === 1 && field.children[0].name === PRIMITIVE_ARRAY_ITEM_NAME;
+    // Check if this is a synthetic object array container
+    const isObjectArrayContainer =
+      field.children.length === 1 &&
+      field.children[0].type === 'object' &&
+      (field.children[0].name === OBJECT_ARRAY_ITEM_NAME || !field.children[0].name);
+
+    if (isPrimitiveArray) {
+      // Primitive array - unwrap the synthetic child back to a simple items type
+      const primitiveChild = field.children[0];
+      const itemType = fromUIType(primitiveChild.type);
+      property.items = {
+        type: itemType,
+        ...(primitiveChild.description && { description: primitiveChild.description }),
+      };
+    } else if (isObjectArrayContainer) {
+      // Object array with synthetic container - unwrap and use container's children as item properties
+      const containerChild = field.children[0];
+      const itemProperties: Record<string, JSONSchema> = {};
+      containerChild.children.forEach((child) => {
+        itemProperties[child.name] = renderedFieldToProperty(child);
+      });
+      property.items = {
+        type: 'object',
+        properties: itemProperties,
+      };
+    } else {
+      // Object array without synthetic container (legacy or user-modified)
+      // Filter out synthetic wrappers if present
+      const realChildren = field.children.filter(
+        (child) => child.name !== PRIMITIVE_ARRAY_ITEM_NAME && child.name !== OBJECT_ARRAY_ITEM_NAME,
+      );
+
+      const itemProperties: Record<string, JSONSchema> = {};
+      realChildren.forEach((child) => {
+        itemProperties[child.name] = renderedFieldToProperty(child);
+      });
+      property.items = {
+        type: 'object',
+        properties: itemProperties,
+      };
+    }
   }
 
   return property;
@@ -529,11 +581,34 @@ function parsePropertyToRenderedField(name: string, propSchema: DocumentProperty
 
   if (propSchema.type === 'array' && propSchema.items) {
     // Array: children comes from items.properties
-
     if (propSchema.items.properties) {
-      children = Object.entries(propSchema.items.properties).map(([childName, childSchema]) =>
-        parsePropertyToRenderedField(childName, childSchema, id),
+      // Object array - SchemaConfigurator expects: array.children = [{ type: 'object', children: [...fields] }]
+      // Wrap the item fields in a synthetic object container
+      const itemFields = Object.entries(propSchema.items.properties).map(([childName, childSchema]) =>
+        parsePropertyToRenderedField(childName, childSchema, `${id}.${OBJECT_ARRAY_ITEM_NAME}`),
       );
+      children = [
+        {
+          id: `${id}.${OBJECT_ARRAY_ITEM_NAME}`,
+          name: OBJECT_ARRAY_ITEM_NAME,
+          type: 'object' as RenderedField['type'],
+          description: '',
+          children: itemFields,
+        },
+      ];
+    } else {
+      // Primitive array (e.g., string[], number[]) - SchemaConfigurator requires
+      // arrays to have exactly one object child. Create a synthetic wrapper.
+      const itemType = toUIType(propSchema.items.type);
+      children = [
+        {
+          id: `${id}.${PRIMITIVE_ARRAY_ITEM_NAME}`,
+          name: PRIMITIVE_ARRAY_ITEM_NAME,
+          type: itemType as RenderedField['type'],
+          description: propSchema.items.description ?? '',
+          children: [],
+        },
+      ];
     }
   } else if (propSchema.type === 'object' && propSchema.properties) {
     // Object: children come from properties directly

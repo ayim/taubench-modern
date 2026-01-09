@@ -57,6 +57,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
   const {
     extractResult: extractResultData,
     currentSchema,
+    configuratorSchema,
     hasChanges,
     extractRevision,
     extractedDataWithCitations,
@@ -70,6 +71,7 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
     handleExtract,
     handleReExtract,
     handleSchemaChange,
+    handleConfiguratorSchemaChange,
     initializeFromExisting,
     setHasChanges,
   } = useExtractDialogState({
@@ -116,13 +118,14 @@ export const ExtractOnlyDialog: FC<ExtractOnlyDialogProps> = ({
         <ConfigurationPanel
           ref={configPanelRef}
           currentSchema={currentSchema}
+          configuratorSchema={configuratorSchema}
           extractResultData={extractResultData}
           showRawJson={showRawJson}
           isGeneratingSchema={isGeneratingSchema}
           isExtracting={isExtracting}
           error={error}
           onReExtract={handleReExtract}
-          onSchemaChange={handleSchemaChange}
+          onConfiguratorSchemaChange={handleConfiguratorSchemaChange}
           onHasChanges={setHasChanges}
         />
       );

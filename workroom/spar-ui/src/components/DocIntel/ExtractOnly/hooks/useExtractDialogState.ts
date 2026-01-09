@@ -8,6 +8,12 @@ import {
 } from '../../../../queries/documentIntelligence';
 import type { ExtractSchemaResponse, ExtractResponse, ExtractionSchemaPayload } from '../../shared/types';
 import { extractFieldPathsFromSchema, filterDataBySchema, filterCitationsBySchema } from '../utils/schemaUtils';
+import {
+  type ConfigurationSchema,
+  toJSONDocumentSchema,
+  RenderedField,
+  toRenderedDocumentSchema,
+} from '../../shared/utils/schema-lib';
 
 interface UseExtractDialogStateProps {
   agentId: string;
@@ -35,6 +41,21 @@ export const useExtractDialogState = ({
   const [currentSchema, setCurrentSchema] = useState<ExtractionSchemaPayload | null>(
     (schema?.schema as ExtractionSchemaPayload) ?? null,
   );
+
+  const [configuratorSchema, setConfiguratorSchema] = useState<ConfigurationSchema>({
+    type: 'object',
+    children: [],
+  });
+
+  const setCurrentConfiguratorSchema = useCallback((schemaProp: ExtractionSchemaPayload | null) => {
+    setCurrentSchema(schemaProp);
+    const result = toRenderedDocumentSchema(schemaProp);
+    if (result.success) {
+      setConfiguratorSchema({ type: 'object', children: result.data.fields } as ConfigurationSchema);
+    } else {
+      setConfiguratorSchema({ type: 'object', children: [] });
+    }
+  }, []);
 
   // Boolean to track if user has modified the schema since last extraction
   const [hasChanges, setHasChanges] = useState(false);
@@ -125,7 +146,7 @@ export const useExtractDialogState = ({
         });
 
         // Update current schema
-        setCurrentSchema(extractionSchema);
+        setCurrentConfiguratorSchema(extractionSchema);
         setExtractResult(result);
         setExtractRevision((prev) => prev + 1);
         setHasChanges(false);
@@ -152,7 +173,7 @@ export const useExtractDialogState = ({
         });
 
         // Update current schema
-        setCurrentSchema(updatedSchema);
+        setCurrentConfiguratorSchema(updatedSchema);
         setExtractResult(result);
         setExtractRevision((prev) => prev + 1);
         setHasChanges(false);
@@ -162,6 +183,26 @@ export const useExtractDialogState = ({
       }
     },
     [threadId, file.name, extractDocument, addSnackbar],
+  );
+
+  /**
+   * Need to persist schema state as is without any transformations in the middle and use it in schema editor
+   * - with any transformations in the middle the inputs will start to loose focus as new entry will be passed down
+   */
+  const handleConfiguratorSchemaChange = useCallback(
+    (updatedSchema: ConfigurationSchema) => {
+      setConfiguratorSchema(updatedSchema);
+
+      const description = currentSchema?.description;
+      const apiSchema = toJSONDocumentSchema(
+        updatedSchema?.children as RenderedField[],
+        description ? String(description) : '',
+      );
+      setCurrentSchema(apiSchema as ExtractionSchemaPayload);
+
+      setHasChanges(true);
+    },
+    [currentSchema],
   );
 
   const handleSchemaChange = useCallback((updatedSchema: ExtractionSchemaPayload | null) => {
@@ -183,6 +224,7 @@ export const useExtractDialogState = ({
     // State
     extractResult,
     currentSchema,
+    configuratorSchema,
     hasChanges,
     extractRevision,
     extractedDataWithCitations,
@@ -198,6 +240,7 @@ export const useExtractDialogState = ({
     handleExtract,
     handleReExtract,
     handleSchemaChange,
+    handleConfiguratorSchemaChange,
     initializeFromExisting,
     setHasChanges,
   };
