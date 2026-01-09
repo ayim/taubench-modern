@@ -284,9 +284,7 @@ async def build_agent_package(
         A Response containing the agent package zip file.
     """
     # Read the uploaded zip file contents
-    project_zip_bytes = await project_package_zip.read()
-
-    with await AgentPackageHandler.from_bytes(project_zip_bytes) as handler:
+    with await AgentPackageHandler.from_stream(iter_upload_file_chunks(project_package_zip)) as handler:
         builder = AgentPackageBuilder(handler)
         headers = {"Content-Disposition": 'attachment; filename="agent_package.zip"'}
         return StreamingResponse(await builder.build(), media_type="application/zip", headers=headers)
