@@ -71,26 +71,27 @@ async def expand_action_packages_from_uris(
     for uri in action_packages_uris:
         # Use ActionPackageHandler.from_uri to fetch the package
         with await ActionPackageHandlerForURI.from_uri(uri) as handler:
-            # Read the metadata to get name and version
-            # The metadata file has a nested structure: {"metadata": {...}, "openapi.json": {...}}
+            # Read package.yaml to get name and version
+            # package.yaml is guaranteed to have the correct version, unlike metadata
+            # which may be missing action_package_version in older Action Server packages
             try:
-                metadata = await handler.read_metadata()
-                name = metadata.name or None
-                version = metadata.version or metadata.action_package_version or None
+                package_spec = await handler.read_package_spec()
+                name = package_spec.name or None
+                version = package_spec.version or None
                 if not name or not version:
                     raise PlatformHTTPError(
                         error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-                        message=f"Invalid action package metadata from '{uri}'",
+                        message=f"Invalid action package spec (package.yaml) from '{uri}'",
                     )
             except Exception as e:
                 logger.error(
-                    "Failed to read action package metadata",
+                    "Failed to read action package spec",
                     uri=uri,
                     error=str(e),
                 )
                 raise PlatformHTTPError(
                     error_code=ErrorCode.UNPROCESSABLE_ENTITY,
-                    message=f"Failed to read action package metadata from '{uri}': {e}",
+                    message=f"Failed to read action package spec from '{uri}': {e}",
                 ) from e
 
             # Match this action package to an agent's action package definition

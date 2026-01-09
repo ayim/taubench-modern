@@ -74,6 +74,29 @@ def create_action_package_with_metadata(name: str, version: str) -> dict[str, by
     }
 
 
+def create_action_package_without_version_in_metadata(name: str, version: str) -> dict[str, bytes]:
+    """Create action package files WITHOUT action_package_version in metadata.
+
+    This simulates older Action Server packages (e.g., Slack@1.0.1, Browsing@1.0.0)
+    that did not include action_package_version in their metadata.
+
+    The version should be read from package.yaml instead.
+    """
+    # Metadata without action_package_version field (like older Action Server packages)
+    metadata = {
+        "name": name,
+        "description": f"Test {name} package",
+        "actions": [],
+        "secrets": {},
+    }
+
+    return {
+        AgentPackageConfig.action_package_metadata_filename: json.dumps(metadata).encode("utf-8"),
+        "package.yaml": f"name: {name}\nversion: {version}".encode(),
+        "actions.py": b"# Test actions",
+    }
+
+
 def create_action_package_zip(files: dict[str, bytes]) -> bytes:
     """Create a zip file containing the given files."""
     zip_buffer = BytesIO()
@@ -182,6 +205,38 @@ class TestExpandActionPackagesFromUris:
         assert "email" in error_msg
 
     @pytest.mark.asyncio
+    async def test_expands_package_without_version_in_metadata(self, tmp_path: Path):
+        """Test that packages without action_package_version in metadata still work.
+
+        This tests the fix for older Action Server packages (e.g., Slack@1.0.1, Browsing@1.0.0)
+        that did not include action_package_version in their metadata.
+        Version should be read from package.yaml instead.
+        """
+        # Create action package in agent definition
+        action_package = ActionPackage(
+            name="slack",
+            organization="Sema4.ai",
+            version="1.0.1",
+        )
+        agent = create_minimal_agent(action_packages=[action_package])
+
+        # Create action package WITHOUT action_package_version in metadata
+        slack_files = create_action_package_without_version_in_metadata("slack", "1.0.1")
+        slack_zip_bytes = create_action_package_zip(slack_files)
+        slack_path = tmp_path / "slack.zip"
+        slack_path.write_bytes(slack_zip_bytes)
+
+        # Create file URI
+        file_uri = slack_path.as_uri()
+
+        # Expand the action package from URI - should work by reading version from package.yaml
+        result = await expand_action_packages_from_uris(agent, [file_uri])
+
+        # Verify results
+        assert len(result) == 1
+        assert "Sema4.ai/slack" in result
+        assert result["Sema4.ai/slack"]["package.yaml"] == slack_files["package.yaml"]
+
     async def test_filter_packages_expands_only_specified_packages(self, tmp_path: Path):
         """Test that filter_packages only expands the specified packages."""
         # Agent has two action packages defined

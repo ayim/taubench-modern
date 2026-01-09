@@ -1,11 +1,12 @@
 import json
+from dataclasses import dataclass, field
 from typing import Any, Self
 
 import structlog
 
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.handler.base import BasePackageHandler, PackageFileContent, PackageFilePath
-from agent_platform.core.agent_package.metadata.agent_metadata import ActionPackageMetadata
+from agent_platform.core.agent_package.metadata.agent_metadata import ActionPackageMetadata, ExternalEndpoint
 from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
@@ -20,6 +21,137 @@ ActionPackageContent = dict[ActionPackageFilePath, ActionPackageFileContent]
 
 ActionPackagePath = PackageFilePath
 ActionPackageMap = dict[ActionPackagePath, ActionPackageContent]
+
+
+@dataclass(frozen=True)
+class ActionPackageSpecDependencies:
+    """Dependencies configuration for an action package."""
+
+    conda_forge: list[str] = field(default_factory=list, metadata={"description": "Conda-forge dependencies."})
+    """Conda-forge dependencies."""
+
+    pypi: list[str] = field(default_factory=list, metadata={"description": "PyPI dependencies."})
+    """PyPI dependencies."""
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any] | None) -> "ActionPackageSpecDependencies":
+        """Create from dictionary."""
+        if data is None:
+            return cls()
+        if isinstance(data, cls):
+            return data
+        return cls(
+            conda_forge=data.get("conda-forge", []) or [],
+            pypi=data.get("pypi", []) or [],
+        )
+
+
+@dataclass(frozen=True)
+class ActionPackageSpecPackaging:
+    """Packaging configuration for an action package."""
+
+    exclude: list[str] = field(
+        default_factory=list, metadata={"description": "Glob patterns to exclude from packaging."}
+    )
+    """Glob patterns to exclude from packaging."""
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any] | None) -> "ActionPackageSpecPackaging":
+        """Create from dictionary."""
+        if data is None:
+            return cls()
+        if isinstance(data, cls):
+            return data
+        return cls(
+            exclude=data.get("exclude", []) or [],
+        )
+
+
+@dataclass(frozen=True)
+class ActionPackageSpec:
+    """Action package specification from package.yaml.
+
+    This is a permissive model that supports the package.yaml format.
+    """
+
+    name: str = field(default="", metadata={"description": "A short name for the action package."})
+    """A short name for the action package."""
+
+    description: str = field(default="", metadata={"description": "A description of what's in the action package."})
+    """A description of what's in the action package."""
+
+    version: str = field(default="", metadata={"description": "Package version number (recommend semver)."})
+    """Package version number (recommend semver)."""
+
+    spec_version: str = field(default="", metadata={"description": "The version of the package.yaml format."})
+    """The version of the package.yaml format."""
+
+    dependencies: ActionPackageSpecDependencies = field(
+        default_factory=ActionPackageSpecDependencies,
+        metadata={"description": "Package dependencies."},
+    )
+    """Package dependencies."""
+
+    external_endpoints: list[ExternalEndpoint] = field(
+        default_factory=list, metadata={"description": "External endpoints the package accesses."}
+    )
+    """External endpoints the package accesses."""
+
+    packaging: ActionPackageSpecPackaging = field(
+        default_factory=ActionPackageSpecPackaging,
+        metadata={"description": "Packaging configuration."},
+    )
+    """Packaging configuration."""
+
+    # Store any extra fields not explicitly defined
+    extra: dict[str, Any] = field(
+        default_factory=dict, metadata={"description": "Any additional fields not explicitly defined."}
+    )
+    """Any additional fields not explicitly defined."""
+
+    @classmethod
+    def model_validate(cls, data: dict[str, Any] | None) -> "ActionPackageSpec":
+        """Create from dictionary (e.g., parsed from package.yaml)."""
+        if data is None:
+            return cls()
+        if isinstance(data, cls):
+            return data
+
+        data = data.copy()
+
+        # Handle external-endpoints (with hyphen)
+        endpoints_data = data.pop("external-endpoints", []) or []
+        external_endpoints = [ExternalEndpoint.model_validate(ep) for ep in endpoints_data]
+
+        # Handle spec-version (with hyphen)
+        spec_version = data.pop("spec-version", "")
+
+        # Handle dependencies
+        dependencies_data = data.pop("dependencies", None)
+        dependencies = ActionPackageSpecDependencies.model_validate(dependencies_data)
+
+        # Handle packaging
+        packaging_data = data.pop("packaging", None)
+        packaging = ActionPackageSpecPackaging.model_validate(packaging_data)
+
+        # Extract known fields
+        name = data.pop("name", "")
+        description = data.pop("description", "")
+        version = data.pop("version", "")
+
+        # Store remaining fields as extra
+        extra = data
+
+        return cls(
+            name=name,
+            description=description,
+            version=version,
+            spec_version=spec_version,
+            dependencies=dependencies,
+            external_endpoints=external_endpoints,
+            packaging=packaging,
+            extra=extra,
+        )
 
 
 class ActionPackageHandler(BasePackageHandler):
@@ -43,6 +175,19 @@ class ActionPackageHandler(BasePackageHandler):
 
     async def read_package_spec_raw(self) -> bytes:
         return await self.read_file(AgentPackageConfig.action_package_spec_filename)
+
+    async def read_package_spec(self) -> ActionPackageSpec:
+        """Read and parse package.yaml as an ActionPackageSpec object.
+
+        Returns:
+            ActionPackageSpec object containing package.yaml contents.
+        """
+        from ruamel.yaml import YAML
+
+        yaml = YAML(typ="safe")
+        spec_raw = await self.read_package_spec_raw()
+        spec_dict = yaml.load(spec_raw)
+        return ActionPackageSpec.model_validate(spec_dict)
 
     async def read_metadata_raw(self) -> bytes:
         """Read raw metadata bytes from the action package.
