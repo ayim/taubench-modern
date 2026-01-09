@@ -19,8 +19,8 @@ const SidebarLinkBase = styled.a`
   }
 `;
 
-export const SidebarLink: FC<LinkProps> = ({ to, params, children }) => {
-  const linkProps = useLinkProps(to, params);
+export const SidebarLink: FC<LinkProps> = ({ to, params, preserveSubroute, children }) => {
+  const linkProps = useLinkProps(to, params, preserveSubroute);
 
   return <SidebarLinkBase {...linkProps}>{children}</SidebarLinkBase>;
 };

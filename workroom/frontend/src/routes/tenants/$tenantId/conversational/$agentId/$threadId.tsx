@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link, Outlet, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useRouteContext } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalStorage } from '@sema4ai/robocloud-ui-utils';
 import { Button, Progress } from '@sema4ai/components';
@@ -33,7 +33,6 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
 function View() {
   const { agentMeta } = Route.useLoaderData();
   const { agentId, threadId, tenantId } = Route.useParams();
-  const navigate = useNavigate();
 
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const { data: threadResult, isLoading: isThreadLoading } = useQuery(
@@ -60,20 +59,6 @@ function View() {
       setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
     }
   }, [isEvaluationThread, agentId, threadId, isThreadLoading]);
-
-  // Auto-navigate to /evaluations if the panel should be open
-  useEffect(() => {
-    const shouldShowEval = localStorage.getItem(`eval-panel-open-${agentId}`) === 'true';
-    const isOnEvalRoute = window.location.pathname.endsWith('/evaluations');
-
-    if (shouldShowEval && !isOnEvalRoute && !isEvaluationThread && !isThreadLoading) {
-      navigate({
-        to: '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations',
-        params: { tenantId, agentId, threadId },
-        replace: true,
-      });
-    }
-  }, [threadId, agentId, tenantId, isEvaluationThread, isThreadLoading, navigate]);
 
   if (agentMeta?.workroomUi && !agentMeta.workroomUi.conversations.enabled) {
     return (

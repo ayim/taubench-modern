@@ -149,6 +149,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
           <ListItemLink
             to="/thread/$agentId/$threadId"
             params={{ threadId: thread.thread_id || '', agentId }}
+            preserveSubroute
             icon={isDeleting ? IconLoading : ItemIcon}
             hotkey={
               <Menu

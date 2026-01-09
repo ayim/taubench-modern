@@ -15,10 +15,11 @@ const StyledListLink = styled(List.Link)`
 export const ListItemLink: FC<Omit<LinkProps, 'children'> & ComponentProps<typeof List.Link>> = ({
   to,
   params,
+  preserveSubroute,
   children,
   ...navigationLinkProps
 }) => {
-  const linkProps = useLinkProps(to, params);
+  const linkProps = useLinkProps(to, params, preserveSubroute);
 
   return (
     <StyledListLink {...navigationLinkProps} {...linkProps} aria-current={linkProps['aria-current'] ? true : undefined}>

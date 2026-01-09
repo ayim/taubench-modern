@@ -183,6 +183,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
             to="/workItem/$agentId/$workItemId/$threadId"
             params={{ agentId, workItemId: workItem?.work_item_id, threadId }}
             icon={iconForStatus ?? undefined}
+            preserveSubroute
             hotkey={
               <Menu
                 trigger={
