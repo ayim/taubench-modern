@@ -155,6 +155,16 @@ export const apiHeadersToFormEntries = (
 };
 
 type OAuthConfig = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>['oauth_config'];
+type OAuthConfigUpdate = {
+  authentication_type: NonNullable<
+    NonNullable<
+      ServerRequest<'put', '/api/v2/mcp-servers/{mcp_server_id}', 'requestBody'>['oauth_config']
+    >['authentication_type']
+  >;
+  authentication_metadata?: NonNullable<
+    ServerRequest<'put', '/api/v2/mcp-servers/{mcp_server_id}', 'requestBody'>['oauth_config']
+  >['authentication_metadata'];
+} | null;
 
 const buildOAuthConfig = (input: McpServerFormValues): OAuthConfig => {
   if (input.authentication_type === 'none') {
@@ -188,6 +198,41 @@ const buildOAuthConfig = (input: McpServerFormValues): OAuthConfig => {
   return {
     authentication_type: input.authentication_type,
   };
+};
+
+const buildOAuthConfigForUpdate = (input: McpServerFormValues): OAuthConfigUpdate => {
+  switch (input.authentication_type) {
+    case 'none':
+      return null;
+
+    case 'oauth2-client-credentials': {
+      const creds = input.client_credentials;
+      const endpoint = creds?.endpoint?.trim();
+      const clientId = creds?.client_id?.trim();
+      const clientSecret = creds?.client_secret?.trim();
+
+      if (!endpoint || !clientId || !clientSecret) {
+        return null;
+      }
+
+      return {
+        authentication_type: 'oauth2-client-credentials',
+        authentication_metadata: {
+          endpoint,
+          client_id: clientId,
+          client_secret: clientSecret,
+          scope: creds?.scope ?? null,
+        },
+      };
+    }
+
+    case 'oauth2-authorization-code':
+      return { authentication_type: input.authentication_type };
+
+    default:
+      input.authentication_type satisfies never;
+      return { authentication_type: input.authentication_type };
+  }
 };
 
 const getAgentPackageSecretEntries = (agentPackageSecrets: Record<string, string> | undefined): HeaderEntry[] => {
@@ -290,8 +335,7 @@ export const buildUpdateMcpServerPayload = (
     args: core.args ?? null,
     cwd: core.cwd ?? null,
     env: core.env ?? null,
-    // TODO https://linear.app/sema4ai/issue/ENG-58/add-oauth-config-support-to-mcp-server-update-endpoint
-    // Add oauth_config support when backend MCPServer schema includes it.
+    oauth_config: buildOAuthConfigForUpdate(input),
   };
 };
 
@@ -313,5 +357,6 @@ export const buildValidationPayload = (
     args: core.args,
     cwd: core.cwd,
     env: core.env,
+    oauth_config: buildOAuthConfigForUpdate(input),
   };
 };

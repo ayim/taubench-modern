@@ -236,6 +236,7 @@ function getRouteMap(): {
       agentReadPermissions,
     ],
 
+    'post /api/v2/capabilities/mcp/tools': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/oauth2/login': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/oauth2/local_login': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/oauth2/logout': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
@@ -268,7 +269,6 @@ function getRouteMap(): {
     'put /api/v2/agents/package/{aid}': [DISALLOWED],
     'put /api/v2/agents/{aid}/action-server-config': [DISALLOWED],
     'post /api/v2/threads/{tid}/fork': [DISALLOWED],
-    'post /api/v2/capabilities/mcp/tools': [DISALLOWED],
     // #endregion
   };
 }
