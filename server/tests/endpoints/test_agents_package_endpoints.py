@@ -1060,6 +1060,60 @@ class TestCreateOrUpdateAgentFromPackageHelper:
         assert created_agent.agent_architecture.name == "agent_platform.architectures.default"
         assert created_agent.agent_architecture.version == "1.0.0"
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("payload_name", ["", None])
+    async def test_empty_payload_name_falls_back_to_spec(
+        self,
+        payload_name,
+        mock_user,
+        mock_storage,
+        agent_package_handler_factory,
+        monkeypatch,
+    ):
+        spec = {
+            "spec": {
+                "agent-package": {
+                    "spec-version": "v2.1",
+                    "agents": [
+                        {
+                            "name": "Spec Agent Name",
+                            "description": "Spec description",
+                            "version": "1.0.0",
+                            "action-packages": [],
+                            "metadata": {"mode": "conversational"},
+                        }
+                    ],
+                }
+            },
+            "runbook_text": "# Runbook\nHello",
+        }
+
+        payload = AgentPackagePayload(
+            name=payload_name,
+            agent_package_url="https://example.com/agent.zip",
+        )
+
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.upserts.AgentPackageHandler.from_url",
+            AsyncMock(return_value=agent_package_handler_factory(spec)),
+        )
+
+        result = await upsert_agent_from_package(
+            user=mock_user,
+            aid=str(uuid4()),
+            payload=payload,
+            storage=mock_storage,
+        )
+
+        assert isinstance(result, AgentCompat)
+        assert result.name == "Spec Agent Name"
+        assert result.description == "Spec description"
+
+        call_args = mock_storage.upsert_agent.call_args[0]
+        created_agent = call_args[1]
+        assert created_agent.name == "Spec Agent Name"
+        assert created_agent.description == "Spec description"
+
 
 class TestConversationFields:
     """Test cases for conversation-related fields in agent specifications."""

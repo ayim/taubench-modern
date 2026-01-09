@@ -58,13 +58,15 @@ async def deploy_agent_from_package(
     with handler:
         # Log binary ZIP metadata for tracking
         file_metadata = create_binary_zip_metadata(handler.get_spooled_file_size())
+
+        aid = str(uuid.uuid4())
+
         logger.info(
             "Binary ZIP uploaded for agent deployment",
-            agent_name=validated_payload.name,
+            agent_id=aid,
             file_metadata=file_metadata,
         )
 
-        aid = str(uuid.uuid4())
         result = await upsert_agent_from_package(
             user=user, aid=aid, payload=validated_payload, storage=storage, handler=handler
         )
@@ -93,7 +95,7 @@ async def update_agent_from_package(
         file_metadata = create_binary_zip_metadata(handler.get_spooled_file_size())
         logger.info(
             "Binary ZIP uploaded for agent deployment",
-            agent_name=validated_payload.name,
+            agent_id=aid,
             file_metadata=file_metadata,
         )
 

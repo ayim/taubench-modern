@@ -77,7 +77,9 @@ async def upsert_agent_from_package(
         selected_tools = spec_selected_tools.to_selected_tools() if spec_selected_tools else SelectedTools()
 
         as_upsert_payload = UpsertAgentPayload(  # type: ignore[call-arg]
-            name=payload.name,  # Want name from payload, not agent project
+            # Use spec name when payload name is missing or empty
+            name=payload.name if payload.name else spec_agent.name,
+            # Use description from payload if provided, else fall back to spec_agent description
             description=payload.description if payload.description is not None else spec_agent.description,
             version=spec_agent.version or "1.0.0",
             action_packages=[

@@ -194,7 +194,7 @@ class AgentPackagePayload:
 
         return cls(
             name=data.get("name", ""),
-            description=data.get("description", ""),
+            description=data.get("description", None),
             public=data.get("public", True),
             agent_package_url=data.get("agent_package_url", None),
             agent_package_base64=data.get("agent_package_base64", None),

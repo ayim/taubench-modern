@@ -162,9 +162,6 @@ def _get_agent_package_payload_from_form_data(form_data: dict) -> AgentPackagePa
     form_data["langsmith"] = _form_data_field_to_dict(langsmith_raw)
     form_data["model"] = _form_data_field_to_dict(model_raw)
 
-    # Providing defaults for ZIP content (user-provided values override them if exist)
-    form_data = {"name": "Uploaded Package", "description": "Package uploaded as ZIP file", **form_data}
-
     return AgentPackagePayload.model_validate(form_data)
 
 
