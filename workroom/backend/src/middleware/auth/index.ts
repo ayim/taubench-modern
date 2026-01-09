@@ -1,6 +1,7 @@
 import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import type { NextFunction, Request, Response } from 'express';
 import { pathToRegexp } from 'path-to-regexp';
+import { createApiKeyAuthMiddleware } from './apiKey.js';
 import { extractOIDCUserIdentity, handleOIDCAuthCheck, refreshOIDCToken } from './oidc.js';
 import { extractSema4OIDCUserIdentity, handleSema4OIDCAuthCheck } from './sema4OIDC.js';
 import { extractSnowflakeUserIdentity, handleSnowflakeAuthCheck } from './snowflake.js';
@@ -14,6 +15,8 @@ import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/sessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
 import type { Result } from '../../utils/result.js';
+
+export { createApiKeyAuthMiddleware };
 
 export const createAuthMiddleware =
   ({

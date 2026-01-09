@@ -2,7 +2,7 @@ import type http from 'node:http';
 import Stream from 'node:stream';
 import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { WebSocket, WebSocketServer } from 'ws';
-import { parseAgentRequest } from '../api/parsers.js';
+import { parsePrivateApiRequest } from '../api/parsers.js';
 import { getRouteBehaviour } from '../api/routing.js';
 import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
@@ -117,7 +117,7 @@ export const initializeWebSocketProxying = ({
 
     const requestPathWithQueryStringParameters = `${targetPath}${urlAttributes.searchParams}`;
 
-    const route = parseAgentRequest({
+    const route = parsePrivateApiRequest({
       method: req.method,
       path: requestPathWithQueryStringParameters,
     });

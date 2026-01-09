@@ -6,6 +6,7 @@ import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
+import rateLimit from 'express-rate-limit';
 import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { createApiKeysManager } from './apiKeys/index.js';
 import { AuthManager } from './auth/AuthManager.js';
@@ -20,6 +21,7 @@ import { createFilesRouter } from './handlers/files.js';
 import { createHealthCheck, createReadinessCheck } from './handlers/health.js';
 import { createGetMeta, createGetSparTenantsList } from './handlers/meta.js';
 import { createOIDCCallbackHandler } from './handlers/oidc.js';
+import { createPublicApiSpecHandler } from './handlers/openapi.js';
 import {
   createAssetServe,
   createCompressionMiddleware,
@@ -29,7 +31,11 @@ import {
 import { initializeWebSocketProxying } from './handlers/websocket.js';
 import { createGetWorkroomMeta } from './handlers/workroom.js';
 import type { ErrorResponse } from './interfaces.js';
-import { createAuthMiddleware, createAuthRedirectMiddleware } from './middleware/auth/index.js';
+import {
+  createApiKeyAuthMiddleware,
+  createAuthMiddleware,
+  createAuthRedirectMiddleware,
+} from './middleware/auth/index.js';
 import { createSnowflakeImplicitSessionMiddleware } from './middleware/auth/snowflake.js';
 import { badPlatform } from './middleware/badRoute.js';
 import { noCache } from './middleware/cache.js';
@@ -43,6 +49,9 @@ import { createSessionManager } from './session/sessionManager.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
 import { migrateAgentServerUsersForSPCS } from './utils/snowflake.js';
+
+// TODO: Add 'rate_limit_exceeded' to ErrorResponse in @sema4ai/workroom-interface
+type RateLimitErrorResponse = { error: { code: 'rate_limit_exceeded'; message: string } };
 
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
@@ -65,6 +74,24 @@ export const createApplication = async ({
   monitoring.logger.info('Configuring application', {
     authMode: configuration.auth.type,
     logLevel: configuration.logLevel,
+  });
+
+  const secretDataManager = createSecretDataManager({
+    masterKeyProvider: createBasicKeyProvider({
+      identifier: 'spar-api-keys',
+      masterPassword: configuration.secretManagement.secret,
+    }),
+    monitoring: {
+      logger: {
+        error: (errorMessage, errorDetails) => {
+          monitoring.logger.error(errorMessage, {
+            secretId: errorDetails?.secretId,
+            error: errorDetails?.error,
+          });
+        },
+      },
+    },
+    storage: createSecretStorage(database),
   });
 
   const authManager = new AuthManager({
@@ -104,40 +131,11 @@ export const createApplication = async ({
     sessionManager,
   });
 
-  const apiKeysManager = (() => {
-    if (!configuration.session) {
-      monitoring.logger.info('API keys management not configured (no session)');
-      return null;
-    }
-
-    monitoring.logger.info('Configuring API keys management');
-
-    const keyProvider = createBasicKeyProvider({
-      identifier: 'spar-api-keys',
-      masterPassword: configuration.session.secret,
-    });
-
-    const secretDataManager = createSecretDataManager({
-      masterKeyProvider: keyProvider,
-      monitoring: {
-        logger: {
-          error: (errorMessage, errorDetails) => {
-            monitoring.logger.error(errorMessage, {
-              secretId: errorDetails?.secretId,
-              error: errorDetails?.error,
-            });
-          },
-        },
-      },
-      storage: createSecretStorage(database),
-    });
-
-    return createApiKeysManager({
-      database,
-      monitoring,
-      secretDataManager,
-    });
-  })();
+  const apiKeysManager = createApiKeysManager({
+    database,
+    monitoring,
+    secretDataManager,
+  });
 
   const appPublic = express();
   const serverPublic = http.createServer(appPublic);
@@ -291,6 +289,7 @@ export const createApplication = async ({
         sessionManager,
       }),
       createProxyHandler({
+        apiType: 'private',
         configuration,
         monitoring,
         rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
@@ -311,6 +310,7 @@ export const createApplication = async ({
         sessionManager,
       }),
       createProxyHandler({
+        apiType: 'private',
         configuration,
         monitoring,
         rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
@@ -331,6 +331,7 @@ export const createApplication = async ({
         sessionManager,
       }),
       createProxyHandler({
+        apiType: 'private',
         configuration,
         monitoring,
         rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
@@ -350,6 +351,7 @@ export const createApplication = async ({
         sessionManager,
       }),
       createProxyHandler({
+        apiType: 'private',
         configuration,
         monitoring,
         rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
@@ -385,6 +387,7 @@ export const createApplication = async ({
       sessionManager,
     }),
     createProxyHandler({
+      apiType: 'private',
       configuration,
       monitoring,
       rewriteAgentServerPath: (current, getParam) => current.replace(`/tenants/${getParam('tenantId')}/agents`, ''),
@@ -403,6 +406,7 @@ export const createApplication = async ({
       sessionManager,
     }),
     createProxyHandler({
+      apiType: 'private',
       configuration,
       monitoring,
       rewriteAgentServerPath: (_current, getParam) => `/api/v2/agents/${getParam('agentId')}/agent-details`,
@@ -425,6 +429,38 @@ export const createApplication = async ({
     createConfigureDocumentIntelligence({ configuration, monitoring }),
   );
 
+  if (configuration.workroomMeta.features.publicAPI.enabled) {
+    const publicApiRateLimiter = rateLimit({
+      windowMs: configuration.publicApi.rateLimitWindowMs,
+      limit: configuration.publicApi.rateLimit,
+      standardHeaders: 'draft-8',
+      handler: (_req, res) => {
+        res.status(429).json({
+          error: { code: 'rate_limit_exceeded', message: 'Too many requests, please try again later' },
+        } satisfies RateLimitErrorResponse);
+      },
+    });
+
+    tenantRouter.get('/api/v1', noCache, createPublicApiSpecHandler());
+
+    tenantRouter.use(
+      '/api/v1',
+      publicApiRateLimiter,
+      createApiKeyAuthMiddleware({ apiKeysManager, monitoring }),
+      createProxyHandler({
+        apiType: 'public',
+        configuration,
+        monitoring,
+        rewriteAgentServerPath: (currentPath, getParam) =>
+          currentPath.replace(`/tenants/${getParam('tenantId')}`, '').replace('/api/v1', '/api/public/v1'),
+        targetBaseUrl: configuration.agentServerInternalUrl,
+      }),
+    );
+  } else {
+    tenantRouter.get('/api/v1', noCache, createPublicApiSpecHandler());
+    tenantRouter.use('/api/v1/*', badPlatform);
+  }
+
   // "Tombstoned" routes for ACE - these are overwritten by ACE's ingress
   // configuration, so they should work fine there but not be called in
   // other environments.
@@ -432,7 +468,6 @@ export const createApplication = async ({
   tenantRouter.post('/workroom/feedback', badPlatform);
   tenantRouter.get('/osb-resource-access', badPlatform);
   tenantRouter.get('/workroom/audit-logs', badPlatform);
-  tenantRouter.use('/api/v1', badPlatform);
 
   tenantRouter.use(
     createAuthRedirectMiddleware({

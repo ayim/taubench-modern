@@ -1,12 +1,174 @@
 import { PassThrough } from 'node:stream';
 import { exhaustiveCheck } from '@sema4ai/shared-utils';
-import { parseAgentRequest } from '../api/parsers.js';
-import { getRouteBehaviour } from '../api/routing.js';
+import { parsePrivateApiRequest, parsePublicApiRequest } from '../api/parsers.js';
+import { getPublicApiRouteBehaviour, getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';
 import { type ErrorResponse, type ExpressRequest, type ExpressResponse } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { NO_PROXY_HEADERS } from '../utils/request.js';
 import { extractRequestPathAttributes, joinUrl } from '../utils/url.js';
+
+type AuthorizationResult =
+  | { success: true; token: string }
+  | { success: false; response: ReturnType<ExpressResponse['json']> };
+
+const authorizePrivateApiRequest = async (
+  serverContext: { configuration: Configuration; monitoring: MonitoringContext },
+  requestContext: { authSub: string; req: ExpressRequest; requestPath: string; res: ExpressResponse },
+): Promise<AuthorizationResult> => {
+  const { configuration, monitoring } = serverContext;
+  const { authSub, req, requestPath, res } = requestContext;
+  const route = parsePrivateApiRequest({
+    method: req.method,
+    path: requestPath,
+  });
+
+  if (route === null) {
+    monitoring.logger.error('Missing agent workroom route', {
+      requestMethod: req.method,
+      requestUrl: requestPath,
+    });
+
+    return {
+      success: false,
+      response: res
+        .status(404)
+        .json({ error: { code: 'not_found', message: 'Route not found' } } satisfies ErrorResponse),
+    };
+  }
+
+  const routeBehaviour = getRouteBehaviour({
+    configuration,
+    route,
+    tenantId: configuration.tenant.tenantId,
+    userId: authSub,
+  });
+
+  if (!routeBehaviour.isAllowed) {
+    monitoring.logger.error('Route not allowed', {
+      requestMethod: req.method,
+      requestUrl: requestPath,
+    });
+
+    return {
+      success: false,
+      response: res
+        .status(404)
+        .json({ error: { code: 'not_found', message: 'Route not found' } } satisfies ErrorResponse),
+    };
+  }
+
+  const signResult = await routeBehaviour.signAgentToken();
+
+  if (!signResult.success) {
+    monitoring.logger.error('Token signing for agent server failed', {
+      errorName: signResult.error.code,
+      errorMessage: signResult.error.message,
+    });
+
+    switch (signResult.error.code) {
+      case 'invalid_signing_result':
+        return {
+          success: false,
+          response: res
+            .status(403)
+            .json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse),
+        };
+      case 'invalid_signing_auth_configuration':
+      case 'signing_failed':
+        return {
+          success: false,
+          response: res.status(500).json({
+            error: { code: 'internal_error', message: 'Internal server error' },
+          } satisfies ErrorResponse),
+        };
+
+      default:
+        exhaustiveCheck(signResult.error);
+    }
+  }
+
+  return { success: true, token: signResult.data };
+};
+
+const authorizePublicApiRequest = async (
+  serverContext: { configuration: Configuration; monitoring: MonitoringContext },
+  requestContext: { apiKeyId: string; req: ExpressRequest; requestPath: string; res: ExpressResponse },
+): Promise<AuthorizationResult> => {
+  const { configuration, monitoring } = serverContext;
+  const { apiKeyId, req, requestPath, res } = requestContext;
+  const route = parsePublicApiRequest({
+    method: req.method,
+    path: requestPath,
+  });
+
+  if (route === null) {
+    monitoring.logger.error('Missing public API route', {
+      requestMethod: req.method,
+      requestUrl: requestPath,
+    });
+
+    return {
+      success: false,
+      response: res
+        .status(404)
+        .json({ error: { code: 'not_found', message: 'Route not found' } } satisfies ErrorResponse),
+    };
+  }
+
+  const routeBehaviour = getPublicApiRouteBehaviour({
+    apiKeyId,
+    configuration,
+    route,
+    tenantId: configuration.tenant.tenantId,
+  });
+
+  if (!routeBehaviour.isAllowed) {
+    monitoring.logger.error('Public API route not allowed', {
+      requestMethod: req.method,
+      requestUrl: requestPath,
+    });
+
+    return {
+      success: false,
+      response: res
+        .status(404)
+        .json({ error: { code: 'not_found', message: 'Route not found' } } satisfies ErrorResponse),
+    };
+  }
+
+  const signResult = await routeBehaviour.signAgentToken();
+
+  if (!signResult.success) {
+    monitoring.logger.error('Token signing for public API failed', {
+      errorName: signResult.error.code,
+      errorMessage: signResult.error.message,
+    });
+
+    switch (signResult.error.code) {
+      case 'invalid_signing_result':
+        return {
+          success: false,
+          response: res
+            .status(403)
+            .json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse),
+        };
+      case 'invalid_signing_auth_configuration':
+      case 'signing_failed':
+        return {
+          success: false,
+          response: res.status(500).json({
+            error: { code: 'internal_error', message: 'Internal server error' },
+          } satisfies ErrorResponse),
+        };
+
+      default:
+        exhaustiveCheck(signResult.error);
+    }
+  }
+
+  return { success: true, token: signResult.data };
+};
 
 /**
  * Get static agent meta
@@ -24,21 +186,28 @@ export const createGetAgentMeta = () => (_req: ExpressRequest, res: ExpressRespo
   });
 };
 
-export const createProxyHandler =
-  ({
-    configuration,
-    monitoring,
-    rewriteAgentServerPath,
-    skipAuthentication = false,
-    targetBaseUrl,
-  }: {
-    configuration: Configuration;
-    monitoring: MonitoringContext;
-    rewriteAgentServerPath: (currentPath: string, getRequestParameter: (param: string) => string) => string;
-    skipAuthentication?: boolean;
-    targetBaseUrl: string;
-  }) =>
-  async (req: ExpressRequest, res: ExpressResponse) => {
+type ProxyHandlerConfig =
+  | {
+      apiType: 'private';
+      configuration: Configuration;
+      monitoring: MonitoringContext;
+      rewriteAgentServerPath: (currentPath: string, getRequestParameter: (param: string) => string) => string;
+      skipAuthentication?: boolean;
+      targetBaseUrl: string;
+    }
+  | {
+      apiType: 'public';
+      configuration: Configuration;
+      monitoring: MonitoringContext;
+      rewriteAgentServerPath: (currentPath: string, getRequestParameter: (param: string) => string) => string;
+      targetBaseUrl: string;
+    };
+
+export const createProxyHandler = (config: ProxyHandlerConfig) => {
+  const { apiType, configuration, monitoring, rewriteAgentServerPath, targetBaseUrl } = config;
+  const skipAuthentication = config.apiType === 'private' ? (config.skipAuthentication ?? false) : false;
+
+  return async (req: ExpressRequest, res: ExpressResponse) => {
     const urlAttributes = extractRequestPathAttributes(req.originalUrl);
 
     const targetPath = rewriteAgentServerPath(urlAttributes.pathname, (param: string) => {
@@ -63,7 +232,7 @@ export const createProxyHandler =
 
     // Proxy all valid headers
     for (const [key, value] of Object.entries(req.headers)) {
-      if (typeof value !== 'undefined' && NO_PROXY_HEADERS.includes(key) === false) {
+      if (typeof value !== 'undefined' && !NO_PROXY_HEADERS.includes(key)) {
         headers.set(key, Array.isArray(value) ? value[0] : value);
       }
     }
@@ -78,68 +247,43 @@ export const createProxyHandler =
     }
 
     if (configuration.auth.type !== 'none' && !skipAuthentication) {
-      if (!res.locals.authSub) {
-        throw new Error('Authentication identity not found');
-      }
+      const requestPath = `${targetPath}${urlAttributes.searchParams}`;
 
-      const requestPathWithQueryStringParameters = `${targetPath}${urlAttributes.searchParams}`;
+      const authorizationResult = await ((): Promise<AuthorizationResult> => {
+        switch (apiType) {
+          case 'private': {
+            if (!res.locals.authSub) {
+              throw new Error('Authentication identity not found');
+            }
 
-      const route = parseAgentRequest({
-        method: req.method,
-        path: requestPathWithQueryStringParameters,
-      });
-      if (route === null) {
-        monitoring.logger.error('Missing agent workroom route', {
-          requestMethod: req.method,
-          requestUrl: requestPathWithQueryStringParameters,
-        });
+            return authorizePrivateApiRequest(
+              { configuration, monitoring },
+              { authSub: res.locals.authSub, req, requestPath, res },
+            );
+          }
 
-        return res
-          .status(404)
-          .json({ error: { code: 'not_found', message: 'Missing agent workroom route' } } satisfies ErrorResponse);
-      }
+          case 'public': {
+            if (!res.locals.apiKey) {
+              throw new Error('API key not found - API key middleware must run before public API proxy');
+            }
 
-      const routeBehaviour = getRouteBehaviour({
-        configuration,
-        route,
-        tenantId: configuration.tenant.tenantId,
-        userId: res.locals.authSub,
-      });
-
-      if (!routeBehaviour.isAllowed) {
-        monitoring.logger.error('Route not allowed', {
-          requestMethod: req.method,
-          requestUrl: requestPathWithQueryStringParameters,
-        });
-
-        return res
-          .status(404)
-          .json({ error: { code: 'not_found', message: 'Missing or route not allowed' } } satisfies ErrorResponse);
-      }
-
-      const signResult = await routeBehaviour.signAgentToken();
-
-      if (!signResult.success) {
-        monitoring.logger.error('Token signing for agent server failed', {
-          errorName: signResult.error.code,
-          errorMessage: signResult.error.message,
-        });
-
-        switch (signResult.error.code) {
-          case 'invalid_signing_result':
-            return res.status(403).json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse);
-          case 'invalid_signing_auth_configuration':
-          case 'signing_failed':
-            return res
-              .status(500)
-              .json({ error: { code: 'internal_error', message: 'Internal server error' } } satisfies ErrorResponse);
+            return authorizePublicApiRequest(
+              { configuration, monitoring },
+              { apiKeyId: res.locals.apiKey.id, req, requestPath, res },
+            );
+          }
 
           default:
-            exhaustiveCheck(signResult.error);
+            apiType satisfies never;
+            throw new Error(`Unknown API type: ${apiType}`);
         }
+      })();
+
+      if (!authorizationResult.success) {
+        return authorizationResult.response;
       }
 
-      headers.set('Authorization', `Bearer ${signResult.data}`);
+      headers.set('Authorization', `Bearer ${authorizationResult.token}`);
     }
 
     try {
@@ -249,3 +393,4 @@ export const createProxyHandler =
       return res.status(502).send('Proxy error');
     }
   };
+};

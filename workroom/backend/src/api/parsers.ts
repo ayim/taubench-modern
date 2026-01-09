@@ -1,5 +1,8 @@
-import { spec as AgentSpec } from '@sema4ai/agent-server-interface';
+import { PublicApi, spec as PrivateAgentSpec } from '@sema4ai/agent-server-interface';
 import { type MakeHttp, buildSpec } from './openapi.js';
 
-export type AgentAPIRoute = MakeHttp<(typeof AgentSpec)['paths']>;
-export const parseAgentRequest = buildSpec(AgentSpec);
+export type PrivateAPIRoute = MakeHttp<(typeof PrivateAgentSpec)['paths']>;
+export const parsePrivateApiRequest = buildSpec(PrivateAgentSpec);
+
+export type PublicAPIRoute = MakeHttp<(typeof PublicApi.spec)['paths']>;
+export const parsePublicApiRequest = buildSpec(PublicApi.spec);

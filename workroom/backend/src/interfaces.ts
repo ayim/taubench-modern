@@ -11,6 +11,10 @@ export type ExpressRequest = Request;
 export type ErrorResponse = WorkRoomErrorResponse;
 
 interface ExpressResponseLocals {
+  apiKey?: {
+    id: string;
+    name: string;
+  };
   authSub?: string;
   tenantId?: string;
 }

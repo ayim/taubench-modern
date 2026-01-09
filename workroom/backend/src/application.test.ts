@@ -68,6 +68,13 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     internal: 'NOT_USED_IN_TESTS' as unknown as number,
     public: 'NOT_USED_IN_TESTS' as unknown as number,
   },
+  publicApi: {
+    rateLimit: 'NOT_USED_IN_TESTS' as unknown as number,
+    rateLimitWindowMs: 'NOT_USED_IN_TESTS' as unknown as number,
+  },
+  secretManagement: {
+    secret: 'NOT_USED_IN_TESTS',
+  },
   session: null,
   sessionCookieMaxAgeMs: 60 * 60 * 1000,
   tenant: {

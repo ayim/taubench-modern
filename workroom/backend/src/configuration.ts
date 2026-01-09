@@ -104,6 +104,13 @@ export interface Configuration {
     internal: number;
     public: number;
   };
+  publicApi: {
+    rateLimit: number;
+    rateLimitWindowMs: number;
+  };
+  secretManagement: {
+    secret: string;
+  };
   session: {
     secret: string;
   } | null;
@@ -381,6 +388,18 @@ export const getConfiguration = (): Configuration => {
       internal: portInternal,
       public: portPublic,
     },
+    publicApi: {
+      rateLimit: process.env.SEMA4AI_WORKROOM_PUBLIC_API_RATE_LIMIT
+        ? parseEnvVariableInteger('SEMA4AI_WORKROOM_PUBLIC_API_RATE_LIMIT')
+        : 50,
+      rateLimitWindowMs: process.env.SEMA4AI_WORKROOM_PUBLIC_API_RATE_LIMIT_WINDOW_MS
+        ? parseEnvVariableInteger('SEMA4AI_WORKROOM_PUBLIC_API_RATE_LIMIT_WINDOW_MS')
+        : 10 * 1000,
+    },
+    secretManagement: {
+      // So as to avoid having n different secrets, we use the session provided one AND the fallback
+      secret: session?.secret ?? SESSION_COOKIES_NOT_ACTIVE,
+    },
     session,
     sessionCookieMaxAgeMs,
     tenant,
@@ -405,9 +424,7 @@ export const getConfiguration = (): Configuration => {
         },
         documentIntelligence: sparOnlyFeature,
         mcpServersManagement: sparOnlyFeature,
-        // Slightly orthogonal: the session "secret" is used for encrypting / decrypting API keys
-        // See `createBasicKeyProvider`
-        publicAPI: session ? { enabled: true, reason: null } : { enabled: false, reason: 'Session not configured' },
+        publicAPI: sparOnlyFeature,
         semanticDataModels: sparOnlyFeature,
         settings: sparOnlyFeature,
         userManagement: sparOnlyFeature,

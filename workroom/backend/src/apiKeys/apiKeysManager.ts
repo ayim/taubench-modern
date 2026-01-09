@@ -4,7 +4,7 @@ import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { Result } from '../utils/result.js';
 
-const API_KEY_PREFIX = 's4w' as const;
+export const API_KEY_PREFIX = 's4w' as const;
 
 export enum ApiKeyErrorCode {
   ApiKeyNotFound = 'api_key_not_found',
@@ -32,7 +32,7 @@ const generateApiKey = (): string => {
   return `${API_KEY_PREFIX}_${randomBytes(32).toString('hex')}`;
 };
 
-const hashApiKey = (apiKey: string): string => {
+export const hashApiKey = (apiKey: string): string => {
   return createHash('sha256').update(apiKey).digest('hex');
 };
 

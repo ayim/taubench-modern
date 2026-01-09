@@ -1,5 +1,5 @@
 import type { Configuration } from '../configuration.js';
-import type { AgentAPIRoute } from './parsers.js';
+import type { PrivateAPIRoute, PublicAPIRoute } from './parsers.js';
 import type { Permission } from '../auth/permissions.js';
 import type { Result } from '../utils/result.js';
 import { signAgentToken, type SignAgentTokenErrorOutcome } from '../utils/signing.js';
@@ -32,7 +32,7 @@ const SIGN_WITH_TENANT = 'tenant';
 const SIGN_WITH_USER = 'user';
 
 function getRouteMap(): {
-  [Key in AgentAPIRoute['type']]:
+  [Key in PrivateAPIRoute['type']]:
     | [isAllowed: false]
     | [isAllowed: true, signMode: 'user' | 'tenant', permissions: Array<Permission>];
 } {
@@ -280,7 +280,7 @@ export function getRouteBehaviour({
   userId,
 }: {
   configuration: Configuration;
-  route: AgentAPIRoute;
+  route: PrivateAPIRoute;
   tenantId: string;
   userId: string;
 }): RouteBehaviour {
@@ -324,3 +324,54 @@ export function getRouteBehaviour({
     permissions,
   };
 }
+
+export type PublicApiRouteBehaviour =
+  | {
+      isAllowed: true;
+      signAgentToken: () => SignAgentTokenResult;
+    }
+  | {
+      isAllowed: false;
+    };
+
+export const getPublicApiRouteBehaviour = ({
+  apiKeyId,
+  configuration,
+  route,
+  tenantId,
+}: {
+  apiKeyId: string;
+  configuration: Configuration;
+  route: PublicAPIRoute;
+  tenantId: string;
+}): PublicApiRouteBehaviour => {
+  const createSigner = async (): SignAgentTokenResult => {
+    if (configuration.auth.type === 'none') {
+      return {
+        success: false,
+        error: {
+          code: 'invalid_signing_auth_configuration',
+          message: 'Invalid auth configuration for signing: auth type none does not support signing tokens',
+        },
+      };
+    }
+
+    return signAgentToken({
+      configuration,
+      payload: {
+        userId: `tenant:${tenantId}:user:${apiKeyId}`,
+      },
+    });
+  };
+
+  const isHealthRoute = route.type === 'get /api/public/v1/ok';
+
+  if (isHealthRoute) {
+    return { isAllowed: false };
+  }
+
+  return {
+    isAllowed: true,
+    signAgentToken: createSigner,
+  };
+};

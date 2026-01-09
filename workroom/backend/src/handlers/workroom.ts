@@ -34,6 +34,7 @@ export const createGetWorkroomMeta =
       baseURL.pathname = '';
 
       return createProxyHandler({
+        apiType: 'private',
         configuration,
         monitoring,
         rewriteAgentServerPath: () => targetMetaPath,

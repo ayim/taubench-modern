@@ -13,6 +13,7 @@ export const createGetMeta =
       baseURL.pathname = '';
 
       return createProxyHandler({
+        apiType: 'private',
         configuration,
         monitoring,
         rewriteAgentServerPath: () => targetMetaPath,

@@ -1,4 +1,4 @@
-import { parseAgentRequest } from '../../../api/parsers.js';
+import { parsePrivateApiRequest } from '../../../api/parsers.js';
 import { getRouteBehaviour } from '../../../api/routing.js';
 import type { Permission } from '../../../auth/permissions.js';
 import type { Configuration } from '../../../configuration.js';
@@ -16,7 +16,7 @@ export const extractRoutePermissions = async ({
 }): Promise<Array<Permission> | null> => {
   const requestPathWithQueryStringParameters = req.originalUrl.replace(/^\/tenants\/[^/]+\/agents/, '');
 
-  const route = parseAgentRequest({
+  const route = parsePrivateApiRequest({
     method: req.method,
     path: requestPathWithQueryStringParameters,
   });

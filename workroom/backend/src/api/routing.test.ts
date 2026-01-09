@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getRouteBehaviour, type RouteBehaviour } from './routing.js';
 import type { Configuration } from '../configuration.js';
-import { parseAgentRequest } from './parsers.js';
+import { parsePrivateApiRequest } from './parsers.js';
 import type { Result } from '../utils/result.js';
 import type { SignAgentTokenErrorOutcome } from '../utils/signing.js';
 
@@ -16,7 +16,7 @@ describe('getRouteBehaviour', () => {
   } as Configuration;
 
   const getRoute = () => {
-    const route = parseAgentRequest({
+    const route = parsePrivateApiRequest({
       method: 'get',
       path: '/api/v2/threads/',
     });
