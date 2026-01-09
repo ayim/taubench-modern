@@ -238,6 +238,15 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
             row = await cur.fetchone()
         return row["cnt"] if row else 0
 
+    async def count_threads_for_agent(self, agent_id: str) -> int:
+        """Count the number of threads for a given agent (no user-based filter)."""
+        async with self._cursor() as cur:
+            await cur.execute(
+                "SELECT COUNT(*) AS cnt FROM v2_thread WHERE agent_id = :agent_id", {"agent_id": agent_id}
+            )
+            row = await cur.fetchone()
+        return row["cnt"] if row else 0
+
     async def count_messages(self) -> int:
         """Count the number of messages."""
         async with self._cursor() as cur:

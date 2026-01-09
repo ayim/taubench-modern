@@ -169,6 +169,10 @@ class AbstractStorage(ABC):
         """Count the number of threads."""
 
     @abstractmethod
+    async def count_threads_for_agent(self, agent_id: str) -> int:
+        """Count the number of threads for a given agent (no user-based filter)."""
+
+    @abstractmethod
     async def count_messages(self) -> int:
         """Count the number of messages."""
 

@@ -9684,6 +9684,7 @@ export const spec = {
     },
     '/api/v2/metrics': {
       get: {
+        tags: ['metrics'],
         summary: 'Metrics',
         operationId: 'metrics_metrics_get',
         responses: {
@@ -9692,9 +9693,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  additionalProperties: true,
-                  type: 'object',
-                  title: 'Response Metrics Metrics Get',
+                  $ref: '#/components/schemas/MetricsResponse',
                 },
               },
             },
@@ -18296,6 +18295,50 @@ export const spec = {
         title: 'Metric',
         description:
           "A metric describes quantifiable measures of business performance.\n\nUse when it's a business KPI that aggregates (often over facts) across rows\ne.g., total_revenue = SUM(net_revenue), avg_order_value = AVG(order_total),\nor a composite like margin %. Define metrics at the most granular level so\nthey can roll up by any dimension.",
+      },
+      MetricsResponse: {
+        properties: {
+          agentCount: {
+            type: 'integer',
+            title: 'Agentcount',
+            description: 'The total number of agents',
+          },
+          threadCount: {
+            type: 'integer',
+            title: 'Threadcount',
+            description: 'The total number of threads',
+          },
+          conversationalAgentCount: {
+            type: 'integer',
+            title: 'Conversationalagentcount',
+            description: 'The total number of conversational agents',
+          },
+          workerAgentCount: {
+            type: 'integer',
+            title: 'Workeragentcount',
+            description: 'The total number of worker agents',
+          },
+          messageCount: {
+            type: 'integer',
+            title: 'Messagecount',
+            description: 'The total number of messages',
+          },
+          generateSqlCount: {
+            type: 'integer',
+            title: 'Generatesqlcount',
+            description: 'The total number of calls to generate_sql',
+          },
+        },
+        type: 'object',
+        required: [
+          'agentCount',
+          'threadCount',
+          'conversationalAgentCount',
+          'workerAgentCount',
+          'messageCount',
+          'generateSqlCount',
+        ],
+        title: 'MetricsResponse',
       },
       ModifySchemaRequestPayload: {
         properties: {

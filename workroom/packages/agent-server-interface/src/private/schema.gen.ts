@@ -7445,6 +7445,39 @@ export interface components {
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][] | null;
     };
+    /** MetricsResponse */
+    MetricsResponse: {
+      /**
+       * Agentcount
+       * @description The total number of agents
+       */
+      agentCount: number;
+      /**
+       * Threadcount
+       * @description The total number of threads
+       */
+      threadCount: number;
+      /**
+       * Conversationalagentcount
+       * @description The total number of conversational agents
+       */
+      conversationalAgentCount: number;
+      /**
+       * Workeragentcount
+       * @description The total number of worker agents
+       */
+      workerAgentCount: number;
+      /**
+       * Messagecount
+       * @description The total number of messages
+       */
+      messageCount: number;
+      /**
+       * Generatesqlcount
+       * @description The total number of calls to generate_sql
+       */
+      generateSqlCount: number;
+    };
     /** ModifySchemaRequestPayload */
     ModifySchemaRequestPayload: {
       /** Schema */
@@ -22009,9 +22042,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json': components['schemas']['MetricsResponse'];
         };
       };
     };

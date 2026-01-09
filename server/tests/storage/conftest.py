@@ -148,6 +148,12 @@ def sample_mcp_server_sse() -> MCPServer:
     )
 
 
+@pytest.fixture
+async def sample_user_id(storage) -> str:
+    """Get the system user ID from storage."""
+    return await storage.get_system_user_id()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _disable_logging() -> Generator[None, None, None]:
     """Disable verbose logging for the entire session."""
