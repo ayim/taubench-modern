@@ -5,6 +5,8 @@ import { ParseResultsPanel } from './ParseResultsPanel';
 import { DocumentViewer } from '../shared/components/DocumentViewer';
 import { useParseDocumentMutation } from '../../../queries/documentIntelligence';
 import { useResizablePanel } from '../shared/hooks/useResizablePanel';
+import { parseChunksToThreadJSON } from '../shared/utils/data-lib';
+import { useSendResultsToThread } from '../shared/hooks';
 
 /**
  * ParseOnlyDialog - Dialog for Parse Only mode
@@ -48,6 +50,19 @@ export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, fil
       handleParse();
     }
   }, [file, parseResult, handleParse]);
+
+  const { sendResultsToThread, enabled: sendingResultsEnabled } = useSendResultsToThread({
+    results: parseChunksToThreadJSON(parseResult?.result?.chunks ?? []),
+    agentId,
+    threadId,
+    fileName: file.name,
+  });
+
+  const onShowResultsInThread = useCallback(() => {
+    if (sendingResultsEnabled) {
+      sendResultsToThread().then(onClose);
+    }
+  }, [sendResultsToThread]);
 
   return (
     <Dialog open={isOpen} onClose={onClose} size="full-screen">
@@ -146,9 +161,16 @@ export const ParseOnlyDialog: FC<ParseOnlyDialogProps> = ({ isOpen, onClose, fil
                       />
                       <Typography>View as JSON</Typography>
                     </Box>
-                    <Button variant="primary" onClick={onClose} round>
-                      Close
-                    </Button>
+
+                    <Box display="flex" alignItems="center" gap="$8">
+                      <Button variant="outline" onClick={onShowResultsInThread} round>
+                        Use in Conversation
+                      </Button>
+
+                      <Button variant="primary" onClick={onClose} round>
+                        Close
+                      </Button>
+                    </Box>
                   </Box>
                 </Box>
               </Box>

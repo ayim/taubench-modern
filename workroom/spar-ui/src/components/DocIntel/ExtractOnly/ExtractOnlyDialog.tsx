@@ -4,59 +4,12 @@ import { IconPencil, IconCheckCircle, IconRefresh, IconStatusIdle, IconStatusEna
 import { ConfigurationPanel, ConfigurationPanelRef } from './ConfigurationPanel';
 import { ExtractResultsPanel } from './ExtractResultsPanel';
 import { DocumentViewer } from '../shared/components/DocumentViewer';
-import { useResizablePanel, useResultsSelection } from '../shared/hooks';
+import { useResizablePanel, useResultsSelection, useSendResultsToThread } from '../shared/hooks';
 import { toRenderedExtractBlocks } from '../shared/utils/data-lib';
 import type { ExtractSchemaResponse, ExtractResponse } from '../shared/types';
 import { usePdfAnnotations } from '../shared/hooks/usePdfAnnotations';
 import { useExtractDialogState } from './hooks/useExtractDialogState';
 import { RegenerateFileSchemaDialog } from '../shared/components/RegenerateFileSchemaDialog';
-import { useMessageStream } from '../../../hooks/useMessageStream';
-
-type ValidJSON = unknown;
-interface SendResultsToThreadProps {
-  results: ValidJSON;
-  agentId: string;
-  threadId: string;
-  fileName: string;
-}
-
-const getStringResults = (results: ValidJSON) => {
-  try {
-    return JSON.stringify(results, null, 2);
-  } catch (error) {
-    return String(results);
-  }
-};
-
-const formatResultsForMarkdown = (results: ValidJSON, fileName: string) => {
-  return `The following results were extracted from \`${fileName}\`:
-\`\`\`sema4di-json
-${getStringResults(results)}
-\`\`\`
-  `;
-};
-
-const useSendResultsToThread = ({ results, agentId, threadId, fileName }: SendResultsToThreadProps) => {
-  const { sendMessage } = useMessageStream({
-    agentId,
-    threadId,
-  });
-
-  const sendResultsToThread = useCallback(async () => {
-    return sendMessage(
-      {
-        text: formatResultsForMarkdown(results, fileName),
-        type: 'formatted-text',
-      },
-      [],
-    );
-  }, [results, fileName, sendMessage]);
-
-  return useMemo(() => {
-    if (!results) return { sendResultsToThread: () => Promise.resolve(), enabled: false };
-    return { sendResultsToThread, enabled: true };
-  }, [sendResultsToThread, results]);
-};
 
 /**
  * Dialog for extracting structured data from documents without saving to database.

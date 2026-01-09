@@ -42,8 +42,7 @@ interface Citation {
 export interface JSONParseResult {
   document_title?: string;
   document_content?: string;
-  tables?: Array<{ columns: string[]; data: Record<string, string>[] }>;
-  sections?: Array<{ header: string; content: string }>;
+  tables?: Array<Record<string, string>[]>;
 }
 
 type TableWrapperItem = { table_name?: string; rows: unknown[] };
@@ -87,12 +86,25 @@ const parseHtmlTable = (content: string): TableData | null => {
 
     if (headers.length === 0) return null;
 
+    // Get first data row to fill in empty headers
+    const firstDataRow = rows[0];
+    const firstRowCells = firstDataRow
+      ? Array.from(firstDataRow.querySelectorAll('td')).map((td) => td.textContent?.trim() || '')
+      : [];
+
+    // Track if we used first row to fill any empty headers
+    const usedFirstRowForHeaders = headers.some((h, i) => !h && firstRowCells[i]);
+
     const columns = headers.map((header, idx) => ({
       id: `col_${idx}`,
-      title: header || `Column ${idx + 1}`,
+      // Use header if present, otherwise try first data row, otherwise fall back to "Column N"
+      title: header || firstRowCells[idx] || `Column ${idx + 1}`,
     }));
 
-    const data = rows.map((row) => {
+    // Skip first row if it was used to fill headers
+    const dataRows = usedFirstRowForHeaders ? rows.slice(1) : rows;
+
+    const data = dataRows.map((row) => {
       const cells = Array.from(row.querySelectorAll('td')).map((td) => td.textContent?.trim() || '');
       return Object.fromEntries(columns.map((col, idx) => [col.id, cells[idx] || '']));
     });
@@ -275,7 +287,7 @@ const flattenExtractedData = (
 const toJSONParseResult = (blocks: ParsedBlock[]): JSONParseResult => {
   const result: JSONParseResult = {};
   const textBlocks: string[] = [];
-  const tables: Array<{ columns: string[]; data: Record<string, string>[] }> = [];
+  const tables: Array<Record<string, string>[]> = [];
   const sections: Array<{ header: string; content: string[] }> = [];
 
   let currentSection: { header: string; content: string[] } | null = null;
@@ -291,10 +303,15 @@ const toJSONParseResult = (blocks: ParsedBlock[]): JSONParseResult => {
         break;
       case 'Table':
         if (block.tableData) {
-          tables.push({
-            columns: block.tableData.columns.map((c) => c.title),
-            data: block.tableData.data,
-          });
+          // Create a mapping from column id to title
+          const idToTitle = Object.fromEntries(block.tableData.columns.map((c) => [c.id, c.title]));
+
+          // Transform data to use titles as keys instead of ids
+          const transformedData = block.tableData.data.map((row) =>
+            Object.fromEntries(Object.entries(row).map(([id, value]) => [idToTitle[id] ?? id, value])),
+          );
+
+          tables.push(transformedData);
         }
         break;
       default:
@@ -312,11 +329,16 @@ const toJSONParseResult = (blocks: ParsedBlock[]): JSONParseResult => {
   // Build clean output - only include non empty fields
   if (textBlocks.length > 0) result.document_content = textBlocks.join('\n\n');
   if (tables.length > 0) result.tables = tables;
+
+  // Format sections as text and append to document_content
   if (sections.length > 0) {
-    result.sections = sections.map((s) => ({
-      header: s.header,
-      content: s.content.join('\n'),
-    }));
+    const sectionsText = sections
+      .map((s) => {
+        const content = s.content.join('\n');
+        return content ? `${s.header}\n${content}` : s.header;
+      })
+      .join('\n\n');
+    result.document_content = result.document_content ? `${result.document_content}\n\n${sectionsText}` : sectionsText;
   }
 
   return result;

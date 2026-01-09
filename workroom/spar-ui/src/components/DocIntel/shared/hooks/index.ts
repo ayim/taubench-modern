@@ -5,3 +5,4 @@ export { usePdfDocument } from './usePdfDocument';
 export type { PDFDocumentProxy, PDFPageProxy } from './usePdfDocument';
 export { useAnnotationDrawing } from './useAnnotationDrawing';
 export { useResultsSelection } from './useResultsSelection';
+export { useSendResultsToThread } from './useSendResultsToThread';

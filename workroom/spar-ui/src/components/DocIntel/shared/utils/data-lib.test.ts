@@ -291,14 +291,15 @@ describe('parseChunksToThreadJSON', () => {
     });
   });
 
-  it('extracts sections with headers and combined content', () => {
+  it('extracts sections with headers and combined content as document_content', () => {
     const result = parseChunksToThreadJSON(parseChunksWithSections);
 
     expect(result.document_title).toBe('Annual Report');
-    expect(result.sections).toEqual([
-      { header: 'Executive Summary', content: 'This year was successful.\nRevenue grew by 20%.' },
-      { header: 'Financial Overview', content: 'Total revenue: $1M.' },
-    ]);
+    // Sections are now formatted as text in document_content
+    expect(result.document_content).toContain('Executive Summary');
+    expect(result.document_content).toContain('This year was successful.');
+    expect(result.document_content).toContain('Financial Overview');
+    expect(result.document_content).toContain('Total revenue: $1M.');
   });
 
   it('omits tables field when DOMParser unavailable (Node environment)', () => {
