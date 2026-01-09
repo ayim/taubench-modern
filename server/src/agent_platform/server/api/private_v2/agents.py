@@ -12,6 +12,7 @@ from agent_platform.core.actions.action_package import ActionDetail, ActionPacka
 from agent_platform.core.agent import AgentUserInterface
 from agent_platform.core.agent.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import UploadedFile
@@ -181,22 +182,17 @@ async def _process_action_packages(agent) -> list[ActionPackageDetail]:
 async def _process_single_mcp_server(
     user: AuthedUser,
     storage: StorageDependency,
+    data_server_details: DataServerDetails | None,
     mcp_server_with_oauth_config: "MCPServerWithOAuthConfig",
     selected_tool_names: list[str],
     has_selected_tools: bool,
 ) -> MCPServerDetail:
     """Process a single MCP server and return its details."""
-    from agent_platform.core.tools.tool_definition import ToolCallContext
-
     try:
         tool_defs = await mcp_server_with_oauth_config.to_tool_definitions(
+            user_id=user.user_id,
             storage=storage,
-            tool_call_context=ToolCallContext(
-                user_id=user.user_id,
-                agent_id=None,
-                tenant_id=None,
-                thread_id=None,
-            ),
+            data_server_details=data_server_details,
         )
 
         allowed_actions = [
@@ -225,6 +221,18 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
     """Process MCP servers and return their details."""
     from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
 
+    # Get data server details for MCP context
+    data_server_details = None
+    try:
+        # Use new integration table instead of old dids_connection_details table
+        data_server_integration = await storage.get_integration_by_kind("data_server")
+        settings_dict = data_server_integration.settings.model_dump()
+        data_server_details = DataServerDetails.model_validate(settings_dict)
+    except Exception as e:
+        # Log but continue without data context - this allows MCP servers to work
+        # even when data server details are unavailable
+        logger.info(f"Could not retrieve data server details for MCP context: {e}")
+
     mcp_servers_dict: dict[str, MCPServerWithOAuthConfig] = await storage.get_mcp_servers_and_oauth_info_by_ids(
         agent.mcp_server_ids
     )
@@ -250,7 +258,9 @@ async def _process_mcp_servers(agent: Agent, storage: StorageDependency, user: A
     all_mcp_server_details: list[MCPServerDetail] = list(
         await asyncio.gather(
             *[
-                _process_single_mcp_server(user, storage, mcp_server, selected_tool_names, has_selected_tools)
+                _process_single_mcp_server(
+                    user, storage, data_server_details, mcp_server, selected_tool_names, has_selected_tools
+                )
                 for mcp_server in all_mcp_servers
             ],
         )

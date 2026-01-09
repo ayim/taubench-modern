@@ -2,16 +2,11 @@
 import os
 import sys
 import time
-import typing
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-
-if typing.TYPE_CHECKING:
-    from agent_platform.orchestrator.agent_server_client import AgentServerClient
-
-    from server.tests.integration.integration_fixtures import BaseUrlAgentServerSyncAndAsyncActionsAndSyncMode
+from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
 
 @pytest.fixture
@@ -214,9 +209,6 @@ def test_api_interaction_with_action_server(
         SecretKey,
     )
 
-    # Note: not using action_server_process_simple_action_package_url here because
-    # we want to have at least one test that checks the api_key being passed to the
-    # action server.
     cwd = resources_dir / "simple_action_package"
     api_key = "test"
     action_server_process.start(
@@ -283,38 +275,6 @@ def test_api_interaction_with_action_server(
         )
 
 
-@pytest.fixture(scope="module")
-def logs_dir_module_scoped(base_logs_directory) -> Path:
-    directory = base_logs_directory / "test_api_interaction_logs"
-    directory.mkdir(parents=True, exist_ok=True)
-    return directory
-
-
-@pytest.fixture(scope="module")
-def action_server_process_simple_action_package_url(
-    tmp_path_factory, action_server_executable_path: Path, logs_dir_module_scoped: Path, resources_dir: Path
-) -> Iterator[str]:
-    from agent_platform.orchestrator.pytest_fixtures import action_server_process_context
-
-    tmp_path = tmp_path_factory.mktemp("test_api_interaction_logs_action_server_process_simple")
-    with action_server_process_context(tmp_path, action_server_executable_path) as action_server_process:
-        # Bootstrap the action server
-        cwd = resources_dir / "simple_action_package"
-        action_server_process.start(
-            cwd=cwd,
-            actions_sync=True,
-            min_processes=1,
-            max_processes=3,
-            reuse_processes=True,
-            lint=True,
-            timeout=500,
-            logs_dir=logs_dir_module_scoped,
-        )
-
-        url = f"http://{action_server_process.host}:{action_server_process.port}"
-        yield url
-
-
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.parametrize(
@@ -323,18 +283,32 @@ def action_server_process_simple_action_package_url(
         "mcp-secret",
         "data-frame-auto-creation",
         "error-cases",
-        "type-sema4ai-action-server-with-secret",
     ],
 )
 def test_mcp_calling_with_action_server(
-    base_url_agent_server_session: str,
-    openai_api_key: str,
-    scenario: str,
-    action_server_process_simple_action_package_url: str,
-) -> None:
-    from agent_platform.orchestrator.agent_server_client import AgentServerClient
-
+    base_url_agent_server_session,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
+    scenario,
+):
     from agent_platform.core.mcp.mcp_server import MCPServer
+
+    # Bootstrap the action server
+    cwd = resources_dir / "simple_action_package"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,
+        logs_dir=logs_dir,
+    )
+
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
@@ -345,16 +319,9 @@ def test_mcp_calling_with_action_server(
             """,
             mcp_servers=[
                 MCPServer(
-                    url=action_server_process_simple_action_package_url + "/mcp",
+                    url=url + "/mcp",
                     name="ActionServer",
-                    headers=(
-                        {"X-some-secret": "my-secret-test"}
-                        if scenario in ["mcp-secret", "type-sema4ai-action-server-with-secret"]
-                        else None
-                    ),
-                    type="sema4ai_action_server"
-                    if scenario == "type-sema4ai-action-server-with-secret"
-                    else "generic_mcp",
+                    headers={"X-some-secret": "my-secret-test"} if scenario == "mcp-secret" else None,
                 )
             ],
             platform_configs=[
@@ -369,7 +336,7 @@ def test_mcp_calling_with_action_server(
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Check MCP Secret
-        if scenario in ["mcp-secret", "type-sema4ai-action-server-with-secret"]:
+        if scenario == "mcp-secret":
             final_message, tool_calls = agent_client.send_message_to_agent_thread(
                 agent_id,
                 thread_id,
@@ -453,14 +420,30 @@ def test_mcp_calling_with_action_server(
 def test_action_error_handling(
     base_url_agent_server,
     openai_api_key,
-    action_server_process_simple_action_package_url: str,
+    action_server_process,
+    logs_dir,
+    resources_dir,
 ):
     """Verify a sync action returns result on success and error on failure."""
     from agent_platform.orchestrator.agent_server_client import (
         ActionPackage,
-        AgentServerClient,
         SecretKey,
     )
+
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
 
     with AgentServerClient(base_url_agent_server) as agent_client:
         agent_id = agent_client.create_agent_and_return_agent_id(
@@ -469,8 +452,8 @@ def test_action_error_handling(
                     name="ActionPackage",
                     organization="Organization",
                     version="0.0.1",
-                    url=action_server_process_simple_action_package_url,
-                    api_key=SecretKey(value=""),
+                    url=url,
+                    api_key=SecretKey(value=api_key),
                     whitelist="",
                     allowed_actions=[
                         "always_error_action_action_response",
@@ -524,6 +507,7 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):
     """Test that trying to start a server on a port that's already in use
     fails with the expected error message.
     """
+    import time
     from contextlib import contextmanager
 
     from agent_platform.orchestrator.agent_server_client import print_info
@@ -676,9 +660,11 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_async_action_polling_with_fast_retry_interval(
-    base_url_agent_server_sync_and_async_actions_and_sync_mode: "BaseUrlAgentServerSyncAndAsyncActionsAndSyncMode",
-    openai_api_key: str,
-    action_server_process_simple_action_package_url: str,
+    base_url_agent_server_sync_and_async_actions_and_sync_mode,
+    openai_api_key,
+    action_server_process,
+    logs_dir,
+    resources_dir,
 ):
     import functools
     from concurrent.futures.thread import ThreadPoolExecutor
@@ -686,9 +672,23 @@ def test_async_action_polling_with_fast_retry_interval(
 
     from agent_platform.orchestrator.agent_server_client import (
         ActionPackage,
-        AgentServerClient,
         SecretKey,
     )
+
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=2,
+        max_processes=4,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,  # Can be slow (time to bootstrap env)
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
 
     agent_server_url = base_url_agent_server_sync_and_async_actions_and_sync_mode["url"]
     sync_mode = base_url_agent_server_sync_and_async_actions_and_sync_mode["sync_mode"]
@@ -713,8 +713,8 @@ def test_async_action_polling_with_fast_retry_interval(
                     name="ActionPackage",
                     organization="Organization",
                     version="0.0.1",
-                    url=action_server_process_simple_action_package_url,
-                    api_key=SecretKey(value=""),
+                    url=url,
+                    api_key=SecretKey(value=api_key),
                     whitelist="",
                     # Only allow our test actions
                     allowed_actions=[
@@ -753,7 +753,7 @@ def test_async_action_polling_with_fast_retry_interval(
                 future.result()
 
 
-def check_async_action_happy_path(agent_client: "AgentServerClient", agent_id: str):
+def check_async_action_happy_path(agent_client: AgentServerClient, agent_id: str):
     """
     Integration test for async action polling with fast retry intervals.
 
@@ -808,7 +808,7 @@ def check_async_action_happy_path(agent_client: "AgentServerClient", agent_id: s
         )
 
 
-def check_async_action_error(agent_client: "AgentServerClient", agent_id: str):
+def check_async_action_error(agent_client: AgentServerClient, agent_id: str):
     """
     Now, test for async action error handling.
 
@@ -847,7 +847,7 @@ def check_async_action_error(agent_client: "AgentServerClient", agent_id: str):
     )
 
 
-def check_unexpected_action_error(agent_client: "AgentServerClient", agent_id: str):
+def check_unexpected_action_error(agent_client: AgentServerClient, agent_id: str):
     """
     Now, test for an unexpected action error without the `Response[T]` shape.
     """
@@ -875,7 +875,7 @@ def check_unexpected_action_error(agent_client: "AgentServerClient", agent_id: s
     )
 
 
-def check_unexpected_value_error(agent_client: "AgentServerClient", agent_id: str):
+def check_unexpected_value_error(agent_client: AgentServerClient, agent_id: str):
     """
     Now, test for an unexpected value error without the `Response[T]` shape.
     """
@@ -911,7 +911,9 @@ def check_unexpected_value_error(agent_client: "AgentServerClient", agent_id: st
 async def test_agent_details_endpoint(
     base_url_agent_server,
     openai_api_key,
-    action_server_process_simple_action_package_url: str,
+    action_server_process,
+    logs_dir,
+    resources_dir,
 ):
     """Integration test for the agent-details endpoint.
     Tests that we can get agent details including action package status."""
@@ -921,6 +923,21 @@ async def test_agent_details_endpoint(
         SecretKey,
     )
 
+    cwd = resources_dir / "simple_action_package"
+    api_key = "test"
+    action_server_process.start(
+        cwd=cwd,
+        actions_sync=True,
+        min_processes=1,
+        max_processes=1,
+        reuse_processes=True,
+        lint=True,
+        timeout=500,  # Can be slow (time to bootstrap env)
+        additional_args=["--api-key", api_key],
+        logs_dir=logs_dir,
+    )
+    url = f"http://{action_server_process.host}:{action_server_process.port}"
+
     with AgentServerClient(base_url_agent_server) as agent_client:
         # Create an agent with two action packages
         action_packages = [
@@ -928,10 +945,8 @@ async def test_agent_details_endpoint(
                 name=f"test_package_{i}",
                 organization="test_org",
                 version="1.0.0",
-                url=action_server_process_simple_action_package_url
-                if i == 0
-                else "http://non-existent-url:12345",  # Second package has invalid URL
-                api_key=SecretKey(value=""),
+                url=url if i == 0 else "http://non-existent-url:12345",  # Second package has invalid URL
+                api_key=SecretKey(value=api_key),
                 whitelist="",
                 allowed_actions=[],
             )
@@ -1021,5 +1036,7 @@ async def test_create_agent_from_package_with_knowledge_file(
 
 
 if __name__ == "__main__":
+    import pytest
+
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     sys.exit(pytest.main([]))

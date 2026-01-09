@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -12,7 +14,7 @@ from jsonpointer import JsonPointer, JsonPointerException
 from structlog import get_logger
 
 from agent_platform.core.configurations.base import Configuration, FieldMetadata
-from agent_platform.core.tools.tool_definition import ToolCallContext, ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.utils.url import safe_urljoin
 
 if TYPE_CHECKING:
@@ -436,35 +438,30 @@ def _handle_status_check(
 def _build_post_async_function(
     action_url: str,
     api_key: str,
-    tool_call_context: ToolCallContext,
+    # Extra headers to be added to the request at
+    # tool definition time
+    additional_headers: dict | None = None,
 ) -> Callable[..., Coroutine[Any, Any, ActionResponse]]:
     async def _post_async_function(
-        __tool_call_id__: str,
+        # Extra headers to be added to the request at
+        # tool invocation time
+        extra_headers: dict | None = None,
         **args: dict[str, Any],
-    ) -> ActionResponse:
-        """
-        This is the async function that is used to execute the tool.
-
-        Args:
-            __tool_call_id__: The tool call ID (it's specially named so that it won't conflict with regular
-                arguments that are passed to the tool call).
-            **args: The arguments to the tool call.
-
-        Returns:
-            ActionResponse: The response from the action
-        """
+    ) -> Any:
         import asyncio
         import uuid
 
         bearer_api_key = api_key or DEFAULT_API_KEY
 
-        # These must always be top-level headers in the request.
-        top_level_headers = {
+        characters = string.ascii_letters + string.digits
+        action_invocation_id = "".join(random.choice(characters) for _ in range(10))
+        headers = {
             "Authorization": f"Bearer {bearer_api_key}",
             "Content-Type": "application/json",
+            "x-action_invocation_id": action_invocation_id,
+            **(additional_headers or {}),
+            **(extra_headers or {}),
         }
-
-        action_headers: dict[str, str] = {}
 
         # Only add async headers if SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION is true
         if os.getenv("SEMA4AI_AGENT_SERVER_ENABLE_ASYNC_ACTION", "true").lower() == "true":
@@ -476,7 +473,7 @@ def _build_post_async_function(
                 logger.warning(f"Invalid timeout value: {timeout_seconds}. Using default 20 seconds.")
                 timeout_seconds = "20"
 
-            action_headers.update(
+            headers.update(
                 {
                     "x-actions-request-id": str(uuid.uuid4()),
                     "x-actions-async-timeout": str(timeout_seconds),
@@ -484,11 +481,8 @@ def _build_post_async_function(
                 }
             )
 
-        body, headers = tool_call_context.with_tool_call_id(__tool_call_id__).build_body_and_headers_for_action_server(
-            args, action_headers
-        )
-
-        top_level_headers.update(headers)
+        # We can't have any headers that map to None, so filter them out
+        safe_headers = {k: v for k, v in headers.items() if v is not None}
 
         # Use httpx without retries for action execution (actions need NOT be idempotent
         # and we don't want to accidentally double-execute them)
@@ -496,8 +490,8 @@ def _build_post_async_function(
             logger.info(f"Executing action: {action_url}")
             response = await action_client.post(
                 action_url,
-                headers=top_level_headers,
-                json=body,
+                headers=safe_headers,
+                json=args,
             )
             result = response.json()
 
@@ -573,7 +567,6 @@ def _build_post_async_function(
                         action_server_run_id,
                         result_is_json_string=False,
                     )
-                    assert status_response is not None, "Status response should not be None when status is FAILED"
                 else:
                     logger.info("Action completed synchronously with success")
                     status_response = _handle_status_check(
@@ -581,7 +574,6 @@ def _build_post_async_function(
                         action_server_run_id,
                         result_is_json_string=False,
                     )
-                    assert status_response is not None, "Status response should not be None when status is PASSED"
                 return status_response
 
     return _post_async_function
@@ -591,7 +583,7 @@ def _openapi_spec_to_tool_definitions(
     url: str,
     api_key: str,
     spec: dict,
-    tool_call_context: ToolCallContext,
+    additional_headers: dict | None = None,
 ) -> list[ToolDefinition]:
     tool_definitions: list[ToolDefinition] = []
 
@@ -637,7 +629,7 @@ def _openapi_spec_to_tool_definitions(
                 function=_build_post_async_function(
                     action_url=action_url,
                     api_key=api_key,
-                    tool_call_context=tool_call_context,
+                    additional_headers=additional_headers,
                 ),
             )
 
@@ -651,7 +643,7 @@ async def get_spec_and_build_tool_definitions(
     url: str,
     api_key: str,
     allowed_actions: list[str],
-    tool_call_context: ToolCallContext,
+    additional_headers: dict | None = None,
 ) -> list[ToolDefinition]:
     # Get the spec url
     if not url.startswith("http"):
@@ -667,7 +659,7 @@ async def get_spec_and_build_tool_definitions(
         response.raise_for_status()  # Raise for HTTP errors
         spec = response.json()
 
-    definitions = _openapi_spec_to_tool_definitions(url, api_key, spec, tool_call_context)
+    definitions = _openapi_spec_to_tool_definitions(url, api_key, spec, additional_headers)
     if len(allowed_actions) > 0:
         # Only filter the definitions if we have allowed actions
         # (empty list means all actions are allowed)

@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
+from agent_platform.core.actions.action_utils import (
+    get_spec_and_build_tool_definitions,
+)
 from agent_platform.core.mcp.mcp_types import MCPServerDetail
-from agent_platform.core.tools.tool_definition import ToolCallContext, ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.core.utils import SecretString
 
 
@@ -116,17 +119,13 @@ class ActionPackage:
             "allowed_actions": self.allowed_actions,
         }
 
-    async def to_tool_definitions(self, tool_call_context: ToolCallContext) -> list[ToolDefinition]:
+    async def to_tool_definitions(self, additional_headers: dict | None = None) -> list[ToolDefinition]:
         """Converts the action package to a list of tool definitions."""
-        from agent_platform.core.actions.action_utils import (
-            get_spec_and_build_tool_definitions,
-        )
-
         return await get_spec_and_build_tool_definitions(
             self.url or "",
             self.api_key.get_secret_value() if self.api_key is not None else "",
             self.allowed_actions,  # Use allowed_actions instead of whitelist here
-            tool_call_context,
+            additional_headers,
         )
 
     @classmethod

@@ -12,7 +12,6 @@ from agent_platform.core.actions.action_utils import (
     _dereference_refs,
     get_spec_and_build_tool_definitions,
 )
-from agent_platform.core.tools.tool_definition import ToolCallContext
 from agent_platform.server.configuration_manager import ConfigurationService
 
 
@@ -63,20 +62,11 @@ async def test_get_spec_and_build_definitions(mock_client_session, sample_openap
     mock_session = MockHttpxClient(sample_openapi_spec)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
     # Call function
     tool_definitions = await get_spec_and_build_tool_definitions(
         "http://localhost:8083",
         "test-api-key",
         [],  # No filter, all actions allowed
-        tool_call_context,
     )
 
     # Assertions
@@ -120,20 +110,11 @@ async def test_get_spec_with_allowed_actions_filter(mock_client_session, sample_
     mock_session = MockHttpxClient(sample_openapi_spec)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
     # Call function with filter
     tool_definitions = await get_spec_and_build_tool_definitions(
         "http://localhost:8083",
         "test-api-key",
         ["serpapi_doesnt_exist"],  # This doesn't match our testAction
-        tool_call_context,
     )
 
     # Assertions - should be empty since our filter doesn't match
@@ -148,20 +129,11 @@ async def test_get_spec_with_one_action(mock_client_session, sample_openapi_spec
     mock_session = MockHttpxClient(sample_openapi_spec)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
     # Call function
     tool_definitions = await get_spec_and_build_tool_definitions(
         "http://localhost:8083",
         "test-api-key",
         ["serpapi_google_search_streamlined"],
-        tool_call_context,
     )
 
     # Assertions
@@ -376,17 +348,7 @@ async def test_request_body_schema_with_complex_nested_structure(mock_client_ses
     mock_session = MockHttpxClient(complex_spec)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", [], tool_call_context
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 1
     tool = tool_definitions[0]
@@ -485,17 +447,7 @@ async def test_request_body_schema_with_refs(mock_client_session):
     mock_session = MockHttpxClient(spec_with_refs)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", [], tool_call_context
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 1
     tool = tool_definitions[0]
@@ -589,17 +541,7 @@ async def test_request_body_schema_preserves_all_json_schema_features(mock_clien
     mock_session = MockHttpxClient(comprehensive_spec)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", [], tool_call_context
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 1
     tool = tool_definitions[0]
@@ -667,17 +609,7 @@ async def test_request_body_schema_empty_or_missing(mock_client_session):
     mock_session = MockHttpxClient(minimal_spec)
     mock_client_session.return_value = mock_session
 
-    # Create a mock tool_call_context
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-
-    tool_definitions = await get_spec_and_build_tool_definitions(
-        "http://localhost:8083", "test-api-key", [], tool_call_context
-    )
+    tool_definitions = await get_spec_and_build_tool_definitions("http://localhost:8083", "test-api-key", [])
 
     assert len(tool_definitions) == 2
 

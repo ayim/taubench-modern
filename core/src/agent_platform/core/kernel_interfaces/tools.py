@@ -40,7 +40,14 @@ class ToolsInterface(ABC):
         """
 
     @abstractmethod
-    async def from_action_packages(self, action_packages: list[ActionPackage]) -> CollectedTools:
+    async def from_action_packages(
+        self,
+        action_packages: list[ActionPackage],
+        # Headers to be added to the request at
+        # tool definition time (can be overriden at
+        # tool invocation time using extra_headers)
+        additional_headers: dict | None = None,
+    ) -> CollectedTools:
         """Converts a list of action packages into a list of tool definitions.
 
         Returns:
@@ -52,6 +59,10 @@ class ToolsInterface(ABC):
     async def from_mcp_servers(
         self,
         mcp_servers: list[MCPServerWithOAuthConfig],
+        # Headers to be added to the request at
+        # tool definition time (can be overriden at
+        # tool invocation time using extra_headers)
+        additional_headers: dict | None = None,
         use_caches: bool = True,
     ) -> CollectedTools:
         """Converts a list of MCP servers into a list of tool definitions.

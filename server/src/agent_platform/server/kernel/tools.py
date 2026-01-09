@@ -11,6 +11,7 @@ import structlog
 
 from agent_platform.core.actions import ActionPackage
 from agent_platform.core.actions.action_utils import ActionResponse, InternalToolResponse
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.kernel import ToolsInterface
 from agent_platform.core.kernel_interfaces.thread_state import ThreadMessageWithThreadState
 from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
@@ -41,6 +42,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         self,
         tool_def: ToolDefinition,
         tool_use: ResponseToolUseContent,
+        extra_headers: dict | None = None,
     ) -> ToolExecutionResult:
         from json import loads
 
@@ -77,7 +79,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     case _:
                         result = await tool_def.function(
                             **args_from_json,
-                            __tool_call_id__=tool_use.tool_call_id,
+                            extra_headers=extra_headers,
                         )
 
                 # Handling of various result types...
@@ -244,6 +246,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
         self,
         pending_tool_calls: list[PendingToolCall],
         message_to_update: ThreadMessageWithThreadState | None = None,
+        extra_headers: dict | None = None,
     ) -> AsyncGenerator[ToolExecutionResult, None]:
         """Executes pending tool calls.
 
@@ -281,11 +284,19 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                 span.set_attribute("input.value", json.dumps(tool_calls_input))
                 span.add_event(f"Starting execution of {len(pending_calls_copy)} tools")
 
+            base_headers = (extra_headers or {}) | {
+                "x-invoked_by_assistant_id": self.kernel.agent.agent_id,
+                "x-invoked_on_behalf_of_user_id": self.kernel.user.cr_user_id or self.kernel.user.cr_system_id,
+                "x-invoked_for_thread_id": self.kernel.thread.thread_id,
+            }
+
             # Create tasks for each tool call
             execution_tasks = []
             while pending_tool_calls:
                 # Pop as the caller should expect the list to end up cleared
                 tool_def, tool_use = pending_tool_calls.pop()
+                run_headers = dict(base_headers)
+                run_headers["x-action_invocation_id"] = tool_use.tool_call_id
 
                 # Update the tool to running in the thread state (if provided)
                 if message_to_update:
@@ -310,6 +321,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                             self._safe_execute_tool(
                                 tool_def,
                                 tool_use,
+                                extra_headers=run_headers,
                             ),
                         ),
                     )
@@ -379,17 +391,15 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     async def _fetch_action_tools(
         self,
         action_packages: list[ActionPackage],
+        additional_headers: dict | None = None,
     ) -> CollectedTools:
         """Downloads & returns tool defs."""
         from agent_platform.core.tools.collected_tools import CollectedTools
-        from agent_platform.core.tools.tool_definition import ToolCallContext
-
-        tool_call_context = await ToolCallContext.from_kernel(self.kernel)
 
         async def safe(ap: ActionPackage):
             try:
                 logger.info(f"Fetching tool definitions from action package: {ap.url}")
-                tools = await ap.to_tool_definitions(tool_call_context=tool_call_context)
+                tools = await ap.to_tool_definitions(additional_headers)
                 return CollectedTools(tools=tools, issues=[])
             except Exception as exc:
                 detailed = (
@@ -419,19 +429,39 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     async def _fetch_mcp_tools(
         self,
         mcp_servers: list[MCPServerWithOAuthConfig],
+        additional_headers: dict | None = None,
         use_caches: bool = True,
     ) -> CollectedTools:
         """Same contract as _fetch_action_tools()."""
         from agent_platform.core.tools.collected_tools import CollectedTools
-        from agent_platform.core.tools.tool_definition import ToolCallContext
+        from agent_platform.server.storage.errors import IntegrationNotFoundError
         from agent_platform.server.storage.option import StorageService
 
-        tool_call_context = await ToolCallContext.from_kernel(self.kernel)
+        # Get data server details for MCP context
+        data_server_details = None
+        try:
+            # Use new integration table instead of old dids_connection_details table
+            data_server_integration = await self.kernel.storage.get_integration_by_kind("data_server")
+        except (IntegrationNotFoundError, ValueError) as e:
+            # Log but continue without data context - this allows MCP servers to work
+            # even when data server details are unavailable
+            logger.info(f"Could not retrieve data server details for MCP context: {e}")
+        else:
+            try:
+                settings_dict = data_server_integration.settings.model_dump()
+                data_server_details = DataServerDetails.model_validate(settings_dict)
+            except Exception as e:
+                logger.exception(f"Error validating data server details: {e}")
 
-        # Note: this is working because things aren't cached. If they were
-        # information from the kernel (like the thread id or user id) could
-        # not be available at tool definition time (unless it was a part of
-        # the cache key, which is not the case right now).
+        # Build action invocation context for Sema4AI action servers
+        mcp_sema4ai_action_invocation_context = {
+            "agent_id": self.kernel.agent.agent_id,
+            "thread_id": self.kernel.thread.thread_id,
+            "tenant_id": self.kernel.user.cr_tenant_id,
+            "invoked_on_behalf_of_user_id": self.kernel.user.cr_user_id
+            if self.kernel.user.cr_user_id
+            else self.kernel.user.sub,
+        }
 
         base_storage = StorageService.get_instance()
 
@@ -439,8 +469,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             try:
                 logger.info(f"Fetching tool definitions from MCP server: {mcp_server_with_oauth_config.url}")
                 tools = await mcp_server_with_oauth_config.to_tool_definitions(
+                    user_id=self.kernel.user.user_id,
                     storage=base_storage,
-                    tool_call_context=tool_call_context,
+                    additional_headers=additional_headers,
+                    data_server_details=data_server_details,
+                    mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
                     use_caches=use_caches,
                 )
                 return CollectedTools(tools=tools, issues=[])
@@ -466,7 +499,14 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
 
     # --------------------------------------------- public cache-aware methods
 
-    async def from_action_packages(self, action_packages: list[ActionPackage]) -> CollectedTools:
+    async def from_action_packages(
+        self,
+        action_packages: list[ActionPackage],
+        # Headers to be added to the request at
+        # tool definition time (can be overriden at
+        # tool invocation time using extra_headers)
+        additional_headers: dict | None = None,
+    ) -> CollectedTools:
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         all_collected_tools = CollectedTools(tools=[], issues=[])
@@ -478,6 +518,9 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if not pkg.url:
                 continue
             packages_by_url.setdefault(pkg.url, []).append(pkg)
+
+        async def _fetch(ap: ActionPackage, additional_headers: dict | None = None):
+            return await self._fetch_action_tools([ap], additional_headers=additional_headers)
 
         for url, pkgs in packages_by_url.items():
             # Always fetch the **full** tool set once per URL and cache it.  We
@@ -501,7 +544,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             collected_tools = await self._cache.get_or_fetch(
                 kind="action_packages",
                 key=url,
-                fetch_coro=self._fetch_action_tools([template]),
+                fetch_coro=_fetch(template, additional_headers=additional_headers),
             )
 
             # Compute the merged list of allowed actions for *this call*.
@@ -516,12 +559,27 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     async def from_mcp_servers(
         self,
         mcp_servers: list[MCPServerWithOAuthConfig],
+        # Headers to be added to the request at
+        # tool definition time (can be overriden at
+        # tool invocation time using extra_headers)
+        additional_headers: dict | None = None,
         use_caches: bool = True,
     ) -> CollectedTools:
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         all_collected_tools = CollectedTools(tools=[], issues=[])
         seen_urls = set()
+
+        async def _fetch(
+            mcp_server_with_oauth_config: MCPServerWithOAuthConfig,
+            additional_headers: dict | None = None,
+            use_caches: bool = True,
+        ):
+            return await self._fetch_mcp_tools(
+                [mcp_server_with_oauth_config],
+                additional_headers=additional_headers,
+                use_caches=use_caches,
+            )
 
         # Apply agent-level selected_tools filtering
         agent_selected_tools_set: set[str] | None = None
@@ -538,13 +596,18 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
             if mcp_server_with_oauth_config.url:
                 seen_urls.add(mcp_server_with_oauth_config.url)
 
-            fetch_coro = self._fetch_mcp_tools([mcp_server_with_oauth_config], use_caches=use_caches)
             if use_caches:
                 collected_tools = await self._cache.get_or_fetch(
-                    kind="mcp_servers", key=mcp_server_with_oauth_config.cache_key, fetch_coro=fetch_coro
+                    kind="mcp_servers",
+                    key=mcp_server_with_oauth_config.cache_key,
+                    fetch_coro=_fetch(
+                        mcp_server_with_oauth_config, additional_headers=additional_headers, use_caches=use_caches
+                    ),
                 )
             else:
-                collected_tools = await fetch_coro
+                collected_tools = await _fetch(
+                    mcp_server_with_oauth_config, additional_headers=additional_headers, use_caches=use_caches
+                )
 
             if agent_selected_tools_set:
                 collected_tools.filter_tools(agent_selected_tools_set)

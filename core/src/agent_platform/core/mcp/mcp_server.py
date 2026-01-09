@@ -5,10 +5,11 @@ from typing import Any, Literal
 
 from structlog.stdlib import get_logger
 
+from agent_platform.core.data_server.data_server import DataServerDetails
 from agent_platform.core.mcp.mcp_client import MCPClient
 from agent_platform.core.mcp.mcp_types import MCPVariables, deserialize_mcp_variables, serialize_mcp_variables
 from agent_platform.core.oauth.oauth_models import OAuthConfig
-from agent_platform.core.tools.tool_definition import ToolCallContext, ToolDefinition
+from agent_platform.core.tools.tool_definition import ToolDefinition
 
 if typing.TYPE_CHECKING:
     from agent_platform.server.storage.base import BaseStorage
@@ -283,45 +284,61 @@ class MCPServerWithOAuthConfig(MCPServer):
 
     async def to_tool_definitions(
         self,
-        *,
+        # Additional headers to be added to the request at
+        # tool definition time
+        user_id: str,
         storage: "BaseStorage",
-        tool_call_context: ToolCallContext,
+        *,
+        additional_headers: dict | None = None,
+        data_server_details: DataServerDetails | None = None,
+        mcp_sema4ai_action_invocation_context: dict[str, str] | None = None,
         use_caches: bool = True,
     ) -> list[ToolDefinition]:
         """Converts the MCP server to a list of tool definitions.
 
         Note: the oauth_config is taken from the class instance.
         """
+        from agent_platform.core.oauth.oauth_models import (
+            AuthenticationMetadataClientCredentials,
+            AuthenticationType,
+            get_client_credentials_oauth_token,
+        )
 
-        # Note: this is working because ToolDefinitions aren't cached. If they were the tokens
-        # couldn't all be pre-computed and added to the headers, rather they'd need
-        # to be calculated later, just when the tool is actually used.
-        # See: https://linear.app/sema4ai/issue/ENG-66/reenable-tool-caches
+        if not additional_headers:
+            additional_headers = {}
 
         url = self.url
-        if url is not None and self.oauth_config is not None:
-            tool_call_context = await tool_call_context.with_oauth_token(
-                url, use_caches=use_caches, storage=storage, oauth_config=self.oauth_config
-            )
+        token = None
+        if url is not None:
+            if use_caches:
+                token = await storage.get_mcp_oauth_token(user_id, url, decrypt=True)
+                if token is not None and token.access_token:
+                    additional_headers["Authorization"] = f"Bearer {token.access_token}"
 
-        tool_call_context = tool_call_context.with_mcp_server_info(self)
+            if "Authorization" not in additional_headers:
+                # No token, maybe it must still be added?
+                if (
+                    self.oauth_config
+                    and self.oauth_config.authentication_type == AuthenticationType.OAUTH2_CLIENT_CREDENTIALS
+                ):
+                    # Do client credentials authentication (could fail if the authentication metadata is invalid)
+                    token = await get_client_credentials_oauth_token(self.oauth_config, self.url)
+                    additional_headers["Authorization"] = f"Bearer {token.access_token}"
 
-        if self.type == "sema4ai_action_server" and url is not None:
-            # Use action server protocol instead of MCP protocol for action servers.
-            from agent_platform.core.actions.action_utils import get_spec_and_build_tool_definitions
+                    authentication_metadata = self.oauth_config.authentication_metadata
+                    assert isinstance(authentication_metadata, AuthenticationMetadataClientCredentials), (
+                        "Authentication metadata must be an instance of AuthenticationMetadataClientCredentials"
+                    )
 
-            if url.endswith("/mcp/"):
-                url = url[:-5]
-            elif url.endswith("/mcp"):
-                url = url[:-4]
+                    await storage.set_mcp_oauth_token(user_id, url, token)
 
-            logger.info(f"Fetching tool definitions from action server: {url}")
-            # For the hosted Action Server as MCP is there any API key to use?
-            action_server_api_key = ""
-            tools = await get_spec_and_build_tool_definitions(url, action_server_api_key, [], tool_call_context)
-        else:
-            async with MCPClient(self, tool_call_context=tool_call_context) as client:
-                tools = await client.list_tools()
+        async with MCPClient(
+            self,
+            additional_headers=additional_headers,
+            data_server_details=data_server_details,
+            mcp_sema4ai_action_invocation_context=mcp_sema4ai_action_invocation_context,
+        ) as client:
+            tools = await client.list_tools()
         return tools
 
     def model_dump(self) -> dict:

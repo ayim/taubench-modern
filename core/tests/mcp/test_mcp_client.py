@@ -16,9 +16,6 @@ from sse_starlette import sse as sse_mod
 
 from agent_platform.core.mcp.mcp_client import MCPClient
 from agent_platform.core.mcp.mcp_server import MCPServer
-from agent_platform.core.tools.tool_definition import ToolCallContext
-
-pytest_plugins = ["core.tests.mcp.fixtures"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -26,17 +23,6 @@ pytest_plugins = ["core.tests.mcp.fixtures"]
 def quiet_logs():
     # Set to most verbose logging for debugging
     configure_logging("DEBUG")
-
-
-@pytest.fixture
-def tool_call_context():
-    """Create a test tool call context."""
-    return ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
 
 
 def _mock_transport(resp_status, resp_ctype):
@@ -67,13 +53,7 @@ async def _make_connected_client(server):
     # we hand control of the context-manager to the caller --- yield style
     sess = await sess_cm.__aenter__()
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(MCPServer("test", "streamable-http", url="http://x"), tool_call_context)
+    client = MCPClient(MCPServer("test", "streamable-http", url="http://x"))
     client._session, client._connected = sess, True
 
     async def _finaliser():
@@ -148,27 +128,16 @@ async def test_probe_accepts_header_only():
     transport = httpx.MockTransport(sse_handler)
 
     async with httpx.AsyncClient(transport=transport, base_url="http://x") as client:
-        tool_call_context = ToolCallContext(
-            user_id="test-user",
-            agent_id=None,
-            tenant_id=None,
-            thread_id=None,
-        )
-        client_obj = MCPClient(
-            target_server=MCPServer(name="test", url="http://x"), tool_call_context=tool_call_context
-        )
+        client_obj = MCPClient(target_server=MCPServer(name="test", url="http://x"))
         ok = await client_obj._probe_endpoint(client, "http://x/stream", expect_sse=True)
         assert ok
 
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
-async def test_connect_streamable_http(live_streamable_server, tool_call_context):
+async def test_connect_streamable_http(live_streamable_server):
     """Connect to explicit streamable-http endpoint."""
-    client = MCPClient(
-        target_server=MCPServer(name="test", url=live_streamable_server, transport="streamable-http"),
-        tool_call_context=tool_call_context,
-    )
+    client = MCPClient(target_server=MCPServer(name="test", url=live_streamable_server, transport="streamable-http"))
     await client.connect()
 
     assert client.is_connected
@@ -186,7 +155,7 @@ async def test_connect_streamable_http(live_streamable_server, tool_call_context
         "wrong-url",
     ],
 )
-async def test_connect_custom_mcp(live_custom_mcp_server_with_auth, scenario, tool_call_context):
+async def test_connect_custom_mcp(live_custom_mcp_server_with_auth, scenario):
     """Connect to explicit streamable-http endpoint."""
     from httpx._exceptions import HTTPStatusError
 
@@ -200,8 +169,7 @@ async def test_connect_custom_mcp(live_custom_mcp_server_with_auth, scenario, to
             ),
             transport="streamable-http",
             headers={"Authorization": "Bearer dummy-token"} if scenario != "auth-failure" else None,
-        ),
-        tool_call_context=tool_call_context,
+        )
     )
     if scenario == "auth-failure":
         with pytest.raises(HTTPStatusError) as e:
@@ -242,11 +210,9 @@ def test_convert_exception_group_to_single_exception():
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.asyncio
-async def test_connect_sse(live_sse_server, tool_call_context):
+async def test_connect_sse(live_sse_server):
     """Connect to explicit SSE endpoint."""
-    client = MCPClient(
-        target_server=MCPServer(name="test", url=live_sse_server, transport="sse"), tool_call_context=tool_call_context
-    )
+    client = MCPClient(target_server=MCPServer(name="test", url=live_sse_server, transport="sse"))
     await client.connect()
 
     assert client.is_connected
@@ -362,13 +328,7 @@ async def test_list_tools_default_description(monkeypatch):
 async def test_probe_matrix(status, ctype, good_for_streamable, good_for_sse):
     tr = _mock_transport(status, ctype)
     async with httpx.AsyncClient(transport=tr, base_url="http://x") as client:
-        tool_call_context = ToolCallContext(
-            user_id="test-user",
-            agent_id=None,
-            tenant_id=None,
-            thread_id=None,
-        )
-        mc = MCPClient(MCPServer("dummy", "streamable-http", "http://x"), tool_call_context=tool_call_context)
+        mc = MCPClient(MCPServer("dummy", "streamable-http", "http://x"))
         ok_streamable = await mc._probe_endpoint(client, "http://x/mcp", expect_sse=False)
         ok_sse = await mc._probe_endpoint(client, "http://x/sse", expect_sse=True)
 
@@ -380,13 +340,7 @@ async def test_probe_matrix(status, ctype, good_for_streamable, good_for_sse):
 async def test_connect_raises_when_no_transport(tmp_path):
     # use free port but no server running
     url = "http://127.0.0.1:9"  # any closed port
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(MCPServer("test", "streamable-http", url), tool_call_context=tool_call_context)
+    client = MCPClient(MCPServer("test", "streamable-http", url))
     with pytest.raises(ConnectionError):
         await client.connect()
 
@@ -481,15 +435,7 @@ async def test_winner_failure_unblocks_close(monkeypatch):
         lambda *_a, **_kw: flaky_transport(),
     )
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(
-        MCPServer("flaky", url="http://x", transport="streamable-http"), tool_call_context=tool_call_context
-    )
+    client = MCPClient(MCPServer("flaky", url="http://x", transport="streamable-http"))
     await client.connect()
     # winner has crashed; close() must complete quickly
     await asyncio.wait_for(client.close(), timeout=2.0)
@@ -505,13 +451,7 @@ async def test_resumption_token_retry(monkeypatch):
     rs, ws = _recv1, _send2
     session = ClientSession(rs, ws)
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(MCPServer("mem", "streamable-http", url="http://x"), tool_call_context=tool_call_context)
+    client = MCPClient(MCPServer("mem", "streamable-http", url="http://x"))
     client._session = session  # type: ignore[attr-defined]
     client._connected = True  # type: ignore[attr-defined]
 
@@ -554,15 +494,54 @@ async def test_resumption_token_retry(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_bad_url_scheme_rejected():
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    bad = MCPClient(MCPServer("bad", url="ftp://example.com"), tool_call_context=tool_call_context)
+    bad = MCPClient(MCPServer("bad", url="ftp://example.com"))
     with pytest.raises(ValueError, match="Unsupported URL scheme"):
         await bad.connect()
+
+
+@pytest.mark.asyncio
+async def test_client_additional_headers_override():
+    """
+    `additional_headers` supplied to `MCPClient` should overwrite duplicates
+    coming from the `MCPServer.headers` mapping.
+    """
+    # Create an MCPServer with some headers
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "Authorization": "Bearer server-token",
+            "X-Server-Header": "server-value",
+            "Content-Type": "application/json",
+        },
+    )
+
+    # Create additional headers that overlap with server headers
+    additional_headers = {
+        "Authorization": "Bearer client-token",  # Should override server header
+        "X-Client-Header": "client-value",  # Should be added
+        "Content-Type": "application/xml",  # Should override server header
+    }
+
+    # Create MCPClient with both server headers and additional headers
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+
+    # Verify that additional_headers override server headers for duplicates
+    expected_headers = {
+        "Authorization": "Bearer client-token",  # Overridden by additional_headers
+        "X-Server-Header": "server-value",  # Preserved from server
+        "Content-Type": "application/xml",  # Overridden by additional_headers
+        "X-Client-Header": "client-value",  # Added from additional_headers
+    }
+
+    assert client._headers == expected_headers
+
+    # Verify that original server headers are unchanged
+    assert server.headers == {
+        "Authorization": "Bearer server-token",
+        "X-Server-Header": "server-value",
+        "Content-Type": "application/json",
+    }
 
 
 @pytest.mark.asyncio
@@ -578,10 +557,17 @@ async def test_client_sse_headers_propagated(monkeypatch):
         headers={"Authorization": "Bearer server-token", "X-Server-Header": "server-value"},
     )
 
+    # Additional headers to be merged
+    additional_headers = {
+        "Authorization": "Bearer client-token",  # Should override server header
+        "X-Client-Header": "client-value",  # Should be added
+    }
+
     # Expected merged headers
     expected_headers = {
-        "Authorization": "Bearer server-token",
+        "Authorization": "Bearer client-token",
         "X-Server-Header": "server-value",
+        "X-Client-Header": "client-value",
     }
 
     # Mock the probe to return success
@@ -620,13 +606,7 @@ async def test_client_sse_headers_propagated(monkeypatch):
     monkeypatch.setattr("agent_platform.core.mcp.mcp_client.sse_client", mock_sse_client)
 
     # Create MCPClient with both server and additional headers
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(target_server=server, tool_call_context=tool_call_context)
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
 
     # Connect to trigger the sse_client call
     await client.connect()
@@ -651,13 +631,7 @@ async def test_client_headers_edge_cases():
         url="https://api.example.com/mcp",
         headers=None,
     )
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client1 = MCPClient(target_server=server1, tool_call_context=tool_call_context)
+    client1 = MCPClient(target_server=server1)
     assert client1._headers == {}
 
     # Test case 2: headers: {} (empty dict)
@@ -666,7 +640,7 @@ async def test_client_headers_edge_cases():
         url="https://api.example.com/mcp",
         headers={},
     )
-    client2 = MCPClient(target_server=server2, tool_call_context=tool_call_context)
+    client2 = MCPClient(target_server=server2)
     assert client2._headers == {}
 
     # Test case 3: headers: {"":""} (empty key and value)
@@ -675,7 +649,7 @@ async def test_client_headers_edge_cases():
         url="https://api.example.com/mcp",
         headers={"": ""},
     )
-    client3 = MCPClient(target_server=server3, tool_call_context=tool_call_context)
+    client3 = MCPClient(target_server=server3)
     assert client3._headers == {"": ""}
 
     # Test case 4: headers: {"test":""} (empty value)
@@ -684,7 +658,7 @@ async def test_client_headers_edge_cases():
         url="https://api.example.com/mcp",
         headers={"test": ""},
     )
-    client4 = MCPClient(target_server=server4, tool_call_context=tool_call_context)
+    client4 = MCPClient(target_server=server4)
     assert client4._headers == {"test": ""}
 
     # Test case 5: headers: {"": "test"} (empty key)
@@ -693,8 +667,61 @@ async def test_client_headers_edge_cases():
         url="https://api.example.com/mcp",
         headers={"": "test"},
     )
-    client5 = MCPClient(target_server=server5, tool_call_context=tool_call_context)
+    client5 = MCPClient(target_server=server5)
     assert client5._headers == {"": "test"}
+
+
+@pytest.mark.asyncio
+async def test_client_headers_with_additional_headers_edge_cases():
+    """Test edge cases when combining server headers with additional headers."""
+
+    # Test case 1: Server has None headers, additional headers provided
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers=None,
+    )
+    additional_headers = {"Authorization": "Bearer token"}
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+    assert client._headers == {"Authorization": "Bearer token"}
+
+    # Test case 2: Server has empty headers, additional headers provided
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={},
+    )
+    additional_headers = {"Authorization": "Bearer token"}
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+    assert client._headers == {"Authorization": "Bearer token"}
+
+    # Test case 3: Both server and additional headers have empty keys
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={"": "server-value"},
+    )
+    additional_headers = {"": "client-value"}  # Should override
+    client = MCPClient(target_server=server, additional_headers=additional_headers)
+    assert client._headers == {"": "client-value"}
+
+    # Test case 4: None additional headers
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={"Authorization": "Bearer server-token"},
+    )
+    client = MCPClient(target_server=server, additional_headers=None)
+    assert client._headers == {"Authorization": "Bearer server-token"}
+
+    # Test case 5: Empty additional headers
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={"Authorization": "Bearer server-token"},
+    )
+    client = MCPClient(target_server=server, additional_headers={})
+    assert client._headers == {"Authorization": "Bearer server-token"}
 
 
 @pytest.mark.asyncio
@@ -725,13 +752,7 @@ async def test_stdio_env_merging(monkeypatch):
         },
     )
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(target_server=server, tool_call_context=tool_call_context)
+    client = MCPClient(target_server=server)
 
     # Mock the StdioServerParameters to capture the env that gets passed
     captured_params = None
@@ -784,13 +805,7 @@ async def test_stdio_env_none_handling(monkeypatch):
     # Create a server with no environment variables (None)
     server = MCPServer(name="test-stdio-none", command="python", args=["-c", "print('test')"], env=None)
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(target_server=server, tool_call_context=tool_call_context)
+    client = MCPClient(target_server=server)
 
     # Mock the StdioServerParameters to capture the env that gets passed
     captured_params = None
@@ -842,13 +857,7 @@ async def test_stdio_env_empty_handling(monkeypatch):
     # Create a server with empty environment variables
     server = MCPServer(name="test-stdio-empty", command="python", args=["-c", "print('test')"], env={})
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(target_server=server, tool_call_context=tool_call_context)
+    client = MCPClient(target_server=server)
 
     # Mock the StdioServerParameters to capture the env that gets passed
     captured_params = None
@@ -909,13 +918,7 @@ async def test_stdio_env_merging_preserves_current_env(monkeypatch):
         env={"CUSTOM_VAR": "custom_value"},
     )
 
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(target_server=server, tool_call_context=tool_call_context)
+    client = MCPClient(target_server=server)
 
     # Mock the StdioServerParameters to capture the env that gets passed
     captured_params = None
@@ -1077,20 +1080,13 @@ async def test_ensure_action_context_header_creates_header_when_not_present():
         },
         type="sema4ai_action_server",
     )
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    tool_call_context = tool_call_context.with_mcp_server_info(server)
-    headers = tool_call_context.build_headers_for_mcp_server()
-    assert "X-Action-Context" in headers
+    client = MCPClient(target_server=server)
+    assert "X-Action-Context" in client._headers
 
     import base64
     import json
 
-    x_action_context_value = headers["X-Action-Context"]
+    x_action_context_value = client._headers["X-Action-Context"]
     decoded_value = base64.b64decode(x_action_context_value).decode("utf-8")
     action_context = json.loads(decoded_value)
 
@@ -1125,13 +1121,7 @@ async def test_no_action_context_header_when_type_generic_mcp():
             "Content-Type": "application/json",
         },
     )
-    tool_call_context = ToolCallContext(
-        user_id="test-user",
-        agent_id=None,
-        tenant_id=None,
-        thread_id=None,
-    )
-    client = MCPClient(target_server=server, tool_call_context=tool_call_context)
+    client = MCPClient(target_server=server)
     assert "X-Action-Context" not in client._headers
 
     # But they SHOULD get secret headers directly
@@ -1141,3 +1131,252 @@ async def test_no_action_context_header_when_type_generic_mcp():
     assert client._headers["X-Custom-Auth"] == "custom-oauth-token"
     assert "Content-Type" in client._headers
     assert client._headers["Content-Type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_context_header_does_not_override_existing():
+    """
+    Test that _ensure_action_context_header does not override existing
+    X-Action-Context header.
+    """
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "Authorization": "Bearer server-token",
+            "X-Action-Context": "existing-base64-encoded-value",
+            "Content-Type": "application/json",
+        },
+        type="sema4ai_action_server",
+    )
+
+    client = MCPClient(target_server=server)
+
+    assert client._headers["X-Action-Context"] == "existing-base64-encoded-value"
+    assert client._headers["Authorization"] == "Bearer server-token"
+    assert client._headers["Content-Type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_context_header_no_secrets_no_header():
+    """
+    Test that _ensure_action_context_header does not create X-Action-Context header
+    when there are no MCP secret type headers.
+    """
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        headers={
+            "Authorization": "Bearer server-token",
+            "Content-Type": "application/json",
+        },
+        type="sema4ai_action_server",
+    )
+
+    client = MCPClient(target_server=server)
+
+    assert "X-Action-Context" not in client._headers
+
+    assert client._headers["Authorization"] == "Bearer server-token"
+    assert client._headers["Content-Type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_ensure_data_context_header_creates_header_when_data_server_details_present():
+    """
+    Test that _ensure_data_context_header creates X-Data-Context header
+    when data server details are present with both HTTP and MySQL endpoints.
+    """
+    from agent_platform.core.data_server.data_server import (
+        DataServerDetails,
+        DataServerEndpoint,
+        DataServerEndpointKind,
+    )
+
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+
+    data_server_details = DataServerDetails(
+        username="testuser",
+        password="testpass",
+        data_server_endpoints=[
+            DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP),
+            DataServerEndpoint(host="db.example.com", port=3306, kind=DataServerEndpointKind.MYSQL),
+        ],
+    )
+
+    client = MCPClient(target_server=server, data_server_details=data_server_details)
+    assert "X-Data-Context" in client._headers
+
+    import base64
+    import json
+
+    x_data_context_value = client._headers["X-Data-Context"]
+    decoded_value = base64.b64decode(x_data_context_value).decode("utf-8")
+    data_context = json.loads(decoded_value)
+
+    assert "data-server" in data_context
+    assert "http" in data_context["data-server"]
+    assert "mysql" in data_context["data-server"]
+    assert data_context["data-server"]["http"]["url"] == "http://localhost:8080"
+    assert data_context["data-server"]["http"]["user"] == "testuser"
+    assert data_context["data-server"]["http"]["password"] == "testpass"
+    assert data_context["data-server"]["mysql"]["host"] == "db.example.com"
+    assert data_context["data-server"]["mysql"]["port"] == 3306
+    assert data_context["data-server"]["mysql"]["user"] == "testuser"
+    assert data_context["data-server"]["mysql"]["password"] == "testpass"
+
+
+@pytest.mark.asyncio
+async def test_ensure_data_context_header_no_header_when_missing_credentials():
+    """
+    Test that _ensure_data_context_header does not create X-Data-Context header
+    when data server details are missing username, password, or endpoints.
+    """
+    from agent_platform.core.data_server.data_server import (
+        DataServerDetails,
+        DataServerEndpoint,
+        DataServerEndpointKind,
+    )
+
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+
+    # Test missing username
+    data_server_details1 = DataServerDetails(
+        username=None,
+        password="testpass",
+        data_server_endpoints=[DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)],
+    )
+
+    client1 = MCPClient(target_server=server, data_server_details=data_server_details1)
+    assert "X-Data-Context" not in client1._headers
+
+    # Test missing password
+    data_server_details2 = DataServerDetails(
+        username="testuser",
+        password=None,
+        data_server_endpoints=[DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)],
+    )
+
+    client2 = MCPClient(target_server=server, data_server_details=data_server_details2)
+    assert "X-Data-Context" not in client2._headers
+
+    # Test missing endpoints
+    data_server_details3 = DataServerDetails(username="testuser", password="testpass", data_server_endpoints=[])
+
+    client3 = MCPClient(target_server=server, data_server_details=data_server_details3)
+    assert "X-Data-Context" not in client3._headers
+
+
+@pytest.mark.asyncio
+async def test_ensure_data_context_header_no_header_when_not_action_server_or_no_details():
+    """
+    Test that _ensure_data_context_header does not create X-Data-Context header
+    when server type is not sema4ai_action_server or no data server details provided.
+    """
+    from agent_platform.core.data_server.data_server import (
+        DataServerDetails,
+        DataServerEndpoint,
+        DataServerEndpointKind,
+    )
+
+    # Test not action server
+    server1 = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="generic_mcp",
+    )
+
+    data_server_details = DataServerDetails(
+        username="testuser",
+        password="testpass",
+        data_server_endpoints=[DataServerEndpoint(host="localhost", port=8080, kind=DataServerEndpointKind.HTTP)],
+    )
+
+    client1 = MCPClient(target_server=server1, data_server_details=data_server_details)
+    assert "X-Data-Context" not in client1._headers
+
+    # Test no data server details
+    server2 = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+
+    client2 = MCPClient(target_server=server2)
+    assert "X-Data-Context" not in client2._headers
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_invocation_header_creates_header_with_valid_context():
+    """
+    Test that _ensure_action_invocation_header creates X-Action-Invocation-Context header
+    when valid action_invocation_context is provided.
+    """
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+    client = MCPClient(target_server=server)
+
+    action_invocation_context = {
+        "agent_id": "test-agent-123",
+        "invoked_on_behalf_of_user_id": "user-456",
+        "thread_id": "thread-789",
+        "tenant_id": "tenant-abc",
+    }
+
+    client._ensure_action_invocation_header(action_invocation_context)
+
+    assert "X-Action-Invocation-Context" in client._headers
+
+    import base64
+    import json
+
+    x_action_invocation_context_value = client._headers["X-Action-Invocation-Context"]
+    decoded_value = base64.b64decode(x_action_invocation_context_value).decode("utf-8")
+    action_invocation_data = json.loads(decoded_value)
+
+    assert action_invocation_data["agent_id"] == "test-agent-123"
+    assert action_invocation_data["invoked_on_behalf_of_user_id"] == "user-456"
+    assert action_invocation_data["thread_id"] == "thread-789"
+    assert action_invocation_data["tenant_id"] == "tenant-abc"
+    assert "action_invocation_id" in action_invocation_data
+    assert len(action_invocation_data["action_invocation_id"]) == 36
+
+
+@pytest.mark.asyncio
+async def test_ensure_action_invocation_header_no_header():
+    """
+    Test that _ensure_action_invocation_header does not create X-Action-Invocation-Context header
+    when action_invocation_context is None.
+    """
+    # Test no header when sema4ai action server
+    server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="sema4ai_action_server",
+    )
+    client = MCPClient(target_server=server)
+
+    client._ensure_action_invocation_header(None)
+
+    assert "X-Action-Invocation-Context" not in client._headers
+
+    # Test no header when generic MCP server
+    generic_mcp_server = MCPServer(
+        name="test-server",
+        url="https://api.example.com/mcp",
+        type="generic_mcp",
+    )
+    client = MCPClient(target_server=generic_mcp_server)
+    client._ensure_action_invocation_header(None)
+    assert "X-Action-Invocation-Context" not in client._headers

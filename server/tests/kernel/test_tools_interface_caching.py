@@ -59,7 +59,7 @@ class _DummyKernel:
     def __init__(self) -> None:
         self.ctx = _DummyCtx()
         self.agent = types.SimpleNamespace(agent_id="agent-1", action_packages=[], mcp_servers=[])
-        self.user = types.SimpleNamespace(user_id="user-1", cr_user_id="cr-user-1", cr_tenant_id="cr-tenant-1")
+        self.user = types.SimpleNamespace(user_id="user-1", cr_user_id="cr-user-1")
         self.thread = types.SimpleNamespace(thread_id="thread-1")
         self.data_frames = _DummyDataFrames()
 
@@ -224,7 +224,6 @@ async def test_safe_execute_tool_success(iface: AgentServerToolsInterface) -> No
         description="Echos the incoming message.",
         input_schema={"type": "object", "properties": {"msg": {"type": "string"}}},
         function=echo,
-        category="internal-tool",
     )
 
     tool_use = _stub_tool_use("call-1", json.dumps({"msg": "hello"}))
@@ -245,7 +244,7 @@ async def test_safe_execute_tool_runtime_error(
     async def boom(*_, **__) -> None:
         raise RuntimeError("💥 kaboom")
 
-    tool_def = ToolDefinition(name="Boom", description="", input_schema={}, function=boom, category="internal-tool")
+    tool_def = ToolDefinition(name="Boom", description="", input_schema={}, function=boom)
     tool_use = _stub_tool_use("call-boom", "{}")
 
     result = await iface._safe_execute_tool(tool_def, tool_use)
@@ -323,8 +322,8 @@ async def test_execute_pending_tool_calls_runs_everything(
     async def upper(text: str, extra_headers=None):
         return text.upper()
 
-    add_def = ToolDefinition(name="Add", description="", input_schema={}, function=plus, category="internal-tool")
-    up_def = ToolDefinition(name="Upper", description="", input_schema={}, function=upper, category="internal-tool")
+    add_def = ToolDefinition(name="Add", description="", input_schema={}, function=plus)
+    up_def = ToolDefinition(name="Upper", description="", input_schema={}, function=upper)
 
     pending: list[tuple[ToolDefinition, ResponseToolUseContent]] = [
         (add_def, _stub_tool_use("tc-add", json.dumps({"a": 2, "b": 3}))),
@@ -376,7 +375,7 @@ async def test_cache_hit_after_first_fetch(
 
     fetch_counter = {"n": 0}
 
-    async def fake_fetch(pkgs):
+    async def fake_fetch(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
@@ -423,7 +422,7 @@ async def test_cache_refresh_after_ttl_expiry(
 
     fetch_counter = {"n": 0}
 
-    async def fake_fetch(pkgs):
+    async def fake_fetch(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
@@ -474,7 +473,7 @@ async def test_negative_cache_ttl(iface: AgentServerToolsInterface, monkeypatch)
 
     fetch_counter = {"n": 0}
 
-    async def fake_fetch_failure(pkgs):
+    async def fake_fetch_failure(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
@@ -517,7 +516,7 @@ async def test_cache_waits_for_refresh(
 
     fetch_counter = {"n": 0}
 
-    async def slow_fetch(pkgs):
+    async def slow_fetch(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
@@ -571,7 +570,7 @@ async def test_cache_disabled_via_env_var(
 
     fetch_counter = {"n": 0}
 
-    async def fake_fetch(pkgs):
+    async def fake_fetch(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
@@ -616,7 +615,7 @@ async def test_merge_allowed_actions_same_url(
     captured: dict[str, list[ActionPackage]] = {}
     fetch_counter = {"n": 0}
 
-    async def fake_fetch(pkgs):
+    async def fake_fetch(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
@@ -691,7 +690,7 @@ async def test_merge_allowed_actions_same_url_union(
     captured: dict[str, list[ActionPackage]] = {}
     fetch_counter = {"n": 0}
 
-    async def fake_fetch(pkgs):
+    async def fake_fetch(pkgs, additional_headers=None):
         fetch_counter["n"] += 1
         captured["pkgs"] = pkgs
         return CollectedTools(
@@ -769,7 +768,7 @@ async def test_no_unawaited_coroutines_on_cache_hit(
 
     fetch_counter = {"n": 0}
 
-    async def fake_fetch(pkgs):
+    async def fake_fetch(pkgs, additional_headers=None):
         from agent_platform.core.tools.collected_tools import CollectedTools
 
         fetch_counter["n"] += 1
