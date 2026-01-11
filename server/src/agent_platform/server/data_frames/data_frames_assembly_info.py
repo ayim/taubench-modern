@@ -327,17 +327,6 @@ class _Node:
                         lines.append(f"{indent_str}#### SQL Dialect: {sql_dialect}")
                     lines.append(f"{indent_str}")
 
-                full_sql_query_logical_str = sql_data.get("full_sql_query_logical_str")
-
-                if full_sql_query_logical_str and sql_query != full_sql_query_logical_str:
-                    lines.append(
-                        f"{indent_str}#### Full SQL Query (with dependencies resolved, referencing logical table names):"
-                    )
-                    lines.append("")
-                    prefix = indent_str + "    "
-                    lines.append(textwrap.indent(full_sql_query_logical_str, prefix))
-                    lines.append(f"{indent_str}")
-
             elif input_id_type == "file":
                 file_data = typing.cast(DataFrameNodeFile, data)
                 file_ref = file_data.get("file_ref")

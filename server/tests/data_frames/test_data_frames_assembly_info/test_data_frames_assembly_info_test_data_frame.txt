@@ -11,12 +11,6 @@
     SELECT * FROM file_data
 #### SQL Dialect: duckdb
 
-#### Full SQL Query (with dependencies resolved, referencing logical table names):
-
-    SELECT
-      *
-    FROM file_data
-
 ## Dependencies
 
 ## Semantic Data Model: `file_data`

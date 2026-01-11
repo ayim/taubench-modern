@@ -11,17 +11,6 @@
 
     SELECT Category FROM test_data_frame
 
-#### Full SQL Query (with dependencies resolved, referencing logical table names):
-
-    WITH test_data_frame AS (
-      SELECT
-        *
-      FROM file_data
-    )
-    SELECT
-      Category
-    FROM test_data_frame
-
 ## Dependencies
 
 ## Data Frame: `test_data_frame`
