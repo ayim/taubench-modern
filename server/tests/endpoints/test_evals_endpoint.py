@@ -264,6 +264,116 @@ async def test_create_scenario_copies_thread_files(client, storage, seed_agents,
         FileManagerService.reset()
 
 
+async def test_create_scenario_requires_thread_id_or_messages(client):
+    response = client.post(
+        "/api/v2/evals/scenarios",
+        json={
+            "name": "Missing inputs",
+            "description": "No thread or messages",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["message"] == "Provide thread_id or messages"
+
+
+async def test_create_scenario_rejects_thread_id_and_messages(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    thread = Thread(
+        user_id=stub_user.user_id,
+        agent_id=agent.agent_id,
+        name="Source thread",
+    )
+    await storage.upsert_thread(stub_user.user_id, thread)
+
+    response = client.post(
+        "/api/v2/evals/scenarios",
+        json={
+            "name": "Conflicting inputs",
+            "description": "Thread and messages",
+            "thread_id": thread.thread_id,
+            "agent_id": agent.agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "kind": "text",
+                            "text": "Hello",
+                        }
+                    ],
+                    "complete": True,
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["message"] == "Provide either thread_id or messages, not both"
+
+
+async def test_create_scenario_with_messages_requires_agent_id(client):
+    response = client.post(
+        "/api/v2/evals/scenarios",
+        json={
+            "name": "Missing agent",
+            "description": "Messages but no agent_id",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "kind": "text",
+                            "text": "Hello",
+                        }
+                    ],
+                    "complete": True,
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["message"] == "agent_id is required when messages are provided"
+
+
+async def test_create_scenario_with_messages(client, storage, seed_agents, stub_user):
+    agent = seed_agents[0]
+    response = client.post(
+        "/api/v2/evals/scenarios",
+        json={
+            "name": "Message scenario",
+            "description": "Use raw messages",
+            "agent_id": agent.agent_id,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "kind": "text",
+                            "text": "Hello",
+                        }
+                    ],
+                    "complete": True,
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["thread_id"] is None
+    assert payload["agent_id"] == agent.agent_id
+    assert payload["messages"]
+    assert payload["messages"][0]["content"][0]["text"] == "Hello"
+
+    stored = await storage.get_scenario(payload["scenario_id"])
+    assert stored is not None
+    assert stored.thread_id is None
+    assert stored.agent_id == agent.agent_id
+    assert stored.messages[0].content[0].text == "Hello"
+
+
 async def test_list_scenarios_endpoint_omits_messages(client, storage, seed_agents, stub_user):
     agent = seed_agents[0]
     scenario = Scenario(

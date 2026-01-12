@@ -12866,8 +12866,41 @@ export const spec = {
             title: 'Description',
           },
           thread_id: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Thread Id',
+          },
+          agent_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Agent Id',
+          },
+          messages: {
+            anyOf: [
+              {
+                items: {
+                  additionalProperties: true,
+                  type: 'object',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Messages',
           },
           tool_execution_mode: {
             anyOf: [
@@ -12907,7 +12940,7 @@ export const spec = {
           },
         },
         type: 'object',
-        required: ['name', 'description', 'thread_id'],
+        required: ['name', 'description'],
         title: 'CreateScenarioPayload',
       },
       CreateScenarioRunPayload: {

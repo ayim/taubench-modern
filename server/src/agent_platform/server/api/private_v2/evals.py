@@ -93,12 +93,36 @@ EvaluationCriterion = ActionCalling | FlowAdherence | ResponseAccuracy
 class CreateScenarioPayload:
     name: str
     description: str
-    thread_id: str
+    thread_id: str | None = None
+    agent_id: str | None = None
+    messages: list[dict[str, Any]] | None = None
     tool_execution_mode: Literal["replay", "live"] | None = None
     evaluation_criteria: list[EvaluationCriterion] | None = None
 
     @classmethod
-    def to_scenario(cls, payload: Self, user_id: str, thread: Thread) -> Scenario:
+    def to_scenario(cls, payload: Self, user_id: str, thread: Thread | None) -> Scenario:
+        if payload.thread_id and payload.messages:
+            raise ValueError("Provide either thread_id or messages, not both")
+        if not payload.thread_id and not payload.messages:
+            raise ValueError("Provide thread_id or messages")
+
+        if payload.messages:
+            if not payload.agent_id:
+                raise ValueError("agent_id is required when messages are provided")
+
+            from agent_platform.core.thread.base import ThreadMessage
+
+            raw_messages = payload.messages
+            messages = [ThreadMessage.model_validate(message) for message in raw_messages]
+            thread_id = None
+            agent_id = payload.agent_id
+        else:
+            if thread is None:
+                raise ValueError("Thread not found")
+            messages = thread.messages
+            thread_id = thread.thread_id
+            agent_id = thread.agent_id
+
         def trim_initial_agents(messages):
             trimmed = []
             skip = True
@@ -113,7 +137,7 @@ class CreateScenarioPayload:
         # this is a quick fix to skip the initial agent welcome message(s)
         # that would result in an error.
         # more info https://sema4ai.slack.com/archives/C08HF1FADTQ/p1757927280879779
-        messages = trim_initial_agents(thread.messages)
+        messages = trim_initial_agents(messages)
         metadata: dict[str, Any] = {}
         drift_policy_overrides: dict[str, Any] = {}
 
@@ -159,9 +183,9 @@ class CreateScenarioPayload:
             scenario_id=str(uuid4()),
             name=payload.name,
             description=payload.description,
-            thread_id=thread.thread_id,
+            thread_id=thread_id,
             user_id=user_id,
-            agent_id=thread.agent_id,
+            agent_id=agent_id,
             messages=messages,
             metadata=metadata,
         )
@@ -169,9 +193,11 @@ class CreateScenarioPayload:
 
 @router.post("/scenarios", response_model=Scenario)
 async def create_scenario(payload: CreateScenarioPayload, user: AuthedUser, storage: StorageDependency):
-    thread = await storage.get_thread(user.user_id, payload.thread_id)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Thread not found")
+    thread = None
+    if payload.thread_id:
+        thread = await storage.get_thread(user.user_id, payload.thread_id)
+        if thread is None:
+            raise HTTPException(status_code=404, detail="Thread not found")
 
     try:
         scenario = CreateScenarioPayload.to_scenario(payload, user.user_id, thread)
@@ -180,20 +206,21 @@ async def create_scenario(payload: CreateScenarioPayload, user: AuthedUser, stor
 
     created_scenario = await storage.create_scenario(scenario)
 
-    try:
-        created_scenario = await copy_thread_files_to_scenario(
-            storage=storage,
-            thread=thread,
-            scenario=created_scenario,
-            user_id=user.user_id,
-        )
-    except Exception as exc:  # pragma: no cover - defensive logging
-        logger.warning(
-            "Failed to copy thread files during scenario creation",
-            thread_id=thread.thread_id,
-            scenario_id=created_scenario.scenario_id,
-            error=str(exc),
-        )
+    if thread is not None:
+        try:
+            created_scenario = await copy_thread_files_to_scenario(
+                storage=storage,
+                thread=thread,
+                scenario=created_scenario,
+                user_id=user.user_id,
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning(
+                "Failed to copy thread files during scenario creation",
+                thread_id=thread.thread_id,
+                scenario_id=created_scenario.scenario_id,
+                error=str(exc),
+            )
 
     return created_scenario
 

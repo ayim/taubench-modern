@@ -11,9 +11,7 @@ TERMINAL_STATUSES = [TrialStatus.CANCELED, TrialStatus.COMPLETED, TrialStatus.ER
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.asyncio
-@pytest.mark.flaky(max_runs=2, min_passes=1)
-async def disabled_test_evals_e2e(
-    # This test was disabled because the test is too slow and flaky.
+async def test_evals_e2e(
     base_url_agent_server_evals_matrix: str,
     openai_api_key: str,
 ):
@@ -34,7 +32,7 @@ async def disabled_test_evals_e2e(
                 {
                     "kind": "openai",
                     "openai_api_key": openai_api_key,
-                    "models": {"openai": ["gpt-5-low"]},
+                    "models": {"openai": ["gpt-5-minimal"]},
                 }
             ],
             runbook="""
@@ -42,54 +40,44 @@ async def disabled_test_evals_e2e(
             """,
         )
 
-        thread_id = agent_client.create_thread_and_return_thread_id(agent_id=agent_id)
-
-        agent_client.send_message_to_agent_thread(
-            agent_id,
-            thread_id,
-            "What is 2+2?",
-        )
-
-        threads_url = f"{base_url_agent_server_evals_matrix}/api/v2"
-
-        async with AsyncClient(base_url=threads_url) as threads_client:
-
-            async def _latest_message_from_agent() -> bool:
-                response = await threads_client.get(f"/threads/{thread_id}/state")
-                assert response.status_code == 200, response.text
-                thread = response.json()
-                messages = thread.get("messages", [])
-                if not messages:
-                    return False
-
-                for message in reversed(messages):
-                    if message.get("role") != "agent":
-                        continue
-
-                    print(f"Found agent message {message}")
-
-                    if message.get("commited") or message.get("complete"):
-                        return True
-
-                    contents = message.get("content", [])
-                    if any(content.get("complete") for content in contents):
-                        return True
-
-                    print("Agent message is not complete or commited yet")
-
-                return False
-
-            # we wait for an agent message
-            # otherwise we may create a scenario with an incomplete thread
-            await _wait_until(_latest_message_from_agent, interval=1.0, timeout=timeout)
-
         evals_url = f"{base_url_agent_server_evals_matrix}/api/v2/evals"
 
         async with AsyncClient(base_url=evals_url) as client:
             create_payload = {
                 "name": "Test scenario",
                 "description": "Test description",
-                "thread_id": thread_id,
+                "agent_id": agent_id,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "kind": "text",
+                                "text": "What is 2+2?",
+                            }
+                        ],
+                        "complete": True,
+                    },
+                    {
+                        "role": "agent",
+                        "content": [
+                            {
+                                "kind": "text",
+                                "text": "4",
+                            }
+                        ],
+                        "complete": True,
+                    },
+                ],
+                # in this way we run only one LM judge that always returns a success
+                # we are not interested in measuring the quality of evals
+                # but to test the flow end to end
+                "evaluation_criteria": [
+                    {
+                        "type": "response_accuracy",
+                        "expectation": "everything is fine",
+                    }
+                ],
             }
 
             print("Creating a new scenario")
@@ -99,8 +87,8 @@ async def disabled_test_evals_e2e(
 
             assert scenario["name"] == create_payload["name"]
             assert scenario["description"] == create_payload["description"]
-            assert scenario["thread_id"] == thread_id
             assert scenario["agent_id"] == agent_id
+            assert scenario["thread_id"] is None
 
             scenario_id = scenario["scenario_id"]
 

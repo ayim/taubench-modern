@@ -5238,7 +5238,15 @@ export interface components {
       /** Description */
       description: string;
       /** Thread Id */
-      thread_id: string;
+      thread_id?: string | null;
+      /** Agent Id */
+      agent_id?: string | null;
+      /** Messages */
+      messages?:
+        | {
+            [key: string]: unknown;
+          }[]
+        | null;
       /** Tool Execution Mode */
       tool_execution_mode?: ('replay' | 'live') | null;
       /** Evaluation Criteria */
