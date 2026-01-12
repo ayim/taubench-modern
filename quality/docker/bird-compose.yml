@@ -19,12 +19,14 @@ services:
   bird-postgres:
     image: postgres:18-alpine
     container_name: bird-quality-postgres
+    command: postgres -c max_wal_size=2GB
     ports:
       - '${BIRD_PG_PORT:-5433}:5432'
     volumes:
       - bird_pgdata:/var/lib/postgresql/data
       - ./bird-init.sql:/docker-entrypoint-initdb.d/01_create_role.sql:ro
       - ${BIRD_DEV_SQL_PATH:-${HOME}/.sema4x/quality/bird-data/minidev/MINIDEV_postgresql/BIRD_dev.sql}:/docker-entrypoint-initdb.d/02_bird_dev.sql:ro
+      - ./bird-tz-fix.sql:/docker-entrypoint-initdb.d/03_bird_tz_fix.sql:ro
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
