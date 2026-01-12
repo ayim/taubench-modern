@@ -518,3 +518,93 @@ class TestCalculateAgentDiff:
         assert mcp_url_change["change"] == "update"
         assert mcp_url_change["deployed_value"] == "http://localhost:8080"
         assert mcp_url_change["package_value"] == "http://localhost:9090"
+
+    @pytest.mark.asyncio
+    async def test_agent_architecture_version_ignored_in_comparison(self):
+        """Test that agent_architecture.version is not compared.
+
+        The architecture version is not part of the spec (always defaults to 1.0.0),
+        so differences in version should not cause a diff.
+        """
+        # Deployed agent has a different architecture version
+        agent = create_minimal_agent(
+            agent_architecture=AgentArchitecture(
+                name="agent_platform.architectures.default",
+                version="2.5.0",  # Different from the 1.0.0 default in spec
+            ),
+        )
+        spec = create_minimal_spec_agent()
+
+        result = await calculate_agent_diff(
+            deployed_agent=agent,
+            spec_agent=spec,
+            spec_runbook="# Test Runbook",
+        )
+
+        # Should be synced - architecture version difference should be ignored
+        assert result.is_synced is True
+        assert len(result.changes) == 0
+
+        # Verify no agent_architecture changes are reported
+        arch_changes = [c for c in result.changes if "agent_architecture" in c.field_path]
+        assert len(arch_changes) == 0
+
+    @pytest.mark.asyncio
+    async def test_extra_empty_string_equivalent_to_none(self):
+        """Test that empty strings in extra dict are equivalent to None.
+
+        Deployed state may store empty strings, while spec state stores None
+        for optional fields. These should be treated as equivalent.
+        """
+        # Deployed agent has empty strings in extra
+        agent = create_minimal_agent(
+            extra={
+                "welcome_message": "",
+                "conversation_starter": "",
+                "document_intelligence": "",
+            },
+        )
+        # Spec agent has no values for these fields (will be None)
+        spec = create_minimal_spec_agent()
+
+        result = await calculate_agent_diff(
+            deployed_agent=agent,
+            spec_agent=spec,
+            spec_runbook="# Test Runbook",
+        )
+
+        # Should be synced - empty strings and None should be equivalent
+        assert result.is_synced is True
+        assert len(result.changes) == 0
+
+        # Verify no extra field changes are reported
+        extra_changes = [c for c in result.changes if "extra" in c.field_path]
+        assert len(extra_changes) == 0
+
+    @pytest.mark.asyncio
+    async def test_extra_non_empty_string_still_detected(self):
+        """Test that non-empty strings in extra dict are still detected as different."""
+        # Deployed agent has actual values in extra
+        agent = create_minimal_agent(
+            extra={
+                "welcome_message": "Hello!",
+            },
+        )
+        # Spec agent has no values for these fields
+        spec = create_minimal_spec_agent()
+
+        result = await calculate_agent_diff(
+            deployed_agent=agent,
+            spec_agent=spec,
+            spec_runbook="# Test Runbook",
+        )
+
+        # Should not be synced - non-empty string is different from None
+        assert result.is_synced is False
+
+        # Should detect the welcome_message difference
+        wm_change = find_change(result.changes, "extra.welcome_message", exact=True)
+        assert wm_change is not None
+        assert wm_change.change == "delete"
+        assert wm_change.deployed_value == "Hello!"
+        assert wm_change.package_value is None

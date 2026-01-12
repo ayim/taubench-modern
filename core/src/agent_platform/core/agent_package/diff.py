@@ -71,11 +71,15 @@ def _normalize_for_comparison(agent_dict: dict[str, Any]) -> dict[str, Any]:
         arch_name = result["agent_architecture"].get("name", "")
         if arch_name in ("agent_platform.architectures.default", "agent_platform.architectures.agent"):
             result["agent_architecture"]["name"] = "agent_platform.architectures.default"
+        # Remove architecture version from comparison (not part of spec, always defaults to 1.0.0)
+        result["agent_architecture"].pop("version", None)
 
     # Normalize extra.enable_data_frames: None/missing is equivalent to True (default value)
     if "extra" in result and isinstance(result["extra"], dict):
         if result["extra"].get("enable_data_frames") is None:
             result["extra"]["enable_data_frames"] = True
+        # Normalize empty strings to None in extra dict (treated as equivalent "no value")
+        result["extra"] = {k: (None if v == "" else v) for k, v in result["extra"].items()}
 
     # Remove None values recursively - jsondiff treats "key: None" differently from "missing key"
     # but for our purposes they should be equivalent
