@@ -7,6 +7,7 @@ from reducto.types.shared.split_response import Result as SplitResult
 from sema4ai_docint.extraction.reducto.async_ import AsyncExtractionClient, Job
 from sema4ai_docint.extraction.reducto.exceptions import (
     ExtractFailedError,
+    JobFailedError,
     UploadForbiddenError,
     UploadMissingFileIdError,
     UploadMissingPresignedUrlError,
@@ -121,6 +122,28 @@ def _raise_mapped_reducto_error(
     elif isinstance(error, ExtractFailedError):
         error_code = ErrorCode.UNPROCESSABLE_ENTITY
         public_message = "Document extraction failed."
+
+    elif isinstance(error, JobFailedError):
+        error_msg = str(error).lower()
+
+        # Common schema validation errors - provide specific guidance
+        schema_validation_patterns = [
+            "conflicting keys",
+            "snake_case normalization",
+            "invalid schema",
+            "schema validation",
+            "duplicate key",
+        ]
+
+        if any(pattern in error_msg for pattern in schema_validation_patterns):
+            public_message = (
+                "The extraction schema has validation errors. Please check for conflicting or duplicate keys."
+            )
+        else:
+            # Other job failures are still client errors (bad document/schema)
+            public_message = "Document processing job failed."
+
+        error_code = ErrorCode.UNPROCESSABLE_ENTITY
 
     if error_code is None or public_message is None:
         error_code = ErrorCode.UNEXPECTED

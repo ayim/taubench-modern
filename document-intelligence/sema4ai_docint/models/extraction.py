@@ -16,7 +16,10 @@ class ExtractionResult(BaseModel):
             extracted data to its source locations within the document. This can
             include page numbers, coordinates, or other positional metadata.
             Defaults to None if no citation information is available.
+        prompt: Optional instructions to guide the extraction process.
+            Defaults to None if no prompt is provided.
     """
 
     results: dict[str, Any]
     citations: dict[str, Any] | None = None
+    prompt: str | None = None

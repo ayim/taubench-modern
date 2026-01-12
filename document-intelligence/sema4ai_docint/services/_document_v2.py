@@ -271,6 +271,7 @@ class _DocumentServiceV2:
         params_dict = {
             "extraction_schema": extraction_schema,
             "extraction_config": extraction_config,
+            "prompt": prompt,
             "start_page": start_page,
             "end_page": end_page,
             "thread_id": self._context.agent_server_transport.thread_id,
@@ -307,10 +308,34 @@ class _DocumentServiceV2:
             cache_entry = {
                 "results": extract_response.results,
                 "citations": extract_response.citations,
+                "prompt": prompt,
                 "params_hash": params_hash,
             }
             await self._context.persistence_service.save(
                 cache_key, json.dumps(cache_entry).encode()
             )
+
+            # Save schema to SCHEMA cache, but only if it's different from the cached one
+            # This prevents overwriting a cached schema that has a user_prompt
+            from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
+
+            schema_cache_key = self._context.persistence_service.cache_key_for(
+                document.file_name, DocumentOperationType.SCHEMA
+            )
+
+            # Check if there's already a cached schema
+            cached_schema_with_metadata = await self.get_schema_with_metadata(document)
+
+            # Only save if there's no cached schema or if the schema is different
+            if (
+                cached_schema_with_metadata is None
+                or cached_schema_with_metadata.extract_schema != extraction_schema
+            ):
+                schema_with_metadata = SchemaWithMetadata(
+                    extract_schema=extraction_schema, user_prompt=None
+                )
+                await self._context.persistence_service.save(
+                    schema_cache_key, schema_with_metadata.model_dump_json().encode()
+                )
 
         return extract_response

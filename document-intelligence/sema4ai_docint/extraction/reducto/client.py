@@ -54,14 +54,16 @@ class _BaseReductoClient:
         return mounts
 
     @staticmethod
-    def convert_extract_response(resp: ExtractResponse) -> ExtractionResult:
+    def convert_extract_response(
+        resp: ExtractResponse, prompt: str | None = None
+    ) -> ExtractionResult:
         """Convert a Reducto ExtractResponse to a Sema4ai ExtractionResult.
 
         Note: in all our pipelines, we expect extraction chunking to be disabled, so
         we always only take the first result from Reducto ExtractResponse.
         """
         if len(resp.result) > 1:
-            raise ExtractMultipleResultsError(results=resp.result)
+            raise ExtractMultipleResultsError(results=resp.result, prompt=prompt)
         if not resp.result:
             raise ExtractNoResultsError(results=resp.result)
 
@@ -72,6 +74,7 @@ class _BaseReductoClient:
         return ExtractionResult(
             results=resp.result[0],
             citations=citations,
+            prompt=prompt,
         )
 
     @classmethod

@@ -8,6 +8,7 @@ from reducto.types.shared.parse_response import ResultFullResultChunkBlock
 
 from agent_platform.server.api.private_v2.document_intelligence.services import (
     _create_job_result,
+    _raise_mapped_reducto_error,
     _resolve_reducto_doc_id_for_extract,
 )
 
@@ -209,3 +210,58 @@ def test_create_job_result_unexpected_type():
 
     assert exc_info.value.response.error_code is ErrorCode.UNEXPECTED
     assert "Unexpected result type" in exc_info.value.response.message
+
+
+def test_raise_mapped_reducto_error_job_failed_schema_validation():
+    """Test that JobFailedError with schema validation errors maps to UNPROCESSABLE_ENTITY."""
+    from sema4ai_docint.extraction.reducto.exceptions import JobFailedError
+
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    # Test schema validation errors (should be 422)
+    schema_error_messages = [
+        "Conflicting keys after snake_case normalization: 'Billed To' conflicts with 'billed_to'",
+        "Invalid schema provided",
+        "Schema validation failed: duplicate key found",
+    ]
+
+    for error_msg in schema_error_messages:
+        error = JobFailedError(reason=error_msg, job_id="test-job-123")
+        with pytest.raises(PlatformHTTPError) as exc_info:
+            _raise_mapped_reducto_error(error)
+
+        assert exc_info.value.response.error_code is ErrorCode.UNPROCESSABLE_ENTITY
+        assert exc_info.value.response.status_code == 422
+        assert "schema" in exc_info.value.response.message.lower()
+
+
+def test_raise_mapped_reducto_error_job_failed_other_reasons():
+    """Test that JobFailedError with non-schema errors maps to UNPROCESSABLE_ENTITY."""
+    from sema4ai_docint.extraction.reducto.exceptions import JobFailedError
+
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    # Test other job failures (should be 422 - document processing issue, not server error)
+    error = JobFailedError(reason="Unknown processing error", job_id="test-job-456")
+    with pytest.raises(PlatformHTTPError) as exc_info:
+        _raise_mapped_reducto_error(error)
+
+    assert exc_info.value.response.error_code is ErrorCode.UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == 422
+
+
+def test_raise_mapped_reducto_error_extract_failed():
+    """Test that ExtractFailedError maps to UNPROCESSABLE_ENTITY."""
+    from sema4ai_docint.extraction.reducto.exceptions import ExtractFailedError
+
+    from agent_platform.core.errors.base import PlatformHTTPError
+    from agent_platform.core.errors.responses import ErrorCode
+
+    error = ExtractFailedError("Extraction failed")
+    with pytest.raises(PlatformHTTPError) as exc_info:
+        _raise_mapped_reducto_error(error)
+
+    assert exc_info.value.response.error_code is ErrorCode.UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == 422

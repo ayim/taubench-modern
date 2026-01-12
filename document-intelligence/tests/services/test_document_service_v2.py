@@ -540,3 +540,222 @@ class TestDocumentServiceV2:
 
         # But generate_schema was called
         assert context_v2.agent_client.generate_schema.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_extract_document_caches_schema(
+        self,
+        mock_extraction_service_async,
+        mock_transport,
+        persistence_service,
+        test_pdf_path: Path,
+    ):
+        """Test that extract_document saves the extraction schema to SCHEMA cache."""
+        from sema4ai_docint.models import ExtractionResult
+
+        # Create a minimal context without postgres_datasource since we don't need it
+        context = _DIContext(
+            datasource=None,
+            extraction_service_async=mock_extraction_service_async,
+            agent_server_transport=mock_transport,
+            persistence_service=persistence_service,
+        )
+        document_service_v2 = _DocumentServiceV2(context)
+
+        # Create sample document
+        sample_document = await document_service_v2.new_document(test_pdf_path.name)
+
+        extraction_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+                "date": {"type": "string"},
+                "total": {"type": "number"},
+            },
+        }
+
+        prompt = "Extract invoice details from the document."
+
+        # Mock extract_with_schema to return a result
+        mock_extraction_service_async.extract_with_schema = AsyncMock(
+            return_value=ExtractionResult(
+                results={
+                    "invoice_number": "INV-00001",
+                    "date": "August 20, 2025",
+                    "total": 150.00,
+                },
+                citations={},
+            )
+        )
+
+        # Extract document with schema
+        result = await document_service_v2.extract_document(
+            sample_document,
+            extraction_schema=extraction_schema,
+            prompt=prompt,
+        )
+
+        # Verify extraction was successful
+        assert result.results["invoice_number"] == "INV-00001"
+        assert result.results["total"] == 150.00
+
+        cached_schema_with_metadata = await document_service_v2.get_schema_with_metadata(
+            sample_document
+        )
+        assert cached_schema_with_metadata is not None
+        assert cached_schema_with_metadata.extract_schema == extraction_schema
+        # extract_document saves schema with user_prompt=None
+        assert cached_schema_with_metadata.user_prompt is None
+
+    @pytest.mark.asyncio
+    async def test_extract_document_preserves_existing_user_prompt(
+        self,
+        mock_extraction_service_async,
+        mock_transport,
+        persistence_service,
+        test_pdf_path: Path,
+    ):
+        """Test that extract_document doesn't overwrite existing schema."""
+        from unittest.mock import Mock
+
+        from sema4ai_docint.models import ExtractionResult
+
+        # Create context with agent_client mock
+        context = _DIContext(
+            datasource=None,
+            extraction_service_async=mock_extraction_service_async,
+            agent_server_transport=mock_transport,
+            persistence_service=persistence_service,
+        )
+        document_service_v2 = _DocumentServiceV2(context)
+
+        # Create sample document
+        sample_document = await document_service_v2.new_document(test_pdf_path.name)
+
+        extraction_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+                "date": {"type": "string"},
+                "total": {"type": "number"},
+            },
+        }
+
+        # First, generate a schema with a user_prompt
+        user_prompt = "Extract all invoice details with special attention to dates."
+        context.agent_client.generate_schema = Mock(return_value=extraction_schema)
+        await document_service_v2.generate_schema(
+            sample_document,
+            user_prompt=user_prompt,
+        )
+
+        # Verify the schema was cached with the user_prompt
+        cached = await document_service_v2.get_schema_with_metadata(sample_document)
+        assert cached is not None
+        assert cached.user_prompt == user_prompt
+        assert cached.extract_schema == extraction_schema
+
+        # Now extract with the same schema (but different prompt parameter)
+        mock_extraction_service_async.extract_with_schema = AsyncMock(
+            return_value=ExtractionResult(
+                results={
+                    "invoice_number": "INV-00001",
+                    "date": "August 20, 2025",
+                    "total": 150.00,
+                },
+                citations={},
+            )
+        )
+
+        await document_service_v2.extract_document(
+            sample_document,
+            extraction_schema=extraction_schema,
+            prompt="Different prompt for extraction",
+        )
+
+        # Verify the cached schema still has the original user_prompt
+        # (it wasn't overwritten by extract_document)
+        cached = await document_service_v2.get_schema_with_metadata(sample_document)
+        assert cached is not None
+        assert cached.user_prompt == user_prompt  # Should still be the original
+        assert cached.extract_schema == extraction_schema
+
+    @pytest.mark.asyncio
+    async def test_extract_document_updates_schema_if_different(
+        self,
+        mock_extraction_service_async,
+        mock_transport,
+        persistence_service,
+        test_pdf_path: Path,
+    ):
+        """Test that extract_document updates schema cache if different."""
+        from unittest.mock import Mock
+
+        from sema4ai_docint.models import ExtractionResult
+
+        # Create context with agent_client mock
+        context = _DIContext(
+            datasource=None,
+            extraction_service_async=mock_extraction_service_async,
+            agent_server_transport=mock_transport,
+            persistence_service=persistence_service,
+        )
+        document_service_v2 = _DocumentServiceV2(context)
+
+        # Create sample document
+        sample_document = await document_service_v2.new_document(test_pdf_path.name)
+
+        # First schema
+        first_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+            },
+        }
+
+        # Generate first schema with user_prompt
+        user_prompt = "Extract invoice number only."
+        context.agent_client.generate_schema = Mock(return_value=first_schema)
+        await document_service_v2.generate_schema(
+            sample_document,
+            user_prompt=user_prompt,
+        )
+
+        # Verify first schema was cached
+        cached = await document_service_v2.get_schema_with_metadata(sample_document)
+        assert cached is not None
+        assert cached.user_prompt == user_prompt
+        assert cached.extract_schema == first_schema
+
+        # Extract with a DIFFERENT schema
+        second_schema = {
+            "type": "object",
+            "properties": {
+                "invoice_number": {"type": "string"},
+                "date": {"type": "string"},
+                "total": {"type": "number"},
+            },
+        }
+
+        mock_extraction_service_async.extract_with_schema = AsyncMock(
+            return_value=ExtractionResult(
+                results={
+                    "invoice_number": "INV-00001",
+                    "date": "August 20, 2025",
+                    "total": 150.00,
+                },
+                citations={},
+            )
+        )
+
+        await document_service_v2.extract_document(
+            sample_document,
+            extraction_schema=second_schema,
+            prompt="Extract all fields",
+        )
+
+        # Verify the cached schema was updated to the new schema
+        cached = await document_service_v2.get_schema_with_metadata(sample_document)
+        assert cached is not None
+        assert cached.extract_schema == second_schema
+        # Since schema was different, it should be saved with user_prompt=None
+        assert cached.user_prompt is None

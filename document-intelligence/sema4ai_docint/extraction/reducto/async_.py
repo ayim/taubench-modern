@@ -892,7 +892,7 @@ class AsyncExtractionClient(_BaseReductoClient):
         )
         result = await job.result()
         extract_result = cast(ExtractResponse, result)
-        return self.convert_extract_response(extract_result)
+        return self.convert_extract_response(extract_result, prompt)
 
     async def start_extract_with_data_model(
         self,
@@ -990,7 +990,7 @@ class AsyncExtractionClient(_BaseReductoClient):
         # Get the extracted results
         logger.info("Content extracted successfully")
         extract_result = cast(ExtractResponse, result)
-        return self.convert_extract_response(extract_result)
+        return self.convert_extract_response(extract_result, data_model_prompt)
 
     async def extract_details(
         self,
