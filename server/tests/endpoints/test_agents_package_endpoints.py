@@ -1031,6 +1031,115 @@ class TestCreateOrUpdateAgentFromPackageHelper:
             assert action_package.api_key.get_secret_value() == "complex-key-123"
 
     @pytest.mark.asyncio
+    async def test_description_fallback_to_spec(
+        self,
+        mock_user,
+        mock_storage,
+        agent_package_handler_factory,
+        monkeypatch,
+    ):
+        """Test that description falls back to spec when not provided in payload."""
+        # Agent spec with description
+        spec_with_description = {
+            "spec": {
+                "agent-package": {
+                    "spec-version": "v2",
+                    "agents": [
+                        {
+                            "name": "Test Agent",
+                            "description": "Description from the agent spec",
+                            "version": "1.0.0",
+                            "action-packages": [],
+                            "metadata": {"mode": "conversational"},
+                        }
+                    ],
+                }
+            },
+            "runbook_text": "# Test Runbook",
+        }
+
+        # Payload WITHOUT description - should fall back to spec's description
+        payload = AgentPackagePayload(
+            name="Test Agent",
+            agent_package_url="https://example.com/agent.zip",
+        )
+
+        # Mock AgentPackageHandler creation.
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.upserts.AgentPackageHandler.from_url",
+            AsyncMock(return_value=agent_package_handler_factory(spec_with_description)),
+        )
+
+        # Execute
+        result = await upsert_agent_from_package(
+            user=mock_user,
+            aid=str(uuid4()),
+            payload=payload,
+            storage=mock_storage,
+        )
+
+        # Verify description was taken from spec since payload didn't provide one
+        assert isinstance(result, AgentCompat)
+        call_args = mock_storage.upsert_agent.call_args[0]
+        created_agent = call_args[1]
+        assert created_agent.description == "Description from the agent spec"
+
+    @pytest.mark.asyncio
+    async def test_description_from_payload_overrides_spec(
+        self,
+        mock_user,
+        mock_storage,
+        agent_package_handler_factory,
+        monkeypatch,
+    ):
+        """Test that description from payload overrides spec description."""
+        # Agent spec with description
+        spec_with_description = {
+            "spec": {
+                "agent-package": {
+                    "spec-version": "v2",
+                    "agents": [
+                        {
+                            "name": "Test Agent",
+                            "description": "Description from the agent spec",
+                            "version": "1.0.0",
+                            "action-packages": [],
+                            "metadata": {"mode": "conversational"},
+                        }
+                    ],
+                }
+            },
+            "runbook_text": "# Test Runbook",
+        }
+
+        # Payload WITH description - should use payload's description
+        payload = AgentPackagePayload(
+            name="Test Agent",
+            description="Description from the payload",
+            agent_package_url="https://example.com/agent.zip",
+        )
+
+        # Mock AgentPackageHandler creation.
+        monkeypatch.setattr(
+            "agent_platform.server.api.private_v2.package.upserts.AgentPackageHandler.from_url",
+            AsyncMock(return_value=agent_package_handler_factory(spec_with_description)),
+        )
+
+        # Execute
+        result = await upsert_agent_from_package(
+            user=mock_user,
+            aid=str(uuid4()),
+            payload=payload,
+            storage=mock_storage,
+        )
+
+        # Verify description was taken from payload
+        assert isinstance(result, AgentCompat)
+        call_args = mock_storage.upsert_agent.call_args[0]
+        created_agent = call_args[1]
+        assert created_agent.description == "Description from the payload"
+
+    @pytest.mark.asyncio
     async def test_agent_architecture_mapping(
         self,
         mock_user,
