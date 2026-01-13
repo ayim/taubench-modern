@@ -34,7 +34,7 @@ tables:
       - superhero profiles
     base_table:
       table: superhero
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -180,7 +180,7 @@ tables:
       - publisher_reference
     base_table:
       table: publisher
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -219,7 +219,7 @@ tables:
       - ability_attribute_list
     base_table:
       table: attribute
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -259,7 +259,7 @@ tables:
       - ability_link_powers
     base_table:
       table: hero_power
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -299,7 +299,7 @@ tables:
       - character_race_dictionary
     base_table:
       table: race
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -338,7 +338,7 @@ tables:
       - powers_reference
     base_table:
       table: superpower
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -377,7 +377,7 @@ tables:
       - ethics_category_list
     base_table:
       table: alignment
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -414,7 +414,7 @@ tables:
       - sex_reference_dictionary
     base_table:
       table: gender
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -463,7 +463,7 @@ tables:
       - attribute_ratings_map
     base_table:
       table: hero_attribute
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -503,7 +503,7 @@ tables:
       - appearance_color_dictionary
     base_table:
       table: colour
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

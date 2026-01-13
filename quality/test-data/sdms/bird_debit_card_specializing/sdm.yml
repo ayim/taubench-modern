@@ -7,7 +7,7 @@ tables:
       - customer list
     base_table:
       table: customers
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -57,7 +57,7 @@ tables:
       - gas retailer locations
     base_table:
       table: gasstations
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -119,7 +119,7 @@ tables:
       - product reference
     base_table:
       table: products
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -170,7 +170,7 @@ tables:
       - year-month consumption
     base_table:
       table: yearmonth
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -234,7 +234,7 @@ tables:
       - transaction log
     base_table:
       table: transactions_1k
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

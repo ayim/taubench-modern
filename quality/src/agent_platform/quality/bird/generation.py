@@ -402,6 +402,10 @@ async def generate_bird_sdm(
             semantic_model = generate_response.get("semantic_model")
             print(f"     ✓ Generated SDM with {len(semantic_model.get('tables', []))} tables")
 
+            # Step 5.5: Unset the base_table.schema because it currently causes errors in the
+            # latent Logical->Physical AST transformation still being done at query time.
+            semantic_model = unset_schema_from_model(semantic_model)
+
             # Step 6: Save SDM to server to get an ID
             print("  6/8 Saving SDM to server...")
             save_payload = {"semantic_model": semantic_model}
@@ -475,6 +479,15 @@ data_connection:
                     print(f"     ⚠ Failed to delete clone: {e}")
 
     print("✅ SDM generation complete!")
+
+
+def unset_schema_from_model(semantic_model: dict) -> dict:
+    """Unset the base_table.schema for each table in the semantic model."""
+    for table in semantic_model.get("tables", []):
+        base_table = table.get("base_table") or {}
+        if base_table.get("schema", None):
+            base_table["schema"] = None
+    return semantic_model
 
 
 class BirdDatasetGenerator:

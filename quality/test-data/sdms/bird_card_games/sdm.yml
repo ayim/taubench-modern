@@ -7,7 +7,7 @@ tables:
       - translated card details
     base_table:
       table: foreign_data
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -135,7 +135,7 @@ tables:
       - set translations
     base_table:
       table: set_translations
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -194,7 +194,7 @@ tables:
       - card legality list
     base_table:
       table: legalities
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -280,7 +280,7 @@ tables:
       - expansion metadata
     base_table:
       table: sets
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -549,7 +549,7 @@ tables:
       - card reference
     base_table:
       table: cards
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -1377,7 +1377,7 @@ tables:
       - oracle rulings
     base_table:
       table: rulings
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

@@ -7,7 +7,7 @@ tables:
       - patient registry
     base_table:
       table: patient
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -405,7 +405,7 @@ tables:
       - clinical labs
     base_table:
       table: laboratory
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -556,7 +556,7 @@ tables:
       - autoantibody examination
     base_table:
       table: examination
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

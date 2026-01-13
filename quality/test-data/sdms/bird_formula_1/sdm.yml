@@ -8,7 +8,7 @@ tables:
       - driver_profiles
     base_table:
       table: drivers
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -140,7 +140,7 @@ tables:
       - championship_seasons
     base_table:
       table: seasons
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -221,7 +221,7 @@ tables:
       - qualifying_times
     base_table:
       table: qualifying
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -326,7 +326,7 @@ tables:
       - constructor_points_by_race
     base_table:
       table: constructorresults
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -413,7 +413,7 @@ tables:
       - pitstop_log
     base_table:
       table: pitstops
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -494,7 +494,7 @@ tables:
       - grand_prix_circuits
     base_table:
       table: circuits
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -645,7 +645,7 @@ tables:
       - lap_by_lap_times
     base_table:
       table: laptimes
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -710,7 +710,7 @@ tables:
       - race_status_list
     base_table:
       table: status
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -778,7 +778,7 @@ tables:
       - constructors_points_table
     base_table:
       table: constructorstandings
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -858,7 +858,7 @@ tables:
       - race_schedule
     base_table:
       table: races
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -976,7 +976,7 @@ tables:
       - team_directory
     base_table:
       table: constructors
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -1150,7 +1150,7 @@ tables:
       - race_classification
     base_table:
       table: results
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -1339,7 +1339,7 @@ tables:
       - drivers_points_table
     base_table:
       table: driverstandings
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

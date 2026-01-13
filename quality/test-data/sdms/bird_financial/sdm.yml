@@ -7,7 +7,7 @@ tables:
       - disposition_mapping
     base_table:
       table: disp
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -73,7 +73,7 @@ tables:
       - clients_registry
     base_table:
       table: client
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -163,7 +163,7 @@ tables:
       - transaction_journal
     base_table:
       table: trans
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -272,7 +272,7 @@ tables:
       - deposit_accounts
     base_table:
       table: account
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -360,7 +360,7 @@ tables:
       - borrowings
     base_table:
       table: loan
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -435,7 +435,7 @@ tables:
       - card_products
     base_table:
       table: card
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -657,7 +657,7 @@ tables:
       - branch_area_profile
     base_table:
       table: district
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -720,7 +720,7 @@ tables:
       - payment_orders
     base_table:
       table: order
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

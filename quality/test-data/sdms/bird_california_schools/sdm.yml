@@ -78,7 +78,7 @@ tables:
       - college_admissions_test_scores
     base_table:
       table: satscores
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -278,7 +278,7 @@ tables:
       - frpm_eligibility_by_school_year
     base_table:
       table: frpm
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -526,7 +526,7 @@ tables:
       - california_school_profiles
     base_table:
       table: schools
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

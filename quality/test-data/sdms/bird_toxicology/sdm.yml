@@ -7,7 +7,7 @@ tables:
       - molecular_bond_list
     base_table:
       table: bond
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -65,7 +65,7 @@ tables:
       - molecular_atom_list
     base_table:
       table: atom
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -122,7 +122,7 @@ tables:
       - molecule_edge_list
     base_table:
       table: connected
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -179,7 +179,7 @@ tables:
       - carcinogenicity_targets
     base_table:
       table: molecule
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

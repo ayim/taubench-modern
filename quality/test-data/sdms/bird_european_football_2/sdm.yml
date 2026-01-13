@@ -36,7 +36,7 @@ tables:
       - athlete roster
     base_table:
       table: player
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -121,7 +121,7 @@ tables:
       - country list
     base_table:
       table: country
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -162,7 +162,7 @@ tables:
       - league list
     base_table:
       table: league
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -708,7 +708,7 @@ tables:
       - player skills
     base_table:
       table: player_attributes
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -945,7 +945,7 @@ tables:
       - team style metrics
     base_table:
       table: team_attributes
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -1187,7 +1187,7 @@ tables:
       - team list
     base_table:
       table: team
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -2096,7 +2096,7 @@ tables:
       - game records
     base_table:
       table: match
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

@@ -7,7 +7,7 @@ tables:
       - badge grants log
     base_table:
       table: badges
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -128,7 +128,7 @@ tables:
       - qna content items
     base_table:
       table: posts
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -366,7 +366,7 @@ tables:
       - discussion remarks
     base_table:
       table: comments
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -448,7 +448,7 @@ tables:
       - change log entries
     base_table:
       table: posthistory
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -625,7 +625,7 @@ tables:
       - registered users list
     base_table:
       table: users
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -828,7 +828,7 @@ tables:
       - related posts mapping
     base_table:
       table: postlinks
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -911,7 +911,7 @@ tables:
       - bounty and vote events
     base_table:
       table: votes
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -995,7 +995,7 @@ tables:
       - topics dimension
     base_table:
       table: tags
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:

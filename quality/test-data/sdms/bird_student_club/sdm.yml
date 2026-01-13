@@ -19,7 +19,7 @@ tables:
       - revenue_records_income
     base_table:
       table: income
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -88,7 +88,7 @@ tables:
       - student_club_events_list
     base_table:
       table: event
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -195,7 +195,7 @@ tables:
       - expense_transactions_list
     base_table:
       table: expense
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -282,7 +282,7 @@ tables:
       - student_major_catalog
     base_table:
       table: major
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -342,7 +342,7 @@ tables:
       - student_members_list
     base_table:
       table: member
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -461,7 +461,7 @@ tables:
       - member_event_checkins
     base_table:
       table: attendance
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -536,7 +536,7 @@ tables:
       - budget_allocations_list
     base_table:
       table: budget
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
@@ -597,7 +597,7 @@ tables:
       - us_zip_lookup_table
     base_table:
       table: zip_code
-      schema: public
+      schema: null
       database: null
       data_connection_name: postgres-spar
     dimensions:
