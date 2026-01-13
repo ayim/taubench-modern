@@ -1,5 +1,15 @@
 # @sema4ai/spar-ui
 
+## 0.17.0
+
+### Minor Changes
+
+- fb7004c: Fix persistent subroute handling
+
+### Patch Changes
+
+- 3890f45: Switch the ExtractOnly flow to use the new simple-extract endpoint
+
 ## 0.16.0
 
 ### Minor Changes
