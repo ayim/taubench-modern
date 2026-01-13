@@ -182,9 +182,9 @@ async def postgres_test_db(
             max_size=50,
             num_workers=2,
             open=False,
-            # Add timeout parameters
-            timeout=5,
-            reconnect_timeout=5,
+            # Add timeout parameters (avoid short timeouts that cause flaky tests)
+            timeout=30,
+            reconnect_timeout=30,
             # Configure connection recycling
             max_lifetime=3600,  # Recycle connections after 1 hour
             max_idle=300,  # Close idle connections after 5 minutes
