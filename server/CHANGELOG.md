@@ -1,3 +1,25 @@
+# Sema4.ai Agent Server 2.2.15 (2026-01-13)
+
+* refactor: move file inspection utilities to data_frames module and use pandas.infer_dtype for type inference [#2067](https://github.com/Sema4AI/agent-platform/pull/2067)
+* Add support for Opus-4.5 [#2063](https://github.com/Sema4AI/agent-platform/pull/2063)
+* fix: prevent duplicate error messages in connection validation [#2112](https://github.com/Sema4AI/agent-platform/pull/2112)
+* Tweak prompt to better summarize parse output [#2100](https://github.com/Sema4AI/agent-platform/pull/2100)
+* [SDM-319] Implement duplicate name check when setting an SDM to storage [#2077](https://github.com/Sema4AI/agent-platform/pull/2077)
+* NaN and Infinity handling in JSON conversion [#2019](https://github.com/Sema4AI/agent-platform/pull/2019)
+* Optimize build endpoint memory usage [#2131](https://github.com/Sema4AI/agent-platform/pull/2131)
+* SDM-274: random sampling of example values in SDM [#1971](https://github.com/Sema4AI/agent-platform/pull/1971)
+* DIN-913 Save and return the extraction prompt as well as the schema used [#2137](https://github.com/Sema4AI/agent-platform/pull/2137)
+* Add support for all Reducto types on document intelligence [#2093](https://github.com/Sema4AI/agent-platform/pull/2093)
+* SDM-298: removed logical query from assembly info [#2126](https://github.com/Sema4AI/agent-platform/pull/2126)
+* DEV-2400: Add `/package/diff` endpoint [#2035](https://github.com/Sema4AI/agent-platform/pull/2035)
+* GPT-1670 Add a metric for number of generate_sql calls [#2079](https://github.com/Sema4AI/agent-platform/pull/2079)
+* [WIP] DEV-2440: Add `/package/patch` endpoint [#2076](https://github.com/Sema4AI/agent-platform/pull/2076)
+* DEV-2450: Small inconsistencies in Agent diff [#2128](https://github.com/Sema4AI/agent-platform/pull/2128)
+
+# Sema4.ai Agent Server 2.2.14 (2026-01-07)
+
+* We forgot to generate a CHANGELOG for this release.
+
 # Sema4.ai Agent Server 2.2.13 (2026-01-05)
 
 * Implement foreign key and primary key inspection across various datab… [#1927](https://github.com/Sema4AI/agent-platform/pull/1927)
