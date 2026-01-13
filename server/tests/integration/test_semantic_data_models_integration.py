@@ -1326,7 +1326,22 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         assert get_response.status_code == requests.codes.ok, (
             f"Error getting data frame as validated query: {get_response.status_code} {get_response.text}"
         )
-        validated_query = get_response.json()
+        response_data = get_response.json()
+
+        # Verify the response contains both the verified query and semantic data model name
+        assert "verified_query" in response_data
+        assert "semantic_data_model_name" in response_data
+
+        # Get the semantic data model to verify the name
+        semantic_data_model = agent_client.get_semantic_data_model(semantic_data_model_id)
+        expected_sdm_name = semantic_data_model["name"]
+
+        # Verify the semantic data model name matches the one we created
+        assert response_data["semantic_data_model_name"] == expected_sdm_name, (
+            f"Expected SDM name to be {expected_sdm_name}, got {response_data['semantic_data_model_name']}"
+        )
+
+        validated_query = response_data["verified_query"]
         assert validated_query["name"] == expected_verified_query_name
         assert "sql" in validated_query
         assert validated_query["sql"]  # SQL should not be empty

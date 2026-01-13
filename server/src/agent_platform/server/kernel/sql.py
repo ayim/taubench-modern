@@ -157,6 +157,13 @@ class LegacySqlStrategy(SqlGenerationStrategy):
             to return). Default is 10 (max 500).
             """,
         ] = 10,
+        semantic_data_model_name: Annotated[
+            str | None,
+            """The semantic data model name to use for executing the SQL query.
+            If provided, only tables from this semantic data model will be used.
+            When set, source resolution will skip data frames and other semantic data models.
+            """,
+        ] = None,
     ) -> dict[str, Any]:
         """Run a SQL query against the existing data frames or "logical" tables in semantic
         data models and use its data to create a new data frame.
@@ -184,6 +191,7 @@ class LegacySqlStrategy(SqlGenerationStrategy):
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
             num_samples=num_samples,
+            semantic_data_model_name=semantic_data_model_name,
         )
 
 
@@ -540,6 +548,13 @@ If the tool indicates failure, you should inform the user of the failure, along 
             to return). Default is 10 (max 500).
             """,
         ] = 10,
+        semantic_data_model_name: Annotated[
+            str | None,
+            """The semantic data model name to use for executing the SQL query.
+            You should only provide the semantic data model name that was passed
+            to the generate_sql tool.
+            """,
+        ] = None,
     ) -> dict[str, Any]:
         """Run a SQL query against the existing data frames or "logical" tables in semantic
         data models and use its data to create a new data frame.
@@ -554,6 +569,7 @@ If the tool indicates failure, you should inform the user of the failure, along 
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
             num_samples=num_samples,
+            semantic_data_model_name=semantic_data_model_name,
         )
 
     async def generate_sql(

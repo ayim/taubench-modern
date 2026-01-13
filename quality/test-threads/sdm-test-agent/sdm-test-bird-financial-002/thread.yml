@@ -1,0 +1,89 @@
+name: sdm-test-bird-financial-002
+description: "BIRD Q90 (simple): How many accounts who have region in Prague are eligible for loans?"
+difficulty: simple
+timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT COUNT(T1.account_id)
+  FROM ACCOUNT AS T1
+  INNER JOIN loan AS T2 ON T1.account_id = T2.account_id
+  INNER JOIN district AS T3 ON T1.district_id = T3.district_id
+  WHERE T3.A3 = 'Prague'
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-90
+    description: "How many accounts who have region in Prague are eligible for loans?"
+    messages:
+      - role: user
+        content: |
+          How many accounts who have region in Prague are eligible for loans?
+          Evidence: A3 contains the data of region
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: generate_sql
+          expected-args:
+            semantic_data_model_name: "Retail Banking Analytics"
+        - tool: data_frames_create_from_sql
+          expected-args:
+            semantic_data_model_name: "Retail Banking Analytics"
+    description: >
+      Verify that SQL generation tools are called with the correct semantic_data_model_name.
+      With 11 SDMs attached, the agent must correctly identify "Retail Banking Analytics".
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_90.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

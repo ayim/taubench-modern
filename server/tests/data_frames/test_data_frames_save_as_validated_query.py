@@ -167,7 +167,21 @@ async def test_save_data_frame_as_validated_query(
     )
 
     assert get_response.status_code == 200
-    validated_query = get_response.json()
+    response_data = get_response.json()
+
+    # Verify the response contains both the verified query and semantic data model name
+    assert "verified_query" in response_data
+    assert "semantic_data_model_name" in response_data
+
+    # Get the semantic data model to verify the name
+    semantic_data_model = await sqlite_storage.get_semantic_data_model(semantic_data_model_id)
+    expected_sdm_name = semantic_data_model["name"]
+
+    # Verify the semantic data model name matches the one we created
+    assert response_data["semantic_data_model_name"] == expected_sdm_name
+
+    validated_query = response_data["verified_query"]
+
     # The verified query name is converted to human-readable format (spaces + title case)
     from agent_platform.core.data_frames.data_frame_utils import (
         data_frame_name_to_verified_query_name,
@@ -225,7 +239,12 @@ async def test_save_data_frame_as_validated_query(
         json={"data_frame_name": data_frame_name},
     )
     assert get_response_updated.status_code == 200
-    updated_validated_query = get_response_updated.json()
+    updated_response_data = get_response_updated.json()
+
+    # Verify auto-detection still works on subsequent calls
+    assert updated_response_data["semantic_data_model_name"] == expected_sdm_name
+
+    updated_validated_query = updated_response_data["verified_query"]
 
     # Step 2: Save the updated validated query
     response = client.post(
@@ -248,3 +267,201 @@ async def test_save_data_frame_as_validated_query(
     assert fix_sql_query(updated_query["sql"]) == "SELECT * FROM file_data"
     # Verify verified_at was updated (should be different timestamp)
     assert updated_query["verified_at"] != verified_query["verified_at"]
+
+
+@pytest.mark.asyncio
+async def test_get_validated_query_with_multiple_sdms(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+    client: TestClient,
+    test_user,
+    fastapi_app,
+):
+    """Test that validated query correctly identifies SDM name when multiple SDMs exist."""
+
+    from agent_platform.architectures.experimental.exp_1 import Exp1State
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    # Setup model creator
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+
+    # Create agent and thread
+    agent = await model_creator.obtain_sample_agent()
+    thread = await model_creator.obtain_sample_thread()
+
+    # Create two CSV files
+    csv_content_1 = b"Category,Value\nA,100\nB,200"
+    csv_file_1 = await model_creator.obtain_sample_file(
+        file_content=csv_content_1,
+        file_name="test_data_1.csv",
+        mime_type="text/csv",
+    )
+
+    csv_content_2 = b"Product,Price\nX,50\nY,75"
+    csv_file_2 = await model_creator.obtain_sample_file(
+        file_content=csv_content_2,
+        file_name="test_data_2.csv",
+        mime_type="text/csv",
+    )
+
+    # Create first semantic data model
+    semantic_model_1 = {
+        "name": "sales_semantic_model",
+        "description": "Sales semantic model",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {
+                    "table": "data_frame_file",
+                    "file_reference": {
+                        "thread_id": thread.thread_id,
+                        "file_ref": csv_file_1.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {"name": "category", "expr": "Category", "data_type": "TEXT"},
+                ],
+                "facts": [
+                    {"name": "value", "expr": "Value", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    semantic_data_model_id_1 = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_1,
+        data_connection_ids=[],
+        file_references=[(thread.thread_id, csv_file_1.file_ref)],
+    )
+
+    # Create second semantic data model
+    semantic_model_2 = {
+        "name": "products_semantic_model",
+        "description": "Products semantic model",
+        "tables": [
+            {
+                "name": "products_data",
+                "base_table": {
+                    "table": "data_frame_file",
+                    "file_reference": {
+                        "thread_id": thread.thread_id,
+                        "file_ref": csv_file_2.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {"name": "product", "expr": "Product", "data_type": "TEXT"},
+                ],
+                "facts": [
+                    {"name": "price", "expr": "Price", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    semantic_data_model_id_2 = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model_2,
+        data_connection_ids=[],
+        file_references=[(thread.thread_id, csv_file_2.file_ref)],
+    )
+
+    # Associate both models to agent and thread
+    await sqlite_storage.set_agent_semantic_data_models(
+        agent_id=agent.agent_id,
+        semantic_data_model_ids=[semantic_data_model_id_1, semantic_data_model_id_2],
+    )
+    await sqlite_storage.set_thread_semantic_data_models(
+        thread_id=thread.thread_id,
+        semantic_data_model_ids=[semantic_data_model_id_1, semantic_data_model_id_2],
+    )
+
+    # Create data frames from each semantic data model using SQL
+    from agent_platform.core.kernel import Kernel
+    from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
+
+    # Prepare Kernel stub bound to our agent/thread
+    class _KernelStub:
+        def __init__(self, thread, user_id: str, state):
+            self.thread = thread
+
+            class _User:
+                def __init__(self, user_id: str):
+                    self.user_id = user_id
+
+            self.user = _User(user_id)
+            self.agent = type("_Agent", (), {"extra": {}})()
+            self.thread_state = state
+
+    state = Exp1State()
+    kernel_stub = _KernelStub(thread, await model_creator.get_user_id(), state)
+
+    # Initialize interface and create data frames via SQL
+    interface = AgentServerDataFramesInterface()
+    interface.attach_kernel(typing.cast(Kernel, kernel_stub))
+
+    await interface.step_initialize(storage=sqlite_storage, state=state)
+
+    # Create data frames via SQL referencing each semantic model logical table
+    tools = interface.get_data_frame_tools()
+    create_sql_tool = next(tool for tool in tools if tool.name == "data_frames_create_from_sql")
+
+    # Create first data frame from first SDM
+    data_frame_name_1 = "test_sales_df"
+    result_1 = await create_sql_tool.function(
+        sql_query="SELECT * FROM sales_data",
+        new_data_frame_name=data_frame_name_1,
+        new_data_frame_description="Sales data frame",
+        semantic_data_model_name="sales_semantic_model",
+    )
+    assert "result" in result_1
+
+    # Create second data frame from second SDM
+    data_frame_name_2 = "test_products_df"
+    result_2 = await create_sql_tool.function(
+        sql_query="SELECT * FROM products_data",
+        new_data_frame_name=data_frame_name_2,
+        new_data_frame_description="Products data frame",
+        semantic_data_model_name="products_semantic_model",
+    )
+    assert "result" in result_2
+
+    # Get validated query for first data frame
+    get_response_1 = client.post(
+        f"/api/v2/threads/{thread.thread_id}/data-frames/as-validated-query",
+        json={"data_frame_name": data_frame_name_1},
+    )
+
+    assert get_response_1.status_code == 200
+    response_data_1 = get_response_1.json()
+
+    # Verify the response contains the correct SDM name for first data frame
+    assert "semantic_data_model_name" in response_data_1
+    assert response_data_1["semantic_data_model_name"] == "sales_semantic_model"
+
+    # Get validated query for second data frame
+    get_response_2 = client.post(
+        f"/api/v2/threads/{thread.thread_id}/data-frames/as-validated-query",
+        json={"data_frame_name": data_frame_name_2},
+    )
+
+    assert get_response_2.status_code == 200
+    response_data_2 = get_response_2.json()
+
+    # Verify the response contains the correct SDM name for second data frame
+    assert "semantic_data_model_name" in response_data_2
+    assert response_data_2["semantic_data_model_name"] == "products_semantic_model"
+
+    # Verify both responses have verified queries
+    assert "verified_query" in response_data_1
+    assert "verified_query" in response_data_2
+
+    def fix_sql_query(sql_query: str) -> str:
+        return sql_query.replace("\n", " ").strip().replace("  ", " ").replace("  ", " ")
+
+    # Verify the SQL queries are correct
+    assert fix_sql_query(response_data_1["verified_query"]["sql"]) == "SELECT * FROM sales_data"
+    assert fix_sql_query(response_data_2["verified_query"]["sql"]) == "SELECT * FROM products_data"

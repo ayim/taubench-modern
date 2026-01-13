@@ -240,6 +240,10 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
                   the query.
             """,
         ],
+        semantic_data_model_name: Annotated[
+            str,
+            """The semantic data model name to use for executing the SQL query.""",
+        ],
         new_data_frame_name: Annotated[
             str,
             """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
@@ -278,6 +282,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
             num_samples=num_samples,
+            semantic_data_model_name=semantic_data_model_name,
         )
 
     async def describe_table(
@@ -414,6 +419,10 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
     async def peek_table(
         self,
         table_name: Annotated[str, "The logical table name to sample"],
+        semantic_data_model_name: Annotated[
+            str,
+            "The semantic data model name that contains the table.",
+        ],
         num_rows: Annotated[int, "Number of rows to return (default: 10, max: 50)"] = 10,
     ) -> dict[str, Any]:
         """Quick sample of table data. Creates a data frame with the sampled rows.
@@ -447,6 +456,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         # Call create_data_frame_from_logical_sql internally
         return await self.create_data_frame_from_logical_sql(
             logical_sql=sql_query,
+            semantic_data_model_name=semantic_data_model_name,
             new_data_frame_name=data_frame_name,
             new_data_frame_description=f"Sample of {num_rows} rows from {table_name}",
             num_samples=num_rows,

@@ -103,6 +103,9 @@ class QualityTestRunner:
         # Serialize access to shared sf-auth.json credentials file.
         self._sf_auth_lock = asyncio.Lock()
 
+        # Track temporary files for cleanup
+        self._temp_files_to_cleanup: list[Path] = []
+
         # Discover agents early so we can expose them to the UI
         self.discovered_agents = self.discover_agents()
 
@@ -479,6 +482,9 @@ class QualityTestRunner:
             raise
 
         finally:
+            # Clean up temporary files
+            await self.cleanup()
+
             # Stop action server pool
             if action_server_pool_started:
                 logger.info("Stopping action server pool")
@@ -587,7 +593,21 @@ class QualityTestRunner:
                         action_server_url=action_server_url,
                     )
                 else:
-                    # Non-preinstalled agents: keep existing logic
+                    # Non-preinstalled agents: inject SDMs from test cases into agent package
+                    # Collect all unique SDMs required by test cases
+                    required_sdms = self._collect_required_sdms(test_cases)
+
+                    if required_sdms:
+                        logger.info(
+                            "Test cases require SDMs to be injected into agent",
+                            agent_name=agent.name,
+                            num_sdms=len(required_sdms),
+                            sdms=[sdm.sdm_path for sdm in required_sdms],
+                        )
+
+                        # Inject SDMs into agent package
+                        agent = await self._inject_sdms_into_agent(agent, required_sdms)
+
                     logger.info(
                         "Creating agent variants for platforms: %s (agent: %s)",
                         [p.name for p in target_platforms],
@@ -704,6 +724,125 @@ class QualityTestRunner:
                     logger.info(f"Pre-warming SDM for non-preinstalled agent: {sdm_config.sdm_path}")
                     for agent_id in platform_agent_ids.values():
                         await self.sdm_setup.prewarm_sdm(sdm_config, agent_id=agent_id)
+
+    def _collect_required_sdms(self, test_cases: list[TestCase]) -> list:
+        """
+        Collect all unique SDMs required by test cases.
+
+        Args:
+            test_cases: List of test cases to collect SDMs from
+
+        Returns:
+            List of unique SDM configurations needed
+        """
+        from agent_platform.quality.models import SDMConfig
+
+        unique_sdms: dict[str, SDMConfig] = {}
+
+        for test_case in test_cases:
+            if test_case.sdms:
+                for sdm_config in test_case.sdms:
+                    # Use sdm_path as unique key
+                    sdm_path = sdm_config.sdm_path
+                    if sdm_path not in unique_sdms:
+                        unique_sdms[sdm_path] = sdm_config
+                        logger.debug(
+                            "Added required SDM",
+                            sdm_path=sdm_path,
+                            test_case=test_case.name,
+                        )
+
+        logger.info(
+            "Collected unique SDMs from test cases",
+            num_sdms=len(unique_sdms),
+            sdms=list(unique_sdms.keys()),
+        )
+
+        return list(unique_sdms.values())
+
+    async def _inject_sdms_into_agent(
+        self,
+        agent: AgentPackage,
+        sdm_configs: list,
+    ) -> AgentPackage:
+        """
+        Inject SDMs into agent package before deployment.
+
+        Args:
+            agent: Original agent package
+            sdm_configs: List of SDM configurations to inject
+
+        Returns:
+            Modified agent package with SDMs injected
+        """
+        from agent_platform.quality.sdm_injector import inject_sdms_into_agent_package
+
+        # Ensure agent has a zip file
+        if agent.zip_path is None:
+            raise ValueError(f"Agent {agent.name} has no zip_path for SDM injection")
+
+        # Resolve SDM paths to actual directories
+        sdm_source_dirs = []
+
+        for sdm_config in sdm_configs:
+            # sdm_path is relative like "sdms/bird_california_schools"
+            sdm_full_path = self.test_data_dir / sdm_config.sdm_path
+
+            if not sdm_full_path.exists():
+                logger.warning(
+                    "SDM directory not found, skipping",
+                    sdm_path=sdm_config.sdm_path,
+                    resolved_path=str(sdm_full_path),
+                )
+                continue
+
+            sdm_source_dirs.append(sdm_full_path)
+
+        if not sdm_source_dirs:
+            logger.warning("No valid SDM directories found to inject")
+            return agent
+
+        # Create modified agent package
+        modified_zip_path = inject_sdms_into_agent_package(
+            agent_zip_path=Path(agent.zip_path),
+            sdm_source_dirs=sdm_source_dirs,
+        )
+
+        # Track for cleanup
+        self._temp_files_to_cleanup.append(modified_zip_path)
+
+        # Create new AgentPackage with modified zip
+        modified_agent = AgentPackage(
+            name=agent.name,
+            path=agent.path,
+            zip_path=modified_zip_path,
+            is_preinstalled=agent.is_preinstalled,
+        )
+
+        logger.info(
+            "Created modified agent package with injected SDMs",
+            agent_name=agent.name,
+            original_zip=agent.zip_path,
+            modified_zip=str(modified_zip_path),
+            num_sdms=len(sdm_source_dirs),
+        )
+
+        return modified_agent
+
+    async def cleanup(self):
+        """Clean up temporary files created during test run."""
+        for temp_file in self._temp_files_to_cleanup:
+            try:
+                if temp_file.exists():
+                    temp_file.unlink()
+                    logger.debug("Cleaned up temp file", path=str(temp_file))
+            except Exception as e:
+                logger.warning(
+                    "Failed to clean up temp file",
+                    path=str(temp_file),
+                    error=str(e),
+                )
+        self._temp_files_to_cleanup.clear()
 
     def _get_platforms_for_test_case(self, test_case: TestCase, platform_filter: str | None) -> list[Platform]:
         """Return the list of platforms to run for a test case given the filter."""
@@ -874,12 +1013,13 @@ class QualityTestRunner:
 
         # Determine which agent mapping to use based on whether test has SDMs
         test_case_agent_ids: dict[str, str]
-        if test_case.sdms:
+        if test_case.sdms and run_context.sdm_agent_ids:
             # Use SDM+platform-specific agents
             sdm_path = test_case.sdms[0].sdm_path
             test_case_agent_ids = run_context.sdm_agent_ids[sdm_path]
         else:
             # Use platform-specific agents
+            # For non-preinstalled agents with injected SDMs, SDMs are part of the agent package
             test_case_agent_ids = run_context.platform_agent_ids
 
         try:

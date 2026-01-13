@@ -1,0 +1,90 @@
+name: sdm-test-bird-formula-1-002
+description: "BIRD Q847 (simple): What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?"
+difficulty: simple
+timeout_seconds: 600
+
+# Reference SQL Query (SQLite Dialect)
+#
+# This is the gold-standard SQL query from the BIRD benchmark dataset.
+# NOTE: This SQL is written in SQLite dialect and is used to generate the golden CSV.
+# The actual test execution uses PostgreSQL, so the agent must generate PostgreSQL-compatible SQL.
+reference_sql: |
+  SELECT T2.surname
+  FROM qualifying AS T1
+  INNER JOIN drivers AS T2 ON T2.driverId = T1.driverId
+  WHERE T1.raceId = 19
+  ORDER BY T1.q2 ASC
+  LIMIT 1;
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_california_schools
+    description: California Schools BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_card_games
+    description: Card Games BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_codebase_community
+    description: Codebase Community BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_debit_card_specializing
+    description: Debit Card Specializing BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_european_football_2
+    description: European Football BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_financial
+    description: Financial BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1
+    description: Formula 1 BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_student_club
+    description: Student Club BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_superhero
+    description: Superhero BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_thrombosis_prediction
+    description: Thrombosis Prediction BIRD benchmark database
+  - kind: postgres
+    sdm_path: sdms/bird_toxicology
+    description: Toxicology BIRD benchmark database
+
+thread:
+  - name: bird-question-847
+    description: "What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?"
+    messages:
+      - role: user
+        content: |
+          What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?
+          Evidence: race number refers to raceId; second qualifying period refers to q2; best lap time refers to MIN(q2);
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: bedrock
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: generate_sql
+          expected-args:
+            semantic_data_model_name: "Formula 1 Analytics"
+        - tool: data_frames_create_from_sql
+          expected-args:
+            semantic_data_model_name: "Formula 1 Analytics"
+    description: >
+      Verify that SQL generation tools are called with the correct semantic_data_model_name.
+      With 11 SDMs attached, the agent must correctly identify "Formula 1 Analytics".
+  - kind: dataframe-golden-comparison
+    expected:
+      golden_file: golden_847.csv
+      match_mode: values_only
+      relative_tolerance: 0.01
+      strict_columns: false
+    description: >
+      Validate that the resulting dataframe matches the golden dataset.
+      BIRD EX-style comparison (value sets only, ignoring column names).

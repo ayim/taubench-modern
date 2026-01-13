@@ -55,7 +55,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
   });
 
   const {
-    data: initialQuery,
+    data: validatedQueryResponse,
     isLoading: isLoadingQuery,
     error: queryError,
   } = useDataFrameAsValidatedQuery({
@@ -63,6 +63,8 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
     dataFrameName,
     enabled: showForm && !!selectedModelId,
   });
+
+  const initialQuery = validatedQueryResponse?.verified_query;
 
   const memoizedInitialQuery = useMemo(
     () =>
@@ -93,12 +95,38 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
     [],
   );
 
+  // Auto-detect semantic data model from the data frame
+  const { data: autoDetectResponse, isLoading: isAutoDetecting } = useDataFrameAsValidatedQuery({
+    threadId,
+    dataFrameName,
+    enabled: open && !showForm && !selectedModelId,
+  });
+
+  // Auto-select SDM when there's only one model OR when a model is detected
   useEffect(() => {
-    if (semanticModels.length === 1 && !selectedModelId && !showForm) {
+    if (semanticModels.length === 0 || showForm || selectedModelId) {
+      return;
+    }
+
+    // If we have a detected SDM name, check if it exists in the available models
+    const detectedSdmName = autoDetectResponse?.semantic_data_model_name;
+    if (detectedSdmName) {
+      const detectedModel = semanticModels.find((model) => model.name === detectedSdmName);
+      if (detectedModel) {
+        // Auto-select the detected model and show the form directly
+        setSelectedModelId(detectedModel.id);
+        setShowForm(true);
+        return;
+      }
+      // If detected model doesn't exist anymore, user will need to select manually
+    }
+
+    // Fallback: if only one model exists, auto-select it
+    if (semanticModels.length === 1) {
       setSelectedModelId(semanticModels[0].id);
       setShowForm(true);
     }
-  }, [semanticModels, selectedModelId, showForm]);
+  }, [semanticModels, selectedModelId, showForm, autoDetectResponse, open]);
 
   const handleModelSelect = (modelId: string) => {
     setSelectedModelId(modelId);
@@ -238,7 +266,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
     trackVerifiedQueryCreated,
   ]);
 
-  if (isLoading) {
+  if (isLoading || isAutoDetecting) {
     return <Progress variant="page" />;
   }
 

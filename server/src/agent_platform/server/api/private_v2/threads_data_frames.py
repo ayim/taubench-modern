@@ -14,6 +14,7 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.kernel.data_frames import get_semantic_data_model_name
 from sema4ai.common.callback import Callback
 
 if typing.TYPE_CHECKING:
@@ -1082,6 +1083,10 @@ class _DataFrameComputationPayload:
         str | None,
         "The dialect of the SQL query to use (default is computing based on dependencies).",
     ] = None
+    semantic_data_model_name: Annotated[
+        str | None,
+        "The name of the semantic data model used to generate the SQL query.",
+    ] = None
 
 
 @router.post("/{tid}/data-frames/from-computation")
@@ -1130,6 +1135,7 @@ async def create_data_frame_from_sql_computation(
         dialect=payload.sql_dialect,
         description=payload.description,
         num_samples=num_samples,
+        semantic_data_model_name=payload.semantic_data_model_name,
     )
 
     platform_data_frame = resolved_df.platform_data_frame
@@ -1369,17 +1375,32 @@ class _GetAsValidatedQueryPayload:
     data_frame_name: Annotated[str, "The name of the data frame to get as a validated query."]
 
 
+class _GetAsValidatedQueryResponse(TypedDict):
+    """Response containing the verified query and semantic data model name."""
+
+    verified_query: VerifiedQuery
+    semantic_data_model_name: Annotated[
+        str | None,
+        "The name of the semantic data model that was auto-detected from the data frame sources. "
+        "None if semantic data model was not used to create the data frame.",
+    ]
+
+
 @router.post("/{tid}/data-frames/as-validated-query")
 async def get_data_frame_as_validated_query(
     user: AuthedUser,
     tid: str,
     storage: StorageDependency,
     payload: _GetAsValidatedQueryPayload,
-) -> VerifiedQuery:
-    """Get a data frame as a validated query.
+) -> _GetAsValidatedQueryResponse:
+    """Get a data frame as a validated query with semantic data model name.
 
     This endpoint retrieves a data frame's SQL query as a validated query object.
     The data frame must have been created from a SQL computation.
+
+    It also attempts to determine which semantic data model was used to create
+    the data frame by analyzing the computation_input_sources. If a single semantic
+    data model is found, its name is returned to enable auto-selection in the UI.
 
     Args:
         user: The user making the request.
@@ -1388,7 +1409,7 @@ async def get_data_frame_as_validated_query(
         payload: The request payload containing the data frame name.
 
     Returns:
-        A VerifiedQuery object representing the data frame.
+        A response containing the VerifiedQuery and the semantic data model name.
     """
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.data_frames.data_node import DataNodeFromIbisResult
@@ -1447,7 +1468,13 @@ async def get_data_frame_as_validated_query(
         "sql": full_sql_query_logical_str,
     }
 
-    return verified_query
+    # Get semantic data model name from data frame sources
+    sdm_name = await get_semantic_data_model_name(data_frame)
+
+    return _GetAsValidatedQueryResponse(
+        verified_query=verified_query,
+        semantic_data_model_name=sdm_name,
+    )
 
 
 @dataclasses.dataclass

@@ -2960,7 +2960,7 @@ export const spec = {
         tags: ['threads'],
         summary: 'Get Data Frame As Validated Query',
         description:
-          "Get a data frame as a validated query.\n\nThis endpoint retrieves a data frame's SQL query as a validated query object.\nThe data frame must have been created from a SQL computation.\n\nArgs:\n    user: The user making the request.\n    tid: The ID of the thread.\n    storage: The storage to use.\n    payload: The request payload containing the data frame name.\n\nReturns:\n    A VerifiedQuery object representing the data frame.",
+          "Get a data frame as a validated query with semantic data model name.\n\nThis endpoint retrieves a data frame's SQL query as a validated query object.\nThe data frame must have been created from a SQL computation.\n\nIt also attempts to determine which semantic data model was used to create\nthe data frame by analyzing the computation_input_sources. If a single semantic\ndata model is found, its name is returned to enable auto-selection in the UI.\n\nArgs:\n    user: The user making the request.\n    tid: The ID of the thread.\n    storage: The storage to use.\n    payload: The request payload containing the data frame name.\n\nReturns:\n    A response containing the VerifiedQuery and the semantic data model name.",
         operationId:
           'get_data_frame_as_validated_query_threads__tid__data_frames_as_validated_query_post',
         parameters: [
@@ -2990,7 +2990,7 @@ export const spec = {
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/VerifiedQuery',
+                  $ref: '#/components/schemas/_GetAsValidatedQueryResponse',
                 },
               },
             },
@@ -26381,6 +26381,17 @@ export const spec = {
             ],
             title: 'Sql Dialect',
           },
+          semantic_data_model_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Semantic Data Model Name',
+          },
         },
         type: 'object',
         required: ['new_data_frame_name', 'sql_query'],
@@ -26712,6 +26723,29 @@ export const spec = {
         type: 'object',
         required: ['data_frame_name'],
         title: '_GetAsValidatedQueryPayload',
+      },
+      _GetAsValidatedQueryResponse: {
+        properties: {
+          verified_query: {
+            $ref: '#/components/schemas/VerifiedQuery',
+          },
+          semantic_data_model_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Semantic Data Model Name',
+          },
+        },
+        type: 'object',
+        required: ['verified_query', 'semantic_data_model_name'],
+        title: '_GetAsValidatedQueryResponse',
+        description:
+          'Response containing the verified query and semantic data model name.',
       },
       _HttpConfig: {
         properties: {

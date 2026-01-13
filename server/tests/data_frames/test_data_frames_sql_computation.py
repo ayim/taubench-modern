@@ -637,7 +637,12 @@ class _DataFramesChecker:
         return DataFramesKernel(self.model_creator.storage, self.user, self.tid)
 
     async def create_data_frame_from_sql_computation_api(
-        self, name: str, sql_query: str, description: str, dialect: str = "duckdb"
+        self,
+        name: str,
+        sql_query: str,
+        description: str,
+        dialect: str = "duckdb",
+        semantic_data_model_name: str | None = None,
     ) -> "DataNodeResult":
         from agent_platform.server.data_frames.data_frames_from_computation import (
             create_data_frame_from_sql_computation_api,
@@ -650,6 +655,7 @@ class _DataFramesChecker:
             sql_query,
             dialect=dialect,
             description=description,
+            semantic_data_model_name=semantic_data_model_name,
         )
         return result
 
@@ -768,10 +774,14 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
         semantic_data_model_ids=[semantic_data_model_id],
     )
 
+    # Get the semantic data model name
+    semantic_data_model_name = generated_model.semantic_model.get("name")
+
     result = await dfs_checker.create_data_frame_from_sql_computation_api(
         "test_data_frame",
         "SELECT * FROM ai_training_datapoints",
         description="Test data frame",
+        semantic_data_model_name=semantic_data_model_name,
     )
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=10, output_format="table"))

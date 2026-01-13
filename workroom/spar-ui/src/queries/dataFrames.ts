@@ -262,7 +262,7 @@ export const useSaveDataFrameAsValidatedQueryMutation = createSparMutation<
           path: { tid: threadId },
         },
         body: {
-          verified_query: verifiedQuery,
+          verified_query: verifiedQuery.verified_query,
           semantic_data_model_id: semanticDataModelId,
         },
       },

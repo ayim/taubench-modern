@@ -157,6 +157,25 @@ async def create_data_frame_from_columns_and_rows(
     return data_frame
 
 
+async def get_semantic_data_model_name(data_frame: PlatformDataFrame) -> str | None:
+    """Get the semantic data model name used to create a data frame.
+
+    This function extracts the semantic data model name directly from the data frame's
+    computation_input_sources. The SDM name is stored when the data frame is created.
+
+    Args:
+        data_frame: The data frame to analyze.
+
+    Returns:
+        The semantic data model name found in data frame's computation_input_sources.
+        None if no semantic data model was used to create the data frame.
+    """
+    for source in data_frame.computation_input_sources.values():
+        if source.source_type == "semantic_data_model" and source.semantic_data_model_name:
+            return source.semantic_data_model_name
+    return None
+
+
 class SqlGeneration(StrEnum):
     LEGACY = "legacy"
     AGENTIC = "agentic"
@@ -1185,6 +1204,7 @@ class _DataFrameTools:
         new_data_frame_name: str,
         new_data_frame_description: str | None = None,
         num_samples: int = 10,
+        semantic_data_model_name: str | None = None,
     ) -> dict[str, Any]:
         """Internal implementation for creating a data frame from SQL.
 
@@ -1215,6 +1235,7 @@ class _DataFrameTools:
                 dialect=None,  # Computed based on dependencies (semantic data model and data frames)
                 description=new_data_frame_description,
                 num_samples=num_samples if num_samples > 0 else 0,
+                semantic_data_model_name=semantic_data_model_name,
             )
 
             self._name_to_data_frame[new_data_frame_name] = resolved_df.platform_data_frame
@@ -1267,6 +1288,10 @@ class _DataFrameTools:
             str,
             "The name of the verified query to use to create a data frame.",
         ],
+        semantic_data_model_name: Annotated[
+            str,
+            """The semantic data model name associated with the verified query.""",
+        ],
         new_data_frame_name: Annotated[
             str,
             """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
@@ -1309,4 +1334,5 @@ class _DataFrameTools:
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
             num_samples=num_samples,
+            semantic_data_model_name=semantic_data_model_name,
         )

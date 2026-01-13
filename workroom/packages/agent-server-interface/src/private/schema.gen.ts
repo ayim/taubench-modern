@@ -935,10 +935,14 @@ export interface paths {
     put?: never;
     /**
      * Get Data Frame As Validated Query
-     * @description Get a data frame as a validated query.
+     * @description Get a data frame as a validated query with semantic data model name.
      *
      *     This endpoint retrieves a data frame's SQL query as a validated query object.
      *     The data frame must have been created from a SQL computation.
+     *
+     *     It also attempts to determine which semantic data model was used to create
+     *     the data frame by analyzing the computation_input_sources. If a single semantic
+     *     data model is found, its name is returned to enable auto-selection in the UI.
      *
      *     Args:
      *         user: The user making the request.
@@ -947,7 +951,7 @@ export interface paths {
      *         payload: The request payload containing the data frame name.
      *
      *     Returns:
-     *         A VerifiedQuery object representing the data frame.
+     *         A response containing the VerifiedQuery and the semantic data model name.
      */
     post: operations['get_data_frame_as_validated_query_threads__tid__data_frames_as_validated_query_post'];
     delete?: never;
@@ -11452,6 +11456,8 @@ export interface components {
       description?: string | null;
       /** Sql Dialect */
       sql_dialect?: string | null;
+      /** Semantic Data Model Name */
+      semantic_data_model_name?: string | null;
     };
     /** _DataFrameCreationAPI */
     _DataFrameCreationAPI: {
@@ -11557,6 +11563,15 @@ export interface components {
     _GetAsValidatedQueryPayload: {
       /** Data Frame Name */
       data_frame_name: string;
+    };
+    /**
+     * _GetAsValidatedQueryResponse
+     * @description Response containing the verified query and semantic data model name.
+     */
+    _GetAsValidatedQueryResponse: {
+      verified_query: components['schemas']['VerifiedQuery'];
+      /** Semantic Data Model Name */
+      semantic_data_model_name: string | null;
     };
     /** _HttpConfig */
     _HttpConfig: {
@@ -17719,7 +17734,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['VerifiedQuery'];
+          'application/json': components['schemas']['_GetAsValidatedQueryResponse'];
         };
       };
       /** @description Validation Error */

@@ -477,17 +477,22 @@ class QualityOrchestrator:
                     logger.error(f"Error deleting agent {agent_name}: {e}")
 
         # Upload agent with platform-specific configuration
+        # The agent package contains the full configuration (description, runbook, etc.)
+        # Only override the name and add any necessary servers
         async with httpx.AsyncClient() as client:
+            payload = {
+                "name": agent_name,
+                "agent_package_base64": package_base64,
+                "action_servers": action_servers,
+            }
+
+            # Only add mcp_servers if we have any
+            if mcp_servers:
+                payload["mcp_servers"] = mcp_servers
+
             response = await client.post(
                 f"{self.server_url}/api/v2/agents/package",
-                json={
-                    "name": agent_name,
-                    "description": "Quality test agent",
-                    "agent_package_base64": package_base64,
-                    "mcp_servers": mcp_servers,
-                    "model": {"provider": "openai", "name": "gpt-4o"},
-                    "action_servers": action_servers,
-                },
+                json=payload,
                 timeout=30.0,
             )
             response.raise_for_status()

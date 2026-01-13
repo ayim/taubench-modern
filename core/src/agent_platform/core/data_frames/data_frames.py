@@ -24,6 +24,9 @@ class DataFrameSource:
     """The ID of the data frame (UUID)."""
 
     # Only available if source_type is "semantic_data_model".
+    semantic_data_model_name: str | None = None
+    """The name of the semantic data model that this source belongs to."""
+
     base_table: BaseTable | None = None
     """The base table information of the semantic data model."""
 
@@ -46,6 +49,9 @@ class DataFrameSource:
         if self.source_id is not None:
             ret["source_id"] = self.source_id
 
+        if self.semantic_data_model_name is not None:
+            ret["semantic_data_model_name"] = self.semantic_data_model_name
+
         if self.base_table is not None:
             ret["base_table"] = self.base_table
 
@@ -60,6 +66,7 @@ class DataFrameSource:
     @classmethod
     def model_validate(cls, data: dict) -> "DataFrameSource":
         source_id = data.get("source_id")
+        semantic_data_model_name = data.get("semantic_data_model_name")
         base_table = data.get("base_table")
         logical_table_name = data.get("logical_table_name")
         logical_column_names_to_expr = data.get("logical_column_names_to_expr")
@@ -81,6 +88,7 @@ class DataFrameSource:
         return cls(
             source_type=source_type,
             source_id=source_id,
+            semantic_data_model_name=semantic_data_model_name,
             base_table=base_table,
             logical_table_name=logical_table_name,
             logical_column_names_to_expr=logical_column_names_to_expr,
