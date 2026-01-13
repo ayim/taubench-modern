@@ -5,11 +5,19 @@ export type SparUIRoutes = {
     agentId: string;
     threadId: string;
   };
+  '/thread/$agentId/$threadId/chat-details': {
+    agentId: string;
+    threadId: string;
+  };
   '/thread/$agentId/$threadId/data-frames': {
     agentId: string;
     threadId: string;
   };
   '/thread/$agentId/$threadId/evaluations': {
+    agentId: string;
+    threadId: string;
+  };
+  '/thread/$agentId/$threadId/files': {
     agentId: string;
     threadId: string;
   };
@@ -23,6 +31,21 @@ export type SparUIRoutes = {
     agentId: string;
   };
   '/workItem/$agentId/$workItemId/$threadId': {
+    agentId: string;
+    workItemId: string;
+    threadId: string;
+  };
+  '/workItem/$agentId/$workItemId/$threadId/chat-details': {
+    agentId: string;
+    workItemId: string;
+    threadId: string;
+  };
+  '/workItem/$agentId/$workItemId/$threadId/files': {
+    agentId: string;
+    workItemId: string;
+    threadId: string;
+  };
+  '/workItem/$agentId/$workItemId/$threadId/workitem-details': {
     agentId: string;
     workItemId: string;
     threadId: string;

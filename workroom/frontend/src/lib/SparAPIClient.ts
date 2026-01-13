@@ -10,10 +10,17 @@ const routesMapping = {
   '/thread/$agentId/$threadId': '/tenants/$tenantId/conversational/$agentId/$threadId',
   '/thread/$agentId/$threadId/data-frames': '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames',
   '/thread/$agentId/$threadId/evaluations': '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations',
+  '/thread/$agentId/$threadId/chat-details': '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details',
+  '/thread/$agentId/$threadId/files': '/tenants/$tenantId/conversational/$agentId/$threadId/files',
   '/thread/$agentId': '/tenants/$tenantId/conversational/$agentId',
   '/workItem/$agentId': '/tenants/$tenantId/worker/$agentId',
   '/workItem/$agentId/create': '/tenants/$tenantId/worker/$agentId/create',
   '/workItem/$agentId/$workItemId/$threadId': '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId',
+  '/workItem/$agentId/$workItemId/$threadId/chat-details':
+    '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details',
+  '/workItem/$agentId/$workItemId/$threadId/files': '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files',
+  '/workItem/$agentId/$workItemId/$threadId/workitem-details':
+    '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details',
   '/workItem/$agentId/$workItemId/$threadId/data-frames':
     '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames',
   '/workItem/$agentId/$workItemId': '/tenants/$tenantId/worker/$agentId/$workItemId',

@@ -29,7 +29,8 @@ export const useLinkProps = <T extends keyof SparUIRoutes>(
 
   if (preserveSubroute) {
     const currentParams = sparAPIClient.useParamsFn(to);
-    const { href: currentHref } = sparAPIClient.useRouteFn(to, currentParams);
+    const allParamsPresent = Object.keys(params).every((key) => key in currentParams);
+    const { href: currentHref } = sparAPIClient.useRouteFn(to, allParamsPresent ? currentParams : params);
 
     if (currentPathname.startsWith(currentHref) && currentPathname.length > currentHref.length) {
       const subroute = currentPathname.slice(currentHref.length);
