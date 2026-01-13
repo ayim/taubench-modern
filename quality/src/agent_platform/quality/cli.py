@@ -8,6 +8,7 @@ import sys
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
+from typing import cast
 from urllib.parse import urlencode, urlparse
 
 import click
@@ -1128,19 +1129,42 @@ def bird_import(
 
                     try:
                         search_url = f"{ctx.agent_server_url}/api/v2/agents/search/by-metadata"
-                        params = {"visibility": "hidden", "feature": "sql-generation"}
+                        params = {"feature": "sql-generation"}
                         with httpx.Client(timeout=30.0) as client:
                             response = client.get(search_url, params=params)
                             response.raise_for_status()
                             agents_data = response.json() or []
 
-                        if agents_data and isinstance(agents_data, list) and len(agents_data) > 0:
-                            agent_id = agents_data[0].get("id")
-
-                        if not agent_id:
-                            click.echo("❌ Could not find @preinstalled-sql-generation agent", err=True)
-                            click.echo("   Please specify --agent-id or deploy the agent", err=True)
+                        if not agents_data or not isinstance(agents_data, list):
+                            click.echo(
+                                "❌ Expected @preinstalled-sql-generation agent search result to be a list.",
+                                err=True,
+                            )
                             raise click.Abort()
+
+                        # Filter out quality test clones (agents with metadata.quality=true)
+                        filtered_agents = [
+                            agent
+                            for agent in agents_data
+                            if isinstance(agent, dict)
+                            and agent.get("extra", {}).get("metadata", {}).get("quality") != "true"
+                        ]
+                        if len(filtered_agents) > 1:
+                            click.echo(
+                                "❌ Found multiple @preinstalled-sql-generation agents. This should never happen.",
+                                err=True,
+                            )
+                            raise click.Abort()
+                        if not filtered_agents:
+                            click.echo(
+                                "❌ Could not find @preinstalled-sql-generation agent. This should never happen.",
+                                err=True,
+                            )
+                            raise click.Abort()
+
+                        # We've effectively guaranteed that there is only one agent.
+                        agent_id = cast(str, filtered_agents[0].get("id"))
+
                         click.echo(f"   ✓ Found agent: {agent_id}")
                     except httpx.HTTPError as e:
                         click.echo(f"❌ Failed to connect to agent server: {e}", err=True)

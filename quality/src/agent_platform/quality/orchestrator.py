@@ -175,11 +175,11 @@ class QualityOrchestrator:
         platforms: list[Platform],
         unique_sdms: set[str],
         sdm_setup: SDMSetup,
-    ) -> dict[str, str]:
-        """Create one agent per SDM, each configured with all platforms.
+    ) -> dict[str, dict[str, str]]:
+        """Create one agent per (SDM, platform) combination.
 
         For preinstalled agents only. Creates agent clones where each clone
-        is dedicated to a specific SDM and configured with all target platforms.
+        is dedicated to a specific SDM and platform combination.
 
         Args:
             agent_package: Preinstalled agent package
@@ -188,7 +188,7 @@ class QualityOrchestrator:
             sdm_setup: SDMSetup instance to import SDMs
 
         Returns:
-            Dict mapping sdm_path -> agent_id
+            Dict mapping sdm_path -> platform_name -> agent_id
         """
         if not agent_package.is_preinstalled:
             raise ValueError("upload_agent_with_sdm_variants only works with preinstalled agents")
@@ -197,7 +197,7 @@ class QualityOrchestrator:
         if not base_agent_id:
             raise ValueError(f"Preinstalled agent {agent_package.preinstalled_key} missing agent_id")
 
-        sdm_agent_ids: dict[str, str] = {}
+        sdm_agent_ids: dict[str, dict[str, str]] = {}
 
         async with httpx.AsyncClient(follow_redirects=True) as client:
             # Fetch base agent config once
@@ -207,75 +207,18 @@ class QualityOrchestrator:
 
             base_name = base_agent.get("name", agent_package.name)
 
-            # Create one agent per SDM
+            # Create one agent per (SDM, platform) combination
             for sdm_path in unique_sdms:
                 # Extract SDM identifier (e.g., "bird_california_schools" from "sdms/bird_california_schools")
                 sdm_identifier = sdm_path.split("/")[-1] if "/" in sdm_path else sdm_path
-                clone_name = f"{base_name}-{sdm_identifier}"
 
-                logger.info(
-                    "Creating SDM-specific agent clone",
-                    sdm_path=sdm_path,
-                    sdm_identifier=sdm_identifier,
-                    clone_name=clone_name,
-                )
+                # Initialize nested dict for this SDM
+                sdm_agent_ids[sdm_path] = {}
 
-                # Check if agent with this name exists and delete it
-                existing = await client.get(
-                    f"{self.server_url}/api/v2/agents/by-name",
-                    params={"name": clone_name},
-                )
-                if existing.status_code == HTTPStatus.OK:
-                    existing_id = existing.json()["agent_id"]
-                    try:
-                        await client.delete(f"{self.server_url}/api/v2/agents/{existing_id}")
-                        logger.info(f"Deleted existing SDM agent clone: {clone_name}")
-                    except Exception as e:
-                        logger.error(f"Error deleting existing SDM clone {clone_name}: {e}")
-
-                # Create clone with all platform configs
-                platform_configs = [platform.as_platform_config() for platform in platforms]
-
-                clone_payload = {
-                    "name": clone_name,
-                    "description": base_agent.get("description", ""),
-                    "agent_architecture": base_agent.get("agent_architecture"),
-                    "structured_runbook": base_agent.get("runbook_structured"),
-                    "mode": base_agent.get("mode", "conversational"),
-                    "extra": base_agent.get("extra", {}),
-                    "action_packages": base_agent.get("action_packages", []),
-                    "mcp_servers": base_agent.get("mcp_servers", []),
-                    "mcp_server_ids": base_agent.get("mcp_server_ids", []),
-                    "agent_settings": base_agent.get("agent_settings", {}),
-                    "advanced_config": base_agent.get("advanced_config", {}),
-                    "metadata": base_agent.get("metadata", {}),
-                    "observability_configs": base_agent.get("observability_configs", []),
-                    "question_groups": base_agent.get("question_groups", []),
-                    "selected_tools": base_agent.get("selected_tools", {}),
-                    "platform_configs": platform_configs,
-                    "version": base_agent.get("version"),
-                }
-
-                create_resp = await client.post(
-                    f"{self.server_url}/api/v2/agents/",
-                    json=clone_payload,
-                )
-                create_resp.raise_for_status()
-                clone_id = create_resp.json()["agent_id"]
-
-                logger.info(
-                    "Created SDM agent clone",
-                    clone_id=clone_id,
-                    clone_name=clone_name,
-                    sdm_path=sdm_path,
-                )
-
-                # Immediately import SDM to this agent
-                # Find the SDM config from unique_sdms - we'll need to get it from test cases
-                # For now, we'll construct it from the sdm_path
+                # Import SDM once for this sdm_path (not per agent)
+                # This SDM will be shared across all platform agents
                 from agent_platform.quality.models import SDMConfig
 
-                # Determine SDM kind from path - for now assume postgres for paths starting with sdms/
                 sdm_kind = "postgres"  # Default assumption
                 sdm_config = SDMConfig(
                     kind=sdm_kind,
@@ -283,12 +226,92 @@ class QualityOrchestrator:
                     description=f"SDM for {sdm_identifier}",
                 )
 
-                logger.info(f"Importing SDM to agent {clone_id}: {sdm_path}")
-                await sdm_setup.prewarm_sdm(sdm_config, agent_id=clone_id)
+                logger.info(f"Importing SDM (shared across platforms): {sdm_path}")
+                # Import without agent_id so it's not tied to a specific agent
+                sdm_id = await sdm_setup.prewarm_sdm(sdm_config, agent_id=None)
 
-                sdm_agent_ids[sdm_path] = clone_id
+                for platform in platforms:
+                    clone_name = f"{base_name}-{sdm_identifier}-{platform.name}"
 
-        logger.info(f"Successfully created {len(sdm_agent_ids)} SDM-specific agent variants")
+                    logger.info(
+                        "Creating SDM+platform-specific agent clone",
+                        sdm_path=sdm_path,
+                        sdm_identifier=sdm_identifier,
+                        platform=platform.name,
+                        clone_name=clone_name,
+                    )
+
+                    # Check if agent with this name exists and delete it
+                    existing = await client.get(
+                        f"{self.server_url}/api/v2/agents/by-name",
+                        params={"name": clone_name},
+                    )
+                    if existing.status_code == HTTPStatus.OK:
+                        existing_id = existing.json()["agent_id"]
+                        try:
+                            await client.delete(f"{self.server_url}/api/v2/agents/{existing_id}")
+                            logger.info(f"Deleted existing SDM agent clone: {clone_name}")
+                        except Exception as e:
+                            logger.error(f"Error deleting existing SDM clone {clone_name}: {e}")
+
+                    # Create clone with single platform config
+                    platform_config = platform.as_platform_config()
+
+                    # Mark clones with quality=true to exclude them from future searches
+                    clone_extra = base_agent.get("extra", {}).copy()
+                    clone_metadata = clone_extra.get("metadata", {}).copy()
+                    clone_metadata["quality"] = "true"
+                    clone_extra["metadata"] = clone_metadata
+
+                    clone_payload = {
+                        "name": clone_name,
+                        "description": base_agent.get("description", ""),
+                        "agent_architecture": base_agent.get("agent_architecture"),
+                        "structured_runbook": base_agent.get("runbook_structured"),
+                        "mode": base_agent.get("mode", "conversational"),
+                        "extra": clone_extra,
+                        "action_packages": base_agent.get("action_packages", []),
+                        "mcp_servers": base_agent.get("mcp_servers", []),
+                        "mcp_server_ids": base_agent.get("mcp_server_ids", []),
+                        "agent_settings": base_agent.get("agent_settings", {}),
+                        "advanced_config": base_agent.get("advanced_config", {}),
+                        "metadata": base_agent.get("metadata", {}),
+                        "observability_configs": base_agent.get("observability_configs", []),
+                        "question_groups": base_agent.get("question_groups", []),
+                        "selected_tools": base_agent.get("selected_tools", {}),
+                        "platform_configs": [platform_config],
+                        "version": base_agent.get("version"),
+                    }
+
+                    create_resp = await client.post(
+                        f"{self.server_url}/api/v2/agents/",
+                        json=clone_payload,
+                    )
+                    create_resp.raise_for_status()
+                    clone_id = create_resp.json()["agent_id"]
+
+                    logger.info(
+                        "Created SDM+platform agent clone",
+                        clone_id=clone_id,
+                        clone_name=clone_name,
+                        sdm_path=sdm_path,
+                        platform=platform.name,
+                    )
+
+                    # Attach the SDM to this agent
+                    logger.info(f"Attaching SDM {sdm_id} to agent {clone_id}")
+                    sdm_payload = {"semantic_data_model_ids": [sdm_id]}
+                    attach_resp = await client.put(
+                        f"{self.server_url}/api/v2/agents/{clone_id}/semantic-data-models",
+                        json=sdm_payload,
+                    )
+                    attach_resp.raise_for_status()
+                    logger.info(f"Successfully attached SDM to agent {clone_id}")
+
+                    sdm_agent_ids[sdm_path][platform.name] = clone_id
+
+        total_clones = sum(len(platform_agents) for platform_agents in sdm_agent_ids.values())
+        logger.info(f"Successfully created {total_clones} SDM+platform-specific agent variants")
         return sdm_agent_ids
 
     async def _configure_preinstalled_agent_platforms(
@@ -336,13 +359,19 @@ class QualityOrchestrator:
 
                 # Create a new agent by cloning the base agent configuration
                 # and overriding the name; platform config will be set next.
+                # Mark clones with quality=true to exclude them from future searches
+                clone_extra = base_agent.get("extra", {}).copy()
+                clone_metadata = clone_extra.get("metadata", {}).copy()
+                clone_metadata["quality"] = "true"
+                clone_extra["metadata"] = clone_metadata
+
                 clone_payload = {
                     "name": platform_agent_name,
                     "description": base_agent.get("description", ""),
                     "agent_architecture": base_agent.get("agent_architecture"),
                     "structured_runbook": base_agent.get("runbook_structured"),
                     "mode": base_agent.get("mode", "conversational"),
-                    "extra": base_agent.get("extra", {}),
+                    "extra": clone_extra,
                     "action_packages": base_agent.get("action_packages", []),
                     "mcp_servers": base_agent.get("mcp_servers", []),
                     "mcp_server_ids": base_agent.get("mcp_server_ids", []),

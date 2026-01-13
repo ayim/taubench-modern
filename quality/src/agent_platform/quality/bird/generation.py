@@ -227,13 +227,19 @@ async def generate_bird_sdm(
             openai_platform = Platform(name="openai")
             platform_config = openai_platform.as_platform_config()
 
+            # Mark clones with quality=true to exclude them from future searches
+            clone_extra = base_agent.get("extra", {}).copy()
+            clone_metadata = clone_extra.get("metadata", {}).copy()
+            clone_metadata["quality"] = "true"
+            clone_extra["metadata"] = clone_metadata
+
             clone_payload = {
                 "name": clone_name,
                 "description": f"Temporary clone for BIRD SDM generation ({db_id})",
                 "agent_architecture": base_agent.get("agent_architecture"),
                 "structured_runbook": base_agent.get("runbook_structured"),
                 "mode": base_agent.get("mode", "conversational"),
-                "extra": base_agent.get("extra", {}),
+                "extra": clone_extra,
                 "action_packages": base_agent.get("action_packages", []),
                 "mcp_servers": base_agent.get("mcp_servers", []),
                 "mcp_server_ids": base_agent.get("mcp_server_ids", []),

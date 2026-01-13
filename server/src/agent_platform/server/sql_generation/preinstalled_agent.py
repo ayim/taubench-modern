@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -12,7 +13,7 @@ logger = structlog.get_logger(__name__)
 
 SQL_GENERATION_AGENT_DESCRIPTION = "Internal SQL generation agent for semantic data models"
 SQL_GENERATION_AGENT_METADATA = {
-    "visibility": "hidden",
+    "visibility": os.getenv("SQL_AGENT_VISIBILITY", "hidden"),
     "feature": "sql-generation",
 }
 SQL_GENERATION_AGENT_VERSION = "1.0.0"

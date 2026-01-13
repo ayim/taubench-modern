@@ -46,7 +46,7 @@ THREAD_YML_FILE = f"thread.{YML_FILE_EXTENSION}"
 @dataclass(frozen=True)
 class AgentRunContext:
     platform_agent_ids: dict[str, str]
-    sdm_agent_ids: dict[str, str]  # sdm_path → agent_id (for SDM tests)
+    sdm_agent_ids: dict[str, dict[str, str]]  # sdm_path → platform_name → agent_id
     package_oauth_secrets: list[ActionPackageSecret]
     action_server_url: str
 
@@ -171,7 +171,6 @@ class QualityTestRunner:
         for logical_name in sorted(logical_names):
             feature_key = logical_name.removeprefix(PREINSTALLED_AGENT_PREFIX)
             params = {
-                "visibility": "hidden",
                 "feature": feature_key,
             }
             try:
@@ -202,7 +201,20 @@ class QualityTestRunner:
                 )
                 continue
 
-            agent_data = agents_data[0]
+            # Filter out quality test clones (agents with metadata.quality=true)
+            filtered_agents = [
+                agent
+                for agent in agents_data
+                if isinstance(agent, dict) and agent.get("extra", {}).get("metadata", {}).get("quality") != "true"
+            ]
+
+            if not filtered_agents:
+                logger.warning(
+                    f"No non-quality preinstalled agents found for '{logical_name}' (all results were quality clones)",
+                )
+                continue
+
+            agent_data = filtered_agents[0]
 
             if not isinstance(agent_data, dict):
                 logger.warning(
@@ -540,7 +552,7 @@ class QualityTestRunner:
 
                     # Create agent variants
                     platform_agent_ids: dict[str, str] = {}
-                    sdm_agent_ids: dict[str, str] = {}
+                    sdm_agent_ids: dict[str, dict[str, str]] = {}
 
                     if has_non_sdm_tests:
                         logger.info(
@@ -861,13 +873,11 @@ class QualityTestRunner:
         all_results: list[ThreadResult] = []
 
         # Determine which agent mapping to use based on whether test has SDMs
-        # SDM agents work for all platforms, platform agents are platform-specific
         test_case_agent_ids: dict[str, str]
         if test_case.sdms:
-            # Use SDM-specific agent (works for all platforms)
+            # Use SDM+platform-specific agents
             sdm_path = test_case.sdms[0].sdm_path
-            agent_id = run_context.sdm_agent_ids[sdm_path]
-            test_case_agent_ids = {platform.name: agent_id for platform in platforms}
+            test_case_agent_ids = run_context.sdm_agent_ids[sdm_path]
         else:
             # Use platform-specific agents
             test_case_agent_ids = run_context.platform_agent_ids
@@ -1135,21 +1145,21 @@ class QualityTestRunner:
         logger.info(log_msg)
 
         try:
-            if test_case.sdms and test_case.thread is None:
-                raise ValueError("SDM setup is only supported for thread-based test cases.")
-
+            # SDMs are now attached directly to agents during setup
+            # But Excel SDMs still need file uploads per thread
             on_thread_created = None
             if test_case.sdms and test_case.thread is not None:
+                # Check if any SDMs are Excel type (need file uploads)
+                excel_sdms = [cfg for cfg in test_case.sdms if cfg.kind == "excel"]
+                if excel_sdms:
 
-                async def _on_thread_created(thread_id: str) -> None:
-                    # SDMs were pre-warmed during agent setup; just attach them to this thread
-                    await self.sdm_setup.attach_sdms_to_thread(
-                        thread_id=thread_id,
-                        sdm_configs=test_case.sdms,
-                        agent_id=agent_id,
-                    )
+                    async def _on_thread_created(thread_id: str) -> None:
+                        # Upload Excel files to thread (only for excel SDMs)
+                        for cfg in excel_sdms:
+                            sdm_folder = self.sdm_setup._resolve_sdm_folder(cfg.sdm_path)
+                            await self.sdm_setup._upload_excel_file(thread_id, sdm_folder)
 
-                on_thread_created = _on_thread_created
+                    on_thread_created = _on_thread_created
 
             # Run the conversation
             test_run = await self.agent_runner.run_test_case(

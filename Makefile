@@ -183,6 +183,7 @@ ifeq ($(DB),postgres)
 	@echo ""
 endif
 	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
+	SQL_AGENT_VISIBILITY=$${SQL_AGENT_VISIBILITY:-NOT_HIDDEN} \
 	$(OTEL_ENV) \
 	$(DB_ENV) \
 	$(MCP_RUNTIME_ENV) \
