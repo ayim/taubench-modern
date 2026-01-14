@@ -241,7 +241,6 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             return LegacySqlStrategy(data_frame_tools=data_frame_tools)
 
     async def step_initialize(self, *, storage: BaseStorage | None = None, state: DataFrameArchState) -> None:
-        from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
         from agent_platform.server.data_frames.semantic_data_model_collector import (
             SemanticDataModelCollector,
         )
@@ -285,11 +284,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             verified_queries = semantic_data_model.get("verified_queries")
             if verified_queries:
                 for verified_query in verified_queries:
-                    if isinstance(verified_query, dict):
-                        query_name = verified_query.get("name")
-                        sql_query = verified_query.get("sql")
-                        if query_name and sql_query:
-                            self._verified_queries[query_name] = typing.cast(VerifiedQuery, verified_query)
+                    self._verified_queries[verified_query.name] = verified_query
 
         if all_data_connection_ids:
             data_connections = await storage.get_data_connections(list(all_data_connection_ids))
@@ -1317,7 +1312,11 @@ class _DataFrameTools:
 
         The verified query name must match one of the verified queries available in the semantic data models
         associated with this thread or agent.
+
+        Note:
+            This tool supports executing ONLY non-parameterized verified queries.
         """
+
         if verified_query_name not in self._verified_queries:
             available_queries = ", ".join(sorted(self._verified_queries.keys())) if self._verified_queries else "none"
             return {
@@ -1327,10 +1326,17 @@ class _DataFrameTools:
             }
 
         verified_query = self._verified_queries[verified_query_name]
+        if verified_query.parameters:
+            return {
+                "error": (
+                    f"Verified query '{verified_query_name}' is parameterized and cannot be "
+                    "executed via this tool. Only non-parameterized verified queries are supported."
+                ),
+            }
 
-        # Use the internal implementation with the verified query's SQL
+        # Use the internal implementation with the (possibly substituted) SQL
         return await self._create_data_frame_from_sql_impl(
-            sql_query=verified_query["sql"],
+            sql_query=verified_query.sql,
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
             num_samples=num_samples,

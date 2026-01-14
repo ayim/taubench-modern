@@ -50,6 +50,7 @@ from agent_platform.server.storage.errors import (
 if typing.TYPE_CHECKING:
     from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
+    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
     from agent_platform.core.evals.types import EvaluationResult
     from agent_platform.core.mcp.mcp_server import (
         MCPServer,
@@ -270,6 +271,52 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     def _get_table(self, name: str) -> sa.Table:
         return self._metadata.tables[f"{self.V2_PREFIX}{name}"]
+
+    def _convert_verified_queries_dicts_to_models(
+        self, verified_queries: list | None, semantic_data_model_id: str
+    ) -> list["VerifiedQuery"]:
+        """Convert verified_queries dicts to Pydantic models.
+
+        This helper method handles conversion of verified queries from dict format
+        to VerifiedQuery Pydantic models. If validation fails, it creates partial
+        models with error information so the UI can display them to the user.
+
+        Args:
+            verified_queries: List of verified queries (can be dicts or VerifiedQuery models)
+            semantic_data_model_id: ID of the semantic data model for logging
+
+        Returns:
+            List of VerifiedQuery models (including partial models with errors for invalid queries)
+        """
+        if not verified_queries:
+            return []
+
+        from pydantic import ValidationError
+
+        from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+        from agent_platform.server.data_frames.semantic_data_model_validator import (
+            create_partial_verified_query_with_errors,
+        )
+
+        converted_queries = []
+        for vq in verified_queries:
+            if isinstance(vq, dict):
+                try:
+                    converted_queries.append(VerifiedQuery.model_validate(vq))
+                except ValidationError as e:
+                    # Create partial model with validation errors using common function
+                    # This allows UI to display the query and let user fix it
+                    logger.warning(
+                        "Failed to validate verified query in SDM",
+                        sdm_id=semantic_data_model_id,
+                        query_name=vq.get("name", "<unnamed>"),
+                    )
+                    partial_query = create_partial_verified_query_with_errors(vq, e)
+                    converted_queries.append(partial_query)
+            else:
+                # Already a Pydantic model
+                converted_queries.append(vq)
+        return converted_queries
 
     @abstractmethod
     async def setup(self) -> None:
@@ -2460,6 +2507,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
         if isinstance(semantic_model_dict, str):
             semantic_model_dict = json.loads(semantic_model_dict)
 
+        # Convert verified_queries dicts to Pydantic models (same as list_semantic_data_models)
+        verified_queries = semantic_model_dict.get("verified_queries")
+        if verified_queries:
+            semantic_model_dict["verified_queries"] = self._convert_verified_queries_dicts_to_models(
+                verified_queries, semantic_data_model_id
+            )
+
         # Return as dict (TypedDict is just a type annotation, compatible with dict)
         return dict(typing.cast(SemanticDataModel, semantic_model_dict))
 
@@ -2997,6 +3051,13 @@ class BaseStorage(AbstractStorage, CommonMixin):
                     # Parse if string (SQLite normal, or PostgreSQL legacy double-serialized)
                     if isinstance(semantic_model, str):
                         semantic_model = json.loads(semantic_model)
+
+                    # Convert verified_queries dicts to Pydantic models
+                    verified_queries = semantic_model.get("verified_queries")
+                    if verified_queries:
+                        semantic_model["verified_queries"] = self._convert_verified_queries_dicts_to_models(
+                            verified_queries, model_id
+                        )
 
                     updated_at = row["updated_at"]
                     if isinstance(updated_at, datetime):

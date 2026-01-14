@@ -159,6 +159,15 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
             DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
         )
 
+        # IMPORTANT: Do not expose parameterized verified queries in agent context.
+        # The DF_CREATE_FROM_VERIFIED_QUERY tool intentionally supports only
+        # non-parameterized queries.
+        # In future we'll have dedicated tools for executing parameterized verified queries.
+        verified_queries = [vq for vq in verified_queries if not vq.parameters]
+
+        if not verified_queries:
+            return "\n".join(result)
+
         result.append(
             textwrap.dedent(f"""
         ### Verified Queries
@@ -170,8 +179,9 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
         """)
         )
         for verified_query in verified_queries:
-            result.append(f"- name: {verified_query['name']}")
-            result.append(f"  description: {verified_query['nlq']}")
+            result.append(f"- name: {verified_query.name}")
+            result.append(f"  description: {verified_query.nlq}")
+
             result.append("")
 
     return "\n".join(result)

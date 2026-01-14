@@ -1370,8 +1370,9 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         assert len(retrieved_model["verified_queries"]) == 1
 
         verified_query = retrieved_model["verified_queries"][0]
+        # API returns dicts, not Pydantic models
         assert verified_query["name"] == expected_verified_query_name
-        assert "sql" in verified_query
+        assert verified_query["sql"] is not None
         assert verified_query["sql"]  # SQL should not be empty
 
         # Create a new thread in the same agent

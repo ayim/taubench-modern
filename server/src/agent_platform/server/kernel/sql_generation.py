@@ -98,11 +98,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             verified_queries = semantic_data_model.get("verified_queries")
             if verified_queries:
                 for verified_query in verified_queries:
-                    if isinstance(verified_query, dict):
-                        query_name = verified_query.get("name")
-                        sql_query = verified_query.get("sql")
-                        if query_name and sql_query:
-                            self._verified_queries[query_name] = typing.cast(VerifiedQuery, verified_query)
+                    self._verified_queries[verified_query.name] = verified_query
 
         if all_data_connection_ids:
             data_connections = await self._storage.get_data_connections(list(all_data_connection_ids))

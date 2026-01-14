@@ -20,11 +20,13 @@ type Props = {
     sql_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     nlq_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     name_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
+    parameter_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
   }) => void;
   errors?: {
     sql_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     nlq_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     name_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
+    parameter_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
   };
   isNewQuery: boolean;
 };
@@ -108,6 +110,7 @@ export const VerifiedQueryForm: FC<Props> = ({
         sql: debouncedSql.trim(),
         verified_at: initialQuery?.verified_at || '',
         verified_by: initialQuery?.verified_by || '',
+        parameters: initialQuery?.parameters,
       };
 
       try {
@@ -122,6 +125,7 @@ export const VerifiedQueryForm: FC<Props> = ({
           sql_errors: verifiedQuery.sql_errors,
           nlq_errors: verifiedQuery.nlq_errors,
           name_errors: verifiedQuery.name_errors,
+          parameter_errors: verifiedQuery.parameter_errors,
         };
         onValidationErrorsChange?.(validationErrors);
       } catch (error) {
@@ -208,6 +212,7 @@ export const VerifiedQueryForm: FC<Props> = ({
         </Box>
         <Code value={editedSql} onChange={setEditedSql} title="SQL" rows={12} lang="sql" aria-label="SQL Query" />
         {renderErrors(errors.sql_errors, 'all')}
+        {renderErrors(errors.parameter_errors, 'all')}
       </Box>
     </Box>
   );

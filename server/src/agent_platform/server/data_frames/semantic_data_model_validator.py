@@ -20,6 +20,7 @@ from agent_platform.server.kernel.data_connection_inspector import (
 from agent_platform.server.storage.errors import DataConnectionNotFoundError
 
 if TYPE_CHECKING:
+    from pydantic import ValidationError
     from structlog.stdlib import BoundLogger
 
     from agent_platform.core.data_connections.data_connections import DataConnection
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
         Metric,
         SemanticDataModel,
         TimeDimension,
+        VerifiedQuery,
     )
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         References,
@@ -42,6 +44,134 @@ if TYPE_CHECKING:
     from agent_platform.server.storage.base import BaseStorage
 
 logger: BoundLogger = get_logger(__name__)
+
+
+def create_partial_verified_query_with_errors(
+    verified_query_dict: dict,
+    pydantic_error: ValidationError,
+) -> VerifiedQuery:
+    """Create a partial VerifiedQuery model from a dict with Pydantic validation errors.
+
+    This function converts Pydantic ValidationError into structured ValidationMessages
+    and attaches them to the appropriate error fields in a partial VerifiedQuery model.
+
+    Used when retrieving verified queries from storage that fail validation due to
+    schema changes or data corruption.
+
+    Args:
+        verified_query_dict: The original verified query data as a dict
+        pydantic_error: The Pydantic ValidationError from model_validate()
+
+    Returns:
+        A partial VerifiedQuery model constructed with model_construct() that contains
+        the original data plus validation errors attached to the appropriate error fields.
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        ValidationMessageKind,
+        ValidationMessageLevel,
+        VerifiedQuery,
+    )
+
+    # Use model_construct to create partial model without validation
+    verified_query = VerifiedQuery.model_construct(**verified_query_dict)
+
+    # Initialize error lists if not already set
+    if not verified_query.name_errors:
+        verified_query.name_errors = []
+    if not verified_query.nlq_errors:
+        verified_query.nlq_errors = []
+    if not verified_query.sql_errors:
+        verified_query.sql_errors = []
+    if not verified_query.parameter_errors:
+        verified_query.parameter_errors = []
+
+    # Convert Pydantic errors to ValidationMessages
+    for error in pydantic_error.errors():
+        field_path = error.get("loc", ())
+        error_msg = error.get("msg", "")
+
+        if not field_path:
+            continue
+
+        field_name = field_path[0] if field_path else ""
+
+        # Route Pydantic validation errors to appropriate error list
+        match field_name:
+            case "name":
+                verified_query.name_errors.append(
+                    ValidationMessage(
+                        message=error_msg,
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.VERIFIED_QUERY_MISSING_NAME_FIELD,
+                    )
+                )
+            case "nlq":
+                verified_query.nlq_errors.append(
+                    ValidationMessage(
+                        message=error_msg,
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.VERIFIED_QUERY_MISSING_NLQ_FIELD,
+                    )
+                )
+            case "sql":
+                verified_query.sql_errors.append(
+                    ValidationMessage(
+                        message=error_msg,
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.VERIFIED_QUERY_SQL_VALIDATION_FAILED,
+                    )
+                )
+            case "parameters":
+                # Try to get parameter name and field name from error location
+                param_name = None
+                param_field_name = None
+                if len(field_path) >= 3:
+                    # Error path like ("parameters", 0, "data_type")
+                    param_index = field_path[1]
+                    param_field_name = field_path[2]
+                    if isinstance(param_index, int) and verified_query.parameters:
+                        if param_index < len(verified_query.parameters):
+                            param = verified_query.parameters[param_index]
+                            if hasattr(param, "name"):
+                                param_name = param.name
+                            elif isinstance(param, dict):
+                                param_name = param.get("name")
+
+                # Enhance message with parameter name and field name if available
+                if param_name and param_field_name:
+                    enhanced_msg = f"Parameter '{param_name}', field '{param_field_name}': {error_msg}"
+                elif param_name:
+                    enhanced_msg = f"Parameter '{param_name}': {error_msg}"
+                else:
+                    enhanced_msg = error_msg
+
+                verified_query.parameter_errors.append(
+                    ValidationMessage(
+                        message=enhanced_msg,
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.VERIFIED_QUERY_PARAMETERS_VALIDATION_FAILED,
+                    )
+                )
+            case "verified_at" | "verified_by":
+                # These are metadata fields, put errors in sql_errors as general errors
+                verified_query.sql_errors.append(
+                    ValidationMessage(
+                        message=f"Field '{field_name}': {error_msg}",
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+                    )
+                )
+            case _:
+                # Unknown field, put in sql_errors as general error
+                verified_query.sql_errors.append(
+                    ValidationMessage(
+                        message=f"Field '{field_name}': {error_msg}",
+                        level=ValidationMessageLevel.ERROR,
+                        kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+                    )
+                )
+
+    return verified_query
 
 
 @dataclass

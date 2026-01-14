@@ -38,6 +38,8 @@ def simple_sdm() -> SemanticDataModel:
 @pytest.fixture
 def sdm_with_verified_queries() -> SemanticDataModel:
     """SDM with verified queries."""
+    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+
     return cast(
         SemanticDataModel,
         {
@@ -52,16 +54,16 @@ def sdm_with_verified_queries() -> SemanticDataModel:
                 }
             ],
             "verified_queries": [
-                {
-                    "name": "total_sales",
-                    "nlq": "Get total sales for the current month",
-                    "sql": "SELECT SUM(amount) FROM orders WHERE month = CURRENT_MONTH",
-                },
-                {
-                    "name": "top_customers",
-                    "nlq": "Find top 10 customers by revenue",
-                    "sql": "SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id ORDER BY 2 DESC LIMIT 10",
-                },
+                VerifiedQuery.model_construct(
+                    name="total_sales",
+                    nlq="Get total sales for the current month",
+                    sql="SELECT SUM(amount) FROM orders WHERE month = CURRENT_MONTH",
+                ),
+                VerifiedQuery.model_construct(
+                    name="top_customers",
+                    nlq="Find top 10 customers by revenue",
+                    sql="SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id ORDER BY 2 DESC LIMIT 10",
+                ),
             ],
         },
     )

@@ -7,13 +7,21 @@ from typing import TypedDict
 
 import yaml
 from fastapi import APIRouter
+from pydantic import ValidationError
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
 from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
+    ValidationMessage,
     ValidationMessageKind,
     ValidationMessageLevel,
+    VerifiedQuery,
+    VerifiedQueryNameError,
+    VerifiedQueryNLQError,
+    VerifiedQueryParameterError,
+    VerifiedQuerySQLError,
+    VerifiedQueryValidationContext,
     model_dump_sdm,
 )
 from agent_platform.core.errors.base import PlatformHTTPError
@@ -42,6 +50,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelCollector,
     )
+    from agent_platform.server.storage.base import BaseStorage
 
 router = APIRouter()
 logger: BoundLogger = get_logger(__name__)
@@ -542,7 +551,6 @@ async def list_semantic_data_models(
     from agent_platform.core.data_frames.semantic_data_model_validation import (
         validate_semantic_model_payload_and_extract_references,
     )
-    from agent_platform.server.storage.base import BaseStorage
 
     try:
         semantic_data_models_info = await storage.list_semantic_data_models(agent_id=agent_id, thread_id=thread_id)
@@ -1103,6 +1111,71 @@ async def validate_semantic_data_model(
     )
 
 
+async def prepare_verified_query_validation_context(
+    semantic_data_model: SemanticDataModel,
+    storage: BaseStorage,
+    original_name: str | None = None,
+) -> VerifiedQueryValidationContext:
+    """Prepare validation context for verified query validation.
+
+    Extracts and prepares all necessary data from the semantic data model
+    for use in verified query validation.
+
+    Args:
+        semantic_data_model: The semantic data model to extract data from
+        storage: Storage instance to fetch data connections
+        original_name: Original query name (when editing, to exclude from uniqueness check)
+
+    Returns:
+        VerifiedQueryValidationContext with all prepared validation data
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        LogicalTable,
+        VerifiedQueryValidationContext,
+    )
+
+    # 1. Determine dialect from first available data connection
+    dialect = None
+    tables = semantic_data_model.get("tables") or []
+    if tables:
+        for table in tables:
+            base_table = table.get("base_table")
+            if base_table:
+                data_connection_id = base_table.get("data_connection_id")
+                if data_connection_id:
+                    try:
+                        data_connection = await storage.get_data_connection(data_connection_id)
+                        if data_connection:
+                            dialect = data_connection.engine
+                            break
+                    except Exception:
+                        # If we can't get the connection, continue to next table
+                        continue
+
+    # 2. Build table name mappings
+    logical_tables = semantic_data_model.get("tables") or []
+    available_table_name_to_table: dict[str, LogicalTable] = {
+        table.get("name") or "": table for table in logical_tables if table.get("name")
+    }
+    available_table_names = set(available_table_name_to_table.keys())
+
+    # 3. Extract existing query names (for uniqueness check)
+    verified_queries = semantic_data_model.get("verified_queries") or []
+    existing_query_names = {q["name"] for q in verified_queries if isinstance(q, dict) and "name" in q}
+    # Remove the original name from the set if we're editing
+    if original_name:
+        existing_query_names.discard(original_name)
+
+    return VerifiedQueryValidationContext(
+        dialect=dialect,
+        logical_tables=logical_tables,
+        available_table_names=available_table_names,
+        available_table_name_to_table=available_table_name_to_table,
+        existing_query_names=existing_query_names,
+        original_name=original_name,
+    )
+
+
 @router.post("/verify-verified-query")
 async def verify_verified_query(
     payload: VerifyVerifiedQueryPayload,
@@ -1133,180 +1206,68 @@ async def verify_verified_query(
     """
     import datetime
 
-    from agent_platform.core.data_frames.data_frame_utils import (
-        VerifiedQueryNameError,
-        validate_verified_query_name,
-    )
-    from agent_platform.core.data_frames.semantic_data_model_types import (
-        LogicalTable,
-        ValidationMessage,
-        VerifiedQuery,
-    )
-    from agent_platform.server.data_frames.sql_manipulation import (
-        extract_variable_names_required_from_sql_computation,
-        validate_sql_query,
-    )
-
     try:
         # Cast semantic data model
         semantic_data_model = typing.cast(SemanticDataModel, payload.semantic_data_model)
-        verified_query_dict = payload.verified_query
 
-        # Create a copy of the verified query to return
-        # Note: verified_at and verified_by may not be set yet if this is a new query being verified
-        verified_query: VerifiedQuery = {
-            "name": verified_query_dict.get("name", ""),
-            "nlq": verified_query_dict.get("nlq", ""),
-            "sql": verified_query_dict.get("sql", ""),
-            "verified_at": verified_query_dict.get("verified_at", ""),
-            "verified_by": verified_query_dict.get("verified_by", user.user_id),
-        }
-
-        # Initialize error lists
-        sql_errors: list[ValidationMessage] = []
-        nlq_errors: list[ValidationMessage] = []
-        name_errors: list[ValidationMessage] = []
-
-        # Validate SQL query
-        sql_query = verified_query.get("sql", "")
-        if not sql_query:
-            sql_errors.append(
-                ValidationMessage(
-                    message="SQL query is required and cannot be empty.",
-                    level=ValidationMessageLevel.ERROR,
-                    kind=ValidationMessageKind.VERIFIED_QUERY_MISSING_SQL_FIELD,
-                )
-            )
+        # Convert verified_query to dict if it's a Pydantic model
+        if isinstance(payload.verified_query, VerifiedQuery):
+            verified_query_dict = payload.verified_query.model_dump()
         else:
-            try:
-                # Validate SQL syntax
-                sql_ast = validate_sql_query(sql_query, dialect=None)
+            verified_query_dict = payload.verified_query
 
-                # Extract table names from SQL query
-                required_table_names = extract_variable_names_required_from_sql_computation(sql_ast)
+        # Prepare validation context
+        original_name = payload.accept_initial_name if payload.accept_initial_name else None
+        validation_context = await prepare_verified_query_validation_context(
+            semantic_data_model=semantic_data_model,
+            storage=storage,
+            original_name=original_name,
+        )
 
-                # Get logical table names from semantic data model
-                logical_tables = semantic_data_model.get("tables") or []
-                available_table_name_to_table: dict[str, LogicalTable] = {
-                    table.get("name") or "": table for table in logical_tables if table.get("name")
-                }
+        # Run Pydantic validation with context - this automatically runs all validators
+        # Add default values for verified_at and verified_by if not present
+        verified_query_dict.setdefault("verified_at", datetime.datetime.now(datetime.UTC).isoformat())
+        verified_query_dict.setdefault("verified_by", user.user_id)
 
-                # Check if all referenced tables exist in the semantic data model
-                missing_tables = required_table_names - set(available_table_name_to_table.keys())
-                if missing_tables:
-                    missing_tables_str = ", ".join(sorted(missing_tables))
-                    sql_errors.append(
-                        ValidationMessage(
-                            message=(
-                                "SQL query references tables that do not exist in the "
-                                f"semantic data model: {missing_tables_str}.\nExisting tables: "
-                                f"{sorted(available_table_name_to_table.keys())}"
-                            ),
-                            level=ValidationMessageLevel.ERROR,
-                            kind=ValidationMessageKind.VERIFIED_QUERY_REFERENCES_MISSING_TABLES,
-                        )
-                    )
+        try:
+            validated_query = VerifiedQuery.model_validate(
+                verified_query_dict,
+                context={"validation_context": validation_context},
+            )
+        except (
+            VerifiedQuerySQLError,
+            VerifiedQueryNameError,
+            VerifiedQueryNLQError,
+            VerifiedQueryParameterError,
+        ) as e:
+            # Custom validation error - create a partial model to hold the error
+            validated_query = VerifiedQuery.model_construct(**verified_query_dict)
 
-                for table_name in required_table_names:
-                    # If the base_table is not a data connection nor a file reference, let
-                    # the user know that he needs to create a data frame with that name in
-                    # the thread.
-                    table = available_table_name_to_table.get(table_name)
-                    if table:
-                        base_table = table.get("base_table")
-                        if base_table:
-                            if not base_table.get("data_connection_id") and not base_table.get("file_reference"):
-                                sql_errors.append(
-                                    ValidationMessage(
-                                        message=(
-                                            f"Table {table_name} references a data frame in "
-                                            "the semantic data model that's not backed by a "
-                                            "data connection nor a file reference. When used in a "
-                                            "new chat, a data frame with that name must be created "
-                                            "in the chat before using this query."
-                                        ),
-                                        level=ValidationMessageLevel.WARNING,
-                                        kind=ValidationMessageKind.VERIFIED_QUERY_REFERENCES_DATA_FRAME,
-                                    )
-                                )
-
-            except Exception as e:
-                sql_errors.append(
-                    ValidationMessage(
-                        message=f"SQL query validation failed: {e}",
-                        level=ValidationMessageLevel.ERROR,
-                        kind=ValidationMessageKind.VERIFIED_QUERY_SQL_VALIDATION_FAILED,
-                    )
-                )
-
-        # Validate NLQ
-        nlq = verified_query.get("nlq", "")
-        if not nlq or not nlq.strip():
-            nlq_errors.append(
-                ValidationMessage(
-                    message=("NLQ (Natural Language Question) is required and cannot be empty."),
-                    level=ValidationMessageLevel.ERROR,
-                    kind=ValidationMessageKind.VERIFIED_QUERY_MISSING_NLQ_FIELD,
-                )
+            error_msg = ValidationMessage(
+                message=e.message,
+                kind=e.kind,
+                level=e.level,
             )
 
-        # Validate name
-        name = verified_query.get("name", "")
-        if not name or not name.strip():
-            name_errors.append(
-                ValidationMessage(
-                    message="Name is required and cannot be empty.",
-                    level=ValidationMessageLevel.ERROR,
-                    kind=ValidationMessageKind.VERIFIED_QUERY_MISSING_NAME_FIELD,
-                )
+            # Categorize based on exception type
+            if isinstance(e, VerifiedQuerySQLError):
+                validated_query.sql_errors = [error_msg]
+            elif isinstance(e, VerifiedQueryNameError):
+                validated_query.name_errors = [error_msg]
+            elif isinstance(e, VerifiedQueryNLQError):
+                validated_query.nlq_errors = [error_msg]
+            elif isinstance(e, VerifiedQueryParameterError):
+                validated_query.parameter_errors = [error_msg]
+
+        except ValidationError as e:
+            # Pydantic field validation errors - create a partial model to hold the errors
+            from agent_platform.server.data_frames.semantic_data_model_validator import (
+                create_partial_verified_query_with_errors,
             )
-        else:
-            try:
-                name = validate_verified_query_name(name)
-                verified_query["name"] = name
-            except VerifiedQueryNameError as e:
-                name_errors.append(
-                    ValidationMessage(
-                        message=str(e),
-                        level=ValidationMessageLevel.ERROR,
-                        kind=ValidationMessageKind.VERIFIED_QUERY_NAME_VALIDATION_FAILED,
-                    )
-                )
-            if name != payload.accept_initial_name:
-                # Check if name is unique within the semantic data model
-                # (excluding current query if it exists)
-                verified_queries = semantic_data_model.get("verified_queries") or []
-                if verified_queries:
-                    for existing_query in verified_queries:
-                        if isinstance(existing_query, dict):
-                            existing_name = existing_query.get("name")
-                            if existing_name == name:
-                                name_errors.append(
-                                    ValidationMessage(
-                                        message=(
-                                            f"Name '{name}' is already used by another "
-                                            "verified query in the semantic data model."
-                                        ),
-                                        level=ValidationMessageLevel.ERROR,
-                                        kind=ValidationMessageKind.VERIFIED_QUERY_NAME_NOT_UNIQUE,
-                                    )
-                                )
-                                break
 
-        # Set errors in verified query
-        if sql_errors:
-            verified_query["sql_errors"] = sql_errors
-        if nlq_errors:
-            verified_query["nlq_errors"] = nlq_errors
-        if name_errors:
-            verified_query["name_errors"] = name_errors
+            validated_query = create_partial_verified_query_with_errors(verified_query_dict, e)
 
-        # Fill in the verified_at and verified_by fields
-
-        verified_query["verified_at"] = datetime.datetime.now(datetime.UTC).isoformat()
-        verified_query["verified_by"] = user.user_id
-
-        return VerifyVerifiedQueryResponse(verified_query=verified_query)
+        return VerifyVerifiedQueryResponse(verified_query=validated_query)
 
     except Exception as e:
         msg = f"Error verifying verified query: {e}"

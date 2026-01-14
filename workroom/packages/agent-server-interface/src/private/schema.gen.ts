@@ -8347,6 +8347,43 @@ export interface components {
        */
       include: boolean;
     };
+    /**
+     * QueryParameter
+     * @description A parameter definition for a verified query.
+     *
+     *     Parameters allow verified queries to be reusable with different values.
+     *
+     *     Example:
+     *         {
+     *             "name": "country",
+     *             "data_type": "string",
+     *             "example_value": "Germany",
+     *             "description": "Country to filter customers by"
+     *         }
+     */
+    QueryParameter: {
+      /**
+       * Name
+       * @description Parameter name used in SQL (e.g., 'country' for :country)
+       */
+      name: string;
+      /**
+       * Data Type
+       * @description Data type of this parameter.
+       * @enum {string}
+       */
+      data_type: 'integer' | 'float' | 'boolean' | 'string' | 'datetime';
+      /**
+       * Example Value
+       * @description Optional example value for SQL validation and default.
+       */
+      example_value?: string | number | boolean | null;
+      /**
+       * Description
+       * @description Human-readable description of the parameter
+       */
+      description: string;
+    };
     /** QuestionGroup */
     QuestionGroup: {
       /**
@@ -11115,14 +11152,15 @@ export interface components {
       | 'file_sheet_missing'
       | 'file_column_missing'
       | 'validation_execution_error'
-      | 'verified_query_missing_sql_field'
-      | 'verified_query_references_missing_tables'
-      | 'verified_query_references_data_frame'
       | 'verified_query_sql_validation_failed'
+      | 'verified_query_missing_sql_field'
       | 'verified_query_missing_nlq_field'
       | 'verified_query_missing_name_field'
-      | 'verified_query_name_validation_failed'
-      | 'verified_query_name_not_unique';
+      | 'verified_query_name_not_unique'
+      | 'verified_query_name_invalid_format'
+      | 'verified_query_references_missing_tables'
+      | 'verified_query_references_data_frame'
+      | 'verified_query_parameters_validation_failed';
     /**
      * ValidationMessageLevel
      * @description The level of a validation message.
@@ -11203,24 +11241,63 @@ export interface components {
     /**
      * VerifiedQuery
      * @description A verified query represents a validated SQL query saved from a data frame.
+     *
+     *     Verified queries can optionally include parameters using :param_name
+     *     syntax in the SQL. When parameters are present, each must have a
+     *     corresponding QueryParameter definition with an example_value that will
+     *     be used for validation and as the default value.
      */
     VerifiedQuery: {
-      /** Name */
+      /**
+       * Name
+       * @description The name of the data frame that was saved as a validated query.
+       */
       name: string;
-      /** Nlq */
+      /**
+       * Nlq
+       * @description The NLQ (Natural Language Question) that the validated query answers (from the data frame description).
+       */
       nlq: string;
-      /** Verified At */
+      /**
+       * Verified At
+       * @description The ISO date-time string when the query was verified.
+       */
       verified_at: string;
-      /** Verified By */
+      /**
+       * Verified By
+       * @description The user ID of the user who verified the query.
+       */
       verified_by: string;
-      /** Sql */
+      /**
+       * Sql
+       * @description The full SQL query. May contain :param_name placeholders for parameterized queries.
+       */
       sql: string;
-      /** Sql Errors */
+      /**
+       * Parameters
+       * @description Optional list of parameters for parameterized queries. Each parameter must have name, example_value, and description.
+       */
+      parameters?: components['schemas']['QueryParameter'][] | null;
+      /**
+       * Sql Errors
+       * @description Validation errors for the SQL query
+       */
       sql_errors?: components['schemas']['ValidationMessage'][] | null;
-      /** Nlq Errors */
+      /**
+       * Nlq Errors
+       * @description Validation errors for the NLQ
+       */
       nlq_errors?: components['schemas']['ValidationMessage'][] | null;
-      /** Name Errors */
+      /**
+       * Name Errors
+       * @description Validation errors for the name
+       */
       name_errors?: components['schemas']['ValidationMessage'][] | null;
+      /**
+       * Parameter Errors
+       * @description Validation errors for the parameters
+       */
+      parameter_errors?: components['schemas']['ValidationMessage'][] | null;
     };
     /** VerifyVerifiedQueryPayload */
     VerifyVerifiedQueryPayload: {

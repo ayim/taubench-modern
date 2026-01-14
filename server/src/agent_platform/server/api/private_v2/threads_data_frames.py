@@ -1460,13 +1460,13 @@ async def get_data_frame_as_validated_query(
 
     verified_query_name = data_frame_name_to_verified_query_name(payload.data_frame_name)
 
-    verified_query: VerifiedQuery = {
-        "name": verified_query_name,
-        "nlq": data_frame.description or "",
-        "verified_at": datetime.datetime.now(datetime.UTC).isoformat(),
-        "verified_by": user.user_id,
-        "sql": full_sql_query_logical_str,
-    }
+    verified_query = VerifiedQuery(
+        name=verified_query_name,
+        nlq=data_frame.description or "",
+        verified_at=datetime.datetime.now(datetime.UTC).isoformat(),
+        verified_by=user.user_id,
+        sql=full_sql_query_logical_str,
+    )
 
     # Get semantic data model name from data frame sources
     sdm_name = await get_semantic_data_model_name(data_frame)
@@ -1539,7 +1539,7 @@ async def save_data_frame_as_validated_query(
     verified_queries = semantic_data_model["verified_queries"]
     existing_query_index = None
     for i, query in enumerate(verified_queries):
-        if isinstance(query, dict) and query.get("name") == verified_query["name"]:
+        if query.name == verified_query.name:
             existing_query_index = i
             break
 
@@ -1555,5 +1555,5 @@ async def save_data_frame_as_validated_query(
     )
 
     return {
-        "message": f"Successfully saved validated query '{verified_query['name']}'.",
+        "message": f"Successfully saved validated query '{verified_query.name}'.",
     }

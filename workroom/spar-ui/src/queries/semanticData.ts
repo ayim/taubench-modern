@@ -29,8 +29,9 @@ export enum SemanticDataValidationErrorKind {
   'verified_query_sql_validation_failed' = 'verified_query_sql_validation_failed',
   'verified_query_missing_nlq_field' = 'verified_query_missing_nlq_field',
   'verified_query_missing_name_field' = 'verified_query_missing_name_field',
-  'verified_query_name_validation_failed' = 'verified_query_name_validation_failed',
   'verified_query_name_not_unique' = 'verified_query_name_not_unique',
+  'verified_query_name_invalid_format' = 'verified_query_name_invalid_format',
+  'verified_query_parameters_validation_failed' = 'verified_query_parameters_validation_failed',
 }
 
 const ValidationMessage = z.object({
@@ -50,15 +51,28 @@ export const Dimension = z.object({
 });
 export type Dimension = z.infer<typeof Dimension>;
 
+export const QueryParameterType = z.enum(['integer', 'float', 'boolean', 'string', 'datetime']);
+export type QueryParameterType = z.infer<typeof QueryParameterType>;
+
+export const QueryParameter = z.object({
+  name: z.string(),
+  data_type: QueryParameterType,
+  example_value: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+  description: z.string(),
+});
+export type QueryParameter = z.infer<typeof QueryParameter>;
+
 export const VerifiedQuery = z.object({
   name: z.string(),
   nlq: z.string(),
   verified_at: z.string(),
   verified_by: z.string(),
   sql: z.string(),
+  parameters: z.array(QueryParameter).optional(),
   sql_errors: z.array(ValidationMessage).optional(),
   nlq_errors: z.array(ValidationMessage).optional(),
   name_errors: z.array(ValidationMessage).optional(),
+  parameter_errors: z.array(ValidationMessage).optional(),
 });
 export type VerifiedQuery = z.infer<typeof VerifiedQuery>;
 

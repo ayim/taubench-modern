@@ -220,14 +220,14 @@ async def test_save_data_frame_as_validated_query(
     assert len(retrieved_model_after["verified_queries"]) == 1
 
     verified_query = retrieved_model_after["verified_queries"][0]
-    assert verified_query["name"] == expected_verified_query_name
-    assert verified_query["nlq"] == data_frame_description
-    assert verified_query["verified_by"] == test_user.user_id
+    assert verified_query.name == expected_verified_query_name
+    assert verified_query.nlq == data_frame_description
+    assert verified_query.verified_by == test_user.user_id
 
-    assert fix_sql_query(verified_query["sql"]) == "SELECT * FROM file_data"
-    assert "verified_at" in verified_query
+    assert fix_sql_query(verified_query.sql) == "SELECT * FROM file_data"
+    assert verified_query.verified_at is not None
     # Verify verified_at is a valid ISO format string
-    datetime.fromisoformat(verified_query["verified_at"])
+    datetime.fromisoformat(verified_query.verified_at)
 
     # Test updating an existing verified query by calling the endpoint again
     # This should update the verified_at timestamp
@@ -262,11 +262,11 @@ async def test_save_data_frame_as_validated_query(
     assert len(retrieved_model_updated["verified_queries"]) == 1
 
     updated_query = retrieved_model_updated["verified_queries"][0]
-    assert updated_query["name"] == expected_verified_query_name
-    assert updated_query["nlq"] == data_frame_description
-    assert fix_sql_query(updated_query["sql"]) == "SELECT * FROM file_data"
+    assert updated_query.name == expected_verified_query_name
+    assert updated_query.nlq == data_frame_description
+    assert fix_sql_query(updated_query.sql) == "SELECT * FROM file_data"
     # Verify verified_at was updated (should be different timestamp)
-    assert updated_query["verified_at"] != verified_query["verified_at"]
+    assert updated_query.verified_at != verified_query.verified_at
 
 
 @pytest.mark.asyncio
@@ -274,8 +274,6 @@ async def test_get_validated_query_with_multiple_sdms(
     sqlite_storage: "SQLiteStorage",
     tmpdir: Path,
     client: TestClient,
-    test_user,
-    fastapi_app,
 ):
     """Test that validated query correctly identifies SDM name when multiple SDMs exist."""
 

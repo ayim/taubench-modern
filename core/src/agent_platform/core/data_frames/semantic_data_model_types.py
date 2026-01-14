@@ -9,15 +9,30 @@ from __future__ import annotations
 import copy
 import json
 import typing
+from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
 from types import NoneType
 from typing import Annotated, Any, Literal, Required, TypedDict
 
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+
 from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
 )
+
+# ============================================================================
+# Validation Enums
+# ============================================================================
 
 
 class ValidationMessageLevel(StrEnum):
@@ -64,24 +79,94 @@ class ValidationMessageKind(StrEnum):
     """Raised when a required column is absent in the file."""
     VALIDATION_EXECUTION_ERROR = "validation_execution_error"
     """Raised when validation fails due to an unexpected error."""
+    VERIFIED_QUERY_SQL_VALIDATION_FAILED = "verified_query_sql_validation_failed"
+    """Raised when SQL query validation fails due to syntax errors or other issues."""
     VERIFIED_QUERY_MISSING_SQL_FIELD = "verified_query_missing_sql_field"
-    """Raised when a verified query is missing the SQL field."""
+    """Raised when SQL field is missing from a verified query."""
+    VERIFIED_QUERY_MISSING_NLQ_FIELD = "verified_query_missing_nlq_field"
+    """Raised when NLQ field is missing from a verified query."""
+    VERIFIED_QUERY_MISSING_NAME_FIELD = "verified_query_missing_name_field"
+    """Raised when name field is missing from a verified query."""
+    VERIFIED_QUERY_NAME_NOT_UNIQUE = "verified_query_name_not_unique"
+    """Raised when a verified query name is not unique within the semantic data model."""
+    VERIFIED_QUERY_NAME_INVALID_FORMAT = "verified_query_name_invalid_format"
+    """Raised when a verified query name does not follow the required format."""
     VERIFIED_QUERY_REFERENCES_MISSING_TABLES = "verified_query_references_missing_tables"
     """Raised when a verified query references tables that do not exist in the semantic
     data model."""
     VERIFIED_QUERY_REFERENCES_DATA_FRAME = "verified_query_references_data_frame"
     """Raised when a verified query references a data frame that is not backed by a data connection
     nor a file reference."""
-    VERIFIED_QUERY_SQL_VALIDATION_FAILED = "verified_query_sql_validation_failed"
-    """Raised when a verified query validation fails due to an unexpected error."""
-    VERIFIED_QUERY_MISSING_NLQ_FIELD = "verified_query_missing_nlq_field"
-    """Raised when a verified query is missing the NLQ field."""
-    VERIFIED_QUERY_MISSING_NAME_FIELD = "verified_query_missing_name_field"
-    """Raised when a verified query is missing the name field."""
-    VERIFIED_QUERY_NAME_VALIDATION_FAILED = "verified_query_name_validation_failed"
-    """Raised when a verified query name validation fails."""
-    VERIFIED_QUERY_NAME_NOT_UNIQUE = "verified_query_name_not_unique"
-    """Raised when a verified query name is not unique within the semantic data model."""
+    VERIFIED_QUERY_PARAMETERS_VALIDATION_FAILED = "verified_query_parameters_validation_failed"
+    """Raised when parameter definitions do not match the SQL query parameters."""
+
+
+# ============================================================================
+# Custom Exceptions for VerifiedQuery Validation
+# ============================================================================
+
+
+class VerifiedQueryValidationError(Exception):
+    """Base exception for VerifiedQuery validation errors."""
+
+    def __init__(
+        self,
+        message: str,
+        kind: ValidationMessageKind,
+        level: ValidationMessageLevel = ValidationMessageLevel.ERROR,
+    ):
+        super().__init__(message)
+        self.message = message
+        self.kind = kind
+        self.level = level
+
+
+class VerifiedQuerySQLError(VerifiedQueryValidationError):
+    """Exception raised for SQL-related validation errors."""
+
+    def __init__(
+        self,
+        message: str,
+        kind: ValidationMessageKind = ValidationMessageKind.VERIFIED_QUERY_SQL_VALIDATION_FAILED,
+        level: ValidationMessageLevel = ValidationMessageLevel.ERROR,
+    ):
+        super().__init__(message, kind, level)
+
+
+class VerifiedQueryNameError(VerifiedQueryValidationError):
+    """Exception raised for name-related validation errors."""
+
+    def __init__(
+        self,
+        message: str,
+        kind: ValidationMessageKind = ValidationMessageKind.VERIFIED_QUERY_NAME_NOT_UNIQUE,
+        level: ValidationMessageLevel = ValidationMessageLevel.ERROR,
+    ):
+        super().__init__(message, kind, level)
+
+
+class VerifiedQueryNLQError(VerifiedQueryValidationError):
+    """Exception raised for NLQ-related validation errors."""
+
+    def __init__(
+        self,
+        message: str,
+        kind: ValidationMessageKind = ValidationMessageKind.VERIFIED_QUERY_MISSING_NLQ_FIELD,
+        level: ValidationMessageLevel = ValidationMessageLevel.ERROR,
+    ):
+        super().__init__(message, kind, level)
+
+
+class VerifiedQueryParameterError(VerifiedQueryValidationError):
+    """Exception raised for parameter-related validation errors."""
+
+    def __init__(
+        self,
+        message: str,
+        kind: ValidationMessageKind = ValidationMessageKind.VERIFIED_QUERY_PARAMETERS_VALIDATION_FAILED,
+        level: ValidationMessageLevel = ValidationMessageLevel.ERROR,
+    ):
+        super().__init__(message, kind, level)
 
 
 class ValidationMessage(TypedDict):
@@ -90,6 +175,23 @@ class ValidationMessage(TypedDict):
     message: Annotated[str, "A human-readable message describing the validation error or warning"]
     level: Annotated[ValidationMessageLevel, "The level of the validation message (error or warning)"]
     kind: Annotated[ValidationMessageKind, "The kind of the validation message"]
+
+
+@dataclass
+class VerifiedQueryValidationContext:
+    """Context for VerifiedQuery validation.
+
+    Contains prepared validation data extracted from the semantic data model.
+    All data is prepared by the API layer before passing to validators.
+    """
+
+    # Prepared validation data (all extracted from semantic_data_model + storage)
+    dialect: str | None
+    logical_tables: list[LogicalTable]
+    available_table_names: set[str]
+    available_table_name_to_table: dict[str, LogicalTable]
+    existing_query_names: set[str]
+    original_name: str | None = None  # Used for name uniqueness check when editing
 
 
 class CortexSearchService(TypedDict, total=False):
@@ -538,23 +640,446 @@ CATEGORIES: tuple[CategoriesType, CategoriesType, CategoriesType, CategoriesType
 )
 
 
-class VerifiedQuery(TypedDict, total=False):
-    """A verified query represents a validated SQL query saved from a data frame."""
+# Type alias for the Literal type used in QueryParameter
+# This is the single source of truth for valid parameter data types
+# Runtime values can be extracted using typing.get_args(QueryParameterDataType)
+QueryParameterDataType = Literal["integer", "float", "boolean", "string", "datetime"]
 
-    name: Required[Annotated[str, "The name of the data frame that was saved as a validated query."]]
-    nlq: Required[
-        Annotated[
-            str,
-            "The NLQ (Natural Language Question) that the validated query answers (from the data frame description).",
-        ]
-    ]
-    verified_at: Required[Annotated[str, "The ISO date-time string when the query was verified."]]
-    verified_by: Required[Annotated[str, "The user ID of the user who verified the query."]]
-    sql: Required[Annotated[str, "The full SQL query that was used to create the data frame."]]
 
-    sql_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the SQL query, if any"]
-    nlq_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the NLQ, if any"]
-    name_errors: Annotated[list[ValidationMessage] | None, "Validation errors for the name, if any"]
+class QueryParameter(BaseModel):
+    """A parameter definition for a verified query.
+
+    Parameters allow verified queries to be reusable with different values.
+
+    Example:
+        {
+            "name": "country",
+            "data_type": "string",
+            "example_value": "Germany",
+            "description": "Country to filter customers by"
+        }
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="Parameter name used in SQL (e.g., 'country' for :country)",
+    )
+    data_type: QueryParameterDataType = Field(
+        ...,
+        description="Data type of this parameter.",
+    )
+    example_value: str | int | float | bool | None = Field(
+        default=None,
+        description="Optional example value for SQL validation and default.",
+    )
+    description: str = Field(
+        ...,
+        min_length=1,
+        description="Human-readable description of the parameter",
+    )
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def strip_string_fields(cls, v: str) -> str:
+        """Strip whitespace from string fields."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+    @model_validator(mode="after")
+    def validate_example_value_matches_data_type(self) -> QueryParameter:
+        """Validate that example_value matches the declared data_type.
+
+        Uses model_validator to access both data_type and example_value after
+        all fields are validated, ensuring reliable cross-field validation.
+
+        If example_value is None, validation is skipped.
+        """
+        data_type = self.data_type
+        example_value = self.example_value
+
+        # Skip validation if example_value is not provided
+        if example_value is None:
+            return self
+
+        match data_type:
+            case "integer":
+                if not isinstance(example_value, int):
+                    raise ValueError(
+                        f"Parameter '{self.name}': example_value must be an integer "
+                        f"for data_type 'integer', got {type(example_value).__name__}"
+                    )
+            case "float":
+                if not isinstance(example_value, int | float):
+                    raise ValueError(
+                        f"Parameter '{self.name}': example_value must be a number "
+                        f"for data_type 'float', got {type(example_value).__name__}"
+                    )
+            case "boolean":
+                if not isinstance(example_value, bool):
+                    raise ValueError(
+                        f"Parameter '{self.name}': example_value must be a boolean "
+                        f"for data_type 'boolean', got {type(example_value).__name__}"
+                    )
+            case "string":
+                if not isinstance(example_value, str):
+                    raise ValueError(
+                        f"Parameter '{self.name}': example_value must be a string "
+                        f"for data_type 'string', got {type(example_value).__name__}"
+                    )
+            case "datetime":
+                if not isinstance(example_value, str):
+                    raise ValueError(
+                        f"Parameter '{self.name}': example_value must be a string (ISO-8601 format) "
+                        f"for data_type 'datetime', got {type(example_value).__name__}"
+                    )
+                # Validate ISO-8601 format
+                try:
+                    # Handle both with without timezone
+                    datetime_str = example_value.replace("Z", "+00:00")
+                    datetime.fromisoformat(datetime_str)
+                except ValueError as e:
+                    raise ValueError(
+                        f"Parameter '{self.name}': example_value must be in ISO-8601 format "
+                        f"for data_type 'datetime': {e}"
+                    ) from e
+
+        return self
+
+
+class VerifiedQuery(BaseModel):
+    """A verified query represents a validated SQL query saved from a data frame.
+
+    Verified queries can optionally include parameters using :param_name
+    syntax in the SQL. When parameters are present, each must have a
+    corresponding QueryParameter definition with an example_value that will
+    be used for validation and as the default value.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="The name of the data frame that was saved as a validated query.",
+    )
+    nlq: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "The NLQ (Natural Language Question) that the validated query answers (from the data frame description)."
+        ),
+    )
+    verified_at: str = Field(
+        ...,
+        description="The ISO date-time string when the query was verified.",
+    )
+    verified_by: str = Field(
+        ...,
+        description="The user ID of the user who verified the query.",
+    )
+    sql: str = Field(
+        ...,
+        min_length=1,
+        description="The full SQL query. May contain :param_name placeholders for parameterized queries.",
+    )
+
+    parameters: list[QueryParameter] | None = Field(
+        default=None,
+        description="Optional list of parameters for parameterized queries. Each "
+        "parameter must have name, example_value, and description.",
+    )
+
+    sql_errors: list[ValidationMessage] | None = Field(
+        default=None,
+        description="Validation errors for the SQL query",
+    )
+    nlq_errors: list[ValidationMessage] | None = Field(
+        default=None,
+        description="Validation errors for the NLQ",
+    )
+    name_errors: list[ValidationMessage] | None = Field(
+        default=None,
+        description="Validation errors for the name",
+    )
+    parameter_errors: list[ValidationMessage] | None = Field(
+        default=None,
+        description="Validation errors for the parameters",
+    )
+
+    @field_validator("name", "nlq", "sql", mode="before")
+    @classmethod
+    def strip_string_fields(cls, v: str) -> str:
+        """Strip whitespace from string fields."""
+        return v.strip()
+
+    @field_validator("parameters", mode="before")
+    @classmethod
+    def convert_parameters_to_models(cls, v: list[QueryParameter | dict] | None) -> list[QueryParameter] | None:
+        """Convert parameter dicts to QueryParameter instances.
+
+        This ensures that QueryParameter validators run on each parameter,
+        validating data_type, example_value, etc.
+
+        Any validation errors from QueryParameter will be caught and re-raised
+        with proper parameter index in the error location.
+        """
+        if v is None:
+            return None
+
+        result = []
+        for idx, item in enumerate(v):
+            if isinstance(item, dict):
+                # Convert dict to QueryParameter - this triggers all validators
+                try:
+                    result.append(QueryParameter.model_validate(item))
+                except ValidationError as e:
+                    # Re-raise with parameter index in location
+                    from pydantic_core import ValidationError as PydanticCoreValidationError
+
+                    # Extract errors and prepend the index to the location
+                    new_errors = []
+                    for error in e.errors():
+                        error_dict = error.copy()
+                        # Prepend index to location tuple
+                        error_dict["loc"] = (idx, *error.get("loc", ()))
+                        new_errors.append(error_dict)
+
+                    raise PydanticCoreValidationError.from_exception_data(
+                        "VerifiedQuery.parameters",
+                        new_errors,
+                    ) from e
+            else:
+                result.append(item)
+        return result
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def validate_name_format(cls, v: str) -> str:
+        """Validate name format using validate_verified_query_name.
+
+        This validates the name format synchronously without external dependencies.
+        Name uniqueness is validated separately in _validate_name() method
+        since it requires access to the semantic data model.
+        """
+        from agent_platform.core.data_frames.data_frame_utils import (
+            VerifiedQueryNameError,
+            validate_verified_query_name,
+        )
+
+        try:
+            return validate_verified_query_name(v)
+        except VerifiedQueryNameError as e:
+            # Convert PlatformHTTPError to ValueError for Pydantic
+            raise ValueError(str(e)) from e
+
+    @model_validator(mode="after")
+    def validate_against_semantic_data_model(self, info: ValidationInfo) -> VerifiedQuery:
+        """Validate this verified query against a semantic data model.
+
+        This validator runs during model_validate() and performs:
+        - SQL syntax and table references validation
+        - Parameter definitions validation
+        - Name uniqueness validation
+        """
+        # Get validation context from info.context
+        if not info.context or "validation_context" not in info.context:
+            # If no context provided, skip semantic validations
+            # This allows the model to be created without full validation
+            return self
+
+        validation_context: VerifiedQueryValidationContext = info.context["validation_context"]
+
+        # Run validations - each raises immediately on error
+        self._validate_sql(validation_context)
+        self._validate_name(validation_context)
+
+        return self
+
+    def _validate_sql(
+        self,
+        context: VerifiedQueryValidationContext,
+    ) -> None:
+        """Validate SQL query syntax, table references, and parameters."""
+        # 1. Check dialect - raise immediately if missing
+        if not context.dialect:
+            raise VerifiedQuerySQLError(
+                message=(
+                    "Cannot determine SQL dialect from semantic data model. "
+                    "Please ensure at least one table has a data connection "
+                    "configured."
+                ),
+            )
+
+        # Type assertion: dialect is guaranteed to be non-None after the check above
+        dialect = typing.cast(str, context.dialect)
+
+        # 2. Validate SQL syntax and table references (combined)
+        self._validate_sql_syntax_and_tables(context)
+
+        # 3. Validate parameters
+        self._validate_sql_parameters(context, dialect)
+
+    def _validate_sql_parameters(
+        self,
+        context: VerifiedQueryValidationContext,
+        dialect: str,
+    ) -> None:
+        """Validate parameters in SQL against the parameter definitions."""
+        from agent_platform.server.data_frames.sql_parameter_utils import (
+            extract_parameters_from_sql,
+            validate_parameter_definitions,
+        )
+
+        provided_params_list = self.parameters or []
+
+        try:
+            extracted_param_names = extract_parameters_from_sql(self.sql, dialect=dialect)
+        except ValueError:
+            # SQL parsing failed - will be caught by syntax validation
+            return
+
+        if extracted_param_names:
+            # SQL contains parameters - validate definitions
+            if not provided_params_list:
+                param_names_str = ", ".join(extracted_param_names)
+                raise VerifiedQueryParameterError(
+                    message=(
+                        f"SQL query contains {len(extracted_param_names)} "
+                        f"parameter(s) ({param_names_str}) but no parameter "
+                        "definitions were provided. Please provide parameter "
+                        "definitions with name, data_type, example_value, and "
+                        "description."
+                    ),
+                )
+            else:
+                # Validate parameter definitions
+                validation_result = validate_parameter_definitions(
+                    self.sql,
+                    provided_params_list,
+                    dialect=dialect,
+                )
+
+                # Raise immediately on missing parameters (errors)
+                if validation_result.missing_in_definitions:
+                    param_name = next(iter(validation_result.missing_in_definitions))
+                    raise VerifiedQueryParameterError(
+                        message=(
+                            f"SQL query contains parameter '{param_name}' that is not "
+                            "defined. Please add a parameter definition with name, "
+                            "data_type, example_value, and description."
+                        ),
+                    )
+
+                # Raise immediately on extra parameters (warnings)
+                if validation_result.extra_in_definitions:
+                    param_name = next(iter(validation_result.extra_in_definitions))
+                    raise VerifiedQueryParameterError(
+                        message=(
+                            f"Parameter definition for '{param_name}' is provided but "
+                            "not used in the SQL query. Please remove this definition "
+                            f"or add :{param_name} to the SQL."
+                        ),
+                        level=ValidationMessageLevel.WARNING,
+                    )
+
+        elif provided_params_list:
+            # No parameters in SQL but definitions provided - raise warning
+            raise VerifiedQueryParameterError(
+                message=(
+                    "Parameter definitions were provided but SQL query "
+                    "does not contain any :param_name placeholders. "
+                    "Either add parameters to the SQL or remove the "
+                    "definitions."
+                ),
+                level=ValidationMessageLevel.WARNING,
+            )
+
+    def _validate_sql_syntax_and_tables(
+        self,
+        context: VerifiedQueryValidationContext,
+    ) -> None:
+        """Validate SQL syntax using sqlglot and given dialect
+        and validate table references in SQL against the semantic data model.
+        """
+        from agent_platform.server.data_frames.sql_manipulation import (
+            extract_variable_names_required_from_sql_computation,
+            validate_sql_query,
+        )
+
+        # Parse SQL once and validate syntax
+        try:
+            sql_ast = validate_sql_query(self.sql, dialect=context.dialect)
+        except Exception as e:
+            raise VerifiedQuerySQLError(
+                message=f"SQL syntax error: {e}",
+            ) from e
+
+        # Extract table names from the validated AST
+        required_table_names = extract_variable_names_required_from_sql_computation(sql_ast)
+
+        # Check if we have table names to validate
+        if not context.available_table_names:
+            # If SQL requires tables but SDM has none, that's an error
+            if required_table_names:
+                table_list = ", ".join(sorted(required_table_names))
+                raise VerifiedQuerySQLError(
+                    message=(
+                        f"SQL query references tables ({table_list}) but the "
+                        "semantic data model has no tables defined. Please add "
+                        "tables to the semantic data model before creating verified queries."
+                    ),
+                    kind=ValidationMessageKind.VERIFIED_QUERY_REFERENCES_MISSING_TABLES,
+                )
+            # SQL doesn't reference any tables, validation passes
+            return
+
+        # Check for missing tables
+        missing_tables = required_table_names - context.available_table_names
+        if missing_tables:
+            missing_str = ", ".join(sorted(missing_tables))
+            available_str = ", ".join(sorted(context.available_table_names)) if context.available_table_names else ""
+            raise VerifiedQuerySQLError(
+                message=(
+                    f"SQL query references tables that do not exist in the "
+                    f"semantic data model: {missing_str}.\nExisting tables: "
+                    f"{available_str}"
+                ),
+                kind=ValidationMessageKind.VERIFIED_QUERY_REFERENCES_MISSING_TABLES,
+            )
+
+        # Check data frame references (warnings) - raise immediately if found
+        for table_name in required_table_names:
+            table = context.available_table_name_to_table.get(table_name)
+            if table:
+                base_table = table.get("base_table")
+                if base_table:
+                    if not base_table.get("data_connection_id") and not base_table.get("file_reference"):
+                        raise VerifiedQuerySQLError(
+                            message=(
+                                f"Table {table_name} references a data frame in "
+                                "the semantic data model that's not backed by a "
+                                "data connection nor a file reference. When used in a "
+                                "new chat, a data frame with that name must be created "
+                                "in the chat before using this query."
+                            ),
+                            kind=ValidationMessageKind.VERIFIED_QUERY_REFERENCES_DATA_FRAME,
+                            level=ValidationMessageLevel.WARNING,
+                        )
+
+    def _validate_name(
+        self,
+        context: VerifiedQueryValidationContext,
+    ) -> None:
+        """Validate query name uniqueness within the semantic data model."""
+        if context.existing_query_names and self.name in context.existing_query_names:
+            raise VerifiedQuerySQLError(
+                message=f"Name '{self.name}' is already used by another verified query in the semantic data model.",
+                kind=ValidationMessageKind.VERIFIED_QUERY_NAME_NOT_UNIQUE,
+            )
 
 
 class SemanticDataModel(TypedDict, total=False):
@@ -614,7 +1139,15 @@ def model_dump_sdm(sdm: SemanticDataModel, *, exclude_none: bool = False) -> dic
 
     def convert_datetimes_for_json(obj: Any) -> Any:
         """Recursively convert datetime objects to ISO format strings for JSON serialization."""
-        if isinstance(obj, dict):
+        # Handle Pydantic models
+        if isinstance(obj, BaseModel):
+            # For VerifiedQuery and QueryParameter models, always exclude None to avoid
+            # clutter in exports (error fields and optional fields are None when not set)
+            if isinstance(obj, VerifiedQuery | QueryParameter):
+                return convert_datetimes_for_json(obj.model_dump(exclude_none=True))
+            else:
+                return convert_datetimes_for_json(obj.model_dump(exclude_none=exclude_none))
+        elif isinstance(obj, dict):
             return {k: convert_datetimes_for_json(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [convert_datetimes_for_json(item) for item in obj]
@@ -625,11 +1158,12 @@ def model_dump_sdm(sdm: SemanticDataModel, *, exclude_none: bool = False) -> dic
     # Deep copy to avoid mutating the original
     sdm_dict = copy.deepcopy(dict(sdm))
 
-    # Optionally exclude None values
+    # Optionally exclude None values at the top level
     if exclude_none:
         sdm_dict = {k: v for k, v in sdm_dict.items() if v is not None}
 
-    # Convert datetime objects to ISO strings
+    # Convert datetime objects to ISO strings and Pydantic models to dicts
+    # VerifiedQuery and QueryParameter models always exclude None values
     return convert_datetimes_for_json(sdm_dict)
 
 
@@ -637,6 +1171,7 @@ def model_validate_sdm(data: dict) -> SemanticDataModel:
     """Public API for deserializing dict to SemanticDataModel.
 
     Validates and converts a dict to SemanticDataModel TypedDict.
+    Converts verified_queries and their parameters from dicts to Pydantic models.
 
     Args:
         data: Dictionary containing semantic data model fields
@@ -644,6 +1179,22 @@ def model_validate_sdm(data: dict) -> SemanticDataModel:
     Returns:
         Validated SemanticDataModel
     """
+    # Convert verified_queries from dicts to Pydantic models if present
+    if "verified_queries" in data and isinstance(data["verified_queries"], list):
+        validated_queries = []
+        for query in data["verified_queries"]:
+            if isinstance(query, dict):
+                try:
+                    validated_queries.append(VerifiedQuery.model_validate(query))
+                except Exception:
+                    # If validation fails, keep as dict (will be caught by validator later)
+                    validated_queries.append(query)
+            elif isinstance(query, VerifiedQuery):
+                validated_queries.append(query)
+            else:
+                validated_queries.append(query)
+        data = {**data, "verified_queries": validated_queries}
+
     # Type checker will validate the structure
     return typing.cast(SemanticDataModel, data)
 

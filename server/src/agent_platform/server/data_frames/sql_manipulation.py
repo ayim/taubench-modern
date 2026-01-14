@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import typing
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -558,7 +557,7 @@ def update_column_references(
     return main_sql_ast
 
 
-def extract_variable_names_required_from_sql_computation(sql_ast: Any) -> set[str]:
+def extract_variable_names_required_from_sql_computation(sql_ast: Expression) -> set[str]:
     import sqlglot.expressions
 
     tables = sql_ast.find_all(sqlglot.expressions.Table)
@@ -570,21 +569,42 @@ def extract_variable_names_required_from_sql_computation(sql_ast: Any) -> set[st
     return required_variable_names
 
 
-def validate_sql_query(sql_query: str, dialect: str | None) -> Any:
-    """
-    Validate the SQL query and return the AST.
+def validate_sql_query(
+    sql_query: str,
+    dialect: str | None,
+) -> Expression:
+    """Validate the SQL query and return the AST.
 
-    If the dialect is None, it'll try to parse with a very permissive
-    internal sqlglot dialect.
+    sqlglot can parse SQL queries with :param_name placeholders directly,
+    so no parameter substitution is needed before parsing.
+
+    Args:
+        sql_query: The SQL query to validate (may contain :param_name)
+        dialect: The SQL dialect to use for parsing. If None, uses a
+            permissive internal sqlglot dialect.
+
+    Returns:
+        The parsed sqlglot AST expression
+
+    Raises:
+        PlatformError: If the query is invalid or contains destructive
+            operations
+
+    Example:
+        >>> validate_sql_query(
+        ...     "SELECT * FROM users WHERE country = :country",
+        ...     dialect=None
+        ... )
     """
     import sqlglot
 
     from agent_platform.core.errors.base import PlatformError
 
+    # Parse and validate the SQL directly (sqlglot can parse :param_name placeholders)
     expressions = sqlglot.parse(sql_query, dialect=dialect)
     if len(expressions) != 1:
         raise PlatformError(
-            message=f"SQL query must be a single expression. Found: {len(expressions)} SQL query: {sql_query!r}"
+            message=(f"SQL query must be a single expression. Found: {len(expressions)} SQL query: {sql_query!r}")
         )
 
     expr = expressions[0]
@@ -593,5 +613,5 @@ def validate_sql_query(sql_query: str, dialect: str | None) -> Any:
 
     reasons = get_destructive_reasons(expr)
     if reasons:
-        raise PlatformError(message=f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})")
+        raise PlatformError(message=(f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})"))
     return expr

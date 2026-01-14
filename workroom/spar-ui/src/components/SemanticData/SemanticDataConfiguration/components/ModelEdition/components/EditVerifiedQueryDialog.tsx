@@ -48,6 +48,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
     sql_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     nlq_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     name_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
+    parameter_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
   }>({});
   const verifyMutation = useVerifyVerifiedQueryMutation({});
 
@@ -94,6 +95,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
       sql: formData.sql.trim(),
       verified_at: query?.verified_at || '',
       verified_by: query?.verified_by || '',
+      parameters: query?.parameters,
     };
 
     // Verify the query
@@ -109,7 +111,8 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
     const hasErrors =
       filterErrors(verifiedQuery.sql_errors, 'error').length > 0 ||
       filterErrors(verifiedQuery.nlq_errors, 'error').length > 0 ||
-      filterErrors(verifiedQuery.name_errors, 'error').length > 0;
+      filterErrors(verifiedQuery.name_errors, 'error').length > 0 ||
+      filterErrors(verifiedQuery.parameter_errors, 'error').length > 0;
 
     if (hasErrors) {
       // Show errors but don't save
@@ -117,6 +120,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
         sql_errors: verifiedQuery.sql_errors,
         nlq_errors: verifiedQuery.nlq_errors,
         name_errors: verifiedQuery.name_errors,
+        parameter_errors: verifiedQuery.parameter_errors,
       });
       // Record that the verified query creation failed
       if (!isEditMode) {
@@ -133,6 +137,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
       sql: verifiedQuery.sql,
       verified_at: verifiedQuery.verified_at,
       verified_by: verifiedQuery.verified_by,
+      parameters: verifiedQuery.parameters || queryToVerify.parameters,
     };
 
     if (isEditMode && queryIndex !== undefined) {

@@ -20162,6 +20162,56 @@ export const spec = {
         required: ['content'],
         title: 'PromptUserMessage',
       },
+      QueryParameter: {
+        properties: {
+          name: {
+            type: 'string',
+            minLength: 1,
+            title: 'Name',
+            description:
+              "Parameter name used in SQL (e.g., 'country' for :country)",
+          },
+          data_type: {
+            type: 'string',
+            enum: ['integer', 'float', 'boolean', 'string', 'datetime'],
+            title: 'Data Type',
+            description: 'Data type of this parameter.',
+          },
+          example_value: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'integer',
+              },
+              {
+                type: 'number',
+              },
+              {
+                type: 'boolean',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Example Value',
+            description:
+              'Optional example value for SQL validation and default.',
+          },
+          description: {
+            type: 'string',
+            minLength: 1,
+            title: 'Description',
+            description: 'Human-readable description of the parameter',
+          },
+        },
+        type: 'object',
+        required: ['name', 'data_type', 'description'],
+        title: 'QueryParameter',
+        description:
+          'A parameter definition for a verified query.\n\nParameters allow verified queries to be reusable with different values.\n\nExample:\n    {\n        "name": "country",\n        "data_type": "string",\n        "example_value": "Germany",\n        "description": "Country to filter customers by"\n    }',
+      },
       QuestionGroup: {
         properties: {
           title: {
@@ -25757,14 +25807,15 @@ export const spec = {
           'file_sheet_missing',
           'file_column_missing',
           'validation_execution_error',
-          'verified_query_missing_sql_field',
-          'verified_query_references_missing_tables',
-          'verified_query_references_data_frame',
           'verified_query_sql_validation_failed',
+          'verified_query_missing_sql_field',
           'verified_query_missing_nlq_field',
           'verified_query_missing_name_field',
-          'verified_query_name_validation_failed',
           'verified_query_name_not_unique',
+          'verified_query_name_invalid_format',
+          'verified_query_references_missing_tables',
+          'verified_query_references_data_frame',
+          'verified_query_parameters_validation_failed',
         ],
         title: 'ValidationMessageKind',
         description: 'The kind of a validation message.',
@@ -25881,23 +25932,51 @@ export const spec = {
         properties: {
           name: {
             type: 'string',
+            minLength: 1,
             title: 'Name',
+            description:
+              'The name of the data frame that was saved as a validated query.',
           },
           nlq: {
             type: 'string',
+            minLength: 1,
             title: 'Nlq',
+            description:
+              'The NLQ (Natural Language Question) that the validated query answers (from the data frame description).',
           },
           verified_at: {
             type: 'string',
             title: 'Verified At',
+            description:
+              'The ISO date-time string when the query was verified.',
           },
           verified_by: {
             type: 'string',
             title: 'Verified By',
+            description: 'The user ID of the user who verified the query.',
           },
           sql: {
             type: 'string',
+            minLength: 1,
             title: 'Sql',
+            description:
+              'The full SQL query. May contain :param_name placeholders for parameterized queries.',
+          },
+          parameters: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/QueryParameter',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parameters',
+            description:
+              'Optional list of parameters for parameterized queries. Each parameter must have name, example_value, and description.',
           },
           sql_errors: {
             anyOf: [
@@ -25912,6 +25991,7 @@ export const spec = {
               },
             ],
             title: 'Sql Errors',
+            description: 'Validation errors for the SQL query',
           },
           nlq_errors: {
             anyOf: [
@@ -25926,6 +26006,7 @@ export const spec = {
               },
             ],
             title: 'Nlq Errors',
+            description: 'Validation errors for the NLQ',
           },
           name_errors: {
             anyOf: [
@@ -25940,13 +26021,29 @@ export const spec = {
               },
             ],
             title: 'Name Errors',
+            description: 'Validation errors for the name',
+          },
+          parameter_errors: {
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parameter Errors',
+            description: 'Validation errors for the parameters',
           },
         },
         type: 'object',
         required: ['name', 'nlq', 'verified_at', 'verified_by', 'sql'],
         title: 'VerifiedQuery',
         description:
-          'A verified query represents a validated SQL query saved from a data frame.',
+          'A verified query represents a validated SQL query saved from a data frame.\n\nVerified queries can optionally include parameters using :param_name\nsyntax in the SQL. When parameters are present, each must have a\ncorresponding QueryParameter definition with an example_value that will\nbe used for validation and as the default value.',
       },
       VerifyVerifiedQueryPayload: {
         properties: {
