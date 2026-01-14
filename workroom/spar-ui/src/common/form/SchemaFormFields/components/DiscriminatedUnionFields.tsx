@@ -2,7 +2,7 @@
 import { Box, Form } from '@sema4ai/components';
 import { FC, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { z } from 'zod';
+import { z, util } from 'zod';
 
 import { getLLMProviderIcon, snakeToCapitalCase } from '../../../helpers';
 import { SelectControlled } from '../../SelectControlled';
@@ -60,7 +60,7 @@ export const DiscriminatedUnionFields: FC<Props> = ({ schema, formKeyPrefix, nam
         'innerType' in discriminatorField.def ? discriminatorField.def.innerType.def : discriminatorField.def;
       return fieldDef.values[0] === value;
     });
-    return option ? option.omit({ [discriminator]: true }) : null;
+    return option ? util.omit(option, { [discriminator]: true }) : null;
   }, [value, definition.options, discriminator]);
 
   return (
