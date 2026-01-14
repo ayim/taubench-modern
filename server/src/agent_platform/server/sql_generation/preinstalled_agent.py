@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import structlog
+from jinja2 import Template
 
 if TYPE_CHECKING:
     from agent_platform.core.agent import Agent
@@ -21,8 +22,8 @@ SQL_GENERATION_AGENT_ARCHITECTURE = "agent_platform.architectures.experimental_1
 _SQL_GENERATION_AGENT_NAME = "SQL Generation Agent"
 
 
-def _get_runbook_path() -> Path:
-    """Resolve the SQL generation runbook path, handling frozen binaries."""
+def _get_runbook_template_path() -> Path:
+    """Resolve the SQL generation runbook template path, handling frozen binaries."""
     from agent_platform.server.constants import IS_FROZEN
 
     # When frozen (PyInstaller), data files are placed under sys._MEIPASS.
@@ -30,33 +31,73 @@ def _get_runbook_path() -> Path:
         import sys
 
         base_dir = Path(sys._MEIPASS) / "agent_platform" / "server" / "sql_generation"  # pyright: ignore[reportAttributeAccessIssue]
-        return base_dir / "runbook.md"
+        return base_dir / "runbook.md.jinja"
 
-    # Non-frozen: runbook lives alongside this module in the source tree
-    return Path(__file__).parent / "runbook.md"
-
-
-# Runbook is stored alongside this module and packaged with the server executable
-RUNBOOK_PATH = _get_runbook_path()
+    # Non-frozen: runbook template lives alongside this module in the source tree
+    return Path(__file__).parent / "runbook.md.jinja"
 
 
-def _load_runbook() -> str:
-    """Load runbook content from runbook.md in the sql_generation module."""
+def _get_relationships_addon_path() -> Path:
+    """Resolve the relationships addon path, handling frozen binaries."""
+    from agent_platform.server.constants import IS_FROZEN
+
+    # When frozen (PyInstaller), data files are placed under sys._MEIPASS.
+    if IS_FROZEN:
+        import sys
+
+        base_dir = Path(sys._MEIPASS) / "agent_platform" / "server" / "sql_generation"  # pyright: ignore[reportAttributeAccessIssue]
+        return base_dir / "runbook_relationships_addon.md"
+
+    # Non-frozen: addon lives alongside this module in the source tree
+    return Path(__file__).parent / "runbook_relationships_addon.md"
+
+
+# Runbook template is stored alongside this module and packaged with the server executable
+RUNBOOK_TEMPLATE_PATH = _get_runbook_template_path()
+RELATIONSHIPS_ADDON_PATH = _get_relationships_addon_path()
+
+
+def _load_runbook_template() -> Template:
+    """Load runbook template from runbook.md.jinja in the sql_generation module."""
     try:
-        with open(RUNBOOK_PATH, encoding="utf-8") as f:
+        with open(RUNBOOK_TEMPLATE_PATH, encoding="utf-8") as f:
+            return Template(f.read())
+    except Exception as e:
+        logger.error(f"Failed to load SQL generation agent runbook template: {e}")
+        raise
+
+
+def _load_relationships_addon() -> str:
+    """Load relationships addon content from runbook_relationships_addon.md."""
+    try:
+        with open(RELATIONSHIPS_ADDON_PATH, encoding="utf-8") as f:
             return f.read()
     except Exception as e:
-        logger.error(f"Failed to load SQL generation agent runbook: {e}")
+        logger.error(f"Failed to load SQL generation relationships addon: {e}")
         raise
 
 
 def _build_sql_generation_agent(user_id: str) -> "Agent":
-    """Return the Agent definition for the SQL generation agent."""
+    """Return the Agent definition for the SQL generation agent.
+
+    Conditionally includes relationship guidance based on SystemConfig.enable_relationship_guidance.
+    """
     from agent_platform.core.agent import Agent
     from agent_platform.core.agent.agent_architecture import AgentArchitecture
     from agent_platform.core.runbook import Runbook
+    from agent_platform.server.constants import SystemConfig
 
-    runbook_text = _load_runbook()
+    runbook_template = _load_runbook_template()
+
+    # Conditionally include relationship guidance if the feature is enabled
+    relationships_guidance = ""
+    if SystemConfig.enable_relationship_guidance:
+        relationships_addon = _load_relationships_addon()
+        # Add newlines before and after to maintain proper spacing
+        relationships_guidance = f"\n{relationships_addon}\n"
+
+    # Render the template with the relationships guidance (or empty string)
+    runbook_text = runbook_template.render(relationships_guidance=relationships_guidance)
 
     return Agent(
         name=_SQL_GENERATION_AGENT_NAME,

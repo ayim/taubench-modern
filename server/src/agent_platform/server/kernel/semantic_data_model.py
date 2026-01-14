@@ -8,7 +8,10 @@ from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQu
 if typing.TYPE_CHECKING:
     from typing import Any
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        Relationship,
+        SemanticDataModel,
+    )
 
 
 def _format_table_field(k: str, v: Any) -> str:
@@ -18,6 +21,56 @@ def _format_table_field(k: str, v: Any) -> str:
     import yaml
 
     return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
+
+
+def _format_relationships(relationships: list[Relationship]) -> str:
+    """Format relationships in the standardized JOIN guidance format.
+
+    Args:
+        relationships: List of relationship dictionaries from semantic data model
+
+    Returns:
+        Formatted relationship information matching the runbook format,
+        or empty string if no valid relationships
+    """
+    if not relationships:
+        return ""
+
+    guidance_parts = []
+    rel_idx = 0
+
+    for rel in relationships:
+        if not isinstance(rel, dict):
+            continue
+
+        rel_idx += 1
+
+        rel_name = rel.get("name", "")
+        left_table = rel.get("left_table", "")
+        right_table = rel.get("right_table", "")
+        rel_columns = rel.get("relationship_columns", [])
+
+        if not left_table or not right_table or not rel_columns:
+            continue
+
+        # Format relationship header: "1. rel_name: left_table → right_table"
+        rel_desc = f"{rel_idx}. {rel_name}: {left_table} → {right_table}"
+        guidance_parts.append(rel_desc)
+
+        # Format JOIN syntax: "   JOIN right_table ON join_clause"
+        join_conditions = []
+        for col_pair in rel_columns:
+            if isinstance(col_pair, dict):
+                left_col = col_pair.get("left_column", "")
+                right_col = col_pair.get("right_column", "")
+                if left_col and right_col:
+                    join_conditions.append(f"{left_table}.{left_col} = {right_table}.{right_col}")
+
+        if join_conditions:
+            join_clause = " AND ".join(join_conditions)
+            guidance_parts.append(f"   JOIN {right_table} ON {join_clause}")
+
+    return "\n".join(guidance_parts)
 
 
 def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]]) -> str:
@@ -82,7 +135,17 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
 
         verified_queries.extend(model.pop("verified_queries", None) or ())
 
-        # Handle what we haven't added yet (relationships, etc.)
+        # Handle relationships - format conditionally based on feature flag
+        relationships = model.pop("relationships", [])
+        from agent_platform.server.constants import SystemConfig
+
+        if SystemConfig.enable_relationship_guidance and relationships:
+            formatted_rels = _format_relationships(relationships)
+            if formatted_rels:
+                result.append("\n**Available Relationships:**\n")
+                result.append(formatted_rels)
+
+        # Handle what we haven't added yet (other fields)
         for k, v in model.items():
             if v:
                 result.append(_format_table_field(k, v))

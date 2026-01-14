@@ -207,7 +207,11 @@ ALL_DATAS = [
 
     ),
     (
-        "src/agent_platform/server/sql_generation/runbook.md",
+        "src/agent_platform/server/sql_generation/runbook.md.jinja",
+        "agent_platform/server/sql_generation",
+    ),
+    (
+        "src/agent_platform/server/sql_generation/runbook_relationships_addon.md",
         "agent_platform/server/sql_generation",
     ),
     *agent_arch_metadata,

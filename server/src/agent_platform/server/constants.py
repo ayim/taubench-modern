@@ -111,6 +111,20 @@ class SystemConfig(Configuration):
         ),
     )
 
+    # Kernel configuration
+    enable_relationship_guidance: bool = field(
+        default=False,
+        metadata=FieldMetadata(
+            description=(
+                "Enable relationship-based JOIN guidance in SQL generation. "
+                "When enabled, provides explicit JOIN guidance based on relationships "
+                "defined in semantic data models. Can be disabled for baseline testing "
+                "or troubleshooting query generation issues."
+            ),
+            env_vars=["SEMA4AI_ENABLE_RELATIONSHIP_GUIDANCE"],
+        ),
+    )
+
     # File manager configuration
     file_manager_type: Literal["local", "cloud"] = field(
         default="local",
