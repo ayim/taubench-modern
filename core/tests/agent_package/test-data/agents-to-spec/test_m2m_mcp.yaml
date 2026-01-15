@@ -1,16 +1,5 @@
 agent-package:
-  spec-version: v2.1
-  exclude:
-  - ./.git/**
-  - ./.vscode/**
-  - ./devdata/**
-  - ./output/**
-  - ./venv/**
-  - ./.venv/**
-  - ./**/.env
-  - ./**/.DS_Store
-  - ./**/*.pyc
-  - ./*.zip
+  spec-version: v2
   agents:
   - name: Test Agent - M2M MCP
     description: Test Agent - M2M MCP Description
@@ -40,3 +29,14 @@ agent-package:
       - name: echo
     agent-settings:
       enable_data_frames: false
+  exclude:
+  - ./.git/**
+  - ./.vscode/**
+  - ./devdata/**
+  - ./output/**
+  - ./venv/**
+  - ./.venv/**
+  - ./**/.env
+  - ./**/.DS_Store
+  - ./**/*.pyc
+  - ./*.zip

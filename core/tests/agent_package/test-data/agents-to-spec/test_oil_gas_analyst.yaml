@@ -1,16 +1,5 @@
 agent-package:
-  spec-version: v2.1
-  exclude:
-  - ./.git/**
-  - ./.vscode/**
-  - ./devdata/**
-  - ./output/**
-  - ./venv/**
-  - ./.venv/**
-  - ./**/.env
-  - ./**/.DS_Store
-  - ./**/*.pyc
-  - ./*.zip
+  spec-version: v2
   agents:
   - name: Oil and Gas Analyst
     description: Analyze North Dakota oil well production data.
@@ -50,3 +39,14 @@ agent-package:
       tools: []
     agent-settings:
       enable_data_frames: true
+  exclude:
+  - ./.git/**
+  - ./.vscode/**
+  - ./devdata/**
+  - ./output/**
+  - ./venv/**
+  - ./.venv/**
+  - ./**/.env
+  - ./**/.DS_Store
+  - ./**/*.pyc
+  - ./*.zip

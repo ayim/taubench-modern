@@ -529,7 +529,7 @@ class TestAgentSpecGeneratorFromAgent:
         assert isinstance(spec, AgentPackageSpec)
         assert spec.agent_package is not None
         # Spec version should default to v2 when agent version is not valid
-        assert spec.agent_package.spec_version == "v2.1"
+        assert spec.agent_package.spec_version == "v2"
         assert len(spec.agent_package.agents) == 1
 
         spec_agent = spec.agent_package.agents[0]
@@ -633,7 +633,7 @@ class TestAgentSpecGeneratorFromAgent:
         # Verify the spec is created successfully
         assert isinstance(spec, AgentPackageSpec)
         assert spec.agent_package is not None
-        assert spec.agent_package.spec_version == "v2.1"
+        assert spec.agent_package.spec_version == "v2"
         assert len(spec.agent_package.agents) == 1
 
         spec_agent = spec.agent_package.agents[0]
@@ -762,3 +762,31 @@ class TestAgentSpecGeneratorFromAgent:
             action_package_type="zip",
         )
         assert spec.to_yaml() == spec_oil_gas_analyst
+
+    def test_agent_package_yaml_field_order(self):
+        """Test that the agent-package YAML output has fields in the correct order.
+
+        The expected field order for the top-level 'agent-package' is:
+        1. spec-version
+        2. agents
+        3. exclude
+        """
+        import yaml
+
+        agent = create_minimal_agent()
+        spec = AgentSpecGenerator.from_agent(
+            agent,
+            semantic_data_models=None,
+            action_package_type="zip",
+        )
+
+        yaml_output = spec.to_yaml()
+
+        # Parse the YAML while preserving key order
+        parsed = yaml.safe_load(yaml_output)
+
+        # Get the keys of the agent-package dict in order
+        agent_package_keys = list(parsed["agent-package"].keys())
+
+        # Verify the expected order
+        assert agent_package_keys == ["spec-version", "agents", "exclude"]

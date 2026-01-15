@@ -6,7 +6,7 @@ from agent_platform.core.configurations import FieldMetadata
 @dataclass(frozen=True)
 class AgentPackageConfig:
     max_size_bytes: int = field(
-        default=50_000_000,
+        default=100_000_000,
         metadata=FieldMetadata(description="The maximum size of the agent package in bytes."),
     )
     """The maximum size of the agent package in bytes."""

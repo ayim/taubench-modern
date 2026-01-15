@@ -69,7 +69,7 @@ DEFAULT_AGENT_PACKAGE_EXCLUDE = [
     "./*.zip",
 ]
 
-DEFAULT_AGENT_PACKAGE_SPEC_VERSION = "v2.1"
+DEFAULT_AGENT_PACKAGE_SPEC_VERSION: Literal["v2"] = "v2"
 # The ID of the agent used for comparison purposes
 DEFAULT_AGENT_TEMP_ID = "default_agent_temp_id"
 DEFAULT_AGENT_TEMP_USER_ID = "default_agent_temp_user_id"
@@ -293,8 +293,8 @@ class AgentPackageSpecContents(BaseModel):
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
     spec_version: SpecVersion = Field(alias="spec-version")
-    exclude: list[str] | None = None
     agents: list[SpecAgent]
+    exclude: list[str] | None = None
 
     # Validate if there is only one Agent defined in the AgentSpec.
     @field_validator("agents", mode="before")
