@@ -15,6 +15,7 @@ from agent_platform.core.agent_package.metadata.agent_metadata import (
 from agent_platform.core.agent_package.metadata.agent_metadata_generator import AgentMetadataGenerator
 from agent_platform.core.agent_package.read import ReadAgentPackageResult
 from agent_platform.core.agent_package.read import read_agent_package as core_read_agent_package
+from agent_platform.core.agent_package.spec import SpecActionPackageType
 from agent_platform.core.errors.base import PlatformError
 from agent_platform.core.errors.status_response import StatusError, StatusResponse
 from agent_platform.core.payloads.action_package import ActionPackagePayload
@@ -272,6 +273,9 @@ async def build_agent_package(
     user: AuthedUser,
     storage: StorageDependency,
     project_package_zip: UploadFile = File(..., description="Agent Project Package ZIP file"),  # noqa: B008
+    action_package_type: SpecActionPackageType | None = Form(  # noqa: B008
+        None, description="Action package type to include in the build: zip or folder"
+    ),
 ) -> Response:
     """Build an agent package from a zipped agent project.
 
@@ -281,15 +285,32 @@ async def build_agent_package(
         user: The user building the agent package.
         storage: The storage dependency.
         project_package_zip: The zip file containing the compressed Agent Project Folder.
+        action_package_type: Optional action package type to use ("zip" or "folder").
 
     Returns:
         A Response containing the agent package zip file.
     """
+    if action_package_type is None:
+        action_package_type = "zip"
+
+    if action_package_type not in ("zip", "folder"):
+        from agent_platform.core.errors.base import PlatformHTTPError
+        from agent_platform.core.errors.responses import ErrorCode
+
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message="action_package_type must be 'zip' or 'folder'",
+        )
+
     # Read the uploaded zip file contents
     with await AgentPackageHandler.from_stream(iter_upload_file_chunks(project_package_zip)) as handler:
         builder = AgentPackageBuilder(handler)
         headers = {"Content-Disposition": 'attachment; filename="agent_package.zip"'}
-        return StreamingResponse(await builder.build(), media_type="application/zip", headers=headers)
+        return StreamingResponse(
+            await builder.build(action_package_type=action_package_type),
+            media_type="application/zip",
+            headers=headers,
+        )
 
 
 @router.post(

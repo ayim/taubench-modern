@@ -146,15 +146,44 @@ class AgentPackageHandler(BasePackageHandler):
         paths = [ap.path for ap in spec_agent.action_packages if ap.path]
         return paths
 
+    async def _read_action_package_folder_contents(self, action_package_path: str) -> "ActionPackageContent":
+        """Read action package folder contents into an ActionPackageContent dict."""
+        action_package_files: ActionPackageContent = {}
+        action_package_folder_prefix = f"{AgentPackageConfig.actions_dirname}/{action_package_path}/"
+
+        all_files = await self.list_files()
+        for filename in all_files:
+            if filename.startswith(action_package_folder_prefix):
+                relative_path = filename[len(action_package_folder_prefix) :]
+                if not relative_path or filename.endswith("/"):
+                    continue
+                action_package_files[relative_path] = await self.read_file(filename)
+
+        return action_package_files
+
     async def get_action_packages_handlers(self) -> list[tuple[str, "ActionPackageHandler"]]:
         """Get all Action Package handlers from the agent package."""
         from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
 
-        action_package_paths = await self.list_action_package_paths()
-        handlers = [
-            (path, await ActionPackageHandler.from_bytes(await self.read_action_package_zip_raw(path)))
-            for path in action_package_paths
-        ]
+        spec_agent = await self.get_spec_agent()
+        handlers: list[tuple[str, ActionPackageHandler]] = []
+
+        for action_package in spec_agent.action_packages:
+            if not action_package.path:
+                continue
+
+            action_package_type = action_package.type or "zip"
+            if action_package_type == "folder":
+                action_package_files = await self._read_action_package_folder_contents(action_package.path)
+                ap_handler = await ActionPackageHandler.create_empty().write_package_contents(action_package_files)
+                ap_handler.flush_writer()
+                handlers.append((action_package.path, ap_handler))
+            else:
+                ap_handler = await ActionPackageHandler.from_bytes(
+                    await self.read_action_package_zip_raw(action_package.path)
+                )
+                handlers.append((action_package.path, ap_handler))
+
         return handlers
 
     async def read_action_package_zip_raw(self, action_package_zip_path: str) -> bytes:

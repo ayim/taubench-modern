@@ -12017,6 +12017,20 @@ export const spec = {
             title: 'Project Package Zip',
             description: 'Agent Project Package ZIP file',
           },
+          action_package_type: {
+            anyOf: [
+              {
+                type: 'string',
+                enum: ['zip', 'folder'],
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Action Package Type',
+            description:
+              'Action package type to include in the build: zip or folder',
+          },
         },
         type: 'object',
         required: ['project_package_zip'],

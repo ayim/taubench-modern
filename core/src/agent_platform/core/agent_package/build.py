@@ -17,7 +17,7 @@ logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
     from agent_platform.core.agent_package.handler.action_package import ActionPackageHandler
-    from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
+    from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecActionPackageType, SpecAgent
 
 
 class AgentPackageBuilder:
@@ -65,16 +65,16 @@ class AgentPackageBuilder:
             self._project_handler.close()
         logger.debug("AgentPackageBuilder cleanup complete")
 
-    async def build(self) -> AsyncGenerator[bytes, None]:
+    async def build(self, action_package_type: SpecActionPackageType) -> AsyncGenerator[bytes, None]:
         """Build the agent package.
 
         The process:
         1. Read and validate the agent-spec.yaml from the project
         2. For each action package folder:
            - Verify it has __action_server_metadata__.json
-           - Zip the folder contents
-           - Store as actions/<org>/<name>/<version>.zip
-        3. Update the agent spec to use "zip" type and new paths
+           - Zip the folder contents or copy the folder contents based on action_package_type
+           - Store as actions/<org>/<name>/<version>.zip or actions/<org>/<name>/...
+        3. Update the agent spec to use the selected type and new paths
         4. Generate agent package metadata
         5. Return the final agent package zip
 
@@ -97,7 +97,7 @@ class AgentPackageBuilder:
         self._spec_agent = await self._project_handler.get_spec_agent()
 
         # Update the spec with new action package paths
-        self._spec_agent.action_packages = await self._process_action_packages()
+        self._spec_agent.action_packages = await self._process_action_packages(action_package_type)
 
         # Write the updated agent-spec.yaml
         await self._output_handler.write_agent_spec(self._agent_package_spec)
@@ -186,11 +186,11 @@ class AgentPackageBuilder:
         )
         return action_package_files
 
-    async def _process_action_packages(self) -> list[SpecActionPackage]:
+    async def _process_action_packages(self, action_package_type: SpecActionPackageType) -> list[SpecActionPackage]:
         """Process all action packages: collect files, zip them, and add to output.
 
         Returns:
-            List of updated action package spec entries with zip paths.
+            List of updated action package spec entries with updated paths.
 
         Raises:
             PlatformHTTPError: If action packages are invalid.
@@ -212,41 +212,56 @@ class AgentPackageBuilder:
             # Collect all files for this action package
             action_package_files = await self._collect_action_package_files(action_package)
 
-            # Create handler with zipped action package files
-            ap_handler = await ActionPackageHandler.create_empty().write_package_contents(action_package_files)
+            if action_package_type == "zip":
+                # Create handler with zipped action package files
+                ap_handler = await ActionPackageHandler.create_empty().write_package_contents(action_package_files)
 
-            # Get the zip bytes for writing to output
-            action_package_zip_bytes = ap_handler.to_zip_bytes()
+                # Get the zip bytes for writing to output
+                action_package_zip_bytes = ap_handler.to_zip_bytes()
 
-            # Create the new zip path: <org>/<name>/<version>.zip
-            zip_path = create_action_package_path(
-                "zip", action_package.organization, action_package.name, action_package.version
-            )
+                # Create the new zip path: <org>/<name>/<version>.zip
+                action_package_path = create_action_package_path(
+                    "zip", action_package.organization, action_package.name, action_package.version
+                )
 
-            # Write to output using handler
-            await self._output_handler.write_file(
-                f"{AgentPackageConfig.actions_dirname}/{zip_path}",
-                action_package_zip_bytes,
-            )
+                # Write to output using handler
+                await self._output_handler.write_file(
+                    f"{AgentPackageConfig.actions_dirname}/{action_package_path}",
+                    action_package_zip_bytes,
+                )
 
-            # Keep the handler for cleanup (tracked by instance)
-            self._action_package_handlers.append((zip_path, ap_handler))
+                # Keep the handler for cleanup (tracked by instance)
+                self._action_package_handlers.append((action_package_path, ap_handler))
 
-            logger.debug(
-                "Action package zipped and written",
-                path=zip_path,
-                file_count=len(action_package_files),
-                zip_size_bytes=len(action_package_zip_bytes),
-            )
+                logger.debug(
+                    "Action package zipped and written",
+                    path=action_package_path,
+                    file_count=len(action_package_files),
+                    zip_size_bytes=len(action_package_zip_bytes),
+                )
+            elif action_package_type == "folder":
+                # Create the new folder path: <org>/<name>
+                action_package_path = create_action_package_path(
+                    "folder", action_package.organization, action_package.name, action_package.version
+                )
+                await self._output_handler.write_action_package(action_package_path, action_package_files)
+
+                logger.debug(
+                    "Action package folder written",
+                    path=action_package_path,
+                    file_count=len(action_package_files),
+                )
+            else:
+                raise ValueError(f"Invalid action package type: {action_package_type}")
 
             # Create updated action package spec entry
             updated_action_package = SpecActionPackage(
                 name=action_package.name,
                 organization=action_package.organization,
                 version=action_package.version,
-                type="zip",
+                type=action_package_type,
                 whitelist=action_package.whitelist,
-                path=zip_path,
+                path=action_package_path,
             )
             updated_action_packages.append(updated_action_package)
 

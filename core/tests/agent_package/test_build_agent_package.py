@@ -14,7 +14,7 @@ from agent_platform.core.agent_package.build import AgentPackageBuilder
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.create import create_agent_project_zip
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
-from agent_platform.core.agent_package.spec import AgentPackageSpec
+from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecActionPackageType
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedTools
 from agent_platform.core.utils.secret_str import SecretString
@@ -28,7 +28,9 @@ async def collect_async_generator(gen: AsyncGenerator[bytes, None]) -> bytes:
     return result
 
 
-async def build_agent_package_from_project_zip(project_zip_bytes: bytes) -> bytes:
+async def build_agent_package_from_project_zip(
+    project_zip_bytes: bytes, action_package_type: SpecActionPackageType = "zip"
+) -> bytes:
     """Build an agent package from a project zip using the AgentPackageBuilder.
 
     Args:
@@ -40,7 +42,7 @@ async def build_agent_package_from_project_zip(project_zip_bytes: bytes) -> byte
     project_handler = await AgentPackageHandler.from_bytes(project_zip_bytes)
     builder = AgentPackageBuilder(project_handler)
     try:
-        agent_package_stream = await builder.build()
+        agent_package_stream = await builder.build(action_package_type=action_package_type)
         return await collect_async_generator(agent_package_stream)
     finally:
         await builder.__aexit__(None, None, None)
@@ -287,3 +289,47 @@ async def test_build_agent_package_preserves_runbook():
         runbook_content = agent_package_zip.read(AgentPackageConfig.runbook_filename).decode("utf-8")
         assert "Custom Runbook" in runbook_content
         assert "Test content" in runbook_content
+
+
+@pytest.mark.asyncio
+async def test_build_agent_package_folder_type_action_packages():
+    """Test that agent_spec contains type 'folder' for action packages when built with folder type."""
+    # Create multiple action packages
+    action_packages = [
+        ActionPackage(name="browsing", organization="Sema4.ai", version="1.3.3"),
+        ActionPackage(name="email", organization="Sema4.ai", version="2.0.0"),
+    ]
+
+    agent = create_minimal_agent(action_packages=action_packages)
+
+    # Create action package files
+    action_packages_map = {
+        "Sema4.ai/browsing": create_action_package_with_metadata("browsing", "Sema4.ai", "1.3.3"),
+        "Sema4.ai/email": create_action_package_with_metadata("email", "Sema4.ai", "2.0.0"),
+    }
+
+    # Create agent project zip
+    project_zip_stream = await create_agent_project_zip(
+        agent, semantic_data_models=[], action_packages_map=action_packages_map
+    )
+    project_zip_bytes = await collect_async_generator(project_zip_stream)
+
+    # Build the agent package with folder type
+    agent_package_bytes = await build_agent_package_from_project_zip(project_zip_bytes, action_package_type="folder")
+
+    # Verify the result is a valid zip
+    assert agent_package_bytes is not None
+    assert len(agent_package_bytes) > 0
+
+    # Verify action packages have type "folder" in the spec
+    with zipfile.ZipFile(BytesIO(agent_package_bytes), "r") as agent_package_zip:
+        # Verify spec has action packages with folder type
+        spec_raw = agent_package_zip.read(AgentPackageConfig.agent_spec_filename)
+        agent_spec = AgentPackageSpec.from_yaml(spec_raw)
+        spec_agent = agent_spec.agent_package.agents[0]
+
+        assert len(spec_agent.action_packages) == 2
+        for ap in spec_agent.action_packages:
+            assert ap.type == "folder"
+            assert ap.path is not None
+            assert ap.path.endswith(".zip") is False

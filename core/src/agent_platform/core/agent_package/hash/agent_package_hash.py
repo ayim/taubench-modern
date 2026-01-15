@@ -22,6 +22,8 @@ async def calculate_agent_package_hash(handler: AgentPackageHandler) -> dict[str
         16-character hexadecimal hash string representing the combined hash of all action packages
     """
 
+    from agent_platform.core.agent_package.config import AgentPackageConfig
+
     spec_agent = await handler.get_spec_agent()
 
     # Calculate hash for each action package
@@ -32,23 +34,25 @@ async def calculate_agent_package_hash(handler: AgentPackageHandler) -> dict[str
             if not action_package.path:
                 continue
 
-            # The action_package.path is a path to a zip file within the main agent package
-            # We need to read the action package zip from the main zip
-            # then read package.yaml from it
-            action_packages_zip_bytes = await handler.read_action_package_zip_raw(action_package.path)
+            if action_package.type == "folder":
+                package_spec_path = (
+                    f"{AgentPackageConfig.actions_dirname}/"
+                    f"{action_package.path}/"
+                    f"{AgentPackageConfig.action_package_spec_filename}"
+                )
+                yaml_raw = await handler.read_file(package_spec_path)
+            else:
+                # The action_package.path is a path to a zip file within the main agent package
+                # We need to read the action package zip from the main zip
+                # then read package.yaml from it
+                action_packages_zip_bytes = await handler.read_action_package_zip_raw(action_package.path)
 
-            with await ActionPackageHandler.from_bytes(action_packages_zip_bytes) as action_package_handler:
-                try:
+                with await ActionPackageHandler.from_bytes(action_packages_zip_bytes) as action_package_handler:
                     yaml_raw = await action_package_handler.read_package_spec_raw()
 
-                    # Calculate hash for this action package
-                    action_hash, _ = calculate_environment_hash([yaml_raw.decode()])
-                    packages_hashes.append(action_hash)
-                except FileNotFoundError:
-                    # If package.yaml is not found, skip this action package
-                    # This could happen if the action package doesn't have environment
-                    # dependencies
-                    continue
+            # Calculate hash for this action package
+            action_hash, _ = calculate_environment_hash([yaml_raw.decode()])
+            packages_hashes.append(action_hash)
 
         except FileNotFoundError:
             # If package.yaml is not found, skip this action package

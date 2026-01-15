@@ -4863,6 +4863,11 @@ export interface components {
        * @description Agent Project Package ZIP file
        */
       project_package_zip: string;
+      /**
+       * Action Package Type
+       * @description Action package type to include in the build: zip or folder
+       */
+      action_package_type?: ('zip' | 'folder') | null;
     };
     /** Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post */
     Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {

@@ -40,6 +40,7 @@ Available targets:
   run-server-hot-reload     Run the agent server with hot reloading (uvicorn --reload)
   run-server                Run the agent server
   sync                      Sync/install all packages in the monorepo
+  update-interface          Regenerates Agent Server interface files from OpenAPI spec
   test-integration          Run only integration tests
   test-unit                 Run only unit tests
   test-vcr-record-fresh     Run tests with pytest and record VCR cassettes

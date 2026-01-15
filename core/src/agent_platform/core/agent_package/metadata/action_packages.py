@@ -132,8 +132,11 @@ class ActionPackageMetadataReader:
         # Normalize path to use forward slashes
         full_ap_path = action_package_spec.path or ""
         normalized_path = full_ap_path.replace("\\", "/")
-        # Get the folder path from the full path
-        folder_path = os.path.dirname(normalized_path)
+        if action_package_spec.type == "folder":
+            folder_path = normalized_path
+        else:
+            # Get the folder path from the full path
+            folder_path = os.path.dirname(normalized_path)
 
         # Get action_package_version from metadata
         action_package_version = nested_metadata.get("action_package_version", "")
