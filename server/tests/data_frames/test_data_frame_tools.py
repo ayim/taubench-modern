@@ -646,3 +646,143 @@ async def test_sql_error_returns_needs_retry_status():
     data_frames_after = await storage_stub.list_data_frames(storage_stub.thread.tid)
     assert len(data_frames_after) == 2
     assert any(df.name == "good_query_result" for df in data_frames_after)
+
+
+@pytest.mark.asyncio
+async def test_duplicate_verified_query_names_in_interface():
+    """Test that AgentServerDataFramesInterface creates unique tools for duplicate query names."""
+    from tests.data_frames.fixtures import KernelStub, StorageStub
+
+    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+    from agent_platform.core.kernel import Kernel
+    from agent_platform.server.kernel.data_frames import (
+        AgentServerDataFramesInterface,
+    )
+    from agent_platform.server.storage.base import BaseStorage
+
+    storage_stub = StorageStub()
+    kernel_stub = KernelStub(storage_stub.thread, storage_stub.thread.user)
+
+    # Create a test data frame
+    await storage_stub.create_in_memory_data_frame(
+        name="test_data_frame",
+        contents={"col1": [1, 2, 3], "col2": [4, 5, 6]},
+    )
+
+    # Create two semantic data models with verified queries that have the same name
+    semantic_data_models_for_test: list[BaseStorage.SemanticDataModelInfo] = [
+        {
+            "semantic_data_model": {
+                "name": "first_model",
+                "description": "First model with duplicate query name",
+                "tables": [
+                    {
+                        "name": "test_table",
+                        "base_table": {
+                            "table": "test_data_frame",
+                            "data_connection_id": "data-connection-id1",
+                        },
+                        "description": "Test table",
+                        "dimensions": [
+                            {
+                                "name": "col1",
+                                "expr": "col1",
+                                "data_type": "INTEGER",
+                                "description": "Column 1",
+                            }
+                        ],
+                    }
+                ],
+                "verified_queries": [
+                    VerifiedQuery(
+                        name="get data",
+                        nlq="Get data from first model",
+                        sql="SELECT * FROM test_table LIMIT 5",
+                        verified_at="2024-01-01T00:00:00.000Z",
+                        verified_by="test-user",
+                    )
+                ],
+            },
+            "semantic_data_model_id": "sdm-id-1",
+            "agent_ids": {storage_stub.thread.agent_id},
+            "thread_ids": {storage_stub.thread.tid},
+            "updated_at": "2024-01-01T00:00:00.000Z",
+        },
+        {
+            "semantic_data_model": {
+                "name": "second_model",
+                "description": "Second model with duplicate query name",
+                "tables": [
+                    {
+                        "name": "another_table",
+                        "base_table": {
+                            "table": "test_data_frame",
+                            "data_connection_id": "data-connection-id2",
+                        },
+                        "description": "Another test table",
+                        "dimensions": [
+                            {
+                                "name": "col2",
+                                "expr": "col2",
+                                "data_type": "INTEGER",
+                                "description": "Column 2",
+                            }
+                        ],
+                    }
+                ],
+                "verified_queries": [
+                    VerifiedQuery(
+                        name="get data",
+                        nlq="Get data from second model",
+                        sql="SELECT * FROM another_table LIMIT 3",
+                        verified_at="2024-01-01T00:00:00.000Z",
+                        verified_by="test-user",
+                    )
+                ],
+            },
+            "semantic_data_model_id": "sdm-id-2",
+            "agent_ids": {storage_stub.thread.agent_id},
+            "thread_ids": {storage_stub.thread.tid},
+            "updated_at": "2024-01-01T00:00:00.000Z",
+        },
+    ]
+
+    # Configure storage stub to return semantic data models
+    async def mock_list_semantic_data_models(agent_id: str | None = None, thread_id: str | None = None):
+        return semantic_data_models_for_test
+
+    storage_stub.list_semantic_data_models = mock_list_semantic_data_models
+
+    # Create and initialize the interface
+    interface = AgentServerDataFramesInterface()
+    interface.attach_kernel(typing.cast(Kernel, kernel_stub))
+
+    state = _DefaultDataFrameArchState()
+    await interface.step_initialize(storage=typing.cast(BaseStorage, storage_stub), state=state)
+
+    # Get the tools
+    tools = interface.get_data_frame_tools()
+
+    # Debug: print all tool names
+    all_tool_names = [t.name for t in tools]
+    print(f"All tools: {all_tool_names}")
+
+    # Find tools with names starting with "get_data"
+    verified_query_tools = [tool for tool in tools if tool.name.startswith("get_data")]
+
+    # Should have exactly 2 tools with unique names
+    assert len(verified_query_tools) == 2, (
+        f"Expected 2 tools for duplicate query names, got {len(verified_query_tools)}: "
+        f"{[t.name for t in verified_query_tools]}\n"
+        f"All tools: {all_tool_names}"
+    )
+
+    tool_names = sorted([tool.name for tool in verified_query_tools])
+    assert tool_names == ["get_data", "get_data_1"], f"Expected tool names ['get_data', 'get_data_1'], got {tool_names}"
+
+    # Verify that both tools exist and have different descriptions
+    get_data_tool = next(t for t in verified_query_tools if t.name == "get_data")
+    get_data_2_tool = next(t for t in verified_query_tools if t.name == "get_data_1")
+
+    # Each tool should correspond to a different query with a different description
+    assert get_data_tool.description != get_data_2_tool.description

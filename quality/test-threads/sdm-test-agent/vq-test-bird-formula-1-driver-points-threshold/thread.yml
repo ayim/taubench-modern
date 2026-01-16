@@ -1,0 +1,36 @@
+name: vq-test-bird-formula-1-driver-points-threshold
+description: "Test verified query tool: Driver Points Above Threshold"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-driver-points-threshold
+    description: "Test the driver_points_above_threshold verified query tool"
+    messages:
+      - role: user
+        content: |
+          Find all drivers who scored above 50 points in the 2016 season.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: driver_points_above_threshold
+          required: true
+          expected-args:
+            season_year: 2016
+            points_threshold: 50.0
+    description: >
+      Verify that the driver_points_above_threshold verified query tool is called
+      with the correct parameters (season_year=2021, points_threshold=100.0).
+      This tests integer and float parameter types.

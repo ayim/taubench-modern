@@ -39,6 +39,10 @@ class StorageStub:
     ) -> list["BaseStorage.SemanticDataModelInfo"]:
         return []
 
+    async def get_data_connections(self, data_connection_ids: list[str]) -> list:
+        """Mock method for getting data connections."""
+        return []
+
     async def get_file_by_ref(
         self,
         owner,

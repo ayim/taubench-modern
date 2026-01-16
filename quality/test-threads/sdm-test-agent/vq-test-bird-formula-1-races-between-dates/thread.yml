@@ -1,0 +1,36 @@
+name: vq-test-bird-formula-1-races-between-dates
+description: "Test verified query tool: Races Between Dates with datetime parameters"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-races-between-dates
+    description: "Test the races_between_dates verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me all races in 2017.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: races_between_dates
+          required: true
+          expected-args:
+            start_date: "2017-01-01"
+            end_date: "2017-12-31"
+    description: >
+      Verify that the races_between_dates verified query tool is called
+      with the correct parameters (start_date="2020-01-01", end_date="2020-12-31").
+      This tests datetime parameter types.

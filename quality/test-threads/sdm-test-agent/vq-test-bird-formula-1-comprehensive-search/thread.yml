@@ -1,0 +1,39 @@
+name: vq-test-bird-formula-1-comprehensive-search
+description: "Test verified query tool: Comprehensive Race Results Search with multiple parameters"
+difficulty: moderate
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-comprehensive-search
+    description: "Test the comprehensive_race_results_search verified query tool"
+    messages:
+      - role: user
+        content: |
+          Search for race results with British driver nationality AND German constructor nationality in 2017, positions 1-10, minimum 1 point.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: comprehensive_race_results_search
+          required: true
+          expected-args:
+            season_year: 2017
+            min_position: 1
+            max_position: 10
+            min_points: 1.0
+            driver_nationality: "British"
+            constructor_nationality: "German"
+    description: >
+      Verify that the comprehensive_race_results_search verified query tool is called
+      with all correct parameters. This tests multiple parameter types including nullable strings.

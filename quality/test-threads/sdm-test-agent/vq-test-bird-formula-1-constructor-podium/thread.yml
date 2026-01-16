@@ -1,0 +1,37 @@
+name: vq-test-bird-formula-1-constructor-podium
+description: "Test verified query tool: Constructor Podium Results by Nationality"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-constructor-podium
+    description: "Test the constructor_podium_results_by_nationality verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me podium finishes for Italian constructors in 2016.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: constructor_podium_results_by_nationality
+          required: true
+          expected-args:
+            nationality: "Italian"
+            season_year: 2016
+            podium_only: true
+    description: >
+      Verify that the constructor_podium_results_by_nationality verified query tool is called
+      with the correct parameters (nationality, season_year, podium_only).
+      This tests string, integer, and boolean parameter types.

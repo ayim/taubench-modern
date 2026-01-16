@@ -14,7 +14,7 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
-from agent_platform.server.kernel.data_frames import get_semantic_data_model_name
+from agent_platform.server.kernel.semantic_data_model import get_semantic_data_model_name
 from sema4ai.common.callback import Callback
 
 if typing.TYPE_CHECKING:

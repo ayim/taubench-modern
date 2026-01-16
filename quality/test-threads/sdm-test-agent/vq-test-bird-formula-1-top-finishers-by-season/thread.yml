@@ -1,0 +1,36 @@
+name: vq-test-bird-formula-1-top-finishers-by-season
+description: "Test verified query tool: Top Finishers by Season with integer parameters"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-top-finishers
+    description: "Test the top_finishers_by_season verified query tool"
+    messages:
+      - role: user
+        content: |
+          Who finished on the podium most often in 2017?
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: top_finishers_by_season
+          required: true
+          expected-args:
+            season_year: 2017
+            max_position: 3
+    description: >
+      Verify that the top_finishers_by_season verified query tool is called
+      with the correct parameters (season_year=2021, max_position=3).
+      This tests two integer parameters.

@@ -1,0 +1,37 @@
+name: vq-test-bird-formula-1-driver-race-results-by-year
+description: "Test verified query tool: Driver Race Results by Year with integer and string parameters"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-driver-race-results
+    description: "Test the driver_race_results_by_year verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me Hamilton's race results for the 2017 season.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: driver_race_results_by_year
+          required: true
+          expected-args:
+            season_year: 2017
+            driver_surname: "Hamilton"
+            new_data_frame_name: null  # Just check it exists, don't care about the value
+    description: >
+      Verify that the driver_race_results_by_year verified query tool is called
+      with the correct parameters (season_year=2020, driver_surname="Hamilton").
+      This tests integer and string parameter types.

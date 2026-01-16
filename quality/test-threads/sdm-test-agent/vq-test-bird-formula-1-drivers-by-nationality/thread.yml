@@ -1,0 +1,35 @@
+name: vq-test-bird-formula-1-drivers-by-nationality
+description: "Test verified query tool: Drivers by Nationality with single string parameter"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-drivers-by-nationality
+    description: "Test the drivers_by_nationality verified query tool"
+    messages:
+      - role: user
+        content: |
+          List all British drivers showing their career race count.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: drivers_by_nationality
+          required: true
+          expected-args:
+            nationality: "British"
+    description: >
+      Verify that the drivers_by_nationality verified query tool is called
+      with the correct parameter (nationality="British").
+      This tests a single string parameter.

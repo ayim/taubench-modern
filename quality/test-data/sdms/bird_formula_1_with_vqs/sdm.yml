@@ -1,0 +1,655 @@
+name: Formula 1 Analytics
+tables:
+  - name: drivers
+    synonyms:
+      - f1_drivers
+      - driver_master
+    base_table:
+      table: drivers
+      schema: null
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: driverid
+        name: driverid
+        data_type: '!int64'
+        description: Surrogate key uniquely identifying a driver.
+      - expr: forename
+        name: forename
+        data_type: string
+        description: Driver first/given name.
+      - expr: surname
+        name: surname
+        data_type: string
+        description: Driver last/family name.
+      - expr: nationality
+        name: nationality
+        data_type: string
+        description: Driver nationality.
+      - expr: code
+        name: code
+        data_type: string
+        description: Short driver code (three letters).
+
+  - name: races
+    synonyms:
+      - grand_prix_events
+    base_table:
+      table: races
+      schema: null
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: raceid
+        name: raceid
+        data_type: '!int64'
+        description: Surrogate key uniquely identifying a race event.
+      - expr: year
+        name: year
+        data_type: int64
+        description: Championship season year.
+      - expr: round
+        name: round
+        data_type: int64
+        description: Round number of the race within the season.
+      - expr: name
+        name: name
+        data_type: string
+        description: Official race name.
+    time_dimensions:
+      - expr: date
+        name: date
+        data_type: date
+        description: Race date.
+
+  - name: results
+    base_table:
+      table: results
+      schema: null
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: resultid
+        name: resultid
+        data_type: '!int64'
+        description: Unique identifier for race result.
+      - expr: raceid
+        name: raceid
+        data_type: int64
+        description: Race identifier.
+      - expr: driverid
+        name: driverid
+        data_type: int64
+        description: Driver identifier.
+      - expr: constructorid
+        name: constructorid
+        data_type: int64
+        description: Constructor (team) identifier for the driver in this race.
+      - expr: position
+        name: position
+        data_type: int64
+        description: Final position in the race.
+    facts:
+      - expr: points
+        name: points
+        data_type: float32
+        description: Championship points awarded.
+      - expr: laps
+        name: laps
+        data_type: int64
+        description: Number of laps completed.
+
+  - name: constructors
+    synonyms:
+      - teams
+    base_table:
+      table: constructors
+      schema: null
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: constructorid
+        name: constructorid
+        data_type: '!int64'
+        description: Unique identifier for constructor.
+      - expr: name
+        name: name
+        data_type: string
+        description: Constructor name.
+      - expr: nationality
+        name: nationality
+        data_type: string
+        description: Constructor nationality.
+
+  - name: pitstops
+    base_table:
+      table: pitstops
+      schema: null
+      database: null
+      data_connection_name: postgres-spar
+    dimensions:
+      - expr: raceid
+        name: raceid
+        data_type: '!int64'
+        description: Race identifier.
+      - expr: driverid
+        name: driverid
+        data_type: '!int64'
+        description: Driver identifier.
+      - expr: stop
+        name: stop
+        data_type: '!int64'
+        description: Sequential stop number.
+      - expr: lap
+        name: lap
+        data_type: int64
+        description: Lap number of pit stop.
+    facts:
+      - expr: milliseconds
+        name: milliseconds
+        data_type: int64
+        description: Pit stop duration in milliseconds.
+
+verified_queries:
+  - name: Driver Race Results by Year
+    nlq: Get race results for a specific driver in a given season year
+    sql: |
+      SELECT 
+        d.forename || ' ' || d.surname as driver_name,
+        r.name as race_name,
+        r.date as race_date,
+        res.position,
+        res.points,
+        res.laps
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      WHERE r.year = :season_year
+        AND d.surname = :driver_surname
+      ORDER BY r.round
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year to filter results
+        example_value: 2020
+      - name: driver_surname
+        data_type: string
+        description: The driver's last name (surname)
+        example_value: "Hamilton"
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Top Finishers by Season
+    nlq: Count how many times drivers finished in top positions, aggregated by driver showing total races in top N and total points scored
+    sql: |
+      SELECT 
+        d.forename || ' ' || d.surname as driver_name,
+        d.code as driver_code,
+        COUNT(*) as races_in_top_n,
+        SUM(res.points) as total_points
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      WHERE r.year = :season_year
+        AND res.position <= :max_position
+      GROUP BY d.driverid, d.forename, d.surname, d.code
+      ORDER BY total_points DESC
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2021
+      - name: max_position
+        data_type: integer
+        description: Maximum finishing position to include (e.g., 3 for podium finishes)
+        example_value: 3
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Constructor Performance by Season
+    nlq: Get constructor championship standings for a specific season
+    sql: |
+      SELECT 
+        c.name as constructor_name,
+        c.nationality,
+        COUNT(DISTINCT res.raceid) as races_participated,
+        SUM(res.points) as total_points,
+        AVG(res.points) as avg_points_per_race
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN constructors c ON res.constructorid = c.constructorid
+      WHERE r.year = :season_year
+      GROUP BY c.constructorid, c.name, c.nationality
+      HAVING SUM(res.points) >= :min_points
+      ORDER BY total_points DESC
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2019
+      - name: min_points
+        data_type: float
+        description: Minimum total points threshold to include in results
+        example_value: 10.0
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Pit Stop Analysis by Race
+    nlq: Analyze pit stop performance for a specific race
+    sql: |
+      SELECT 
+        d.forename || ' ' || d.surname as driver_name,
+        r.name as race_name,
+        r.date as race_date,
+        ps.stop as stop_number,
+        ps.lap as lap_number,
+        ps.milliseconds as duration_ms,
+        ROUND(ps.milliseconds / 1000.0, 2) as duration_seconds
+      FROM pitstops ps
+      JOIN drivers d ON ps.driverid = d.driverid
+      JOIN races r ON ps.raceid = r.raceid
+      WHERE r.name = :race_name
+        AND r.year = :season_year
+        AND ps.milliseconds <= :max_duration_ms
+      ORDER BY ps.milliseconds ASC
+    parameters:
+      - name: race_name
+        data_type: string
+        description: The name of the race (e.g., 'Australian Grand Prix', 'Monaco Grand Prix')
+        example_value: "Abu Dhabi Grand Prix"
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2020
+      - name: max_duration_ms
+        data_type: integer
+        description: Maximum pit stop duration in milliseconds to filter
+        example_value: 30000
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Drivers by Nationality
+    nlq: List all driver profiles and names from a specific nationality or country, showing their career race count
+    sql: |
+      SELECT 
+        d.forename,
+        d.surname,
+        d.code as driver_code,
+        d.nationality,
+        COUNT(DISTINCT res.raceid) as total_races
+      FROM drivers d
+      LEFT JOIN results res ON d.driverid = res.driverid
+      WHERE d.nationality = :nationality
+      GROUP BY d.driverid, d.forename, d.surname, d.code, d.nationality
+      ORDER BY total_races DESC, d.surname
+    parameters:
+      - name: nationality
+        data_type: string
+        description: Driver nationality to filter by (e.g., 'British', 'German', 'Italian')
+        example_value: "British"
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Races Between Dates
+    nlq: Get all races that occurred between two dates, or list all races in a specific year
+    sql: |
+      SELECT 
+        r.name as race_name,
+        r.date as race_date,
+        r.year as season_year,
+        r.round as round_number
+      FROM races r
+      WHERE r.date >= :start_date
+        AND r.date <= :end_date
+      ORDER BY r.date
+    parameters:
+      - name: start_date
+        data_type: datetime
+        description: Start date for race filter (format YYYY-MM-DD)
+        example_value: "2020-01-01"
+      - name: end_date
+        data_type: datetime
+        description: End date for race filter (format YYYY-MM-DD)
+        example_value: "2020-12-31"
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Driver Points Above Threshold
+    nlq: Find which drivers scored more than or above a certain points threshold in a specific season
+    sql: |
+      SELECT 
+        d.forename || ' ' || d.surname as driver_name,
+        d.code,
+        SUM(res.points) as total_points,
+        COUNT(*) as races_completed
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      WHERE r.year = :season_year
+      GROUP BY d.driverid, d.forename, d.surname, d.code
+      HAVING SUM(res.points) > :points_threshold
+      ORDER BY total_points DESC
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2021
+      - name: points_threshold
+        data_type: float
+        description: Minimum points threshold (drivers above this will be returned)
+        example_value: 100.0
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Race Results by Position Range
+    nlq: Get individual race-by-race results for ALL drivers who finished within a position range, showing each race result separately (not aggregated by driver)
+    sql: |
+      SELECT 
+        r.name as race_name,
+        r.year as season,
+        d.forename || ' ' || d.surname as driver_name,
+        c.name as constructor_name,
+        res.position,
+        res.points
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      JOIN constructors c ON res.constructorid = c.constructorid
+      WHERE res.position >= :min_position
+        AND res.position <= :max_position
+        AND r.year = :season_year
+      ORDER BY r.round, res.position
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2022
+      - name: min_position
+        data_type: integer
+        description: Minimum finishing position (inclusive)
+        example_value: 1
+      - name: max_position
+        data_type: integer
+        description: Maximum finishing position (inclusive)
+        example_value: 5
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Did Not Finish Analysis with Status Details
+    nlq: Analyze races where drivers did not finish, with optional detailed retirement status information
+    sql: |
+      SELECT 
+        r.name as race_name,
+        r.year as season,
+        r.date as race_date,
+        d.forename || ' ' || d.surname as driver_name,
+        res.statusid,
+        CASE 
+          WHEN :include_status_details = true THEN s.status
+          ELSE 'DNF'
+        END as finish_status
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      LEFT JOIN status s ON res.statusid = s.statusid
+      WHERE res.position IS NULL
+        AND r.year = :season_year
+      ORDER BY r.round, d.surname
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2021
+      - name: include_status_details
+        data_type: boolean
+        description: Include detailed status information (retirement reason)
+        example_value: true
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Constructor Podium Results by Nationality
+    nlq: Get race results for constructors from a specific country, with optional filter to show only podium finishes (top 3)
+    sql: |
+      SELECT 
+        c.name as constructor_name,
+        r.name as race_name,
+        r.year as season,
+        d.forename || ' ' || d.surname as driver_name,
+        res.position,
+        res.points
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      JOIN constructors c ON res.constructorid = c.constructorid
+      WHERE c.nationality = :nationality
+        AND r.year = :season_year
+        AND (:podium_only = false OR res.position <= 3)
+      ORDER BY r.round, res.position
+    parameters:
+      - name: nationality
+        data_type: string
+        description: Constructor nationality
+        example_value: "Italian"
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2020
+      - name: podium_only
+        data_type: boolean
+        description: Filter to show only podium finishes (positions 1-3)
+        example_value: true
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Comprehensive Race Results Search
+    nlq: Advanced search of race results with BOTH driver nationality AND constructor nationality filters combined with position and points criteria
+    sql: |
+      SELECT 
+        r.name as race_name,
+        r.year as season,
+        r.date as race_date,
+        d.forename || ' ' || d.surname as driver_name,
+        d.nationality as driver_nationality,
+        c.name as constructor_name,
+        res.position,
+        res.points,
+        res.laps
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      JOIN constructors c ON res.constructorid = c.constructorid
+      WHERE r.year = :season_year
+        AND res.position >= :min_position
+        AND res.position <= :max_position
+        AND res.points >= :min_points
+        AND (:driver_nationality IS NULL OR d.nationality = :driver_nationality)
+        AND (:constructor_nationality IS NULL OR c.nationality = :constructor_nationality)
+      ORDER BY r.round, res.position
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2021
+      - name: min_position
+        data_type: integer
+        description: Minimum finishing position
+        example_value: 1
+      - name: max_position
+        data_type: integer
+        description: Maximum finishing position
+        example_value: 10
+      - name: min_points
+        data_type: float
+        description: Minimum points scored in the race
+        example_value: 1.0
+      - name: driver_nationality
+        data_type: string
+        description: Driver nationality filter (optional, can be null)
+        example_value: "British"
+      - name: constructor_nationality
+        data_type: string
+        description: Constructor nationality filter (optional, can be null)
+        example_value: "British"
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Detailed Driver Season Performance
+    nlq: Get detailed race-by-race performance for a specific driver across multiple seasons with various filtering options including date ranges and win-only filter
+    sql: |
+      SELECT 
+        d.forename || ' ' || d.surname as driver_name,
+        d.code as driver_code,
+        r.name as race_name,
+        r.date as race_date,
+        c.name as constructor_name,
+        res.position,
+        res.points,
+        res.laps,
+        res.fastestlaptime
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      JOIN constructors c ON res.constructorid = c.constructorid
+      WHERE d.surname = :driver_surname
+        AND r.year >= :start_year
+        AND r.year <= :end_year
+        AND r.date >= :start_date
+        AND r.date <= :end_date
+        AND res.points >= :min_points
+        AND (:only_wins = false OR res.position = 1)
+      ORDER BY r.date
+    parameters:
+      - name: driver_surname
+        data_type: string
+        description: The driver's last name (surname)
+        example_value: "Hamilton"
+      - name: start_year
+        data_type: integer
+        description: Starting season year
+        example_value: 2019
+      - name: end_year
+        data_type: integer
+        description: Ending season year
+        example_value: 2021
+      - name: start_date
+        data_type: datetime
+        description: Start date filter (format YYYY-MM-DD)
+        example_value: "2019-03-01"
+      - name: end_date
+        data_type: datetime
+        description: End date filter (format YYYY-MM-DD)
+        example_value: "2021-12-31"
+      - name: min_points
+        data_type: float
+        description: Minimum points per race
+        example_value: 0.0
+      - name: only_wins
+        data_type: boolean
+        description: Show only race wins (position = 1)
+        example_value: false
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Race Winners Career Statistics
+    nlq: Get career statistics for all drivers or filter to show only drivers who have won at least one race
+    sql: |
+      SELECT 
+        d.forename,
+        d.surname,
+        d.code,
+        d.nationality,
+        COUNT(CASE WHEN res.position = 1 THEN 1 END) as wins,
+        COUNT(*) as total_races,
+        SUM(res.points) as total_points
+      FROM drivers d
+      LEFT JOIN results res ON d.driverid = res.driverid
+      WHERE (:has_wins = false OR EXISTS (
+        SELECT 1 FROM results r2 WHERE r2.driverid = d.driverid AND r2.position = 1
+      ))
+      GROUP BY d.driverid, d.forename, d.surname, d.code, d.nationality
+      ORDER BY wins DESC, total_points DESC
+    parameters:
+      - name: has_wins
+        data_type: boolean
+        description: Filter to show only drivers who have won at least one race
+        example_value: true
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Race Calendar with Completion Filter
+    nlq: Get races within a specific date range, with option to show only races that have completed and have results recorded
+    sql: |
+      SELECT 
+        r.name as race_name,
+        r.date as race_date,
+        r.year as season_year,
+        r.round,
+        COUNT(DISTINCT res.driverid) as finishers
+      FROM races r
+      LEFT JOIN results res ON r.raceid = res.raceid
+      WHERE r.date >= :start_date
+        AND r.date <= :end_date
+        AND (:has_results = false OR EXISTS (
+          SELECT 1 FROM results res2 WHERE res2.raceid = r.raceid
+        ))
+      GROUP BY r.raceid, r.name, r.date, r.year, r.round
+      ORDER BY r.date
+    parameters:
+      - name: start_date
+        data_type: datetime
+        description: Start date for race filter
+        example_value: "2020-06-01"
+      - name: end_date
+        data_type: datetime
+        description: End date for race filter
+        example_value: "2020-12-31"
+      - name: has_results
+        data_type: boolean
+        description: Show only races that have results recorded
+        example_value: true
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user
+
+  - name: Driver Results by Nationality and Date Range
+    nlq: Get race results for drivers filtered by their nationality with date range within a season and minimum points threshold
+    sql: |
+      SELECT 
+        d.forename || ' ' || d.surname as driver_name,
+        c.name as constructor_name,
+        r.name as race_name,
+        r.date as race_date,
+        res.position,
+        res.points
+      FROM results res
+      JOIN races r ON res.raceid = r.raceid
+      JOIN drivers d ON res.driverid = d.driverid
+      JOIN constructors c ON res.constructorid = c.constructorid
+      WHERE r.year = :season_year
+        AND d.nationality = :driver_nationality
+        AND res.points >= :min_points
+        AND r.date >= :race_date_from
+        AND (:podium_only = false OR res.position <= 3)
+      ORDER BY r.date, res.position
+    parameters:
+      - name: season_year
+        data_type: integer
+        description: The Formula 1 season year
+        example_value: 2021
+      - name: driver_nationality
+        data_type: string
+        description: Driver nationality to filter
+        example_value: "Spanish"
+      - name: min_points
+        data_type: float
+        description: Minimum points threshold
+        example_value: 5.0
+      - name: race_date_from
+        data_type: datetime
+        description: Earliest race date to include
+        example_value: "2021-06-01"
+      - name: podium_only
+        data_type: boolean
+        description: Show only podium finishes
+        example_value: false
+    verified_at: "2026-01-15T00:00:00.000Z"
+    verified_by: test-user

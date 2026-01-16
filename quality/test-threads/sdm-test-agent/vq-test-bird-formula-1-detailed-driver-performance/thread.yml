@@ -1,0 +1,40 @@
+name: vq-test-bird-formula-1-detailed-driver-performance
+description: "Test verified query tool: Detailed Driver Season Performance with 7 parameters"
+difficulty: moderate
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-detailed-driver-performance
+    description: "Test the detailed_driver_season_performance verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me all of Hamilton's races from 2015 to 2017, including those where he scored no points.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: detailed_driver_season_performance
+          required: true
+          expected-args:
+            driver_surname: "Hamilton"
+            start_year: 2015
+            end_year: 2017
+            start_date: "2015-01-01"
+            end_date: "2017-12-31"
+            min_points: 0.0
+            only_wins: false
+    description: >
+      Verify that the detailed_driver_season_performance verified query tool is called
+      with all 7 parameters. This tests string, integer, datetime, float, and boolean types.

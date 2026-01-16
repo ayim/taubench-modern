@@ -10,13 +10,18 @@ from structlog import get_logger
 from agent_platform.core.kernel import DataFramesInterface
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
+from agent_platform.server.kernel.semantic_data_model import (
+    get_semantic_data_models_with_engines,
+    infer_engine_for_semantic_model,
+)
+from agent_platform.server.kernel.verified_queries import (
+    VerifiedQueryInfo,
+    VerifiedQueryToolBuilder,
+)
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-    from agent_platform.core.data_frames.semantic_data_model_types import (
-        SemanticDataModel,
-        VerifiedQuery,
-    )
+    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
@@ -34,7 +39,6 @@ DF_CREATE_FROM_SQL_TOOL_NAME = "data_frames_create_from_sql"
 DF_DELETE_TOOL_NAME = "data_frames_delete"
 DF_SLICE_TOOL_NAME = "data_frames_slice"
 DF_CREATE_FROM_FILE_TOOL_NAME = "data_frames_create_from_file"
-DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME = "data_frames_create_from_verified_query"
 DF_CREATE_FROM_JSON_TOOL_NAME = "data_frames_create_from_json"
 DF_GENERATE_SQL_TOOL_NAME = "generate_sql"
 
@@ -157,25 +161,6 @@ async def create_data_frame_from_columns_and_rows(
     return data_frame
 
 
-async def get_semantic_data_model_name(data_frame: PlatformDataFrame) -> str | None:
-    """Get the semantic data model name used to create a data frame.
-
-    This function extracts the semantic data model name directly from the data frame's
-    computation_input_sources. The SDM name is stored when the data frame is created.
-
-    Args:
-        data_frame: The data frame to analyze.
-
-    Returns:
-        The semantic data model name found in data frame's computation_input_sources.
-        None if no semantic data model was used to create the data frame.
-    """
-    for source in data_frame.computation_input_sources.values():
-        if source.source_type == "semantic_data_model" and source.semantic_data_model_name:
-            return source.semantic_data_model_name
-    return None
-
-
 class SqlGeneration(StrEnum):
     LEGACY = "legacy"
     AGENTIC = "agentic"
@@ -189,8 +174,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self._name_to_data_frame: dict[str, PlatformDataFrame] = {}
         self._data_frame_tools: tuple[ToolDefinition, ...] = ()
         self._semantic_data_models: list[SemanticDataModelAndReferences] = []
-        # verified_query_name -> VerifiedQuery
-        self._verified_queries: dict[str, VerifiedQuery] = {}
+        # verified_query_name -> VerifiedQueryInfo
+        # Stores verified queries with their SDM context to avoid reverse engineering
+        self._verified_queries: dict[str, VerifiedQueryInfo] = {}
 
         # Storage is needed to get data connections
         self._data_connection_id_to_engine: dict[str, str] = {}
@@ -274,17 +260,29 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         self._semantic_data_models = await collector.collect_semantic_data_models(storage)
         all_data_connection_ids = set()
 
-        # Collect verified queries from semantic data models
+        # Collect verified queries from semantic data models with their context
         self._verified_queries = {}
         for semantic_data_model_and_refs in self._semantic_data_models:
             all_data_connection_ids.update(semantic_data_model_and_refs.references.data_connection_ids)
 
             # Extract verified queries from this semantic data model
             semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
+            sdm_name = semantic_data_model.get("name", "")
+
+            # Determine SQL dialect for this SDM
+            # Uses data connection engine, or 'duckdb' for file-based SDMs (CSV/Excel)
+            dialect = infer_engine_for_semantic_model(semantic_data_model_and_refs, self._data_connection_id_to_engine)
+
             verified_queries = semantic_data_model.get("verified_queries")
             if verified_queries:
                 for verified_query in verified_queries:
-                    self._verified_queries[verified_query.name] = verified_query
+                    # Use a unique key combining SDM name and query name to handle duplicates across SDMs
+                    unique_key = f"{sdm_name}:{verified_query.name}"
+                    self._verified_queries[unique_key] = VerifiedQueryInfo(
+                        verified_query=verified_query,
+                        sdm_name=sdm_name,
+                        dialect=dialect,
+                    )
 
         if all_data_connection_ids:
             data_connections = await storage.get_data_connections(list(all_data_connection_ids))
@@ -308,7 +306,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             if not previous_state:
                 state.data_frames_tools_state = "enabled"
 
-            tools_list = [
+            # Initialize base tools in the _DataFrameTools instance
+            base_tools = [
                 ToolDefinition.from_callable(
                     data_frame_tools.create_data_frame_from_file,
                     name=DF_CREATE_FROM_FILE_TOOL_NAME,
@@ -320,22 +319,33 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 ToolDefinition.from_callable(data_frame_tools.delete_data_frame, name=DF_DELETE_TOOL_NAME),
                 ToolDefinition.from_callable(data_frame_tools.data_frame_slice, name=DF_SLICE_TOOL_NAME),
             ]
+            data_frame_tools._data_frame_tools = {tool.name: tool for tool in base_tools}
 
-            # Add tool for verified queries if any exist
+            # Add SQL generation tools
+            if self._sql_strategy and (data_frames or previous_state == "enabled" or self._semantic_data_models):
+                sql_tools = self._sql_strategy.get_tools()
+                if sql_tools:
+                    for tool in sql_tools:
+                        data_frame_tools._data_frame_tools[tool.name] = tool
+
+            # Add dynamic tools for each verified query with uniqueness check
             if self._verified_queries:
-                tools_list.append(
-                    ToolDefinition.from_callable(
-                        data_frame_tools.create_data_frame_from_verified_query,
-                        name=DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
+                for query_info in self._verified_queries.values():
+                    # Create and add tool with stored SDM context
+                    tool_name = data_frame_tools._create_and_add_verified_query_tool(
+                        verified_query=query_info.verified_query,
+                        semantic_data_model_name=query_info.sdm_name,
+                        dialect=query_info.dialect,
                     )
-                )
+                    # Store the tool name in the query info
+                    query_info.tool_name = tool_name
 
-            self._data_frame_tools = tuple(tools_list)
+            self._data_frame_tools = tuple(data_frame_tools._data_frame_tools.values())
         else:
             # Creating from a file or JSON should be always there (i.e.: the user should be able to
             # create a data frame from a file or JSON data even if there are no data frames yet).
             # Transform should also be available for general JSON manipulation.
-            tools = [
+            base_tools = [
                 ToolDefinition.from_callable(
                     data_frame_tools.create_data_frame_from_file,
                     name=DF_CREATE_FROM_FILE_TOOL_NAME,
@@ -345,25 +355,28 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                     name=DF_CREATE_FROM_JSON_TOOL_NAME,
                 ),
             ]
+            data_frame_tools._data_frame_tools = {tool.name: tool for tool in base_tools}
 
-            # Add tool for verified queries if any exist
+            # Add SQL generation tools
+            if self._sql_strategy and self._semantic_data_models:
+                sql_tools = self._sql_strategy.get_tools()
+                if sql_tools:
+                    for tool in sql_tools:
+                        data_frame_tools._data_frame_tools[tool.name] = tool
+
+            # Add dynamic tools for each verified query with uniqueness check
             if self._verified_queries:
-                tools.append(
-                    ToolDefinition.from_callable(
-                        data_frame_tools.create_data_frame_from_verified_query,
-                        name=DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
+                for query_info in self._verified_queries.values():
+                    # Create and add tool with stored SDM context
+                    tool_name = data_frame_tools._create_and_add_verified_query_tool(
+                        verified_query=query_info.verified_query,
+                        semantic_data_model_name=query_info.sdm_name,
+                        dialect=query_info.dialect,
                     )
-                )
+                    # Store the tool name in the query info
+                    query_info.tool_name = tool_name
 
-            self._data_frame_tools = tuple(tools)
-
-        # Add SQL generation tools (if there are data frames, semantic data models, or state is enabled)
-        # SQL can be used to query both data frames and semantic data models
-        # Once enabled, keep SQL tools available even if data frames are temporarily cleared
-        if self._sql_strategy and (data_frames or previous_state == "enabled" or self._semantic_data_models):
-            sql_tools = self._sql_strategy.get_tools()
-            if sql_tools:
-                self._data_frame_tools += sql_tools
+            self._data_frame_tools = tuple(data_frame_tools._data_frame_tools.values())
 
     @property
     def data_frames_system_prompt_no_tools(self) -> str:
@@ -420,6 +433,15 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 except Exception:
                     logger.exception("Error creating data frames summary")
 
+            # Add verified queries section if any exist
+            if self._verified_queries:
+                try:
+                    vq_section = self._get_verified_query_context_additions()
+                    if vq_section:
+                        ret += vq_section
+                except Exception:
+                    logger.exception("Error creating verified queries summary")
+
             if self._semantic_data_models:
                 try:
                     # Use strategy to get appropriate context for semantic data models
@@ -436,7 +458,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
     def _get_sdm_context_additions(self) -> str:
         """Get context additions for semantic data models using the SQL strategy."""
-        models_and_engines = self._semantic_data_models_with_engines()
+        models_and_engines = get_semantic_data_models_with_engines(
+            self._semantic_data_models, self._data_connection_id_to_engine
+        )
         if not models_and_engines:
             return ""
 
@@ -445,57 +469,28 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             semantic_models_and_engines=models_and_engines,
         )
 
-    def _semantic_data_models_with_engines(self) -> list[tuple[SemanticDataModel, str]]:
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    def _get_verified_query_context_additions(self) -> str:
+        """Get context additions for verified query tools with descriptions and usage guidance.
 
-        models_and_engines: list[tuple[SemanticDataModel, str]] = []
-        if not self._semantic_data_models:
-            return models_and_engines
+        Returns:
+            Formatted string section for verified query tools, or empty string if none exist.
+        """
+        ret = "## Verified Query Tools\n\n"
+        ret += (
+            "These tools are used to execute pre-validated SQL queries against semantic data model tables. "
+            "They are optimized for specific use cases and should be preferred when "
+            "user query matches the tool description rather than generating SQL. "
+            "If you find matching query but couldnt determine the parameters then ask user to provide them. "
+            "The tools and their descriptions are:\n\n"
+        )
 
-        for semantic_data_model_and_refs in self._semantic_data_models:
-            try:
-                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
-                new_model: SemanticDataModel = typing.cast(SemanticDataModel, {x: y for x, y in model.items() if y})
+        # List each tool with its description
+        for query_info in self._verified_queries.values():
+            if query_info.tool_name:
+                ret += f"- `{query_info.tool_name}`: {query_info.verified_query.nlq}\n"
 
-                tables = new_model.get("tables", [])
-                if not tables:
-                    continue  # No tables, so skip
-                tables = [c.copy() for c in tables]
-                for table in tables:
-                    table.pop("base_table", None)
-                    # Don't show empty fields
-                    for k, v in list(table.items()):
-                        if not v:
-                            table.pop(k)
-                new_model["tables"] = tables
-
-                engine = self._infer_engine_for_semantic_model(semantic_data_model_and_refs)
-                models_and_engines.append((new_model, engine))
-            except Exception:
-                logger.exception(
-                    "Error creating semantic data model summary from semantic data model info",
-                    semantic_data_model_and_refs=semantic_data_model_and_refs,
-                )
-                continue
-
-        return models_and_engines
-
-    def _infer_engine_for_semantic_model(
-        self,
-        semantic_data_model_and_refs: SemanticDataModelAndReferences,
-    ) -> str:
-        data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
-        if data_connection_ids:
-            engines = {
-                self._data_connection_id_to_engine.get(data_connection_id) for data_connection_id in data_connection_ids
-            }
-            engines.discard(None)
-            if len(engines) == 1:
-                engine = engines.pop()
-                if engine:
-                    return engine
-        # Fallback to duckdb if we have multiple engines
-        return "duckdb"
+        ret += "\n"
+        return ret
 
     @property
     def semantic_data_models_summary(self) -> str:
@@ -503,7 +498,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         if not self._semantic_data_models:
             return "You have no semantic data models to work with."
 
-        models_and_engines = self._semantic_data_models_with_engines()
+        models_and_engines = get_semantic_data_models_with_engines(
+            self._semantic_data_models, self._data_connection_id_to_engine
+        )
         if not models_and_engines:
             return "No semantic data models available."
 
@@ -858,7 +855,7 @@ class _DataFrameTools:
         name_to_data_frame: dict[str, PlatformDataFrame],
         storage: BaseStorage,
         thread_state: ThreadStateInterface | None = None,
-        verified_queries: dict[str, VerifiedQuery] | None = None,
+        verified_queries: dict[str, VerifiedQueryInfo] | None = None,
     ):
         assert isinstance(name_to_data_frame, dict), f"Expected a dict, got {type(name_to_data_frame)}"
         self._user = user
@@ -867,11 +864,37 @@ class _DataFrameTools:
         self._storage = storage
         self._thread_state = thread_state
         self._verified_queries = verified_queries or {}
+        # Dict mapping tool name -> ToolDefinition for O(1) duplicate checking
+        self._data_frame_tools: dict[str, ToolDefinition] = {}
 
     def _create_data_frames_kernel(self) -> DataFramesKernel:
         from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
 
         return DataFramesKernel(self._storage, self._user, self._tid)
+
+    def _create_and_add_verified_query_tool(
+        self,
+        verified_query: VerifiedQuery,
+        semantic_data_model_name: str,
+        dialect: str,
+    ) -> str:
+        """Create a tool definition for executing a verified query and add it to the tools list.
+
+        Args:
+            verified_query: The verified query to create a tool for
+            semantic_data_model_name: The SDM name this query belongs to
+            dialect: The SQL dialect for this query (e.g., 'postgres', 'snowflake').
+
+        Returns:
+            The generated tool name
+        """
+        builder = VerifiedQueryToolBuilder(self._data_frame_tools)
+        return builder.create_and_add_tool(
+            verified_query=verified_query,
+            semantic_data_model_name=semantic_data_model_name,
+            dialect=dialect,
+            sql_executor_callback=self._create_data_frame_from_sql_impl,
+        )
 
     async def create_data_frame_from_file(
         self,
@@ -1276,69 +1299,3 @@ class _DataFrameTools:
                 "data_frame_name": None,
                 "sample_data": None,
             }
-
-    async def create_data_frame_from_verified_query(
-        self,
-        verified_query_name: Annotated[
-            str,
-            "The name of the verified query to use to create a data frame.",
-        ],
-        semantic_data_model_name: Annotated[
-            str,
-            """The semantic data model name associated with the verified query.""",
-        ],
-        new_data_frame_name: Annotated[
-            str,
-            """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
-            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
-            and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
-            unique in the thread (updating an existing data frame is not possible).""",
-        ],
-        new_data_frame_description: Annotated[
-            str | None,
-            "The description of the new data frame to create.",
-        ] = None,
-        num_samples: Annotated[
-            int,
-            """The number of samples to return from the newly created data frame (number of rows
-            to return). Default is 10 (max 500).
-            """,
-        ] = 10,
-    ) -> dict[str, Any]:
-        """Create a data frame from a verified query that was previously saved in a semantic data model.
-
-        Verified queries are pre-validated SQL queries that have been saved in semantic data models.
-        This tool allows you to execute a verified query to create a new data frame.
-
-        The verified query name must match one of the verified queries available in the semantic data models
-        associated with this thread or agent.
-
-        Note:
-            This tool supports executing ONLY non-parameterized verified queries.
-        """
-
-        if verified_query_name not in self._verified_queries:
-            available_queries = ", ".join(sorted(self._verified_queries.keys())) if self._verified_queries else "none"
-            return {
-                "error": (
-                    f"Verified query '{verified_query_name}' not found. Available verified queries: {available_queries}"
-                ),
-            }
-
-        verified_query = self._verified_queries[verified_query_name]
-        if verified_query.parameters:
-            return {
-                "error": (
-                    f"Verified query '{verified_query_name}' is parameterized and cannot be "
-                    "executed via this tool. Only non-parameterized verified queries are supported."
-                ),
-            }
-
-        # Use the internal implementation with the (possibly substituted) SQL
-        return await self._create_data_frame_from_sql_impl(
-            sql_query=verified_query.sql,
-            new_data_frame_name=new_data_frame_name,
-            new_data_frame_description=new_data_frame_description,
-            num_samples=num_samples,
-            semantic_data_model_name=semantic_data_model_name,
-        )

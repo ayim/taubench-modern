@@ -1,0 +1,36 @@
+name: vq-test-bird-formula-1-constructor-performance
+description: "Test verified query tool: Constructor Performance by Season with float parameter"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-constructor-performance
+    description: "Test the constructor_performance_by_season verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me constructor standings for 2016 with at least 10 points.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: constructor_performance_by_season
+          required: true
+          expected-args:
+            season_year: 2016
+            min_points: 10.0
+    description: >
+      Verify that the constructor_performance_by_season verified query tool is called
+      with the correct parameters (season_year=2019, min_points=10.0).
+      This tests integer and float parameter types.

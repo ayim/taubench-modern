@@ -1,0 +1,34 @@
+name: vq-test-bird-formula-1-race-winners-stats
+description: "Test verified query tool: Race Winners Career Statistics with single boolean"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-race-winners-stats
+    description: "Test the race_winners_career_statistics verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me only drivers who have won at least one race.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: race_winners_career_statistics
+          required: true
+          expected-args:
+            has_wins: true
+    description: >
+      Verify that the race_winners_career_statistics verified query tool is called
+      with the correct parameter (has_wins=true). This tests a single boolean parameter.

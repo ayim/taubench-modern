@@ -1,0 +1,36 @@
+name: vq-test-bird-formula-1-did-not-finish-analysis
+description: "Test verified query tool: Did Not Finish Analysis with boolean parameter"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-dnf-analysis
+    description: "Test the did_not_finish_analysis_with_status_details verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me all DNFs in 2016 with detailed retirement reasons.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: did_not_finish_analysis_with_status_details
+          required: true
+          expected-args:
+            season_year: 2016
+            include_status_details: true
+    description: >
+      Verify that the did_not_finish_analysis_with_status_details verified query tool is called
+      with the correct parameters (season_year=2021, include_status_details=true).
+      This tests integer and boolean parameter types.

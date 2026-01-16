@@ -1184,7 +1184,6 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
 
     from agent_platform.server.kernel.data_frames import (
         DF_CREATE_FROM_SQL_TOOL_NAME,
-        DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
     )
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
@@ -1200,8 +1199,8 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             ],
             runbook=(
                 "You are an agent which should create data "
-                "frames using the {DF_CREATE_FROM_SQL_TOOL_NAME} or "
-                "{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} tools, "
+                "frames using the {DF_CREATE_FROM_SQL_TOOL_NAME} tool or "
+                "verified query tools, "
                 "referencing the semantic data model that the user provides "
                 "to answer user's questions."
             ),
@@ -1388,11 +1387,18 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             new_thread_id,
             f"Please create a data frame using the verified query named '{expected_verified_query_name}'.",
         )
+
+        # Verified queries now have dynamic tool names based on the query name (slugified).
+        # Find tool calls that are NOT standard data frame tools.
+        from sema4ai.common.text import slugify
+
+        expected_tool_name_base = slugify(expected_verified_query_name).replace("-", "_")
+
         verified_query_tool_calls = [
-            tool_call for tool_call in new_tool_calls if tool_call.tool_name == DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME
+            tool_call for tool_call in new_tool_calls if tool_call.tool_name.startswith(expected_tool_name_base)
         ]
         assert verified_query_tool_calls, (
-            f"Expected {DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} tool call not found. "
+            f"Expected verified query tool call (starting with '{expected_tool_name_base}') not found. "
             f"Final response: {new_final_response}. "
             f"Tool calls: {[tc.tool_name for tc in new_tool_calls]}"
         )
@@ -1401,19 +1407,19 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
             None,
         )
         assert verified_query_tool_call is not None, (
-            f"No successful {DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} call. "
+            f"No successful verified query tool call. "
             f"Errors: {[tc.error for tc in verified_query_tool_calls]} | "
             f"Final response: {new_final_response}"
         )
 
         assert verified_query_tool_call.error is None, (
-            f"{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME} failed: {verified_query_tool_call.error}"
+            f"Verified query tool call failed: {verified_query_tool_call.error}"
         )
 
-        # Verify the verified query name was used
-        actual_verified_query_name = verified_query_tool_call.input_data.get("verified_query_name")
-        assert actual_verified_query_name == expected_verified_query_name, (
-            f"Expected verified_query_name to be '{expected_verified_query_name}', got '{actual_verified_query_name}'"
+        # Verified query tools no longer have a 'verified_query_name' parameter.
+        # They are named after the query itself, so just verify we got the right tool.
+        assert verified_query_tool_call.tool_name.startswith(expected_tool_name_base), (
+            f"Expected tool name to start with '{expected_tool_name_base}', got '{verified_query_tool_call.tool_name}'"
         )
 
         new_data_frame_name = verified_query_tool_call.input_data.get("new_data_frame_name")

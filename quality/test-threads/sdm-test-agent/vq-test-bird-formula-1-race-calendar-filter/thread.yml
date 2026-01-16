@@ -1,0 +1,36 @@
+name: vq-test-bird-formula-1-race-calendar-filter
+description: "Test verified query tool: Race Calendar with Completion Filter"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-race-calendar-filter
+    description: "Test the race_calendar_with_completion_filter verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me completed races from June to December 2017.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: race_calendar_with_completion_filter
+          required: true
+          expected-args:
+            start_date: "2017-06-01"
+            end_date: "2017-12-31"
+            has_results: true
+    description: >
+      Verify that the race_calendar_with_completion_filter verified query tool is called
+      with the correct parameters. This tests datetime and boolean parameter types.

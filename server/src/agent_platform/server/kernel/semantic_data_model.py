@@ -3,15 +3,121 @@ from __future__ import annotations
 
 import typing
 
-from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+from structlog import get_logger
+
+logger = get_logger(__name__)
 
 if typing.TYPE_CHECKING:
     from typing import Any
 
+    from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.core.data_frames.semantic_data_model_types import (
         Relationship,
         SemanticDataModel,
     )
+    from agent_platform.server.data_frames.semantic_data_model_collector import (
+        SemanticDataModelAndReferences,
+    )
+
+
+async def get_semantic_data_model_name(data_frame: PlatformDataFrame) -> str | None:
+    """Get the semantic data model name used to create a data frame.
+
+    This function extracts the semantic data model name directly from the data frame's
+    computation_input_sources. The SDM name is stored when the data frame is created.
+
+    Args:
+        data_frame: The data frame to analyze.
+
+    Returns:
+        The semantic data model name found in data frame's computation_input_sources.
+        None if no semantic data model was used to create the data frame.
+    """
+    for source in data_frame.computation_input_sources.values():
+        if source.source_type == "semantic_data_model" and source.semantic_data_model_name:
+            return source.semantic_data_model_name
+    return None
+
+
+def infer_engine_for_semantic_model(
+    semantic_data_model_and_refs: SemanticDataModelAndReferences,
+    data_connection_id_to_engine: dict[str, str],
+) -> str:
+    """Infer the SQL engine/dialect for a semantic data model.
+
+    Determines the appropriate SQL dialect based on the data connections
+    used by the semantic data model.
+
+    Args:
+        semantic_data_model_and_refs: The semantic data model with its references
+        data_connection_id_to_engine: Mapping from data connection IDs to engine names
+
+    Returns:
+        The inferred engine name (e.g., 'postgres', 'snowflake', 'duckdb')
+        Defaults to 'duckdb' if multiple engines or no engines found
+    """
+    data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
+    if data_connection_ids:
+        engines = {data_connection_id_to_engine.get(data_connection_id) for data_connection_id in data_connection_ids}
+        engines.discard(None)
+        if len(engines) == 1:
+            engine = engines.pop()
+            if engine:
+                return engine
+    # Fallback to duckdb if we have multiple engines
+    return "duckdb"
+
+
+def get_semantic_data_models_with_engines(
+    semantic_data_models: list[SemanticDataModelAndReferences],
+    data_connection_id_to_engine: dict[str, str],
+) -> list[tuple[SemanticDataModel, str]]:
+    """Extract and prepare semantic data models with their inferred engines.
+
+    Processes semantic data models to extract table information and determine
+    the appropriate SQL engine for each model.
+
+    Args:
+        semantic_data_models: List of semantic data models with their references
+        data_connection_id_to_engine: Mapping from data connection IDs to engine names
+
+    Returns:
+        List of tuples containing (semantic_data_model, engine_name)
+        Only includes models that have tables defined
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+    models_and_engines: list[tuple[SemanticDataModel, str]] = []
+    if not semantic_data_models:
+        return models_and_engines
+
+    for semantic_data_model_and_refs in semantic_data_models:
+        try:
+            model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
+            new_model: SemanticDataModel = typing.cast(SemanticDataModel, {x: y for x, y in model.items() if y})
+
+            tables = new_model.get("tables", [])
+            if not tables:
+                continue  # No tables, so skip
+            tables = [c.copy() for c in tables]
+            for table in tables:
+                table.pop("base_table", None)
+                # Don't show empty fields
+                for k, v in list(table.items()):
+                    if not v:
+                        table.pop(k)
+            new_model["tables"] = tables
+
+            engine = infer_engine_for_semantic_model(semantic_data_model_and_refs, data_connection_id_to_engine)
+            models_and_engines.append((new_model, engine))
+        except Exception:
+            logger.exception(
+                "Error creating semantic data model summary from semantic data model info",
+                semantic_data_model_and_refs=semantic_data_model_and_refs,
+            )
+            continue
+
+    return models_and_engines
 
 
 def _format_table_field(k: str, v: Any) -> str:
@@ -77,7 +183,7 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
     """Describe available semantic data models (structure only).
 
     Returns pure structural information: model names, tables, columns,
-    relationships, verified queries. No SQL generation guidance.
+    and relationships. No SQL generation guidance.
 
     Args:
         models_and_engines: List of (semantic_data_model, engine) tuples
@@ -85,13 +191,11 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
     Returns:
         Formatted description of model structures
     """
-    import textwrap
     from textwrap import indent
 
     if not models_and_engines:
         return "No semantic data models available."
 
-    verified_queries: list[VerifiedQuery] = []
     result = []
 
     for model, engine in models_and_engines:
@@ -133,7 +237,8 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
                     if v:
                         result.append(indent(_format_table_field(k, v), " "))
 
-        verified_queries.extend(model.pop("verified_queries", None) or ())
+        # Pop verified_queries to remove them from the model dict (not included in summary)
+        model.pop("verified_queries", None)
 
         # Handle relationships - format conditionally based on feature flag
         relationships = model.pop("relationships", [])
@@ -151,37 +256,5 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
                 result.append(_format_table_field(k, v))
 
         result.append("")  # Empty line between models
-
-    # Add verified queries
-    if verified_queries:
-        # Import here to avoid circular dependency
-        from agent_platform.server.kernel.data_frames import (
-            DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME,
-        )
-
-        # IMPORTANT: Do not expose parameterized verified queries in agent context.
-        # The DF_CREATE_FROM_VERIFIED_QUERY tool intentionally supports only
-        # non-parameterized queries.
-        # In future we'll have dedicated tools for executing parameterized verified queries.
-        verified_queries = [vq for vq in verified_queries if not vq.parameters]
-
-        if not verified_queries:
-            return "\n".join(result)
-
-        result.append(
-            textwrap.dedent(f"""
-        ### Verified Queries
-
-        Note: These can be used to create data frames using the `{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME}` tool.
-                by providing the "name" of the verified query as a parameter to the `{DF_CREATE_FROM_VERIFIED_QUERY_TOOL_NAME}` tool.
-
-        Below is a list with the verified query names and a description on what the verified queries can be used for:
-        """)
-        )
-        for verified_query in verified_queries:
-            result.append(f"- name: {verified_query.name}")
-            result.append(f"  description: {verified_query.nlq}")
-
-            result.append("")
 
     return "\n".join(result)

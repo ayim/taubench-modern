@@ -36,40 +36,6 @@ def simple_sdm() -> SemanticDataModel:
 
 
 @pytest.fixture
-def sdm_with_verified_queries() -> SemanticDataModel:
-    """SDM with verified queries."""
-    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
-
-    return cast(
-        SemanticDataModel,
-        {
-            "name": "sales_model",
-            "description": "Sales data model",
-            "tables": [
-                {
-                    "name": "orders",
-                    "dimensions": [
-                        {"name": "order_id", "expr": "order_id", "data_type": "INTEGER"},
-                    ],
-                }
-            ],
-            "verified_queries": [
-                VerifiedQuery.model_construct(
-                    name="total_sales",
-                    nlq="Get total sales for the current month",
-                    sql="SELECT SUM(amount) FROM orders WHERE month = CURRENT_MONTH",
-                ),
-                VerifiedQuery.model_construct(
-                    name="top_customers",
-                    nlq="Find top 10 customers by revenue",
-                    sql="SELECT customer_id, SUM(amount) FROM orders GROUP BY customer_id ORDER BY 2 DESC LIMIT 10",
-                ),
-            ],
-        },
-    )
-
-
-@pytest.fixture
 def snowflake_sdm_with_variant() -> SemanticDataModel:
     """Snowflake SDM with VARIANT columns."""
     return cast(
@@ -173,20 +139,6 @@ class TestSdmSqlPrompters:
         assert "test_model" in result
         assert "second_model" in result
         assert "third_model" in result
-
-    def test_verified_query_names_appear_in_summary(self, sdm_with_verified_queries: SemanticDataModel):
-        """Verified query names should appear in summary."""
-        result = summarize_data_models([(cast(SemanticDataModel, sdm_with_verified_queries), "duckdb")])
-
-        assert "total_sales" in result
-        assert "top_customers" in result
-
-    def test_verified_query_descriptions_appear_in_summary(self, sdm_with_verified_queries: SemanticDataModel):
-        """Verified query NLQ descriptions should appear in summary."""
-        result = summarize_data_models([(cast(SemanticDataModel, sdm_with_verified_queries), "duckdb")])
-
-        assert "Get total sales for the current month" in result
-        assert "Find top 10 customers by revenue" in result
 
     def test_sql_dialect_appears_in_summary(self, simple_sdm: dict[str, Any]):
         """SQL dialect should be included in the summary."""

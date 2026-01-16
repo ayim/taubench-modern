@@ -1,0 +1,38 @@
+name: vq-test-bird-formula-1-driver-results-by-nationality-date
+description: "Test verified query tool: Driver Results by Nationality and Date Range"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-driver-results-nationality-date
+    description: "Test the driver_results_by_nationality_and_date_range verified query tool"
+    messages:
+      - role: user
+        content: |
+          Get race results for Spanish nationality drivers in 2016 from June onwards, minimum 5 points.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: driver_results_by_nationality_and_date_range
+          required: true
+          expected-args:
+            season_year: 2016
+            driver_nationality: "Spanish"
+            min_points: 5.0
+            race_date_from: "2016-06-01"
+            podium_only: false
+    description: >
+      Verify that the driver_results_by_nationality_and_date_range verified query tool is called
+      with all 5 parameters. This tests integer, string, float, datetime, and boolean types.

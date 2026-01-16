@@ -1,0 +1,37 @@
+name: vq-test-bird-formula-1-pit-stop-analysis
+description: "Test verified query tool: Pit Stop Analysis by Race"
+difficulty: simple
+timeout_seconds: 300
+
+sdms:
+  - kind: postgres
+    sdm_path: sdms/bird_formula_1_with_vqs
+    description: Formula 1 BIRD benchmark database with parameterized verified queries
+
+thread:
+  - name: test-pit-stop-analysis
+    description: "Test the pit_stop_analysis_by_race verified query tool"
+    messages:
+      - role: user
+        content: |
+          Show me pit stops under 100 seconds at the Chinese Grand Prix in 2017.
+
+target-platforms:
+  - name: openai
+  - name: azure
+  - name: groq
+
+evaluations:
+  - kind: tool-call-evaluation
+    expected:
+      calls:
+        - tool: pit_stop_analysis_by_race
+          required: true
+          expected-args:
+            race_name: "Chinese Grand Prix"
+            season_year: 2017
+            max_duration_ms: 100000
+    description: >
+      Verify that the pit_stop_analysis_by_race verified query tool is called
+      with the correct parameters (race_name, season_year, max_duration_ms).
+      This tests string and integer parameter types.

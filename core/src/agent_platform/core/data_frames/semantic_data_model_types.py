@@ -645,6 +645,16 @@ CATEGORIES: tuple[CategoriesType, CategoriesType, CategoriesType, CategoriesType
 # Runtime values can be extracted using typing.get_args(QueryParameterDataType)
 QueryParameterDataType = Literal["integer", "float", "boolean", "string", "datetime"]
 
+# Mapping from QueryParameterDataType to Python types
+# Used for creating tool signatures with proper type annotations
+QUERY_PARAMETER_TYPE_TO_PYTHON: dict[str, type] = {
+    "integer": int,
+    "float": float,
+    "boolean": bool,
+    "string": str,
+    "datetime": str,
+}
+
 
 class QueryParameter(BaseModel):
     """A parameter definition for a verified query.
