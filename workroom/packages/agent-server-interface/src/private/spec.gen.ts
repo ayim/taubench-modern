@@ -8428,6 +8428,133 @@ export const spec = {
         },
       },
     },
+    '/api/v2/data-connections/{connection_id}/tables/{table_name}/profile': {
+      get: {
+        tags: ['data-connections'],
+        summary: 'Get Table Profile',
+        description: 'Get row count for a specific table.',
+        operationId:
+          'get_table_profile_data_connections__connection_id__tables__table_name__profile_get',
+        parameters: [
+          {
+            name: 'connection_id',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Connection Id',
+            },
+          },
+          {
+            name: 'table_name',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Table Name',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/TableProfileResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v2/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples':
+      {
+        get: {
+          tags: ['data-connections'],
+          summary: 'Get Column Sample',
+          description:
+            'Get sample values for a specific column in a table.\n\nThis endpoint is called on-demand when a user selects a column.\nSamples are fetched asynchronously, allowing users to continue\nworking while data loads.\n\nQuery Parameters:\n    n_samples: Number of samples to fetch (default: 10, max: 100)',
+          operationId:
+            'get_column_sample_data_connections__connection_id__tables__table_name__columns__column_name__samples_get',
+          parameters: [
+            {
+              name: 'connection_id',
+              in: 'path',
+              required: true,
+              schema: {
+                type: 'string',
+                title: 'Connection Id',
+              },
+            },
+            {
+              name: 'table_name',
+              in: 'path',
+              required: true,
+              schema: {
+                type: 'string',
+                title: 'Table Name',
+              },
+            },
+            {
+              name: 'column_name',
+              in: 'path',
+              required: true,
+              schema: {
+                type: 'string',
+                title: 'Column Name',
+              },
+            },
+            {
+              name: 'n_samples',
+              in: 'query',
+              required: false,
+              schema: {
+                type: 'integer',
+                maximum: 100,
+                minimum: 1,
+                description: 'Number of samples (1-100)',
+                default: 10,
+                title: 'N Samples',
+              },
+              description: 'Number of samples (1-100)',
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful Response',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: '#/components/schemas/ColumnSampleResponse',
+                  },
+                },
+              },
+            },
+            '422': {
+              description: 'Validation Error',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: '#/components/schemas/ErrorEnvelope',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     '/api/v2/evals/scenarios': {
       post: {
         tags: ['evals'],
@@ -12407,6 +12534,37 @@ export const spec = {
         type: 'object',
         required: ['document_uri', 'start_char_index', 'end_char_index'],
         title: 'Citation',
+      },
+      ColumnSampleResponse: {
+        properties: {
+          table_name: {
+            type: 'string',
+            title: 'Table Name',
+          },
+          column_name: {
+            type: 'string',
+            title: 'Column Name',
+          },
+          data_type: {
+            type: 'string',
+            title: 'Data Type',
+          },
+          sample_values: {
+            anyOf: [
+              {
+                items: {},
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sample Values',
+          },
+        },
+        type: 'object',
+        required: ['table_name', 'column_name', 'data_type', 'sample_values'],
+        title: 'ColumnSampleResponse',
       },
       ConfigPayload: {
         properties: {
@@ -23746,6 +23904,28 @@ export const spec = {
         type: 'object',
         required: ['thread_id'],
         title: 'SuggestScenarioPayload',
+      },
+      TableProfileResponse: {
+        properties: {
+          table_name: {
+            type: 'string',
+            title: 'Table Name',
+          },
+          row_count: {
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Row Count',
+          },
+        },
+        type: 'object',
+        required: ['table_name', 'row_count'],
+        title: 'TableProfileResponse',
       },
       TableToInspect: {
         properties: {

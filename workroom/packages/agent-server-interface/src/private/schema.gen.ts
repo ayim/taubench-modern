@@ -2985,6 +2985,53 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/data-connections/{connection_id}/tables/{table_name}/profile': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Table Profile
+     * @description Get row count for a specific table.
+     */
+    get: operations['get_table_profile_data_connections__connection_id__tables__table_name__profile_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v2/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Column Sample
+     * @description Get sample values for a specific column in a table.
+     *
+     *     This endpoint is called on-demand when a user selects a column.
+     *     Samples are fetched asynchronously, allowing users to continue
+     *     working while data loads.
+     *
+     *     Query Parameters:
+     *         n_samples: Number of samples to fetch (default: 10, max: 100)
+     */
+    get: operations['get_column_sample_data_connections__connection_id__tables__table_name__columns__column_name__samples_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/evals/scenarios': {
     parameters: {
       query?: never;
@@ -5022,6 +5069,17 @@ export interface components {
        * @description The text that is being cited (if provided, may be None)
        */
       cited_text?: string | null;
+    };
+    /** ColumnSampleResponse */
+    ColumnSampleResponse: {
+      /** Table Name */
+      table_name: string;
+      /** Column Name */
+      column_name: string;
+      /** Data Type */
+      data_type: string;
+      /** Sample Values */
+      sample_values: unknown[] | null;
     };
     /** ConfigPayload */
     ConfigPayload: {
@@ -9996,6 +10054,13 @@ export interface components {
        * @default 1
        */
       max_options: number;
+    };
+    /** TableProfileResponse */
+    TableProfileResponse: {
+      /** Table Name */
+      table_name: string;
+      /** Row Count */
+      row_count: number | null;
     };
     /** TableToInspect */
     TableToInspect: {
@@ -21249,6 +21314,74 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['DataConnectionsInspectResponse'];
+        };
+      };
+    };
+  };
+  get_table_profile_data_connections__connection_id__tables__table_name__profile_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+        table_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TableProfileResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_column_sample_data_connections__connection_id__tables__table_name__columns__column_name__samples_get: {
+    parameters: {
+      query?: {
+        /** @description Number of samples (1-100) */
+        n_samples?: number;
+      };
+      header?: never;
+      path: {
+        connection_id: string;
+        table_name: string;
+        column_name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ColumnSampleResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
         };
       };
     };

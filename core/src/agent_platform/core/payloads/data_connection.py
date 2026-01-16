@@ -456,3 +456,28 @@ class DataConnectionsInspectResponse:
 
     tables: list[TableInfo]
     inspected_at: str | None = None  # ISO 8601 timestamp
+
+
+# Table profiling endpoints response models
+@dataclass
+class TableProfileResponse:
+    """Response from table profile endpoint.
+
+    Contains row count for a specific table.
+    """
+
+    table_name: str
+    row_count: int | None
+
+
+@dataclass
+class ColumnSampleResponse:
+    """Response from single column sample endpoint.
+
+    Contains sample values for a specific column in a table.
+    """
+
+    table_name: str
+    column_name: str
+    data_type: str
+    sample_values: list[Any] | None

@@ -1,16 +1,20 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from structlog import get_logger
 
-from agent_platform.core.data_connections.data_connections import DataConnection as DbDataConnection
-from agent_platform.core.payloads.data_connection import (
-    DataConnection as DataConnectionPayload,
+from agent_platform.core.data_connections.data_connections import (
+    DataConnection as DbDataConnection,
 )
 from agent_platform.core.payloads.data_connection import (
+    ColumnSampleResponse,
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
     DataConnectionTag,
+    TableProfileResponse,
+)
+from agent_platform.core.payloads.data_connection import (
+    DataConnection as DataConnectionPayload,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
@@ -195,13 +199,13 @@ async def inspect_data_connection(
         # Import the inspection logic
         from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
 
-        inspector = DataConnectionInspector(db_data_connection, request)
-        result = await inspector.inspect_connection()
+        async with DataConnectionInspector(db_data_connection, request) as inspector:
+            result = await inspector.inspect_connection()
 
-        # Add inspection timestamp
-        from datetime import UTC, datetime
+            # Add inspection timestamp
+            from datetime import UTC, datetime
 
-        result.inspected_at = datetime.now(UTC).isoformat()
+            result.inspected_at = datetime.now(UTC).isoformat()
 
         logger.info(
             "Successfully inspected data connection",
@@ -317,16 +321,167 @@ async def inspect_file_as_data_connection(
             tables=tables,
             inspected_at=datetime.now(UTC).isoformat(),
         )
-
-    except PlatformHTTPError:
-        raise
     except Exception as e:
         logger.error(
             "Failed to inspect file as data connection",
-            file_name=request.headers.get("X-File-Name", "Not received"),
-            error=e,
+            file_name=file_name if "file_name" in locals() else "unknown",
+            error=str(e),
+            user_id=user.user_id,
         )
+        from agent_platform.core.errors.base import ErrorCode, PlatformHTTPError
+
         raise PlatformHTTPError(
-            error_code=ErrorCode.UNEXPECTED,
-            message=f"Failed to inspect file as data connection: {e!s}",
+            ErrorCode.UNEXPECTED,
+            f"Failed to inspect file as data connection: {e!s}",
+        ) from e
+
+
+@router.get("/{connection_id}/tables/{table_name}/profile")
+async def get_table_profile(
+    connection_id: str,
+    table_name: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+) -> TableProfileResponse:
+    """Get row count for a specific table."""
+    from agent_platform.core.errors.base import ErrorCode, PlatformHTTPError
+    from agent_platform.core.payloads.data_connection import (
+        DataConnectionsInspectRequest,
+        TableToInspect,
+    )
+    from agent_platform.server.kernel.data_connection_inspector import (
+        DataConnectionInspector,
+        TableNotFoundError,
+    )
+    from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
+
+    try:
+        # Get the data connection
+        db_data_connection = await storage.get_data_connection(connection_id)
+
+        # Create table spec
+        table_spec = TableToInspect(name=table_name, database=None, schema=None)
+
+        # Create inspector with minimal request (no samples, no row counts in initial request)
+        request = DataConnectionsInspectRequest(
+            tables_to_inspect=None,
+            inspect_columns=False,
+            n_sample_rows=0,
+        )
+
+        async with DataConnectionInspector(db_data_connection, request) as inspector:
+            # Fetch row count
+            row_count = await inspector.fetch_table_row_count(table_spec)
+
+            logger.info(
+                "Successfully fetched table profile",
+                connection_id=connection_id,
+                table_name=table_name,
+                row_count=row_count,
+                user_id=user.user_id,
+            )
+
+            return TableProfileResponse(
+                table_name=table_name,
+                row_count=row_count,
+            )
+    except (TableNotFoundError, ConnectionFailedError) as e:
+        error_data = {"details": e.details} if hasattr(e, "details") and e.details else None
+
+        if isinstance(e, TableNotFoundError):
+            message = (
+                f"Table '{e.table_name}' not found or not accessible. "
+                "Please verify the table name and your permissions."
+            )
+        else:
+            message = e.message
+
+        raise PlatformHTTPError(
+            ErrorCode.UNEXPECTED,
+            message,
+            data=error_data,
+        ) from e
+
+
+@router.get("/{connection_id}/tables/{table_name}/columns/{column_name}/samples")
+async def get_column_sample(
+    connection_id: str,
+    table_name: str,
+    column_name: str,
+    user: AuthedUser,
+    storage: StorageDependency,
+    n_samples: int = Query(default=10, ge=1, le=100, description="Number of samples (1-100)"),
+) -> ColumnSampleResponse:
+    """Get sample values for a specific column in a table.
+
+    This endpoint is called on-demand when a user selects a column.
+    Samples are fetched asynchronously, allowing users to continue
+    working while data loads.
+
+    Query Parameters:
+        n_samples: Number of samples to fetch (default: 10, max: 100)
+    """
+    from agent_platform.core.errors.base import ErrorCode, PlatformHTTPError
+    from agent_platform.core.payloads.data_connection import (
+        DataConnectionsInspectRequest,
+        TableToInspect,
+    )
+    from agent_platform.server.kernel.data_connection_inspector import (
+        DataConnectionInspector,
+        TableNotFoundError,
+    )
+    from agent_platform.server.kernel.ibis_utils import ConnectionFailedError
+
+    try:
+        # Get the data connection
+        db_data_connection = await storage.get_data_connection(connection_id)
+
+        # Create table spec
+        table_spec = TableToInspect(
+            name=table_name,
+            database=None,
+            schema=None,
+            columns_to_inspect=[column_name],
+        )
+
+        # Create inspector with request for samples
+        request = DataConnectionsInspectRequest(
+            tables_to_inspect=None,
+            inspect_columns=True,
+            n_sample_rows=n_samples,
+        )
+
+        async with DataConnectionInspector(db_data_connection, request) as inspector:
+            # Fetch column sample
+            data_type, sample_values = await inspector.fetch_column_sample(table_spec, column_name, n_samples)
+
+            logger.info(
+                "Successfully fetched column sample",
+                connection_id=connection_id,
+                table_name=table_name,
+                column_name=column_name,
+                user_id=user.user_id,
+            )
+
+            return ColumnSampleResponse(
+                table_name=table_name,
+                column_name=column_name,
+                data_type=data_type,
+                sample_values=sample_values,
+            )
+    except (TableNotFoundError, ConnectionFailedError) as e:
+        error_data = {"details": e.details} if hasattr(e, "details") and e.details else None
+
+        if isinstance(e, TableNotFoundError):
+            message = (
+                f"Table '{e.table_name}' not found or not accessible. "
+                "Please verify the table name and your permissions."
+            )
+        else:
+            message = e.message
+
+        raise PlatformHTTPError(
+            ErrorCode.UNEXPECTED,
+            message,
+            data=error_data,
         ) from e

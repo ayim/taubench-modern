@@ -38,6 +38,9 @@ MAX_SAMPLE_VALUE_LENGTH = 1024
 # This limits the number of concurrent database connections used when inspecting columns
 CONNECTION_POOL_SIZE = 5
 
+# Maximum time to wait for row count query (seconds)
+ROW_COUNT_TIMEOUT = 10.0
+
 
 class TableNotFoundError(DataConnectionInspectorError):
     """Error raised when a table is not found in the connection."""
@@ -59,12 +62,82 @@ class DataConnectionInspector:
         self.data_connection = data_connection
         self.request = request
         self._connection: Any | None = None
+        self._connection_pool: asyncio.Queue[AsyncIbisConnection] | None = None
+        self._pool_connections: list[AsyncIbisConnection] = []
 
     @property
     async def connection(self) -> AsyncIbisConnection:
         if self._connection is None:
             self._connection = await self.create_ibis_connection(self.data_connection)
         return self._connection
+
+    async def __aenter__(self) -> DataConnectionInspector:
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: Any | None,
+    ) -> bool | None:
+        """Async context manager exit - closes all connections."""
+        await self.close()
+        return None  # Don't suppress exceptions
+
+    async def close(self) -> None:
+        """Close all connections (main connection and connection pool).
+
+        This method is called automatically when using the context manager.
+        Can also be called explicitly for cleanup.
+        """
+        # Close connection pool
+        await self.close_connection_pool()
+
+        # Close main connection
+        if self._connection is not None:
+            try:
+                await self._connection.close()
+            except Exception as e:
+                logger.warning(
+                    "Error closing main connection",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+            finally:
+                self._connection = None
+
+    async def _get_connection_pool(self) -> asyncio.Queue[AsyncIbisConnection]:
+        """Get or create the connection pool for concurrent column inspection.
+
+        The pool is created lazily on first use and reused across multiple table/column operations.
+        """
+        if self._connection_pool is None:
+            self._connection_pool = asyncio.Queue(maxsize=CONNECTION_POOL_SIZE)
+            # Create connections upfront
+            for _ in range(CONNECTION_POOL_SIZE):
+                conn = await self.create_ibis_connection(self.data_connection)
+                self._pool_connections.append(conn)
+                await self._connection_pool.put(conn)
+        return self._connection_pool
+
+    async def close_connection_pool(self) -> None:
+        """Close all connections in the connection pool.
+
+        Should be called when done with all column inspection operations to free resources.
+        """
+        if self._pool_connections:
+            for conn in self._pool_connections:
+                try:
+                    await conn.close()
+                except Exception as e:
+                    logger.warning(
+                        "Error closing connection from pool",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+            self._pool_connections.clear()
+            self._connection_pool = None
 
     async def inspect_connection(
         self,
@@ -371,40 +444,18 @@ class DataConnectionInspector:
             col for col in column_names if table_spec.columns_to_inspect is None or col in table_spec.columns_to_inspect
         ]
 
-        # Sample columns concurrently using a connection pool to avoid transaction nesting
-        # Create a pool of connections upfront, reuse them for all column inspections,
-        # then explicitly close them after all tasks complete
+        # Sample columns concurrently using instance-level connection pool to avoid transaction nesting
         columns: list[ColumnInfo] = []
         if columns_to_inspect:
-            # Create connection pool
-            connection_pool: asyncio.Queue[AsyncIbisConnection] = asyncio.Queue(maxsize=CONNECTION_POOL_SIZE)
-            pool_connections: list[AsyncIbisConnection] = []
+            # Use instance-level connection pool (created lazily, reused across tables)
+            connection_pool = await self._get_connection_pool()
 
-            try:
-                # Create connections upfront
-                for _ in range(CONNECTION_POOL_SIZE):
-                    conn = await self.create_ibis_connection(self.data_connection)
-                    pool_connections.append(conn)
-                    await connection_pool.put(conn)
-
-                # Create tasks for all columns
-                tasks = [
-                    self._inspect_column_with_pool_connection(table_spec, table, column_name, connection_pool)
-                    for column_name in columns_to_inspect
-                ]
-                column_results = await asyncio.gather(*tasks)
-            finally:
-                # Explicitly close all connections in the pool
-                for conn in pool_connections:
-                    try:
-                        await conn.close()
-                    except Exception as e:
-                        logger.warning(
-                            "Error closing connection from pool",
-                            table=table_spec.name,
-                            error=str(e),
-                            error_type=type(e).__name__,
-                        )
+            # Create tasks for all columns
+            tasks = [
+                self._inspect_column_with_pool_connection(table_spec, table, column_name, connection_pool)
+                for column_name in columns_to_inspect
+            ]
+            column_results = await asyncio.gather(*tasks)
 
             # Process results - _inspect_column_with_pool_connection always returns ColumnInfo
             for _column_name, result in zip(columns_to_inspect, column_results, strict=True):
@@ -607,3 +658,105 @@ class DataConnectionInspector:
             description=None,  # TODO: Add description extraction if available
             synonyms=None,  # TODO: Add synonyms if available
         )
+
+    async def fetch_table_row_count(self, table_spec: TableToInspect) -> int | None:
+        """Fetch row count for a specific table with timeout and error handling.
+
+        Args:
+            table_spec: Specification of the table to profile
+
+        Returns:
+            Row count as integer, or None if fetch fails or times out
+
+        Raises:
+            TableNotFoundError: If the table is not found.
+        """
+        from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
+
+        try:
+            table = await self._get_table(table_spec)
+            row_count = await asyncio.wait_for(
+                table.execute_count(),
+                timeout=ROW_COUNT_TIMEOUT,
+            )
+            return row_count
+        except (IbisDbCallNotInWorkerThreadError, TableNotFoundError):
+            # Re-raise immediately - these errors should propagate
+            raise
+        except (TimeoutError, Exception) as e:
+            # Log with appropriate message based on exception type
+            if isinstance(e, TimeoutError):
+                logger.warning(
+                    "Row count query timed out",
+                    table=table_spec.name,
+                    timeout=ROW_COUNT_TIMEOUT,
+                )
+            else:
+                logger.warning(
+                    "Failed to fetch row count",
+                    table=table_spec.name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+            return None
+
+    async def fetch_column_sample(
+        self, table_spec: TableToInspect, column_name: str, n_sample_rows: int = 10
+    ) -> tuple[str, list[Any] | None]:
+        """Fetch sample values for a single column in a table.
+
+        Args:
+            table_spec: Specification of the table to profile
+            column_name: Name of the column to fetch samples for
+            n_sample_rows: Number of sample values to fetch (default: 10)
+
+        Returns:
+            Tuple of (data_type, sample_values)
+            - data_type: Column data type as string
+            - sample_values: List of sample values, or None if fetch fails
+
+        Raises:
+            TableNotFoundError: If the table is not found.
+        """
+        try:
+            table = await self._get_table(table_spec)
+
+            # Verify column exists
+            if column_name not in table.columns:
+                logger.warning(
+                    "Column not found in table",
+                    table=table_spec.name,
+                    column=column_name,
+                )
+                return "unknown", None
+
+            # Get column type
+            try:
+                data_type = str(await table[column_name].type())
+            except Exception as e:
+                logger.warning(
+                    "Failed to get column type",
+                    table=table_spec.name,
+                    column=column_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                data_type = "unknown"
+
+            # Fetch samples
+            sample_values = await self._fetch_distinct_column_samples(table, column_name, n_sample_rows)
+
+            return data_type, sample_values
+        except TableNotFoundError:
+            # Re-raise immediately - this error should propagate
+            raise
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch column sample",
+                table=table_spec.name,
+                column=column_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return "unknown", None

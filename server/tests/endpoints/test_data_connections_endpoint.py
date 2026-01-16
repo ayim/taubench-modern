@@ -704,3 +704,155 @@ def test_create_snowflake_data_connection_with_sanitized_connection_details(
     assert data["id"] is not None
     assert data["created_at"] is not None
     assert data["updated_at"] is not None
+
+
+def test_get_table_profile_success(client: TestClient, sample_sqlite_data_connection: dict):
+    """Test successfully fetching table profile (row count)."""
+    # Create a data connection
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Inspect to get table names
+    inspect_response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": None},
+    )
+    assert inspect_response.status_code == 200
+    tables = inspect_response.json()["tables"]
+    assert len(tables) > 0
+    table_name = tables[0]["name"]
+
+    # Fetch table profile
+    response = client.get(f"/api/v2/private/data-connections/{connection_id}/tables/{table_name}/profile")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["table_name"] == table_name
+    assert "row_count" in data
+    # Row count can be None on timeout, or a positive integer
+    assert data["row_count"] is None or (isinstance(data["row_count"], int) and data["row_count"] >= 0)
+
+
+def test_get_table_profile_table_not_found(client: TestClient, sample_sqlite_data_connection: dict):
+    """Test fetching table profile for non-existent table returns error."""
+    # Create a data connection
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Try to fetch profile for non-existent table
+    response = client.get(f"/api/v2/private/data-connections/{connection_id}/tables/nonexistent_table_12345/profile")
+
+    assert response.status_code == 500
+    error_data = response.json()
+    assert "error" in error_data
+    error_info = error_data["error"]
+    assert "error_id" in error_info
+    assert "code" in error_info
+    assert "message" in error_info
+    assert "nonexistent_table_12345" in error_info["message"] or "not found" in error_info["message"].lower()
+
+
+def test_get_column_sample_success(client: TestClient, sample_sqlite_data_connection: dict):
+    """Test successfully fetching column sample."""
+    # Create a data connection
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Inspect to get table and column names
+    inspect_response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": None},
+    )
+    assert inspect_response.status_code == 200
+    tables = inspect_response.json()["tables"]
+    assert len(tables) > 0
+    table = tables[0]
+    table_name = table["name"]
+    column_name = table["columns"][0]["name"] if table["columns"] else None
+
+    if not column_name:
+        pytest.skip("No columns in table")
+
+    # Fetch column sample
+    response = client.get(
+        f"/api/v2/private/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples",
+        params={"n_samples": 5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["table_name"] == table_name
+    assert data["column_name"] == column_name
+    assert "data_type" in data
+    assert "sample_values" in data
+    # Sample values can be None if fetch fails, or a list
+    assert data["sample_values"] is None or isinstance(data["sample_values"], list)
+
+
+def test_get_column_sample_table_not_found(client: TestClient, sample_sqlite_data_connection: dict):
+    """Test fetching column sample for non-existent table returns error."""
+    # Create a data connection
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Try to fetch sample for non-existent table
+    response = client.get(
+        f"/api/v2/private/data-connections/{connection_id}/tables/nonexistent_table_12345/columns/some_column/samples"
+    )
+
+    assert response.status_code == 500
+    error_data = response.json()
+    assert "error" in error_data
+    error_info = error_data["error"]
+    assert "error_id" in error_info
+    assert "code" in error_info
+    assert "message" in error_info
+    assert "nonexistent_table_12345" in error_info["message"] or "not found" in error_info["message"].lower()
+
+
+def test_get_column_sample_n_samples_validation(client: TestClient, sample_sqlite_data_connection: dict):
+    """Test that n_samples parameter validation works (min/max)."""
+    # Create a data connection
+    create_response = client.post("/api/v2/private/data-connections/", json=sample_sqlite_data_connection)
+    assert create_response.status_code == 200
+    connection_id = create_response.json()["id"]
+
+    # Inspect to get table and column names
+    inspect_response = client.post(
+        f"/api/v2/private/data-connections/{connection_id}/inspect",
+        json={"tables_to_inspect": None},
+    )
+    assert inspect_response.status_code == 200
+    tables = inspect_response.json()["tables"]
+    assert len(tables) > 0
+    table = tables[0]
+    table_name = table["name"]
+    column_name = table["columns"][0]["name"] if table["columns"] else None
+
+    if not column_name:
+        pytest.skip("No columns in table")
+
+    # Test n_samples too low (should fail validation)
+    response = client.get(
+        f"/api/v2/private/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples",
+        params={"n_samples": 0},
+    )
+    assert response.status_code == 422  # Validation error
+
+    # Test n_samples too high (should fail validation)
+    response = client.get(
+        f"/api/v2/private/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples",
+        params={"n_samples": 101},
+    )
+    assert response.status_code == 422  # Validation error
+
+    # Test valid n_samples
+    response = client.get(
+        f"/api/v2/private/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples",
+        params={"n_samples": 10},
+    )
+    assert response.status_code == 200
