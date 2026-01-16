@@ -87,6 +87,8 @@ services:
     data-server:
         image: *data-server-image
         platform: linux/amd64
+        profiles:
+            - data-server
         environment:
             # Uses the default config: https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
             SKIP_CONFIGURATION: "true"
