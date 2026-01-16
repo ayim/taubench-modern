@@ -39,38 +39,47 @@ class PostgresForeignKeyInspector(ForeignKeyInspector):
 
         table_list = ", ".join([f"'{name}'" for name in table_names])
 
-        # Use raw SQL query to access information_schema tables
+        # Use information_schema with proper handling for composite foreign keys.
+        # The key is to join key_column_usage twice:
+        # - kcu_src: source columns from the FK constraint (has ordinal_position)
+        # - kcu_tgt: target columns from the referenced PK/unique constraint
+        # By matching on ordinal_position, we get the correct 1:1 column mapping.
+        # Note: constraint_column_usage cannot be used for composite FKs as it
+        # lacks ordinal_position, causing incorrect Cartesian products.
         query = f"""
         SELECT
             tc.constraint_name,
             tc.table_name AS source_table,
-            kcu.column_name AS source_column,
-            ccu.table_name AS target_table,
-            ccu.column_name AS target_column,
+            kcu_src.column_name AS source_column,
+            kcu_tgt.table_name AS target_table,
+            kcu_tgt.column_name AS target_column,
             rc.delete_rule AS on_delete,
             rc.update_rule AS on_update,
-            kcu.ordinal_position
+            kcu_src.ordinal_position
         FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu
-            ON tc.constraint_name = kcu.constraint_name
-            AND tc.table_schema = kcu.table_schema
-        JOIN information_schema.constraint_column_usage ccu
-            ON ccu.constraint_name = tc.constraint_name
-            AND ccu.table_schema = tc.table_schema
+        JOIN information_schema.key_column_usage kcu_src
+            ON tc.constraint_name = kcu_src.constraint_name
+            AND tc.table_schema = kcu_src.table_schema
         JOIN information_schema.referential_constraints rc
             ON rc.constraint_name = tc.constraint_name
             AND rc.constraint_schema = tc.table_schema
+        -- Join key_column_usage for the TARGET constraint (PK/unique being referenced)
+        -- Match by ordinal_position to get correct 1:1 column pairing for composite keys
+        JOIN information_schema.key_column_usage kcu_tgt
+            ON kcu_tgt.constraint_name = rc.unique_constraint_name
+            AND kcu_tgt.table_schema = rc.unique_constraint_schema
+            AND kcu_tgt.ordinal_position = kcu_src.ordinal_position
         WHERE tc.constraint_type = 'FOREIGN KEY'
             AND tc.table_schema = '{schema_name}'
             AND tc.table_name IN ({table_list})
-        ORDER BY tc.constraint_name, kcu.ordinal_position
+        ORDER BY tc.constraint_name, kcu_src.ordinal_position
         """
 
         result_table = await connection.sql(query)
         df = await result_table.to_pandas()
         rows = df.to_dict(orient="records")
 
-        # Group FK columns by constraint
+        # Group FK columns by constraint - columns are now correctly paired by position
         constraints_by_name: dict[str, ConstraintData] = {}
         for row in rows:
             constraint_name = row["constraint_name"]

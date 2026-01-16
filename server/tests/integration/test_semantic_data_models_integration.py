@@ -1735,7 +1735,12 @@ def test_distinct_samples_from_data_connection(base_url_agent_server, tmp_path):
 
 @pytest.mark.integration
 def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_agent_server, resources_dir):
-    """Test that foreign key relationships are detected and included in generated semantic data model."""
+    """Test that foreign key relationships are detected and included in generated semantic data model.
+
+    This test covers both single-column and composite (multi-column) foreign keys:
+    - Single-column FKs: orders.customer_id -> customers.customer_id
+    - Composite FK: stores.(country_code, region_code) -> regions.(country_code, region_code)
+    """
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -1754,7 +1759,11 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
         # Inspect the data connection
         inspect_response = agent_client.inspect_data_connection(connection_id=data_connection["id"])
         assert "tables" in inspect_response
-        assert len(inspect_response["tables"]) == 4  # customers, orders, products, order_items
+        # 6 tables: customers, orders, products, order_items, regions, stores
+        assert len(inspect_response["tables"]) == 6, (
+            f"Expected 6 tables, got {len(inspect_response['tables'])}: "
+            f"{[t['name'] for t in inspect_response['tables']]}"
+        )
 
         # Generate semantic data model WITHOUT LLM enhancement (include_metadata=False for speed)
         generate_payload = {
@@ -1781,26 +1790,32 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
         assert len(relationships) > 0, "Expected at least one relationship to be detected"
 
         # Verify specific relationships exist
-        # Expected: customers -> orders, orders -> order_items, products -> order_items
+        # Expected: customers -> orders, orders -> order_items, products -> order_items, regions -> stores
         relationship_pairs = [(rel["left_table"], rel["right_table"]) for rel in relationships]
 
-        # Check for customers -> orders relationship
+        # Check for customers -> orders relationship (single-column FK)
         assert any(
             (left == "customers" and right == "orders") or (left == "orders" and right == "customers")
             for left, right in relationship_pairs
         ), f"Expected relationship between customers and orders, got: {relationship_pairs}"
 
-        # Check for orders -> order_items relationship
+        # Check for orders -> order_items relationship (single-column FK)
         assert any(
             (left == "orders" and right == "order_items") or (left == "order_items" and right == "orders")
             for left, right in relationship_pairs
         ), f"Expected relationship between orders and order_items, got: {relationship_pairs}"
 
-        # Check for products -> order_items relationship
+        # Check for products -> order_items relationship (single-column FK)
         assert any(
             (left == "products" and right == "order_items") or (left == "order_items" and right == "products")
             for left, right in relationship_pairs
         ), f"Expected relationship between products and order_items, got: {relationship_pairs}"
+
+        # Check for regions -> stores relationship (composite FK)
+        assert any(
+            (left == "regions" and right == "stores") or (left == "stores" and right == "regions")
+            for left, right in relationship_pairs
+        ), f"Expected relationship between regions and stores, got: {relationship_pairs}"
 
         # Verify relationship structure
         for rel in relationships:
@@ -1813,5 +1828,30 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
             for col_mapping in rel["relationship_columns"]:
                 assert "left_column" in col_mapping, "Column mapping should have left_column"
                 assert "right_column" in col_mapping, "Column mapping should have right_column"
+
+        # Find and verify the composite FK relationship (stores -> regions)
+        stores_regions_rel = None
+        for rel in relationships:
+            left = rel["left_table"]
+            right = rel["right_table"]
+            if (left == "stores" and right == "regions") or (left == "regions" and right == "stores"):
+                stores_regions_rel = rel
+                break
+
+        assert stores_regions_rel is not None, "Stores-regions relationship should exist"
+
+        # Verify composite FK has exactly 2 column pairs (not a Cartesian product of 4)
+        rel_columns = stores_regions_rel["relationship_columns"]
+        assert len(rel_columns) == 2, (
+            f"Composite FK should have exactly 2 column pairs, got {len(rel_columns)}: {rel_columns}"
+        )
+
+        # Verify correct 1:1 column mappings (country_code -> country_code, region_code -> region_code)
+        column_pairs = {(col["left_column"], col["right_column"]) for col in rel_columns}
+        expected_pairs = {("country_code", "country_code"), ("region_code", "region_code")}
+        assert column_pairs == expected_pairs, (
+            f"Expected correct 1:1 column pairing for composite FK. "
+            f"Got: {rel_columns}. Expected pairs: country_code<->country_code, region_code<->region_code"
+        )
 
         logger.info(f"Successfully detected {len(relationships)} relationships: {relationship_pairs}")

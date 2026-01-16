@@ -337,6 +337,12 @@ def _initialize_postgres_database(
                 documents_data_sql = documents_data_file.read_text()
                 conn.execute(sa.text(documents_data_sql))
 
+            # Load composite FK schema for testing composite foreign key detection
+            composite_fk_schema_file = resources_path / "postgres" / "composite_fk_schema.sql"
+            if composite_fk_schema_file.exists():
+                composite_fk_schema_sql = composite_fk_schema_file.read_text(encoding="utf-8")
+                conn.execute(sa.text(composite_fk_schema_sql))
+
         yield test_schema
 
     finally:
@@ -419,6 +425,15 @@ def _initialize_mysql_database(
         if edge_case_data_file.exists():
             edge_case_data_sql = edge_case_data_file.read_text()
             for statement in edge_case_data_sql.split(";"):
+                statement = statement.strip()  # noqa: PLW2901
+                if statement:
+                    cursor.execute(statement)
+
+        # Load composite FK schema for testing composite foreign key detection
+        composite_fk_schema_file = resources_path / "mysql" / "composite_fk_schema.sql"
+        if composite_fk_schema_file.exists():
+            composite_fk_schema_sql = composite_fk_schema_file.read_text(encoding="utf-8")
+            for statement in composite_fk_schema_sql.split(";"):
                 statement = statement.strip()  # noqa: PLW2901
                 if statement:
                     cursor.execute(statement)
