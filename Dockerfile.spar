@@ -6,8 +6,8 @@
 # $ ./scripts/get-fresh-spar-base-images.sh                                                        #
 # to retrieve the latest digests and use the output to update the image references below           #
 ####################################################################################################
-ARG GOLANG_BASE_IMAGE="golang:1.25.3-bookworm@sha256:51b6b12427dc03451c24f7fc996c43a20e8a8e56f0849dd0db6ff6e9225cc892"
-ARG NODEJS_BASE_IMAGE="node:24-bookworm-slim@sha256:c0eadb278e6b0b608681b359291592692979133567710eaa703d6f989f33c6c1"
+ARG GOLANG_BASE_IMAGE="golang:1.25-bookworm@sha256:2f768d462dbffbb0f0b3a5171009f162945b086f326e0b2a8fd5d29c3219ff14"
+ARG NODEJS_BASE_IMAGE="node:24-bookworm-slim@sha256:bf22df20270b654c4e9da59d8d4a3516cce6ba2852e159b27288d645b7a7eedc"
 
 # [ Agent Server ] #################################################################################
 FROM ${GOLANG_BASE_IMAGE} AS agent-server-builder

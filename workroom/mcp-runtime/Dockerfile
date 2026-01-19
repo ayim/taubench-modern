@@ -1,12 +1,12 @@
 #
 # This container is built with hardcoded linux/amd64 action-server and agent-cli inside,
-# therefore the image is also forced to linux/amd64 using the --platform flag.
-#
+# therefore the image SHA must also point to the linux/amd64 image.
 
-ARG NODEJS_BASE_IMAGE="node:24.10.0-bookworm-slim@sha256:c0eadb278e6b0b608681b359291592692979133567710eaa703d6f989f33c6c1"
+ARG MCP_RUNTIME_TARGETPLATFORM=linux/amd64
+ARG NODEJS_BASE_IMAGE="node:24-bookworm-slim@sha256:bf22df20270b654c4e9da59d8d4a3516cce6ba2852e159b27288d645b7a7eedc"
 
 ####################################################################################################
-FROM --platform=linux/amd64 ${NODEJS_BASE_IMAGE} AS pruner
+FROM --platform=${MCP_RUNTIME_TARGETPLATFORM} ${NODEJS_BASE_IMAGE} AS pruner
 
 WORKDIR /build
 
@@ -17,7 +17,7 @@ RUN turbo_version="$(node -p 'require("./package.json").devDependencies.turbo')"
     ;
 
 ####################################################################################################
-FROM --platform=linux/amd64 ${NODEJS_BASE_IMAGE} AS builder
+FROM --platform=${MCP_RUNTIME_TARGETPLATFORM} ${NODEJS_BASE_IMAGE} AS builder
 
 WORKDIR /build
 
@@ -31,7 +31,7 @@ RUN npx turbo build --filter=@sema4ai/mcp-runtime \
     && npm prune --omit=dev
 
 ####################################################################################################
-FROM --platform=linux/amd64 ${NODEJS_BASE_IMAGE}
+FROM --platform=${MCP_RUNTIME_TARGETPLATFORM} ${NODEJS_BASE_IMAGE}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
