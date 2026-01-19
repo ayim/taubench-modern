@@ -10,6 +10,7 @@ import { InputControlled } from '../../../../../../common/form/InputControlled';
 import { SynonymField } from './SynonymField';
 import { SampleValuesField } from './SampleValuesField';
 import { DataConnectionFormSchema } from '../../form';
+import { RelationshipsPopover } from './RelationshipsPopover';
 
 type Props = {
   tableIndex: number;
@@ -70,6 +71,7 @@ export const TableTreeItem: FC<Props> = ({ baseTableName, tableIndex, dimensionI
     <TreeList.Item
       key={dimension.name}
       label={dimension.name || <Typography color="content.subtle.light">No name</Typography>}
+      action={<RelationshipsPopover tableName={baseTableName} columnName={dimension.name} />}
       icon={IconDbColumn}
       description={description}
       columns={
