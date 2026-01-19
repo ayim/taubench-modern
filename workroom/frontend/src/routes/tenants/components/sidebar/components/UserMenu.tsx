@@ -1,5 +1,5 @@
 import { Avatar, Box, Menu } from '@sema4ai/components';
-import { IconLogOut, IconMoon, IconSun, IconUserCircle } from '@sema4ai/icons';
+import { IconHelp, IconLogOut, IconMoon, IconSun, IconUserCircle } from '@sema4ai/icons';
 import { useAuth } from '@sema4ai/robocloud-ui-utils';
 import { FC, useCallback, useMemo } from 'react';
 
@@ -7,6 +7,7 @@ import { useAuth as useAuthContext } from '~/components/ProtectedRoute';
 import { useUIState } from '~/components/providers/Theme';
 import { useMeta } from '~/hooks/meta';
 import { resolveWorkroomURL } from '~/lib/utils';
+import { EXTERNAL_LINKS } from '~/config/externalLinks';
 
 type Props = {
   profilePictureUrl?: string;
@@ -48,7 +49,7 @@ export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
           alignItems="center"
           justifyContent="center"
         >
-          {(profilePictureUrl && <Avatar alt="User" src={profilePictureUrl} />) || (
+          {(profilePictureUrl && <Avatar alt="User" src={profilePictureUrl} size="small" />) || (
             <IconUserCircle color="content.primary" />
           )}
         </Box>
@@ -60,6 +61,9 @@ export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
       >
         {theme === 'dark' ? 'Light' : 'Dark'} mode
       </Menu.Item>
+      <Menu.Link href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP} target="_blank" icon={IconHelp}>
+        Help
+      </Menu.Link>
       {canLogout && (
         <>
           <Menu.Item onClick={handleLogout} icon={IconLogOut}>

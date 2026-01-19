@@ -187,12 +187,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
             hotkey={
               <Menu
                 trigger={
-                  <Button
-                    variant="ghost-subtle"
-                    size="small"
-                    icon={IconDotsHorizontal}
-                    aria-label="Work item actions"
-                  />
+                  <Button variant="ghost" size="small" icon={IconDotsHorizontal} aria-label="Work item actions" />
                 }
               >
                 <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>

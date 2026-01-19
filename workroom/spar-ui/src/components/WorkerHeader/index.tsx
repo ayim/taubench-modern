@@ -4,9 +4,10 @@ import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 import { useLinkProps } from '../../common/link';
-import { useFeatureFlag, useParams } from '../../hooks';
+import { useFeatureFlag, useNavigate, useParams } from '../../hooks';
 import { useAgentQuery } from '../../queries';
 import { Container as HeaderContainer, MenuToggleButton } from '../ThreadHeader';
+import { AgentContextMenu } from '../Agents';
 import { SparUIFeatureFlag } from '../../api';
 
 type Props = {
@@ -33,7 +34,7 @@ const MenuToggle = () => {
       ref={triggerRef}
       {...triggerProps}
       icon={IconMenu}
-      variant="ghost-subtle"
+      variant={expanded ? 'ghost-subtle' : 'ghost'}
       aria-label="Toggle main menu"
       aria-expanded={false}
     />
@@ -47,7 +48,7 @@ const WorkItemsToggle = () => {
   const showWorkItemsToggle = !expanded || isMobile;
   return (
     <WorkItemsToggleButton
-      variant="ghost-subtle"
+      variant={expanded ? 'ghost-subtle' : 'ghost'}
       icon={IconClock}
       aria-label="Toggle work item view"
       {...triggerProps}
@@ -59,6 +60,7 @@ const WorkItemsToggle = () => {
 };
 
 export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
+  const navigate = useNavigate();
   const { agentId } = useParams('/workItem/$agentId');
 
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
@@ -67,6 +69,10 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
 
   const createWorkItemLinkProps = useLinkProps('/workItem/$agentId/create', { agentId });
   const { enabled: isChatInteractive } = useFeatureFlag(SparUIFeatureFlag.agentChatInput);
+
+  const onAgentDelete = () => {
+    navigate({ to: '/home', params: {} });
+  };
 
   if (isLoading || !agent) {
     return null;
@@ -77,14 +83,19 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
       <MenuToggle />
       <WorkItemsToggle />
 
-      <Box display="flex" alignItems="center" gap="$12" minWidth={0}>
-        <Box flexShrink={0}>
-          <AgentIcon mode="worker" size="s" identifier={agent.id || ''} />
+      <Box display="flex" alignItems="center" minWidth={0}>
+        <Box display="flex" alignItems="center" gap="$8">
+          <Box flexShrink={0}>
+            <AgentIcon mode="worker" size="s" identifier={agent.id || ''} />
+          </Box>
+          <Box maxWidth="100%" overflow="hidden">
+            <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
+              {agent.name}
+            </Typography>
+          </Box>
         </Box>
-        <Box maxWidth="100%" overflow="hidden">
-          <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
-            {agent.name}
-          </Typography>
+        <Box ml="$4">
+          <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
         </Box>
       </Box>
       {leftAction}

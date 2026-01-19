@@ -67,7 +67,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     if (initialThreadMessage) {
       const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
         body: {
-          name: 'New Chat',
+          name: 'New Conversation',
           agent_id: agentId,
         },
         errorMsg: 'Failed to create thread',
@@ -153,7 +153,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
 
     const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
       body: {
-        name: 'Chat 1',
+        name: 'Conversation 1',
         agent_id: agentId,
         messages: [
           {

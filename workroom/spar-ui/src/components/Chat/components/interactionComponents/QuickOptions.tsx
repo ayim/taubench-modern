@@ -1,5 +1,5 @@
 import { Box, Button, Tooltip } from '@sema4ai/components';
-import { IconEnterKey } from '@sema4ai/icons';
+import { IconQuickaction } from '@sema4ai/icons';
 import { FC } from 'react';
 
 import { useMessageStream, useParams } from '../../../../hooks';
@@ -34,7 +34,7 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
         variant="outline"
         disabled={disabled}
         onClick={() => onSelect({ text: choice.message }, [])}
-        icon={IconEnterKey}
+        icon={IconQuickaction}
         truncate
       >
         {choice.title}

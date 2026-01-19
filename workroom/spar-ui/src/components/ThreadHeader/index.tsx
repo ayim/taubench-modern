@@ -51,7 +51,7 @@ const MenuToggle = () => {
       ref={triggerRef}
       {...triggerProps}
       icon={IconMenu}
-      variant="ghost-subtle"
+      variant={expanded ? 'ghost-subtle' : 'ghost'}
       aria-label="Toggle main menu"
       aria-expanded={false}
     />
@@ -65,7 +65,7 @@ const ThreadsToggle = () => {
   const showThreadsToggle = !expanded || isMobile;
   return (
     <ThreadsToggleButton
-      variant="ghost-subtle"
+      variant={expanded ? 'ghost-subtle' : 'ghost'}
       icon={IconClock}
       aria-label="Toggle thread view"
       {...triggerProps}
@@ -104,16 +104,20 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
 
       {/* Hide threads list toggle for evaluation threads - navigation only through eval sidebar */}
       {!isEvaluationThread && <ThreadsToggle />}
-      <Box display="flex" alignItems="center" gap="$12" minWidth={0}>
-        <Box flexShrink={0}>
-          <AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />
+      <Box display="flex" alignItems="center" minWidth={0}>
+        <Box display="flex" alignItems="center" gap="$8">
+          <Box flexShrink={0}>
+            <AgentIcon mode="conversational" size="s" identifier={agent.id || ''} />
+          </Box>
+          <Box maxWidth="100%" overflow="hidden">
+            <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
+              {agent.name}
+            </Typography>
+          </Box>
         </Box>
-        <Box maxWidth="100%" overflow="hidden">
-          <Typography variant="body-large" fontWeight="medium" $nowrap truncate={1}>
-            {agent.name}
-          </Typography>
+        <Box ml="$4">
+          <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
         </Box>
-        <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
       </Box>
       <Box display="flex" alignItems="center" gap="$12" ml="auto">
         {/* Hide new chat button for evaluation threads */}

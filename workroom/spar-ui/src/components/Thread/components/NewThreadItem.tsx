@@ -14,7 +14,7 @@ export const NewThreadItem: FC = () => {
   return (
     <ThreadListItemContainer>
       <List.Item icon={IconWriteNote} disabled={isNewThreadDisabled} onClick={onNewThread}>
-        New Chat
+        New Conversation
       </List.Item>
     </ThreadListItemContainer>
   );

@@ -11,7 +11,7 @@ export const Layout = styled.section`
   }
 
   &:has(> div) > header {
-    border-bottom: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
+    outline: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
   }
 
   > aside {

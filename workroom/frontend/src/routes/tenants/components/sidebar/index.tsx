@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Box, Button, Link, useScreenSize } from '@sema4ai/components';
+import { Box, Button, useScreenSize } from '@sema4ai/components';
 import {
   IconAgents,
   IconSettings2,
@@ -15,7 +15,6 @@ import { useMatch, useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
 import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
 
-import { EXTERNAL_LINKS } from '~/config/externalLinks';
 import { TenantMenu } from './components/TenantMenu';
 import { RouterSideNavigationLink } from '~/components/RouterLink';
 
@@ -81,7 +80,7 @@ const MenuToggle = () => {
       ref={triggerRef}
       {...triggerProps}
       icon={expanded ? IconLayoutLeft : IconMenu}
-      variant="ghost-subtle"
+      variant={expanded ? 'ghost-subtle' : 'ghost'}
       aria-label="Toggle main menu"
       style={menuStyle}
       $expanded={expanded}
@@ -159,12 +158,8 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
           <AgentsMenu />
         </ScrollContainer>
 
-        <Box display="flex" justifyContent="space-between" mt="auto" pr="$8">
+        <Box display="flex" mt="auto" pr="$8">
           <UserMenu profilePictureUrl={profilePictureUrl} />
-
-          <Link href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP} variant="subtle" target="_blank" aria-label="Help">
-            Help
-          </Link>
         </Box>
       </SidebarMenu>
     </>

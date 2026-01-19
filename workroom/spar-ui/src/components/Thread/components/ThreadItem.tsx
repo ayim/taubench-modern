@@ -155,7 +155,7 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
               <Menu
                 trigger={
                   <Button
-                    variant="ghost-subtle"
+                    variant="ghost"
                     size="small"
                     icon={IconDotsHorizontal}
                     aria-label="Thread actions"

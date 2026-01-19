@@ -16,7 +16,7 @@ export const useCreateThread = () => {
   const { mutate: createThread, isPending: isCreatingThread } = useCreateThreadMutation({ agentId });
 
   const onNewThread = useCallback(async () => {
-    const name = threads?.length === undefined ? 'New Chat' : `Chat ${(threads.length || 0) + 1}`;
+    const name = threads?.length === undefined ? 'New Conversation' : `Conversation ${(threads.length || 0) + 1}`;
 
     const requiresOAuth = oAuthState.some((state) => !state.isAuthorized);
 
