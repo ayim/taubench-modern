@@ -24,10 +24,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js 20.x
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20.12.1'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: workroom/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
