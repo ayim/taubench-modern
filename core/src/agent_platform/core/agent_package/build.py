@@ -139,32 +139,49 @@ class AgentPackageBuilder:
                 message=f"Action package '{action_package.name}' is missing path in spec",
             )
 
-        # The path in the project is: actions/<path>
-        action_package_folder_prefix = f"{AgentPackageConfig.actions_dirname}/{action_package.path}/"
-        logger.debug("Collecting files for action package", path_prefix=action_package_folder_prefix)
-
-        # Get all files from the project
-        all_files = await self._project_handler.list_files()
-
-        # Collect all files for this action package
         action_package_files: ActionPackageContent = {}
         found_metadata = False
 
-        for filename in all_files:
-            if filename.startswith(action_package_folder_prefix):
-                # Get the relative path within the action package
-                relative_path = filename[len(action_package_folder_prefix) :]
+        if action_package.type == "zip":
+            action_package_file_path = f"{AgentPackageConfig.actions_dirname}/{action_package.path}"
+            action_package_zip_file_contents = await self._project_handler.read_file(action_package_file_path)
+            action_package_handler = await ActionPackageHandler.from_bytes(action_package_zip_file_contents)
+            all_files = await action_package_handler.list_files()
 
-                # Skip empty paths (directories) and the parent folder itself
-                if not relative_path or filename.endswith("/"):
+            for filename in all_files:
+                # Skipping directories
+                if filename.endswith("/"):
                     continue
 
-                # Check if this is the metadata file
-                if relative_path == AgentPackageConfig.action_package_metadata_filename:
+                if filename == AgentPackageConfig.action_package_metadata_filename:
                     found_metadata = True
 
-                # Read the file content
-                action_package_files[relative_path] = await self._project_handler.read_file(filename)
+                action_package_files[filename] = await action_package_handler.read_file(filename)
+
+        elif action_package.type == "folder":
+            # The path in the project is: actions/<path>
+            action_package_folder_prefix = f"{AgentPackageConfig.actions_dirname}/{action_package.path}/"
+
+            # Get all files from the project
+            all_files = await self._project_handler.list_files()
+
+            for filename in all_files:
+                if filename.startswith(action_package_folder_prefix):
+                    # Get the relative path within the action package
+                    relative_path = filename[len(action_package_folder_prefix) :]
+
+                    # Skip empty paths (directories) and the parent folder itself
+                    if not relative_path or filename.endswith("/"):
+                        continue
+
+                    # Check if this is the metadata file
+                    if relative_path == AgentPackageConfig.action_package_metadata_filename:
+                        found_metadata = True
+
+                    # Read the file content
+                    action_package_files[relative_path] = await self._project_handler.read_file(filename)
+        else:
+            raise ValueError(f"Invalid action package type: {action_package.type}")
 
         # Verify metadata file exists
         if not found_metadata:
@@ -299,6 +316,9 @@ class AgentPackageBuilder:
                 continue
             # Skip agent-spec.yaml (we write the updated version separately)
             if filename == AgentPackageConfig.agent_spec_filename:
+                continue
+            # Skip __agent_package_metadata__.json (we write the updated version separately)
+            if filename == AgentPackageConfig.metadata_filename:
                 continue
             # Skip action packages folder (already processed)
             if filename.startswith(f"{AgentPackageConfig.actions_dirname}/"):

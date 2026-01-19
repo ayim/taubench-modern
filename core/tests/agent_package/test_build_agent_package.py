@@ -28,7 +28,7 @@ async def collect_async_generator(gen: AsyncGenerator[bytes, None]) -> bytes:
     return result
 
 
-async def build_agent_package_from_project_zip(
+async def build_agent_package_from_zip(
     project_zip_bytes: bytes, action_package_type: SpecActionPackageType = "zip"
 ) -> bytes:
     """Build an agent package from a project zip using the AgentPackageBuilder.
@@ -125,7 +125,7 @@ async def test_build_agent_package_basic():
     project_zip_bytes = await collect_async_generator(project_zip_stream)
 
     # Build the agent package
-    agent_package_bytes = await build_agent_package_from_project_zip(project_zip_bytes)
+    agent_package_bytes = await build_agent_package_from_zip(project_zip_bytes)
 
     # Verify the result is a valid zip
     assert agent_package_bytes is not None
@@ -186,7 +186,7 @@ async def test_build_agent_package_multiple_action_packages():
     project_zip_bytes = await collect_async_generator(project_zip_stream)
 
     # Build the agent package
-    agent_package_bytes = await build_agent_package_from_project_zip(project_zip_bytes)
+    agent_package_bytes = await build_agent_package_from_zip(project_zip_bytes)
 
     # Verify both action packages are included as zips
     with zipfile.ZipFile(BytesIO(agent_package_bytes), "r") as agent_package_zip:
@@ -216,7 +216,7 @@ async def test_build_agent_package_invalid_zip():
     from agent_platform.core.errors import PlatformHTTPError
 
     with pytest.raises(PlatformHTTPError) as exc_info:
-        await build_agent_package_from_project_zip(b"not a valid zip file")
+        await build_agent_package_from_zip(b"not a valid zip file")
 
     assert "not a valid ZIP file" in str(exc_info.value)
 
@@ -251,7 +251,7 @@ async def test_build_agent_package_missing_metadata():
 
     # Build should fail
     with pytest.raises(PlatformHTTPError) as exc_info:
-        await build_agent_package_from_project_zip(project_zip_bytes)
+        await build_agent_package_from_zip(project_zip_bytes)
 
     assert "missing __action_server_metadata__.json" in str(exc_info.value)
 
@@ -281,7 +281,7 @@ async def test_build_agent_package_preserves_runbook():
     project_zip_bytes = await collect_async_generator(project_zip_stream)
 
     # Build the agent package
-    agent_package_bytes = await build_agent_package_from_project_zip(project_zip_bytes)
+    agent_package_bytes = await build_agent_package_from_zip(project_zip_bytes)
 
     # Verify runbook is preserved
     with zipfile.ZipFile(BytesIO(agent_package_bytes), "r") as agent_package_zip:
@@ -315,7 +315,7 @@ async def test_build_agent_package_folder_type_action_packages():
     project_zip_bytes = await collect_async_generator(project_zip_stream)
 
     # Build the agent package with folder type
-    agent_package_bytes = await build_agent_package_from_project_zip(project_zip_bytes, action_package_type="folder")
+    agent_package_bytes = await build_agent_package_from_zip(project_zip_bytes, action_package_type="folder")
 
     # Verify the result is a valid zip
     assert agent_package_bytes is not None
@@ -329,6 +329,34 @@ async def test_build_agent_package_folder_type_action_packages():
         spec_agent = agent_spec.agent_package.agents[0]
 
         assert len(spec_agent.action_packages) == 2
+        for ap in spec_agent.action_packages:
+            assert ap.type == "folder"
+            assert ap.path is not None
+            assert ap.path.endswith(".zip") is False
+
+
+@pytest.mark.asyncio
+async def test_build_agent_package_folder_type_for_zipped_action_packages(test_agent_package_provider):
+    """Test that agent_spec contains type 'folder' for action packages when built with folder type,
+    when incoming Action Packages are zipped inside the Agent Package.
+    """
+    zip_data = test_agent_package_provider("pass-call-center-planner.zip")
+
+    # Build the agent package with folder type
+    agent_package_bytes = await build_agent_package_from_zip(zip_data, action_package_type="folder")
+
+    # Verify the result is a valid zip
+    assert agent_package_bytes is not None
+    assert len(agent_package_bytes) > 0
+
+    # Verify action packages have type "folder" in the spec
+    with zipfile.ZipFile(BytesIO(agent_package_bytes), "r") as agent_package_zip:
+        # Verify spec has action packages with folder type
+        spec_raw = agent_package_zip.read(AgentPackageConfig.agent_spec_filename)
+        agent_spec = AgentPackageSpec.from_yaml(spec_raw)
+        spec_agent = agent_spec.agent_package.agents[0]
+
+        assert len(spec_agent.action_packages) == 3
         for ap in spec_agent.action_packages:
             assert ap.type == "folder"
             assert ap.path is not None
