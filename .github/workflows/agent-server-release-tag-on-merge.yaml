@@ -24,6 +24,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
+          token: ${{ secrets.SEMA4_CI_USER_PAT_OPEN_PR }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
@@ -34,8 +35,6 @@ jobs:
             **/uv.lock
 
       - name: Get Version and Create Tag
-        env:
-          GH_TOKEN: ${{ secrets.SEMA4_CI_USER_PAT_OPEN_PR }}
         run: |
           version="$(uv run python -c "import tomllib; print(tomllib.load(open('server/pyproject.toml', 'rb'))['project']['version'])")"
           tag_name="agent-server-v${version}"
