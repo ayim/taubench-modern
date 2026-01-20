@@ -91,6 +91,9 @@ jobs:
       - name: Generate Changelog
         run: make get-changelog
 
+      - name: Format
+        run: make format
+
       - name: Commit and Push
         id: commit
         run: |
@@ -147,18 +150,13 @@ jobs:
             const prNumber = result.data.number;
 
             // Add reviewers
-            const defaultReviewers = ['el-mike', 'custompointofview', 'jjhenkel', 'joshelser', 'bendersej'];
-            const reviewers = defaultReviewers.filter(r => r !== triggeredBy);
-
-            if (triggeredBy && !defaultReviewers.includes(triggeredBy)) {
-              reviewers.unshift(triggeredBy);
-            }
+            const reviewers = ['ayim', 'bendersej', 'dhiganthrao', 'el-mike', 'jjhenkel', 'joshelser', 'ovatto', 'sema4ai-sampo', 'tonnitommi'];
 
             await github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber,
-              reviewers: reviewers,
+              reviewers,
             });
 
             return { url: result.data.html_url, number: prNumber };
