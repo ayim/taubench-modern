@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { resolveWorkroomURL } from '~/lib/utils';
-import type { UserPermission } from '~/lib/userPermissions';
+import type { UserPermission, UserRole } from '~/lib/userPermissions';
 
 type AuthMeta =
   | { status: 'unauthenticated'; permissions: Array<UserPermission> }
-  | { status: 'authenticated'; userId: string; permissions: Array<UserPermission> };
+  | { status: 'authenticated'; userId: string; permissions: Array<UserPermission>; userRole: UserRole };
 
 let __metaPromise: Promise<AuthMeta> | null = null;
 
@@ -35,11 +35,11 @@ export const userPermissionsQueryKey = ['me'];
 export const useUserPermissionsQuery = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: userPermissionsQueryKey,
-    queryFn: async (): Promise<{ permissions: Array<UserPermission>; userId?: string }> => {
+    queryFn: async (): Promise<{ permissions: Array<UserPermission>; userId?: string; userRole?: UserRole }> => {
       const result = await getAuthMeta();
 
       if (result?.status === 'authenticated') {
-        return { permissions: result.permissions, userId: result.userId };
+        return { permissions: result.permissions, userId: result.userId, userRole: result.userRole };
       }
 
       return { permissions: result.permissions };

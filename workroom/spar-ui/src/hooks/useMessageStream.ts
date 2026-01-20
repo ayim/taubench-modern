@@ -16,6 +16,7 @@ import {
   AgentErrorStreamPayload,
   StreamingDelta,
   StreamingDeltaMessageContent,
+  StreamingDeltaMessageEnd,
   StreamingDeltaThreadNameUpdated,
 } from '../lib/AgentServerTypes';
 import { SparAPIClient } from '../api';
@@ -32,6 +33,26 @@ type MessageListener = (
   messages: ThreadMessage[] | undefined,
   streamError: AgentErrorStreamPayload | undefined,
 ) => void;
+
+const mergeMessagesToCache = ({
+  cachedMessages,
+  newMessages,
+}: {
+  cachedMessages: ThreadMessage[];
+  newMessages: ThreadMessage[];
+}): ThreadMessage[] => {
+  const newMessageIds = new Set(newMessages.map((message) => message.message_id));
+  const updatedCachedMessages = cachedMessages.map((cached) => {
+    if (newMessageIds.has(cached.message_id)) {
+      return newMessages.find((message) => message.message_id === cached.message_id) ?? cached;
+    }
+    return cached;
+  });
+  const messagesToAdd = newMessages.filter(
+    (curr) => !cachedMessages.some((cached) => cached.message_id === curr.message_id),
+  );
+  return [...updatedCachedMessages, ...messagesToAdd];
+};
 
 class StreamManager {
   private wsMap: Record<string, WebSocket | null> = {};
@@ -117,7 +138,7 @@ class StreamManager {
           break;
         }
         case 'message_end': {
-          this.messageEnd(threadId);
+          this.messageEnd(threadId, streamingDelta);
           break;
         }
         case 'agent_error': {
@@ -237,9 +258,9 @@ class StreamManager {
     const completedMessages = threadMessages.filter((message) => message.complete);
 
     if (completedMessages.length > 0) {
-      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[]) => {
-        return [...messages, ...completedMessages];
-      });
+      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (cachedMessages: ThreadMessage[] = []) =>
+        mergeMessagesToCache({ cachedMessages, newMessages: completedMessages }),
+      );
     }
 
     this.messagesMap[threadId] = [];
@@ -321,8 +342,17 @@ class StreamManager {
     this.emitMessage(threadId);
   }
 
-  private messageEnd(threadId: string) {
+  private messageEnd(threadId: string, messageEndDelta?: StreamingDeltaMessageEnd): void {
     const threadMessages = this.messagesMap[threadId] ?? [];
+
+    // Replace streamed message with server's committed version (includes metadata, timestamps, etc.)
+    // Without this logic, "created_at" is set in 1970
+    if (messageEndDelta) {
+      const messageIndex = threadMessages.findIndex((message) => message.message_id === messageEndDelta.message_id);
+      if (messageIndex !== -1) {
+        threadMessages[messageIndex] = messageEndDelta.data as unknown as ThreadMessage;
+      }
+    }
 
     /**
      * Agent messages (like tool call updates) can live between multiple message_end events.
@@ -344,12 +374,9 @@ class StreamManager {
     );
 
     if (completedMessages.length > 0) {
-      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (messages: ThreadMessage[] = []) => {
-        const newMessages = completedMessages.filter(
-          (curr) => !messages.some((message) => message.message_id === curr.message_id),
-        );
-        return [...(messages ?? []), ...newMessages];
-      });
+      this.queryClient?.setQueryData(threadMessagesQueryKey(threadId), (cachedMessages: ThreadMessage[] = []) =>
+        mergeMessagesToCache({ cachedMessages, newMessages: completedMessages }),
+      );
     }
 
     this.messagesMap[threadId] = incompleteMessages;

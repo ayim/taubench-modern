@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Box, Button, useScreenSize } from '@sema4ai/components';
+import { Badge, Box, Button, Link, useScreenSize } from '@sema4ai/components';
 import {
   IconAgents,
   IconSettings2,
@@ -22,6 +22,8 @@ import { AgentsMenu } from './components/AgentsMenu';
 import { UserMenu } from './components/UserMenu';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
+import { useUserPermissionsQuery } from '~/queries/userPermissions';
+import { EXTERNAL_LINKS } from '~/config/externalLinks';
 
 type Props = {
   profilePictureUrl?: string;
@@ -93,6 +95,17 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
   const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
+  const { data: userPermissions } = useUserPermissionsQuery();
+
+  const isAdmin = useMemo(() => {
+    // Prefer explicit role check when available (auth mode)
+    if (userPermissions?.userRole) {
+      return userPermissions.userRole === 'admin';
+    }
+    // Fall back to permission check local no-auth mode or in ACE
+    // (use /tenants/id/auth/meta to see your user's permissions and role when on workroom)
+    return userPermissions?.permissions.includes(ADMINISTRATION_ACCESS_PERMISSION);
+  }, [userPermissions]);
 
   return (
     <>
@@ -158,8 +171,15 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
           <AgentsMenu />
         </ScrollContainer>
 
-        <Box display="flex" mt="auto" pr="$8">
-          <UserMenu profilePictureUrl={profilePictureUrl} />
+        <Box display="flex" justifyContent="space-between" alignItems="center" mt="auto" pr="$8">
+          <Box display="flex" alignItems="center" gap="$4">
+            <UserMenu profilePictureUrl={profilePictureUrl} />
+            {isAdmin && <Badge label="Admin" variant="primary" size="small" />}
+          </Box>
+
+          <Link href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP} variant="subtle" target="_blank" aria-label="Help">
+            Help
+          </Link>
         </Box>
       </SidebarMenu>
     </>

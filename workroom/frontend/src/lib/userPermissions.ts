@@ -1,6 +1,7 @@
 import { TrpcOutput } from './trpc';
 
 export type UserPermission = TrpcOutput['userManagement']['listAvailablePermissions']['permissions'][number];
+export type UserRole = TrpcOutput['userManagement']['listAvailableRoles']['roles'][number]['id'];
 
 const defaultPermissions: Record<UserPermission, boolean> = {
   'agents.read': false,

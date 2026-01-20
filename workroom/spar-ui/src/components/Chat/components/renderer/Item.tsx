@@ -1,7 +1,7 @@
 import { FC, useEffect, useRef } from 'react';
 import MarkJS from 'mark.js';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
-import { Box, Button, Chat, useClipboard } from '@sema4ai/components';
+import { Box, Button, Chat, Tooltip, useClipboard } from '@sema4ai/components';
 import { IconBallotBox, IconCheck2, IconCopy } from '@sema4ai/icons';
 import { css, styled } from '@sema4ai/theme';
 
@@ -9,6 +9,7 @@ import { Attachment } from '../Attachment';
 import { FeedbackDialog } from '../FeedbackDialog';
 import { markdownRules, markdownUserMessageRules } from '../markdown';
 import { ToolCall } from '../ToolCall';
+import { formatMessageInfo, formatRelativeTime } from '../../../../lib/utils';
 import { useSparUIContext } from '../../../../api/context';
 import { useToggle } from '../../../../hooks/useToggle';
 import { useThreadSearchStore } from '../../../../state/useThreadSearchStore';
@@ -51,6 +52,7 @@ const MessageActions = styled(Box)<{ $isLastMessage?: boolean; $isLastContentIte
     opacity: ${({ $isLastMessage }) => ($isLastMessage ? 1 : 0)};
     transition: opacity 0.2s ease-in-out 0.4s;
     display: flex;
+    align-items: center;
     justify-content: flex-start;
     gap: ${({ theme }) => theme.space.$4};
     margin-left: -${({ theme }) => theme.space.$8};
@@ -113,6 +115,7 @@ export const MessageContentItemRenderer: FC<Props> = ({
       );
     }
     case 'formatted-text': {
+      const messageCreatedAt = formatRelativeTime(message.created_at);
       return (
         <MessageContainer key={content.content_id}>
           <Chat.Markdown
@@ -134,12 +137,19 @@ export const MessageContentItemRenderer: FC<Props> = ({
                 aria-label="Copy to clipboard"
                 variant="ghost-subtle"
               />
+              {messageCreatedAt && (
+                <Tooltip text={formatMessageInfo(message)} placement="top">
+                  <Box as="span" fontSize="$12" color="content.subtle" style={{ cursor: 'help' }}>
+                    {messageCreatedAt}
+                  </Box>
+                </Tooltip>
+              )}
             </div>
           </MessageActions>
         </MessageContainer>
       );
     }
-    case 'text':
+    case 'text': {
       if (message.role === 'user') {
         return (
           <Chat.UserMessage ref={containerRef} key={content.content_id}>
@@ -147,6 +157,8 @@ export const MessageContentItemRenderer: FC<Props> = ({
           </Chat.UserMessage>
         );
       }
+
+      const messageCreatedAt = formatRelativeTime(message.created_at);
 
       return (
         <MessageContainer key={content.content_id}>
@@ -177,11 +189,19 @@ export const MessageContentItemRenderer: FC<Props> = ({
                   variant="ghost-subtle"
                 />
               )}
+              {messageCreatedAt && (
+                <Tooltip text={formatMessageInfo(message)} placement="top">
+                  <Box as="span" fontSize="$12" color="content.subtle" style={{ cursor: 'help' }}>
+                    {messageCreatedAt}
+                  </Box>
+                </Tooltip>
+              )}
             </div>
           </MessageActions>
           {isFeedbackDialogOpen && <FeedbackDialog open onClose={closeFeedbackDialog} />}
         </MessageContainer>
       );
+    }
     case 'tool_call':
       return <ToolCall key={content.content_id} content={content} />;
     case 'attachment':
