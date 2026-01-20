@@ -1,5 +1,6 @@
 """REST API endpoints for observability integrations."""
 
+from datetime import UTC
 from typing import Annotated
 from uuid import uuid4
 
@@ -13,6 +14,8 @@ from agent_platform.core.integrations.observability.models import (
     GrafanaObservabilitySettings,
     LangSmithObservabilitySettings,
     ObservabilitySettings,
+    OtlpBasicAuthObservabilitySettings,
+    OtlpCustomHeadersObservabilitySettings,
 )
 from agent_platform.core.integrations.settings.observability import (
     ObservabilityIntegrationSettings,
@@ -58,6 +61,25 @@ def _rest_to_internal(rest_settings: ObservabilitySettingsREST) -> Observability
                 url=rest_settings.url,
                 project_name=rest_settings.project_name,
                 api_key=SecretString(rest_settings.api_key),
+            ),
+            is_enabled=rest_settings.is_enabled,
+        )
+    elif rest_settings.provider == "otlp_basic_auth":
+        return ObservabilitySettings(
+            kind="otlp_basic_auth",
+            provider_settings=OtlpBasicAuthObservabilitySettings(
+                url=rest_settings.url,
+                username=rest_settings.username,
+                password=SecretString(rest_settings.password),
+            ),
+            is_enabled=rest_settings.is_enabled,
+        )
+    elif rest_settings.provider == "otlp_custom_headers":
+        return ObservabilitySettings(
+            kind="otlp_custom_headers",
+            provider_settings=OtlpCustomHeadersObservabilitySettings(
+                url=rest_settings.url,
+                headers=rest_settings.headers,
             ),
             is_enabled=rest_settings.is_enabled,
         )
@@ -265,17 +287,113 @@ async def validate_observability_integration(
     storage: StorageDependency,
     override: ObservabilityValidateOverride | None = None,
 ) -> ObservabilityValidateResponse:
-    """Validate an observability integration (placeholder implementation)."""
+    """Validate an observability integration by sending a test trace."""
+    from datetime import datetime
+
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+    from opentelemetry.trace import SpanKind, Status, StatusCode
+
+    # NOTE: get_integration returns any type of integration. Consider adding
+    # a dedicated storage.get_observability_integration that returns NOT_FOUND
+    # for non-observability integrations, removing the need for isinstance checks.
     integration = await storage.get_integration(integration_id)
-    public_integration = _integration_to_observability(integration)
-    response = ObservabilityValidateResponse(
-        success=False,
-        message="Validation logic not implemented yet.",
-        details={
-            "provider": public_integration.settings.provider,
-            "override": override.model_dump() if override else None,
-        },
-    )
+    integration_settings = integration.settings
+    if not isinstance(integration_settings, ObservabilityIntegrationSettings):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Observability integration not found.",
+        )
+
+    internal_settings = integration_settings.settings
+    provider_settings = internal_settings.provider_settings
+
+    # Apply URL override if provided
+    if override and override.url:
+        # Create a modified copy of provider settings with overridden URL
+        provider_data = provider_settings.model_dump(redact_secret=False)
+        provider_data["url"] = override.url
+        provider_cls = type(provider_settings)
+        provider_settings = provider_cls.model_validate(provider_data)
+
+    try:
+        # Create an exporter using the provider settings
+        exporter: SpanExporter = provider_settings.make_exporter()
+
+        # Create a test span with BatchSpanProcessor to capture it
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+        resource = Resource.create(
+            {
+                "service.name": "agent-platform-observability-test",
+                "test.validation": "true",
+            }
+        )
+        tracer_provider = TracerProvider(resource=resource)
+
+        # Collect spans for export
+        collected_spans = []
+
+        class CollectingSpanProcessor(SimpleSpanProcessor):
+            def on_end(self, span):
+                collected_spans.append(span)
+                # Don't call super().on_end() to avoid automatic export
+
+        collecting_processor = CollectingSpanProcessor(exporter)
+        tracer_provider.add_span_processor(collecting_processor)
+
+        tracer = tracer_provider.get_tracer("observability-test")
+
+        # Create and end a test span
+        with tracer.start_as_current_span(
+            "observability.test.heartbeat",
+            kind=SpanKind.INTERNAL,
+        ) as span:
+            span.set_attribute("test.type", "validation")
+            span.set_attribute("test.provider", internal_settings.kind)
+            span.set_attribute("test.timestamp", datetime.now(UTC).isoformat())
+            span.set_attribute("test.integration_id", integration_id)
+            span.set_status(Status(StatusCode.OK, "Test heartbeat successful"))
+
+        # Now export the collected span
+        if collected_spans:
+            result = exporter.export(collected_spans)
+        else:
+            result = SpanExportResult.FAILURE
+
+        exporter.shutdown()
+        tracer_provider.shutdown()
+
+        if result == SpanExportResult.SUCCESS:
+            response = ObservabilityValidateResponse(
+                success=True,
+                message="Successfully sent test heartbeat to observability platform.",
+                details={
+                    "provider": internal_settings.kind,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+            )
+        else:
+            response = ObservabilityValidateResponse(
+                success=False,
+                message=f"Failed to export test span: {result}",
+                details={
+                    "provider": internal_settings.kind,
+                    "export_result": str(result),
+                },
+            )
+    except Exception as e:
+        logger.exception(f"Error validating observability integration {integration_id}")
+        response = ObservabilityValidateResponse(
+            success=False,
+            message=f"Validation failed: {e!s}",
+            details={
+                "provider": internal_settings.kind,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
     return response
 
 

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Banner, Divider, Form, Select, Switch } from '@sema4ai/components';
 import { IconSnowflake } from '@sema4ai/icons/logos';
@@ -14,7 +15,9 @@ type ObservabilityProviderOption = {
 
 const observabilityProviderOptions: ObservabilityProviderOption[] = [
   { value: 'langsmith', label: 'Langsmith' },
-  { value: 'grafana', label: 'Grafana' },
+  { value: 'grafana', label: 'Grafana Cloud' },
+  { value: 'otlp_basic_auth', label: 'OTLP (Username/Password)' },
+  { value: 'otlp_custom_headers', label: 'OTLP (Custom Headers)' },
 ];
 
 const LangsmithSettingsFields = () => {
@@ -48,6 +51,33 @@ export const GrafanaSettingsFields = () => {
   );
 };
 
+const OtlpBasicAuthSettingsFields = () => {
+  return (
+    <>
+      <InputControlled fieldName="url" label="URL" description="OTLP endpoint URL" />
+
+      <InputControlled fieldName="username" label="Username" description="Basic auth username" />
+
+      <InputControlled fieldName="password" label="Password" description="Basic auth password" type="password" />
+    </>
+  );
+};
+
+const OtlpCustomHeadersSettingsFields = () => {
+  return (
+    <>
+      <InputControlled fieldName="url" label="URL" description="OTLP endpoint URL" />
+
+      <KeyValueRecordField
+        fieldName="headers"
+        label="Headers"
+        description="Custom HTTP headers to send with the request"
+        isOptional={false}
+      />
+    </>
+  );
+};
+
 type Props = {
   defaultValues?: ObservabilitySettingsFormSchema;
 };
@@ -57,6 +87,24 @@ export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
   const { watch, reset, setValue } = useFormContext<ObservabilitySettingsFormSchema>();
   const { provider, is_enabled: isEnabled } = watch();
   const snowflakeEAIUrl = platformConfig?.snowflakeEAIUrl ?? null;
+
+  const providerSettingsFields = useMemo(() => {
+    switch (provider) {
+      case 'langsmith':
+        return <LangsmithSettingsFields />;
+      case 'grafana':
+        return <GrafanaSettingsFields />;
+      case 'otlp_basic_auth':
+        return <OtlpBasicAuthSettingsFields />;
+      case 'otlp_custom_headers':
+        return <OtlpCustomHeadersSettingsFields />;
+      case undefined:
+        return null;
+      default:
+        provider satisfies never;
+        return null;
+    }
+  }, [provider]);
 
   return (
     <Form.Fieldset>
@@ -105,8 +153,24 @@ export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
         onChange={(value) => {
           if (defaultValues && value === defaultValues.provider) {
             reset(defaultValues);
-          } else {
-            reset({ provider: value as ObservabilitySettings['provider'], url: '', is_enabled: true });
+            return;
+          }
+
+          switch (value) {
+            case 'langsmith':
+              reset({ provider: 'langsmith', url: '', is_enabled: true, project_name: '', api_key: '' });
+              break;
+            case 'grafana':
+              reset({ provider: 'grafana', url: '', is_enabled: true, api_token: '', grafana_instance_id: '' });
+              break;
+            case 'otlp_basic_auth':
+              reset({ provider: 'otlp_basic_auth', url: '', is_enabled: true, username: '', password: '' });
+              break;
+            case 'otlp_custom_headers':
+              reset({ provider: 'otlp_custom_headers', url: '', is_enabled: true, headers: {} });
+              break;
+            default:
+              break;
           }
         }}
       />
@@ -115,9 +179,7 @@ export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
 
       {isEnabled && (
         <>
-          {provider === 'langsmith' && <LangsmithSettingsFields />}
-          {provider === 'grafana' && <GrafanaSettingsFields />}
-
+          {providerSettingsFields}
           {!!provider && <Divider />}
         </>
       )}

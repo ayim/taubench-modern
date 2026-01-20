@@ -47,7 +47,7 @@ class GrafanaObservabilitySettings:
         default=None,
         metadata={"description": "Optional HTTP headers to send with the request to Grafana Cloud."},
     )
-    DISALLOWED_HEADERS: ClassVar[set[str]] = {"Authorization", "Content-Type", "Host"}
+    DISALLOWED_HEADERS: ClassVar[set[str]] = {"authorization", "content-type", "host"}
 
     @classmethod
     def model_validate(cls, data: Any) -> "GrafanaObservabilitySettings":
@@ -63,10 +63,10 @@ class GrafanaObservabilitySettings:
         if additional_headers is not None and not isinstance(additional_headers, dict):
             raise ValueError("Grafana settings 'additional_headers' must be an object.")
 
-        # Validate that disallowed headers are not present
+        # Validate that disallowed headers are not present (case-insensitive)
         if additional_headers:
             for key in additional_headers:
-                if key in cls.DISALLOWED_HEADERS:
+                if key.lower() in cls.DISALLOWED_HEADERS:
                     raise PlatformHTTPError(
                         error_code=ErrorCode.BAD_REQUEST,
                         message=f"{key} may not be specified as an HTTP header",
@@ -80,19 +80,15 @@ class GrafanaObservabilitySettings:
         )
 
     def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
-        data: dict[str, Any] = {"url": self.url}
-        data["api_token"] = _secret_or_redact(self.api_token, redact_secret)
-        data["grafana_instance_id"] = self.grafana_instance_id
+        data: dict[str, Any] = {
+            "url": self.url,
+            "api_token": _secret_or_redact(self.api_token, redact_secret),
+            "grafana_instance_id": self.grafana_instance_id,
+        }
         if self.additional_headers:
-            # Error out if any disallowed headers are present.
-            data["additional_headers"] = {}
-            for key, value in self.additional_headers.items():
-                if key in self.DISALLOWED_HEADERS:
-                    raise PlatformHTTPError(
-                        error_code=ErrorCode.BAD_REQUEST,
-                        message=f"{key} may not be specified as an HTTP header",
-                    )
-                data["additional_headers"][key] = _secret_or_redact(value, redact_secret)
+            data["additional_headers"] = {
+                key: _secret_or_redact(value, redact_secret) for key, value in self.additional_headers.items()
+            }
         return data
 
     def make_exporter(self):
@@ -114,8 +110,6 @@ class GrafanaObservabilitySettings:
         headers = {"Authorization": f"Basic {basic_auth_value}"}
 
         if self.additional_headers:
-            # We don't filter out disallowed headers here as if
-            # they were present, model_dump would have raised an error.
             headers.update(self.additional_headers)
 
         # Build fresh session for this exporter
@@ -185,11 +179,140 @@ class LangSmithObservabilitySettings:
         )
 
 
-ObservabilityProviderSettings = GrafanaObservabilitySettings | LangSmithObservabilitySettings
+@dataclass(frozen=True)
+class OtlpBasicAuthObservabilitySettings:
+    """Generic OTLP observability with Basic Authentication."""
+
+    url: str = field(metadata={"description": "OTLP endpoint URL"})
+    username: str = field(metadata={"description": "Basic auth username"})
+    password: str | SecretString = field(
+        metadata={"description": "Basic auth password."},
+    )
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "OtlpBasicAuthObservabilitySettings":
+        if not isinstance(data, dict):
+            raise ValueError("OTLP Basic Auth settings payload must be an object.")
+        for required in ("url", "username", "password"):
+            if required not in data:
+                raise ValueError(f"OTLP Basic Auth settings require '{required}'.")
+        return cls(str(data["url"]), str(data["username"]), str(data["password"]))
+
+    def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
+        return {
+            "url": self.url,
+            "username": self.username,
+            "password": _secret_or_redact(self.password, redact_secret),
+        }
+
+    def make_exporter(self):
+        """Create an OTLPSpanExporter with Basic Authentication.
+
+        Returns:
+            Configured OTLPSpanExporter ready for use
+        """
+        # Normalize endpoint (ensure /v1/traces suffix)
+        endpoint = self.url.rstrip("/")
+        if not endpoint.endswith("/v1/traces"):
+            endpoint = f"{endpoint}/v1/traces"
+
+        # Create Basic Auth header: base64(username:password)
+        password = self.password.get_secret_value() if isinstance(self.password, SecretString) else self.password
+        basic_auth_value = base64.b64encode(f"{self.username}:{password}".encode()).decode()
+
+        # Sent as HTTP Basic Auth
+        headers = {"Authorization": f"Basic {basic_auth_value}"}
+
+        # Build fresh session for this exporter
+        # (each exporter needs its own to avoid header conflicts)
+        session = build_network_session()
+
+        return OTLPSpanExporter(
+            endpoint=endpoint,
+            headers=headers,
+            session=session,
+        )
+
+
+@dataclass(frozen=True)
+class OtlpCustomHeadersObservabilitySettings:
+    """Generic OTLP observability with custom headers."""
+
+    url: str = field(metadata={"description": "OTLP endpoint URL"})
+    headers: dict[str, str] = field(
+        metadata={"description": "Custom HTTP headers to send with the request."},
+    )
+    DISALLOWED_HEADERS: ClassVar[set[str]] = {"content-type", "host"}
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "OtlpCustomHeadersObservabilitySettings":
+        if not isinstance(data, dict):
+            raise ValueError("OTLP Custom Headers settings payload must be an object.")
+        if "url" not in data:
+            raise ValueError("OTLP Custom Headers settings require 'url'.")
+        if "headers" not in data:
+            raise ValueError("OTLP Custom Headers settings require 'headers'.")
+
+        headers = data.get("headers")
+        if not isinstance(headers, dict):
+            raise ValueError("OTLP Custom Headers settings 'headers' must be an object.")
+
+        # Validate that disallowed headers are not present (case-insensitive)
+        for key in headers:
+            if key.lower() in cls.DISALLOWED_HEADERS:
+                raise PlatformHTTPError(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message=f"{key} may not be specified as an HTTP header",
+                )
+
+        return cls(
+            url=str(data["url"]),
+            headers=headers,
+        )
+
+    def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
+        return {
+            "url": self.url,
+            "headers": {key: _secret_or_redact(value, redact_secret) for key, value in self.headers.items()},
+        }
+
+    def make_exporter(self):
+        """Create an OTLPSpanExporter with custom headers.
+
+        Returns:
+            Configured OTLPSpanExporter ready for use
+        """
+        # Normalize endpoint (ensure /v1/traces suffix)
+        endpoint = self.url.rstrip("/")
+        if not endpoint.endswith("/v1/traces"):
+            endpoint = f"{endpoint}/v1/traces"
+
+        # Use custom headers directly
+        headers = dict(self.headers)
+
+        # Build fresh session for this exporter
+        # (each exporter needs its own to avoid header conflicts)
+        session = build_network_session()
+
+        return OTLPSpanExporter(
+            endpoint=endpoint,
+            headers=headers,
+            session=session,
+        )
+
+
+ObservabilityProviderSettings = (
+    GrafanaObservabilitySettings
+    | LangSmithObservabilitySettings
+    | OtlpBasicAuthObservabilitySettings
+    | OtlpCustomHeadersObservabilitySettings
+)
 
 PROVIDER_SETTINGS: dict[str, type[ObservabilityProviderSettings]] = {
     "grafana": GrafanaObservabilitySettings,
     "langsmith": LangSmithObservabilitySettings,
+    "otlp_basic_auth": OtlpBasicAuthObservabilitySettings,
+    "otlp_custom_headers": OtlpCustomHeadersObservabilitySettings,
 }
 
 
@@ -197,7 +320,7 @@ PROVIDER_SETTINGS: dict[str, type[ObservabilityProviderSettings]] = {
 class ObservabilitySettings:
     """Settings payload for observability providers."""
 
-    kind: Literal["grafana", "langsmith"]
+    kind: Literal["grafana", "langsmith", "otlp_basic_auth", "otlp_custom_headers"]
     provider_settings: ObservabilityProviderSettings
     is_enabled: bool = field(default=True)
 
@@ -245,7 +368,7 @@ class ObservabilitySettings:
         provider_settings_data = data.get("provider_settings", {})
         provider_settings = provider_cls.model_validate(provider_settings_data)
 
-        literal_kind = cast(Literal["grafana", "langsmith"], kind)
+        literal_kind = cast(Literal["grafana", "langsmith", "otlp_basic_auth", "otlp_custom_headers"], kind)
 
         return cls(
             kind=literal_kind,

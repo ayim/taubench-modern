@@ -16,7 +16,8 @@ export const KeyValueRecordField: FC<Props> = ({ description, fieldName, label, 
 
   const entries = Object.entries(values);
 
-  const setRecord = (newRecord: Record<string, string>) => setValue(fieldName, newRecord, { shouldDirty: true });
+  const setRecord = (newRecord: Record<string, string>) =>
+    setValue(fieldName, newRecord, { shouldDirty: true, shouldValidate: true });
 
   const updateKey = (index: number, newKey: string) => {
     const newValues = [...entries];

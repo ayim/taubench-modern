@@ -4312,7 +4312,7 @@ export const spec = {
         tags: ['observability-integrations', 'observability-integrations'],
         summary: 'Validate Observability Integration',
         description:
-          'Validate an observability integration (placeholder implementation).',
+          'Validate an observability integration by sending a test trace.',
         operationId:
           'validate_observability_integration_observability_integrations__integration_id__validate_post',
         parameters: [
@@ -18935,6 +18935,12 @@ export const spec = {
               {
                 $ref: '#/components/schemas/LangSmithSettingsREST',
               },
+              {
+                $ref: '#/components/schemas/OtlpBasicAuthSettingsREST',
+              },
+              {
+                $ref: '#/components/schemas/OtlpCustomHeadersSettingsREST',
+              },
             ],
             title: 'Settings',
             description: 'Provider settings.',
@@ -18943,6 +18949,10 @@ export const spec = {
               mapping: {
                 grafana: '#/components/schemas/GrafanaSettingsREST',
                 langsmith: '#/components/schemas/LangSmithSettingsREST',
+                otlp_basic_auth:
+                  '#/components/schemas/OtlpBasicAuthSettingsREST',
+                otlp_custom_headers:
+                  '#/components/schemas/OtlpCustomHeadersSettingsREST',
               },
             },
           },
@@ -19006,12 +19016,22 @@ export const spec = {
                   {
                     $ref: '#/components/schemas/LangSmithSettingsREST',
                   },
+                  {
+                    $ref: '#/components/schemas/OtlpBasicAuthSettingsREST',
+                  },
+                  {
+                    $ref: '#/components/schemas/OtlpCustomHeadersSettingsREST',
+                  },
                 ],
                 discriminator: {
                   propertyName: 'provider',
                   mapping: {
                     grafana: '#/components/schemas/GrafanaSettingsREST',
                     langsmith: '#/components/schemas/LangSmithSettingsREST',
+                    otlp_basic_auth:
+                      '#/components/schemas/OtlpBasicAuthSettingsREST',
+                    otlp_custom_headers:
+                      '#/components/schemas/OtlpCustomHeadersSettingsREST',
                   },
                 },
               },
@@ -19397,6 +19417,72 @@ export const spec = {
         type: 'object',
         required: ['host', 'user', 'password', 'service_name'],
         title: 'OracleDataConnectionConfiguration',
+      },
+      OtlpBasicAuthSettingsREST: {
+        properties: {
+          provider: {
+            type: 'string',
+            const: 'otlp_basic_auth',
+            title: 'Provider',
+            default: 'otlp_basic_auth',
+          },
+          url: {
+            type: 'string',
+            title: 'Url',
+            description: 'OTLP endpoint URL',
+          },
+          username: {
+            type: 'string',
+            title: 'Username',
+            description: 'Basic auth username',
+          },
+          password: {
+            type: 'string',
+            title: 'Password',
+            description: 'Basic auth password',
+          },
+          is_enabled: {
+            type: 'boolean',
+            title: 'Is Enabled',
+            default: true,
+          },
+        },
+        type: 'object',
+        required: ['url', 'username', 'password'],
+        title: 'OtlpBasicAuthSettingsREST',
+        description: 'OTLP Basic Auth observability settings for REST API.',
+      },
+      OtlpCustomHeadersSettingsREST: {
+        properties: {
+          provider: {
+            type: 'string',
+            const: 'otlp_custom_headers',
+            title: 'Provider',
+            default: 'otlp_custom_headers',
+          },
+          url: {
+            type: 'string',
+            title: 'Url',
+            description: 'OTLP endpoint URL',
+          },
+          headers: {
+            additionalProperties: {
+              type: 'string',
+            },
+            type: 'object',
+            title: 'Headers',
+            description: 'Custom HTTP headers to send with the request',
+          },
+          is_enabled: {
+            type: 'boolean',
+            title: 'Is Enabled',
+            default: true,
+          },
+        },
+        type: 'object',
+        required: ['url', 'headers'],
+        title: 'OtlpCustomHeadersSettingsREST',
+        description: 'OTLP Custom Headers observability settings for REST API.',
       },
       ParseDocumentResponsePayload: {
         properties: {

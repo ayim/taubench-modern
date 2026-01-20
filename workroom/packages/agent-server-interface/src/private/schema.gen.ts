@@ -1491,7 +1491,7 @@ export interface paths {
     put?: never;
     /**
      * Validate Observability Integration
-     * @description Validate an observability integration (placeholder implementation).
+     * @description Validate an observability integration by sending a test trace.
      */
     post: operations['validate_observability_integration_observability_integrations__integration_id__validate_post'];
     delete?: never;
@@ -7737,7 +7737,9 @@ export interface components {
        */
       settings:
         | components['schemas']['GrafanaSettingsREST']
-        | components['schemas']['LangSmithSettingsREST'];
+        | components['schemas']['LangSmithSettingsREST']
+        | components['schemas']['OtlpBasicAuthSettingsREST']
+        | components['schemas']['OtlpCustomHeadersSettingsREST'];
       /**
        * Created At
        * Format: date-time
@@ -7778,6 +7780,8 @@ export interface components {
         | (
             | components['schemas']['GrafanaSettingsREST']
             | components['schemas']['LangSmithSettingsREST']
+            | components['schemas']['OtlpBasicAuthSettingsREST']
+            | components['schemas']['OtlpCustomHeadersSettingsREST']
           )
         | null;
       /**
@@ -7941,6 +7945,65 @@ export interface components {
       disable_oob?: boolean | null;
       /** Auth Mode */
       auth_mode?: string | null;
+    };
+    /**
+     * OtlpBasicAuthSettingsREST
+     * @description OTLP Basic Auth observability settings for REST API.
+     */
+    OtlpBasicAuthSettingsREST: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      provider: 'otlp_basic_auth';
+      /**
+       * Url
+       * @description OTLP endpoint URL
+       */
+      url: string;
+      /**
+       * Username
+       * @description Basic auth username
+       */
+      username: string;
+      /**
+       * Password
+       * @description Basic auth password
+       */
+      password: string;
+      /**
+       * Is Enabled
+       * @default true
+       */
+      is_enabled: boolean;
+    };
+    /**
+     * OtlpCustomHeadersSettingsREST
+     * @description OTLP Custom Headers observability settings for REST API.
+     */
+    OtlpCustomHeadersSettingsREST: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      provider: 'otlp_custom_headers';
+      /**
+       * Url
+       * @description OTLP endpoint URL
+       */
+      url: string;
+      /**
+       * Headers
+       * @description Custom HTTP headers to send with the request
+       */
+      headers: {
+        [key: string]: string;
+      };
+      /**
+       * Is Enabled
+       * @default true
+       */
+      is_enabled: boolean;
     };
     /** ParseDocumentResponsePayload */
     ParseDocumentResponsePayload: {

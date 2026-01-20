@@ -39,8 +39,31 @@ class LangSmithSettingsREST(BaseModel):
     is_enabled: bool = True
 
 
+class OtlpBasicAuthSettingsREST(BaseModel):
+    """OTLP Basic Auth observability settings for REST API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: Literal["otlp_basic_auth"] = "otlp_basic_auth"
+    url: str = Field(description="OTLP endpoint URL")
+    username: str = Field(description="Basic auth username")
+    password: str = Field(description="Basic auth password")
+    is_enabled: bool = True
+
+
+class OtlpCustomHeadersSettingsREST(BaseModel):
+    """OTLP Custom Headers observability settings for REST API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: Literal["otlp_custom_headers"] = "otlp_custom_headers"
+    url: str = Field(description="OTLP endpoint URL")
+    headers: dict[str, str] = Field(description="Custom HTTP headers to send with the request")
+    is_enabled: bool = True
+
+
 ObservabilitySettingsREST = Annotated[
-    GrafanaSettingsREST | LangSmithSettingsREST,
+    GrafanaSettingsREST | LangSmithSettingsREST | OtlpBasicAuthSettingsREST | OtlpCustomHeadersSettingsREST,
     Field(discriminator="provider"),
 ]
 
@@ -207,4 +230,6 @@ __all__ = (
     "ObservabilitySettingsREST",
     "ObservabilityValidateOverride",
     "ObservabilityValidateResponse",
+    "OtlpBasicAuthSettingsREST",
+    "OtlpCustomHeadersSettingsREST",
 )

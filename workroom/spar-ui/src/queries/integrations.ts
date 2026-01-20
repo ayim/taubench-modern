@@ -137,3 +137,30 @@ export const useUpdateObservabilityIntegrationMutation = createSparMutation<
     queryClient.setQueryData(observabilityIntegrationQueryKey(integrationId), observabilityIntegration);
   },
 }));
+
+export type ObservabilityValidateResponse = components['schemas']['ObservabilityValidateResponse'];
+
+export const useValidateObservabilityIntegrationMutation = createSparMutation<
+  { integrationId: string },
+  Record<string, never>
+>()(({ sparAPIClient, integrationId }) => ({
+  mutationFn: async (): Promise<ObservabilityValidateResponse> => {
+    const response = await sparAPIClient.queryAgentServer(
+      'post',
+      '/api/v2/observability/integrations/{integration_id}/validate',
+      {
+        params: { path: { integration_id: integrationId } },
+        body: {},
+      },
+    );
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to validate observability integration', {
+        code: response.code,
+        resource: ResourceType.Integration,
+      });
+    }
+
+    return response.data;
+  },
+}));

@@ -18,6 +18,24 @@ def _make_payload(provider: str = "grafana", *, api_key: str = "secret-key-1") -
             "api_key": api_key,
             "project_name": "default",
         }
+    elif provider == "otlp_basic_auth":
+        settings = {
+            "provider": provider,
+            "is_enabled": True,
+            "url": "http://localhost:14318",
+            "username": "alloy",
+            "password": api_key,
+        }
+    elif provider == "otlp_custom_headers":
+        settings = {
+            "provider": provider,
+            "is_enabled": True,
+            "url": "http://localhost:14318",
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "X-Custom-Header": "custom-value",
+            },
+        }
     else:
         raise ValueError(f"Unsupported provider for test payload: {provider}")
 
@@ -129,7 +147,38 @@ def test_delete_integration_success_and_not_found(client):
     assert missing_resp.status_code == 404
 
 
-def test_validate_integration_placeholder_response(client):
+def test_validate_integration_placeholder_response(client, monkeypatch):
+    """Test validation endpoint with mocked span export (no real network calls)."""
+    from unittest.mock import MagicMock
+
+    from opentelemetry.sdk.trace.export import SpanExportResult
+
+    # Mock the exporter to avoid real network calls
+    mock_exporter = MagicMock()
+    mock_exporter.export.return_value = SpanExportResult.SUCCESS
+    mock_exporter.shutdown.return_value = None
+
+    def mock_make_exporter(self):
+        return mock_exporter
+
+    # Patch all provider make_exporter methods
+    monkeypatch.setattr(
+        "agent_platform.core.integrations.observability.models.GrafanaObservabilitySettings.make_exporter",
+        mock_make_exporter,
+    )
+    monkeypatch.setattr(
+        "agent_platform.core.integrations.observability.models.LangSmithObservabilitySettings.make_exporter",
+        mock_make_exporter,
+    )
+    monkeypatch.setattr(
+        "agent_platform.core.integrations.observability.models.OtlpBasicAuthObservabilitySettings.make_exporter",
+        mock_make_exporter,
+    )
+    monkeypatch.setattr(
+        "agent_platform.core.integrations.observability.models.OtlpCustomHeadersObservabilitySettings.make_exporter",
+        mock_make_exporter,
+    )
+
     create_resp = client.post("/api/v2/observability/integrations", json=_make_payload())
     integration_id = create_resp.json()["id"]
 
@@ -141,10 +190,9 @@ def test_validate_integration_placeholder_response(client):
     )
     assert validate_resp.status_code == 200
     data = validate_resp.json()
-    assert data["success"] is False
-    assert "Validation logic not implemented yet." in data["message"]
+    assert data["success"] is True
+    assert "Successfully sent test heartbeat" in data["message"]
     assert data["details"]["provider"] == "grafana"
-    assert data["details"]["override"] == override_payload
 
     missing_resp = client.post(
         f"/api/v2/observability/integrations/{uuid.uuid4()}/validate",
@@ -268,3 +316,228 @@ def test_discriminated_union_ignores_wrong_provider_fields(client):
     assert "grafana_instance_id" not in settings
     # additional_headers is not a LangSmith field, so it shouldn't be there
     assert "additional_headers" not in settings
+
+
+def test_create_otlp_basic_auth_integration(client):
+    """Test creating OTLP Basic Auth integration."""
+    payload = _make_payload(provider="otlp_basic_auth", api_key="steel")
+    response = client.post("/api/v2/observability/integrations", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+
+    assert data["kind"] == "observability"
+    assert "id" in data
+
+    settings = data["settings"]
+    assert settings["provider"] == "otlp_basic_auth"
+    assert settings["is_enabled"] is True
+    assert settings["url"] == "http://localhost:14318"
+    assert settings["username"] == "alloy"
+    assert settings["password"] == "steel"
+
+
+def test_list_otlp_basic_auth_integrations(client):
+    """Test filtering integrations by otlp_basic_auth provider."""
+    payload_grafana = _make_payload(provider="grafana")
+    payload_otlp = _make_payload(provider="otlp_basic_auth")
+
+    assert client.post("/api/v2/observability/integrations", json=payload_grafana).status_code == 201
+    assert client.post("/api/v2/observability/integrations", json=payload_otlp).status_code == 201
+
+    resp_all = client.get("/api/v2/observability/integrations")
+    assert resp_all.status_code == 200
+    assert len(resp_all.json()) == 2
+
+    resp_filtered = client.get("/api/v2/observability/integrations", params={"provider": "otlp_basic_auth"})
+    assert resp_filtered.status_code == 200
+    data = resp_filtered.json()
+    assert len(data) == 1
+    assert data[0]["settings"]["provider"] == "otlp_basic_auth"
+
+
+def test_secret_redaction_otlp(client):
+    """Test that OTLP Basic Auth password is properly handled."""
+    payload = _make_payload(provider="otlp_basic_auth", api_key="steel")
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    assert create_resp.status_code == 201
+    integration_id = create_resp.json()["id"]
+
+    # GET the integration
+    get_resp = client.get(f"/api/v2/observability/integrations/{integration_id}")
+    assert get_resp.status_code == 200
+    data = get_resp.json()
+
+    # Verify password is returned (not redacted in API responses)
+    settings = data["settings"]
+    assert settings["password"] == "steel"
+    assert settings["username"] == "alloy"
+
+
+def test_update_otlp_basic_auth(client):
+    """Test updating OTLP Basic Auth integration."""
+    payload = _make_payload(provider="otlp_basic_auth", api_key="steel")
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    integration_id = create_resp.json()["id"]
+
+    update_payload = {
+        "description": "Updated OTLP integration",
+        "settings": {
+            "provider": "otlp_basic_auth",
+            "is_enabled": False,
+            "url": "http://localhost:24318",
+            "username": "tempo",
+            "password": "iron",
+        },
+    }
+    update_resp = client.put(
+        f"/api/v2/observability/integrations/{integration_id}",
+        json=update_payload,
+    )
+    assert update_resp.status_code == 200
+    data = update_resp.json()
+
+    assert data["description"] == "Updated OTLP integration"
+    assert data["settings"]["provider"] == "otlp_basic_auth"
+    assert data["settings"]["is_enabled"] is False
+    assert data["settings"]["url"] == "http://localhost:24318"
+    assert data["settings"]["username"] == "tempo"
+    assert data["settings"]["password"] == "iron"
+
+
+def test_create_otlp_custom_headers_integration(client):
+    """Test creating OTLP Custom Headers integration."""
+    payload = _make_payload(provider="otlp_custom_headers", api_key="token123")
+    response = client.post("/api/v2/observability/integrations", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+
+    assert data["kind"] == "observability"
+    assert "id" in data
+
+    settings = data["settings"]
+    assert settings["provider"] == "otlp_custom_headers"
+    assert settings["is_enabled"] is True
+    assert settings["url"] == "http://localhost:14318"
+    assert settings["headers"]["Authorization"] == "Bearer token123"
+    assert settings["headers"]["X-Custom-Header"] == "custom-value"
+
+
+def test_list_otlp_custom_headers_integrations(client):
+    """Test filtering integrations by otlp_custom_headers provider."""
+    payload_grafana = _make_payload(provider="grafana")
+    payload_otlp = _make_payload(provider="otlp_custom_headers")
+
+    assert client.post("/api/v2/observability/integrations", json=payload_grafana).status_code == 201
+    assert client.post("/api/v2/observability/integrations", json=payload_otlp).status_code == 201
+
+    resp_all = client.get("/api/v2/observability/integrations")
+    assert resp_all.status_code == 200
+    assert len(resp_all.json()) == 2
+
+    resp_filtered = client.get("/api/v2/observability/integrations", params={"provider": "otlp_custom_headers"})
+    assert resp_filtered.status_code == 200
+    data = resp_filtered.json()
+    assert len(data) == 1
+    assert data[0]["settings"]["provider"] == "otlp_custom_headers"
+
+
+def test_otlp_custom_headers_persistence(client):
+    """Test that custom headers persist through storage/retrieval cycle."""
+    payload = {
+        "kind": "observability",
+        "settings": {
+            "provider": "otlp_custom_headers",
+            "is_enabled": True,
+            "url": "http://localhost:14318",
+            "headers": {
+                "Authorization": "Bearer token123",
+                "X-Custom-Header": "custom-value",
+                "X-Another-Header": "another-value",
+            },
+        },
+        "description": "Test with headers",
+        "version": "1.0.0",
+    }
+
+    # Create the integration
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    assert create_resp.status_code == 201
+    create_data = create_resp.json()
+    integration_id = create_data["id"]
+
+    # Verify CREATE response includes headers
+    settings = create_data["settings"]
+    assert "headers" in settings
+    assert settings["headers"]["Authorization"] == "Bearer token123"
+    assert settings["headers"]["X-Custom-Header"] == "custom-value"
+    assert settings["headers"]["X-Another-Header"] == "another-value"
+
+    # GET the integration to verify headers persist
+    get_resp = client.get(f"/api/v2/observability/integrations/{integration_id}")
+    assert get_resp.status_code == 200
+    get_data = get_resp.json()
+
+    # Verify GET response includes headers
+    settings = get_data["settings"]
+    assert "headers" in settings
+    assert settings["headers"]["Authorization"] == "Bearer token123"
+    assert settings["headers"]["X-Custom-Header"] == "custom-value"
+    assert settings["headers"]["X-Another-Header"] == "another-value"
+
+
+def test_otlp_custom_headers_disallowed_headers_rejected(client):
+    """Test that disallowed headers are rejected for OTLP Custom Headers."""
+    payload = {
+        "kind": "observability",
+        "settings": {
+            "provider": "otlp_custom_headers",
+            "is_enabled": True,
+            "url": "http://localhost:14318",
+            "headers": {
+                "X-Custom-Header": "allowed-value",
+                "Content-Type": "application/json",  # Disallowed
+            },
+        },
+        "description": "Test filtering",
+        "version": "1.0.0",
+    }
+
+    # Attempt to create the integration - should be rejected
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    assert create_resp.status_code == 400  # BAD_REQUEST
+    error_data = create_resp.json()
+    assert "error" in error_data
+    assert "Content-Type may not be specified as an HTTP header" in str(error_data)
+
+
+def test_update_otlp_custom_headers(client):
+    """Test updating OTLP Custom Headers integration."""
+    payload = _make_payload(provider="otlp_custom_headers", api_key="token123")
+    create_resp = client.post("/api/v2/observability/integrations", json=payload)
+    integration_id = create_resp.json()["id"]
+
+    update_payload = {
+        "description": "Updated OTLP Custom Headers integration",
+        "settings": {
+            "provider": "otlp_custom_headers",
+            "is_enabled": False,
+            "url": "http://localhost:24318",
+            "headers": {
+                "Authorization": "Bearer new-token",
+                "X-Updated-Header": "updated-value",
+            },
+        },
+    }
+    update_resp = client.put(
+        f"/api/v2/observability/integrations/{integration_id}",
+        json=update_payload,
+    )
+    assert update_resp.status_code == 200
+    data = update_resp.json()
+
+    assert data["description"] == "Updated OTLP Custom Headers integration"
+    assert data["settings"]["provider"] == "otlp_custom_headers"
+    assert data["settings"]["is_enabled"] is False
+    assert data["settings"]["url"] == "http://localhost:24318"
+    assert data["settings"]["headers"]["Authorization"] == "Bearer new-token"
+    assert data["settings"]["headers"]["X-Updated-Header"] == "updated-value"

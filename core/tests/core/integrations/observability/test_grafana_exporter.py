@@ -147,27 +147,8 @@ class TestGrafanaExporter:
         assert "Authorization" in headers  # Basic auth should be present
         assert headers["X-Custom-Header"] == "custom-value"
 
-    def test_model_dump_filters_disallowed_headers(self):
-        """Test that model_dump filters out disallowed headers from additional_headers."""
-        settings = GrafanaObservabilitySettings(
-            url="https://otlp.grafana.net/otlp",
-            api_token="glc_test_token",
-            grafana_instance_id="999999",
-            additional_headers={
-                "X-Custom-Header": "custom-value",
-                "X-Another-Header": "another-value",
-                "Authorization": "Bearer should-be-filtered",
-                "Content-Type": "application/json",
-                "Host": "example.com",
-            },
-        )
-
-        with pytest.raises(
-            PlatformHTTPError,
-            match="Authorization may not be specified as an HTTP header",
-        ):
-            settings.model_dump(redact_secret=False)
-
+    def test_model_validate_rejects_disallowed_headers(self):
+        """Test that model_validate rejects disallowed headers in additional_headers."""
         with pytest.raises(
             PlatformHTTPError,
             match="Authorization may not be specified as an HTTP header",
@@ -180,6 +161,36 @@ class TestGrafanaExporter:
                     "additional_headers": {
                         "X-Custom-Header": "custom-value",
                         "Authorization": "Bearer bad",
+                    },
+                }
+            )
+
+        with pytest.raises(
+            PlatformHTTPError,
+            match="Content-Type may not be specified as an HTTP header",
+        ):
+            GrafanaObservabilitySettings.model_validate(
+                {
+                    "url": "https://otlp.grafana.net/otlp",
+                    "api_token": "glc_test_token",
+                    "grafana_instance_id": "999999",
+                    "additional_headers": {
+                        "Content-Type": "application/json",
+                    },
+                }
+            )
+
+        with pytest.raises(
+            PlatformHTTPError,
+            match="Host may not be specified as an HTTP header",
+        ):
+            GrafanaObservabilitySettings.model_validate(
+                {
+                    "url": "https://otlp.grafana.net/otlp",
+                    "api_token": "glc_test_token",
+                    "grafana_instance_id": "999999",
+                    "additional_headers": {
+                        "Host": "example.com",
                     },
                 }
             )
