@@ -10202,9 +10202,9 @@ export const spec = {
             title: 'Action',
             description: 'The name of the action.',
           },
-          action_package: {
+          actionPackage: {
             type: 'string',
-            title: 'Action Package',
+            title: 'Actionpackage',
             description: 'The name of the action package.',
             default: '',
           },

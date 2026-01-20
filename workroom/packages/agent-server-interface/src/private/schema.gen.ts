@@ -3733,11 +3733,11 @@ export interface components {
        */
       action: string;
       /**
-       * Action Package
+       * Actionpackage
        * @description The name of the action package.
        * @default
        */
-      action_package: string;
+      actionPackage: string;
       /**
        * Secrets
        * @description Map of secret name to secret definition.

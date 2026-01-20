@@ -56,7 +56,7 @@ class ActionSecretsConfig:
     action: str = field(metadata={"description": "The name of the action."})
     """The name of the action."""
 
-    action_package: str = field(default="", metadata={"description": "The name of the action package."})
+    actionPackage: str = field(default="", metadata={"description": "The name of the action package."})  # noqa: N815
     """The name of the action package."""
 
     secrets: dict[str, ActionSecretDefinition] = field(
@@ -69,7 +69,7 @@ class ActionSecretsConfig:
         """Serialize to dictionary."""
         return {
             "action": self.action,
-            "action_package": self.action_package,
+            "actionPackage": self.actionPackage,
             "secrets": {k: v.model_dump() for k, v in self.secrets.items()},
         }
 
@@ -77,14 +77,14 @@ class ActionSecretsConfig:
     def model_validate(cls, data: dict[str, Any] | None) -> "ActionSecretsConfig":
         """Create from dictionary."""
         if data is None:
-            return cls(action="", action_package="", secrets={})
+            return cls(action="", actionPackage="", secrets={})
 
         secrets_data = data.get("secrets", {})
         secrets = {k: ActionSecretDefinition.model_validate(v) for k, v in secrets_data.items()}
 
         return cls(
             action=data.get("action", ""),
-            action_package=data.get("actionPackage", data.get("action_package", "")),
+            actionPackage=data.get("actionPackage", ""),
             secrets=secrets,
         )
 
