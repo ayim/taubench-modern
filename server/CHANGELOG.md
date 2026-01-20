@@ -1,3 +1,17 @@
+# Sema4.ai Agent Server 2.2.16 (2026-01-19)
+
+* feat: switching default spec version to v2, moving exclude section to the end of spec-file [#2164](https://github.com/Sema4AI/agent-platform/pull/2164)
+* SDM-321: Add dynamic tools for executing verified queries [#2163](https://github.com/Sema4AI/agent-platform/pull/2163)
+* Increase the amount of time we'll wait on a cnxn from the pool [#2155](https://github.com/Sema4AI/agent-platform/pull/2155)
+* SDM-279: Verified query creation needs SDM selection [#1982](https://github.com/Sema4AI/agent-platform/pull/1982)
+* PRD-1344: Added 2 new points for profiling table and fetching column sample values [#2165](https://github.com/Sema4AI/agent-platform/pull/2165)
+* fix: fixing /package/build for outputting Action Packages folders from incoming Action Packages zips [#2177](https://github.com/Sema4AI/agent-platform/pull/2177)
+* Add relationship-based JOIN guidance to SQL generation [#2082](https://github.com/Sema4AI/agent-platform/pull/2082)
+* SDM-193: Parametrize Verified queries [#1957](https://github.com/Sema4AI/agent-platform/pull/1957)
+* SDM-350 Fix foreign key inspector to correctly handle composite keys  [#2167](https://github.com/Sema4AI/agent-platform/pull/2167)
+* Release Agent Server v2.2.16
+* Option to build agent package with action packages as folders [#2134](https://github.com/Sema4AI/agent-platform/pull/2134)
+
 # Sema4.ai Agent Server 2.2.15 (2026-01-13)
 
 * refactor: move file inspection utilities to data_frames module and use pandas.infer_dtype for type inference [#2067](https://github.com/Sema4AI/agent-platform/pull/2067)
