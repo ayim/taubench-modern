@@ -1,5 +1,13 @@
 # Agent Platform Multi-project Repository
 
+## Triggering a new release
+
+Releasing the `agent-server` AND `interface` is only necessary for Studio (ACE automatically gets `main`).
+
+1. **Trigger a new release [here](https://github.com/Sema4AI/agent-platform/actions/workflows/agent-server-release-open-pr.yaml)**
+2. This will open a PR that, once approved, will trigger the build for the release (ultimately creating a new [agent-platform release](https://github.com/Sema4AI/agent-platform/releases))
+3. Once the release is done, a PR for the interface will be opened automatically. Upon approval, the interface will be published
+
 ## Overview
 
 This repository contains the source code for the Agent Platform, a multi-project repository that contains the source code for the Agent Server, core, default architectures, and related SDKs and projects.

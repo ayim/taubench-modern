@@ -23,7 +23,6 @@
 ### Workflow Overview
 
 1. **Feature Development**:
-
    - Create a feature branch from `main`.
    - Implement your changes.
    - Add your changes to the "Unreleased" section of the changelog (see [Change Management](#change-management)).
@@ -34,14 +33,12 @@
 2. **Release Process**:
 
    _This process is automated using two workflows:_
-
    - [Open PR for Agent Server Release](../.github/workflows/agent-server-release-open-pr.yaml)
    - [Create Tag on Agent Server Release PR Merge](../.github/workflows/agent-server-release-tag-on-merge.yaml)
 
-   **Trigger a new release [here](https://github.com/Sema4AI/agent-platform/actions/workflows/agent-server-release-open-pr.yml)**
+   **Trigger a new release [here](https://github.com/Sema4AI/agent-platform/actions/workflows/agent-server-release-open-pr.yaml)**
 
    _Manual process_
-
    - Once features are merged into `main`, update the version in `server/pyproject.toml` following [Semantic Versioning](#semantic-versioning).
    - Run `make sync` to update the lockfile.
    - Run `make update-interface` to update the interface.
@@ -177,7 +174,6 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    ```
 
 2. **Update the changelog**:
-
    - Convert the "Unreleased" section to a versioned section:
 
    ```markdown
@@ -227,7 +223,6 @@ This project follows [Semantic Versioning (semver)](https://semver.org/) princip
    ```
 
 2. **Update the changelog**:
-
    - Convert the "Unreleased" section to a versioned section:
 
    ```markdown
@@ -340,7 +335,6 @@ This ensures you only pay for active deployments that are being actively used fo
 The project uses GitHub Actions for fully automated CI/CD. The main workflows are:
 
 1. **Build & Test Agent Server for PRs** (`main-test.yml`):
-
    - **Triggers**: Automatically on pull requests and manual dispatch
    - **Actions**:
      - Static checks (linting, typechecking, formatting)
@@ -351,7 +345,6 @@ The project uses GitHub Actions for fully automated CI/CD. The main workflows ar
      - Send Slack notifications with download links
 
 2. **Release - Build, Upload, and Notify** (`main-release-build.yml`):
-
    - **Triggers**: Automatically on git tag pushes matching `agent-server-v*`
    - **Actions**:
      - Build and sign executables for all platforms (Windows, macOS Intel/ARM, Linux)
