@@ -1,5 +1,19 @@
 # @sema4ai/spar-ui
 
+## 0.18.0
+
+### Minor Changes
+
+- 83070c6: Autoselect sdm while creating verified query from a dataframe
+- 90567a8: Added observability configurations for generic OTLP endpoints, and a feature to test observability setup by sending heartbeat trace.
+- 4d55adc: Display table relations in Semantic Data Model view
+- d18c446: Handle query parameters for verified query and show parameter validation errors if any.
+
+### Patch Changes
+
+- a5f874d: UI updates: changed button styles for collapsing panels, added contextual menu for worker agent, fixed header jumping, new quick reply icon, decreased avatar size, renamed Chat to Conversation, moved help link to user menu.
+- 161f1be: add message info tooltip with timestamp, model, and token usage
+
 ## 0.17.0
 
 ### Minor Changes
