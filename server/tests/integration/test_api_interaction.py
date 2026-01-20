@@ -194,6 +194,7 @@ def test_start_agent_server_with_lock_file(agent_server_data_dir, start_agent_se
         process.stop()
 
 
+@pytest.mark.xdist_group("action_server")
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_api_interaction_with_action_server(
@@ -275,6 +276,7 @@ def test_api_interaction_with_action_server(
         )
 
 
+@pytest.mark.xdist_group("action_server")
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 @pytest.mark.parametrize(
@@ -415,6 +417,7 @@ def test_mcp_calling_with_action_server(
             )
 
 
+@pytest.mark.xdist_group("action_server")
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_action_error_handling(
@@ -657,6 +660,7 @@ def test_agent_server_port_conflict(tmpdir, logs_dir):
             )
 
 
+@pytest.mark.xdist_group("action_server")
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 def test_async_action_polling_with_fast_retry_interval(
@@ -906,6 +910,7 @@ def check_unexpected_value_error(agent_client: AgentServerClient, agent_id: str)
     assert "ValueError" in error_message, f"Error message should contain the ValueError message. Got: {error_message}"
 
 
+@pytest.mark.xdist_group("action_server")
 @pytest.mark.integration
 @pytest.mark.usefixtures("copy_tmpdir_on_failure")
 async def test_agent_details_endpoint(
