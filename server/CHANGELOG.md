@@ -1,3 +1,9 @@
+# Sema4.ai Agent Server 2.2.17 (2026-01-20)
+
+* fix: action package metadata casing [#2185](https://github.com/Sema4AI/agent-platform/pull/2185)
+* Add generic OTLP observability configs [#2160](https://github.com/Sema4AI/agent-platform/pull/2160)
+* SDM-344 Update SQL generation to better infer schema [#2166](https://github.com/Sema4AI/agent-platform/pull/2166)
+
 # Sema4.ai Agent Server 2.2.16 (2026-01-19)
 
 * feat: switching default spec version to v2, moving exclude section to the end of spec-file [#2164](https://github.com/Sema4AI/agent-platform/pull/2164)
