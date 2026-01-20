@@ -5,7 +5,8 @@
       "Bash(grep:*)",
       "WebFetch(domain:github.com)",
       "Bash(npm run build:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "mcp__acp__Edit"
     ],
     "deny": [],
     "ask": []

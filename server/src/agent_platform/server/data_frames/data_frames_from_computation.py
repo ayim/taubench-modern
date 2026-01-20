@@ -386,6 +386,7 @@ async def create_data_frame_from_sql_computation_api(
         num_rows=0,  # We don't know the number of rows yet
         num_columns=0,  # We don't know the number of columns yet
         column_headers=[],  # We don't know the column headers yet
+        columns={},  # We don't know the columns yet
         name=new_data_frame_name,
         input_id_type="sql_computation",
         created_at=datetime.datetime.now(datetime.UTC),
@@ -421,6 +422,7 @@ async def create_data_frame_from_sql_computation_api(
     data_frame.num_rows = await resolved_df.num_rows()
     data_frame.num_columns = len(sliced_data.columns)
     data_frame.column_headers = list(sliced_data.columns)
+    data_frame.columns = resolved_df.columns
     data_frame.patch_extra_data(sample_rows=sliced_data.rows[:DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT])
 
     # Save the data frame to storage

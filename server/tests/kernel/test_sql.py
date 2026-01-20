@@ -579,7 +579,7 @@ async def test_collect_thread_files_for_sdm():
     collector = MagicMock(resolve_file_references_for_semantic_data_model=AsyncMock(return_value=({}, references)))
     sdm = {"name": "sdm", "tables": []}
 
-    selected = await _collect_sdm_files(
+    selected, actual_references = await _collect_sdm_files(
         storage=storage,
         kernel=kernel,
         semantic_data_model=sdm,  # type: ignore[arg-type]
@@ -587,6 +587,7 @@ async def test_collect_thread_files_for_sdm():
     )
 
     assert selected == [file_b]
+    assert actual_references == references
 
 
 @pytest.mark.asyncio

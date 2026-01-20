@@ -28,6 +28,7 @@ def create_sql_data_frame(name: str, sql: str, sql_dialect: str = "postgres") ->
         num_rows=0,
         num_columns=0,
         column_headers=[],
+        columns={},
         name=name,
         input_id_type="sql_computation",
         computation=sql,

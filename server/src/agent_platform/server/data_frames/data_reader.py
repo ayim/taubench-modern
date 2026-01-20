@@ -48,6 +48,13 @@ class DataReaderSheet:
         The headers of the columns in the sheet.
         """
 
+    @property
+    @abstractmethod
+    def columns(self) -> dict[str, str]:
+        """
+        Column name -> type mapping.
+        """
+
     @abstractmethod
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
         """
@@ -169,6 +176,11 @@ class ExcelDataReaderSheet(DataReaderSheet):
             return [c.name for c in self._excel_reader.load_sheet(self._sheet_name, n_rows=0).available_columns()]
         return [c.name for c in self._loaded_sheet().available_columns()]
 
+    @property
+    def columns(self) -> dict[str, str]:
+        table = self.to_ibis()
+        return {field.name: str(field.type) for field in table.schema}
+
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if self.__loaded_sheet is None:
             loaded_sheet = self._excel_reader.load_sheet(self._sheet_name, n_rows=num_samples)
@@ -233,6 +245,11 @@ class CsvDataReaderSheet(DataReaderSheet):
             pyarrow.csv.ReadOptions(),
         )
         return list(reader.schema.names)
+
+    @property
+    def columns(self) -> dict[str, str]:
+        table = self.to_ibis()
+        return {field.name: str(field.type) for field in table.schema}
 
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
         import io

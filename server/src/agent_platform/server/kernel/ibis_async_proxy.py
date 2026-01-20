@@ -444,6 +444,23 @@ class AsyncIbisTable:
         """
         return self._table.columns
 
+    @property
+    def columns_with_types(self) -> dict[str, str]:
+        """Get column names with their data types.
+
+        This accesses the cached schema on the table expression.
+        Unlike schema(), this is a sync property because the schema
+        is cached on the Ibis table object after first access.
+
+        Note: Both columns and columns_with_types exist because fetching
+        type information may not be lazy for all backends.
+
+        Returns:
+            Mapping of column name to type string
+        """
+        schema = self._table.schema()
+        return {name: str(dtype) for name, dtype in schema.items()}
+
     # Special methods
 
     @overload

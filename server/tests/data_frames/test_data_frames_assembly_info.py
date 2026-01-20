@@ -281,6 +281,7 @@ async def test_data_frames_assembly_info_with_database_connection(
         num_rows=0,  # Not executed, so 0 rows
         num_columns=0,  # Not executed, so 0 columns
         column_headers=[],
+        columns={},
         input_id_type="sql_computation",
         created_at=datetime.now(UTC),
         computation="SELECT * FROM customers LIMIT 5",

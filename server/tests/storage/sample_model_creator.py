@@ -217,6 +217,7 @@ class SampleModelCreator:
             num_rows=100,
             num_columns=5,
             column_headers=["col1", "col2", "col3", "col4", "col5"],
+            columns={"col1": "int64", "col2": "string", "col3": "float64", "col4": "bool", "col5": "string"},
             name=name,
             input_id_type="file",
             created_at=datetime.now(UTC),

@@ -26923,6 +26923,13 @@ export const spec = {
             type: 'array',
             title: 'Column Headers',
           },
+          columns: {
+            additionalProperties: {
+              type: 'string',
+            },
+            type: 'object',
+            title: 'Columns',
+          },
           sample_rows: {
             items: {
               items: {},
@@ -26963,6 +26970,7 @@ export const spec = {
           'num_columns',
           'created_at',
           'column_headers',
+          'columns',
           'sample_rows',
           'file_id',
           'file_ref',

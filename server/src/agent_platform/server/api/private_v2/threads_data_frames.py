@@ -43,6 +43,7 @@ class _DataFrameInspectionAPI:
     num_columns: Annotated[int, "The number of columns in the data frame."]
     created_at: Annotated[datetime.datetime, "The date and time the data frame was created."]
     column_headers: Annotated[list[str], "The headers of the columns in the data frame."]
+    columns: Annotated[dict[str, str], "Column name -> type mapping."]
     sample_rows: Annotated[list[list], "The sample rows of the data frame."]
     file_id: Annotated[str | None, "The ID of the file that the data frame is in."]
     file_ref: Annotated[str | None, "The reference of the file that the data frame is in."]
@@ -67,6 +68,7 @@ class _CacheMetadataSingleSheet(TypedDict):
     num_columns: int
     created_at: str
     column_headers: list[str]
+    columns: dict[str, str]
 
 
 class _CacheMetadataMultiSheet(TypedDict):
@@ -184,6 +186,7 @@ class _CacheHandler:
                     num_columns=single_sheet_metadata["num_columns"],
                     created_at=datetime.datetime.fromisoformat(single_sheet_metadata["created_at"]),
                     column_headers=single_sheet_metadata["column_headers"],
+                    columns=single_sheet_metadata.get("columns", {}),
                     sample_rows=[],
                 )
                 ret.append(value)
@@ -209,6 +212,7 @@ class _CacheHandler:
                     num_columns=single_sheet_metadata["num_columns"],
                     created_at=datetime.datetime.fromisoformat(single_sheet_metadata["created_at"]),
                     column_headers=single_sheet_metadata["column_headers"],
+                    columns=single_sheet_metadata.get("columns", {}),
                     sample_rows=[],
                 )
             ]
@@ -352,6 +356,7 @@ class _CacheHandler:
             "num_columns": data_frame.num_columns,
             "created_at": data_frame.created_at.isoformat(),
             "column_headers": data_frame.column_headers,
+            "columns": data_frame.columns,
         }
 
         await self._storage.set_cache_entry(
@@ -488,6 +493,7 @@ class InspectFileAsDataFrame:
                 num_columns=sheet.num_columns,
                 created_at=datetime.datetime.now(),
                 column_headers=sheet.column_headers,
+                columns=sheet.columns,
                 sample_rows=[],
             )
 
@@ -782,6 +788,7 @@ async def create_data_frame_from_inspected_data_frame(
         num_rows=inspected_data_frame.num_rows,
         num_columns=inspected_data_frame.num_columns,
         column_headers=inspected_data_frame.column_headers,
+        columns=inspected_data_frame.columns,
         name=use_name,
         input_id_type="file",
         created_at=datetime.datetime.now(datetime.UTC),

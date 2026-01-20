@@ -7,6 +7,10 @@
     "name",
     "age"
   ],
+  "columns": {
+    "name": "string",
+    "age": "double"
+  },
   "sample_rows": [
     [
       "John",

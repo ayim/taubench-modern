@@ -121,7 +121,8 @@
         "POSTGRES_PASSWORD": "agents",
         "POSTGRES_PORT": "5432",
         "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
-        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+        "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
+        "SQL_AGENT_VISIBILITY": "NOT_HIDDEN"
       }
     },
     {

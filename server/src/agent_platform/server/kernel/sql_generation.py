@@ -9,6 +9,7 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
 )
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.kernel_interfaces.sql_generation import SQLGenerationInterface
+from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.data_frames.semantic_data_model_collector import (
@@ -21,9 +22,10 @@ from agent_platform.server.storage.option import StorageService
 logger = get_logger(__name__)
 
 CREATE_DF_FROM_LOGICAL_SQL_TOOL_NAME = "create_data_frame_from_logical_sql"
-DESCRIBE_TABLE_TOOL_NAME = "describe_table"
-PEEK_TABLE_TOOL_NAME = "peek_table"
+ESTIMATE_QUERY_SHAPE_TOOL_NAME = "estimate_query_shape"
 FINALIZE_SQL_GENERATION_TOOL_NAME = "finalize_sql_generation"
+PEEK_TABLE_TOOL_NAME = "peek_table"
+VERIFY_QUERY_TOOL_NAME = "verify_query"
 
 ENABLE_SQL_GENERATION_SETTING_NAME = "enable_sql_generation"
 
@@ -48,15 +50,6 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
     async def step_initialize(self) -> None:
         from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
         from agent_platform.server.kernel.data_frames import _DataFrameTools
-
-        self._sql_generation_strategy = LegacySqlStrategy(
-            data_frame_tools=_DataFrameTools(
-                user=self.kernel.user,
-                tid=self.kernel.thread.thread_id,
-                storage=self._storage,
-                name_to_data_frame={},
-            ),
-        )
 
         # Initialize the SQL generation strategy
         self._sql_generation_strategy = LegacySqlStrategy(
@@ -167,6 +160,25 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         # Fallback to duckdb if we have multiple engines
         return "duckdb"
 
+    def _get_sdm_context(self, semantic_data_model_name: str) -> str:
+        """Get the SDM context for a given semantic data model name using summarize_data_model.
+
+        Args:
+            semantic_data_model_name: Name of the semantic data model
+
+        Returns:
+            A formatted string with table schemas and column descriptions
+        """
+        from agent_platform.server.kernel.semantic_data_model import summarize_data_model
+
+        for sdm_and_refs in self._semantic_data_models:
+            model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
+            if model.get("name") == semantic_data_model_name:
+                engine = self._infer_engine_for_semantic_model(sdm_and_refs)
+                return summarize_data_model(model, engine)
+
+        raise ValueError(f"Semantic data model '{semantic_data_model_name}' not found")
+
     @property
     def sql_generation_system_prompt(self) -> str:
         from textwrap import dedent
@@ -187,7 +199,6 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
     def get_sql_generation_tools(self) -> tuple[ToolDefinition, ...]:
         if self.is_enabled():
             return (
-                ToolDefinition.from_callable(self.describe_table, name=DESCRIBE_TABLE_TOOL_NAME),
                 ToolDefinition.from_callable(self.peek_table, name=PEEK_TABLE_TOOL_NAME),
                 ToolDefinition.from_callable(
                     self.create_data_frame_from_logical_sql,
@@ -196,6 +207,14 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
                 ToolDefinition.from_callable(
                     self.finalize_sql_generation,
                     name=FINALIZE_SQL_GENERATION_TOOL_NAME,
+                ),
+                ToolDefinition.from_callable(
+                    self.estimate_query_shape,
+                    name=ESTIMATE_QUERY_SHAPE_TOOL_NAME,
+                ),
+                ToolDefinition.from_callable(
+                    self.verify_query,
+                    name=VERIFY_QUERY_TOOL_NAME,
                 ),
             )
         return ()
@@ -208,11 +227,6 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             A SQL "SELECT" query to execute against existing "logical" tables in your semantic
             data model.
             Any "logical" table can be referenced by its name in the SQL query.
-
-            IMPORTANT: Always use explicit column names instead of SELECT *. Using SELECT *
-            will return physical column names which may differ from the logical names in your
-            semantic data model. Use `describe_table` or `peek_table` to discover logical
-            column names before writing queries.
 
             Supported SQL features:
                 • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
@@ -281,38 +295,90 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             semantic_data_model_name=semantic_data_model_name,
         )
 
-    async def describe_table(
+    async def estimate_query_shape(
         self,
-        table_name: Annotated[str, "The logical table name from the semantic data model"],
-    ) -> dict[str, Any]:
-        """Get schema information for a table including columns, types, and sample values.
+        semantic_data_model_name: Annotated[str, "The name of the semantic data model to approximate the shape for."],
+    ) -> str:
+        """Estimate the expected shape of the relation returned by a SQL expression that satisfies the user's
+        natural language intent. This tool should be used to help guide the generation of sql, specifically
+        around the columns and number of rows that should be returned.
 
-        Returns structured schema information for a specific logical table from the
-        semantic data model.
+        This tool should only be called once and never returns different results.
         """
-        import typing
+        from agent_platform.server.kernel.sql_gen.verify import predict_expected_shape
 
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        # Extract query intent from the first ThreadTextContent in the first ThreadUserMessage
+        query_intent: str = ""
+        first_user_message = next((message for message in self.kernel.thread.messages if message.role == "user"), None)
+        if first_user_message:
+            query_intent = next(
+                (
+                    content.as_text_content()
+                    for content in first_user_message.content
+                    if isinstance(content, ThreadTextContent)
+                ),
+                "",
+            )
+        if not query_intent:
+            raise ValueError("No query intent found in the thread")
 
-        # Search for the table in semantic data models
-        for sdm_and_refs in self._semantic_data_models:
-            semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
-            tables = semantic_data_model.get("tables", [])
+        # Compute an expected query shape from the SDM and the user's intent
+        sdm_context = self._get_sdm_context(semantic_data_model_name)
+        expected_shape = await predict_expected_shape(self.kernel, query_intent, sdm_context)
 
-            for table in tables:
-                if table.get("name") == table_name:
-                    # Cast TypedDicts to dict[str, Any] to satisfy type checker
-                    return self._format_table_description(
-                        typing.cast(dict[str, Any], table),
-                        typing.cast(dict[str, Any], semantic_data_model),
-                    )
+        return expected_shape.model_dump_json(indent=2)
 
-        # Table not found
-        available_tables = self._get_available_table_names()
-        return {
-            "error": f"Table '{table_name}' not found in semantic data model",
-            "available_tables": available_tables,
-        }
+    async def verify_query(
+        self,
+        semantic_data_model_name: Annotated[str, "The name of the semantic data model to verify the query for."],
+        data_frame_name: Annotated[str, "The name of the data frame to verify the query for."],
+    ) -> str:
+        """Verify the resulting metadata of a query against the user's intent.
+
+        Returns:
+            A list of feedback strings. Empty list means the query shape matches expectations.
+        """
+        from agent_platform.server.kernel.sql_gen.verify import (
+            extract_actual_shape,
+            generate_feedback,
+            predict_expected_shape,
+        )
+
+        # Extract query intent from the first ThreadTextContent in the first ThreadUserMessage
+        query_intent: str = ""
+        first_user_message = next((message for message in self.kernel.thread.messages if message.role == "user"), None)
+        if first_user_message:
+            query_intent = next(
+                (
+                    content.as_text_content()
+                    for content in first_user_message.content
+                    if isinstance(content, ThreadTextContent)
+                ),
+                "",
+            )
+        if not query_intent:
+            raise ValueError("No query intent found in the thread")
+
+        # Find the data frame in the thread (the agent should have created it before having a "good" query to verify)
+        data_frame = await self._storage.get_data_frame(self.kernel.thread.thread_id, data_frame_name=data_frame_name)
+        # Extract the actual query shape from the data frame
+        actual_shape = extract_actual_shape(data_frame)
+
+        # Compute an expected query shape from the SDM and the user's intent
+        sdm_context = self._get_sdm_context(semantic_data_model_name)
+        expected_shape = await predict_expected_shape(self.kernel, query_intent, sdm_context)
+
+        # Generate concrete feedback for the SQL agent to change the query (or no feedback!)
+        # TODO Detect the previous feedbacks and provide them in this call to avoid flip-flopping. SDM-357
+        # TODO it might be beneficial to generate more than one feedback and try to pick the best (somehow...)
+        feedback = await generate_feedback(self.kernel, query_intent, actual_shape, expected_shape)
+
+        if not feedback:
+            return "No requested changes for this query."
+
+        import json
+
+        return json.dumps(feedback, indent=2)
 
     def _get_available_table_names(self) -> list[str]:
         """Get list of all available table names from semantic data models."""

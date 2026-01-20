@@ -208,7 +208,8 @@ class QualityTestRunner:
             filtered_agents = [
                 agent
                 for agent in agents_data
-                if isinstance(agent, dict) and agent.get("extra", {}).get("metadata", {}).get("quality") != "true"
+                if isinstance(agent, dict)
+                and agent.get("extra", {}).get("metadata", {}).get("quality", "false") != "true"
             ]
 
             if not filtered_agents:

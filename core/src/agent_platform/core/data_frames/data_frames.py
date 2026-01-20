@@ -149,7 +149,16 @@ class PlatformDataFrame:
     """The number of columns in the data frame."""
 
     column_headers: list[str]
-    """The headers of the columns in the data frame."""
+    """The headers of the columns in the data frame.
+
+    .. deprecated::
+        Use ``list(columns.keys())`` instead. This attribute is maintained for
+        backward compatibility but will be removed in a future version.
+    """
+
+    columns: dict[str, str]
+    """Column name -> type mapping. Both column_headers and columns exist
+    because fetching type information may not be lazy for all backends."""
 
     name: str
     """A name for the data frame to be referenced later on (as a table
@@ -292,6 +301,12 @@ class PlatformDataFrame:
                 f"Column header must be a list of strings. Got element {header} of type {type(header)}"
             )
 
+        columns = self.columns
+        assert isinstance(columns, dict)
+        for col_name, col_type in columns.items():
+            assert isinstance(col_name, str), f"Column name must be a string. Got {col_name} of type {type(col_name)}"
+            assert isinstance(col_type, str), f"Column type must be a string. Got {col_type} of type {type(col_type)}"
+
         assert isinstance(self.data_frame_id, str)
         assert isinstance(self.user_id, str)
         assert isinstance(self.agent_id, str)
@@ -350,6 +365,7 @@ class PlatformDataFrame:
             "num_rows": self.num_rows,
             "num_columns": self.num_columns,
             "column_headers": self.column_headers,
+            "columns": self.columns,
             "name": self.name,
             "input_id_type": self.input_id_type,
             "created_at": self.created_at.isoformat(),
@@ -393,6 +409,9 @@ class PlatformDataFrame:
             for key, source_data in data["computation_input_sources"].items()
         }
 
+        # For backward compatibility, default to empty dict if columns not present
+        columns = data.get("columns", {})
+
         return cls(
             data_frame_id=data["data_frame_id"],
             user_id=data["user_id"],
@@ -401,6 +420,7 @@ class PlatformDataFrame:
             num_rows=data["num_rows"],
             num_columns=data["num_columns"],
             column_headers=data["column_headers"],
+            columns=columns,
             name=data["name"],
             input_id_type=data["input_id_type"],
             created_at=created_at,

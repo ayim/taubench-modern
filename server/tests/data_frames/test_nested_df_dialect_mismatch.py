@@ -31,6 +31,7 @@ def create_sql_data_frame_with_dialect(
         num_rows=0,
         num_columns=0,
         column_headers=[],
+        columns={},
         name=name,
         input_id_type="sql_computation",
         computation=sql,

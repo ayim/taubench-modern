@@ -368,6 +368,16 @@ class DataNodeResult(Protocol):
 
     @property
     @abstractmethod
+    def columns(self) -> dict[str, str]:
+        """Column name -> type mapping.
+
+        Note: Both column_headers and columns exist because fetching
+        type information may not be lazy for all backends. Use
+        column_headers when only names are needed.
+        """
+
+    @property
+    @abstractmethod
     def platform_data_frame(self) -> "PlatformDataFrame":
         pass
 
@@ -420,6 +430,10 @@ class DataNodeFromDataReaderSheet(DataNodeResult):
     @property
     def column_headers(self) -> list[str]:
         return self._reader_sheet.column_headers
+
+    @property
+    def columns(self) -> dict[str, str]:
+        return self._reader_sheet.columns
 
     @property
     def platform_data_frame(self) -> "PlatformDataFrame":
@@ -480,6 +494,11 @@ class ParquetHandler:
     def column_headers(self) -> list[str]:
         return list(self._loaded_table().column_names)
 
+    @property
+    def columns(self) -> dict[str, str]:
+        table = self._loaded_table()
+        return {field.name: str(field.type) for field in table.schema}
+
     def get_table(self) -> "pyarrow.Table":
         return self._loaded_table()
 
@@ -506,6 +525,10 @@ class DataNodeFromInMemoryDataFrame(DataNodeResult):
     @property
     def column_headers(self) -> list[str]:
         return self._parquet_handler.column_headers()
+
+    @property
+    def columns(self) -> dict[str, str]:
+        return self._parquet_handler.columns
 
     @property
     def platform_data_frame(self) -> "PlatformDataFrame":
@@ -586,6 +609,10 @@ class DataNodeFromIbisResult(DataNodeResult):
     @property
     def column_headers(self) -> list[str]:
         return list(self._ibis_result.columns)
+
+    @property
+    def columns(self) -> dict[str, str]:
+        return self._ibis_result.columns_with_types
 
     @property
     def platform_data_frame(self) -> "PlatformDataFrame":

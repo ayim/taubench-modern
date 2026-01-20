@@ -749,6 +749,7 @@ class DataFramesKernel:
                     num_rows=0,
                     num_columns=0,
                     column_headers=[],
+                    columns={},
                     name=logical_table_name,
                     input_id_type="file",
                     file_id=file_reference.get("file_id"),

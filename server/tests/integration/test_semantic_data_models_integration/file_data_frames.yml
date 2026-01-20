@@ -5,6 +5,13 @@
   - Day
   - Domain
   - Cost (inflation-adjusted)
+  columns:
+    Code: string
+    Cost (inflation-adjusted): double
+    Day: date32[day]
+    Domain: string
+    Entity: string
+    year: int64
   created_at: <redacted>
   file_id: <redacted>
   file_ref: hardware-and-energy-cost-to-train-notable-ai-systems.csv

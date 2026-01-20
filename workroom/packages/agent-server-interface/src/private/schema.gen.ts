@@ -11679,6 +11679,10 @@ export interface components {
       created_at: string;
       /** Column Headers */
       column_headers: string[];
+      /** Columns */
+      columns: {
+        [key: string]: string;
+      };
       /** Sample Rows */
       sample_rows: unknown[][];
       /** File Id */

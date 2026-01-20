@@ -28,6 +28,12 @@ Column names:
       - col3
       - col4
       - col5
+    columns:
+      col1: int64
+      col2: string
+      col3: float64
+      col4: bool
+      col5: string
     name: test_data_frame
     input_id_type: file
     created_at: '<timestamp>'

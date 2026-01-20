@@ -11,7 +11,6 @@ from agent_platform.core.kernel import DataFramesInterface
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 from agent_platform.server.kernel.semantic_data_model import (
-    get_semantic_data_models_with_engines,
     infer_engine_for_semantic_model,
 )
 from agent_platform.server.kernel.verified_queries import (
@@ -21,7 +20,9 @@ from agent_platform.server.kernel.verified_queries import (
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        VerifiedQuery,
+    )
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
@@ -147,6 +148,7 @@ async def create_data_frame_from_columns_and_rows(
         num_rows=pyarrow_df.shape[0],
         num_columns=pyarrow_df.shape[1],
         column_headers=list(pyarrow_df.schema.names),
+        columns={field.name: str(field.type) for field in pyarrow_df.schema},
         input_id_type=input_id_type,
         created_at=datetime.datetime.now(datetime.UTC),
         parquet_contents=stream.getvalue(),
@@ -271,7 +273,9 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             # Determine SQL dialect for this SDM
             # Uses data connection engine, or 'duckdb' for file-based SDMs (CSV/Excel)
-            dialect = infer_engine_for_semantic_model(semantic_data_model_and_refs, self._data_connection_id_to_engine)
+            dialect = infer_engine_for_semantic_model(
+                semantic_data_model_and_refs.references, self._data_connection_id_to_engine
+            )
 
             verified_queries = semantic_data_model.get("verified_queries")
             if verified_queries:
@@ -458,8 +462,11 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
     def _get_sdm_context_additions(self) -> str:
         """Get context additions for semantic data models using the SQL strategy."""
+        from agent_platform.server.kernel.semantic_data_model import get_semantic_data_models_with_engines
+
         models_and_engines = get_semantic_data_models_with_engines(
-            self._semantic_data_models, self._data_connection_id_to_engine
+            self._semantic_data_models,
+            self._data_connection_id_to_engine,
         )
         if not models_and_engines:
             return ""
@@ -498,16 +505,15 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         if not self._semantic_data_models:
             return "You have no semantic data models to work with."
 
-        models_and_engines = get_semantic_data_models_with_engines(
-            self._semantic_data_models, self._data_connection_id_to_engine
+        from agent_platform.server.kernel.semantic_data_model import (
+            get_semantic_data_models_with_engines,
+            summarize_data_models,
         )
-        if not models_and_engines:
-            return "No semantic data models available."
 
-        # Get just the data model summary (structure), not SQL generation instructions
-        # We use the prompter's summarize method directly for this
-        from agent_platform.server.kernel.semantic_data_model import summarize_data_models
-
+        models_and_engines = get_semantic_data_models_with_engines(
+            self._semantic_data_models,
+            self._data_connection_id_to_engine,
+        )
         return summarize_data_models(models_and_engines)
 
     @property

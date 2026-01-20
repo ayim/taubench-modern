@@ -12,6 +12,7 @@ from agent_platform.server.file_manager.option import FileManagerService
 from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
 if TYPE_CHECKING:
+    from agent_platform.core.data_frames.semantic_data_model_validation import References
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.kernel import Kernel
     from agent_platform.core.thread import Thread
@@ -650,7 +651,7 @@ If the tool indicates failure, you should inform the user of the failure, along 
                 user=kernel.user,
                 state=None,
             )
-            files_to_copy = await _collect_sdm_files(
+            files_to_copy, references = await _collect_sdm_files(
                 storage=storage,
                 kernel=kernel,
                 semantic_data_model=target_sdm,
@@ -665,6 +666,10 @@ If the tool indicates failure, you should inform the user of the failure, along 
                 files_to_upload=files_to_copy,
             )
 
+            # Build the initial messages for the SQL generation agent.
+            # TODO: we could include both the query intent and an initial predicted query shape.
+            #       in the initial message, but that's it hard to use with our quality tests. If we
+            #       can inline this in the initial messages, that avoids an LLM tool-call roundtrip (few seconds)
             initial_message = ThreadUserMessage(
                 role="user",
                 content=[
@@ -810,7 +815,7 @@ async def _collect_sdm_files(
     kernel: "Kernel",
     semantic_data_model: "SemanticDataModel",
     collector: "SemanticDataModelCollector",
-) -> "list[UploadedFile]":
+) -> "tuple[list[UploadedFile], References]":
     thread_files = await storage.get_thread_files(kernel.thread.thread_id, kernel.user.user_id)
 
     # Single API for extraction + (best-effort) file-ref resolution.
@@ -824,7 +829,7 @@ async def _collect_sdm_files(
 
     # If we have no file references, no extra files to copy.
     if not references.file_references:
-        return []
+        return [], references
 
     # If the SDM has structural/reference errors, we can't reliably narrow files.
     if references.errors:
@@ -835,7 +840,7 @@ async def _collect_sdm_files(
         ref.file_ref for ref in references.file_references if ref.thread_id == kernel.thread.thread_id
     }
 
-    return [f for f in thread_files if f.file_ref in sdm_referenced_file_names]
+    return [f for f in thread_files if f.file_ref in sdm_referenced_file_names], references
 
 
 async def _upload_sdm_files(

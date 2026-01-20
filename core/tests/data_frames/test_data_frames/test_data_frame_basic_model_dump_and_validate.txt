@@ -12,6 +12,13 @@
     "col4",
     "col5"
   ],
+  "columns": {
+    "col1": "int64",
+    "col2": "string",
+    "col3": "float64",
+    "col4": "bool",
+    "col5": "string"
+  },
   "name": "Test_PlatformDataFrame",
   "input_id_type": "sql_computation",
   "created_at": "2023-01-01T12:00:00",
