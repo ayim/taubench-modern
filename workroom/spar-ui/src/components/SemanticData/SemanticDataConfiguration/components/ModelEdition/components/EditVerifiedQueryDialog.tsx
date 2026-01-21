@@ -42,6 +42,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
     name: query?.name || '',
     nlq: query?.nlq || '',
     sql: query?.sql || '',
+    parameters: query?.parameters || [],
   });
   const [isFormValid, setIsFormValid] = useState(false);
   const [errors, setErrors] = useState<{
@@ -95,7 +96,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
       sql: formData.sql.trim(),
       verified_at: query?.verified_at || '',
       verified_by: query?.verified_by || '',
-      parameters: query?.parameters,
+      parameters: formData.parameters,
     };
 
     // Verify the query
@@ -201,7 +202,8 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
       <Dialog.Header>
         <Dialog.Header.Title title={isEditMode ? 'Edit Verified Query' : 'Create Verified Query'} />
         <Dialog.Header.Description>
-          Verified queries let you save and reuse queries that you&apos;ve confirmed to be accurate.{' '}
+          Verified queries let you save and reuse queries that you&apos;ve confirmed to be accurate. We have
+          automatically identified the potential parameters that the agent can change in your query.{' '}
           <Link href={EXTERNAL_LINKS.NAMED_QUERIES} target="_blank">
             Learn more
           </Link>

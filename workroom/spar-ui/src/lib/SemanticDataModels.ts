@@ -1,4 +1,5 @@
-import { SemanticDataValidationErrorKind, SemanticModel } from '../queries';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { QueryParameter, SemanticDataValidationErrorKind, SemanticModel } from '../queries';
 
 export const getTableDimensions = (table: SemanticModel['tables'][number]) => {
   return (table.dimensions || [])
@@ -82,4 +83,29 @@ export const requiresDataConnection = (semanticModel: SemanticModel): boolean =>
  */
 export const getDataConnectionId = (semanticModel: SemanticModel): string | undefined => {
   return semanticModel.tables.find((table) => table.base_table?.data_connection_id)?.base_table?.data_connection_id;
+};
+
+export const getQueryParameterValue = (parameter: QueryParameter): string => {
+  switch (parameter.data_type) {
+    case 'string':
+    case 'datetime':
+      return `'${String(parameter.example_value ?? '').replace(/'/g, "''")}'`;
+    case 'integer':
+    case 'float':
+      return String(parameter.example_value ?? 0);
+    case 'boolean':
+      return String(parameter.example_value ?? 'true');
+    default:
+      exhaustiveCheck(parameter.data_type);
+      return '';
+  }
+};
+
+export const applyQueryParameterValue = (query: string, parameter: QueryParameter): string => {
+  return query.replace(`:${parameter.name}`, getQueryParameterValue(parameter));
+};
+
+export const applyQueryParameterName = (query: string, parameter: QueryParameter): string => {
+  const value = getQueryParameterValue(parameter);
+  return query.replace(value, `:${parameter.name}`);
 };

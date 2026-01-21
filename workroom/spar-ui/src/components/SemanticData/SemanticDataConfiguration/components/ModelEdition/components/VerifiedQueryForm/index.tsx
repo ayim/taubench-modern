@@ -1,14 +1,21 @@
 import { useState, useEffect, useCallback, useRef, FC } from 'react';
 import { Box, Input, Typography, Banner, useDebounce } from '@sema4ai/components';
 import { IconInformation } from '@sema4ai/icons';
-import { Code } from '../../../../../../common/code';
+import { Code } from '../../../../../../../common/code';
 
-import { VerifiedQuery, SemanticModel, useVerifyVerifiedQueryMutation } from '../../../../../../queries/semanticData';
+import {
+  VerifiedQuery,
+  SemanticModel,
+  useVerifyVerifiedQueryMutation,
+  QueryParameter,
+} from '../../../../../../../queries';
+import { Parameters } from './compponents/Parameters';
 
 export type FormData = {
   name: string;
   nlq: string;
   sql: string;
+  parameters: Array<QueryParameter>;
 };
 
 type Props = {
@@ -54,11 +61,13 @@ export const VerifiedQueryForm: FC<Props> = ({
   const [editedSql, setEditedSql] = useState(initialQuery?.sql || '');
   const initialValuesRef = useRef<{ name: string; nlq: string; sql: string } | null>(null);
   const previousInitialQueryRef = useRef<string>('');
+  const [parameters, setParameters] = useState<Array<QueryParameter>>(initialQuery?.parameters || []);
 
   // Debounce the edited values for validation
   const debouncedName = useDebounce(editedName, 500);
   const debouncedNlq = useDebounce(editedNlq, 500);
   const debouncedSql = useDebounce(editedSql, 500);
+  const debouncedParameters = useDebounce(parameters, 500);
 
   // Sync local state when initialQuery changes (only if content actually changed)
   useEffect(() => {
@@ -110,7 +119,7 @@ export const VerifiedQueryForm: FC<Props> = ({
         sql: debouncedSql.trim(),
         verified_at: initialQuery?.verified_at || '',
         verified_by: initialQuery?.verified_by || '',
-        parameters: initialQuery?.parameters,
+        parameters: debouncedParameters.filter((p) => new RegExp(`:${p.name}\\b`).test(debouncedSql)),
       };
 
       try {
@@ -135,7 +144,7 @@ export const VerifiedQueryForm: FC<Props> = ({
     };
 
     validateQuery();
-  }, [debouncedName, debouncedNlq, debouncedSql, isNewQuery]);
+  }, [debouncedName, debouncedNlq, debouncedSql, isNewQuery, debouncedParameters]);
 
   // Notify parent of form data changes
   useEffect(() => {
@@ -144,10 +153,11 @@ export const VerifiedQueryForm: FC<Props> = ({
         name: editedName,
         nlq: editedNlq,
         sql: editedSql,
+        parameters: parameters.filter((p) => new RegExp(`:${p.name}\\b`).test(editedSql)),
       },
       isNonEmpty,
     );
-  }, [editedName, editedNlq, editedSql, isNonEmpty, onFormDataChange]);
+  }, [editedName, editedNlq, editedSql, isNonEmpty, onFormDataChange, parameters]);
 
   const errors = externalErrors || {};
 
@@ -193,7 +203,7 @@ export const VerifiedQueryForm: FC<Props> = ({
       </Box>
       <Box display="flex" flexDirection="column" gap="$4">
         <Input
-          label="Description"
+          label="Descriptionzzz"
           rows={3}
           value={editedNlq}
           onChange={(e) => setEditedNlq(e.target.value)}
@@ -204,6 +214,16 @@ export const VerifiedQueryForm: FC<Props> = ({
         />
         {renderErrors(errors.nlq_errors, 'warning')}
       </Box>
+
+      {initialQuery && (
+        <Parameters
+          sql={editedSql}
+          parameters={parameters}
+          onSqlChange={setEditedSql}
+          onParametersChange={setParameters}
+        />
+      )}
+
       <Box display="flex" flexDirection="column" gap="$4">
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Typography variant="body-medium" fontWeight="medium">
