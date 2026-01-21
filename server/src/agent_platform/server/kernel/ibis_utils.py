@@ -598,6 +598,8 @@ async def _create_snowflake_connection(
                     "PYTHON_CONNECTOR_USE_NANOARROW": False,  # Disable nanoarrow (Arrow format)
                 },
                 use_pandas=False,  # Force JSON format, not Arrow
+                create_object_udfs=False,  # We don't have any way to ask for this extra permission, disable it
+                # to avoid noise.
             )
         else:
             # For password-based authentication
@@ -615,6 +617,8 @@ async def _create_snowflake_connection(
                     "PYTHON_CONNECTOR_USE_NANOARROW": False,
                 },
                 use_pandas=False,
+                create_object_udfs=False,  # We don't have any way to ask for this extra permission, disable it
+                # to avoid noise.
             )
 
         elapsed = time.monotonic() - initial_time
@@ -633,3 +637,20 @@ async def _create_snowflake_connection(
         )
 
         raise ConnectionFailedError(error_message, details=details) from e
+
+
+def database_filter(database: str | None, schema: str | None = None) -> tuple[str, str] | str | None:
+    """
+    Filter database and schema for Ibis connection.
+
+    Ibis support is either: database and schema, just schema, or none.
+    """
+    # Many DBMS support both a database and schema
+    if database and schema:
+        # Many DBMS support both a database and schema
+        return (database, schema)
+    elif schema:
+        # Some DBMS just have one organizational unit (mysql, sqlite, impala)
+        return schema
+
+    return None

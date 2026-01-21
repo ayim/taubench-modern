@@ -35,7 +35,8 @@ class MySQLForeignKeyInspector(ForeignKeyInspector):
 
         # Build list of table names to inspect
         table_names = [t.name for t in tables]
-        database_name = tables[0].database if tables[0].database else await connection.get_current_database()
+        # database and schema are synonyms for mysql, but Ibis only implements current_schema()
+        database_name = tables[0].database if tables[0].database else await connection.get_current_schema()
 
         table_list = ", ".join([f"'{name}'" for name in table_names])
 
@@ -111,7 +112,8 @@ class MySQLForeignKeyInspector(ForeignKeyInspector):
 
         # Build list of table names to inspect
         table_names = [t.name for t in tables]
-        database_name = tables[0].database if tables[0].database else await connection.get_current_database()
+        # database and schema are synonyms for mysql, but Ibis only implements current_schema()
+        database_name = tables[0].database if tables[0].database else await connection.get_current_schema()
 
         table_list = ", ".join([f"'{name}'" for name in table_names])
 

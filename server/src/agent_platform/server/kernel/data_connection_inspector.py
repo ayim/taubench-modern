@@ -195,11 +195,13 @@ class DataConnectionInspector:
         Raises:
             TableNotFoundError: If the table is not found.
         """
-        from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError
+        from agent_platform.server.kernel.ibis_utils import IbisDbCallNotInWorkerThreadError, database_filter
+
+        database: tuple[str, str] | str | None = database_filter(table_spec.database, table_spec.schema)
 
         connection: AsyncIbisConnection = await self.connection
         try:
-            table: AsyncIbisTable = await connection.table(table_spec.name)
+            table: AsyncIbisTable = await connection.table(table_spec.name, database=database)
         except IbisDbCallNotInWorkerThreadError as e:
             raise e
         except Exception as e:
@@ -344,8 +346,7 @@ class DataConnectionInspector:
     async def _get_all_tables(cls, connection: AsyncIbisConnection) -> list[TableToInspect]:
         """Get all tables from the connection."""
         from agent_platform.core.payloads.data_connection import TableToInspect
-
-        tables = await connection.list_tables()
+        from agent_platform.server.kernel.ibis_utils import database_filter
 
         # Get schema and database info once (connection-level properties, not per-table)
         # Note: Some backends (like MySQL) execute queries when accessing these properties,
@@ -374,6 +375,8 @@ class DataConnectionInspector:
                 backend=type(connection).__name__,
                 error=str(e),
             )
+
+        tables = await connection.list_tables(database=database_filter(database, schema))
 
         # Create table specs using the same schema/database for all tables
         table_specs = []
@@ -495,13 +498,15 @@ class DataConnectionInspector:
             ColumnInfo - always returns a ColumnInfo, even if inspection partially failed
         """
         from agent_platform.core.payloads.data_connection import ColumnInfo
+        from agent_platform.server.kernel.ibis_utils import database_filter
 
         # Acquire a connection from the pool
         pool_connection = await connection_pool.get()
         column_type = "unknown"  # Default to unknown, will be updated if we can determine it
+        database: tuple[str, str] | str | None = database_filter(table_spec.database, table_spec.schema)
         try:
             # Get the table from the pool connection (separate from main connection to avoid transaction nesting)
-            pool_table = await pool_connection.table(table_spec.name)
+            pool_table = await pool_connection.table(table_spec.name, database=database)
 
             # Get column type from the original table (no I/O, just metadata)
             try:

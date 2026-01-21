@@ -36,7 +36,7 @@ async def test_validate_tables_exist_success():
     mock_table2 = Mock()
     mock_table2.columns = ("col1", "col2")
 
-    async def mock_get_table(name):
+    async def mock_get_table(name, database=None):
         if name == "table1":
             return mock_table1
         elif name == "table2":

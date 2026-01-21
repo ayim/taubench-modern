@@ -7,7 +7,7 @@ from typing import Any, cast, overload
 if typing.TYPE_CHECKING:
     import pandas
     import pyarrow
-    from ibis.backends import BaseBackend
+    from ibis.backends.sql import SQLBackend
     from ibis.expr.datatypes import DataType as IbisDataType
     from ibis.expr.schema import Schema as IbisSchema
     from ibis.expr.types import Column as IbisColumn
@@ -26,7 +26,7 @@ class AsyncIbisConnection:
         engine: Database engine name (e.g., 'snowflake', 'postgres', 'sqlite')
     """
 
-    def __init__(self, connection: BaseBackend, engine: str):
+    def __init__(self, connection: SQLBackend, engine: str):
         """Initialize async connection wrapper.
 
         Args:
@@ -47,29 +47,39 @@ class AsyncIbisConnection:
         """
         return self._connection.name
 
-    async def table(self, name: str) -> AsyncIbisTable:
+    async def table(self, name: str, *, database: tuple[str, str] | str | None = None) -> AsyncIbisTable:
         """Get a table by name.
 
         This is a blocking I/O operation wrapped with asyncio.to_thread.
 
         Args:
             name: Table name
+            database: Database/schema the table belongs to. Can be a string for
+                single-level hierarchy (e.g. MySQL schema), a tuple of
+                (catalog, database) for two-level hierarchy (e.g. Snowflake), or
+                None if the RDBMS does not support any hierarchy.
 
         Returns:
             AsyncIbisTable wrapping the raw ibis table
         """
-        raw_table = await asyncio.to_thread(self._connection.table, name)
+        raw_table = await asyncio.to_thread(self._connection.table, name, database=database)
         return AsyncIbisTable(raw_table, engine=self._engine)
 
-    async def list_tables(self) -> list[str]:
+    async def list_tables(self, *, database: tuple[str, str] | str | None = None) -> list[str]:
         """List all tables in the connection.
 
         This is a blocking I/O operation wrapped with asyncio.to_thread.
 
+        Args:
+            database: Database/schema the table belongs to. Can be a string for
+                single-level hierarchy (e.g. MySQL schema), a tuple of
+                (catalog, database) for two-level hierarchy (e.g. Snowflake), or
+                None if the RDBMS does not support any hierarchy.
+
         Returns:
             List of table names
         """
-        return await asyncio.to_thread(self._connection.list_tables)
+        return await asyncio.to_thread(self._connection.list_tables, database=database)
 
     async def sql(self, query: str, dialect: str | None = None) -> AsyncIbisTable:
         """Execute a SQL query and return a table.
@@ -86,7 +96,7 @@ class AsyncIbisConnection:
         Raises:
             AttributeError: If the backend doesn't support sql method
         """
-        raw_expr = await asyncio.to_thread(cast(Any, self._connection).sql, query, dialect=dialect)
+        raw_expr = await asyncio.to_thread(self._connection.sql, query, dialect=dialect)
         return AsyncIbisTable(raw_expr, engine=self._engine)
 
     async def create_table(self, name: str, obj: pyarrow.Table | pandas.DataFrame | Any) -> IbisTable:
@@ -112,10 +122,17 @@ class AsyncIbisConnection:
         Returns:
             Current schema name
 
-        Raises:
-            AttributeError: If the backend doesn't support current_schema
+        Note: this method will raise an exception for athena, bigquery, clickhouse, databricks, exasol,
+        and polars. They do not have the concept for a "schema".
         """
-        return await asyncio.to_thread(lambda: cast(Any, self._connection).current_schema)
+        # What we would call a "schema" (the 2nd-level organization), Ibis calls a "Database"
+        from ibis.backends import HasCurrentDatabase
+
+        if not isinstance(self._connection, HasCurrentDatabase):
+            raise ValueError("Engine does not have the concept of a schema.")
+
+        hcd = cast(HasCurrentDatabase, self._connection)
+        return await asyncio.to_thread(lambda: hcd.current_database)
 
     async def get_current_database(self) -> str:
         """Get the current database name.
@@ -126,16 +143,23 @@ class AsyncIbisConnection:
         Returns:
             Current database name
 
-        Raises:
-            AttributeError: If the backend doesn't support current_database
+        Note: this method will raise an exception for athena, bigquery, clickhouse, databricks, exasol,
+        polars, impala, mysql, and sqlite. They have no concept of a "database".
         """
-        return await asyncio.to_thread(lambda: cast(Any, self._connection).current_database)
+        # What we would call a "database" (the 1st-level organization), Ibis calls a "Catalog"
+        from ibis.backends import HasCurrentCatalog
+
+        if not isinstance(self._connection, HasCurrentCatalog):
+            raise ValueError("Engine does not have the concept of a database.")
+
+        hcc = cast(HasCurrentCatalog, self._connection)
+        return await asyncio.to_thread(lambda: hcc.current_catalog)
 
     async def close(self) -> None:
         """Close the underlying ibis connection.
 
         This is a blocking I/O operation wrapped with asyncio.to_thread.
-        Uses the BaseBackend.disconnect() method to properly close the connection.
+        Uses the SQLBackend.disconnect() method to properly close the connection.
         This ensures proper cleanup for backends that require explicit closing
         (e.g., PostgreSQL, Snowflake).
         """

@@ -52,7 +52,7 @@ class TestAsyncIbisConnection:
 
         assert isinstance(result, AsyncIbisTable)
         assert result._engine == "postgres"
-        mock_ibis_connection.table.assert_called_once_with("test_table")
+        mock_ibis_connection.table.assert_called_once_with("test_table", database=None)
 
     @pytest.mark.asyncio
     async def test_list_tables_uses_thread(self, mock_ibis_connection):
@@ -64,7 +64,7 @@ class TestAsyncIbisConnection:
             result = await async_conn.list_tables()
 
             assert result == ["table1", "table2"]
-            mock_to_thread.assert_called_once_with(mock_ibis_connection.list_tables)
+            mock_to_thread.assert_called_once_with(mock_ibis_connection.list_tables, database=None)
 
     @pytest.mark.asyncio
     async def test_sql_returns_async_table(self, mock_ibis_connection):
@@ -91,9 +91,15 @@ class TestAsyncIbisConnection:
             mock_to_thread.assert_called_once_with(mock_ibis_connection.create_table, "new_table", mock_obj)
 
     @pytest.mark.asyncio
-    async def test_get_current_schema(self, mock_ibis_connection):
+    async def test_get_current_schema(self):
         """Test that get_current_schema() uses asyncio.to_thread."""
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="postgres")
+        from ibis.backends import HasCurrentDatabase
+
+        # Create a mock that passes isinstance check for HasCurrentDatabase
+        mock_conn = MagicMock(spec=HasCurrentDatabase)
+        mock_conn.current_database = "public"
+
+        async_conn = AsyncIbisConnection(mock_conn, engine="postgres")
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = "public"
@@ -103,9 +109,15 @@ class TestAsyncIbisConnection:
             assert mock_to_thread.called
 
     @pytest.mark.asyncio
-    async def test_get_current_database(self, mock_ibis_connection):
+    async def test_get_current_database(self):
         """Test that get_current_database() uses asyncio.to_thread."""
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="postgres")
+        from ibis.backends import HasCurrentCatalog
+
+        # Create a mock that passes isinstance check for HasCurrentCatalog
+        mock_conn = MagicMock(spec=HasCurrentCatalog)
+        mock_conn.current_catalog = "testdb"
+
+        async_conn = AsyncIbisConnection(mock_conn, engine="postgres")
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = "testdb"

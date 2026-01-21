@@ -252,3 +252,5 @@ terraform.rc
 # Ignore .serena directory
 .serena/
 
+# Don't commit local claude settings
+.claude/settings.local.json

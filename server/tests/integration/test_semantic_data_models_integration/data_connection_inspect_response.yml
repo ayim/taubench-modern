@@ -67,12 +67,12 @@ tables:
     - <sample_string>
     synonyms: null
     unique: null
-  database: main
+  database: null
   description: null
   foreign_keys: []
   name: artificial_intelligence_number_training_datapoints
   primary_keys: []
-  schema: null
+  schema: main
 - columns:
   - data_type: int64
     description: null
@@ -129,12 +129,12 @@ tables:
     - <sample_number>
     synonyms: null
     unique: null
-  database: main
+  database: null
   description: null
   foreign_keys: []
   name: exponential_growth_of_computation_in_the_training_of_notable_ai_systems
   primary_keys: []
-  schema: null
+  schema: main
 - columns:
   - data_type: int64
     description: null
@@ -215,12 +215,12 @@ tables:
     - <sample_string>
     synonyms: null
     unique: null
-  database: main
+  database: null
   description: null
   foreign_keys: []
   name: hardware_and_energy_cost_to_train_notable_ai_systems
   primary_keys: []
-  schema: null
+  schema: main
 - columns:
   - data_type: string
     description: null
@@ -246,9 +246,9 @@ tables:
     - <sample_number>
     synonyms: null
     unique: null
-  database: main
+  database: null
   description: null
   foreign_keys: []
   name: sqlite_sequence
   primary_keys: []
-  schema: null
+  schema: main

@@ -1,0 +1,10 @@
+{
+  "format_on_save": "off",
+  "lsp": {
+    "basedpyright": {
+      "initialization_options": {
+        "disablePullDiagnostics": true
+      }
+    }
+  }
+}
