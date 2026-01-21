@@ -131,10 +131,10 @@ export const VerifiedQueryForm: FC<Props> = ({
 
         const verifiedQuery = response.verified_query;
         const validationErrors = {
-          sql_errors: verifiedQuery.sql_errors,
-          nlq_errors: verifiedQuery.nlq_errors,
-          name_errors: verifiedQuery.name_errors,
-          parameter_errors: verifiedQuery.parameter_errors,
+          sql_errors: verifiedQuery.sql_errors || undefined,
+          nlq_errors: verifiedQuery.nlq_errors || undefined,
+          name_errors: verifiedQuery.name_errors || undefined,
+          parameter_errors: verifiedQuery.parameter_errors || undefined,
         };
         onValidationErrorsChange?.(validationErrors);
       } catch (error) {
