@@ -728,7 +728,7 @@ async def import_semantic_data_model(
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.semantic_data_models import (
-        validate_semantic_data_model_name_is_unique,
+        make_semantic_data_model_name_unique,
     )
 
     # Parse YAML string if provided
@@ -792,48 +792,32 @@ async def import_semantic_data_model(
     # Prepare warnings (will be empty unless other issues arise)
     warnings = []
 
-    # Duplicate checking disabled - always create new SDM
-    is_duplicate = False
-    model_id = None
+    # Auto-rename if name conflicts with existing SDM
+    model_name = resolved_model.get("name")
+    if model_name:
+        unique_name = await make_semantic_data_model_name_unique(model_name, storage=storage)
+        if unique_name != model_name:
+            resolved_model_dict = model_dump_sdm(resolved_model, exclude_none=False)
+            resolved_model_dict["name"] = unique_name
+            resolved_model = typing.cast(SemanticDataModel, resolved_model_dict)
 
-    # TODO: Use payload.thread_id with SemanticDataModelCollector to resolve file references
-    # during import. This would enable importing SDMs that reference files in a thread context.
+    # Convert file_references from list of dicts to list of tuples
+    file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
 
-    # Note: Duplicate check logic has been removed. Every import creates a new SDM.
-    # if payload.agent_id:
-    #     # Get existing SDMs linked to this agent
-    #     existing_sdms = await storage.get_agent_semantic_data_models(payload.agent_id)
-    #     # Check if a matching SDM already exists
-    #     matching_id = _find_matching_sdm(resolved_model, existing_sdms)
-    #     if matching_id:
-    #         model_id = matching_id
-    #         is_duplicate = True
+    # Create the semantic data model (ID will be generated)
+    model_id = await storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=resolved_model,
+        data_connection_ids=list(references.data_connection_ids),
+        file_references=file_references,
+    )
 
-    # Always create new SDM
-    if not model_id:
-        # Validate name uniqueness
-        model_name = resolved_model.get("name")
-        if model_name:
-            await validate_semantic_data_model_name_is_unique(model_name, storage=storage)
-
-        # Convert file_references from list of dicts to list of tuples
-        file_references = [(ref.thread_id, ref.file_ref) for ref in references.file_references]
-
-        # Create the semantic data model (ID will be generated)
-        model_id = await storage.set_semantic_data_model(
-            semantic_data_model_id=None,
-            semantic_model=resolved_model,
-            data_connection_ids=list(references.data_connection_ids),
-            file_references=file_references,
-        )
-
-        logger.info(
-            f"Created new semantic data model {model_id} for user {user.user_id} "
-            f"(resolved: {len(resolved_connections)})"
-        )
+    logger.info(
+        f"Created new semantic data model {model_id} for user {user.user_id} (resolved: {len(resolved_connections)})"
+    )
 
     # Link the SDM to the agent if agent_id is provided
-    if payload.agent_id and not is_duplicate:
+    if payload.agent_id:
         # Get existing SDM IDs for this agent
         existing_sdms = await storage.get_agent_semantic_data_models(payload.agent_id)
         existing_sdm_ids = []
@@ -850,7 +834,7 @@ async def import_semantic_data_model(
     return ImportSemanticDataModel(
         semantic_data_model_id=model_id,
         resolved_data_connections=resolved_connections,
-        is_duplicate=is_duplicate,
+        is_duplicate=False,
         warnings=warnings,
     )
 

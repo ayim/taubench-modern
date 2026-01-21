@@ -1861,3 +1861,101 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
         )
 
         logger.info(f"Successfully detected {len(relationships)} relationships: {relationship_pairs}")
+
+
+@pytest.mark.integration
+def test_import_semantic_data_model_auto_renames_on_name_conflict(base_url_agent_server_session, resources_dir):
+    """Test that importing an SDM with a conflicting name auto-renames it instead of failing."""
+    from urllib.parse import urljoin
+
+    import requests
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        # Create data connection
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name="test-connection-import-rename",
+            description="Test connection for import rename",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file),
+            },
+        )
+
+        # Create a simple SDM with name "foo"
+        semantic_model = {
+            "name": "foo",
+            "description": "Test model for import rename",
+            "tables": [
+                {
+                    "name": "ai_data",
+                    "base_table": {
+                        "database": "",
+                        "schema": "",
+                        "table": "artificial_intelligence_training_computation",
+                        "data_connection_id": data_connection["id"],
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "Entity name",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        # First, create an SDM with the name "foo" using the create endpoint
+        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+        first_sdm_id = created_model["semantic_data_model_id"]
+        assert first_sdm_id is not None
+
+        # Verify the first SDM has the name "foo"
+        first_sdm = agent_client.get_semantic_data_model(first_sdm_id)
+        assert first_sdm["name"] == "foo"
+
+        # Prepare import payload - use data_connection_name instead of data_connection_id for portability
+        import_model = {
+            "name": "foo",  # Same name - should trigger auto-rename
+            "description": "Imported model with same name",
+            "tables": [
+                {
+                    "name": "ai_data",
+                    "base_table": {
+                        "database": "",
+                        "schema": "",
+                        "table": "artificial_intelligence_training_computation",
+                        "data_connection_name": "test-connection-import-rename",
+                    },
+                    "dimensions": [
+                        {
+                            "name": "Entity",
+                            "expr": "Entity",
+                            "data_type": "TEXT",
+                            "description": "Entity name",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        # Import the SDM - should succeed with auto-rename
+        import_url = urljoin(base_url_agent_server_session, "/api/v2/semantic-data-models/import")
+        import_response = requests.post(import_url, json={"semantic_model": import_model})
+        assert import_response.status_code == 200, f"Import failed: {import_response.text}"
+
+        import_data = import_response.json()
+        second_sdm_id = import_data["semantic_data_model_id"]
+        assert second_sdm_id is not None
+        assert second_sdm_id != first_sdm_id
+
+        # Verify the imported SDM was auto-renamed to "foo (1)"
+        second_sdm = agent_client.get_semantic_data_model(second_sdm_id)
+        assert second_sdm["name"] == "foo (1)", f"Expected 'foo (1)', got '{second_sdm['name']}'"
+
+        # Verify we have three distinct SDMs with the "foo" prefix
+        all_names = [first_sdm["name"], second_sdm["name"]]
+        assert all_names == ["foo", "foo (1)"], f"Expected ['foo', 'foo (1)'], got {all_names}"
