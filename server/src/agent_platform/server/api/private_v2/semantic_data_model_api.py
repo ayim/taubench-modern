@@ -1118,7 +1118,7 @@ async def prepare_verified_query_validation_context(
         VerifiedQueryValidationContext,
     )
 
-    # 1. Determine dialect from first available data connection
+    # 1. Determine dialect from first available data connection or file reference
     dialect = None
     tables = semantic_data_model.get("tables") or []
     if tables:
@@ -1135,6 +1135,10 @@ async def prepare_verified_query_validation_context(
                     except Exception:
                         # If we can't get the connection, continue to next table
                         continue
+                elif "file_reference" in base_table:
+                    # File-based tables use DuckDB
+                    dialect = "duckdb"
+                    break
 
     # 2. Build table name mappings
     logical_tables = semantic_data_model.get("tables") or []

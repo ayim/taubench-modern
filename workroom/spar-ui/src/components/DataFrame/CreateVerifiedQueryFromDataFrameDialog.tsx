@@ -178,6 +178,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
       sql: formData.sql.trim(),
       verified_at: initialQuery?.verified_at || '',
       verified_by: initialQuery?.verified_by || '',
+      parameters: initialQuery?.parameters ?? undefined,
     };
 
     if (!selectedModel) {
@@ -222,6 +223,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
         sql: verifiedQuery.sql,
         verified_at: verifiedQuery.verified_at,
         verified_by: verifiedQuery.verified_by,
+        parameters: verifiedQuery.parameters ?? queryToVerify.parameters,
       };
 
       await saveMutation.mutateAsync({

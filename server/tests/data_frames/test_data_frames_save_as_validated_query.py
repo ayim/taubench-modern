@@ -12,6 +12,11 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
 
+def fix_sql_query(sql_query: str) -> str:
+    """Normalize SQL query by collapsing whitespace for comparison."""
+    return sql_query.replace("\n", " ").strip().replace("  ", " ").replace("  ", " ")
+
+
 @pytest.fixture
 async def test_user(sqlite_storage: "SQLiteStorage"):
     """Create a test user for API calls."""
@@ -64,8 +69,7 @@ async def test_save_data_frame_as_validated_query(
     model_creator = SampleModelCreator(sqlite_storage, tmpdir)
     await model_creator.setup()
 
-    # Create agent and thread
-    agent = await model_creator.obtain_sample_agent()
+    # Create thread
     thread = await model_creator.obtain_sample_thread()
 
     # Create a CSV file
@@ -108,10 +112,7 @@ async def test_save_data_frame_as_validated_query(
         file_references=[(thread.thread_id, csv_file.file_ref)],
     )
 
-    # Associate model to agent and thread
-    await sqlite_storage.set_agent_semantic_data_models(
-        agent_id=agent.agent_id, semantic_data_model_ids=[semantic_data_model_id]
-    )
+    # Associate model to thread
     await sqlite_storage.set_thread_semantic_data_models(
         thread_id=thread.thread_id, semantic_data_model_ids=[semantic_data_model_id]
     )
@@ -192,9 +193,6 @@ async def test_save_data_frame_as_validated_query(
     assert validated_query["nlq"] == data_frame_description
     assert validated_query["verified_by"] == test_user.user_id
     assert "verified_at" in validated_query
-
-    def fix_sql_query(sql_query: str) -> str:
-        return sql_query.replace("\n", " ").strip().replace("  ", " ").replace("  ", " ")
 
     assert fix_sql_query(validated_query["sql"]) == "SELECT * FROM file_data"
 
@@ -284,8 +282,7 @@ async def test_get_validated_query_with_multiple_sdms(
     model_creator = SampleModelCreator(sqlite_storage, tmpdir)
     await model_creator.setup()
 
-    # Create agent and thread
-    agent = await model_creator.obtain_sample_agent()
+    # Create thread
     thread = await model_creator.obtain_sample_thread()
 
     # Create two CSV files
@@ -367,11 +364,7 @@ async def test_get_validated_query_with_multiple_sdms(
         file_references=[(thread.thread_id, csv_file_2.file_ref)],
     )
 
-    # Associate both models to agent and thread
-    await sqlite_storage.set_agent_semantic_data_models(
-        agent_id=agent.agent_id,
-        semantic_data_model_ids=[semantic_data_model_id_1, semantic_data_model_id_2],
-    )
+    # Associate both models to thread
     await sqlite_storage.set_thread_semantic_data_models(
         thread_id=thread.thread_id,
         semantic_data_model_ids=[semantic_data_model_id_1, semantic_data_model_id_2],
@@ -457,9 +450,152 @@ async def test_get_validated_query_with_multiple_sdms(
     assert "verified_query" in response_data_1
     assert "verified_query" in response_data_2
 
-    def fix_sql_query(sql_query: str) -> str:
-        return sql_query.replace("\n", " ").strip().replace("  ", " ").replace("  ", " ")
-
     # Verify the SQL queries are correct
     assert fix_sql_query(response_data_1["verified_query"]["sql"]) == "SELECT * FROM sales_data"
     assert fix_sql_query(response_data_2["verified_query"]["sql"]) == "SELECT * FROM products_data"
+
+
+@pytest.mark.asyncio
+async def test_validated_query_with_parameterization(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+    client: TestClient,
+    test_user,
+):
+    """Test that validated query returns parameterized SQL with extracted parameters."""
+
+    from agent_platform.architectures.experimental.exp_1 import Exp1State
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    # Setup model creator
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+
+    # Create thread
+    thread = await model_creator.obtain_sample_thread()
+
+    # Create a CSV file
+    csv_content = b"Country,Sales,Year\nUSA,1000,2021\nCanada,500,2021\nFrance,750,2022"
+    csv_file = await model_creator.obtain_sample_file(
+        file_content=csv_content,
+        file_name="sales_data.csv",
+        mime_type="text/csv",
+    )
+
+    # Create a semantic data model
+    semantic_model = {
+        "name": "sales_model",
+        "description": "Sales semantic model",
+        "tables": [
+            {
+                "name": "sales",
+                "base_table": {
+                    "table": "data_frame_file",
+                    "file_reference": {
+                        "thread_id": thread.thread_id,
+                        "file_ref": csv_file.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {"name": "country", "expr": "Country", "data_type": "TEXT"},
+                    {"name": "year", "expr": "Year", "data_type": "INTEGER"},
+                ],
+                "facts": [
+                    {"name": "sales", "expr": "Sales", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    semantic_data_model_id = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model,
+        data_connection_ids=[],
+        file_references=[(thread.thread_id, csv_file.file_ref)],
+    )
+
+    # Associate model to thread
+    await sqlite_storage.set_thread_semantic_data_models(
+        thread_id=thread.thread_id, semantic_data_model_ids=[semantic_data_model_id]
+    )
+
+    # Create a data frame with a SQL query containing literals
+    from agent_platform.core.kernel import Kernel
+    from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
+
+    class _KernelStub:
+        def __init__(self, thread, user_id: str, state):
+            self.thread = thread
+
+            class _User:
+                def __init__(self, user_id: str):
+                    self.user_id = user_id
+
+            self.user = _User(user_id)
+            self.agent = type("_Agent", (), {"extra": {}})()
+            self.thread_state = state
+
+    state = Exp1State()
+    kernel_stub = _KernelStub(thread, await model_creator.get_user_id(), state)
+
+    # Initialize interface and create data frame via SQL with literals
+    interface = AgentServerDataFramesInterface()
+    interface.attach_kernel(typing.cast(Kernel, kernel_stub))
+
+    await interface.step_initialize(storage=sqlite_storage, state=state)
+
+    # Create a data frame with a SQL query that has literals
+    # This query should have parameters extracted: 'USA' and 2021
+    tools = interface.get_data_frame_tools()
+    create_sql_tool = next(tool for tool in tools if tool.name == "data_frames_create_from_sql")
+
+    data_frame_name = "usa_sales_2021"
+    data_frame_description = "USA sales for 2021"
+
+    result = await create_sql_tool.function(
+        sql_query="SELECT * FROM sales WHERE country = 'USA' AND year = 2021",
+        new_data_frame_name=data_frame_name,
+        new_data_frame_description=data_frame_description,
+    )
+    assert "result" in result
+
+    # Get the data frame as a validated query
+    get_response = client.post(
+        f"/api/v2/threads/{thread.thread_id}/data-frames/as-validated-query",
+        json={"data_frame_name": data_frame_name},
+    )
+
+    assert get_response.status_code == 200
+    response_data = get_response.json()
+
+    # Verify the response contains the verified query
+    assert "verified_query" in response_data
+    validated_query = response_data["verified_query"]
+
+    # Verify the SQL was parameterized
+    assert "sql" in validated_query
+    parameterized_sql = validated_query["sql"]
+
+    # Verify full parameterized SQL matches expected output
+    assert fix_sql_query(parameterized_sql) == "SELECT * FROM sales WHERE country = :country AND year = :year"
+
+    # Verify parameters were extracted
+    assert "parameters" in validated_query
+    parameters = validated_query["parameters"]
+    assert parameters is not None
+    assert len(parameters) == 2
+
+    # Check for country parameter
+    country_param = next((p for p in parameters if p["name"] == "country"), None)
+    assert country_param is not None
+    assert country_param["data_type"] == "string"
+    assert country_param["example_value"] == "USA"
+    assert "description" in country_param
+
+    # Check for year parameter
+    year_param = next((p for p in parameters if p["name"] == "year"), None)
+    assert year_param is not None
+    assert year_param["data_type"] == "integer"
+    assert year_param["example_value"] == 2021
+    assert "description" in year_param

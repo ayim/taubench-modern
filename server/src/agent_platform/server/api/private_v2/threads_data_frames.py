@@ -1467,16 +1467,75 @@ async def get_data_frame_as_validated_query(
 
     verified_query_name = data_frame_name_to_verified_query_name(payload.data_frame_name)
 
+    # Attempt to parameterize the SQL query by extracting constants
+    # Use the sql_dialect from the data frame, defaulting to "duckdb" for files
+    sql_dialect = data_frame.sql_dialect or "duckdb"
+
+    from agent_platform.server.data_frames.sql_parameter_utils import (
+        enrich_parameter_descriptions_from_sdm,
+        parameterize_sql_query,
+    )
+
+    result = parameterize_sql_query(full_sql_query_logical_str, dialect=sql_dialect)
+    # Use parameterized SQL if we successfully extracted parameters
+    sql_to_use = result.parameterized_sql or full_sql_query_logical_str
+    extracted_parameters = result.parameters or []
+
+    # Get semantic data model name from data frame sources
+    sdm_name = await get_semantic_data_model_name(data_frame)
+
+    # Enrich parameter descriptions from SDM if we have parameters and an SDM
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        QueryParameter,
+    )
+
+    parameters_to_use: list[QueryParameter] = []
+    if extracted_parameters:
+        if sdm_name:
+            try:
+                from agent_platform.server.semantic_data_models.utils import (
+                    get_semantic_data_model_by_name,
+                )
+
+                # Fetch the semantic data model by name
+                sdm = await get_semantic_data_model_by_name(sdm_name, base_storage)
+                if sdm:
+                    # Enrich parameter descriptions using column metadata from SDM
+                    # Pass alias mapping to resolve table aliases to actual table names
+                    parameters_to_use = enrich_parameter_descriptions_from_sdm(
+                        extracted_parameters, sdm, result.alias_to_table
+                    )
+                else:
+                    logger.warning("SDM not found", sdm_name=sdm_name)
+            except Exception as e:
+                # If we can't fetch the SDM or enrich parameters, log and continue
+                # Parameters will keep their default descriptions
+                logger.warning(
+                    "Failed to enrich parameter descriptions from semantic data model",
+                    sdm_name=sdm_name,
+                    error=str(e),
+                )
+
+        # If we don't have enriched parameters yet, convert extracted params to query params
+        if not parameters_to_use:
+            parameters_to_use = [
+                QueryParameter(
+                    name=p.name,
+                    data_type=p.data_type,
+                    description="Please provide description for this parameter",
+                    example_value=p.example_value,
+                )
+                for p in extracted_parameters
+            ]
+
     verified_query = VerifiedQuery(
         name=verified_query_name,
         nlq=data_frame.description or "",
         verified_at=datetime.datetime.now(datetime.UTC).isoformat(),
         verified_by=user.user_id,
-        sql=full_sql_query_logical_str,
+        sql=sql_to_use,
+        parameters=parameters_to_use,
     )
-
-    # Get semantic data model name from data frame sources
-    sdm_name = await get_semantic_data_model_name(data_frame)
 
     return _GetAsValidatedQueryResponse(
         verified_query=verified_query,

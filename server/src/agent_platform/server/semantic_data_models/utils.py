@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+    )
     from agent_platform.server.storage import BaseStorage
 
 
@@ -124,3 +127,25 @@ async def make_semantic_data_model_name_unique(
         if candidate_name.lower() not in existing_names:
             return candidate_name
         counter += 1
+
+
+async def get_semantic_data_model_by_name(
+    model_name: str,
+    storage: BaseStorage,
+) -> SemanticDataModel | None:
+    """Get semantic data model by name.
+
+    Args:
+        model_name: The name of the semantic data model to find.
+        storage: The storage instance to use.
+
+    Returns:
+        The semantic data model (SemanticDataModel TypedDict).
+        Returns None if no model with the given name is found.
+    """
+    all_models = await storage.list_semantic_data_models()
+    for model_info in all_models:
+        semantic_model = model_info["semantic_data_model"]
+        if semantic_model.get("name") == model_name:
+            return cast("SemanticDataModel", semantic_model)
+    return None
