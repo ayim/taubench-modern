@@ -2,11 +2,104 @@
 # Meant to be used in pytest tests.
 import logging
 import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
+from filelock import FileLock
 
 log = logging.getLogger(__name__)
+
+
+def _get_prewarm_lock_path() -> Path:
+    """Get a consistent lock file path for pre-warming across all workers."""
+    return Path(tempfile.gettempdir()) / "sema4ai_action_server_prewarm.lock"
+
+
+def _prewarm_action_server_environment(
+    executable_path: Path,
+    action_package_path: Path,
+) -> None:
+    """
+    Pre-warm the action server environment by importing an action package.
+    This triggers RCC to download micromamba and create the holotree environment.
+
+    Uses file locking to ensure only one process does the download/bootstrap
+    at a time. The operation is idempotent - if the environment already exists
+    in the holotree cache, the import completes quickly.
+    """
+    lock_path = _get_prewarm_lock_path()
+
+    log.info("Acquiring lock for pre-warming action server environment...")
+
+    with FileLock(lock_path, timeout=900):  # 15 minute timeout for download/bootstrap
+        log.info(f"Lock acquired. Pre-warming action server environment from {action_package_path}")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            datadir = Path(tmpdir) / "prewarm_datadir"
+            datadir.mkdir(parents=True, exist_ok=True)
+
+            args = [
+                str(executable_path),
+                "import",
+                f"--dir={action_package_path}",
+                f"--datadir={datadir}",
+                "--db-file=:memory:",
+            ]
+
+            log.info(f"Running: {' '.join(args)}")
+
+            try:
+                result = subprocess.run(
+                    args,
+                    capture_output=True,
+                    text=True,
+                    timeout=900,  # 15 minute timeout
+                    cwd=str(action_package_path),
+                    check=False,
+                )
+
+                if result.returncode != 0:
+                    log.error(f"Pre-warm failed with return code {result.returncode}")
+                    log.error(f"Stdout: {result.stdout}")
+                    log.error(f"Stderr: {result.stderr}")
+                    raise RuntimeError(f"Failed to pre-warm action server environment: {result.stderr}")
+
+                log.info("Action server environment pre-warmed successfully")
+
+            except subprocess.TimeoutExpired:
+                log.error("Pre-warm timed out after 15 minutes")
+                raise
+
+
+@pytest.fixture(scope="session")
+def prewarm_action_server_env(action_server_executable_path: Path) -> None:
+    """
+    Session-scoped fixture that pre-warms the RCC/micromamba environment.
+
+    This fixture uses file-based locking to ensure that when running tests
+    in parallel with pytest-xdist, only one worker process downloads and
+    bootstraps the RCC/micromamba environment. Other workers will wait for
+    the lock and then verify the environment is ready.
+
+    This prevents race conditions where multiple workers try to download
+    micromamba concurrently, leading to "permission denied" errors.
+    """
+    # Path: server/src/agent_platform/orchestrator/pytest_fixtures.py
+    # We need: server/tests/integration/resources/
+    server_dir = Path(__file__).parent.parent.parent.parent  # -> server/src -> server/
+    resources_dir = server_dir / "tests" / "integration" / "resources"
+    action_package_path = resources_dir / "simple_action_package"
+
+    if not action_package_path.exists():
+        log.warning(f"Action package path not found: {action_package_path}, skipping pre-warm")
+        return
+
+    _prewarm_action_server_environment(
+        executable_path=action_server_executable_path,
+        action_package_path=action_package_path,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -81,7 +174,7 @@ def assert_status(response, message: str = "", valid_statuses: tuple[int, ...] =
         )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def action_server_executable_path() -> Path:
     from agent_platform.orchestrator.default_locations import (
         get_action_server_executable_path,
@@ -92,7 +185,7 @@ def action_server_executable_path() -> Path:
 
 
 @pytest.fixture
-def action_server_process(tmpdir, action_server_executable_path: Path):
+def action_server_process(tmpdir, action_server_executable_path: Path, prewarm_action_server_env):
     import subprocess
     import threading
 
