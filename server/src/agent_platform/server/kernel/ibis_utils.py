@@ -537,6 +537,69 @@ async def _create_databricks_connection(config: DatabricksDataConnectionConfigur
         raise ConnectionFailedError(error_message, details=details) from e
 
 
+async def _validate_snowflake_database_schema_access(
+    conn: Any,
+    config: SnowflakeDataConnectionConfiguration | SnowflakeCustomKeyPairConfiguration | SnowflakeLinkedConfiguration,
+) -> None:
+    """Validate that the Snowflake role has access to the configured database and schema.
+
+    Snowflake silently falls back to NULL database/schema when the role doesn't have
+    USAGE (USE) privileges on the database or schema, rather than raising an error.
+    This validation ensures the connection is actually usable with the specified
+    database/schema.
+
+    Args:
+        conn: The ibis Snowflake connection to validate
+        config: The connection configuration containing expected database/schema
+
+    Raises:
+        ConnectionFailedError: If the role cannot access the configured database/schema
+    """
+
+    def _check_access() -> None:
+        result = conn.raw_sql("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA()")
+        try:
+            row = result.fetchone()
+        finally:
+            close = getattr(result, "close", None)
+            if callable(close):
+                close()
+
+        current_db, current_schema = row[0], row[1]
+
+        if current_db is None:
+            raise ConnectionFailedError(
+                f"Cannot access database '{config.database}'. "
+                f"The configured role does not have USE privileges on this database. "
+                f"Please verify the role has access to the database or select a different role.",
+                details=f"Expected database: {config.database}, but CURRENT_DATABASE() returned None",
+            )
+
+        if current_schema is None:
+            raise ConnectionFailedError(
+                f"Cannot access schema '{config.schema}' in database '{current_db}'. "
+                f"The configured role does not have USE privileges on this schema. "
+                f"Please verify the role has access to the schema or select a different role.",
+                details=f"Expected schema: {config.schema}, but CURRENT_SCHEMA() returned None",
+            )
+
+        if current_db.upper() != config.database.upper():
+            raise ConnectionFailedError(
+                f"Database mismatch: expected '{config.database}' but connected to '{current_db}'. "
+                f"This may indicate permission issues with the configured role.",
+                details=f"Configured database: {config.database}, Actual: {current_db}",
+            )
+
+        if current_schema.upper() != config.schema.upper():
+            raise ConnectionFailedError(
+                f"Schema mismatch: expected '{config.schema}' but connected to '{current_schema}'. "
+                f"This may indicate permission issues with the configured role.",
+                details=f"Configured schema: {config.schema}, Actual: {current_schema}",
+            )
+
+    await asyncio.to_thread(_check_access)
+
+
 async def _create_snowflake_connection(
     config: SnowflakeDataConnectionConfiguration | SnowflakeCustomKeyPairConfiguration | SnowflakeLinkedConfiguration,
 ) -> Any:
@@ -623,6 +686,10 @@ async def _create_snowflake_connection(
 
         elapsed = time.monotonic() - initial_time
         logger.info(f"Created ibis.snowflake connection in {elapsed:.2f} seconds")
+
+        await _validate_snowflake_database_schema_access(ret, config)
+        logger.info("Validated Snowflake database/schema access")
+
         return ret
     except ConnectionFailedError:
         raise

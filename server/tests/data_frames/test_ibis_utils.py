@@ -497,3 +497,57 @@ async def test_snowflake_linked_invalid_json(tmp_path: Path):
 
         error_msg = str(exc_info.value).lower()
         assert "parse" in error_msg or "json" in error_msg
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("current_db", "current_schema", "expected_error_fragments"),
+    [
+        (None, "PUBLIC", ["Cannot access database", "TEST_DB", "USE privileges"]),
+        ("TEST_DB", None, ["Cannot access schema", "PUBLIC", "USE privileges"]),
+        ("DIFFERENT_DB", "PUBLIC", ["Database mismatch", "TEST_DB", "DIFFERENT_DB"]),
+        ("TEST_DB", "DIFFERENT_SCHEMA", ["Schema mismatch", "PUBLIC", "DIFFERENT_SCHEMA"]),
+        ("TEST_DB", "PUBLIC", None),
+        ("test_db", "public", None),
+    ],
+)
+async def test_snowflake_validation_cases(
+    current_db: str | None,
+    current_schema: str | None,
+    expected_error_fragments: list[str] | None,
+):
+    """Validate Snowflake access checks for success and failure cases."""
+    from unittest.mock import MagicMock
+
+    from agent_platform.core.payloads.data_connection import (
+        SnowflakeDataConnectionConfiguration,
+    )
+    from agent_platform.server.kernel.ibis_utils import (
+        _validate_snowflake_database_schema_access,
+    )
+
+    mock_conn = MagicMock()
+    mock_result = MagicMock()
+    mock_result.fetchone.return_value = (current_db, current_schema)
+    mock_conn.raw_sql.return_value = mock_result
+
+    config = SnowflakeDataConnectionConfiguration(
+        account="test-account",
+        user="test-user",
+        password="test-password",
+        warehouse="test-warehouse",
+        database="TEST_DB",
+        schema="PUBLIC",
+    )
+
+    if expected_error_fragments is None:
+        await _validate_snowflake_database_schema_access(mock_conn, config)
+        return
+
+    with pytest.raises(ConnectionFailedError) as exc_info:
+        await _validate_snowflake_database_schema_access(mock_conn, config)
+
+    error_msg = str(exc_info.value)
+    error_msg_lower = error_msg.lower()
+    for fragment in expected_error_fragments:
+        assert fragment.lower() in error_msg_lower
