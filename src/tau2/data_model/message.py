@@ -51,9 +51,13 @@ class ToolCall(BaseModel):
     A tool call.
     """
 
-    id: str = Field(default="", description="The unique identifier for the tool call.")
+    id: str = Field(default="", description="The unique identifier for the tool call (call_id for Responses API).")
     name: str = Field(description="The name of the tool.")
-    arguments: dict = Field(description="The arguments of the tool.")
+    arguments: dict = Field(description="The arguments of the tool (parsed dict for evaluators).")
+    arguments_raw: Optional[str] = Field(
+        default=None,
+        description="Original JSON string of arguments - use when serializing back to avoid whitespace/ordering drift."
+    )
     requestor: ToolRequestor = Field(
         "assistant",
         description="The requestor of the tool call.",
@@ -106,6 +110,16 @@ class ParticipantMessageBase(BaseModel):
     )
     raw_data: Optional[dict] = Field(
         description="The raw data of the message.", default=None
+    )
+    
+    # Provider-facing raw fields for verbatim replay
+    raw_content_blocks: Optional[list[dict]] = Field(
+        default=None,
+        description="Anthropic content array verbatim. Includes thinking, redacted_thinking, text, tool_use, image, document blocks. Replay exactly when sending history back."
+    )
+    raw_output_items: Optional[list[dict]] = Field(
+        default=None,
+        description="OpenAI Responses API output array verbatim. Includes reasoning, message, function_call items. Replay exactly for multi-turn correctness."
     )
 
     def validate(self):  # NOTE: It would be better to do this in the Pydantic model

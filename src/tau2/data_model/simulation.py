@@ -19,6 +19,7 @@ from tau2.config import (
     DEFAULT_NUM_TRIALS,
     DEFAULT_SAVE_TO,
     DEFAULT_SEED,
+    DEFAULT_USE_RESPONSES_API,
 )
 from tau2.data_model.message import Message
 from tau2.data_model.tasks import Action, EnvAssertion, RewardType, Task
@@ -151,6 +152,13 @@ class RunConfig(BaseModel):
         Field(
             description="The log level to use for the simulation",
             default=DEFAULT_LOG_LEVEL,
+        ),
+    ]
+    use_responses_api: Annotated[
+        bool,
+        Field(
+            description="Whether to use OpenAI Responses API instead of Chat Completions",
+            default=DEFAULT_USE_RESPONSES_API,
         ),
     ]
 

@@ -1,4 +1,5 @@
 import argparse
+import json
 
 from tau2.config import (
     DEFAULT_AGENT_IMPLEMENTATION,
@@ -13,9 +14,32 @@ from tau2.config import (
     DEFAULT_NUM_TRIALS,
     DEFAULT_SEED,
     DEFAULT_USER_IMPLEMENTATION,
+    DEFAULT_USE_RESPONSES_API,
 )
 from tau2.data_model.simulation import RunConfig
 from tau2.run import get_options, run_domain
+
+
+def json_dict_type(arg_string):
+    """
+    Custom type converter for argparse to parse JSON strings into dictionaries.
+    
+    Args:
+        arg_string: A JSON-formatted string
+        
+    Returns:
+        A dictionary parsed from the JSON string
+        
+    Raises:
+        argparse.ArgumentTypeError: If the string is not valid JSON or not a dict
+    """
+    try:
+        result = json.loads(arg_string)
+        if not isinstance(result, dict):
+            raise argparse.ArgumentTypeError(f"Expected a JSON object (dict), got {type(result).__name__}")
+        return result
+    except json.JSONDecodeError as e:
+        raise argparse.ArgumentTypeError(f"Invalid JSON: {e}")
 
 
 def add_run_args(parser):
@@ -49,9 +73,9 @@ def add_run_args(parser):
     )
     parser.add_argument(
         "--agent-llm-args",
-        type=dict,
+        type=json_dict_type,
         default={"temperature": DEFAULT_LLM_TEMPERATURE_AGENT},
-        help=f"The arguments to pass to the LLM for the agent. Default is temperature={DEFAULT_LLM_TEMPERATURE_AGENT}.",
+        help=f'The arguments to pass to the LLM for the agent as JSON. Example: \'{{"temperature": 0.0, "reasoning_effort": "high"}}\'. Default is temperature={DEFAULT_LLM_TEMPERATURE_AGENT}.',
     )
     parser.add_argument(
         "--user",
@@ -68,9 +92,9 @@ def add_run_args(parser):
     )
     parser.add_argument(
         "--user-llm-args",
-        type=dict,
+        type=json_dict_type,
         default={"temperature": DEFAULT_LLM_TEMPERATURE_USER},
-        help=f"The arguments to pass to the LLM for the user. Default is temperature={DEFAULT_LLM_TEMPERATURE_USER}.",
+        help=f'The arguments to pass to the LLM for the user as JSON. Example: \'{{"temperature": 0.0}}\'. Default is temperature={DEFAULT_LLM_TEMPERATURE_USER}.',
     )
     parser.add_argument(
         "--task-set-name",
@@ -127,6 +151,12 @@ def add_run_args(parser):
         default=DEFAULT_LOG_LEVEL,
         help=f"The log level to use for the simulation. Default is {DEFAULT_LOG_LEVEL}.",
     )
+    parser.add_argument(
+        "--use-responses-api",
+        action="store_true",
+        default=DEFAULT_USE_RESPONSES_API,
+        help="Use OpenAI Responses API instead of Chat Completions (recommended for o1, o3 models).",
+    )
 
 
 def main():
@@ -156,6 +186,7 @@ def main():
                 max_concurrency=args.max_concurrency,
                 seed=args.seed,
                 log_level=args.log_level,
+                use_responses_api=args.use_responses_api,
             )
         )
     )

@@ -114,13 +114,18 @@ def run_domain(config: RunConfig) -> Results:
     if save_to is None:
         save_to = make_run_name(config)
     save_to = DATA_DIR / "simulations" / f"{save_to}.json"
+    
+    # Add use_responses_api flag to llm_args_agent so it gets passed through to generate()
+    llm_args_agent = dict(config.llm_args_agent)
+    llm_args_agent["use_responses_api_flag"] = config.use_responses_api
+    
     simulation_results = run_tasks(
         domain=config.domain,
         tasks=tasks,
         agent=config.agent,
         user=config.user,
         llm_agent=config.llm_agent,
-        llm_args_agent=config.llm_args_agent,
+        llm_args_agent=llm_args_agent,
         llm_user=config.llm_user,
         llm_args_user=config.llm_args_user,
         num_trials=num_trials,
