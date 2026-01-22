@@ -47,7 +47,8 @@ jobs:
             # How to review
 
             Use the following MD files:
-            - ./claude/skills/pr-review/SKILL.md
+            - ./claude/skills/pr-review-frontend/SKILL.md
+            - ./claude/skills/pr-review-python/SKILL.md
             - any CLAUDE.md
             - any AGENTS.md
             - The pr-review SKILL

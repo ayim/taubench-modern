@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Guidelines for reviewing PRs in the agent-platform's workroom codebase. Use when reviewing code, addressing PR feedback, or writing new code to ensure consistency. Invoke this skill when the user is opening a PR. Keywords: "pr", "workroom", "review"
+description: Guidelines for reviewing PRs in the agent-platform's workroom codebase. Use when reviewing code, addressing PR feedback, or writing new code to ensure consistency. Invoke this skill when the user is opening a PR. Keywords: "pr", "frontend", "typescript", "react", "workroom", "review"
 ---
 
 # PR Review Guidelines
@@ -9,7 +9,7 @@ description: Guidelines for reviewing PRs in the agent-platform's workroom codeb
 - New learnings should be added to this list.
 - Conflicting learnings should be raised.
 - Formatting, linting and type-checking are part of the review process: a PR not passing the checks is not ready for review
-- This skill covers Typescript/React codebases. For Python changes, refer to [Agent Platform's server AGENTS.md](../../../server/AGENTS.md)
+- This skill covers Typescript/React codebases.
 
 Distilled learnings from code reviews. Use these as a checklist when reviewing or writing code.
 
