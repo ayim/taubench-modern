@@ -98,12 +98,6 @@ else:
     litellm.disable_cache()
 
 
-ALLOW_SONNET_THINKING = False
-
-if not ALLOW_SONNET_THINKING:
-    logger.warning("Sonnet thinking is disabled")
-
-
 # =============================================================================
 # Provider Detection Helpers
 # =============================================================================
@@ -672,7 +666,9 @@ def generate(
     # Check if this is an Anthropic model
     is_anthropic = is_anthropic_model(model)
     
-    if is_anthropic and not ALLOW_SONNET_THINKING:
+    # For Anthropic models, only set thinking to disabled if user hasn't provided thinking config
+    # User can enable thinking via: --agent-llm-args '{"thinking": {"type": "enabled", "budget_tokens": 10000}}'
+    if is_anthropic and "thinking" not in kwargs:
         kwargs["thinking"] = {"type": "disabled"}
     
     # GPT-5 models only support temperature=1 (not temperature=0)
