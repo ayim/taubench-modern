@@ -7,6 +7,7 @@ from typing import TypedDict
 
 import yaml
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
@@ -52,7 +53,7 @@ if typing.TYPE_CHECKING:
     )
     from agent_platform.server.storage.base import BaseStorage
 
-router = APIRouter()
+router = APIRouter(default_response_class=JSONResponse)
 logger: BoundLogger = get_logger(__name__)
 
 
