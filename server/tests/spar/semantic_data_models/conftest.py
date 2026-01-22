@@ -44,7 +44,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
     Environment variables to control test execution:
     - SKIP_MYSQL_TESTS=0: Enable MySQL tests locally (default: skip in CI)
-    - Snowflake requires: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, SNOWFLAKE_WAREHOUSE
+    - Snowflake requires: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USERNAME, SNOWFLAKE_PASSWORD, SNOWFLAKE_WAREHOUSE
     """
     engine_name = request.param
 
@@ -61,7 +61,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
     if engine_name == "snowflake":
         required_env_vars = [
             "SNOWFLAKE_ACCOUNT",
-            "SNOWFLAKE_USER",
+            "SNOWFLAKE_USERNAME",
             "SNOWFLAKE_PASSWORD",
             "SNOWFLAKE_WAREHOUSE",
         ]
@@ -69,12 +69,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
         if missing_vars:
             missing = ", ".join(missing_vars)
-            pytest.skip(
-                f"Snowflake tests skipped: missing environment variables: {missing}. "
-                "Snowflake requires cloud credentials. "
-                "Set these environment variables to run Snowflake tests. "
-                "PostgreSQL tests will still run using local Docker."
-            )
+            pytest.skip(f"Missing environment variables: {missing}.")
 
     # Skip Databricks tests if credentials are not configured
     if engine_name == "databricks":
@@ -87,13 +82,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
         if missing_vars:
             missing = ", ".join(missing_vars)
-            pytest.skip(
-                f"Databricks tests skipped: missing environment variables: {missing}. "
-                "Databricks requires cloud credentials. "
-                "Set these environment variables to run Databricks tests. "
-                "Optional: DATABRICKS_CATALOG (default: hive_metastore), "
-                "DATABRICKS_SCHEMA (default: default)"
-            )
+            pytest.skip(f"Missing environment variables: {missing}.")
 
     # Skip Redshift tests if credentials are not configured
     if engine_name == "redshift":
@@ -108,12 +97,7 @@ def engine(request: pytest.FixtureRequest) -> "DataConnectionEngine":
 
         if missing_vars:
             missing = ", ".join(missing_vars)
-            pytest.skip(
-                f"Redshift tests skipped: missing environment variables: {missing}. "
-                "Redshift requires cloud credentials. "
-                "Set these environment variables to run Redshift tests. "
-                "Optional: REDSHIFT_SCHEMA (default: public)"
-            )
+            pytest.skip(f"Missing environment variables: {missing}.")
 
     return engine_name
 
@@ -182,7 +166,7 @@ def sdm_seed_data_connection_configuration(
             defaults = {
                 "credential_type": "user_password",
                 "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-                "user": os.getenv("SNOWFLAKE_USER"),
+                "user": os.getenv("SNOWFLAKE_USERNAME"),
                 "password": os.getenv("SNOWFLAKE_PASSWORD"),
                 "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH"),
                 "database": "SNOWFLAKE_SAMPLE_DATA",  # Placeholder, will be replaced by test DB
@@ -953,7 +937,7 @@ def sdm_data_connection_configuration(
             defaults = {
                 "credential_type": "user_password",
                 "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-                "user": os.getenv("SNOWFLAKE_USER"),
+                "user": os.getenv("SNOWFLAKE_USERNAME"),
                 "password": os.getenv("SNOWFLAKE_PASSWORD"),
                 "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH"),
                 "database": initialize_data_base,  # Uses test database from fixture

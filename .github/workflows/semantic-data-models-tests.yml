@@ -79,7 +79,7 @@ jobs:
           POSTGRES_DB: agents
           # Snowflake credentials (optional - tests will skip if not provided)
           SNOWFLAKE_ACCOUNT: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_USERNAME }}
+          SNOWFLAKE_USERNAME: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_USERNAME }}
           SNOWFLAKE_PASSWORD: ${{ secrets.INTEGRATION_TEST_SNOWFLAKE_PASSWORD }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ vars.INTEGRATION_TEST_SNOWFLAKE_ROLE }}
