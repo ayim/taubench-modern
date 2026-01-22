@@ -6,14 +6,15 @@ from unittest.mock import patch
 
 import pytest
 
-# Import cloud server fixture for cloud tests
-from server.tests.files.test_api_endpoints_cloud import cloud_server  # noqa: F401
 from server.tests.integration.work_items.conftest import (
     WorkItemsServerConfig,
     all_databases_cloud,
     all_databases_local,
     all_databases_matrix,
 )
+
+# Register the cloud_server fixture plugin for cloud file management tests
+pytest_plugins = ["server.tests.files.cloud_server_fixtures"]
 
 
 @pytest.fixture
@@ -167,7 +168,7 @@ def _get_work_items_server_url(
     tmpdir,
     logs_dir,
     server_config: WorkItemsServerConfig,
-    cloud_server=None,  # noqa: F811
+    cloud_server=None,
 ):
     """Create work items server URL with specified storage and file management configuration."""
 
@@ -217,7 +218,7 @@ def _get_evals_server_url(
     tmpdir,
     logs_dir,
     server_config: WorkItemsServerConfig,
-    cloud_server=None,  # noqa: F811
+    cloud_server=None,
 ):
     """Create evals server URL with specified storage and file management configuration."""
 
@@ -260,7 +261,7 @@ def _get_evals_server_url(
 
 
 @pytest.fixture(params=all_databases_matrix)
-def base_url_agent_server_workitems_matrix(request, tmpdir, logs_dir, cloud_server):  # noqa: F811
+def base_url_agent_server_workitems_matrix(request, tmpdir, logs_dir, cloud_server):
     """Parameterized fixture providing work items server URLs for all storage/file_management
     combinations."""
     server_config = request.param
@@ -268,7 +269,7 @@ def base_url_agent_server_workitems_matrix(request, tmpdir, logs_dir, cloud_serv
 
 
 @pytest.fixture(params=all_databases_matrix)
-def base_url_agent_server_evals_matrix(request, tmpdir, logs_dir, cloud_server):  # noqa: F811
+def base_url_agent_server_evals_matrix(request, tmpdir, logs_dir, cloud_server):
     """Parameterized fixture providing evals server URLs for all storage/file_management
     combinations."""
     server_config = request.param
@@ -284,7 +285,7 @@ def base_url_agent_server_evals_sqlite(tmpdir, logs_dir):
 
 
 @pytest.fixture(params=all_databases_cloud)
-def base_url_agent_server_workitems_cloud_matrix(request, tmpdir, logs_dir, cloud_server):  # noqa: F811
+def base_url_agent_server_workitems_cloud_matrix(request, tmpdir, logs_dir, cloud_server):
     """Parameterized fixture for testing across storage types (sqlite vs postgres)
     with cloud files."""
     server_config = request.param

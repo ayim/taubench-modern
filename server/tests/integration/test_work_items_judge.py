@@ -9,8 +9,8 @@ from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from agent_platform.core.work_items import WorkItemStatus
 from agent_platform.core.work_items.work_item import WorkItem
 
-# Import cloud server fixture for file upload tests
-from server.tests.files.test_api_endpoints_cloud import cloud_server  # noqa: F401
+# Use the cloud_server fixture from the plugin
+pytest_plugins = ["server.tests.files.cloud_server_fixtures"]
 
 
 def _get_work_item_judge_test_files():

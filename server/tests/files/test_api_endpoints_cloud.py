@@ -1,12 +1,5 @@
-import os
-import signal
-import socket
-import subprocess
-import sys
-import time
 import uuid
 from collections.abc import Callable
-from pathlib import Path
 
 import pytest
 import requests
@@ -17,61 +10,8 @@ from agent_platform.orchestrator.agent_server_client import (
 )
 from fastapi import status
 
-# Path to the cloud server script
-CLOUD_SERVER_PATH = Path(__file__).parent / "cloud_server.py"
-
-
-def is_port_in_use(port: int) -> bool:
-    """Check if a port is in use."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind(("localhost", port))
-            return False
-        except OSError:
-            return True
-
-
-@pytest.fixture(scope="session")
-def cloud_server():
-    """Start the cloud server for testing if not already running."""
-    server_process = None
-
-    if is_port_in_use(8001):
-        print("Cloud server already running on port 8001")
-    else:
-        print("Starting cloud server on port 8001")
-        server_process = subprocess.Popen(
-            [sys.executable, str(CLOUD_SERVER_PATH)],
-            env={**os.environ, "PYTHONUNBUFFERED": "1"},
-        )
-
-        # Wait for the server to start
-        time.sleep(2)  # Give the server time to start
-
-        # Check if server is running
-        try:
-            requests.get("http://localhost:8001")
-        except requests.ConnectionError as e:
-            server_process.terminate()
-            server_process.wait()
-            raise Exception("Cloud server failed to start") from e
-
-    try:
-        yield "http://localhost:8001"
-    finally:
-        # Always clean up temp_uploads directory (regardless of who started the server)
-        temp_uploads_dir = Path(CLOUD_SERVER_PATH).parent / "temp_uploads"
-        if temp_uploads_dir.exists():
-            import shutil
-
-            shutil.rmtree(temp_uploads_dir)
-            print("Cleaned up temp_uploads directory")
-
-        # Only terminate the server if we started it
-        if server_process:
-            server_process.send_signal(signal.SIGTERM)
-            server_process.wait()
-            print("Terminated cloud server")
+# Use the cloud_server fixture from the plugin
+pytest_plugins = ["server.tests.files.cloud_server_fixtures"]
 
 
 def _file_uploads_with_existing_thread(
