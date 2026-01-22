@@ -5,6 +5,7 @@ from typing import Annotated, Literal, TypedDict
 
 from fastapi import HTTPException, Response
 from fastapi.routing import APIRouter
+from pydantic import Field
 from pydantic.main import BaseModel
 from structlog.stdlib import get_logger
 
@@ -14,6 +15,7 @@ from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.data_frames.data_node import DEFAULT_SLICE_LIMIT, MAX_SLICE_LIMIT
 from agent_platform.server.kernel.semantic_data_model import get_semantic_data_model_name
 from sema4ai.common.callback import Callback
 
@@ -1175,7 +1177,20 @@ class _SliceDataInput(BaseModel):
         str | None, "The name of the data frame to slice (mutually exclusive with data_frame_id)."
     ] = None
     offset: Annotated[int, "From which offset to start the slice (starts at 0)."] = 0
-    limit: Annotated[int | None, "The maximum number of rows to return in the slice."] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=-1,
+            le=MAX_SLICE_LIMIT,
+            description=(
+                "The maximum number of rows to return in the slice. "
+                f"Defaults to {DEFAULT_SLICE_LIMIT} if not specified. "
+                "Use -1 to fetch all rows (use with caution for large datasets). "
+                f"Maximum allowed value is {MAX_SLICE_LIMIT:,}."
+            ),
+        ),
+    ]
     column_names: Annotated[list[str] | None, "The column names to include."] = None
     output_format: Annotated[Literal["json", "parquet"], "The output format."] = "json"
     order_by: Annotated[
@@ -1191,7 +1206,19 @@ async def get_data_frame(
     data_frame_name: str,
     storage: StorageDependency,
     offset: Annotated[int, "From which offset to get the data frame rows (starts at 0)."] = 0,
-    limit: Annotated[int | None, "The maximum number of rows to return."] = None,
+    limit: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=-1,
+            le=MAX_SLICE_LIMIT,
+            description=(
+                f"The maximum number of rows to return. Defaults to {DEFAULT_SLICE_LIMIT}. "
+                "Use -1 for all rows. "
+                f"Max: {MAX_SLICE_LIMIT:,}."
+            ),
+        ),
+    ] = None,
     column_names: Annotated[
         str | None,
         """Comma-separated list of column names to include

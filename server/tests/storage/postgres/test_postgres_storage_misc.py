@@ -353,7 +353,10 @@ async def test_concurrent_get_or_create_user(storage: PostgresStorage):
 
 
 @pytest.mark.asyncio
-async def test_invalid_user_access_input(postgres_test_db: AsyncConnectionPool):
+async def test_invalid_user_access_input(
+    postgres_test_db: AsyncConnectionPool,
+    storage: PostgresStorage,
+) -> None:
     """
     Call the SQL function v2.check_user_access with invalid inputs (empty strings)
     and verify that it returns a default value (assumed 0) or
@@ -363,7 +366,7 @@ async def test_invalid_user_access_input(postgres_test_db: AsyncConnectionPool):
         async with conn.cursor() as cur:
             with pytest.raises(InvalidTextRepresentation):
                 await cur.execute(
-                    "SELECT v2.check_user_access(%s, %s) AS check_user_access",
+                    "SELECT v2.check_user_access(%s::uuid, %s::uuid) AS check_user_access",
                     ("", ""),
                 )
 

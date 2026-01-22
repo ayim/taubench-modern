@@ -2773,11 +2773,15 @@ export const spec = {
               anyOf: [
                 {
                   type: 'integer',
+                  maximum: 100000,
+                  minimum: -1,
                 },
                 {
                   type: 'null',
                 },
               ],
+              description:
+                'The maximum number of rows to return. Defaults to 1000. Use -1 for all rows. Max: 100,000.',
               title: 'Limit',
             },
           },
@@ -27253,12 +27257,16 @@ export const spec = {
             anyOf: [
               {
                 type: 'integer',
+                maximum: 100000,
+                minimum: -1,
               },
               {
                 type: 'null',
               },
             ],
             title: 'Limit',
+            description:
+              'The maximum number of rows to return in the slice. Defaults to 1000 if not specified. Use -1 to fetch all rows (use with caution for large datasets). Maximum allowed value is 100,000.',
           },
           column_names: {
             anyOf: [

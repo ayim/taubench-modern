@@ -17,6 +17,22 @@ if typing.TYPE_CHECKING:
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
+# Default page size for slice operations when limit is not specified.
+# This prevents accidental loading of entire large datasets into memory.
+DEFAULT_SLICE_LIMIT = 1000
+
+# Maximum allowed limit for slice operations to prevent abuse.
+# Use limit=-1 to explicitly fetch all rows (bypasses this cap).
+MAX_SLICE_LIMIT = 100_000
+
+# Default number of rows to return for sampling operations.
+# This provides a reasonable sample size for previews and metadata operations.
+DEFAULT_SAMPLE_ROWS = 100
+
+# Maximum allowed rows for sampling operations to prevent memory exhaustion.
+# Use num_samples=-1 to explicitly fetch all rows (bypasses this cap).
+MAX_SAMPLE_ROWS = 1000
+
 
 @dataclass(
     frozen=True,
@@ -121,17 +137,32 @@ def _convert_pyarrow_slice_to_format(
         result = result.select(selected_columns)
 
     # Apply row slicing
-    if offset is not None or limit is not None:
-        if offset is None:
-            offset = 0
-        # Handle limit=-1 (fetch all rows) specially to avoid negative indexing bug
-        if limit == -1:
-            # Fetch all rows from offset onwards
-            result = result[offset:] if offset else result
-        elif limit is None:
-            result = result[offset:]
-        else:
-            result = result[offset : offset + limit]
+    if offset is None:
+        offset = 0
+
+    # Handle limit=-1 (fetch all rows) specially - this is the explicit way to request all rows
+    if limit == -1:
+        result = result[offset:]
+    else:
+        # Apply default limit if not specified (prevents accidental full table loads)
+        if limit is None:
+            logger.warning(
+                "slice operation called without limit, using default",
+                default_limit=DEFAULT_SLICE_LIMIT,
+                hint="Pass limit=-1 to explicitly fetch all rows, or specify a limit.",
+            )
+            limit = DEFAULT_SLICE_LIMIT
+
+        # Cap the limit to prevent abuse
+        effective_limit = min(limit, MAX_SLICE_LIMIT)
+        if effective_limit != limit:
+            logger.info(
+                "slice limit capped to maximum",
+                requested_limit=limit,
+                max_limit=MAX_SLICE_LIMIT,
+            )
+
+        result = result[offset : offset + effective_limit]
 
     return _convert_arrow_to_format(result, output_format)
 
@@ -215,16 +246,34 @@ async def _convert_ibis_slice_to_format(
         selected_columns = _find_columns_case_insensitive(column_names, available_columns)
         result = result.select(selected_columns)
 
+    # Normalize offset to 0 if not provided
+    if offset is None:
+        offset = 0
+
     # Apply row slicing using ibis operations
-    if offset is not None or limit is not None:
-        # Handle limit=-1 (fetch all rows) specially to avoid negative indexing bug
-        if limit == -1:
-            # Fetch all rows from offset onwards
-            result = result[offset:] if offset else result
-        elif limit is None:
-            result = result[offset:]
-        else:
-            result = result[offset : offset + limit]
+    # Handle limit=-1 (fetch all rows) specially - this is the explicit way to request all rows
+    if limit == -1:
+        result = result[offset:]
+    else:
+        # Apply default limit if not specified (prevents accidental full table loads)
+        if limit is None:
+            logger.warning(
+                "slice operation called without limit, using default",
+                default_limit=DEFAULT_SLICE_LIMIT,
+                hint="Pass limit=-1 to explicitly fetch all rows, or specify a limit.",
+            )
+            limit = DEFAULT_SLICE_LIMIT
+
+        # Cap the limit to prevent abuse
+        effective_limit = min(limit, MAX_SLICE_LIMIT)
+        if effective_limit != limit:
+            logger.info(
+                "slice limit capped to maximum",
+                requested_limit=limit,
+                max_limit=MAX_SLICE_LIMIT,
+            )
+
+        result = result[offset : offset + effective_limit]
 
     # Convert to pyarrow table using adapter (handles DECIMAL→float64 transformation)
     from agent_platform.server.kernel.ibis_table_adapter import IbisTableAdapter
@@ -477,13 +526,20 @@ class ParquetHandler:
         if num_samples == 0:
             return []
         table = self._loaded_table()
-        # Get sample rows using pyarrow
-        if num_samples == -1 or num_samples >= table.num_rows:
-            # Return all rows
+
+        # Handle num_samples=-1 (fetch all rows) specially - allows unlimited rows for explicit requests
+        if num_samples == -1:
+            return convert_pyarrow_slice_to_list_of_rows(table, None, None, None, None)
+
+        # Cap num_samples to prevent memory exhaustion
+        effective_limit = min(num_samples, MAX_SAMPLE_ROWS)
+
+        # If effective limit still exceeds available rows, just return all rows
+        if effective_limit >= table.num_rows:
             return convert_pyarrow_slice_to_list_of_rows(table, None, None, None, None)
         else:
-            assert num_samples > 0, "num_samples must be 0, -1 or a positive number"
-            return convert_pyarrow_slice_to_list_of_rows(table, 0, num_samples, None, None)
+            assert effective_limit > 0, "effective_limit must be > 0"
+            return convert_pyarrow_slice_to_list_of_rows(table, 0, effective_limit, None, None)
 
     def num_rows(self) -> int:
         return self._loaded_table().num_rows
@@ -590,10 +646,14 @@ class DataNodeFromIbisResult(DataNodeResult):
     async def list_sample_rows(self, num_samples: int) -> "list[Row]":
         if num_samples == 0:
             return []
+
+        # Handle limit=-1 (fetch all rows) specially - allows unlimited rows for explicit requests
         if num_samples == -1:
             table = await self._to_arrow_safe(self._ibis_result)
         else:
-            table = await self._to_arrow_safe(self._ibis_result.limit(num_samples))
+            # Cap the num_samples to prevent memory exhaustion
+            effective_limit = min(num_samples, MAX_SAMPLE_ROWS)
+            table = await self._to_arrow_safe(self._ibis_result.limit(effective_limit))
 
         # table is pyarrow.Table from _to_arrow_safe
         pylist = table.to_pylist()

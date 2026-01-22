@@ -182,14 +182,27 @@ class ExcelDataReaderSheet(DataReaderSheet):
         return {field.name: str(field.type) for field in table.schema}
 
     def list_sample_rows(self, num_samples: int) -> "list[Row]":
+        from agent_platform.server.data_frames.data_node import MAX_SAMPLE_ROWS
+
+        # Cap num_samples to prevent memory exhaustion (except for -1 which means all rows)
+        if num_samples != -1 and num_samples > MAX_SAMPLE_ROWS:
+            logger.info(
+                "sample rows capped to maximum",
+                requested_num_samples=num_samples,
+                max_sample_rows=MAX_SAMPLE_ROWS,
+            )
+            effective_limit = MAX_SAMPLE_ROWS
+        else:
+            effective_limit = num_samples
+
         if self.__loaded_sheet is None:
-            loaded_sheet = self._excel_reader.load_sheet(self._sheet_name, n_rows=num_samples)
+            loaded_sheet = self._excel_reader.load_sheet(self._sheet_name, n_rows=effective_limit)
             return self._load_samples(loaded_sheet.to_arrow())
 
         loaded_sheet = self._loaded_sheet()
         table = loaded_sheet.to_arrow()
-        if num_samples != -1 and num_samples < table.num_rows:
-            table = table[:num_samples]
+        if effective_limit != -1 and effective_limit < table.num_rows:
+            table = table[:effective_limit]
         return self._load_samples(table)
 
     def _load_samples(self, batch) -> "list[Row]":
@@ -256,17 +269,28 @@ class CsvDataReaderSheet(DataReaderSheet):
 
         import pyarrow.csv
 
-        from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
+        from agent_platform.server.data_frames.data_node import MAX_SAMPLE_ROWS, convert_to_valid_json_types
 
         if num_samples == 0:
             return []
+
+        # Cap num_samples to prevent memory exhaustion (except for -1 which means all rows)
+        if num_samples != -1 and num_samples > MAX_SAMPLE_ROWS:
+            logger.info(
+                "sample rows capped to maximum",
+                requested_num_samples=num_samples,
+                max_sample_rows=MAX_SAMPLE_ROWS,
+            )
+            effective_limit = MAX_SAMPLE_ROWS
+        else:
+            effective_limit = num_samples
 
         table = pyarrow.csv.read_csv(
             io.BytesIO(self._file_bytes),
             pyarrow.csv.ReadOptions(),
         )
-        if num_samples != -1 and num_samples < table.num_rows:
-            table = table[:num_samples]
+        if effective_limit != -1 and effective_limit < table.num_rows:
+            table = table[:effective_limit]
 
         return typing.cast(
             "list[Row]",

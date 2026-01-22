@@ -11834,7 +11834,10 @@ export interface components {
        * @default 0
        */
       offset: number;
-      /** Limit */
+      /**
+       * Limit
+       * @description The maximum number of rows to return in the slice. Defaults to 1000 if not specified. Use -1 to fetch all rows (use with caution for large datasets). Maximum allowed value is 100,000.
+       */
       limit?: number | null;
       /** Column Names */
       column_names?: string[] | null;
