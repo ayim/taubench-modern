@@ -29,6 +29,7 @@ const routesMapping = {
   '/data-connections/create': '/tenants/$tenantId/data-access/data-connections/create',
   '/data-connections/$dataConnectionId': '/tenants/$tenantId/data-access/data-connections/$dataConnectionId',
   '/home': '/tenants/$tenantId/home',
+  '/configuration/llm/new': '/tenants/$tenantId/configuration/llm/new',
 } satisfies Record<keyof SparUIRoutes, FileRouteTypes['to']>;
 
 export const createSparAPIClient = (

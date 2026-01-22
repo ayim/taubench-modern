@@ -12,9 +12,9 @@ import {
 } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconArrowRight, IconSearch } from '@sema4ai/icons';
-import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
+import { AgentContextMenu, AgentDeploymentForm, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
-import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
+import { AgentPackageInspectionResponse, useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
 import { styled } from '@sema4ai/theme';
 import { IconAgents } from '@sema4ai/icons/logos';
@@ -40,6 +40,10 @@ function HomePage() {
   const { data: allAgents = [], isLoading } = useAgentsQuery({});
   const { permissions } = useRouteContext({ from: '/tenants/$tenantId' });
   const [search, setSearch] = useState<string>('');
+  const [agentPackageUploadData, setAgentPackageUploadData] = useState<{
+    agentTemplate: NonNullable<AgentPackageInspectionResponse>;
+    agentPackage: File;
+  } | null>(null);
   const [filters, setFilters] = useState({
     type: [] as string[],
   });
@@ -98,6 +102,16 @@ function HomePage() {
     return <Progress variant="page" />;
   }
 
+  if (agentPackageUploadData) {
+    return (
+      <Box height="100%">
+        <Box px="$40" py="$64" maxWidth={768} margin="0 auto">
+          <AgentDeploymentForm {...agentPackageUploadData} onCancel={() => setAgentPackageUploadData(null)} />
+        </Box>
+      </Box>
+    );
+  }
+
   if (allAgents.length === 0) {
     return (
       <Box as="section">
@@ -106,7 +120,11 @@ function HomePage() {
           description="Agents will appear here once someone deploys one and shares it with you."
           illustration="agents"
           docsLink="MAIN_WORKROOM_HELP"
-          action={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentUploadForm /> : null}
+          action={
+            permissions[ADMINISTRATION_ACCESS_PERMISSION] ? (
+              <AgentUploadForm setAgentPackageUploadData={setAgentPackageUploadData} />
+            ) : null
+          }
         />
       </Box>
     );
@@ -116,7 +134,11 @@ function HomePage() {
     <Page
       title="Sema4.ai Agents"
       icon={IconAgents}
-      actions={permissions[ADMINISTRATION_ACCESS_PERMISSION] ? <AgentUploadForm /> : null}
+      actions={
+        permissions[ADMINISTRATION_ACCESS_PERMISSION] ? (
+          <AgentUploadForm setAgentPackageUploadData={setAgentPackageUploadData} />
+        ) : null
+      }
     >
       <Filter
         contentBefore={searchInput}

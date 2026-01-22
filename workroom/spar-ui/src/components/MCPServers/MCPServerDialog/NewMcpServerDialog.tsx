@@ -22,7 +22,6 @@ import {
   useCreateHostedMcpServerMutation,
   useValidateMcpServerCapabilitiesMutation,
   useHostedMcpUpload,
-  McpServerCreateResponse,
   UseHostedMcpUploadResult,
 } from '../../../queries/mcpServers';
 
@@ -100,17 +99,15 @@ const HostedMcpServerContent: FC<HostedMcpServerContentProps> = ({ hostedUpload,
 
 type NewMcpServerDialogProps = {
   open: boolean;
-  onClose: () => void;
+  onClose: (serverId?: string) => void;
   serverTypes: McpServerType[];
   showStdioTransport: boolean;
-  onSuccess?: (mcpServer: McpServerCreateResponse) => void;
 };
 
 const DEFAULT_MCP_TYPE = 'generic_mcp' as const;
 
 const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
   onClose,
-  onSuccess,
   serverTypes,
   showStdioTransport,
 }) => {
@@ -175,34 +172,52 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
     [form, hostedUpload],
   );
 
-  const onSubmit = form.handleSubmit(async (values: NewMcpServerFormValues) => {
-    validateMutation.reset();
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.stopPropagation();
+    form.handleSubmit(async (values: NewMcpServerFormValues) => {
+      validateMutation.reset();
 
-    const payload = buildCreateMcpServerPayload(values);
+      const payload = buildCreateMcpServerPayload(values);
 
-    if (!(values.type === 'hosted' && values.agentPackageFile)) {
-      await validateMutation.mutateAsync(
-        { mcpServer: payload },
-        {
-          onError: () => {
-            // Error is available via validateMutation.error
+      if (!(values.type === 'hosted' && values.agentPackageFile)) {
+        await validateMutation.mutateAsync(
+          { mcpServer: payload },
+          {
+            onError: () => {
+              // Error is available via validateMutation.error
+            },
           },
-        },
-      );
-    }
+        );
+      }
 
-    if (values.type === 'hosted' && values.agentPackageFile) {
-      createHostedMutation.mutate(
-        {
-          name: payload.name,
-          file: values.agentPackageFile,
-          headers: payload.headers,
-          mcpServerMetadata: hostedUpload.inspectionData ? { ...hostedUpload.inspectionData } : undefined,
-        },
+      if (values.type === 'hosted' && values.agentPackageFile) {
+        createHostedMutation.mutate(
+          {
+            name: payload.name,
+            file: values.agentPackageFile,
+            headers: payload.headers,
+            mcpServerMetadata: hostedUpload.inspectionData ? { ...hostedUpload.inspectionData } : undefined,
+          },
+          {
+            onSuccess: (result) => {
+              onClose(result.mcp_server_id);
+            },
+            onError: (err) => {
+              form.setError('root', {
+                type: 'manual',
+                message: err.message,
+              });
+            },
+          },
+        );
+        return;
+      }
+
+      createMutation.mutate(
+        { body: payload },
         {
           onSuccess: (result) => {
-            onSuccess?.(result);
-            onClose();
+            onClose(result.mcp_server_id);
           },
           onError: (err) => {
             form.setError('root', {
@@ -212,25 +227,8 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
           },
         },
       );
-      return;
-    }
-
-    createMutation.mutate(
-      { body: payload },
-      {
-        onSuccess: (result) => {
-          onSuccess?.(result);
-          onClose();
-        },
-        onError: (err) => {
-          form.setError('root', {
-            type: 'manual',
-            message: err.message,
-          });
-        },
-      },
-    );
-  });
+    })(event);
+  };
 
   const isPending =
     createMutation.isPending || createHostedMutation.isPending || hostedUpload.isPending || validateMutation.isPending;
@@ -377,7 +375,7 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
           </Form.Fieldset>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button variant="outline" type="button" round onClick={onClose}>
+          <Button variant="outline" type="button" round onClick={() => onClose()}>
             Cancel
           </Button>
           <Button variant="primary" type="submit" round loading={isPending} disabled={isHostedWithoutFile}>

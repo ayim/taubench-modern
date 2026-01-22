@@ -4,9 +4,9 @@ import { IconStatusCompleted, IconStatusTimeout, IconMcp } from '@sema4ai/icons'
 import { useFormContext } from 'react-hook-form';
 import { styled } from '@sema4ai/theme';
 
-import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
 import { ActionSecrets } from './ActionSecrets';
-import { parseWhitelist, getUniqueSecretNames } from './actionPackageUtils';
+import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
+import { parseWhitelist, getUniqueSecretNames } from '../../../utils/actionPackages';
 
 const Container = styled.div`
   display: grid;

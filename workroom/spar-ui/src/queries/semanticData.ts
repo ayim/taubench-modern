@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { DataConnection } from '@sema4ai/data-interface';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
-import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/form';
+import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/types';
 import { InspectedTableInfo } from './dataConnections';
 
 // TODO: This model is not complete, update once agent-server-interface is updated and returns correct shape of SemanticModel

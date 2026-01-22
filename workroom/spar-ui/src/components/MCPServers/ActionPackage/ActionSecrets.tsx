@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { Box } from '@sema4ai/components';
 
 import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
-import { parseWhitelist, getUniqueSecretsMap } from './actionPackageUtils';
+import { parseWhitelist, getUniqueSecretsMap } from '../../../utils/actionPackages';
 import { InputControlled } from '../../../common/form/InputControlled';
 
 export const ActionSecrets: FC<{

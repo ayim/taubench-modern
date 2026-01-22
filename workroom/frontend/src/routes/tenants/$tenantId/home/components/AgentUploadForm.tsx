@@ -1,21 +1,25 @@
 import { Box, Button, useSnackbar } from '@sema4ai/components';
-import { useParams } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileRejection, useDropzone } from 'react-dropzone';
 import { IconPlus } from '@sema4ai/icons';
-import { useUploadAgentPackageMutation } from '~/queries/agentPackageUpload';
-import { useTenantContext } from '~/lib/tenantContext';
-import { useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
+import { AgentPackageInspectionResponse, useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
 import { useSparUIContext } from '@sema4ai/spar-ui';
 
-export const AgentUploadForm = () => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
+import { useTenantContext } from '~/lib/tenantContext';
+
+type Props = {
+  setAgentPackageUploadData: (data: {
+    agentTemplate: NonNullable<AgentPackageInspectionResponse>;
+    agentPackage: File;
+  }) => void;
+};
+
+export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
   const { addSnackbar } = useSnackbar();
-  const uploadAgentPackageMutation = useUploadAgentPackageMutation();
   const { sparAPIClient } = useSparUIContext();
-  const inspectAgentPackageMutation = useInspectAgentPackageMutation({ sparAPIClient });
+  const { mutateAsync: inspectAgentPackageMutation, isPending } = useInspectAgentPackageMutation({ sparAPIClient });
   const { features } = useTenantContext();
 
   const schema = z.object({
@@ -54,29 +58,15 @@ export const AgentUploadForm = () => {
       formData.append('name', file.name.replace(/\.zip$/i, ''));
       formData.append('description', 'Package uploaded from UI');
 
-      const inspectionResult = await inspectAgentPackageMutation.mutateAsync({ formData });
+      const inspectionResult = await inspectAgentPackageMutation({ formData });
 
       if (inspectionResult.status === 'failure' || !inspectionResult.data) {
         throw new Error('Failed to inspect agent package: no data returned');
       }
 
-      const inspectionData = inspectionResult.data;
-
-      await uploadAgentPackageMutation.mutateAsync({
-        tenantId,
-        data: {
-          file,
-          fileContent: {
-            agentTemplate: inspectionData,
-            defaultValues: {
-              name: inspectionData.name,
-              description: inspectionData.description,
-              llmId: '',
-              apiKey: '',
-              mcpServerIds: [],
-            },
-          },
-        },
+      setAgentPackageUploadData({
+        agentTemplate: inspectionResult.data,
+        agentPackage: file,
       });
     } catch (err) {
       console.error('❌ Error processing ZIP file:', err);
@@ -104,7 +94,7 @@ export const AgentUploadForm = () => {
     <Box height="100%" display="flex" flexDirection="row" gap={2}>
       <input {...getInputProps()} />
       {features.deploymentWizard.enabled && (
-        <Button icon={IconPlus} round onClick={open} loading={uploadAgentPackageMutation.isPending}>
+        <Button icon={IconPlus} round onClick={open} loading={isPending}>
           Agent
         </Button>
       )}

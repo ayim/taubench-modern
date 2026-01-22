@@ -10,3 +10,4 @@ export * from './queries/agentPackageInspection';
 export * from './queries/analytics';
 export * from './queries/integrations';
 export * from './queries/mcpServers';
+export * from './queries/llms';

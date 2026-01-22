@@ -5,6 +5,9 @@ export { SparUIRoutes } from './api/routes';
 
 export * from './components/Agents';
 
+export * from './components/AgentDeploymentForm';
+export type { AgentDeploymentFormSchema } from './components/AgentDeploymentForm/context';
+
 export * from './components/Thread';
 export * from './components/Worker';
 export * from './components/ThreadSearch';

@@ -29,6 +29,7 @@ export enum ResourceType {
   WorkItem = 'work_item',
   ThreadFile = 'thread_file',
   Integration = 'integration',
+  LLMPlatform = 'llm_platform',
 }
 
 const KnownErrorCodes = new Set<string>(Object.values(QueryErrorCode));

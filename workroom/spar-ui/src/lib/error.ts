@@ -62,6 +62,7 @@ const RESOURCE_TYPE_TITLE: Record<ResourceType, string> = {
   thread_file: 'File',
   work_item: 'Work Item',
   integration: 'Integration',
+  llm_platform: 'LLM Platform',
 };
 
 const ILLUSTRATION_NAME: Record<ResourceType, IllustrationName> = {
@@ -77,6 +78,7 @@ const ILLUSTRATION_NAME: Record<ResourceType, IllustrationName> = {
   thread_file: 'generic',
   work_item: 'generic',
   integration: 'generic',
+  llm_platform: 'generic',
 };
 
 type ResourceDetails = { type?: ResourceType; title?: string; illustration: IllustrationName };

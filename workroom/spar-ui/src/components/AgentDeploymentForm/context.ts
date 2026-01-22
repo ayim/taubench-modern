@@ -1,15 +1,17 @@
+import { FC } from 'react';
 import { z } from 'zod';
 
-export enum AgentDeploymentStep {
-  AgentOverview = 'AgentOverview',
-  AgentSettings = 'AgentSettings',
-  ActionSettings = 'ActionSettings',
-}
+import { AgentPackageInspectionResponse } from '../../queries';
+
+export type AgentDeploymentFormSection = FC<{
+  agentTemplate: NonNullable<AgentPackageInspectionResponse>;
+}>;
 
 export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAgentNames: string[] }) => {
   const agentConfigurationSchema = z.object({
     name: z
       .string()
+      .trim()
       .min(1)
       .refine(
         (inputedAgentName) => {
@@ -22,7 +24,7 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
           message: 'An agent with this name already exists',
         },
       ),
-    description: z.string().min(1),
+    description: z.string().trim().min(1),
     llmId: z.string().min(1, 'LLM setting is required'),
     apiKey: z.string().optional(),
   });
@@ -36,6 +38,16 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
   });
 
   return agentConfigurationSchema.and(mcpConfigurationSchema);
+};
+
+export const getDefaultValues = (agentTemplate: NonNullable<AgentPackageInspectionResponse>) => {
+  return {
+    name: agentTemplate.name,
+    description: agentTemplate.description,
+    llmId: '',
+    apiKey: '',
+    mcpServerIds: [],
+  };
 };
 
 export type AgentDeploymentFormSchema = z.input<ReturnType<typeof buildAgentDeploymentSchema>>;

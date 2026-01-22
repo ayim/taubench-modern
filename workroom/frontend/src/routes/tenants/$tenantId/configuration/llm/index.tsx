@@ -1,16 +1,13 @@
 import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, Button, useSnackbar } from '@sema4ai/components';
+import { usePlatformsQuery } from '@sema4ai/spar-ui/queries';
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
-import { getListPlatformsQueryOptions, type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
+import { type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
 import { getAlowedModelFromPlatform } from '~/lib/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId } }) => {
-    await queryClient.ensureQueryData(getListPlatformsQueryOptions({ agentAPIClient, tenantId }));
-    return {};
-  },
   component: RouteComponent,
 });
 
@@ -23,9 +20,7 @@ function RouteComponent() {
   const { addSnackbar } = useSnackbar();
 
   const deleteMutation = useDeleteLLMMutation();
-
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const { data } = useSuspenseQuery(getListPlatformsQueryOptions({ agentAPIClient, tenantId }));
+  const { data } = usePlatformsQuery({});
 
   const handleDelete = () => {
     if (deleteTarget) {

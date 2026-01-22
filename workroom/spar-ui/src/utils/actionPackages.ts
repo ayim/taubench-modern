@@ -1,5 +1,16 @@
-import { AgentPackageInspectionResponse } from '../../../queries/agentPackageInspection';
-import { HeaderEntry } from '../schemas/mcpFormSchema';
+import { AgentPackageInspectionResponse } from '../queries/agentPackageInspection';
+
+export const agentPackageSecretsToHeaderEntries = (
+  secrets: Record<string, string> | undefined,
+): { key: string; value: string; type: 'secret' }[] | undefined => {
+  if (!secrets) return undefined;
+
+  const entries = Object.entries(secrets)
+    .filter(([, value]) => value && value.trim() !== '')
+    .map(([key, value]) => ({ key, value, type: 'secret' as const }));
+
+  return entries.length > 0 ? entries : undefined;
+};
 
 export const parseWhitelist = (whitelist: string): string[] | null => {
   const items = whitelist
@@ -58,16 +69,4 @@ export const getUniqueSecretsMap = (
   });
 
   return uniqueSecretsMap;
-};
-
-export const agentPackageSecretsToHeaderEntries = (
-  secrets: Record<string, string> | undefined,
-): HeaderEntry[] | undefined => {
-  if (!secrets) return undefined;
-
-  const entries = Object.entries(secrets)
-    .filter(([, value]) => value && value.trim() !== '')
-    .map(([key, value]) => ({ key, value, type: 'secret' as const }));
-
-  return entries.length > 0 ? entries : undefined;
 };

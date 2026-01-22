@@ -7,7 +7,7 @@ import { NavigationArgs } from '../../api';
 
 export type LinkProps<T = SparUIRoutes> = {
   to: keyof T;
-  params: T[keyof T];
+  params?: T[keyof T];
   children: ReactNode;
   /**
    * If current active page route matches the target link, the subroute will be preserved and appended to the target link
@@ -17,7 +17,7 @@ export type LinkProps<T = SparUIRoutes> = {
 
 export const useLinkProps = <T extends keyof SparUIRoutes>(
   to: T,
-  params: SparUIRoutes[T],
+  params: SparUIRoutes[T] = {} as SparUIRoutes[T],
   preserveSubroute = false,
 ) => {
   const { sparAPIClient } = useSparUIContext();

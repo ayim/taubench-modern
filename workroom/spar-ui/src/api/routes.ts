@@ -66,6 +66,7 @@ export type SparUIRoutes = {
     dataConnectionId: string;
   };
   '/home': {};
+  '/configuration/llm/new': {};
 };
 
 type UnionToIntersection<U> = (U extends unknown ? (x: U) => 0 : never) extends (x: infer I) => 0 ? I : never;

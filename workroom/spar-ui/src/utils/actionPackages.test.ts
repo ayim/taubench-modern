@@ -5,7 +5,7 @@ import {
   getUniqueSecretNames,
   getUniqueSecretsMap,
   agentPackageSecretsToHeaderEntries,
-} from './actionPackageUtils';
+} from './actionPackages';
 
 type ActionSecretsConfig = components['schemas']['ActionSecretsConfig'];
 type ActionSecretDefinition = components['schemas']['ActionSecretDefinition'];

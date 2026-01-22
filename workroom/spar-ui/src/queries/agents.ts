@@ -2,6 +2,10 @@ import { Agent } from '@sema4ai/agent-server-interface';
 import { OAuthProvider } from '@sema4ai/oauth-client';
 
 import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
+import { AgentPackageInspectionResponse } from './agentPackageInspection';
+import { agentPackageSecretsToHeaderEntries } from '../utils/actionPackages';
+import { AgentDeploymentFormSchema } from '../components/AgentDeploymentForm/context';
+import { formHeadersToApiHeaders } from '../components/MCPServers/schemas/mcpFormSchema';
 
 /**
  * List Agents query
@@ -222,5 +226,76 @@ export const useShowActionLogsMutation = createSparMutation<
     }
 
     return response.success;
+  },
+}));
+
+export const useDeployAgentFromPackageMutation = createSparMutation<
+  object,
+  {
+    agentTemplate: NonNullable<AgentPackageInspectionResponse>;
+    payload: AgentDeploymentFormSchema;
+    agentPackage: File;
+  }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ agentTemplate, agentPackage, payload }) => {
+    const mcpServerIds = [...(payload.mcpServerIds ?? [])];
+    const hasActionPackages = (agentTemplate.action_packages ?? []).length > 0;
+
+    if (hasActionPackages) {
+      const headerEntries = payload.agentPackageSecrets
+        ? agentPackageSecretsToHeaderEntries(payload.agentPackageSecrets)
+        : undefined;
+      const headers = headerEntries ? formHeadersToApiHeaders(headerEntries) : undefined;
+
+      const mcpFormData = new FormData();
+      mcpFormData.append('file', agentPackage);
+      mcpFormData.append('name', `${payload.name} - Actions`);
+      mcpFormData.append('headers', JSON.stringify(headers));
+      mcpFormData.append('mcp_server_metadata', JSON.stringify(agentTemplate));
+
+      const response = await sparAPIClient.queryAgentServer('post', '/api/v2/mcp-servers/mcp-servers-hosted', {
+        body: mcpFormData as never,
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to create hosted MCP server', {
+          code: response.code,
+          resource: ResourceType.McpServer,
+        });
+      }
+
+      mcpServerIds.push(response.data.mcp_server_id);
+    }
+
+    const jsonPayload = {
+      name: payload.name,
+      description: payload.description,
+      public: true,
+      platform_params_ids: [payload.llmId],
+      action_servers: [],
+      mcp_servers: [],
+      mcp_server_ids: mcpServerIds,
+    };
+
+    const formData = new FormData();
+    formData.append('package_zip_file', agentPackage, agentPackage.name);
+
+    Object.entries(jsonPayload).forEach(([fieldName, fieldValue]) => {
+      const value = typeof fieldValue === 'string' ? fieldValue : JSON.stringify(fieldValue);
+      formData.append(fieldName, value);
+    });
+
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/package/deploy/agent', {
+      body: formData as never,
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to deploy agent', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
+    }
+
+    return response.data;
   },
 }));
