@@ -147,11 +147,11 @@ class SQLiteMigrations(MigrationsProvider):
                         raise MigrationError(
                             f"Migration {version} is dirty. No migrations will be applied. Please fix it manually.",
                         )
-                    # TODO we previously had a check to detect if a migration is already
-                    # applied but the migration we have _now_ is different. This points out
-                    # a developer doing something wrong, but removes our ability to change
-                    # broken migrations.
-
+                    if old["checksum"] != new_checksum:
+                        raise MigrationError(
+                            f"Checksum drift detected for migration {version}. "
+                            f"Existing: {old['checksum']}, New: {new_checksum}.",
+                        )
                     # otherwise skip since it's already applied
                     continue
                 else:

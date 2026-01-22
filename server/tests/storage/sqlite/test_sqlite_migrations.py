@@ -224,10 +224,11 @@ async def test_sqlite_migration_checksum_drift(sqlite_storage_for_migrations, sq
         "CREATE TABLE drift_test (id INTEGER PRIMARY KEY, name TEXT);",
     )
 
-    # 4) Run migrations again. In the past, this would raise an error,
-    # but we now allow this to happen (not run the new migration even
-    # though it has a different checksum).
-    await migrations.run_migrations()
+    # 4) Run migrations again and expect a checksum drift error
+    with pytest.raises(MigrationError) as exc_info:
+        await migrations.run_migrations()
+
+    assert "Checksum drift detected for migration 1" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
