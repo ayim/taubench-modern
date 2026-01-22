@@ -343,6 +343,20 @@ def _initialize_postgres_database(
                 composite_fk_schema_sql = composite_fk_schema_file.read_text(encoding="utf-8")
                 conn.execute(sa.text(composite_fk_schema_sql))
 
+            # Load UNIQUE INDEX FK schema for testing BIRD database scenario
+            # where FKs reference UNIQUE INDEX instead of PRIMARY KEY
+            unique_index_fk_schema_file = resources_path / "postgres" / "unique_index_fk_schema.sql"
+            if unique_index_fk_schema_file.exists():
+                unique_index_fk_schema_sql = unique_index_fk_schema_file.read_text(encoding="utf-8")
+                conn.execute(sa.text(unique_index_fk_schema_sql))
+
+            # Load PK + UNIQUE CONSTRAINT FK schema for testing FK detection
+            # when parent table has both PRIMARY KEY and separate UNIQUE CONSTRAINT
+            pk_unique_constraint_fk_schema_file = resources_path / "postgres" / "pk_unique_constraint_fk_schema.sql"
+            if pk_unique_constraint_fk_schema_file.exists():
+                pk_unique_constraint_fk_schema_sql = pk_unique_constraint_fk_schema_file.read_text(encoding="utf-8")
+                conn.execute(sa.text(pk_unique_constraint_fk_schema_sql))
+
         yield test_schema
 
     finally:
@@ -434,6 +448,26 @@ def _initialize_mysql_database(
         if composite_fk_schema_file.exists():
             composite_fk_schema_sql = composite_fk_schema_file.read_text(encoding="utf-8")
             for statement in composite_fk_schema_sql.split(";"):
+                statement = statement.strip()  # noqa: PLW2901
+                if statement:
+                    cursor.execute(statement)
+
+        # Load UNIQUE INDEX FK schema for testing the scenario
+        # where FKs reference UNIQUE INDEX instead of PRIMARY KEY
+        unique_index_fk_schema_file = resources_path / "mysql" / "unique_index_fk_schema.sql"
+        if unique_index_fk_schema_file.exists():
+            unique_index_fk_schema_sql = unique_index_fk_schema_file.read_text(encoding="utf-8")
+            for statement in unique_index_fk_schema_sql.split(";"):
+                statement = statement.strip()  # noqa: PLW2901
+                if statement:
+                    cursor.execute(statement)
+
+        # Load PK + UNIQUE CONSTRAINT FK schema for testing FK detection
+        # when parent table has both PRIMARY KEY and separate UNIQUE CONSTRAINT
+        pk_unique_constraint_fk_schema_file = resources_path / "mysql" / "pk_unique_constraint_fk_schema.sql"
+        if pk_unique_constraint_fk_schema_file.exists():
+            pk_unique_constraint_fk_schema_sql = pk_unique_constraint_fk_schema_file.read_text(encoding="utf-8")
+            for statement in pk_unique_constraint_fk_schema_sql.split(";"):
                 statement = statement.strip()  # noqa: PLW2901
                 if statement:
                     cursor.execute(statement)

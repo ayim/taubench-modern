@@ -39,40 +39,86 @@ class PostgresForeignKeyInspector(ForeignKeyInspector):
 
         table_list = ", ".join([f"'{name}'" for name in table_names])
 
-        # Use information_schema with proper handling for composite foreign keys.
-        # The key is to join key_column_usage twice:
-        # - kcu_src: source columns from the FK constraint (has ordinal_position)
-        # - kcu_tgt: target columns from the referenced PK/unique constraint
-        # By matching on ordinal_position, we get the correct 1:1 column mapping.
-        # Note: constraint_column_usage cannot be used for composite FKs as it
-        # lacks ordinal_position, causing incorrect Cartesian products.
+        # Use pg_catalog (PostgreSQL-specific) for reliable FK detection.
+        # This approach works for both simple and composite foreign keys:
+        # - Uses LATERAL join with synchronized unnest() to properly pair source/target columns
+        # - Avoids cartesian products by matching columns by their array position
+        # - Works regardless of whether unique_constraint_name is populated in information_schema
+        #
+        # Why pg_catalog instead of information_schema:
+        # - information_schema.referential_constraints.unique_constraint_name can be NULL
+        # - pg_catalog.pg_constraint always has complete FK metadata (conkey/confkey arrays)
         query = f"""
         SELECT
-            tc.constraint_name,
-            tc.table_name AS source_table,
-            kcu_src.column_name AS source_column,
-            kcu_tgt.table_name AS target_table,
-            kcu_tgt.column_name AS target_column,
-            rc.delete_rule AS on_delete,
-            rc.update_rule AS on_update,
-            kcu_src.ordinal_position
-        FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu_src
-            ON tc.constraint_name = kcu_src.constraint_name
-            AND tc.table_schema = kcu_src.table_schema
-        JOIN information_schema.referential_constraints rc
-            ON rc.constraint_name = tc.constraint_name
-            AND rc.constraint_schema = tc.table_schema
-        -- Join key_column_usage for the TARGET constraint (PK/unique being referenced)
-        -- Match by ordinal_position to get correct 1:1 column pairing for composite keys
-        JOIN information_schema.key_column_usage kcu_tgt
-            ON kcu_tgt.constraint_name = rc.unique_constraint_name
-            AND kcu_tgt.table_schema = rc.unique_constraint_schema
-            AND kcu_tgt.ordinal_position = kcu_src.ordinal_position
-        WHERE tc.constraint_type = 'FOREIGN KEY'
-            AND tc.table_schema = '{schema_name}'
-            AND tc.table_name IN ({table_list})
-        ORDER BY tc.constraint_name, kcu_src.ordinal_position
+          con.conname AS constraint_name,
+          src_tbl.relname AS source_table,
+          src_attr.attname AS source_column,
+          tgt_tbl.relname AS target_table,
+          tgt_attr.attname AS target_column,
+
+          CASE con.confdeltype
+            WHEN 'a' THEN 'NO ACTION'
+            WHEN 'r' THEN 'RESTRICT'
+            WHEN 'c' THEN 'CASCADE'
+            WHEN 'n' THEN 'SET NULL'
+            WHEN 'd' THEN 'SET DEFAULT'
+          END AS on_delete,
+
+          CASE con.confupdtype
+            WHEN 'a' THEN 'NO ACTION'
+            WHEN 'r' THEN 'RESTRICT'
+            WHEN 'c' THEN 'CASCADE'
+            WHEN 'n' THEN 'SET NULL'
+            WHEN 'd' THEN 'SET DEFAULT'
+          END AS on_update
+        FROM (VALUES
+            ('{schema_name}', ARRAY[{table_list}])
+         ) AS p(schema_name, table_names)
+
+        -- Filter to just foreign-key constraints
+        JOIN pg_constraint con
+          ON con.contype = 'f'
+
+        -- Join the source table (regular or partitioned)
+        JOIN pg_class src_tbl
+          ON src_tbl.oid = con.conrelid
+         AND src_tbl.relkind IN ('r','p')
+
+        JOIN pg_namespace src_ns
+          ON src_ns.oid = src_tbl.relnamespace
+
+        -- Join the target table (regular or partitioned)
+        JOIN pg_class tgt_tbl
+          ON tgt_tbl.oid = con.confrelid
+         AND tgt_tbl.relkind IN ('r','p')
+        JOIN pg_namespace tgt_ns
+          ON tgt_ns.oid = tgt_tbl.relnamespace
+
+        -- Expand composite FKs: each row is one matching source/target column, with its position.
+        JOIN LATERAL unnest(con.conkey, con.confkey) WITH ORDINALITY
+          AS u(left_attnum, right_attnum, ord)
+          ON true
+
+        -- get the source column name
+        JOIN pg_attribute src_attr
+          ON src_attr.attrelid = con.conrelid
+         AND src_attr.attnum   = u.left_attnum
+         AND NOT src_attr.attisdropped
+
+        -- get the target column name
+        JOIN pg_attribute tgt_attr
+          ON tgt_attr.attrelid = con.confrelid
+         AND tgt_attr.attnum   = u.right_attnum
+         AND NOT tgt_attr.attisdropped
+
+        WHERE
+          src_ns.nspname = p.schema_name
+          AND tgt_ns.nspname = p.schema_name
+          AND src_tbl.relname = ANY(p.table_names)
+          AND tgt_tbl.relname = ANY(p.table_names)
+
+        ORDER BY
+          source_table, constraint_name
         """
 
         result_table = await connection.sql(query)
