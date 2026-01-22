@@ -187,6 +187,7 @@ endif
 	$(OTEL_ENV) \
 	$(DB_ENV) \
 	$(MCP_RUNTIME_ENV) \
+	AWS_EC2_METADATA_DISABLED=$${AWS_EC2_METADATA_DISABLED:-true} \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \
 		--factory \
 		--host 127.0.0.1 \

@@ -145,8 +145,8 @@ def _setup_additional_loggers(
     mcp_client_http_logger.addHandler(default_handler)
     mcp_client_http_logger.addHandler(file_handler)
 
-    # Suppress verbose HTTP/2 and HTTP client library logs
-    for name in ["hpack.hpack", "httpcore", "httpx"]:
+    # Suppress verbose client library logs
+    for name in ["hpack.hpack", "httpcore", "httpx", "snowflake.connector", "botocore"]:
         logger = logging.getLogger(name)
         logger.setLevel(logging.INFO)
         logger.handlers.clear()
