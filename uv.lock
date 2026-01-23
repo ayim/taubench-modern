@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12.9, <3.13"
 
 [manifest]
@@ -4206,6 +4206,7 @@ dependencies = [
     { name = "sema4ai-actions" },
     { name = "sema4ai-data" },
     { name = "sema4ai-http-helper" },
+    { name = "structlog" },
 ]
 
 [package.optional-dependencies]
@@ -4261,6 +4262,7 @@ requires-dist = [
     { name = "sema4ai-actions", specifier = ">=1.6.1,<2" },
     { name = "sema4ai-data", specifier = ">=1.0.8,<2" },
     { name = "sema4ai-http-helper", specifier = "==2.1.0" },
+    { name = "structlog", specifier = ">=24.4.0,<25.0.0" },
     { name = "uvicorn", marker = "extra == 'memory'", specifier = ">=0.34.0,<0.35.0" },
 ]
 provides-extras = ["memory"]

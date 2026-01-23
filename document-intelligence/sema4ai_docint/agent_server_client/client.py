@@ -1,10 +1,10 @@
 import json
-import logging
 import re
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import structlog
 from mindsdb_sql import parse_sql
 from sema4ai.data import DataSource
 
@@ -38,7 +38,10 @@ from .transport._utils import call_transport_method
 if TYPE_CHECKING:
     from reducto.types.shared.parse_response import ParseResponse
 
-logger = logging.getLogger(__name__)
+logger = structlog.getLogger(__name__)
+
+# High confidence threshold for early return in document classification
+HIGH_CONFIDENCE_IMAGE_SCORE_THRESHOLD = 0.95
 
 
 def _trim_json_markup(text: str) -> str:
@@ -2009,6 +2012,73 @@ Output should only contain existing layout names.
             print(f"Response was:\n {response_text}")
             return {}
 
+    def _choose_layout(
+        self,
+        image_scores: dict[str, float],
+        filename_scores: dict[str, float],
+        available_layouts: list[str],
+    ) -> str:
+        """Choose the best layout based on image and filename scores.
+
+        This method applies the classification algorithm over pre-computed scores
+        to select the best matching layout.
+
+        Args:
+            image_scores: Dict mapping layout names to image similarity scores
+            filename_scores: Dict mapping layout names to filename similarity scores
+            available_layouts: List of available layout names
+
+        Returns:
+            str: Best matching layout name
+
+        Raises:
+            DocumentClassificationError: If no suitable layout found
+        """
+        if not available_layouts:
+            raise DocumentClassificationError("Unknown", available_layouts)
+
+        # If exactly one layout has a very high image score (>= 0.95), bypass filename check
+        high_confidence_layouts = [
+            layout
+            for layout, score in image_scores.items()
+            if score >= HIGH_CONFIDENCE_IMAGE_SCORE_THRESHOLD
+        ]
+        if len(high_confidence_layouts) == 1:
+            best_layout = high_confidence_layouts[0]
+            if not AgentServerClient.is_known_schema(best_layout, available_layouts):
+                raise DocumentClassificationError(best_layout, available_layouts)
+            # Directly return the high-confidence image-based layout
+            return best_layout
+
+        # Combine all unique layout names from both signals
+        all_layouts = set(image_scores.keys()) | set(filename_scores.keys())
+
+        # Calculate weighted final scores (image * 0.6 + filename * 0.4)
+        final_scores = {}
+        for layout in all_layouts:
+            image_score = image_scores.get(layout, 0.0)
+            filename_score = filename_scores.get(layout, 0.0)
+
+            final_score = round((image_score * 0.6) + (filename_score * 0.4), 2)
+            final_scores[layout] = final_score
+
+        # Find best match
+        if not final_scores:
+            raise DocumentClassificationError("Unknown", available_layouts)
+
+        best_layout = max(final_scores.keys(), key=lambda x: final_scores[x])
+        best_score = final_scores[best_layout]
+
+        if not AgentServerClient.is_known_schema(best_layout, available_layouts):
+            raise DocumentClassificationError(best_layout, available_layouts)
+
+        # Apply threshold (0.7 = 70% of Maximum Possible Score i.e. 1.0)
+        classification_threshold = 0.7
+        if best_score >= classification_threshold:
+            return best_layout
+        else:
+            raise DocumentClassificationError("Unknown", available_layouts)
+
     def classify_document_multi_signal(
         self, base64_images: list[str], available_layouts: list[str], doc_name: str
     ) -> str:
@@ -2027,41 +2097,16 @@ Output should only contain existing layout names.
 
         # Compute similarity scores for image and filename signals only
         image_scores = self._compute_image_based_similarity(base64_images, available_layouts)
-        print(f"Image scores: {image_scores}")
+
         filename_scores = self._compute_filename_similarity(doc_name, available_layouts)
-        print(f"Filename scores: {filename_scores}")
+        logger.debug(
+            "classification result", image_scores=image_scores, filename_scores=filename_scores
+        )
 
-        # Combine all unique layout names from both signals
-        all_layouts = set(image_scores.keys()) | set(filename_scores.keys())
+        # Delegate to _choose_layout for the classification decision
+        result = self._choose_layout(image_scores, filename_scores, available_layouts)
 
-        # Calculate weighted final scores (image + filename only)
-        final_scores = {}
-        for layout in all_layouts:
-            image_score = image_scores.get(layout, 0.0)
-            filename_score = filename_scores.get(layout, 0.0)
-
-            # Weighted formula: image * 0.6 + filename * 0.4
-            final_score = round((image_score * 0.6) + (filename_score * 0.4), 2)
-            final_scores[layout] = final_score
-
-        print(f"Final scores: {final_scores}")
-
-        # Find best match
-        if not final_scores:
-            raise DocumentClassificationError("Unknown", available_layouts)
-
-        best_layout = max(final_scores.keys(), key=lambda x: final_scores[x])
-        best_score = final_scores[best_layout]
-
-        if not AgentServerClient.is_known_schema(best_layout, available_layouts):
-            raise DocumentClassificationError(best_layout, available_layouts)
-
-        # Apply threshold (0.7 = 70% of Maximum Possible Score i.e. 1.0)
-        classification_threshold = 0.7
-        if best_score >= classification_threshold:
-            return best_layout
-        else:
-            raise DocumentClassificationError("Unknown", available_layouts)
+        return result
 
     @staticmethod
     def _update_filename_scores(filename_scores: dict[str, float]) -> dict[str, float]:
