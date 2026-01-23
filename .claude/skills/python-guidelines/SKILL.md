@@ -1,17 +1,18 @@
 ---
-name: pr-review-python
+name: python-guidelines
 description: Guidelines for reviewing PRs in the agent-platform's codebase. Use when reviewing code, addressing PR feedback, or writing new code to ensure consistency. Invoke this skill when the user is opening a PR. Keywords: "pr", "agent-platform", "agent-server", "review", "python"
 ---
 
-# PR Review Guidelines
+# Python Guidelines
 
-**IMPORTANT**
-- New learnings should be added to this list.
-- Conflicting learnings should be raised.
-- Formatting, linting and type-checking are part of the review process: a PR not passing the checks is not ready for review
-- This skill covers Python codebases.
+Single source of truth for Python code in the agent-platform codebase. Use as a checklist when reviewing or writing code.
 
-Distilled learnings from code reviews. Use these as a checklist when reviewing or writing code.
+## Maintaining This Document
+
+- Add new learnings via PR to this file
+- A PR not passing formatting, linting, and type-checking is not ready for review
+
+---
 
 ## Table of Contents
 

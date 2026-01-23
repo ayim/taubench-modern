@@ -50,11 +50,10 @@ jobs:
             # How to review
 
             Use the following MD files:
-            - ./claude/skills/pr-review-frontend/SKILL.md
-            - ./claude/skills/pr-review-python/SKILL.md
+            - ./claude/skills/typescript-guidelines/SKILL.md
+            - ./claude/skills/python-guidelines/SKILL.md
             - any CLAUDE.md
             - any AGENTS.md
-            - The pr-review SKILL
 
             Include links to the MD files you used for the review (use main branch URLs).
 

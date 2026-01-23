@@ -2,17 +2,24 @@
 
 This mono-repository contains the code for both the backend and the frontend of the agent platform.
 
+## TypeScript & React Guidelines
+
+**For any TypeScript/React implementation in the workroom codebase, invoke the `typescript-guidelines` skill.** This skill contains all coding standards, patterns, and review guidelines for the frontend and backend TypeScript code.
+
 Primary components:
 
 - Frontend: @workroom/frontend, @workroom/spar-ui
-- Backend:
-  - Agent-server: @server, @core
-  - SPAR proxy/router: @workroom/backend
-
-Additional components:
-
+- Backend: @workroom/backend (SPAR proxy/router)
 - MCP runtime: @workroom/mcp-runtime - used to provision action servers (as MCP servers) in SPAR
   - API reference: @workroom/mcp-runtime/README.md
+
+## Python Guidelines
+
+**For any Python implementation in the agent-platform codebase, invoke the `python-guidelines` skill.** This skill contains all coding standards, patterns, and review guidelines for the Python code.
+
+Primary components:
+
+- Agent-server: @server, @core
 
 ## Layout
 
