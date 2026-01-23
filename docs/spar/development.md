@@ -87,3 +87,11 @@ While the agent server supports both `SEMA4AI_` and `POSTGRES_` -prefixed enviro
 ### Migrations
 
 The workroom database migrations are stored as timestamped `.ts` files in `workroom/backend/src/database/migrations/`. These are created by running `npm run migrations:create` in the `workroom/backend` directory.
+
+## Coding agents
+
+### Claude Code
+
+To have Claude Code test frontend changes automatically, install Vercel Labs `agent-browser`
+according to instructions at: [https://github.com/vercel-labs/agent-browser?tab=readme-ov-file#installation](https://github.com/vercel-labs/agent-browser?tab=readme-ov-file#installation). If you want to follow
+the frontend interactions, ask Claude to run the browser in headful mode.

@@ -34,6 +34,7 @@ The SPAR docker file (`Dockerfile.spar`) builds both the agent-server and workro
 - Do not use `pip`, `pip-tools`, `poetry`, or `conda` directly for dependency management in this project.
 - We use ruff for linting (`make lint`), pyright for typechecking (`make typecheck`), and ruff/prettier for formatting (`make check-format`)
 - Code style/linting changes should only be made after the core functional changes have been made and approved.
+- Use `agent-browser` skill to test any changes you make to the frontend. The frontend can be assumed to be running at http://localhost:8001 and to require no authentication. Run the browser in headless mode by default.
 
 ### Testing instructions
 
