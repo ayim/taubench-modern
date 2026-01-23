@@ -1,3 +1,20 @@
+# Sema4.ai Agent Server 2.2.18 (2026-01-23)
+
+* SDM-348: Auto detect parameters for verified queries [#2176](https://github.com/Sema4AI/agent-platform/pull/2176)
+* fix: fixing /package/create for Agents with SDMs and empty worker configs [#2198](https://github.com/Sema4AI/agent-platform/pull/2198)
+* SDM-354 Push down database/schema through AsyncIbisProxy [#2170](https://github.com/Sema4AI/agent-platform/pull/2170)
+* GPT-1680 Fix flaky work-items e2e test [#2207](https://github.com/Sema4AI/agent-platform/pull/2207)
+* SDM-352 Make SDM names unique on import [#2168](https://github.com/Sema4AI/agent-platform/pull/2168)
+* [SDM-361] Fix Studio crash with large datasets by adding memory safety limits [#2190](https://github.com/Sema4AI/agent-platform/pull/2190)
+* more attempts to fix rcc bootstrap concurrency issues [#2192](https://github.com/Sema4AI/agent-platform/pull/2192)
+* Agent-server logging supressions [#2203](https://github.com/Sema4AI/agent-platform/pull/2203)
+* GPT-1679 reintroduce the loud error when migrations have changed [#2205](https://github.com/Sema4AI/agent-platform/pull/2205)
+* SDM-360: fix: handle out-of-range ints in SDM serialization [#2184](https://github.com/Sema4AI/agent-platform/pull/2184)
+* SDM-355: Issue with generating relationships in SDM with bird databases [#2174](https://github.com/Sema4AI/agent-platform/pull/2174)
+* SDM-353: validate Snowflake database/schema after connect [#2199](https://github.com/Sema4AI/agent-platform/pull/2199)
+* Try to fix a flaky integration test where rcc fails to install [#2182](https://github.com/Sema4AI/agent-platform/pull/2182)
+* Use SNOWFLAKE_USERNAME environment variable consistently among tests [#2201](https://github.com/Sema4AI/agent-platform/pull/2201)
+
 # Sema4.ai Agent Server 2.2.17 (2026-01-20)
 
 * fix: action package metadata casing [#2185](https://github.com/Sema4AI/agent-platform/pull/2185)
