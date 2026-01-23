@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import type { Result } from '@sema4ai/shared-utils';
 import { getNextUserRole } from './userRegistration.js';
 import type { DatabaseClient, UpdateUserIdentityPayload, UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { isEmail } from '../../utils/parse.js';
-import type { Result } from '../../utils/result.js';
 import { SNOWFLAKE_AUTHORITY } from '../../utils/snowflake.js';
 
 export const upsertSnowflakeUser = async ({

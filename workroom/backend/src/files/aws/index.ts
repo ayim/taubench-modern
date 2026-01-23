@@ -3,10 +3,9 @@ import type { Readable } from 'node:stream';
 import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { createPresignedPost, type PresignedPostOptions } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { asResult, exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import { getRoleBasedS3Factory, type S3ClientFactory } from './s3Client.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import { asResult, type Result } from '../../utils/result.js';
 import type {
   CreateFileOptions,
   File,

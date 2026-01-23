@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { validateWorkRoomToken } from '../../auth/sema4OIDC.js';
 import type { Configuration } from '../../configuration.js';
@@ -12,7 +12,6 @@ import { extractRoutePermissions } from './helpers/permissions.js';
 import type { Permission } from '../../auth/permissions.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
-import type { Result } from '../../utils/result.js';
 
 const getAuthorizationHeaderValue = (
   headers: Record<string, string>,

@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import type { Result } from '@sema4ai/shared-utils';
 import { getNextUserRole } from './userRegistration.js';
 import type { DatabaseClient, UpdateUserIdentityPayload, UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { OIDCTokenClaims } from '../../interfaces.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import { isEmail } from '../../utils/parse.js';
-import { type Result } from '../../utils/result.js';
 
 export const extractEmailFromClaims = (claims: OIDCTokenClaims): string | null => {
   return [claims.email, claims.sub, claims.preferred_username].find((value) => value && isEmail(value)) ?? null;

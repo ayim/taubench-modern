@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import type { AuthManager } from '../../auth/AuthManager.js';
 import { upsertOIDCUser } from '../../auth/utils/oidcUserRegistration.js';
 import type { DatabaseClient } from '../../database/DatabaseClient.js';
@@ -10,7 +10,6 @@ import type { Configuration } from '../../configuration.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/sessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
-import type { Result } from '../../utils/result.js';
 
 type OIDCUserIdentityResult = Result<
   {

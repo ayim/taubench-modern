@@ -1,11 +1,10 @@
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { asResult, exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import { OIDCClient } from './OIDCClient.js';
 import { createGetACEUser, type GetACEUser, type UserFrom } from './sema4OIDC.js';
 import type { UserIdentity } from '../database/types/userIdentity.js';
 import { OIDCTokenClaims, type OIDCTokens } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import { asResult, type Result } from '../utils/result.js';
 import { Semaphore } from './utils/Semaphore.js';
 import { OIDCAuthState } from '../utils/schemas.js';
 import { SNOWFLAKE_AUTHORITY } from '../utils/snowflake.js';

@@ -1,7 +1,7 @@
 import { S3 } from '@aws-sdk/client-s3';
 import { AssumeRoleCommand, STSClient } from '@aws-sdk/client-sts';
+import type { Result } from '@sema4ai/shared-utils';
 import type { MonitoringContext } from '../../monitoring/index.js';
-import type { Result } from '../../utils/result.js';
 
 type RoleBasedS3ClientResultErrorCode = 'failed_to_assume_role' | 'invalid_aws_credentials_received';
 

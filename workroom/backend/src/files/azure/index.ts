@@ -7,7 +7,10 @@ import {
   generateBlobSASQueryParameters,
   type ContainerClient,
 } from '@azure/storage-blob';
+import type { Result } from '@sema4ai/shared-utils';
+import { getImplicitlyAuthenticatedClients } from './containerClient.js';
 import type { MonitoringContext } from '../../monitoring/index.js';
+import { safeParseUrl } from '../../utils/url.js';
 import type {
   CreateFileOptions,
   File,
@@ -16,9 +19,6 @@ import type {
   PresignedGet,
   PresignedPost,
 } from '../filesManagement.js';
-import { getImplicitlyAuthenticatedClients } from './containerClient.js';
-import type { Result } from '../../utils/result.js';
-import { safeParseUrl } from '../../utils/url.js';
 
 export interface AzureFilesStorageTarget {
   clientId: string;

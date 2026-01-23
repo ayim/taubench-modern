@@ -1,5 +1,5 @@
 import { posix } from 'node:path';
-import type { Result } from './result.js';
+import type { Result } from '@sema4ai/shared-utils';
 
 /**
  * Extract common attributes from a request URL that is usually

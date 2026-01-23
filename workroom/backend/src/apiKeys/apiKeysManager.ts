@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from 'crypto';
 import type { SecretDataManager } from '@sema4ai/secret-management';
+import type { Result } from '@sema4ai/shared-utils';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { Result } from '../utils/result.js';
 
 export const API_KEY_PREFIX = 's4w' as const;
 

@@ -1,9 +1,9 @@
+import { asError } from '@sema4ai/shared-utils';
 import { backOff } from 'exponential-backoff';
 import type { AgentServerDatabaseClient } from '../agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { migrateAgentServerUserSubs } from '../agentServerDatabaseMigration/index.js';
 import { upsertSnowflakeUser } from '../auth/utils/snowflakeUserRegistration.js';
 import type { Configuration } from '../configuration.js';
-import { asError } from './error.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 

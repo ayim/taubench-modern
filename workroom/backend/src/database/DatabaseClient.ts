@@ -1,3 +1,4 @@
+import { asResult, type Result } from '@sema4ai/shared-utils';
 import { sql, type Kysely } from 'kysely';
 import { omitProperties, pickProperties, sqlNow } from './helpers.js';
 import type { MonitoringContext } from '../monitoring/index.js';
@@ -7,7 +8,6 @@ import type { NewSecretData, SecretData } from './types/secretData.js';
 import type { Session, StoredSession } from './types/session.js';
 import type { NewUser, User, UserUpdate } from './types/user.js';
 import type { NewUserIdentity, UserIdentity, UserIdentityType, UserIdentityUpdate } from './types/userIdentity.js';
-import { asResult, type Result } from '../utils/result.js';
 
 export type UpdateUserPayload = Omit<UserUpdate, 'updated_at'> & { id: NonNullable<UserUpdate['id']> };
 export type UpdateUserIdentityPayload = {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { Result } from '@sema4ai/shared-utils';
 import getPort from 'get-port';
 import { http, HttpResponse } from 'msw';
 import { setupServer, SetupServerApi } from 'msw/node';
@@ -6,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createGetACEUser, type GetACEUser } from './sema4OIDC.js';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { Result } from '../utils/result.js';
 
 describe('createGetACEUser', () => {
   const getConfiguration = () =>

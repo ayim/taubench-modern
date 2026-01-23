@@ -1,3 +1,4 @@
+import { asResult, type Result } from '@sema4ai/shared-utils';
 import type { Cookie, SessionData, Store } from 'express-session';
 import { Session } from './payload.js';
 import type { ExtractSessionResult, SessionManager } from './sessionManager.js';
@@ -6,7 +7,6 @@ import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
 import { caseless } from '../utils/parse.js';
 import { headersToObject } from '../utils/request.js';
-import { asResult, type Result } from '../utils/result.js';
 import { SNOWFLAKE_AUTH_HEADER } from '../utils/snowflake.js';
 import { stringToUUID } from '../utils/uuid.js';
 

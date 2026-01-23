@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import { extractRoutePermissions } from './helpers/permissions.js';
 import { upsertSnowflakeUser } from '../../auth/utils/snowflakeUserRegistration.js';
 import type { Configuration } from '../../configuration.js';
@@ -8,7 +8,6 @@ import type { ErrorResponse, ExpressNextFunction, ExpressRequest, ExpressRespons
 import type { MonitoringContext } from '../../monitoring/index.js';
 import type { SessionManager } from '../../session/sessionManager.js';
 import { extractHeadersFromRequest } from '../../utils/request.js';
-import type { Result } from '../../utils/result.js';
 import { SNOWFLAKE_AUTH_HEADER, SNOWFLAKE_AUTHORITY } from '../../utils/snowflake.js';
 
 export type SnowflakeUserIdentityResult = Result<

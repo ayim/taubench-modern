@@ -1,12 +1,12 @@
 import TTLCache from '@isaacs/ttlcache';
 import { expectedValue, getTokenVerifier, keyPairHelpers } from '@sema4ai/robocloud-auth-utils';
 import { SignInterface, type WorkRoomV1 } from '@sema4ai/robocloud-sign-interface';
+import type { Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import type { AuthManager } from './AuthManager.js';
 import type { Permission } from './permissions.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
-import type { Result } from '../utils/result.js';
 import { ControlPlaneUserResponse } from '../utils/schemas.js';
 import { joinUrl } from '../utils/url.js';
 

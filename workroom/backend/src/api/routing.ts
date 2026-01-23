@@ -1,7 +1,7 @@
+import type { Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import type { PrivateAPIRoute, PublicAPIRoute } from './parsers.js';
 import type { Permission } from '../auth/permissions.js';
-import type { Result } from '../utils/result.js';
 import { signAgentToken, type SignAgentTokenErrorOutcome } from '../utils/signing.js';
 
 export type RouteBehaviour =

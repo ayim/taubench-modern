@@ -1,5 +1,5 @@
+import type { Result } from '@sema4ai/shared-utils';
 import { describe, expect, it } from 'vitest';
-import type { Result } from './result.js';
 import { extractRequestPathAttributes, joinUrl, safeParseUrl } from './url.js';
 
 describe('extractRequestPathAttributes', () => {

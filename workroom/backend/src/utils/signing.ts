@@ -1,6 +1,6 @@
 import { getTokenSigner } from '@sema4ai/robocloud-auth-utils';
+import type { Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
-import type { Result } from './result.js';
 import { SignedTokenRequest } from './schemas.js';
 
 export type SignAgentTokenErrorOutcome =

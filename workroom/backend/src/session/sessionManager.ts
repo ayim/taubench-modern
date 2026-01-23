@@ -1,4 +1,4 @@
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import type { Store } from 'express-session';
 import type { ExpressRequest } from '../interfaces.js';
 import { DatabaseSessionStore } from './DatabaseSessionStore.js';
@@ -8,7 +8,6 @@ import type { Configuration } from '../configuration.js';
 import { SnowflakeSessionManager } from './SnowflakeSessionManager.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { Result } from '../utils/result.js';
 
 export type ExtractSessionResult = Result<Session, { code: 'invalid_session' | 'no_session'; message: string }>;
 

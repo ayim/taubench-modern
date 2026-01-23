@@ -1,9 +1,9 @@
+import { asResult, type Result } from '@sema4ai/shared-utils';
 import { Kysely, PostgresDialect } from 'kysely';
 import type { Configuration } from '../configuration.js';
 import type { AgentServerDatabase } from './types.js';
 import { createPool } from '../database/helpers.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import { asResult, type Result } from '../utils/result.js';
 
 const NOOP = () => {};
 

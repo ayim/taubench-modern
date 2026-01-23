@@ -1,8 +1,7 @@
 import type { Readable } from 'node:stream';
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
+import { exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { Result } from '../utils/result.js';
 import { createAWSFilesManager } from './aws/index.js';
 import { createAzureFilesManager } from './azure/index.js';
 

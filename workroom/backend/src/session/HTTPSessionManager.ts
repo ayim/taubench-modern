@@ -1,3 +1,4 @@
+import { asResult, type Result } from '@sema4ai/shared-utils';
 import cookieSigning from 'cookie-signature';
 import type { Store } from 'express-session';
 import { type ExpressRequest } from '../interfaces.js';
@@ -6,7 +7,6 @@ import type { ExtractSessionResult, SessionManager } from './sessionManager.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import { formatZodError } from '../utils/error.js';
 import { caseless, parseCookies } from '../utils/parse.js';
-import { asResult, type Result } from '../utils/result.js';
 
 const COOKIE_PREFIX = 's4spar.';
 

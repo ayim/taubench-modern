@@ -72,6 +72,8 @@ Single source of truth for TypeScript/React code in the workroom codebase. Use a
   ```
 - Prefer discriminated unions for type safety and inference:
   ```typescript
+  import { Result } from '@sema4ai/shared-utils';
+
   type Result<T> =
     | { success: true; data: T }
     | { success: false; error: { code: string; message: string } };
@@ -254,7 +256,7 @@ if (!userResult.success) {
 
 ### Catching Errors
 
-Use `asError()` helper (from `workroom/backend/src/utils/error.ts`) instead of casting:
+Use `asError()` helper (from `@sema4ai/shared-utils`) instead of casting:
 
 ```typescript
 // Good
@@ -398,12 +400,12 @@ if (!result.success) {
 }
 
 // Database call -> TRPC logs
-const result = await database.getUser({ id });
-if (!result.success) {
+const userResult = await database.getUser({ id });
+if (!userResult.success) {
   monitoring.logger.error('Failed to get user', {
     userId: id,
-    errorMessage: result.error.message,
-    errorName: result.error.code,
+    errorMessage: userResult.error.message,
+    errorName: userResult.error.code,
   });
   throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to get user' });
 }
@@ -468,8 +470,8 @@ addSnackbar({ message: error.message, variant: 'danger' });
 ```typescript
 // Bad - parent owns mutation, passes callback
 <CreateDialog onSubmit={async (name) => {
-  const result = await createMutation.mutateAsync({ name });
-  return result;
+  const createResult = await createMutation.mutateAsync({ name });
+  return createResult;
 }} />
 
 // Good - dialog owns mutation internally

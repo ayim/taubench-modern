@@ -1,9 +1,9 @@
+import type { Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import { AgentServerDatabaseClient } from './AgentServerDatabaseClient.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { UserIdentityType } from '../database/types/userIdentity.js';
 import type { MonitoringContext } from '../monitoring/index.js';
-import type { Result } from '../utils/result.js';
 
 export const migrateAgentServerUserSubs = async ({
   agentServerDatabase,

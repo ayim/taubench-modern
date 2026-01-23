@@ -1,6 +1,6 @@
 import { ManagedIdentityCredential } from '@azure/identity';
 import { BlobServiceClient, ContainerClient } from '@azure/storage-blob';
-import type { Result } from '../../utils/result.js';
+import type { Result } from '@sema4ai/shared-utils';
 
 export type AzureContainerClientResult = Result<{
   blobServiceClient: BlobServiceClient;
