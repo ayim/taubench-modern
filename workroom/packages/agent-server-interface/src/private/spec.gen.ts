@@ -23723,16 +23723,29 @@ export const spec = {
       SpecWorkerConfig: {
         properties: {
           type: {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Type',
           },
           'document-type': {
-            type: 'string',
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Document-Type',
           },
         },
         type: 'object',
-        required: ['type', 'document-type'],
         title: 'SpecWorkerConfig',
       },
       SplitJobResult: {

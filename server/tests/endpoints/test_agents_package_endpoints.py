@@ -1989,6 +1989,161 @@ class TestSemanticDataModelImport:
         assert len(sdms) == 0
 
 
+class TestCreateAgentProjectZipPackage:
+    """Test cases for POST /api/v2/package/create endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_create_agent_project_zip_with_semantic_data_models(
+        self,
+        mock_user,
+    ):
+        """Test that create_agent_project_zip_package works with semantic data models."""
+        from agent_platform.core.agent.agent import Agent
+        from agent_platform.core.agent.agent_architecture import AgentArchitecture
+        from agent_platform.core.payloads.agent_package_create import AgentPackageCreatePayload
+        from agent_platform.core.runbook.runbook import Runbook
+        from agent_platform.server.api.private_v2.package.routes import (
+            create_agent_project_zip_package,
+        )
+
+        agent_id = str(uuid4())
+
+        # Create a mock agent
+        mock_agent = Agent(
+            agent_id=agent_id,
+            user_id=mock_user.user_id,
+            name="Test Agent with SDM",
+            description="An agent with semantic data models",
+            runbook_structured=Runbook(raw_text="You are a helpful assistant.", content=[]),
+            version="1.0.0",
+            agent_architecture=AgentArchitecture(
+                name="agent_platform.architectures.default",
+                version="1.0.0",
+            ),
+            platform_configs=[],
+            action_packages=[],
+            mcp_servers=[],
+            question_groups=[],
+            observability_configs=[],
+            extra={},
+        )
+
+        # Create mock semantic data models in storage format: [{sdm_id: sdm_data}]
+        mock_sdm_id = str(uuid4())
+        mock_sdm_data = {
+            "name": "Test SDM",
+            "description": "A test semantic data model",
+            "tables": [
+                {
+                    "name": "test_table",
+                    "base_table": {
+                        "table": "test_table",
+                        "data_connection_id": "test-conn-id",
+                    },
+                    "dimensions": [
+                        {
+                            "name": "category",
+                            "expr": "category",
+                            "data_type": "VARCHAR",
+                        }
+                    ],
+                }
+            ],
+        }
+        mock_sdm_dicts = [{mock_sdm_id: mock_sdm_data}]
+
+        # Create mock storage
+        mock_storage = AsyncMock()
+        mock_storage.get_agent = AsyncMock(return_value=mock_agent)
+        mock_storage.get_agent_semantic_data_models = AsyncMock(return_value=mock_sdm_dicts)
+
+        # Create payload
+        payload = AgentPackageCreatePayload(
+            agent_id=agent_id,
+            action_packages_uris=[],
+        )
+
+        # Execute
+        response = await create_agent_project_zip_package(
+            user=mock_user,
+            storage=mock_storage,
+            payload=payload,
+        )
+
+        # Verify - response should be a StreamingResponse with zip content
+        assert response.status_code == 200
+        assert response.media_type == "application/zip"
+
+        # Verify storage methods were called correctly
+        mock_storage.get_agent.assert_called_once_with(mock_user.user_id, agent_id)
+        mock_storage.get_agent_semantic_data_models.assert_called_once_with(agent_id)
+
+    @pytest.mark.asyncio
+    async def test_create_agent_project_zip_with_empty_worker_config(
+        self,
+        mock_user,
+    ):
+        """Test that create_agent_project_zip_package works with empty worker-config in extra."""
+        from agent_platform.core.agent.agent import Agent
+        from agent_platform.core.agent.agent_architecture import AgentArchitecture
+        from agent_platform.core.payloads.agent_package_create import AgentPackageCreatePayload
+        from agent_platform.core.runbook.runbook import Runbook
+        from agent_platform.server.api.private_v2.package.routes import (
+            create_agent_project_zip_package,
+        )
+
+        agent_id = str(uuid4())
+
+        # Create a mock agent with empty worker-config
+        mock_agent = Agent(
+            agent_id=agent_id,
+            user_id=mock_user.user_id,
+            name="Test Agent with Empty Worker Config",
+            description="An agent with empty worker-config",
+            runbook_structured=Runbook(raw_text="You are a helpful assistant.", content=[]),
+            version="1.0.0",
+            mode="worker",
+            agent_architecture=AgentArchitecture(
+                name="agent_platform.architectures.default",
+                version="1.0.0",
+            ),
+            platform_configs=[],
+            action_packages=[],
+            mcp_servers=[],
+            question_groups=[],
+            observability_configs=[],
+            extra={
+                "worker-config": {},
+            },
+        )
+
+        # Create mock storage
+        mock_storage = AsyncMock()
+        mock_storage.get_agent = AsyncMock(return_value=mock_agent)
+        mock_storage.get_agent_semantic_data_models = AsyncMock(return_value=[])
+
+        # Create payload
+        payload = AgentPackageCreatePayload(
+            agent_id=agent_id,
+            action_packages_uris=[],
+        )
+
+        # Execute
+        response = await create_agent_project_zip_package(
+            user=mock_user,
+            storage=mock_storage,
+            payload=payload,
+        )
+
+        # Verify - response should be a StreamingResponse with zip content
+        assert response.status_code == 200
+        assert response.media_type == "application/zip"
+
+        # Verify storage methods were called correctly
+        mock_storage.get_agent.assert_called_once_with(mock_user.user_id, agent_id)
+        mock_storage.get_agent_semantic_data_models.assert_called_once_with(agent_id)
+
+
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 

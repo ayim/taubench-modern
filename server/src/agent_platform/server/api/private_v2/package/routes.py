@@ -34,6 +34,7 @@ from agent_platform.server.api.private_v2.package.request_content_handler import
     parse_agent_package_payload,
 )
 from agent_platform.server.api.private_v2.package.upserts import upsert_agent_from_package
+from agent_platform.server.api.private_v2.package.utils import unwrap_semantic_data_model_dicts
 from agent_platform.server.auth import AuthedUser
 
 router = APIRouter()
@@ -230,7 +231,6 @@ async def create_agent_project_zip_package(
         A Response containing the agent project zip file.
         The Agent Project Zip File is a zip file containing the agent project as a Folder.
     """
-    from typing import cast
 
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.errors.base import PlatformHTTPError
@@ -245,8 +245,7 @@ async def create_agent_project_zip_package(
     semantic_data_models: list[SemanticDataModel] = []
     try:
         sdm_dicts = await storage.get_agent_semantic_data_models(payload.agent_id)
-        # Cast the dicts to SemanticDataModel TypedDicts
-        semantic_data_models = cast(list[SemanticDataModel], sdm_dicts)
+        semantic_data_models = unwrap_semantic_data_model_dicts(sdm_dicts)
     except Exception as e:
         logger.warning("Failed to fetch semantic data models", agent_id=payload.agent_id, error=str(e))
 
@@ -380,7 +379,6 @@ async def diff_agent_package(
     Returns:
         A StatusResponse containing the AgentDiffResult with all differences found.
     """
-    from typing import cast
 
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
@@ -394,7 +392,7 @@ async def diff_agent_package(
             deployed_sdms: list[SemanticDataModel] = []
             try:
                 sdm_dicts = await storage.get_agent_semantic_data_models(agent_id)
-                deployed_sdms = cast(list[SemanticDataModel], sdm_dicts)
+                deployed_sdms = unwrap_semantic_data_model_dicts(sdm_dicts)
             except Exception as e:
                 logger.warning("Failed to fetch semantic data models for diff", agent_id=agent_id, error=str(e))
 
@@ -464,7 +462,6 @@ async def patch_agent_project(
         A Response containing the patch zip file with only the changed files.
     """
     import json
-    from typing import cast
 
     from agent_platform.core.agent_package.patch import create_agent_project_patch
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
@@ -493,7 +490,7 @@ async def patch_agent_project(
     semantic_data_models: list[SemanticDataModel] = []
     try:
         sdm_dicts = await storage.get_agent_semantic_data_models(agent_id)
-        semantic_data_models = cast(list[SemanticDataModel], sdm_dicts)
+        semantic_data_models = unwrap_semantic_data_model_dicts(sdm_dicts)
     except Exception as e:
         logger.warning("Failed to fetch semantic data models", agent_id=agent_id, error=str(e))
 

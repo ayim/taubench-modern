@@ -9977,9 +9977,9 @@ export interface components {
     /** SpecWorkerConfig */
     SpecWorkerConfig: {
       /** Type */
-      type: string;
+      type?: string | null;
       /** Document-Type */
-      'document-type': string;
+      'document-type'?: string | null;
     };
     /** SplitJobResult */
     SplitJobResult: {

@@ -201,6 +201,17 @@ class TestAgentSpecGeneratorPrivateMethods:
         assert worker_config is not None
         assert worker_config.get("type") == "custom"
 
+    def test_get_worker_config_empty_dict(self):
+        """Test _get_worker_config handles empty worker-config dict."""
+        agent = create_minimal_agent(
+            mode="worker",
+            extra={
+                "worker-config": {},
+            },
+        )
+        worker_config = AgentSpecGenerator._get_worker_config(agent)
+        assert worker_config == {}
+
     def test_get_metadata_conversational(self):
         """Test _get_metadata for conversational mode."""
         agent = create_minimal_agent(mode="conversational")
@@ -229,6 +240,22 @@ class TestAgentSpecGeneratorPrivateMethods:
         # Note: worker_config may be None if not properly structured in extra
         # The _get_metadata method sets it from _get_worker_config which returns dict | None
         # but SpecAgentMetadata expects SpecWorkerConfig | None
+
+    def test_get_metadata_worker_mode_empty_worker_config(self):
+        """Test _get_metadata for worker mode with empty worker-config dict."""
+        agent = create_minimal_agent(
+            mode="worker",
+            extra={
+                "worker-config": {},
+            },
+        )
+        metadata = AgentSpecGenerator._get_metadata(agent)
+        assert isinstance(metadata, SpecAgentMetadata)
+        assert metadata.mode == "worker"
+        # With empty worker-config, SpecWorkerConfig should be created with None fields
+        assert metadata.worker_config is not None
+        assert metadata.worker_config.type is None
+        assert metadata.worker_config.document_type is None
 
     def test_get_mcp_servers_empty(self):
         """Test _get_mcp_servers with no MCP servers."""

@@ -213,8 +213,8 @@ class SpecDockerMcpGateway(BaseModel):
 class SpecWorkerConfig(BaseModel):
     model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
-    type: str
-    document_type: str = Field(alias="document-type")
+    type: str | None = Field(default=None)
+    document_type: str | None = Field(default=None, alias="document-type")
 
 
 class SpecAgentMetadata(BaseModel):
