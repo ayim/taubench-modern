@@ -31,7 +31,9 @@ The SPAR docker file (`Dockerfile.spar`) builds both the agent-server and workro
 
 - Update pyproject.toml in the appropriate workspace ('core', 'server', 'quality').
 - Run `make sync` after updating dependencies to update the local environment.
+- Run `make update-interface` after modifying the API between server and frontend to update API type definitions.
 - Do not use `pip`, `pip-tools`, `poetry`, or `conda` directly for dependency management in this project.
+- Do not use the system default `python` executable directly.
 - We use ruff for linting (`make lint`), pyright for typechecking (`make typecheck`), and ruff/prettier for formatting (`make check-format`)
 - Code style/linting changes should only be made after the core functional changes have been made and approved.
 - Use `agent-browser` skill to test any changes you make to the frontend. The frontend can be assumed to be running at http://localhost:8001 and to require no authentication. Run the browser in headless mode by default.
