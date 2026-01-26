@@ -185,4 +185,33 @@ tau2 run --domain telecom \
   --max-concurrency 3 \
   --save-to gpt52c_azure_xhigh
 
+# Bedrock Claude Sonnet 4.5 runs with 4 trials
+# Note: Requires cross-region inference profile (us. prefix)
+# Uses direct boto3 implementation for proper extended thinking support
+echo "Running Bedrock Claude Sonnet 4.5 (no thinking)..."
+tau2 run --domain telecom \
+  --agent-llm bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0 \
+  --user-llm azure/gpt-4.1 \
+  --num-trials 4 \
+  --max-concurrency 3 \
+  --save-to sonnet45_bedrock
+
+echo "Running Bedrock Claude Sonnet 4.5 (extended thinking 10k)..."
+tau2 run --domain telecom \
+  --agent-llm bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0 \
+  --agent-llm-args '{"thinking": {"type": "enabled", "budget_tokens": 10000}}' \
+  --user-llm azure/gpt-4.1 \
+  --num-trials 4 \
+  --max-concurrency 3 \
+  --save-to sonnet45_bedrock_thinking_10k
+
+echo "Running Bedrock Claude Sonnet 4.5 (extended thinking 32k)..."
+tau2 run --domain telecom \
+  --agent-llm bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0 \
+  --agent-llm-args '{"thinking": {"type": "enabled", "budget_tokens": 32000}}' \
+  --user-llm azure/gpt-4.1 \
+  --num-trials 4 \
+  --max-concurrency 3 \
+  --save-to sonnet45_bedrock_thinking_32k
+
 echo "All runs completed!"

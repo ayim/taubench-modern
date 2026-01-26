@@ -3,6 +3,8 @@ import os
 import re
 from typing import Any, Optional
 
+import boto3
+from botocore.exceptions import ClientError
 import litellm
 from litellm import completion, completion_cost
 from litellm.caching.caching import Cache
@@ -382,13 +384,8 @@ def to_litellm_messages_anthropic(messages: list[Message]) -> list[dict]:
             
             if msg.raw_content_blocks:
                 # REPLAY raw_content_blocks - preserves thinking/redacted_thinking/signatures
+                # This is used for direct Anthropic API (non-Bedrock), which properly handles thinking
                 content_blocks = list(msg.raw_content_blocks)  # Make a copy
-                
-                # Bedrock requirement: thinking cannot be the final block
-                # Add empty text block if needed
-                if content_blocks and content_blocks[-1].get("type") in ("thinking", "redacted_thinking"):
-                    logger.debug(f"Adding empty text block - last block was {content_blocks[-1].get('type')}")
-                    content_blocks.append({"type": "text", "text": ""})
                 
                 logger.debug(f"Serializing assistant message with content types: {[b.get('type') for b in content_blocks]}")
                 result.append({
@@ -450,6 +447,390 @@ def _make_anthropic_tool_result_message(tool_results: list[dict]) -> dict:
         "role": "user",
         "content": tool_results  # tool_result blocks first
     }
+
+
+# =============================================================================
+# AWS Bedrock Direct API (boto3) - Bypasses litellm for proper thinking support
+# =============================================================================
+
+# Cache for Bedrock clients by region
+_bedrock_clients: dict[str, Any] = {}
+
+
+def _get_bedrock_client(region: str = None):
+    """Get or create a cached Bedrock Runtime client."""
+    region = region or os.environ.get("AWS_REGION_NAME", "us-east-1")
+    if region not in _bedrock_clients:
+        _bedrock_clients[region] = boto3.client("bedrock-runtime", region_name=region)
+    return _bedrock_clients[region]
+
+
+def _is_bedrock_retryable_error(exception: Exception) -> bool:
+    """
+    Check if a Bedrock error is retryable.
+    
+    Matches litellm's approach: retry on rate limits, service errors, timeouts.
+    Non-retryable: ValidationException, AccessDeniedException, etc.
+    """
+    if isinstance(exception, ClientError):
+        error_code = exception.response.get("Error", {}).get("Code", "")
+        # Retryable errors (transient)
+        retryable = error_code in (
+            "ThrottlingException",
+            "ServiceUnavailableException",
+            "ModelStreamErrorException",
+            "InternalServerException",
+            "ModelTimeoutException",
+        )
+        # Non-retryable errors (client errors, validation, auth)
+        non_retryable = error_code in (
+            "ValidationException",
+            "AccessDeniedException",
+            "ResourceNotFoundException",
+            "ModelNotReadyException",
+        )
+        return retryable and not non_retryable
+    # Retry on connection/timeout errors
+    return isinstance(exception, (ConnectionError, TimeoutError))
+
+
+def _convert_messages_for_bedrock(messages: list[Message]) -> tuple[list[dict], str | None]:
+    """
+    Convert Tau2 messages to Bedrock Converse API format.
+    
+    Returns:
+        Tuple of (messages, system_prompt)
+    """
+    bedrock_messages = []
+    system_prompt = None
+    pending_tool_results = []
+    
+    for msg in messages:
+        if isinstance(msg, SystemMessage):
+            system_prompt = msg.content
+        
+        elif isinstance(msg, AssistantMessage):
+            # Flush pending tool results first
+            if pending_tool_results:
+                bedrock_messages.append({
+                    "role": "user",
+                    "content": pending_tool_results
+                })
+                pending_tool_results = []
+            
+            content = []
+            
+            # If we have raw_content_blocks, replay them (preserves thinking)
+            if msg.raw_content_blocks:
+                for block in msg.raw_content_blocks:
+                    block_type = block.get("type")
+                    if block_type == "thinking":
+                        content.append({
+                            "reasoningContent": {
+                                "reasoningText": {
+                                    "text": block.get("thinking", ""),
+                                    "signature": block.get("signature", "")
+                                }
+                            }
+                        })
+                    elif block_type == "redacted_thinking":
+                        content.append({
+                            "reasoningContent": {
+                                "redactedContent": block.get("data", "")
+                            }
+                        })
+                    elif block_type == "text":
+                        if block.get("text"):
+                            content.append({"text": block.get("text", "")})
+                    elif block_type == "tool_use":
+                        tool_name = block.get("name", "")
+                        # Validate tool name matches Bedrock regex: [a-zA-Z0-9_-]+
+                        if not tool_name or not re.match(r'^[a-zA-Z0-9_-]+$', tool_name):
+                            logger.warning(f"Invalid tool name '{tool_name}', using 'unknown_tool'")
+                            tool_name = "unknown_tool"
+                        content.append({
+                            "toolUse": {
+                                "toolUseId": block.get("id", "") or f"tool_{len(content)}",
+                                "name": tool_name,
+                                "input": block.get("input", {})
+                            }
+                        })
+            else:
+                # Fallback for messages without raw_content_blocks
+                if msg.content:
+                    content.append({"text": msg.content})
+                if msg.tool_calls:
+                    for idx, tc in enumerate(msg.tool_calls):
+                        tool_name = tc.name or "unknown_tool"
+                        # Validate tool name matches Bedrock regex: [a-zA-Z0-9_-]+
+                        if not re.match(r'^[a-zA-Z0-9_-]+$', tool_name):
+                            logger.warning(f"Invalid tool name '{tool_name}', using 'unknown_tool'")
+                            tool_name = "unknown_tool"
+                        content.append({
+                            "toolUse": {
+                                "toolUseId": tc.id or f"tool_{idx}",
+                                "name": tool_name,
+                                "input": tc.arguments
+                            }
+                        })
+            
+            if content:
+                bedrock_messages.append({"role": "assistant", "content": content})
+        
+        elif isinstance(msg, ToolMessage):
+            pending_tool_results.append({
+                "toolResult": {
+                    "toolUseId": msg.id,
+                    "content": [{"text": msg.content or ""}],
+                    "status": "error" if msg.error else "success"
+                }
+            })
+        
+        elif isinstance(msg, UserMessage):
+            # Flush pending tool results first
+            if pending_tool_results:
+                bedrock_messages.append({
+                    "role": "user",
+                    "content": pending_tool_results
+                })
+                pending_tool_results = []
+            
+            bedrock_messages.append({
+                "role": "user",
+                "content": [{"text": msg.content or ""}]
+            })
+    
+    # Flush remaining tool results
+    if pending_tool_results:
+        bedrock_messages.append({
+            "role": "user",
+            "content": pending_tool_results
+        })
+    
+    return bedrock_messages, system_prompt
+
+
+def _convert_tools_for_bedrock(tools: list[Tool]) -> dict:
+    """Convert tools to Bedrock toolConfig format."""
+    if not tools:
+        return {}
+    
+    tool_specs = []
+    for tool in tools:
+        schema = tool.openai_schema
+        tool_name = schema["function"]["name"]
+        # Validate tool name matches Bedrock regex: [a-zA-Z0-9_-]+
+        if not re.match(r'^[a-zA-Z0-9_-]+$', tool_name):
+            # Sanitize: replace invalid chars with underscore
+            original_name = tool_name
+            tool_name = re.sub(r'[^a-zA-Z0-9_-]', '_', tool_name)
+            logger.warning(f"Sanitized tool name '{original_name}' -> '{tool_name}'")
+        tool_specs.append({
+            "toolSpec": {
+                "name": tool_name,
+                "description": schema["function"].get("description", ""),
+                "inputSchema": {
+                    "json": schema["function"].get("parameters", {"type": "object", "properties": {}})
+                }
+            }
+        })
+    
+    return {
+        "toolConfig": {
+            "tools": tool_specs,
+            "toolChoice": {"auto": {}}
+        }
+    }
+
+
+def _parse_bedrock_response(response: dict, model: str) -> AssistantMessage:
+    """Parse Bedrock Converse API response into AssistantMessage."""
+    output = response.get("output", {})
+    message = output.get("message", {})
+    content_blocks = message.get("content", [])
+    
+    # Build raw_content_blocks in Anthropic format for storage
+    raw_content_blocks = []
+    text_parts = []
+    tool_calls = []
+    
+    for block in content_blocks:
+        if "reasoningContent" in block:
+            reasoning = block["reasoningContent"]
+            if "reasoningText" in reasoning:
+                raw_content_blocks.append({
+                    "type": "thinking",
+                    "thinking": reasoning["reasoningText"].get("text", ""),
+                    "signature": reasoning["reasoningText"].get("signature", "")
+                })
+            elif "redactedContent" in reasoning:
+                raw_content_blocks.append({
+                    "type": "redacted_thinking",
+                    "data": reasoning["redactedContent"]
+                })
+        
+        elif "text" in block:
+            text_parts.append(block["text"])
+            raw_content_blocks.append({
+                "type": "text",
+                "text": block["text"]
+            })
+        
+        elif "toolUse" in block:
+            tool_use = block["toolUse"]
+            tool_name = tool_use.get("name", "")
+            tool_id = tool_use.get("toolUseId", "") or f"tool_{len(tool_calls)}"
+            # Validate tool name
+            if not tool_name:
+                logger.warning(f"Empty tool name in Bedrock response, block: {block}")
+                tool_name = "unknown_tool"
+            tool_calls.append(ToolCall(
+                id=tool_id,
+                name=tool_name,
+                arguments=tool_use.get("input", {}),
+                arguments_raw=json.dumps(tool_use.get("input", {}), separators=(',', ':'))
+            ))
+            raw_content_blocks.append({
+                "type": "tool_use",
+                "id": tool_id,
+                "name": tool_name,
+                "input": tool_use.get("input", {})
+            })
+    
+    # Calculate usage
+    usage_data = response.get("usage", {})
+    usage = {
+        "prompt_tokens": usage_data.get("inputTokens", 0),
+        "completion_tokens": usage_data.get("outputTokens", 0),
+        "total_tokens": usage_data.get("inputTokens", 0) + usage_data.get("outputTokens", 0)
+    }
+    
+    # Calculate cost using litellm's cost function
+    try:
+        # litellm needs the model name without bedrock/ prefix for cost lookup
+        # and uses anthropic. prefix for Claude models
+        litellm_model = model.replace("bedrock/", "").replace("us.", "")
+        cost = litellm.cost_calculator.completion_cost(
+            model=litellm_model,
+            prompt_tokens=usage["prompt_tokens"],
+            completion_tokens=usage["completion_tokens"]
+        )
+    except Exception as e:
+        logger.debug(f"Could not calculate cost via litellm: {e}, using estimate")
+        # Fallback: Estimate cost (Bedrock Sonnet 4.5 pricing)
+        # Input: $3/1M tokens, Output: $15/1M tokens
+        cost = (usage["prompt_tokens"] * 3 / 1_000_000) + (usage["completion_tokens"] * 15 / 1_000_000)
+    
+    return AssistantMessage(
+        role="assistant",
+        content=" ".join(text_parts) if text_parts else None,
+        tool_calls=tool_calls if tool_calls else None,
+        cost=cost,
+        usage=usage,
+        raw_data=response,
+        raw_content_blocks=raw_content_blocks if raw_content_blocks else None
+    )
+
+
+def _bedrock_converse_with_retry(client, request: dict, num_retries: int = DEFAULT_MAX_RETRIES) -> dict:
+    """
+    Make Bedrock converse call with retry logic matching litellm's approach.
+    
+    Uses exponential backoff (like litellm's exponential_backoff_retry strategy)
+    with retries only on transient errors.
+    """
+    import tenacity
+    
+    retryer = tenacity.Retrying(
+        wait=tenacity.wait_exponential(multiplier=1, max=10),  # Match litellm: max=10
+        stop=tenacity.stop_after_attempt(num_retries),
+        retry=tenacity.retry_if_exception(_is_bedrock_retryable_error),
+        reraise=True,
+    )
+    return retryer(client.converse, **request)
+
+
+def generate_bedrock_converse(
+    model: str,
+    messages: list[Message],
+    tools: Optional[list[Tool]] = None,
+    thinking_budget: Optional[int] = None,
+    temperature: float = 1.0,
+    max_tokens: int = 8192,
+    num_retries: int = DEFAULT_MAX_RETRIES,
+    **kwargs
+) -> AssistantMessage:
+    """
+    Generate a response using AWS Bedrock Converse API directly via boto3.
+    
+    This bypasses litellm to properly support extended thinking for Claude models.
+    
+    Args:
+        model: The model ID (e.g., "bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+        messages: The conversation messages
+        tools: Optional tools/functions
+        thinking_budget: If set, enables extended thinking with this token budget
+        temperature: Sampling temperature (default 1.0 for thinking models)
+        max_tokens: Maximum output tokens
+        num_retries: Number of retries for transient errors (default: DEFAULT_MAX_RETRIES)
+    """
+    # Extract model ID from bedrock/ prefix
+    model_id = model.replace("bedrock/", "")
+    
+    # Convert messages
+    bedrock_messages, system_prompt = _convert_messages_for_bedrock(messages)
+    
+    # Build request
+    request = {
+        "modelId": model_id,
+        "messages": bedrock_messages,
+        "inferenceConfig": {
+            "maxTokens": max_tokens,
+            "temperature": temperature,
+        }
+    }
+    
+    # Add system prompt if present
+    if system_prompt:
+        request["system"] = [{"text": system_prompt}]
+    
+    # Add tools if present
+    if tools:
+        tool_config = _convert_tools_for_bedrock(tools)
+        request.update(tool_config)
+    
+    # Add thinking/reasoning config
+    if thinking_budget and thinking_budget > 0:
+        # max_tokens must be > budget_tokens, so ensure we have room for actual output
+        # Set max_tokens to budget + 16k for response, capped at 64k
+        min_max_tokens = thinking_budget + 16384
+        if request["inferenceConfig"]["maxTokens"] < min_max_tokens:
+            request["inferenceConfig"]["maxTokens"] = min(min_max_tokens, 65536)
+            logger.debug(f"Adjusted maxTokens to {request['inferenceConfig']['maxTokens']} for thinking budget {thinking_budget}")
+        
+        request["additionalModelRequestFields"] = {
+            "thinking": {
+                "type": "enabled",
+                "budget_tokens": thinking_budget
+            }
+        }
+        # Thinking requires temperature=1
+        request["inferenceConfig"]["temperature"] = 1.0
+        logger.debug(f"Bedrock extended thinking enabled with budget: {thinking_budget}")
+    
+    # Make the API call with retry
+    client = _get_bedrock_client()
+    
+    try:
+        logger.debug(f"Bedrock converse request: model={model_id}, messages={len(bedrock_messages)}")
+        response = _bedrock_converse_with_retry(client, request, num_retries=num_retries)
+        logger.debug(f"Bedrock converse response: stop_reason={response.get('stopReason')}")
+        
+        return _parse_bedrock_response(response, model)
+        
+    except Exception as e:
+        logger.error(f"Bedrock converse error: {e}")
+        raise
 
 
 # =============================================================================
@@ -805,19 +1186,43 @@ def generate(
             **kwargs
         )
 
-    # Check if this is an Anthropic model
+    # Check if this is an Anthropic model or Bedrock
     is_anthropic = is_anthropic_model(model)
+    is_bedrock = model.startswith("bedrock/")
     
-    # For Anthropic models, only set thinking to disabled if user hasn't provided thinking config
+    # For Bedrock, use our direct boto3 implementation (bypasses litellm bugs with thinking)
+    if is_bedrock:
+        # Extract thinking config
+        thinking_config = kwargs.pop("thinking", {})
+        thinking_budget = None
+        if thinking_config.get("type") == "enabled":
+            thinking_budget = thinking_config.get("budget_tokens", 10000)
+        
+        # Extract supported kwargs before removing unsupported ones
+        num_retries = kwargs.pop("num_retries", DEFAULT_MAX_RETRIES)
+        temperature = kwargs.pop("temperature", 1.0)
+        max_tokens = kwargs.pop("max_tokens", 8192)
+        
+        # Remove unsupported kwargs for our direct implementation
+        kwargs.pop("seed", None)
+        kwargs.pop("allowed_openai_params", None)
+        
+        logger.debug(f"Using direct boto3 for Bedrock: {model}, thinking_budget={thinking_budget}")
+        return generate_bedrock_converse(
+            model=model,
+            messages=messages,
+            tools=tools,
+            thinking_budget=thinking_budget,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            num_retries=num_retries,
+            **kwargs
+        )
+    
+    # For direct Anthropic models, set thinking to disabled if user hasn't provided thinking config
     # User can enable thinking via: --agent-llm-args '{"thinking": {"type": "enabled", "budget_tokens": 10000}}'
     if is_anthropic and "thinking" not in kwargs:
         kwargs["thinking"] = {"type": "disabled"}
-    
-    # Bedrock doesn't support the 'seed' parameter - strip it to avoid UnsupportedParamsError
-    is_bedrock = model.startswith("bedrock/")
-    if is_bedrock and "seed" in kwargs:
-        logger.debug(f"Stripping 'seed' parameter for Bedrock model: {model}")
-        kwargs.pop("seed")
     
     # GPT-5 models only support temperature=1 (not temperature=0)
     # Check if model is gpt-5 (including gpt-5.1, gpt-5.2, gpt-5-codex, gpt-5.1-chat-latest, etc.)
