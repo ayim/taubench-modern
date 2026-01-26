@@ -1,6 +1,10 @@
 import argparse
 import json
 
+# Load .env file first, before any other imports that might need env vars
+from dotenv import load_dotenv
+load_dotenv()
+
 from tau2.config import (
     DEFAULT_AGENT_IMPLEMENTATION,
     DEFAULT_LLM_AGENT,

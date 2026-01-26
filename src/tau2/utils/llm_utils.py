@@ -37,6 +37,17 @@ from tau2.environment.tool import Tool
 
 # litellm._turn_on_debug()
 
+# Patch litellm's ValidUserMessageContentTypes to allow Anthropic-style tool_result blocks
+# This is needed for Bedrock Claude models which require Anthropic message format
+# but litellm validates all messages as OpenAI format first
+try:
+    from litellm.types.llms.openai import ValidUserMessageContentTypes
+    if "tool_result" not in ValidUserMessageContentTypes:
+        ValidUserMessageContentTypes.append("tool_result")
+        logger.debug("Patched litellm ValidUserMessageContentTypes to include 'tool_result'")
+except ImportError:
+    logger.warning("Could not patch litellm ValidUserMessageContentTypes - Bedrock Claude may fail with tool_result messages")
+
 if USE_LANGFUSE:
     # set callbacks
     litellm.success_callback = ["langfuse"]
@@ -129,9 +140,20 @@ def use_responses_api(model: str, config_flag: bool = False) -> bool:
     Returns:
         True if Responses API should be used
     """
-    # Could be model-based (e.g., o1, o3 reasoning models) or config-driven
+    # Could be model-based (e.g., o1, o3 reasoning models, codex models) or config-driven
     model_lower = model.lower()
-    return config_flag or model_lower.startswith("o1") or model_lower.startswith("o3")
+    
+    # Remove azure/ prefix for matching
+    if model_lower.startswith("azure/"):
+        model_lower = model_lower[6:]
+    
+    # Check for reasoning/codex models that should use Responses API
+    return (
+        config_flag or 
+        model_lower.startswith("o1") or 
+        model_lower.startswith("o3") or
+        "codex" in model_lower  # gpt-5.1-codex-max, gpt-5.2-codex, etc.
+    )
 
 
 # =============================================================================
@@ -157,14 +179,105 @@ def parse_anthropic_response(
     
     We store the entire content array verbatim in raw_content_blocks and derive
     normalized fields (content, tool_calls) for evaluators.
+    
+    NOTE: litellm normalizes responses, storing thinking blocks separately in
+    response_message.thinking_blocks. We reconstruct the Anthropic content array
+    format with thinking blocks FIRST (required for multi-turn with thinking enabled).
     """
     # Get the content - could be string or list of blocks
     content_data = response_message.content
     
+    # Check for litellm's separate thinking_blocks field (used by Bedrock and other providers)
+    thinking_blocks = getattr(response_message, 'thinking_blocks', None) or []
+    
+    # Check for litellm's separate tool_calls field (OpenAI format)
+    litellm_tool_calls = getattr(response_message, 'tool_calls', None) or []
+    
+    # Debug: Log what litellm actually returned
+    logger.debug(f"parse_anthropic_response: content_data type={type(content_data)}, "
+                 f"thinking_blocks={len(thinking_blocks) if thinking_blocks else 0}, "
+                 f"tool_calls={len(litellm_tool_calls) if litellm_tool_calls else 0}")
+    if thinking_blocks:
+        logger.debug(f"Thinking blocks: {[tb.get('type') if isinstance(tb, dict) else getattr(tb, 'type', 'unknown') for tb in thinking_blocks]}")
+    
+    # If we have thinking_blocks from litellm, we need to reconstruct Anthropic format
+    # Thinking blocks MUST come first, then text, then tool_use
+    if thinking_blocks:
+        logger.debug(f"Found {len(thinking_blocks)} thinking blocks from litellm")
+        raw_content_blocks = []
+        
+        # 1. Add thinking blocks first (REQUIRED - must precede tool_use)
+        for tb in thinking_blocks:
+            if hasattr(tb, 'model_dump'):
+                raw_content_blocks.append(tb.model_dump())
+            elif hasattr(tb, 'to_dict'):
+                raw_content_blocks.append(tb.to_dict())
+            elif isinstance(tb, dict):
+                raw_content_blocks.append(tb)
+            else:
+                # Convert to dict format
+                block_dict = {"type": getattr(tb, 'type', 'thinking')}
+                if hasattr(tb, 'thinking'):
+                    block_dict["thinking"] = tb.thinking
+                if hasattr(tb, 'signature'):
+                    block_dict["signature"] = tb.signature
+                if hasattr(tb, 'data'):
+                    block_dict["data"] = tb.data
+                raw_content_blocks.append(block_dict)
+        
+        # 2. Add text content if present
+        if content_data and isinstance(content_data, str):
+            raw_content_blocks.append({"type": "text", "text": content_data})
+        
+        # 3. Add tool_use blocks from litellm's tool_calls
+        for tc in litellm_tool_calls:
+            raw_content_blocks.append({
+                "type": "tool_use",
+                "id": tc.id,
+                "name": tc.function.name,
+                "input": json.loads(tc.function.arguments),
+            })
+        
+        # 4. Ensure thinking is not the final block (Bedrock requirement)
+        # If we only have thinking blocks, add an empty text block
+        if raw_content_blocks and raw_content_blocks[-1].get("type") in ("thinking", "redacted_thinking"):
+            # Check if there's any non-thinking content
+            has_non_thinking = any(
+                b.get("type") not in ("thinking", "redacted_thinking") 
+                for b in raw_content_blocks
+            )
+            if not has_non_thinking:
+                # Add empty text block - required by Bedrock
+                raw_content_blocks.append({"type": "text", "text": ""})
+                logger.debug("Added empty text block after thinking (Bedrock requirement)")
+        
+        # Derive normalized fields
+        text_parts = [content_data] if content_data and isinstance(content_data, str) else []
+        tool_calls = [
+            ToolCall(
+                id=tc.id,
+                name=tc.function.name,
+                arguments=json.loads(tc.function.arguments),
+                arguments_raw=tc.function.arguments,
+            )
+            for tc in litellm_tool_calls
+        ]
+        
+        logger.debug(f"Creating AssistantMessage with raw_content_blocks types: {[b.get('type') for b in raw_content_blocks]}")
+        return AssistantMessage(
+            role="assistant",
+            content="\n".join(text_parts) if text_parts else None,
+            tool_calls=tool_calls or None,
+            cost=cost,
+            usage=usage,
+            raw_data=raw_response_dict,
+            raw_content_blocks=raw_content_blocks,  # VERBATIM storage with thinking first
+        )
+    
     # If content is a simple string (non-extended-thinking mode), handle normally
     if isinstance(content_data, str):
         tool_calls = None
-        if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
+        if litellm_tool_calls:
             tool_calls = [
                 ToolCall(
                     id=tc.id,
@@ -172,7 +285,7 @@ def parse_anthropic_response(
                     arguments=json.loads(tc.function.arguments),
                     arguments_raw=tc.function.arguments,
                 )
-                for tc in response_message.tool_calls
+                for tc in litellm_tool_calls
             ]
         return AssistantMessage(
             role="assistant",
@@ -183,7 +296,7 @@ def parse_anthropic_response(
             raw_data=raw_response_dict,
         )
     
-    # Content is a list of blocks - extended thinking mode
+    # Content is a list of blocks - extended thinking mode (direct Anthropic API)
     content_blocks = content_data if isinstance(content_data, list) else [content_data]
     
     # Convert to list of dicts for storage
@@ -268,10 +381,19 @@ def to_litellm_messages_anthropic(messages: list[Message]) -> list[dict]:
                 pending_tool_results = []
             
             if msg.raw_content_blocks:
-                # REPLAY VERBATIM - preserves thinking/redacted_thinking/signatures
+                # REPLAY raw_content_blocks - preserves thinking/redacted_thinking/signatures
+                content_blocks = list(msg.raw_content_blocks)  # Make a copy
+                
+                # Bedrock requirement: thinking cannot be the final block
+                # Add empty text block if needed
+                if content_blocks and content_blocks[-1].get("type") in ("thinking", "redacted_thinking"):
+                    logger.debug(f"Adding empty text block - last block was {content_blocks[-1].get('type')}")
+                    content_blocks.append({"type": "text", "text": ""})
+                
+                logger.debug(f"Serializing assistant message with content types: {[b.get('type') for b in content_blocks]}")
                 result.append({
                     "role": "assistant",
-                    "content": msg.raw_content_blocks
+                    "content": content_blocks
                 })
             else:
                 # Fallback for legacy messages without raw blocks
@@ -498,7 +620,27 @@ def generate_responses_api(
         kwargs["num_retries"] = DEFAULT_MAX_RETRIES
     
     input_array = to_responses_api_input(messages)
-    tool_schemas = [tool.openai_schema for tool in tools] if tools else None
+    
+    # Convert tool schemas to Responses API format
+    # Chat Completions: {"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}
+    # Responses API:    {"type": "function", "name": ..., "description": ..., "parameters": ...}
+    tool_schemas = None
+    if tools:
+        tool_schemas = []
+        for tool in tools:
+            chat_schema = tool.openai_schema
+            # Flatten the function object to top level
+            if "function" in chat_schema:
+                func = chat_schema["function"]
+                tool_schemas.append({
+                    "type": "function",
+                    "name": func.get("name"),
+                    "description": func.get("description", ""),
+                    "parameters": func.get("parameters", {}),
+                })
+            else:
+                # Already in flat format
+                tool_schemas.append(chat_schema)
     
     try:
         response = litellm.responses(
@@ -671,6 +813,12 @@ def generate(
     if is_anthropic and "thinking" not in kwargs:
         kwargs["thinking"] = {"type": "disabled"}
     
+    # Bedrock doesn't support the 'seed' parameter - strip it to avoid UnsupportedParamsError
+    is_bedrock = model.startswith("bedrock/")
+    if is_bedrock and "seed" in kwargs:
+        logger.debug(f"Stripping 'seed' parameter for Bedrock model: {model}")
+        kwargs.pop("seed")
+    
     # GPT-5 models only support temperature=1 (not temperature=0)
     # Check if model is gpt-5 (including gpt-5.1, gpt-5.2, gpt-5-codex, gpt-5.1-chat-latest, etc.)
     # Handle both "gpt-5" and "azure/gpt-5" prefixes, and "openai/gpt-5" patterns
@@ -692,6 +840,8 @@ def generate(
     kwargs["allowed_openai_params"] = ["tool_choice"]
     
     # Use appropriate message conversion based on provider
+    # Both direct Anthropic and Bedrock Claude use Anthropic-style messages
+    # (tool_result content blocks, thinking blocks, etc.)
     if is_anthropic:
         litellm_messages = to_litellm_messages_anthropic(messages)
     else:
