@@ -5,6 +5,7 @@ x-postgres-image: &postgres-image "postgres:17"
 x-env-spar: &template-env-spar
     # Agent Server
     AGENT_SERVER_PORT: 8000
+    LOG_DIR: /logs
     LOG_LEVEL: INFO
     OTEL_COLLECTOR_URL: http://otel-collector:4318
     OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
@@ -56,6 +57,10 @@ x-service-spar: &template-service-spar
                 - spar
     extra_hosts:
         - "host.docker.internal:host-gateway"
+    volumes:
+        - ./tmp:/logs
+        # Mount entrypoint to pick up changes without rebuilding the container
+        - ./scripts/entrypoint-spar.sh:/app/entrypoint-spar.sh:ro
     depends_on:
         postgres:
             condition: service_healthy
@@ -124,6 +129,8 @@ services:
                     - spar
         volumes:
             - mcp-runtime-data:/home/mcp-runtime/data
+            - ./tmp:/logs
+        command: ["/bin/sh", "-c", "node mcp-runtime/src/index.ts 2>&1 | tee /logs/mcp-runtime-$$(date +%Y-%m-%d-%H%M%S).log"]
         depends_on:
             postgres:
                 condition: service_healthy

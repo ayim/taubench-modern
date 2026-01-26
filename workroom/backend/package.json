@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
-    "dev": "dotenv -e ../.env tsx ./src/index.ts",
+    "dev": "mkdir -p ../../tmp && dotenv -e ../.env tsx ./src/index.ts 2>&1 | tee ../../tmp/workroom-backend-$(date +%Y-%m-%d-%H%M%S).log",
     "format:check": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --check --ignore-path ../../.prettierignore",
     "format:fix": "prettier \"src/**/*.{ts,tsx,js,json,md,css}\" --write --ignore-path ../../.prettierignore",
     "lint": "eslint . --ext ts --report-unused-disable-directives",

@@ -10,6 +10,7 @@ cleanup() {
 trap cleanup TERM INT
 
 DISABLED_SERVICE="${DISABLED_SERVICE:-}"
+LOG_DIR="${LOG_DIR:-}"
 START_AGENT_SERVER=true
 START_WORKROOM=true
 
@@ -34,9 +35,21 @@ if [ -n "$DISABLED_SERVICE" ]; then
     fi
 fi
 
+timestamp="$(date +%Y-%m-%d-%H%M%S)"
+
+if [ -n "$LOG_DIR" ]; then
+    mkdir -p "$LOG_DIR"
+fi
+
 if [ "$START_AGENT_SERVER" = "true" ]; then
     echo "Starting agent-server..."
-    exec /usr/local/bin/agent-server --host 0.0.0.0 --port ${AGENT_SERVER_PORT} &
+    if [ -n "$LOG_DIR" ]; then
+        agent_log_file="${LOG_DIR}/agent-server-${timestamp}.log"
+        echo "Logging agent-server to ${agent_log_file}"
+        /usr/local/bin/agent-server --host 0.0.0.0 --port ${AGENT_SERVER_PORT} 2>&1 | tee "${agent_log_file}" &
+    else
+        /usr/local/bin/agent-server --host 0.0.0.0 --port ${AGENT_SERVER_PORT} &
+    fi
     AGENT_PID=$!
     echo "Agent-server started (PID: $AGENT_PID)"
 fi
@@ -44,7 +57,13 @@ fi
 if [ "$START_WORKROOM" = "true" ]; then
     echo "Starting workroom..."
     cd /app/workroom
-    node --no-deprecation ./backend/dist/index.js &
+    if [ -n "$LOG_DIR" ]; then
+        workroom_log_file="${LOG_DIR}/workroom-backend-${timestamp}.log"
+        echo "Logging workroom to ${workroom_log_file}"
+        node --no-deprecation ./backend/dist/index.js 2>&1 | tee "${workroom_log_file}" &
+    else
+        node --no-deprecation ./backend/dist/index.js &
+    fi
     WORKROOM_PID=$!
     echo "Workroom started (PID: $WORKROOM_PID)"
 fi

@@ -25,7 +25,9 @@ Primary components:
 
 ### SPAR
 
-This repository builds an artifact called "SPAR", which is a combination of the Python environment (agent-server) and NodeJS environment (workroom). Refer to the primary components. Consult the `compose.yml` docker configuration for an example as to how this project is used.
+"SPAR" is the combination of `agent-server` and `workroom` (frontend and backend)
+
+Consult the `compose.yml` docker configuration for an example as to how this project is used.
 
 The SPAR docker file (`Dockerfile.spar`) builds both the agent-server and workroom components in a single container. The container, once running, maintains the agent-server as a mostly internal service, with the workroom back-end and front-end handling public-facing requests. The workroom backend (express server) proxies requests through to the agent server based upon a strict set of allowed routes and permissions.
 
@@ -84,3 +86,45 @@ VERSION=$(uv run python -c "print('1.0.0')")
 TAG_NAME="agent-server-v$VERSION"
 echo "Creating tag: $TAG_NAME"
 ```
+
+## Development Logs
+
+Development logs are written to timestamped files in tmp/ at the repo root.
+
+### Local Development
+
+| Service          | Command                        | Log pattern                                  |
+| ---------------- | ------------------------------ | -------------------------------------------- |
+| Agent Server     | `make run-server-hot-reload`   | `tmp/agent-server-YYYY-MM-DD-HHMMSS.log`     |
+| Workroom Backend | `npm run dev` (from workroom/) | `tmp/workroom-backend-YYYY-MM-DD-HHMMSS.log` |
+
+### Docker Compose
+
+When running via `docker compose`, logs are also written to tmp/:
+
+| Service          | Log pattern                                  |
+| ---------------- | -------------------------------------------- |
+| Agent Server     | `tmp/agent-server-YYYY-MM-DD-HHMMSS.log`     |
+| Workroom Backend | `tmp/workroom-backend-YYYY-MM-DD-HHMMSS.log` |
+| MCP Runtime      | `tmp/mcp-runtime-YYYY-MM-DD-HHMMSS.log`      |
+
+### Viewing Logs
+
+**Important: when the logic is not working and you see errors or if the user mention errors, proactively look at the logs**
+
+```sh
+# Agent Server logs (most recent)
+tail -f $(ls -t tmp/agent-server-*.log 2>/dev/null | head -1)
+
+# Workroom Backend logs (most recent)
+tail -f $(ls -t tmp/workroom-backend-*.log 2>/dev/null | head -1)
+
+# MCP Runtime logs (most recent)
+tail -f $(ls -t tmp/mcp-runtime-*.log 2>/dev/null | head -1)
+```
+
+#### Spar UI / Workroom frontend logs
+
+Use the `agent-browser` skill to view logs and interact with SPAR UI (see Dev environment tips above).
+
+_The frontend is hot-reloaded - look for "[vite] (client) hmr update" in workroom-backend logs._

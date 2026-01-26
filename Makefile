@@ -176,17 +176,18 @@ run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn
 	@echo "  - architectures/*/src/ (any architecture)"
 	@echo ""
 	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
-	@echo "💡 Tip: Set PORT=<port> to use a different port (default: 8000)"
 ifeq ($(DB),postgres)
 	@echo "       Set POSTGRES_HOST=localhost if you have local PostgreSQL running"
 	@echo "       Or use docker compose up postgres to start containerized PostgreSQL"
 	@echo ""
 endif
+	@mkdir -p tmp
 	LOG_LEVEL=$${LOG_LEVEL:-DEBUG} \
 	SQL_AGENT_VISIBILITY=$${SQL_AGENT_VISIBILITY:-NOT_HIDDEN} \
 	$(OTEL_ENV) \
 	$(DB_ENV) \
 	$(MCP_RUNTIME_ENV) \
+	mkdir -p tmp && \
 	AWS_EC2_METADATA_DISABLED=$${AWS_EC2_METADATA_DISABLED:-true} \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \
 		--factory \
@@ -195,7 +196,7 @@ endif
 		--reload \
 		--reload-dir server/src/ \
 		--reload-dir core/src/ \
-		--reload-dir architectures/
+		--reload-dir architectures/ 2>&1 | tee "tmp/agent-server-$$(date +%Y-%m-%d-%H%M%S).log"
 
 # --------------------------------------------------------------------
 # Test
