@@ -19,6 +19,7 @@ export enum SparUIFeatureFlag {
   agentFeedback = 'agentFeedback',
   agentChatInput = 'agentChatInput',
   violetAgentChat = 'violetAgentChat',
+  adminMode = 'adminMode',
 }
 
 export type NavigationArgs = {

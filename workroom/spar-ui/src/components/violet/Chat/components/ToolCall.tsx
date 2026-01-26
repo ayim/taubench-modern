@@ -77,11 +77,15 @@ export const getActionGroupStateDetails = ({
   messageContent,
   messageComplete,
   platform,
+  isAdminMode = false,
+  hasUnableToSatisfy = false,
 }: {
   messageContent: ThreadContent[];
   messageComplete: boolean;
   platform?: string;
-}): { state: ActionState; title: string } => {
+  isAdminMode?: boolean;
+  hasUnableToSatisfy?: boolean;
+}): { state: ActionState; title: string; detailsLabel?: string } => {
   const groupedContent = getGroupedActions(messageContent);
   const lastThinkingItem = groupedContent.thinking[groupedContent.thinking.length - 1];
   const lastContentItem = messageContent[messageContent.length - 1];
@@ -98,7 +102,7 @@ export const getActionGroupStateDetails = ({
   if (groupedContent.thinking.length === messageContent.length || shouldShowThinking) {
     return {
       state: isStreamingFinished ? 'done' : 'in_progress',
-      title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: lastThinkingItem.complete }),
+      title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: isStreamingFinished }),
     };
   }
 
@@ -120,26 +124,45 @@ export const getActionGroupStateDetails = ({
     };
   }
 
-  if (groupedContent.failed.length === 1) {
-    const failedGroupTitleDetails = formatGroupTitleDetails(groupedContent.failed[0], groupedContent.failed.length);
-    return {
-      state: 'failed',
-      title: `Failed to complete ${failedGroupTitleDetails.title} action`,
-    };
-  }
-
-  if (groupedContent.failed.length > 0) {
+  // Check if unable_to_satisfy_request was called (passed as parameter since it's hidden from UI)
+  if (hasUnableToSatisfy) {
     return {
       state: 'failed',
       title: 'Failed to complete',
     };
   }
 
+  const regularFailures = groupedContent.failed;
+
+  // Only show failure count in details label when in admin mode
+  const detailsLabel =
+    isAdminMode && regularFailures.length > 0
+      ? `Show Details, including ${regularFailures.length} failed tool call${regularFailures.length > 1 ? 's' : ''}`
+      : undefined;
+
+  // If there are completed tool calls, show "Completed X action"
   if (groupedContent.done.length > 0) {
     const doneGroupTitleDetails = formatGroupTitleDetails(groupedContent.done[0], groupedContent.done.length);
     return {
       state: 'done',
       title: `Completed ${doneGroupTitleDetails.title} action${doneGroupTitleDetails.optionalSuffix}`,
+      detailsLabel,
+    };
+  }
+
+  // If there are only failures (no done), show thought summary if available
+  if (regularFailures.length > 0) {
+    if (lastThinkingItem) {
+      return {
+        state: 'done',
+        title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: true }),
+        detailsLabel,
+      };
+    }
+    return {
+      state: 'done',
+      title: 'Completed',
+      detailsLabel,
     };
   }
 
@@ -218,18 +241,34 @@ export const ToolCallGroup: FC<{
   messageContent: ThreadContent[];
   messageComplete: boolean;
   platform?: string;
-}> = ({ children, messageContent, messageComplete, platform }) => {
+  /** Raw message content including hidden tool calls (for detecting unable_to_satisfy_request) */
+  rawMessageContent?: ThreadContent[];
+}> = ({ children, messageContent, messageComplete, platform, rawMessageContent }) => {
   const groupActionRef = useRef<ChatActionRefType>(null);
-  const { state, title } = useMemo(
-    () => getActionGroupStateDetails({ messageContent, messageComplete, platform }),
-    [messageContent, messageComplete, platform],
+  const { enabled: isAdminMode } = useFeatureFlag(SparUIFeatureFlag.adminMode);
+
+  // Check raw content for unable_to_satisfy_request (it's hidden from UI but we need to detect it)
+  const hasUnableToSatisfy = useMemo(() => {
+    const content = rawMessageContent ?? messageContent;
+    return content.some((item) => item.kind === 'tool_call' && item.name === 'unable_to_satisfy_request');
+  }, [rawMessageContent, messageContent]);
+
+  const { state, title, detailsLabel } = useMemo(
+    () => getActionGroupStateDetails({ messageContent, messageComplete, platform, isAdminMode, hasUnableToSatisfy }),
+    [messageContent, messageComplete, platform, isAdminMode, hasUnableToSatisfy],
   );
 
   const onExpandGroup = () => groupActionRef.current?.setExpanded(true);
   useStateTransitionCallback<typeof state>({ onTransition: onExpandGroup, from: 'in_progress', to: 'failed' }, state);
 
   return (
-    <Chat.Action.Group ref={groupActionRef} title={title} running={state === 'in_progress'} error={state === 'failed'}>
+    <Chat.Action.Group
+      ref={groupActionRef}
+      title={title}
+      running={state === 'in_progress'}
+      error={state === 'failed'}
+      detailsLabel={detailsLabel}
+    >
       {children}
     </Chat.Action.Group>
   );

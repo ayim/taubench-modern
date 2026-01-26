@@ -12,6 +12,8 @@ import { trpc } from '~/lib/trpc';
 import { Main } from './components/Main';
 import { Sidebar } from './components/sidebar';
 import { router } from '../../components/providers/Router';
+import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
+import { useUserPermissionsQuery } from '~/queries/userPermissions';
 
 export const Route = createFileRoute('/tenants/$tenantId')({
   loader: async ({ context: { agentAPIClient }, params: { tenantId } }) => {
@@ -41,16 +43,24 @@ function View() {
   const extConfigStatus = trpc.externalConfiguration.getExternalConfigurationStatus.useQuery();
   const snowflakeEAIUrl = extConfigStatus.isSuccess ? extConfigStatus.data.snowflakeEAIUrl : null;
 
+  const { data: userPermissions } = useUserPermissionsQuery();
+  const isAdmin = useMemo(() => {
+    if (userPermissions?.userRole) {
+      return userPermissions.userRole === 'admin';
+    }
+    return userPermissions?.permissions.includes(ADMINISTRATION_ACCESS_PERMISSION) ?? false;
+  }, [userPermissions]);
+
   const sparUIContext = useMemo(() => {
     return tenantMeta
       ? {
-          sparAPIClient: createSparAPIClient(tenantId, tenantMeta, agentAPIClient, router),
+          sparAPIClient: createSparAPIClient(tenantId, tenantMeta, agentAPIClient, router, isAdmin),
           platformConfig: {
             snowflakeEAIUrl,
           },
         }
       : undefined;
-  }, [agentAPIClient, tenantId, tenantMeta, snowflakeEAIUrl]);
+  }, [agentAPIClient, tenantId, tenantMeta, snowflakeEAIUrl, isAdmin]);
 
   if (!tenantMeta || !sparUIContext) {
     return (

@@ -37,6 +37,7 @@ export const createSparAPIClient = (
   tenantMeta: TenantMeta,
   agentAPIClient: AgentAPIClient,
   routerInstance: typeof router,
+  isAdmin = false,
 ): SparAPIClient => ({
   useFeatureFlag: (feature: SparUIFeatureFlag) => {
     const agentMeta = useAgentMetaContext();
@@ -64,6 +65,8 @@ export const createSparAPIClient = (
       case SparUIFeatureFlag.violetAgentChat:
         // Keep behind developer mode for now; adjust when a dedicated flag exists in tenant meta
         return { enabled: tenantMeta.features.developerMode.enabled };
+      case SparUIFeatureFlag.adminMode:
+        return { enabled: isAdmin };
       default:
         feature satisfies never;
         return featureFlagFallback;

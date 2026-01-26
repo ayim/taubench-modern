@@ -85,6 +85,8 @@ const Renderer: FC<{
   const messagePlatform = message.agent_metadata?.platform;
   const platform = typeof messagePlatform === 'string' ? messagePlatform : undefined;
 
+  const rawMessageContent = message.content ?? [];
+
   const renderedMessageContent = groupedMessageContent.map((processedContent, groupIndex) => {
     if (Array.isArray(processedContent)) {
       return (
@@ -93,6 +95,7 @@ const Renderer: FC<{
           messageContent={processedContent}
           messageComplete={message.complete}
           platform={platform}
+          rawMessageContent={rawMessageContent}
         >
           {processedContent.map((processedContentItem, itemIndex) => (
             <MessageContentItemRenderer

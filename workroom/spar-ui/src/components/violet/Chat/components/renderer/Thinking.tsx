@@ -48,7 +48,8 @@ export const formatThoughtTitle = ({
   const result = complete ? 'Thought' : 'Thinking';
 
   const parsedPlatform = platform?.toLowerCase();
-  if (parsedPlatform === 'openai') {
+  // Azure OpenAI uses the same format as OpenAI
+  if (parsedPlatform === 'openai' || parsedPlatform === 'azure') {
     return extractThoughtOpenAI(text) ?? result;
   }
   return result;

@@ -2,24 +2,9 @@ import base64
 import json
 import mimetypes
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
-from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
-
-if TYPE_CHECKING:
-    from openai.types.responses import (
-        ResponseFunctionToolCallParam,
-        ResponseInputContentParam,
-        ResponseInputFileParam,
-        ResponseInputImageParam,
-        ResponseInputItemParam,
-        ResponseInputTextParam,
-        ToolParam,
-    )
-    from openai.types.responses.response_input_param import FunctionCallOutput
-    from openai.types.shared_params import ReasoningEffort
-
 from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
 from agent_platform.core.platforms.base import PlatformConverters
 from agent_platform.core.platforms.openai.prompts import OpenAIPrompt
@@ -35,7 +20,63 @@ from agent_platform.core.prompts import (
     PromptUserMessage,
 )
 from agent_platform.core.prompts.content.document import PromptDocumentContent
+from agent_platform.core.prompts.content.reasoning import PromptReasoningContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
+
+if TYPE_CHECKING:
+    from openai.types.responses import (
+        ResponseFunctionToolCallParam,
+        ResponseInputContentParam,
+        ResponseInputFileParam,
+        ResponseInputImageParam,
+        ResponseInputItemParam,
+        ResponseInputTextParam,
+        ToolParam,
+    )
+    from openai.types.responses.response_input_param import FunctionCallOutput
+    from openai.types.shared_params import Reasoning, ReasoningEffort
+
+# Type alias for reasoning summary (not exported by OpenAI)
+ReasoningSummary = Literal["auto", "concise", "detailed"]
+
+# Static mapping for minimize_reasoning configuration: model prefix -> (effort, summary)
+# More specific prefixes (e.g., "gpt-5.1-codex-max") must be listed before general ones (e.g., "gpt-5.1")
+# to ensure correct matching order.
+MINIMIZE_REASONING_CONFIG: list[tuple[str, "ReasoningEffort", ReasoningSummary]] = [
+    # (prefix, effort, summary)
+    ("o3", "low", "detailed"),
+    ("o4", "low", "detailed"),
+    ("gpt-5.1-codex-max", "low", "detailed"),
+    ("gpt-5.1", "none", "concise"),
+    ("gpt-5.2", "none", "concise"),
+    ("gpt-5", "minimal", "concise"),  # base gpt-5, must be last of gpt-5 variants
+]
+
+
+def get_minimized_reasoning(model_name: str | None) -> "Reasoning":
+    """Get the appropriate Reasoning config when minimize_reasoning is requested.
+
+    Args:
+        model_name: The model name (e.g., "gpt-5.1", "o3", "gpt-5.1-codex-max").
+                    Should be the base model name, not a full path like "azure/openai/gpt-5".
+
+    Returns:
+        A Reasoning object with appropriate effort and summary for the model.
+    """
+    from openai.types.shared_params import Reasoning
+
+    # Default fallback if model doesn't match any known prefix
+    default_effort = "minimal"
+    default_summary = "concise"
+
+    if not model_name:
+        return Reasoning(effort=default_effort, summary=default_summary)
+
+    for prefix, effort, summary in MINIMIZE_REASONING_CONFIG:
+        if model_name.startswith(prefix):
+            return Reasoning(effort=effort, summary=summary)
+
+    return Reasoning(effort=default_effort, summary=default_summary)
 
 
 class OpenAIConverters(PlatformConverters, UsesKernelMixin):
@@ -469,29 +510,19 @@ class OpenAIConverters(PlatformConverters, UsesKernelMixin):
 
         reasoning_effort = self._model_id_to_reasoning_effort(model_id)
 
-        # If we're minimizing reasoning, and on a gpt-5 model, we can set reasoning to "minimal"
-        # If we're minimizing reasoning, and on a gpt-5.1 model, we can set reasoning to "none"
-        # otherwise, we'll default to medium effort and detailed summary
-        reasoning = Reasoning(
-            effort=reasoning_effort,
-            summary="detailed",
-        )
+        # Extract the model name from full generic ID (e.g., "azure/openai/gpt-5-medium" -> "gpt-5-medium")
+        # This is needed for Azure and other platforms that use full generic IDs
+        model_name = model_id
+        if model_id and "/" in model_id:
+            model_name = model_id.split("/")[-1].strip()
+
         if prompt.minimize_reasoning:
-            if model_id and (model_id.startswith("gpt-5-1") or model_id.startswith("gpt-5-2")):
-                reasoning = Reasoning(
-                    effort="none",
-                    summary="concise",
-                )
-            elif model_id and model_id.startswith("gpt-5"):
-                reasoning = Reasoning(
-                    effort="minimal",
-                    summary="concise",
-                )
-            else:
-                reasoning = Reasoning(
-                    effort="low",
-                    summary="auto",
-                )
+            reasoning = get_minimized_reasoning(model_name)
+        else:
+            reasoning = Reasoning(
+                effort=reasoning_effort,
+                summary="detailed",
+            )
 
         return OpenAIPrompt(
             input=messages,
