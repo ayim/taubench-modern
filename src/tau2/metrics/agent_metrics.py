@@ -42,7 +42,9 @@ def pass_hat_k(num_trials: int, success_count: int, k: int) -> float:
         The pass^k metric.
     """
     if num_trials < k:
-        raise ValueError(f"Number of trials {num_trials} is less than k {k}.")
+        return 0.0  # Can't have k successes if we have fewer than k trials
+    if success_count < k:
+        return 0.0  # Can't choose k successes if we have fewer than k successes
     return math.comb(success_count, k) / math.comb(num_trials, k)
 
 
@@ -58,16 +60,28 @@ def get_metrics_df(results: Results) -> tuple[pd.DataFrame, int]:
         logger.warning(
             f"All simulations must have the same number of trials. Found {df.info_num_trials.unique()}"
         )
-    max_k = df.info_num_trials.max()
-
+    # Get the actual number of trials per task (may differ from expected if some failed)
     task_ids_counts = [(tid, count) for tid, count in df.task_id.value_counts().items()]
+    if not task_ids_counts:
+        logger.warning("No tasks found in results")
+        return df, 0
+    
     task_ids_counts.sort(key=lambda x: x[1])
-    min_k = task_ids_counts[0][1]
-    if min_k < max_k:
-        logger.warning(
-            f"The minimum number of trials for a task is {min_k}, which is less than the expected number of trials {max_k}. Setting max k to {min_k}."
+    min_trials = task_ids_counts[0][1]
+    max_trials = task_ids_counts[-1][1]
+    
+    # Use the maximum number of actual trials to calculate pass^k for all possible k values
+    # Tasks with fewer trials will return 0.0 for k values they can't support
+    max_k = max_trials
+    
+    if min_trials != max_trials:
+        logger.info(
+            f"Tasks have different numbers of trials (min: {min_trials}, max: {max_trials}). "
+            f"Calculating pass^k for k=1 to {max_k}. Tasks with fewer than k trials will contribute 0.0."
         )
-        max_k = min_k
+    else:
+        logger.info(f"All tasks have {max_k} trials. Calculating pass^k for k=1 to {max_k}.")
+    
     return df, max_k
 
 
