@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0](https://github.com/ayim/taubench-modern/compare/v0.2.0...v0.3.0) (2026-01-26)
+
+
+### Features
+
+* Add direct boto3 Bedrock support for Claude extended thinking ([a500120](https://github.com/ayim/taubench-modern/commit/a5001201f35e06f22ac823e282025018cfbee10f))
+* Add raw payload retention for Anthropic extended thinking and OpenAI Responses API ([3e2352e](https://github.com/ayim/taubench-modern/commit/3e2352e8b074b254d59cb878d9d2fad37e2ef41d))
+* Add token statistics to agent metrics display ([f5db10e](https://github.com/ayim/taubench-modern/commit/f5db10ee49babc217ad923e53fa95c7c57c0ac39))
+* **experiment:** Add hyperparam sweep experimental code ([#77](https://github.com/ayim/taubench-modern/issues/77)) ([558e6cd](https://github.com/ayim/taubench-modern/commit/558e6cd066d7bf05db587fa2dc1509765c7d03bc))
+* **gym:** add Gymnasium-compatible interface for RL training ([0ed2fd8](https://github.com/ayim/taubench-modern/commit/0ed2fd8d830a20657d89ae9c2efcc94838aa7129))
+* Load dotenv early in CLI and improve LLM utils ([fc1d84d](https://github.com/ayim/taubench-modern/commit/fc1d84d61d496168334471ec894d618e507fb4fe))
+
+
+### Bug Fixes
+
+* add missing gymnasium dependency ([#91](https://github.com/ayim/taubench-modern/issues/91)) ([a969a0c](https://github.com/ayim/taubench-modern/commit/a969a0c0a29bc47ba8580107932f5298ee636045))
+* Allow thinking config via llm_args instead of hardcoded flag ([a34cec2](https://github.com/ayim/taubench-modern/commit/a34cec291516b8ca0b9fa0d58b36b67069e85af4))
+* communicate_info fixed to nl_assertions in Mock domain tasks ([#66](https://github.com/ayim/taubench-modern/issues/66)) ([702ee77](https://github.com/ayim/taubench-modern/commit/702ee77e497d89e9d8942ab7206c1a465b12e503))
+* Improve pass^k calculation to handle all k values up to max trials ([54ad921](https://github.com/ayim/taubench-modern/commit/54ad9219bf003fcefc33c83f14c170e5bef033b3))
+* Remove config.py from gitignore (required for imports) ([e991fb2](https://github.com/ayim/taubench-modern/commit/e991fb2bbc862889afc7a923ed2d084c41364408))
+
+
+### Dependencies
+
+* Update litellm and add boto3 for Claude/Bedrock support ([3a95cd0](https://github.com/ayim/taubench-modern/commit/3a95cd063d880e8f182b3c874deb0f307ac63461))
+
 ## [Unreleased]
 
 ### Added
