@@ -9,6 +9,7 @@ dump.rdb
 *.rdg
 logs/
 data/simulations/
+data/simulations/*.json
 
 .ruff_cache
 
@@ -184,3 +185,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+src/tau2/config.py

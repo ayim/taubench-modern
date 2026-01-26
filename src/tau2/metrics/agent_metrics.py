@@ -1,6 +1,8 @@
 import math
 import re
+from typing import Optional
 
+import numpy as np
 import pandas as pd
 from loguru import logger
 from pydantic import BaseModel
@@ -15,10 +17,32 @@ def is_successful(reward: float) -> bool:
     return (1 - 1e-6) <= reward <= (1 + 1e-6)
 
 
+class TokenStats(BaseModel):
+    """Token usage statistics."""
+    total_input_tokens: int
+    total_output_tokens: int
+    total_turns: int
+    num_simulations: int  # Number of runs/simulations
+    num_test_cases: int  # Number of unique test cases (tasks)
+    avg_input_per_test_case: float
+    avg_output_per_test_case: float
+    avg_turns_per_test_case: float
+    input_p5: float
+    input_p50: float
+    input_p95: float
+    output_p5: float
+    output_p50: float
+    output_p95: float
+    turns_p5: float
+    turns_p50: float
+    turns_p95: float
+
+
 class AgentMetrics(BaseModel):
     avg_reward: float
     pass_hat_ks: dict[int, float]
     avg_agent_cost: float
+    token_stats: Optional[TokenStats] = None
 
     def as_dict(self) -> dict:
         data = {
@@ -27,6 +51,12 @@ class AgentMetrics(BaseModel):
         }
         for k, v in self.pass_hat_ks.items():
             data[f"pass_hat_{k}"] = v
+        if self.token_stats:
+            data.update({
+                "total_input_tokens": self.token_stats.total_input_tokens,
+                "total_output_tokens": self.token_stats.total_output_tokens,
+                "total_turns": self.token_stats.total_turns,
+            })
         return data
 
 
@@ -60,6 +90,7 @@ def get_metrics_df(results: Results) -> tuple[pd.DataFrame, int]:
         logger.warning(
             f"All simulations must have the same number of trials. Found {df.info_num_trials.unique()}"
         )
+    
     # Get the actual number of trials per task (may differ from expected if some failed)
     task_ids_counts = [(tid, count) for tid, count in df.task_id.value_counts().items()]
     if not task_ids_counts:
@@ -91,9 +122,10 @@ def get_tasks_pass_hat_k(results: Results) -> pd.DataFrame:
     """
     df, max_k = get_metrics_df(results)
     dfs = []
+    # Calculate pass^k for all k values from 1 to max_k
     for k in range(1, max_k + 1):
         res = df.groupby("task_id")["success"].apply(
-            lambda df: pass_hat_k(len(df), df.sum(), k)
+            lambda task_successes: pass_hat_k(len(task_successes), task_successes.sum(), k)
         )
         res.name = f"pass^{k}"
         dfs.append(res)
@@ -116,11 +148,98 @@ def prepare_dfs(results: Results) -> tuple[pd.DataFrame, pd.DataFrame]:
     return df, df_pass_hat_k
 
 
+def extract_token_stats(results: Results) -> Optional[TokenStats]:
+    """
+    Extract token usage statistics from simulation results.
+    Calculates per-simulation token totals, then computes percentiles.
+    Also calculates per-test-case (task) averages.
+    Similar to extract_stats.py but works with Results objects.
+    """
+    all_input_tokens = []
+    all_output_tokens = []
+    all_turns = []
+    
+    # Group simulations by task_id to calculate per-test-case stats
+    from collections import defaultdict
+    task_tokens = defaultdict(lambda: {"input": 0, "output": 0, "turns": 0})
+    
+    # For each simulation, calculate total tokens
+    for sim in results.simulations:
+        messages = sim.messages
+        
+        # Count agent turns and tokens (only assistant messages)
+        agent_turns = 0
+        input_tokens = 0
+        output_tokens = 0
+        
+        for msg in messages:
+            # Only count assistant messages (agent responses)
+            if msg.role == "assistant":
+                usage = msg.usage
+                if usage:
+                    # Handle different usage formats - match extract_stats.py exactly
+                    if isinstance(usage, dict):
+                        # Use prompt_tokens/completion_tokens (OpenAI format)
+                        # Fallback to input_tokens/output_tokens if needed
+                        input_tokens += usage.get("prompt_tokens", usage.get("input_tokens", 0))
+                        output_tokens += usage.get("completion_tokens", usage.get("output_tokens", 0))
+                agent_turns += 1
+        
+        # Store per-simulation totals (for percentiles)
+        if agent_turns > 0:
+            all_input_tokens.append(input_tokens)
+            all_output_tokens.append(output_tokens)
+            all_turns.append(agent_turns)
+            
+            # Accumulate per task (test case)
+            task_tokens[sim.task_id]["input"] += input_tokens
+            task_tokens[sim.task_id]["output"] += output_tokens
+            task_tokens[sim.task_id]["turns"] += agent_turns
+    
+    if not all_input_tokens:
+        return None
+    
+    num_simulations = len(all_input_tokens)
+    num_test_cases = len(task_tokens)
+    
+    # Calculate average per test case (across all trials for each task)
+    if num_test_cases > 0:
+        avg_input_per_test_case = sum(t["input"] for t in task_tokens.values()) / num_test_cases
+        avg_output_per_test_case = sum(t["output"] for t in task_tokens.values()) / num_test_cases
+        avg_turns_per_test_case = sum(t["turns"] for t in task_tokens.values()) / num_test_cases
+    else:
+        avg_input_per_test_case = 0
+        avg_output_per_test_case = 0
+        avg_turns_per_test_case = 0
+    
+    # Calculate percentiles across simulations (per test case stats)
+    return TokenStats(
+        total_input_tokens=sum(all_input_tokens),
+        total_output_tokens=sum(all_output_tokens),
+        total_turns=sum(all_turns),
+        num_simulations=num_simulations,
+        num_test_cases=num_test_cases,
+        avg_input_per_test_case=avg_input_per_test_case,
+        avg_output_per_test_case=avg_output_per_test_case,
+        avg_turns_per_test_case=avg_turns_per_test_case,
+        input_p5=float(np.percentile(all_input_tokens, 5)),
+        input_p50=float(np.percentile(all_input_tokens, 50)),
+        input_p95=float(np.percentile(all_input_tokens, 95)),
+        output_p5=float(np.percentile(all_output_tokens, 5)),
+        output_p50=float(np.percentile(all_output_tokens, 50)),
+        output_p95=float(np.percentile(all_output_tokens, 95)),
+        turns_p5=float(np.percentile(all_turns, 5)),
+        turns_p50=float(np.percentile(all_turns, 50)),
+        turns_p95=float(np.percentile(all_turns, 95)),
+    )
+
+
 def compute_metrics(results: Results) -> AgentMetrics:
     """
     Compute metrics for the agent.
     - average reward
     - pass^k
+    - token statistics (input/output tokens)
     """
     df, df_pass_hat_k = prepare_dfs(results)
     avg_reward = df.reward.mean()
@@ -130,10 +249,15 @@ def compute_metrics(results: Results) -> AgentMetrics:
             k = int(match.group(1))
             pass_hat_ks[k] = df_pass_hat_k[column].mean()
     avg_agent_cost = df.agent_cost.mean()
+    
+    # Extract token statistics
+    token_stats = extract_token_stats(results)
+    
     return AgentMetrics(
         avg_reward=avg_reward,
         pass_hat_ks=pass_hat_ks,
         avg_agent_cost=avg_agent_cost,
+        token_stats=token_stats,
     )
 
 

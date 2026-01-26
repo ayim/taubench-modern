@@ -350,6 +350,33 @@ class ConsoleDisplay:
         content.append("\n\n💰 Average Cost per Conversation: ", style="bold cyan")
         content.append(f"${metrics.avg_agent_cost:.4f}\n\n")
 
+        # Add token statistics section
+        if metrics.token_stats:
+            content.append("📊 Token Statistics:", style="bold cyan")
+            
+            # Total tokens across all simulations
+            content.append("\n  Total:", style="bold white")
+            content.append(f"\n    Input Tokens: {metrics.token_stats.total_input_tokens:,}")
+            content.append(f"\n    Output Tokens: {metrics.token_stats.total_output_tokens:,}")
+            content.append(f"\n    Turns: {metrics.token_stats.total_turns:,}")
+            content.append(f"\n    Simulations: {metrics.token_stats.num_simulations}")
+            
+            # Average per trial
+            if metrics.token_stats.num_test_cases > 0:
+                content.append("\n\n  Average per Trial:", style="bold white")
+                content.append(f"\n    Input Tokens: {metrics.token_stats.avg_input_per_test_case:,.0f}")
+                content.append(f"\n    Output Tokens: {metrics.token_stats.avg_output_per_test_case:,.0f}")
+                content.append(f"\n    Turns: {metrics.token_stats.avg_turns_per_test_case:.1f}")
+            
+            # Per simulation statistics (percentiles across individual runs)
+            content.append("\n\n  Per Simulation Stats (p5/p50/p95):", style="bold white")
+            content.append("\n    Input Tokens: ")
+            content.append(f"{metrics.token_stats.input_p5:,.0f} / {metrics.token_stats.input_p50:,.0f} / {metrics.token_stats.input_p95:,.0f}")
+            content.append("\n    Output Tokens: ")
+            content.append(f"{metrics.token_stats.output_p5:,.0f} / {metrics.token_stats.output_p50:,.0f} / {metrics.token_stats.output_p95:,.0f}")
+            content.append("\n    Turns: ")
+            content.append(f"{metrics.token_stats.turns_p5:.1f} / {metrics.token_stats.turns_p50:.1f} / {metrics.token_stats.turns_p95:.1f}\n")
+
         # Create and display panel
         metrics_panel = Panel(
             content,
