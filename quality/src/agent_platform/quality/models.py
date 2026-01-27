@@ -611,57 +611,28 @@ class AgentPackage:
     preinstalled_key: str | None = None  # Key for preinstalled agent (e.g., "sql-generation")
     agent_id: str | None = None  # For preinstalled agents, store their ID
 
-    # @TODO (agent-cli sunset):
-    # Remove this method and agent-cli dependency, and use "read_agent_package_metadata" from
-    # agent_platform.core.agent_package.metadata instead.
     async def extract_package_metadata(self) -> Any:
         """Agent Metadata contain info from yaml/json file but also Python code."""
         if self.is_preinstalled:
-            # Preinstalled agents have minimal metadata
             return [
                 {
                     "name": self.name,
                     "description": "Preinstalled test agent",
-                    "oauth": [],  # No OAuth for internal agents
+                    "oauth": [],
                     "docker_mcp_gateway": {},
                 }
             ]
 
-        import json
-        import subprocess
-
-        from agent_platform.orchestrator.default_locations import get_action_server_executable_path
-
-        # agent cli is deprecated and shouldn't be used elsewhere
-        # here it is needed to extract oauth variables from python code
-        def get_agent_cli_executable_path(version: str, download: bool = False) -> Path:
-            from sema4ai.common import tools
-
-            target_location = tools.AgentCliTool.get_default_executable(version=version, download=download)
-            return target_location
-
-        agent_cli_exe = get_agent_cli_executable_path(version="v2.0.6", download=True)
-
-        env = os.environ.copy()
-        action_server_executable = get_action_server_executable_path()
-        # Set the action-server for the agent-cli.
-        env["ACTION_SERVER_BIN_PATH"] = str(action_server_executable)
+        from agent_platform.core.agent_package import AgentMetadataGenerator
+        from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 
         if self.zip_path is None:
             raise ValueError(f"Agent package zip not found for {self.name}")
 
-        result = subprocess.run(
-            [agent_cli_exe, "package", "metadata", "--package", self.zip_path],
-            capture_output=True,
-            text=True,
-            check=False,
-            env=env,
-        )
-
-        if result.returncode != 0:
-            raise ValueError(f"Cannot extract agent {self.name} metadata: {result.stderr}")
-
-        return json.loads(result.stdout)
+        handler = await AgentPackageHandler.from_path(self.zip_path)
+        async with handler:
+            metadata = await AgentMetadataGenerator.generate_from_handler(handler)
+            return [metadata.model_dump()]
 
 
 @dataclass

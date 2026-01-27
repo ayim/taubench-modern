@@ -43,8 +43,6 @@ async def upsert_agent_from_package(
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No Package URL or base64 provided")
 
-    # TODO (agent-cli sunset):
-    # Langsmith support for Package import should most likely be dropped.
     advanced_config = {}
     if payload.langsmith is not None:
         advanced_config["langsmith"] = payload.langsmith.model_dump()

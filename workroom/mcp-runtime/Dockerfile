@@ -1,5 +1,5 @@
 #
-# This container is built with hardcoded linux/amd64 action-server and agent-cli inside,
+# This container is built with hardcoded linux/amd64 action-server inside,
 # therefore the image SHA must also point to the linux/amd64 image.
 
 ARG MCP_RUNTIME_TARGETPLATFORM=linux/amd64

@@ -49,22 +49,6 @@ jobs:
           version="v$(python -c 'import tomllib, pathlib, sys; print(tomllib.loads(pathlib.Path("server/pyproject.toml").read_text())["project"]["version"])')"
           echo "AGENT_SERVER_VERSION=$version" >> "$GITHUB_ENV"
 
-      # we need to fetch action-server because it is required by agent-cli
-      # we use agent-cli to get package metadata, but we will remove it as soon as we have a better way to do it
-      # agent-cli assumes that there exists an action-server in $PATH
-      # Note that this action server is not what we used to run actions, but it is required by agent-cli
-      - name: Fetch latest action server
-        run: |
-          curl -o ./action-server https://cdn.sema4.ai/action-server/releases/latest/linux64/action-server
-          chmod +x ./action-server
-          mkdir -p $HOME/.local/bin
-          export PATH="$HOME/.local/bin:$PATH"
-          mv ./action-server $HOME/.local/bin
-
-      - name: Sanity-check binaries are reachable
-        run: |
-          action-server version
-
       - name: Install quality tool project
         run: |
           make sync

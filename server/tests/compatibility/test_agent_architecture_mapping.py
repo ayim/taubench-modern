@@ -6,12 +6,6 @@ from agent_platform.core.agent import Agent, AgentArchitecture
 from agent_platform.core.runbook import Runbook
 from agent_platform.server.api.private_v2.compatibility.agent_compat import AgentCompat
 
-# TODO: in October, we should be figuring out a path to _reduce_ the amount of
-# legacy cruft we are hanging on to because of agent-cli-related gymnastics.
-# At such a point, these tests likely either go away or remain to codify the "legacy"
-# pathway until we're able to fully deprecate agent-cli and remove legacy conversion
-# code in the agent-server and core.
-
 
 def _make_minimal_agent(arch_name: str) -> Agent:
     """Create a minimal Agent instance for compatibility testing."""

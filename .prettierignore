@@ -9,9 +9,7 @@ server/go-wrapper/agent-server
 **/CHANGELOG-PRE-RELEASE.md
 **/CHANGELOG.md
 **/versionbump.yaml
-agent-spec/validation/_go_validation_tests/test_go_validation/**
 agent-spec/validation/_spec_validation_tests/test_spec*/**
-packages/golang-agent-cli/tests
 compose.yml
 compose.*.yml
 Dockerfile.spar
