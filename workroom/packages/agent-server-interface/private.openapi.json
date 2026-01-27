@@ -3706,46 +3706,6 @@
         }
       }
     },
-    "/mcp-servers/mcp-servers-hosted": {
-      "post": {
-        "tags": ["mcp-servers"],
-        "summary": "Create Hosted Mcp Server",
-        "description": "Create a hosted MCP server by uploading a package file.\n\nThis endpoint accepts multipart/form-data for deploying sema4ai_action_server\ntype MCP servers that require a package file.\n\nArgs:\n    file: The .zip package file (max 50MB)\n    name: Name of the MCP server\n    headers: Optional JSON string of headers for the MCP server\n    mcp_server_metadata: Optional JSON string of agent package inspection metadata\n    storage: Storage dependency\n    _: Quota check dependency\n\nReturns:\n    MCPServerResponse with the created server details",
-        "operationId": "create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MCPServerResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/mcp-servers/{mcp_server_id}": {
       "get": {
         "tags": ["mcp-servers"],
@@ -12139,44 +12099,6 @@
         "type": "object",
         "required": ["project_package_zip"],
         "title": "Body_build_agent_package_package_build_post"
-      },
-      "Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post": {
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "binary",
-            "title": "File"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "headers": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Headers"
-          },
-          "mcp_server_metadata": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mcp Server Metadata"
-          }
-        },
-        "type": "object",
-        "required": ["file", "name"],
-        "title": "Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post"
       },
       "Body_diff_agent_package_package_diff_post": {
         "properties": {

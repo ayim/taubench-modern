@@ -1197,40 +1197,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/mcp-servers/mcp-servers-hosted': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create Hosted Mcp Server
-     * @description Create a hosted MCP server by uploading a package file.
-     *
-     *     This endpoint accepts multipart/form-data for deploying sema4ai_action_server
-     *     type MCP servers that require a package file.
-     *
-     *     Args:
-     *         file: The .zip package file (max 50MB)
-     *         name: Name of the MCP server
-     *         headers: Optional JSON string of headers for the MCP server
-     *         mcp_server_metadata: Optional JSON string of agent package inspection metadata
-     *         storage: Storage dependency
-     *         _: Quota check dependency
-     *
-     *     Returns:
-     *         MCPServerResponse with the created server details
-     */
-    post: operations['create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v2/mcp-servers/{mcp_server_id}': {
     parameters: {
       query?: never;
@@ -4915,20 +4881,6 @@ export interface components {
        * @description Action package type to include in the build: zip or folder
        */
       action_package_type?: ('zip' | 'folder') | null;
-    };
-    /** Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post */
-    Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
-      /**
-       * File
-       * Format: binary
-       */
-      file: string;
-      /** Name */
-      name: string;
-      /** Headers */
-      headers?: string | null;
-      /** Mcp Server Metadata */
-      mcp_server_metadata?: string | null;
     };
     /** Body_diff_agent_package_package_diff_post */
     Body_diff_agent_package_package_diff_post: {
@@ -18305,39 +18257,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['MCPServerCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MCPServerResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post'];
       };
     };
     responses: {
