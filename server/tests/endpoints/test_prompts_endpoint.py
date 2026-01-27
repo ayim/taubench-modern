@@ -823,12 +823,12 @@ async def test_generate_endpoint_respects_minimize_reasoning(monkeypatch):
     converted_prompt = observed["converted_prompt"]
     assert isinstance(converted_prompt, OpenAIPrompt)
     assert "effort" in converted_prompt.reasoning
-    assert converted_prompt.reasoning["effort"] == "minimal"
+    assert converted_prompt.reasoning["effort"] == "low"
     assert "summary" in converted_prompt.reasoning
-    assert converted_prompt.reasoning["summary"] == "concise"
+    assert converted_prompt.reasoning["summary"] == "detailed"
 
     request_payload = observed["request_payload"]
     assert request_payload["model"].startswith("gpt-5")
-    assert request_payload["reasoning"]["effort"] == "minimal"
-    assert request_payload["reasoning"]["summary"] == "concise"
+    assert request_payload["reasoning"]["effort"] == "low"
+    assert request_payload["reasoning"]["summary"] == "detailed"
     assert response["model"] == request_payload["model"]  # type: ignore

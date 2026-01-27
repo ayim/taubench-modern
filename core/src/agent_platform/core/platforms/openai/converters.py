@@ -42,15 +42,35 @@ ReasoningSummary = Literal["auto", "concise", "detailed"]
 # Static mapping for minimize_reasoning configuration: model prefix -> (effort, summary)
 # More specific prefixes (e.g., "gpt-5.1-codex-max") must be listed before general ones (e.g., "gpt-5.1")
 # to ensure correct matching order.
-MINIMIZE_REASONING_CONFIG: list[tuple[str, "ReasoningEffort", ReasoningSummary]] = [
-    # (prefix, effort, summary)
-    ("o3", "low", "detailed"),
-    ("o4", "low", "detailed"),
-    ("gpt-5.1-codex-max", "low", "detailed"),
-    ("gpt-5.1", "none", "concise"),
-    ("gpt-5.2", "none", "concise"),
-    ("gpt-5", "minimal", "concise"),  # base gpt-5, must be last of gpt-5 variants
+# Note: "gpt-5" is marked as exact_match=True because it's the only model supporting "minimal" effort,
+# and we don't want "gpt-5.3" (or other future versions) to match it.
+MINIMIZE_REASONING_CONFIG: list[tuple[str, "ReasoningEffort", ReasoningSummary, bool]] = [
+    # (prefix, effort, summary, exact_match)
+    ("o3", "low", "detailed", False),
+    ("o4", "low", "detailed", False),
+    ("gpt-5.1-codex", "low", "detailed", False),  # includes gpt-5.1-codex-max
+    ("gpt-5.2-codex", "low", "detailed", False),
+    ("gpt-5.1", "none", "concise", False),
+    ("gpt-5.2", "none", "concise", False),
+    ("gpt-5", "minimal", "concise", True),  # exact match only
 ]
+
+
+def _matches_model_prefix(model_name: str, prefix: str, exact_match: bool) -> bool:
+    """Check if a model name matches a prefix.
+
+    Args:
+        model_name: The model name to check.
+        prefix: The prefix to match against.
+        exact_match: If True, only match the exact name.
+                     If False, use standard prefix matching.
+
+    Returns:
+        True if the model name matches the prefix according to the matching rules.
+    """
+    if exact_match:
+        return model_name == prefix
+    return model_name.startswith(prefix)
 
 
 def get_minimized_reasoning(model_name: str | None) -> "Reasoning":
@@ -66,14 +86,14 @@ def get_minimized_reasoning(model_name: str | None) -> "Reasoning":
     from openai.types.shared_params import Reasoning
 
     # Default fallback if model doesn't match any known prefix
-    default_effort = "minimal"
-    default_summary = "concise"
+    default_effort = "low"
+    default_summary = "detailed"
 
     if not model_name:
         return Reasoning(effort=default_effort, summary=default_summary)
 
-    for prefix, effort, summary in MINIMIZE_REASONING_CONFIG:
-        if model_name.startswith(prefix):
+    for prefix, effort, summary, exact_match in MINIMIZE_REASONING_CONFIG:
+        if _matches_model_prefix(model_name, prefix, exact_match):
             return Reasoning(effort=effort, summary=summary)
 
     return Reasoning(effort=default_effort, summary=default_summary)

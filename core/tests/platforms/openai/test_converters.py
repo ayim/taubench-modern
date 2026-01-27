@@ -470,3 +470,97 @@ class TestOpenAIConverters:
         test_data = "a" * 1024 * 1535
         with pytest.raises(PlatformHTTPError):
             OpenAIConverters._check_file_size("application/pdf", test_data, limit_mb=1)
+
+
+class TestGetMinimizedReasoning:
+    """Test the get_minimized_reasoning standalone function."""
+
+    @pytest.mark.parametrize(
+        ("model_name", "expected_effort", "expected_summary"),
+        [
+            # o3 prefix matching
+            ("o3", "low", "detailed"),
+            ("o3-mini", "low", "detailed"),
+            # o4 prefix matching
+            ("o4", "low", "detailed"),
+            ("o4-mini", "low", "detailed"),
+            # gpt-5.1-codex variants (must match before gpt-5.1)
+            ("gpt-5.1-codex", "low", "detailed"),
+            ("gpt-5.1-codex-max", "low", "detailed"),
+            # gpt-5.2-codex variants (must match before gpt-5.2)
+            ("gpt-5.2-codex", "low", "detailed"),
+            # gpt-5.1 and gpt-5.2 base
+            ("gpt-5.1", "none", "concise"),
+            ("gpt-5.2", "none", "concise"),
+            # gpt-5 base (exact match only)
+            ("gpt-5", "minimal", "concise"),
+            # Unknown/future reasoning models - use defaults (low, detailed)
+            ("gpt-5.3", "low", "detailed"),  # does NOT match gpt-5
+            ("gpt-6", "low", "detailed"),
+            ("o5", "low", "detailed"),
+        ],
+    )
+    def test_get_minimized_reasoning(
+        self,
+        model_name: str,
+        expected_effort: str,
+        expected_summary: str,
+    ) -> None:
+        """Test that get_minimized_reasoning returns correct Reasoning config."""
+        from agent_platform.core.platforms.openai.converters import get_minimized_reasoning
+
+        result = get_minimized_reasoning(model_name)
+
+        assert result.get("effort") == expected_effort
+        assert result.get("summary") == expected_summary
+
+    def test_ordering_precedence_codex_before_base(self) -> None:
+        """Test that codex variants match before base models."""
+        from agent_platform.core.platforms.openai.converters import get_minimized_reasoning
+
+        # gpt-5.1-codex and gpt-5.1-codex-max both get low/detailed
+        codex_result = get_minimized_reasoning("gpt-5.1-codex")
+        codex_max_result = get_minimized_reasoning("gpt-5.1-codex-max")
+        assert codex_result.get("effort") == "low"
+        assert codex_result.get("summary") == "detailed"
+        assert codex_max_result.get("effort") == "low"
+        assert codex_max_result.get("summary") == "detailed"
+
+        # gpt-5.2-codex gets low/detailed
+        codex2_result = get_minimized_reasoning("gpt-5.2-codex")
+        assert codex2_result.get("effort") == "low"
+        assert codex2_result.get("summary") == "detailed"
+
+        # base models get none/concise
+        gpt51_result = get_minimized_reasoning("gpt-5.1")
+        gpt52_result = get_minimized_reasoning("gpt-5.2")
+        assert gpt51_result.get("effort") == "none"
+        assert gpt51_result.get("summary") == "concise"
+        assert gpt52_result.get("effort") == "none"
+        assert gpt52_result.get("summary") == "concise"
+
+    def test_ordering_precedence_gpt5_variants(self) -> None:
+        """Test that gpt-5.x variants have their own configs, not matching gpt-5."""
+        from agent_platform.core.platforms.openai.converters import get_minimized_reasoning
+
+        gpt5_result = get_minimized_reasoning("gpt-5")
+        gpt51_result = get_minimized_reasoning("gpt-5.1")
+        gpt52_result = get_minimized_reasoning("gpt-5.2")
+
+        assert gpt5_result.get("effort") == "minimal"
+        assert gpt51_result.get("effort") == "none"
+        assert gpt52_result.get("effort") == "none"
+
+    def test_gpt5_exact_match_only(self) -> None:
+        """Test that gpt-5 matches exactly, not dot variants."""
+        from agent_platform.core.platforms.openai.converters import get_minimized_reasoning
+
+        # gpt-5 exact match
+        gpt5_result = get_minimized_reasoning("gpt-5")
+        assert gpt5_result.get("effort") == "minimal"
+        assert gpt5_result.get("summary") == "concise"
+
+        # gpt-5.3 does NOT match gpt-5, falls through to defaults
+        gpt53_result = get_minimized_reasoning("gpt-5.3")
+        assert gpt53_result.get("effort") == "low"
+        assert gpt53_result.get("summary") == "detailed"
