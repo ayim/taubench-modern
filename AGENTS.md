@@ -10,8 +10,6 @@ Primary components:
 
 - Frontend: @workroom/frontend, @workroom/spar-ui
 - Backend: @workroom/backend (SPAR proxy/router)
-- MCP runtime: @workroom/mcp-runtime - used to provision action servers (as MCP servers) in SPAR
-  - API reference: @workroom/mcp-runtime/README.md
 
 ## Python Guidelines
 
@@ -106,7 +104,6 @@ When running via `docker compose`, logs are also written to tmp/:
 | ---------------- | -------------------------------------------- |
 | Agent Server     | `tmp/agent-server-YYYY-MM-DD-HHMMSS.log`     |
 | Workroom Backend | `tmp/workroom-backend-YYYY-MM-DD-HHMMSS.log` |
-| MCP Runtime      | `tmp/mcp-runtime-YYYY-MM-DD-HHMMSS.log`      |
 
 ### Viewing Logs
 
@@ -118,9 +115,6 @@ tail -f $(ls -t tmp/agent-server-*.log 2>/dev/null | head -1)
 
 # Workroom Backend logs (most recent)
 tail -f $(ls -t tmp/workroom-backend-*.log 2>/dev/null | head -1)
-
-# MCP Runtime logs (most recent)
-tail -f $(ls -t tmp/mcp-runtime-*.log 2>/dev/null | head -1)
 ```
 
 #### Spar UI / Workroom frontend logs

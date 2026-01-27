@@ -50,7 +50,6 @@ The latest tags for these images can be found in the sidebar of this repository,
 ```bash
 docker pull ghcr.io/sema4ai-external/s4te-spar:0.0.0_12341234.20250101t000000z
 docker pull ghcr.io/sema4ai-external/s4te-data-server:0.0.0_12341234.20250101t000000z
-docker pull ghcr.io/sema4ai-external/s4te-mcp-runtime:0.0.0_12341234.20250101t000000z
 ```
 
 Then, re-tag and **push** the images to your Azure Container Registry.
@@ -76,13 +75,6 @@ docker tag \
   "ghcr.io/sema4ai-external/s4te-data-server:0.0.0_12341234.20250101t000000z" \
   "${DATA_SERVER_IMAGE_REF}"
 docker push "${DATA_SERVER_IMAGE_REF}"
-
-# Copy the "MCP Runtime" component image to ACR, exporting the reference for the deploy script (Step 6.)
-export MCP_RUNTIME_IMAGE_REF="${ACR_LOGIN_SERVER}/s4te-mcp-runtime:0.0.0_12341234.20250101t000000z"
-docker tag \
-  "ghcr.io/sema4ai-external/s4te-mcp-runtime:0.0.0_12341234.20250101t000000z" \
-  "${MCP_RUNTIME_IMAGE_REF}"
-docker push "${MCP_RUNTIME_IMAGE_REF}"
 ```
 
 ### 6. Deploy the Application by running the `deploy.sh` script:

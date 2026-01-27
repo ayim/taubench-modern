@@ -131,14 +131,6 @@ module "agent-files-storage" {
   vnet_id                  = module.networking.vnet_id
 }
 
-module "mcp_runtime_storage" {
-  source = "../modules/mcp-runtime-storage"
-
-  container_app_environment_id = azurerm_container_app_environment.team_edition.id
-  resource_group_name          = azurerm_resource_group.team_edition.name
-  storage_account_name         = module.agent-files-storage.storage_account_name
-}
-
 resource "azurerm_role_assignment" "agent_files_contributor" {
   scope                = module.agent-files-storage.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"

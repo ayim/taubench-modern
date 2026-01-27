@@ -32,12 +32,6 @@ resource "aws_codebuild_project" "deployer" {
     }
 
     environment_variable {
-      name  = "MCP_RUNTIME_IMAGE_REF"
-      value = "PLACEHOLDER"
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
       name  = "AWS_REGION"
       value = data.aws_region.current.id
       type  = "PLAINTEXT"
@@ -114,18 +108,6 @@ resource "aws_codebuild_project" "deployer" {
       value = join(",", var.vpc_subnet_ids)
       type  = "PLAINTEXT"
     }
-
-    environment_variable {
-      name  = "MCP_RUNTIME_EFS_FILESYSTEM_ID"
-      value = var.mcp_runtime_efs_filesystem_id
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "MCP_RUNTIME_EFS_ACCESS_POINT_ID"
-      value = var.mcp_runtime_efs_access_point_id
-      type  = "PLAINTEXT"
-    }
   }
 
   source {
@@ -175,12 +157,6 @@ resource "aws_codebuild_project" "dev-deployer" {
 
     environment_variable {
       name  = "SPAR_IMAGE_REF"
-      value = "PLACEHOLDER"
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "MCP_RUNTIME_IMAGE_REF"
       value = "PLACEHOLDER"
       type  = "PLAINTEXT"
     }
@@ -278,18 +254,6 @@ resource "aws_codebuild_project" "dev-deployer" {
     environment_variable {
       name  = "VPC_ID"
       value = var.vpc_id
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "MCP_RUNTIME_EFS_FILESYSTEM_ID"
-      value = var.mcp_runtime_efs_filesystem_id
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "MCP_RUNTIME_EFS_ACCESS_POINT_ID"
-      value = var.mcp_runtime_efs_access_point_id
       type  = "PLAINTEXT"
     }
   }

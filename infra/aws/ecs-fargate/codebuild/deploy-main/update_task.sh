@@ -20,7 +20,6 @@ required_vars=(
   # Supplied when starting the build
   RELEASE_NAME
   SPAR_IMAGE_REF
-  MCP_RUNTIME_IMAGE_REF
 )
 
 for var in "${required_vars[@]}"; do

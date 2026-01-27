@@ -165,9 +165,6 @@ endif
 # OTEL env inside docker
 OTEL_ENV = SEMA4AI_AGENT_SERVER_OTEL_ENABLED=$${SEMA4AI_AGENT_SERVER_OTEL_ENABLED:-true} SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL=$${SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL:-http://localhost:4318}
 
-# MCP Runtime environment
-MCP_RUNTIME_ENV = SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL=$${SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL:-http://localhost:8003}
-
 run-server-hot-reload: sync  ## Run the agent server with hot reloading (uvicorn --reload)
 	@echo "Starting agent server with hot reloading... (DB: $(DB))"
 	@echo "Server will automatically restart when you change files in:"
@@ -186,7 +183,6 @@ endif
 	SQL_AGENT_VISIBILITY=$${SQL_AGENT_VISIBILITY:-NOT_HIDDEN} \
 	$(OTEL_ENV) \
 	$(DB_ENV) \
-	$(MCP_RUNTIME_ENV) \
 	mkdir -p tmp && \
 	AWS_EC2_METADATA_DISABLED=$${AWS_EC2_METADATA_DISABLED:-true} \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \
