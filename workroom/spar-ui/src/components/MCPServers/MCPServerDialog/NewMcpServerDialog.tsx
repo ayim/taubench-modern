@@ -16,10 +16,7 @@ import {
   NewMcpServerFormInput,
   NewMcpServerFormValues,
 } from '../schemas/mcpFormSchema';
-import {
-  useCreateMcpServerMutation,
-  useValidateMcpServerCapabilitiesMutation,
-} from '../../../queries/mcpServers';
+import { useCreateMcpServerMutation, useValidateMcpServerCapabilitiesMutation } from '../../../queries/mcpServers';
 
 type NewMcpServerDialogProps = {
   open: boolean;
@@ -190,9 +187,7 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
                         <Controller
                           control={form.control}
                           name={`headersKV.${idx}.type` as const}
-                          render={({ field }) => (
-                            <Select label="Type" items={[...headerTypeSelectItems]} {...field} />
-                          )}
+                          render={({ field }) => <Select label="Type" items={[...headerTypeSelectItems]} {...field} />}
                         />
                         <Input
                           label="Value"

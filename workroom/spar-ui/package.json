@@ -14,10 +14,7 @@
     "lint": "eslint \"./src/**/*.{ts,tsx}\" --max-warnings 0",
     "postbuild": "vite-node scripts/replacePaths.ts",
     "test": "tsc --noEmit && npm run test:unit",
-    "test:unit": "vitest run",
-    "changeset": "changeset",
-    "changeset-setup": "mv ../package.json ./package.json.tmp && changeset version && mv ./package.json.tmp ../package.json",
-    "release": "mv ../package.json ./package.json.tmp && changeset publish && mv ./package.json.tmp ../package.json"
+    "test:unit": "vitest run"
   },
   "sideEffects": false,
   "files": [
@@ -67,7 +64,6 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7",
     "@sema4ai/eslint-config-frontend": "^1.1.0",
     "@types/jsonpointer": "^4.0.2",
     "@types/lodash.clonedeep": "^4.5.9",

@@ -156,4 +156,3 @@ export const useValidateMcpServerCapabilitiesMutation = createSparMutation<
     return response.data;
   },
 }));
-
