@@ -32,12 +32,7 @@ type EditMcpServerFormContentProps = {
   serverTypes: McpServerType[];
 };
 
-const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
-  onClose,
-  server,
-  onSuccess,
-  serverTypes,
-}) => {
+const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({ onClose, server, onSuccess, serverTypes }) => {
   const updateMutation = useUpdateMcpServerMutation({});
   const validateMutation = useValidateMcpServerCapabilitiesMutation({});
 
@@ -303,12 +298,7 @@ export const EditMcpServerDialog: FC<EditMcpServerDialogProps> = ({
 
   return (
     <Dialog open={open} size="x-large" onClose={onClose}>
-      <EditMcpServerFormContent
-        onClose={onClose}
-        server={server}
-        onSuccess={onSuccess}
-        serverTypes={serverTypes}
-      />
+      <EditMcpServerFormContent onClose={onClose} server={server} onSuccess={onSuccess} serverTypes={serverTypes} />
     </Dialog>
   );
 };
