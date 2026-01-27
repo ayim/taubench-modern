@@ -110,7 +110,6 @@ function getRouteMap(): {
     'get /api/v2/mcp-servers/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/mcp-servers/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
-    'post /api/v2/mcp-servers/mcp-servers-hosted': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'put /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/runs/{run_id}/status': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/runs/{aid}/stream': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],

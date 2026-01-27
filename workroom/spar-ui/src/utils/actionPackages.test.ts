@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { components } from '@sema4ai/agent-server-interface';
-import {
-  parseWhitelist,
-  getUniqueSecretNames,
-  getUniqueSecretsMap,
-  agentPackageSecretsToHeaderEntries,
-} from './actionPackages';
+import { parseWhitelist, getUniqueSecretNames, getUniqueSecretsMap } from './actionPackages';
 
 type ActionSecretsConfig = components['schemas']['ActionSecretsConfig'];
 type ActionSecretDefinition = components['schemas']['ActionSecretDefinition'];
@@ -20,7 +15,7 @@ const createSecretsConfig = (
   secrets?: Record<string, ActionSecretDefinition>,
 ): ActionSecretsConfig => ({
   action,
-  action_package: 'test-package',
+  actionPackage: 'test-package',
   secrets,
 });
 
@@ -279,40 +274,5 @@ describe('getUniqueSecretsMap', () => {
     expect(result.get('SECRET_C')?.actions).toEqual(['action3']);
     expect(result.get('SHARED')?.actions).toEqual(['action1', 'action3']);
     expect(result.has('SECRET_B')).toBe(false);
-  });
-});
-
-describe('agentPackageSecretsToHeaderEntries', () => {
-  it.each<{ input: Record<string, string> | undefined; description: string }>([
-    { input: undefined, description: 'undefined' },
-    { input: {}, description: 'empty object' },
-    { input: { API_KEY: '', OTHER: '' }, description: 'all empty strings' },
-    { input: { API_KEY: '   ', OTHER: '  ' }, description: 'all whitespace-only' },
-  ])('returns undefined for $description', ({ input }) => {
-    expect(agentPackageSecretsToHeaderEntries(input)).toBeUndefined();
-  });
-
-  it('converts secrets to header entries with type secret', () => {
-    const result = agentPackageSecretsToHeaderEntries({
-      API_KEY: 'my-api-key',
-      API_SECRET: 'my-secret',
-    });
-    expect(result).toEqual([
-      { key: 'API_KEY', value: 'my-api-key', type: 'secret' },
-      { key: 'API_SECRET', value: 'my-secret', type: 'secret' },
-    ]);
-  });
-
-  it('filters out empty and whitespace-only values', () => {
-    const result = agentPackageSecretsToHeaderEntries({
-      VALID_KEY: 'valid-value',
-      EMPTY_KEY: '',
-      WHITESPACE_KEY: '   ',
-      ANOTHER_VALID: 'another-value',
-    });
-    expect(result).toEqual([
-      { key: 'VALID_KEY', value: 'valid-value', type: 'secret' },
-      { key: 'ANOTHER_VALID', value: 'another-value', type: 'secret' },
-    ]);
   });
 });

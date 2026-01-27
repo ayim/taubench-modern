@@ -5,7 +5,6 @@ import { IconLoading, IconPlus, IconTrash } from '@sema4ai/icons';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
 
 import { MCPServerAuthFields } from '../MCPServerAuth';
-import { ActionPackageItem } from '../ActionPackage';
 import {
   editMcpServerFormSchema,
   headerTypeSelectItems,
@@ -45,18 +44,9 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
   const updateMutation = useUpdateMcpServerMutation({});
   const validateMutation = useValidateMcpServerCapabilitiesMutation({});
 
-  const isHosted = server.is_hosted === true;
-  const hostedMetadata = server.mcp_server_metadata;
-  const actionPackages = hostedMetadata?.action_packages ?? [];
-  const isHostedWithMetadata = isHosted && actionPackages.length > 0;
   const transportOptions = showStdioTransport ? TRANSPORT_OPTIONS_WITH_STDIO : TRANSPORT_OPTIONS_BASE;
 
-  const { entries: allEntries, secrets } = apiHeadersToFormEntries(server.headers);
-
-  const defaultHeadersKV = isHostedWithMetadata ? allEntries.filter((e) => e.type !== 'secret') : allEntries;
-  const defaultAgentPackageSecrets = isHostedWithMetadata ? secrets : {};
-
-  const initialType = isHosted ? 'hosted' : server.type;
+  const { entries: allEntries } = apiHeadersToFormEntries(server.headers);
 
   const existingCredentials =
     server.authentication_type === 'oauth2-client-credentials' && server.authentication_metadata
@@ -76,14 +66,13 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
     resolver: zodResolver(editMcpServerFormSchema),
     defaultValues: {
       name: server.name,
-      type: initialType,
+      type: server.type,
       transport: server.transport,
       url: server.url ?? undefined,
-      headersKV: defaultHeadersKV,
+      headersKV: allEntries,
       command: server.command ?? undefined,
       argsText: server.args?.join(' ') ?? undefined,
       cwd: server.cwd ?? undefined,
-      agentPackageSecrets: defaultAgentPackageSecrets,
       authentication_type: server.authentication_type,
       client_credentials: initialClientCredentials,
     },
@@ -100,10 +89,9 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
       force_serial_tool_calls: server.force_serial_tool_calls,
       env: server.env,
     };
-    const payloadOptions = { isHostedWithMetadata };
 
-    const body = buildUpdateMcpServerPayload(values, originalFields, payloadOptions);
-    const validationPayload = buildValidationPayload(values, originalFields, payloadOptions);
+    const body = buildUpdateMcpServerPayload(values, originalFields);
+    const validationPayload = buildValidationPayload(values, originalFields);
 
     await validateMutation.mutateAsync(
       { mcpServer: validationPayload },
@@ -131,13 +119,11 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
     );
   });
 
-  const effectiveServerTypes =
-    isHosted && !serverTypes.includes('hosted') ? [...serverTypes, 'hosted' as const] : serverTypes;
-  const typeSelectItems = effectiveServerTypes.map((type) => ({
+  const typeSelectItems = serverTypes.map((type) => ({
     value: type,
     label: SERVER_TYPE_LABELS[type] || type,
   }));
-  const showTypeSelector = effectiveServerTypes.length > 1;
+  const showTypeSelector = serverTypes.length > 1;
 
   const isPending = updateMutation.isPending || validateMutation.isPending;
 
@@ -212,44 +198,23 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
                 <Input
                   label="URL"
                   placeholder="https://example.com/mcp"
-                  description={
-                    isHosted ? 'URL is managed automatically for hosted servers' : 'The MCP server endpoint URL'
-                  }
+                  description="The MCP server endpoint URL"
                   {...form.register('url')}
                   error={form.formState.errors.url?.message}
-                  readOnly={isHosted}
                 />
               )}
 
-              {!isHosted && (
-                <>
-                  <Controller
-                    control={form.control}
-                    name="transport"
-                    render={({ field }) => <Select label="Transport" items={[...transportOptions]} {...field} />}
-                  />
+              <Controller
+                control={form.control}
+                name="transport"
+                render={({ field }) => <Select label="Transport" items={[...transportOptions]} {...field} />}
+              />
 
-                  {/* Authentication - only for URL-based transports */}
-                  {transportValue !== 'stdio' && <MCPServerAuthFields />}
-                </>
-              )}
-
-              {isHostedWithMetadata && actionPackages.length > 0 && (
-                <Box display="flex" flexDirection="column" gap="$12">
-                  <Typography fontWeight="medium">Action Packages</Typography>
-                  <Box display="grid" gap="$16">
-                    {actionPackages.map((actionPackage) => (
-                      <ActionPackageItem key={actionPackage.name} actionPackage={actionPackage} />
-                    ))}
-                  </Box>
-                </Box>
-              )}
+              {transportValue !== 'stdio' && <MCPServerAuthFields />}
 
               {transportValue !== 'stdio' && (
                 <Box display="flex" flexDirection="column" gap="$8">
-                  <Typography fontWeight="medium">
-                    {isHostedWithMetadata ? 'Additional Headers (optional)' : 'Headers (optional)'}
-                  </Typography>
+                  <Typography fontWeight="medium">Headers (optional)</Typography>
                   <Typography color="content.subtle" fontSize="$14">
                     Additional headers to include in requests to the MCP server
                   </Typography>
