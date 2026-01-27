@@ -7,31 +7,25 @@ import {
   refineClientCredentials,
 } from './mcpAuthSchema';
 
-export type McpServerType = 'generic_mcp' | 'sema4ai_action_server';
+export type McpServerType = 'generic_mcp';
 
 /**
  * Transport types for MCP servers
  */
-export const mcpTransportSchema = z.enum(['auto', 'streamable-http', 'sse', 'stdio']);
+export const mcpTransportSchema = z.enum(['auto', 'streamable-http', 'sse']);
 export type MCPTransport = z.infer<typeof mcpTransportSchema>;
 
 export const SERVER_TYPE_LABELS: Record<McpServerType, string> = {
   generic_mcp: 'Generic MCP',
-  sema4ai_action_server: 'Sema4 Action Server',
 };
 
-export const TRANSPORT_OPTIONS_BASE = [
+export const TRANSPORT_OPTIONS = [
   { value: 'auto', label: 'Auto (Default)' },
   { value: 'streamable-http', label: 'Streamable HTTP' },
   { value: 'sse', label: 'Server-Sent Events (SSE)' },
 ] as const;
 
-export const TRANSPORT_OPTIONS_WITH_STDIO = [
-  ...TRANSPORT_OPTIONS_BASE,
-  { value: 'stdio', label: 'Standard I/O (STDIO)' },
-] as const;
-
-export const mcpServerTypeSchema = z.enum(['generic_mcp', 'sema4ai_action_server']);
+export const mcpServerTypeSchema = z.enum(['generic_mcp']);
 export type MCPServerTypeSchema = z.infer<typeof mcpServerTypeSchema>;
 
 export const headerEntrySchema = z.object({
@@ -47,10 +41,7 @@ export const headerTypeSelectItems = [
   { value: 'secret', label: 'Secret' },
 ] as const;
 
-export const mcpUrlSchema = z
-  .string()
-  .optional()
-  .transform((val) => (val?.trim() ? val.trim() : undefined));
+export const mcpUrlSchema = z.string().min(1, 'URL is required');
 
 const baseMcpServerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -63,29 +54,15 @@ const baseMcpServerFormSchema = z.object({
 });
 
 export const newMcpServerFormSchema = baseMcpServerFormSchema.superRefine((values, ctx) => {
-  if (values.transport !== 'stdio' && !values.url) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['url'],
-      message: 'URL is required for this transport',
-    });
-  }
-
   refineClientCredentials(values, ctx);
 });
 
 export type NewMcpServerFormInput = z.input<typeof newMcpServerFormSchema>;
 export type NewMcpServerFormValues = z.output<typeof newMcpServerFormSchema>;
 
-export const editMcpServerFormSchema = baseMcpServerFormSchema
-  .extend({
-    command: z.string().optional(),
-    argsText: z.string().optional(),
-    cwd: z.string().optional(),
-  })
-  .superRefine((values, ctx) => {
-    refineClientCredentials(values, ctx);
-  });
+export const editMcpServerFormSchema = baseMcpServerFormSchema.superRefine((values, ctx) => {
+  refineClientCredentials(values, ctx);
+});
 
 export type EditMcpServerFormInput = z.input<typeof editMcpServerFormSchema>;
 export type EditMcpServerFormValues = z.output<typeof editMcpServerFormSchema>;
@@ -257,19 +234,17 @@ const buildMcpServerCorePayload = (
   input: EditMcpServerFormValues,
   original: { force_serial_tool_calls: McpServer['force_serial_tool_calls']; env: McpServer['env'] },
 ): McpServerCorePayload => {
-  const isStdio = input.transport === 'stdio';
-
   return {
     name: input.name,
     type: input.type,
     transport: input.transport,
-    url: isStdio ? undefined : input.url,
+    url: input.url,
     headers: formHeadersToApiHeaders(input.headersKV),
     force_serial_tool_calls: original.force_serial_tool_calls,
-    command: isStdio ? input.command : undefined,
-    args: isStdio ? input.argsText?.split(/\s+/).filter(Boolean) : undefined,
-    cwd: isStdio ? input.cwd : undefined,
-    env: isStdio ? original.env : {},
+    command: undefined,
+    args: undefined,
+    cwd: undefined,
+    env: {},
   };
 };
 

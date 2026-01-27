@@ -10,8 +10,7 @@ import {
   headerTypeSelectItems,
   buildCreateMcpServerPayload,
   SERVER_TYPE_LABELS,
-  TRANSPORT_OPTIONS_BASE,
-  TRANSPORT_OPTIONS_WITH_STDIO,
+  TRANSPORT_OPTIONS,
   McpServerType,
   NewMcpServerFormInput,
   NewMcpServerFormValues,
@@ -22,16 +21,11 @@ type NewMcpServerDialogProps = {
   open: boolean;
   onClose: (serverId?: string) => void;
   serverTypes: McpServerType[];
-  showStdioTransport: boolean;
 };
 
 const DEFAULT_MCP_TYPE = 'generic_mcp' as const;
 
-const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
-  onClose,
-  serverTypes,
-  showStdioTransport,
-}) => {
+const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({ onClose, serverTypes }) => {
   const createMutation = useCreateMcpServerMutation({});
   const validateMutation = useValidateMcpServerCapabilitiesMutation({});
 
@@ -62,9 +56,6 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
   });
 
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
-  const transportValue = form.watch('transport');
-
-  const transportOptions = showStdioTransport ? TRANSPORT_OPTIONS_WITH_STDIO : TRANSPORT_OPTIONS_BASE;
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.stopPropagation();
@@ -144,84 +135,72 @@ const NewMcpServerDialogContent: FC<Omit<NewMcpServerDialogProps, 'open'>> = ({
                 )}
               </Box>
 
-              {transportValue === 'stdio' ? (
-                <Input
-                  label="Command"
-                  {...form.register('url')}
-                  error={form.formState.errors.url?.message}
-                  placeholder="/usr/local/bin/mcp-server"
-                  description="The command to execute"
-                />
-              ) : (
-                <Input
-                  label="URL"
-                  {...form.register('url')}
-                  error={form.formState.errors.url?.message}
-                  placeholder="https://example.com/mcp"
-                  description="The MCP server endpoint URL"
-                />
-              )}
+              <Input
+                label="URL"
+                {...form.register('url')}
+                error={form.formState.errors.url?.message}
+                placeholder="https://example.com/mcp"
+                description="The MCP server endpoint URL"
+              />
 
               <Controller
                 control={form.control}
                 name="transport"
-                render={({ field }) => <Select label="Transport" items={[...transportOptions]} {...field} />}
+                render={({ field }) => <Select label="Transport" items={[...TRANSPORT_OPTIONS]} {...field} />}
               />
 
-              {transportValue !== 'stdio' && <MCPServerAuthFields />}
+              <MCPServerAuthFields />
 
-              {transportValue !== 'stdio' && (
-                <Box display="flex" flexDirection="column" gap="$8">
-                  <Typography fontWeight="medium">Headers (optional)</Typography>
-                  <Typography color="content.subtle" fontSize="$14">
-                    Additional headers to include in requests to the MCP server
-                  </Typography>
-                  <Box display="grid" gap="$8" mt="$8">
-                    {headersArray.fields.map((f, idx) => (
-                      <Box key={f.id} display="grid" gridTemplateColumns="1fr 120px 1fr auto" gap="$8">
-                        <Input
-                          label="Key"
-                          placeholder="Header name"
-                          {...form.register(`headersKV.${idx}.key` as const)}
+              <Box display="flex" flexDirection="column" gap="$8">
+                <Typography fontWeight="medium">Headers (optional)</Typography>
+                <Typography color="content.subtle" fontSize="$14">
+                  Additional headers to include in requests to the MCP server
+                </Typography>
+                <Box display="grid" gap="$8" mt="$8">
+                  {headersArray.fields.map((f, idx) => (
+                    <Box key={f.id} display="grid" gridTemplateColumns="1fr 120px 1fr auto" gap="$8">
+                      <Input
+                        label="Key"
+                        placeholder="Header name"
+                        {...form.register(`headersKV.${idx}.key` as const)}
+                      />
+                      <Controller
+                        control={form.control}
+                        name={`headersKV.${idx}.type` as const}
+                        render={({ field }) => <Select label="Type" items={[...headerTypeSelectItems]} {...field} />}
+                      />
+                      <Input
+                        label="Value"
+                        placeholder="Header value"
+                        type={
+                          (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
+                            ? 'password'
+                            : 'text'
+                        }
+                        {...form.register(`headersKV.${idx}.value` as const)}
+                      />
+                      <Box display="flex" alignItems="flex-end" pb="$4">
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          icon={IconTrash}
+                          aria-label="Remove header"
+                          type="button"
+                          onClick={() => headersArray.remove(idx)}
                         />
-                        <Controller
-                          control={form.control}
-                          name={`headersKV.${idx}.type` as const}
-                          render={({ field }) => <Select label="Type" items={[...headerTypeSelectItems]} {...field} />}
-                        />
-                        <Input
-                          label="Value"
-                          placeholder="Header value"
-                          type={
-                            (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
-                              ? 'password'
-                              : 'text'
-                          }
-                          {...form.register(`headersKV.${idx}.value` as const)}
-                        />
-                        <Box display="flex" alignItems="flex-end" pb="$4">
-                          <Button
-                            variant="ghost"
-                            size="small"
-                            icon={IconTrash}
-                            aria-label="Remove header"
-                            type="button"
-                            onClick={() => headersArray.remove(idx)}
-                          />
-                        </Box>
                       </Box>
-                    ))}
-                    <Button
-                      variant="outline"
-                      icon={IconPlus}
-                      type="button"
-                      onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
-                    >
-                      Add Header
-                    </Button>
-                  </Box>
+                    </Box>
+                  ))}
+                  <Button
+                    variant="outline"
+                    icon={IconPlus}
+                    type="button"
+                    onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
+                  >
+                    Add Header
+                  </Button>
                 </Box>
-              )}
+              </Box>
 
               {errorMessage && (
                 <Box p="$16" borderRadius="$8" borderColor="red50">

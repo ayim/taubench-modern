@@ -15,8 +15,7 @@ function RouteComponent() {
       open
       mcpServerId={mcpServerId}
       onClose={() => navigate({ to: '/tenants/$tenantId/mcp-servers', params: { tenantId } })}
-      serverTypes={['generic_mcp', 'sema4ai_action_server', 'hosted']}
-      showStdioTransport={false}
+      serverTypes={['generic_mcp']}
     />
   );
 }
