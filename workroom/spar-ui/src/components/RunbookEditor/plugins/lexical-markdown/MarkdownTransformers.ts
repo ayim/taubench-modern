@@ -1,7 +1,12 @@
-/* eslint-disable no-continue */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-restricted-syntax */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-useless-concat */
+/* eslint-disable prefer-template */
+/* eslint-disable no-continue */
+/* eslint-disable no-else-return */
+/* eslint-disable no-use-before-define */
+
 import type { ListType } from '@lexical/list';
 import type { HeadingTagType } from '@lexical/rich-text';
 
@@ -332,11 +337,11 @@ export const HEADING: ElementTransformer = {
       return null;
     }
     const level = Number(node.getTag().slice(1));
-    return `${'#'.repeat(level)} ${exportChildren(node)}`;
+    return '#'.repeat(level) + ' ' + exportChildren(node);
   },
   regExp: /^(#{1,6})\s/,
   replace: createBlockNode((match) => {
-    const tag = `h${match[1].length}` as HeadingTagType;
+    const tag = ('h' + match[1].length) as HeadingTagType;
     return $createHeadingNode(tag);
   }),
   type: 'element',
@@ -352,7 +357,7 @@ export const QUOTE: ElementTransformer = {
     const lines = exportChildren(node).split('\n');
     const output = [];
     for (const line of lines) {
-      output.push(`> ${line}`);
+      output.push('> ' + line);
     }
     return output.join('\n');
   },
@@ -383,7 +388,7 @@ export const CODE: ElementTransformer = {
       return null;
     }
     const textContent = node.getTextContent();
-    return `\`\`\`${node.getLanguage() || ''}${textContent ? `\n${textContent}` : ''}\n\`\`\``;
+    return '```' + (node.getLanguage() || '') + (textContent ? '\n' + textContent : '') + '\n' + '```';
   },
   regExp: /^[ \t]*```(\w{1,10})?\s/,
   replace: createBlockNode((match) => {
@@ -498,8 +503,9 @@ export const LINK: TextMatchTransformer = {
     // then one we ignore it as markdown does not support nested styles for links
     if (node.getChildrenSize() === 1 && $isTextNode(firstChild)) {
       return exportFormat(firstChild, linkContent);
+    } else {
+      return linkContent;
     }
-    return linkContent;
   },
   importRegExp: /(?:\[([^[]+)\])(?:\((?:([^()\s]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?)\))/,
   regExp: /(?:\[([^[]+)\])(?:\((?:([^()\s]+)(?:\s"((?:[^"]*\\")*[^"]*)"\s*)?)\))$/,

@@ -22,8 +22,8 @@ import { IconAgents } from '@sema4ai/icons/logos';
 import { Page } from '~/components/layout/Page';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';
-import { AgentUploadForm } from './components/AgentUploadForm';
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
+import { CreateAgentDialog } from './components/CreateAgentDialog';
 
 export const Route = createFileRoute('/tenants/$tenantId/home/')({
   component: HomePage,
@@ -122,7 +122,7 @@ function HomePage() {
           docsLink="MAIN_WORKROOM_HELP"
           action={
             permissions[ADMINISTRATION_ACCESS_PERMISSION] ? (
-              <AgentUploadForm setAgentPackageUploadData={setAgentPackageUploadData} />
+              <CreateAgentDialog setAgentPackageUploadData={setAgentPackageUploadData} />
             ) : null
           }
         />
@@ -136,7 +136,7 @@ function HomePage() {
       icon={IconAgents}
       actions={
         permissions[ADMINISTRATION_ACCESS_PERMISSION] ? (
-          <AgentUploadForm setAgentPackageUploadData={setAgentPackageUploadData} />
+          <CreateAgentDialog setAgentPackageUploadData={setAgentPackageUploadData} />
         ) : null
       }
     >

@@ -299,3 +299,38 @@ export const useDeployAgentFromPackageMutation = createSparMutation<
     return response.data;
   },
 }));
+
+export const useDeployAgentMutation = createSparMutation<
+  object,
+  {
+    payload: AgentDeploymentFormSchema;
+  }
+>()(({ sparAPIClient }) => ({
+  mutationFn: async ({ payload }) => {
+    const response = await sparAPIClient.queryAgentServer('post', '/api/v2/agents/', {
+      body: {
+        name: payload.name,
+        agent_architecture: {
+          name: 'agent',
+          version: 'V2.0',
+        },
+        version: '1.0.0',
+        mode: payload.mode,
+        runbook: payload.runbook,
+        description: payload.description || 'My agent',
+        public: true,
+        platform_params_ids: [payload.llmId],
+        mcp_server_ids: payload.mcpServerIds,
+      },
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to deploy agent', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
+    }
+
+    return response.data.agent_id;
+  },
+}));

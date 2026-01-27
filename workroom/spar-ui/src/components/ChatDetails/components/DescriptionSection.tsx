@@ -1,5 +1,4 @@
 import { Box, Typography } from '@sema4ai/components';
-import React from 'react';
 
 export const DescriptionSection = ({ description }: { description: string }) => {
   return (

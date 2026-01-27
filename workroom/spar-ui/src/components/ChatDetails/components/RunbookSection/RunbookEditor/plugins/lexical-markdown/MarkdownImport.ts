@@ -37,7 +37,7 @@ function createTextFormatTransformersIndex(
   textTransformers.forEach((transformer) => {
     const { tag } = transformer;
     transformersByTag[tag] = transformer;
-    const tagRegExp = tag.replace(/(\*|\^|\+)/g, '\\$1');
+    const tagRegExp = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     openTagsRegExp.push(tagRegExp);
 
     if (IS_SAFARI || IS_IOS || IS_APPLE_WEBKIT) {
@@ -151,6 +151,22 @@ function findOutermostMatch(
   return null;
 }
 
+function importTextMatchTransformers(textNode_: TextNode, textMatchTransformers: Array<TextMatchTransformer>) {
+  const textNode = textNode_;
+
+  while (textNode) {
+    const currentTextNode = textNode;
+    const foundMatch = textMatchTransformers.some((transformer) =>
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      processTransformer(transformer, currentTextNode, textMatchTransformers),
+    );
+
+    if (!foundMatch) {
+      break;
+    }
+  }
+}
+
 const processTransformer = (
   transformer: TextMatchTransformer,
   currentTextNode: TextNode,
@@ -174,27 +190,11 @@ const processTransformer = (
   }
 
   if (newTextNode) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     importTextMatchTransformers(newTextNode, textMatchTransformers);
   }
   transformer.replace(replaceNode, match);
   return true;
 };
-
-function importTextMatchTransformers(textNode_: TextNode, textMatchTransformers: Array<TextMatchTransformer>) {
-  const textNode = textNode_;
-
-  while (textNode) {
-    const currentTextNode = textNode;
-    const foundMatch = textMatchTransformers.some((transformer) =>
-      processTransformer(transformer, currentTextNode, textMatchTransformers),
-    );
-
-    if (!foundMatch) {
-      break;
-    }
-  }
-}
 
 // Processing text content and replaces text format tags.
 // It takes outermost tag match and its content, creates text node with

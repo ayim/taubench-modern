@@ -7,7 +7,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ActionSticky } from '../../common/form/StickyActions';
 import { Accordion } from '../../common/Accordion';
 import { EXTERNAL_LINKS } from '../../lib/constants';
-import { AgentPackageInspectionResponse, useAgentsQuery, useDeployAgentFromPackageMutation } from '../../queries';
+import {
+  AgentPackageInspectionResponse,
+  useAgentsQuery,
+  useDeployAgentFromPackageMutation,
+  useDeployAgentMutation,
+} from '../../queries';
 import { buildAgentDeploymentSchema, AgentDeploymentFormSchema, getDefaultValues } from './context';
 import { useNavigate } from '../../hooks/useNavigate';
 
@@ -16,11 +21,13 @@ import { LLM } from './components/LLM';
 import { MCPServers } from './components/MCPServers';
 import { ActionPackages } from './components/ActionPackages';
 import { AgentDescription } from './components/AgentDescription';
+import { Runbook } from './components/Runbook';
 
 type Props = {
   agentTemplate: NonNullable<AgentPackageInspectionResponse>;
-  agentPackage: File;
+  agentPackage?: File;
   onCancel: () => void;
+  runbook?: string;
 };
 
 const Container = styled.div`
@@ -28,16 +35,18 @@ const Container = styled.div`
   height: 100%;
 `;
 
-export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, agentPackage, onCancel }) => {
+export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, agentPackage, runbook, onCancel }) => {
   const formRef = useRef<HTMLFormElement>(null);
   const { data: allAgents = [] } = useAgentsQuery({});
-  const { mutateAsync: deployAgentFromPackage, isPending } = useDeployAgentFromPackageMutation({});
+  const { mutateAsync: deployAgentFromPackage, isPending: isDeployingAgentFromPackage } =
+    useDeployAgentFromPackageMutation({});
+  const { mutateAsync: deployAgent, isPending: isDeployingAgent } = useDeployAgentMutation({});
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
   const formProps = useForm<AgentDeploymentFormSchema>({
     mode: 'onChange',
-    defaultValues: getDefaultValues(agentTemplate),
+    defaultValues: getDefaultValues(agentTemplate, runbook),
     shouldUnregister: false,
     resolver: zodResolver(buildAgentDeploymentSchema({ existingAgentNames: allAgents.map((agent) => agent.name) })),
   });
@@ -45,24 +54,40 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, agentPackage, on
   const { handleSubmit } = formProps;
 
   const onDeploy = handleSubmit(async (payload) => {
-    deployAgentFromPackage(
-      { agentTemplate, agentPackage, payload },
-      {
-        onSuccess: (data) => {
-          addSnackbar({ message: 'Agent deployed successfully', variant: 'success' });
-          if (data.agent_id) {
-            navigate({ to: '/thread/$agentId', params: { agentId: data.agent_id } });
-          }
+    if (agentPackage) {
+      deployAgentFromPackage(
+        { agentTemplate, agentPackage, payload },
+        {
+          onSuccess: (data) => {
+            addSnackbar({ message: 'Agent deployed successfully', variant: 'success' });
+            if (data.agent_id) {
+              navigate({ to: '/thread/$agentId', params: { agentId: data.agent_id } });
+            }
+          },
+          onError: (error) => {
+            addSnackbar({ message: error.message, variant: 'danger' });
+          },
         },
-        onError: (error) => {
-          addSnackbar({ message: error.message, variant: 'danger' });
+      );
+    } else {
+      deployAgent(
+        { payload },
+        {
+          onSuccess: (agentId) => {
+            addSnackbar({ message: 'Agent deployed successfully', variant: 'success' });
+            if (agentId) {
+              navigate({ to: '/thread/$agentId', params: { agentId } });
+            }
+          },
+          onError: (error) => {
+            addSnackbar({ message: error.message, variant: 'danger' });
+          },
         },
-      },
-    );
+      );
+    }
   });
 
-  const containsActions =
-    (agentTemplate.action_packages ?? []).length > 0 || (agentTemplate.mcp_servers ?? []).length > 0;
+  const isPending = isDeployingAgentFromPackage || isDeployingAgent;
 
   return (
     <Container>
@@ -82,19 +107,19 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, agentPackage, on
           <Box display="flex" flexDirection="column" gap="$20">
             <AgentName agentTemplate={agentTemplate} />
 
+            <Runbook />
+
             <LLM agentTemplate={agentTemplate} />
 
-            {containsActions && (
-              <Box display="flex" flexDirection="column" gap="$4" mt="$20">
-                <Typography variant="display-small" fontWeight="bold">
-                  Actions & MCP servers
-                </Typography>
-                <Typography>
-                  Provide the credentials and configuration required for actions and MCP servers so the agent can
-                  successfully execute tool calls.
-                </Typography>
-              </Box>
-            )}
+            <Box display="flex" flexDirection="column" gap="$4" mt="$20">
+              <Typography variant="display-small" fontWeight="bold">
+                Actions & MCP servers
+              </Typography>
+              <Typography>
+                Provide the credentials and configuration required for actions and MCP servers so the agent can
+                successfully execute tool calls.
+              </Typography>
+            </Box>
 
             <ActionPackages agentTemplate={agentTemplate} />
             <MCPServers agentTemplate={agentTemplate} />

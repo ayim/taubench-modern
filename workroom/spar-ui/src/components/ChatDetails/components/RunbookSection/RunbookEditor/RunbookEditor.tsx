@@ -5,7 +5,8 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { Box, useSnackbar } from '@sema4ai/components';
 import { CLEAR_EDITOR_COMMAND } from 'lexical';
 import { useCallback, useEffect, useState } from 'react';
-import { MARKDOWN_TRANSFORMERS } from './FunctionalToolbar/MarkdownTransformers';
+
+import { MARKDOWN_TRANSFORMERS } from './plugins/lexical-markdown/MarkdownTransformers';
 import { $convertFromMarkdownString } from './plugins/lexical-markdown';
 import { RunbookEditorContainer } from './styledComponents';
 

@@ -24,7 +24,9 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
           message: 'An agent with this name already exists',
         },
       ),
-    description: z.string().trim().min(1),
+    mode: z.enum(['conversational', 'worker']),
+    runbook: z.string().optional(),
+    description: z.string().trim(),
     llmId: z.string().min(1, 'LLM setting is required'),
     apiKey: z.string().optional(),
   });
@@ -40,13 +42,15 @@ export const buildAgentDeploymentSchema = ({ existingAgentNames }: { existingAge
   return agentConfigurationSchema.and(mcpConfigurationSchema);
 };
 
-export const getDefaultValues = (agentTemplate: NonNullable<AgentPackageInspectionResponse>) => {
+export const getDefaultValues = (agentTemplate: NonNullable<AgentPackageInspectionResponse>, runbook?: string) => {
   return {
     name: agentTemplate.name,
     description: agentTemplate.description,
     llmId: '',
     apiKey: '',
     mcpServerIds: [],
+    mode: (agentTemplate.metadata?.mode || 'conversational') as 'conversational' | 'worker',
+    runbook,
   };
 };
 
