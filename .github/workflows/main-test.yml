@@ -23,7 +23,7 @@ concurrency:
 jobs:
   verify:
     name: Static checks
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -54,7 +54,7 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
 
   build:
     name: Build Server
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -106,7 +106,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     needs: [build]
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     timeout-minutes: 45
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
