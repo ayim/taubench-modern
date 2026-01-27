@@ -85,8 +85,6 @@ jobs:
     outputs:
       tag: ${{ steps.build-metadata.outputs.tag }}
       image-uri: ${{ steps.print-image-uri.outputs.image-uri }}
-      ace-prerelease: ${{ steps.build-metadata.outputs.ace-prerelease }}
-      invoked-by: ${{ steps.build-metadata.outputs.invoked-by }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -113,12 +111,9 @@ jobs:
           echo "Preparing metadata for version: ${spar_version}"
 
           if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
-            # Merge to main; Publish a CI ACE release
             spar_tag="${spar_version}+${build_details}"
-            ace_prerelease="none"
-            invoked_by="spar@${spar_tag}"
           else
-            # Push to dev branch; Publish a "manual" / dev ACE release
+            # Push to dev branch
             repo_name="$(
               echo "${{ github.event.repository.name }}" |
                 tr '[:upper:]' '[:lower:]' |
@@ -132,15 +127,11 @@ jobs:
             )"
 
             spar_tag="${spar_version}-${repo_name}-${branch_name}+${build_details}"
-            ace_prerelease="${repo_name}-spar-${branch_name}"
-            invoked_by="${{ github.event.repository.name }}/${BRANCH_NAME}"
           fi
 
           spar_tag_sanitized="${spar_tag//+/_}" # Replace + with _ for the tag to be valid
           echo "version=${spar_tag}" >> "${GITHUB_OUTPUT}"
           echo "tag=${spar_tag_sanitized}" >> "${GITHUB_OUTPUT}"
-          echo "ace-prerelease=${ace_prerelease}" >> "${GITHUB_OUTPUT}"
-          echo "invoked-by=${invoked_by}" >> "${GITHUB_OUTPUT}"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -212,30 +203,6 @@ jobs:
           echo "image-uri=${IMAGE_URI}" >> "${GITHUB_OUTPUT}"
           echo "Docker image URI: ${IMAGE_URI}"
           echo "::notice::Successfully published ${IMAGE_URI}"
-
-  trigger-ace-publish:
-    name: Trigger ACE Publish Workflow
-    needs: [build]
-    if: always() && needs.build.result == 'success'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Trigger ACE Publish Workflow
-        uses: actions/github-script@v7
-        with:
-          github-token: '${{ secrets.ACE_DEPLOY_WORKFLOW_TRIGGER_TOKEN }}'
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: 'ace',
-              workflow_id: 'ace-publish-v2.yml',
-              ref: 'master',
-              inputs: {
-                'branch': 'master',
-                'spar-version': '${{ needs.build.outputs.tag }}',
-                'prerelease': '${{ needs.build.outputs.ace-prerelease }}',
-                'invoked-by': '${{ needs.build.outputs.invoked-by }}'
-              }
-            })
 
   deploy-to-ecs:
     name: Deploy to ECS
