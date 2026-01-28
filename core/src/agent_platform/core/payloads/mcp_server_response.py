@@ -78,15 +78,6 @@ class MCPServerResponse(MCPServerCoreResponse):
 
     source: Annotated[MCPServerSource, Field(description="The source of the MCP server (FILE or API).")]
 
-    is_hosted: Annotated[
-        bool,
-        Field(
-            default=False,
-            description="""Whether this MCP server is hosted on our MCP Runtime.
-            True for servers deployed via agent package upload.""",
-        ),
-    ]
-
     mcp_server_metadata: Annotated[
         AgentPackageMetadata | None,
         Field(
@@ -102,7 +93,6 @@ class MCPServerResponse(MCPServerCoreResponse):
         mcp_server_id: str,
         source: MCPServerSource,
         mcp_server: MCPServer,
-        is_hosted: bool = False,
     ) -> "MCPServerResponse":
         """Create MCPServerResponse from MCP server data."""
         metadata = None
@@ -122,7 +112,6 @@ class MCPServerResponse(MCPServerCoreResponse):
             cwd=mcp_server.cwd,
             type=mcp_server.type,
             force_serial_tool_calls=mcp_server.force_serial_tool_calls,
-            is_hosted=is_hosted,
             mcp_server_metadata=metadata,
         )
 
@@ -171,7 +160,6 @@ class MCPServerWithOAuthConfigResponse(MCPServerResponse):
         mcp_server_id: str,
         source: MCPServerSource,
         mcp_server: MCPServerWithOAuthConfig,
-        is_hosted: bool = False,
     ) -> "MCPServerWithOAuthConfigResponse":
         """Create MCPServerWithOAuthConfigResponse from MCP server data."""
         from agent_platform.core.oauth.oauth_models import AuthenticationMetadataClientCredentials
@@ -217,6 +205,5 @@ class MCPServerWithOAuthConfigResponse(MCPServerResponse):
             force_serial_tool_calls=mcp_server.force_serial_tool_calls,
             authentication_type=authentication_type,
             authentication_metadata=authentication_metadata,
-            is_hosted=is_hosted,
             mcp_server_metadata=metadata,
         )

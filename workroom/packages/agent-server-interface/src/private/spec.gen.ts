@@ -17315,13 +17315,6 @@ export const spec = {
             $ref: '#/components/schemas/MCPServerSource',
             description: 'The source of the MCP server (FILE or API).',
           },
-          is_hosted: {
-            type: 'boolean',
-            title: 'Is Hosted',
-            description:
-              'Whether this MCP server is hosted on our MCP Runtime.\n            True for servers deployed via agent package upload.',
-            default: false,
-          },
           mcp_server_metadata: {
             anyOf: [
               {
@@ -17816,13 +17809,6 @@ export const spec = {
           source: {
             $ref: '#/components/schemas/MCPServerSource',
             description: 'The source of the MCP server (FILE or API).',
-          },
-          is_hosted: {
-            type: 'boolean',
-            title: 'Is Hosted',
-            description:
-              'Whether this MCP server is hosted on our MCP Runtime.\n            True for servers deployed via agent package upload.',
-            default: false,
           },
           mcp_server_metadata: {
             anyOf: [

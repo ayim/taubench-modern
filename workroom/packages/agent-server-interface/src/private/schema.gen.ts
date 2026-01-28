@@ -7078,13 +7078,6 @@ export interface components {
       /** @description The source of the MCP server (FILE or API). */
       source: components['schemas']['MCPServerSource'];
       /**
-       * Is Hosted
-       * @description Whether this MCP server is hosted on our MCP Runtime.
-       *                 True for servers deployed via agent package upload.
-       * @default false
-       */
-      is_hosted: boolean;
-      /**
        * @description Metadata from agent package inspection for hosted MCP servers.
        *                 Contains action packages, secrets, and other package information.
        */
@@ -7242,13 +7235,6 @@ export interface components {
       mcp_server_id: string;
       /** @description The source of the MCP server (FILE or API). */
       source: components['schemas']['MCPServerSource'];
-      /**
-       * Is Hosted
-       * @description Whether this MCP server is hosted on our MCP Runtime.
-       *                 True for servers deployed via agent package upload.
-       * @default false
-       */
-      is_hosted: boolean;
       /**
        * @description Metadata from agent package inspection for hosted MCP servers.
        *                 Contains action packages, secrets, and other package information.

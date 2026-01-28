@@ -8,7 +8,6 @@ import { Row } from './McpServersRow';
 import { ListMcpServersResponse } from '~/queries/mcpServers';
 
 export const getServerTypeLabel = (server: ListMcpServersResponse[string]): string => {
-  if (server.is_hosted) return 'Hosted';
   if (server.url) return 'Remote';
   if (server.command) return 'Local';
   return '—';
